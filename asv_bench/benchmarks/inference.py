@@ -9,6 +9,7 @@ it is likely that these benchmarks will be unaffected.
 import numpy as np
 
 from pandas import (
+    Index,
     NaT,
     Series,
     date_range,
@@ -17,30 +18,24 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
 
 
 class ToNumeric:
-    params = ["ignore", "coerce"]
-    param_names = ["errors"]
-
-    def setup(self, errors):
+    def setup(self):
         N = 10000
         self.float = Series(np.random.randn(N))
         self.numstr = self.float.astype("str")
-        self.str = Series(tm.makeStringIndex(N))
+        self.str = Series(Index([f"i-{i}" for i in range(N)], dtype=object))
 
-    def time_from_float(self, errors):
-        to_numeric(self.float, errors=errors)
+    def time_from_float(self):
+        to_numeric(self.float, errors="coerce")
 
-    def time_from_numeric_str(self, errors):
-        to_numeric(self.numstr, errors=errors)
+    def time_from_numeric_str(self):
+        to_numeric(self.numstr, errors="coerce")
 
-    def time_from_str(self, errors):
-        to_numeric(self.str, errors=errors)
+    def time_from_str(self):
+        to_numeric(self.str, errors="coerce")
 
 
 class ToNumericDowncast:
@@ -164,7 +159,7 @@ class ToDatetimeCacheSmallCount:
 
 class ToDatetimeISO8601:
     def setup(self):
-        rng = date_range(start="1/1/2000", periods=20000, freq="H")
+        rng = date_range(start="1/1/2000", periods=20000, freq="h")
         self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
         self.strings_nosep = rng.strftime("%Y%m%d %H:%M:%S").tolist()
         self.strings_tz_space = [
@@ -189,7 +184,7 @@ class ToDatetimeISO8601:
 
     def time_iso8601_infer_zero_tz_fromat(self):
         # GH 41047
-        to_datetime(self.strings_zero_tz, infer_datetime_format=True)
+        to_datetime(self.strings_zero_tz)
 
 
 class ToDatetimeNONISO8601:
@@ -205,7 +200,7 @@ class ToDatetimeNONISO8601:
         to_datetime(self.same_offset)
 
     def time_different_offset(self):
-        to_datetime(self.diff_offset)
+        to_datetime(self.diff_offset, utc=True)
 
 
 class ToDatetimeFormatQuarters:
@@ -235,9 +230,6 @@ class ToDatetimeFormat:
 
     def time_same_offset(self):
         to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
-
-    def time_different_offset(self):
-        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
 
     def time_same_offset_to_utc(self):
         to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
@@ -273,16 +265,6 @@ class ToDatetimeCache:
         to_datetime(self.dup_string_with_tz, cache=cache)
 
 
-# GH 43901
-class ToDatetimeInferDatetimeFormat:
-    def setup(self):
-        rng = date_range(start="1/1/2000", periods=100000, freq="H")
-        self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
-
-    def time_infer_datetime_format(self):
-        to_datetime(self.strings, infer_datetime_format=True)
-
-
 class ToTimedelta:
     def setup(self):
         self.ints = np.random.randint(0, 60, size=10000)
@@ -303,16 +285,13 @@ class ToTimedelta:
 
 
 class ToTimedeltaErrors:
-    params = ["coerce", "ignore"]
-    param_names = ["errors"]
-
-    def setup(self, errors):
+    def setup(self):
         ints = np.random.randint(0, 60, size=10000)
         self.arr = [f"{i} days" for i in ints]
         self.arr[-1] = "apple"
 
-    def time_convert(self, errors):
-        to_timedelta(self.arr, errors=errors)
+    def time_convert(self):
+        to_timedelta(self.arr, errors="coerce")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -4,6 +4,7 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -54,7 +55,7 @@ class PandasDelegate:
     def _delegate_property_get(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot access the property {name}")
 
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs) -> None:
         raise TypeError(f"The property {name} cannot be set")
 
     def _delegate_method(self, name: str, *args, **kwargs):
@@ -265,7 +266,7 @@ def _register_accessor(name: str, cls):
     For consistency with pandas methods, you should raise an ``AttributeError``
     if the data passed to your accessor has an incorrect dtype.
 
-    >>> pd.Series(['a', 'b']).dt
+    >>> pd.Series(["a", "b"]).dt
     Traceback (most recent call last):
     ...
     AttributeError: Can only use .dt accessor with datetimelike values
@@ -273,8 +274,6 @@ def _register_accessor(name: str, cls):
     Examples
     --------
     In your library code::
-
-        import pandas as pd
 
         @pd.api.extensions.register_dataframe_accessor("geo")
         class GeoAccessor:
@@ -306,8 +305,8 @@ def _register_accessor(name: str, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                f"registration of accessor {repr(accessor)} under name "
-                f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
+                f"registration of accessor {accessor!r} under name "
+                f"{name!r} for type {cls!r} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
                 stacklevel=find_stack_level(),

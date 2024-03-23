@@ -2,6 +2,7 @@
 Period benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.period for benchmarks that rely only on tslibs.
 """
+
 from pandas import (
     DataFrame,
     Period,
@@ -45,7 +46,7 @@ class PeriodIndexConstructor:
 
 class DataFramePeriodColumn:
     def setup(self):
-        self.rng = period_range(start="1/1/1990", freq="S", periods=20000)
+        self.rng = period_range(start="1/1/1990", freq="s", periods=20000)
         self.df = DataFrame(index=range(len(self.rng)))
 
     def time_setitem_period_column(self):

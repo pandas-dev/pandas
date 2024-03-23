@@ -1,6 +1,7 @@
 """
 Tests that can be parametrized over _any_ Index object.
 """
+
 import re
 
 import numpy as np

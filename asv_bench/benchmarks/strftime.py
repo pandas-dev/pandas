@@ -53,7 +53,7 @@ class DatetimeStrftime:
 
 class PeriodStrftime:
     timeout = 1500
-    params = ([1000, 10000], ["D", "H"])
+    params = ([1000, 10000], ["D", "h"])
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
@@ -67,7 +67,7 @@ class PeriodStrftime:
         self.data.set_index("i", inplace=True)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
-        elif freq == "H":
+        elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_to_str(self, nobs, freq):
@@ -78,12 +78,6 @@ class PeriodStrftime:
 
     def time_frame_period_formatting_default_explicit(self, nobs, freq):
         self.data["p"].dt.strftime(date_format=self.default_fmt)
-
-    def time_frame_period_formatting_index_default(self, nobs, freq):
-        self.data.index.format()
-
-    def time_frame_period_formatting_index_default_explicit(self, nobs, freq):
-        self.data.index.format(self.default_fmt)
 
     def time_frame_period_formatting_custom(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")

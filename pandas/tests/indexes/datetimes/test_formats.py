@@ -116,14 +116,13 @@ class TestDatetimeIndexRendering:
             ),
         ],
     )
-    def test_dti_repr_time_midnight(self, dates, freq, expected_repr):
+    def test_dti_repr_time_midnight(self, dates, freq, expected_repr, unit):
         # GH53634
-        dti = DatetimeIndex(dates, freq)
+        dti = DatetimeIndex(dates, freq).as_unit(unit)
         actual_repr = repr(dti)
-        assert actual_repr == expected_repr
+        assert actual_repr == expected_repr.replace("[ns]", f"[{unit}]")
 
-    @pytest.mark.parametrize("method", ["__repr__", "__str__"])
-    def test_dti_representation(self, method):
+    def test_dti_representation(self, unit):
         idxs = []
         idxs.append(DatetimeIndex([], freq="D"))
         idxs.append(DatetimeIndex(["2011-01-01"], freq="D"))
@@ -174,11 +173,16 @@ class TestDatetimeIndexRendering:
         )
 
         with pd.option_context("display.width", 300):
-            for indx, expected in zip(idxs, exp):
-                result = getattr(indx, method)()
+            for index, expected in zip(idxs, exp):
+                index = index.as_unit(unit)
+                expected = expected.replace("[ns", f"[{unit}")
+                result = repr(index)
+                assert result == expected
+                result = str(index)
                 assert result == expected
 
-    def test_dti_representation_to_series(self):
+    # TODO: this is a Series.__repr__ test
+    def test_dti_representation_to_series(self, unit):
         idx1 = DatetimeIndex([], freq="D")
         idx2 = DatetimeIndex(["2011-01-01"], freq="D")
         idx3 = DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
@@ -231,8 +235,9 @@ class TestDatetimeIndexRendering:
                 [idx1, idx2, idx3, idx4, idx5, idx6, idx7],
                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7],
             ):
-                result = repr(Series(idx))
-                assert result == expected
+                ser = Series(idx.as_unit(unit))
+                result = repr(ser)
+                assert result == expected.replace("[ns", f"[{unit}")
 
     def test_dti_summary(self):
         # GH#9116
@@ -271,97 +276,13 @@ class TestDatetimeIndexRendering:
             result = idx._summary()
             assert result == expected
 
-    def test_dti_business_repr(self):
+    @pytest.mark.parametrize("tz", [None, pytz.utc, dateutil.tz.tzutc()])
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_repr_etc_smoke(self, tz, freq):
         # only really care that it works
-        repr(pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1)))
-
-    def test_dti_business_summary(self):
-        rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1))
-        rng._summary()
-        rng[2:2]._summary()
-
-    def test_dti_business_summary_pytz(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", tz=pytz.utc)._summary()
-
-    def test_dti_business_summary_dateutil(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", tz=dateutil.tz.tzutc())._summary()
-
-    def test_dti_custom_business_repr(self):
-        # only really care that it works
-        repr(pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1), freq="C"))
-
-    def test_dti_custom_business_summary(self):
-        rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1), freq="C")
-        rng._summary()
-        rng[2:2]._summary()
-
-    def test_dti_custom_business_summary_pytz(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", freq="C", tz=pytz.utc)._summary()
-
-    def test_dti_custom_business_summary_dateutil(self):
-        pd.bdate_range(
-            "1/1/2005", "1/1/2009", freq="C", tz=dateutil.tz.tzutc()
-        )._summary()
-
-
-class TestFormat:
-    def test_format(self):
-        # GH#35439
-        idx = pd.date_range("20130101", periods=5)
-        expected = [f"{x:%Y-%m-%d}" for x in idx]
-        msg = r"DatetimeIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
-
-    def test_format_with_name_time_info(self):
-        # bug I fixed 12/20/2011
-        dates = pd.date_range("2011-01-01 04:00:00", periods=10, name="something")
-
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = dates.format(name=True)
-        assert formatted[0] == "something"
-
-    def test_format_datetime_with_time(self):
-        dti = DatetimeIndex([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
-
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = dti.format()
-        expected = ["2012-02-07 00:00:00", "2012-02-07 23:00:00"]
-        assert len(result) == 2
-        assert result == expected
-
-    def test_format_datetime(self):
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
-        assert formatted[0] == "2003-01-01 12:00:00"
-        assert formatted[1] == "NaT"
-
-    def test_format_date(self):
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
-        assert formatted[0] == "2003-01-01"
-        assert formatted[1] == "NaT"
-
-    def test_format_date_tz(self):
-        dti = pd.to_datetime([datetime(2013, 1, 1)], utc=True)
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = dti.format()
-        assert formatted[0] == "2013-01-01 00:00:00+00:00"
-
-        dti = pd.to_datetime([datetime(2013, 1, 1), NaT], utc=True)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = dti.format()
-        assert formatted[0] == "2013-01-01 00:00:00+00:00"
-
-    def test_format_date_explicit_date_format(self):
-        dti = pd.to_datetime([datetime(2003, 2, 1), NaT])
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = dti.format(date_format="%m-%d-%Y", na_rep="UT")
-        assert formatted[0] == "02-01-2003"
-        assert formatted[1] == "UT"
+        dti = pd.bdate_range(
+            datetime(2009, 1, 1), datetime(2010, 1, 1), tz=tz, freq=freq
+        )
+        repr(dti)
+        dti._summary()
+        dti[2:2]._summary()

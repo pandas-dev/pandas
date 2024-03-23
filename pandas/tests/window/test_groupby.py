@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -100,7 +101,7 @@ class TestRolling:
 
         result = getattr(r, f)()
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -116,7 +117,7 @@ class TestRolling:
 
         result = getattr(r, f)(ddof=1)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -134,7 +135,7 @@ class TestRolling:
 
         result = r.quantile(0.4, interpolation=interpolation)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(
                 lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
             )
@@ -181,7 +182,7 @@ class TestRolling:
             return getattr(x.rolling(4), f)(roll_frame)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(func)
         # GH 39591: The grouped column should be all np.nan
         # (groupby.apply inserts 0s for cov)
@@ -199,7 +200,7 @@ class TestRolling:
             return getattr(x.B.rolling(4), f)(pairwise=True)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(func)
         tm.assert_series_equal(result, expected)
 
@@ -246,7 +247,7 @@ class TestRolling:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -373,24 +374,11 @@ class TestRolling:
             .rolling(6, on="Date", center=True, min_periods=1)
             .value.mean()
         )
+        mi = MultiIndex.from_arrays([df["gb"], df["Date"]], names=["gb", "Date"])
         expected = Series(
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
             name="value",
-            index=MultiIndex.from_tuples(
-                (
-                    ("group_1", Timestamp("2020-01-01")),
-                    ("group_1", Timestamp("2020-01-02")),
-                    ("group_1", Timestamp("2020-01-03")),
-                    ("group_1", Timestamp("2020-01-04")),
-                    ("group_1", Timestamp("2020-01-05")),
-                    ("group_1", Timestamp("2020-01-06")),
-                    ("group_2", Timestamp("2020-01-07")),
-                    ("group_2", Timestamp("2020-01-08")),
-                    ("group_2", Timestamp("2020-01-09")),
-                    ("group_2", Timestamp("2020-01-10")),
-                ),
-                names=["gb", "Date"],
-            ),
+            index=mi,
         )
         tm.assert_series_equal(result, expected)
 
@@ -459,7 +447,7 @@ class TestRolling:
             ):
                 min_periods = self.window_size if min_periods is None else 0
                 end = np.arange(num_values, dtype=np.int64) + 1
-                start = end.copy() - self.window_size
+                start = end - self.window_size
                 start[start < 0] = min_periods
                 return start, end
 
@@ -625,14 +613,14 @@ class TestRolling:
         expected = expected.drop(columns="foo")
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_count_closed_on(self):
+    def test_groupby_rolling_count_closed_on(self, unit):
         # GH 35869
         df = DataFrame(
             {
                 "column1": range(6),
                 "column2": range(6),
                 "group": 3 * ["A", "B"],
-                "date": date_range(end="20190101", periods=6),
+                "date": date_range(end="20190101", periods=6, unit=unit),
             }
         )
         result = (
@@ -640,20 +628,28 @@ class TestRolling:
             .rolling("3d", on="date", closed="left")["column1"]
             .count()
         )
+        dti = DatetimeIndex(
+            [
+                "2018-12-27",
+                "2018-12-29",
+                "2018-12-31",
+                "2018-12-28",
+                "2018-12-30",
+                "2019-01-01",
+            ],
+            dtype=f"M8[{unit}]",
+        )
+        mi = MultiIndex.from_arrays(
+            [
+                ["A", "A", "A", "B", "B", "B"],
+                dti,
+            ],
+            names=["group", "date"],
+        )
         expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
             name="column1",
-            index=MultiIndex.from_tuples(
-                [
-                    ("A", Timestamp("2018-12-27")),
-                    ("A", Timestamp("2018-12-29")),
-                    ("A", Timestamp("2018-12-31")),
-                    ("B", Timestamp("2018-12-28")),
-                    ("B", Timestamp("2018-12-30")),
-                    ("B", Timestamp("2019-01-01")),
-                ],
-                names=["group", "date"],
-            ),
+            index=mi,
         )
         tm.assert_series_equal(result, expected)
 
@@ -797,11 +793,11 @@ class TestRolling:
         # GH 39732
         g = roll_frame.groupby("A", group_keys=False)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = g.apply(lambda x: x.rolling(4).sum()).index
         tm.assert_index_equal(result, expected)
 
@@ -885,7 +881,7 @@ class TestRolling:
             ],
         ],
     )
-    def test_as_index_false(self, by, expected_data):
+    def test_as_index_false(self, by, expected_data, unit):
         # GH 39433
         data = [
             ["A", "2018-01-01", 100.0],
@@ -894,7 +890,7 @@ class TestRolling:
             ["B", "2018-01-02", 250.0],
         ]
         df = DataFrame(data, columns=["id", "date", "num"])
-        df["date"] = to_datetime(df["date"])
+        df["date"] = df["date"].astype(f"M8[{unit}]")
         df = df.set_index(["date"])
 
         gp_by = [getattr(df, attr) for attr in by]
@@ -908,6 +904,8 @@ class TestRolling:
             expected,
             index=df.index,
         )
+        if "date" in expected_data:
+            expected["date"] = expected["date"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(result, expected)
 
     def test_nan_and_zero_endpoints(self, any_int_numpy_dtype):
@@ -977,7 +975,7 @@ class TestRolling:
         df = df.sort_values("date")
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = (
                 df.set_index("date")
                 .groupby("name")
@@ -1002,7 +1000,7 @@ class TestRolling:
         )
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = (
                 df.set_index("B")
                 .groupby("A")
@@ -1038,7 +1036,7 @@ class TestExpanding:
 
         result = getattr(r, f)()
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: getattr(x.expanding(), f)())
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -1054,7 +1052,7 @@ class TestExpanding:
 
         result = getattr(r, f)(ddof=0)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -1072,7 +1070,7 @@ class TestExpanding:
 
         result = r.quantile(0.4, interpolation=interpolation)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(
                 lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
             )
@@ -1094,7 +1092,7 @@ class TestExpanding:
             return getattr(x.expanding(), f)(frame)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
         # with all nan values
@@ -1111,7 +1109,7 @@ class TestExpanding:
             return getattr(x.B.expanding(), f)(pairwise=True)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
@@ -1122,7 +1120,7 @@ class TestExpanding:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = g.apply(
                 lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw)
             )
@@ -1183,7 +1181,9 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        expected = df.groupby("A")[["B"]].apply(
+            lambda x: getattr(x.ewm(com=1.0), method)()
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_times(self, times_frame):

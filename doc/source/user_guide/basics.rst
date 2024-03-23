@@ -269,7 +269,7 @@ using ``fillna`` if you wish).
 .. ipython:: python
 
    df2 = df.copy()
-   df2["three"]["a"] = 1.0
+   df2.loc["a", "three"] = 1.0
    df
    df2
    df + df2
@@ -299,8 +299,7 @@ Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
-:meth:`~DataFrame.all`, and :meth:`~DataFrame.bool` to provide a
-way to summarize a boolean result.
+:meth:`~DataFrame.all`.
 
 .. ipython:: python
 
@@ -1309,8 +1308,8 @@ filling method chosen from the following table:
     :header: "Method", "Action"
     :widths: 30, 50
 
-    pad / ffill, Fill values forward
-    bfill / backfill, Fill values backward
+    ffill, Fill values forward
+    bfill, Fill values backward
     nearest, Fill from the nearest index value
 
 We illustrate these fill methods on a simple Series:
@@ -2007,7 +2006,7 @@ documentation sections for more on each type.
 |                                                 |                           |                    |                               | ``'Int64'``, ``'UInt8'``, ``'UInt16'``,|
 |                                                 |                           |                    |                               | ``'UInt32'``, ``'UInt64'``             |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
-| ``nullable float``                              | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
+| :ref:`nullable float <api.arrays.float_na>`     | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
 | :ref:`Strings <text>`                           | :class:`StringDtype`      | :class:`str`       | :class:`arrays.StringArray`   | ``'string'``                           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
@@ -2260,23 +2259,6 @@ non-conforming elements intermixed that you want to represent as missing:
 
     m = ["apple", pd.Timedelta("1day")]
     pd.to_timedelta(m, errors="coerce")
-
-The ``errors`` parameter has a third option of ``errors='ignore'``, which will simply return the passed in data if it
-encounters any errors with the conversion to a desired data type:
-
-.. ipython:: python
-    :okwarning:
-
-    import datetime
-
-    m = ["apple", datetime.datetime(2016, 3, 2)]
-    pd.to_datetime(m, errors="ignore")
-
-    m = ["apple", 2, 3]
-    pd.to_numeric(m, errors="ignore")
-
-    m = ["apple", pd.Timedelta("1day")]
-    pd.to_timedelta(m, errors="ignore")
 
 In addition to object conversion, :meth:`~pandas.to_numeric` provides another argument ``downcast``, which gives the
 option of downcasting the newly (or already) numeric data to a smaller dtype, which can conserve memory:

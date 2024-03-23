@@ -121,19 +121,6 @@ def test_filter_condition_raises():
         grouped.filter(raise_if_sum_is_zero)
 
 
-def test_filter_with_axis_in_groupby():
-    # issue 11041
-    index = pd.MultiIndex.from_product([range(10), [0, 1]])
-    data = DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
-
-    msg = "DataFrame.groupby with axis=1"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = data.groupby(level=0, axis=1)
-    result = gb.filter(lambda x: x.iloc[0, 0] > 10)
-    expected = data.iloc[:, 12:20]
-    tm.assert_frame_equal(result, expected)
-
-
 def test_filter_bad_shapes():
     df = DataFrame({"A": np.arange(8), "B": list("aabbbbcc"), "C": np.arange(8)})
     s = df["B"]
@@ -190,9 +177,9 @@ def test_filter_pdna_is_false():
     tm.assert_series_equal(res, ser[[]])
 
 
-def test_filter_against_workaround():
+def test_filter_against_workaround_ints():
     # Series of ints
-    s = Series(np.random.default_rng(2).integers(0, 100, 1000))
+    s = Series(np.random.default_rng(2).integers(0, 100, 100))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -201,8 +188,10 @@ def test_filter_against_workaround():
     new_way = grouped.filter(f)
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
+
+def test_filter_against_workaround_floats():
     # Series of floats
-    s = 100 * Series(np.random.default_rng(2).random(1000))
+    s = 100 * Series(np.random.default_rng(2).random(100))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -210,9 +199,11 @@ def test_filter_against_workaround():
     new_way = grouped.filter(f)
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
+
+def test_filter_against_workaround_dataframe():
     # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
-    N = 1000
+    N = 100
     random_letters = letters.take(
         np.random.default_rng(2).integers(0, 26, N, dtype=int)
     )

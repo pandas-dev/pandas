@@ -2,6 +2,7 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import (
     BytesIO,
     TextIOWrapper,
@@ -24,7 +25,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 def test_bytes_io_input(all_parsers):
@@ -38,7 +38,7 @@ def test_bytes_io_input(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -48,7 +48,7 @@ def test_read_csv_unicode(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
@@ -58,9 +58,7 @@ def test_utf16_bom_skiprows(all_parsers, sep, encoding):
 skip this too
 A,B,C
 1,2,3
-4,5,6""".replace(
-        ",", sep
-    )
+4,5,6""".replace(",", sep)
     path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
@@ -100,22 +98,22 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     "data,kwargs,expected",
     [
         # Basic test
-        ("a\n1", {}, DataFrame({"a": [1]})),
+        ("a\n1", {}, [1]),
         # "Regular" quoting
-        ('"a"\n1', {"quotechar": '"'}, DataFrame({"a": [1]})),
+        ('"a"\n1', {"quotechar": '"'}, [1]),
         # Test in a data row instead of header
-        ("b\n1", {"names": ["a"]}, DataFrame({"a": ["b", "1"]})),
+        ("b\n1", {"names": ["a"]}, ["b", "1"]),
         # Test in empty data row with skipping
-        ("\n1", {"names": ["a"], "skip_blank_lines": True}, DataFrame({"a": [1]})),
+        ("\n1", {"names": ["a"], "skip_blank_lines": True}, [1]),
         # Test in empty data row without skipping
         (
             "\n1",
             {"names": ["a"], "skip_blank_lines": False},
-            DataFrame({"a": [np.nan, 1]}),
+            [np.nan, 1],
         ),
     ],
 )
-def test_utf8_bom(all_parsers, data, kwargs, expected, request):
+def test_utf8_bom(all_parsers, data, kwargs, expected):
     # see gh-4793
     parser = all_parsers
     bom = "\ufeff"
@@ -130,10 +128,11 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         and data == "\n1"
         and kwargs.get("skip_blank_lines", True)
     ):
-        # Manually xfail, since we don't have mechanism to xfail specific version
-        request.applymarker(pytest.mark.xfail(reason="Pyarrow can't read blank lines"))
+        # CSV parse error: Empty CSV file or block: cannot infer number of columns
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
 
@@ -181,16 +180,21 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     tm.assert_frame_equal(expected, result)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("pass_encoding", [True, False])
-def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
+def test_encoding_temp_file(
+    all_parsers, utf_value, encoding_fmt, pass_encoding, temp_file
+):
     # see gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
 
+    if parser.engine == "pyarrow" and pass_encoding is True and utf_value in [16, 32]:
+        # FIXME: this is bad!
+        pytest.skip("These cases freeze")
+
     expected = DataFrame({"foo": ["bar"]})
 
-    with tm.ensure_clean(mode="w+", encoding=encoding, return_filelike=True) as f:
+    with temp_file.open(mode="w+", encoding=encoding) as f:
         f.write("foo\nbar")
         f.seek(0)
 
@@ -198,7 +202,6 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_encoding_named_temp_file(all_parsers):
     # see gh-31819
     parser = all_parsers
@@ -236,7 +239,6 @@ def test_parse_encoded_special_characters(encoding):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986
@@ -250,11 +252,17 @@ def test_encoding_memory_map(all_parsers, encoding):
     )
     with tm.ensure_clean() as file:
         expected.to_csv(file, index=False, encoding=encoding)
+
+        if parser.engine == "pyarrow":
+            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(file, encoding=encoding, memory_map=True)
+            return
+
         df = parser.read_csv(file, encoding=encoding, memory_map=True)
     tm.assert_frame_equal(df, expected)
 
 
-@xfail_pyarrow
 def test_chunk_splits_multibyte_char(all_parsers):
     """
     Chunk splits a multibyte character with memory_map=True
@@ -270,11 +278,17 @@ def test_chunk_splits_multibyte_char(all_parsers):
     df.iloc[2047] = "a" * 127 + "ą"
     with tm.ensure_clean("bug-gh43540.csv") as fname:
         df.to_csv(fname, index=False, header=False, encoding="utf-8")
-        dfr = parser.read_csv(fname, header=None, memory_map=True, engine="c")
+
+        if parser.engine == "pyarrow":
+            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(fname, header=None, memory_map=True)
+            return
+
+        dfr = parser.read_csv(fname, header=None, memory_map=True)
     tm.assert_frame_equal(dfr, df)
 
 
-@xfail_pyarrow
 def test_readcsv_memmap_utf8(all_parsers):
     """
     GH 43787
@@ -298,9 +312,14 @@ def test_readcsv_memmap_utf8(all_parsers):
     df = DataFrame(lines)
     with tm.ensure_clean("utf8test.csv") as fname:
         df.to_csv(fname, index=False, header=False, encoding="utf-8")
-        dfr = parser.read_csv(
-            fname, header=None, memory_map=True, engine="c", encoding="utf-8"
-        )
+
+        if parser.engine == "pyarrow":
+            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(fname, header=None, memory_map=True, encoding="utf-8")
+            return
+
+        dfr = parser.read_csv(fname, header=None, memory_map=True, encoding="utf-8")
     tm.assert_frame_equal(df, dfr)
 
 

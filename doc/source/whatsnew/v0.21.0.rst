@@ -635,17 +635,22 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pi = pd.period_range('2017-01', periods=12, freq='M')
+   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
 
-   s = pd.Series(np.arange(12), index=pi)
+   In [2]: s = pd.Series(np.arange(12), index=pi)
 
-   resampled = s.resample('2Q').mean()
+   In [3]: resampled = s.resample('2Q').mean()
 
-   resampled
+   In [4]: resampled
+   Out[4]:
+   2017Q1    2.5
+   2017Q3    8.5
+   Freq: 2Q-DEC, dtype: float64
 
-   resampled.index
+   In [5]: resampled.index
+   Out[5]: PeriodIndex(['2017Q1', '2017Q3'], dtype='period[2Q-DEC]')
 
 Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
 

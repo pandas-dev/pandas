@@ -8,11 +8,160 @@ from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas import (
+    Index,
     NaT,
     Timedelta,
+    TimedeltaIndex,
     offsets,
     to_timedelta,
 )
+import pandas._testing as tm
+
+
+class TestTimedeltaConstructorUnitKeyword:
+    @pytest.mark.parametrize("unit", ["Y", "y", "M"])
+    def test_unit_m_y_raises(self, unit):
+        msg = "Units 'M', 'Y', and 'y' are no longer supported"
+
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit)
+
+    @pytest.mark.parametrize("unit", ["h", "s"])
+    def test_units_H_S_deprecated(self, unit):
+        # GH#52536
+        msg = f"'{unit.upper()}' is deprecated and will be removed in a future version."
+
+        expected = Timedelta(1, unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Timedelta(1, unit=unit.upper())
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "unit, np_unit",
+        [(value, "W") for value in ["W", "w"]]
+        + [(value, "D") for value in ["D", "d", "days", "day", "Days", "Day"]]
+        + [
+            (value, "m")
+            for value in [
+                "m",
+                "minute",
+                "min",
+                "minutes",
+                "Minute",
+                "Min",
+                "Minutes",
+            ]
+        ]
+        + [
+            (value, "s")
+            for value in [
+                "s",
+                "seconds",
+                "sec",
+                "second",
+                "Seconds",
+                "Sec",
+                "Second",
+            ]
+        ]
+        + [
+            (value, "ms")
+            for value in [
+                "ms",
+                "milliseconds",
+                "millisecond",
+                "milli",
+                "millis",
+                "MS",
+                "Milliseconds",
+                "Millisecond",
+                "Milli",
+                "Millis",
+            ]
+        ]
+        + [
+            (value, "us")
+            for value in [
+                "us",
+                "microseconds",
+                "microsecond",
+                "micro",
+                "micros",
+                "US",
+                "Microseconds",
+                "Microsecond",
+                "Micro",
+                "Micros",
+            ]
+        ]
+        + [
+            (value, "ns")
+            for value in [
+                "ns",
+                "nanoseconds",
+                "nanosecond",
+                "nano",
+                "nanos",
+                "NS",
+                "Nanoseconds",
+                "Nanosecond",
+                "Nano",
+                "Nanos",
+            ]
+        ],
+    )
+    @pytest.mark.parametrize("wrapper", [np.array, list, Index])
+    def test_unit_parser(self, unit, np_unit, wrapper):
+        # validate all units, GH 6855, GH 21762
+        # array-likes
+        expected = TimedeltaIndex(
+            [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
+            dtype="m8[ns]",
+        )
+        # TODO(2.0): the desired output dtype may have non-nano resolution
+
+        msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
+
+            # scalar
+            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+            result = to_timedelta(2, unit=unit)
+            assert result == expected
+            result = Timedelta(2, unit=unit)
+            assert result == expected
+
+            result = to_timedelta(f"2{unit}")
+            assert result == expected
+            result = Timedelta(f"2{unit}")
+            assert result == expected
+
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_unit_T_L_N_U_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(1, unit=unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit)
 
 
 def test_construct_from_kwargs_overflow():
@@ -475,17 +624,16 @@ def test_timedelta_pass_td_and_kwargs_raises():
 
 
 @pytest.mark.parametrize(
-    "constructor, value, unit, expectation",
+    "constructor, value, unit",
     [
-        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+        (Timedelta, "10s", "ms"),
+        (to_timedelta, "10s", "ms"),
+        (to_timedelta, ["1", 2, 3], "s"),
     ],
 )
-def test_string_with_unit(constructor, value, unit, expectation):
-    exp, match = expectation
-    with pytest.raises(exp, match=match):
-        _ = constructor(value, unit=unit)
+def test_string_with_unit(constructor, value, unit):
+    with pytest.raises(ValueError, match="unit must not be specified"):
+        constructor(value, unit=unit)
 
 
 @pytest.mark.parametrize(

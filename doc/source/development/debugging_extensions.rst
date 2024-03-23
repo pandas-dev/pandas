@@ -6,7 +6,7 @@
 Debugging C extensions
 ======================
 
-Pandas uses Cython and C/C++ `extension modules <https://docs.python.org/3/extending/extending.html>`_ to optimize performance. Unfortunately, the standard Python debugger does not allow you to step into these extensions. Cython extensions can be debugged with the `Cython debugger <https://docs.cython.org/en/latest/src/userguide/debugging.html>`_ and C/C++ extensions can be debugged using the tools shipped with your platform's compiler.
+pandas uses Cython and C/C++ `extension modules <https://docs.python.org/3/extending/extending.html>`_ to optimize performance. Unfortunately, the standard Python debugger does not allow you to step into these extensions. Cython extensions can be debugged with the `Cython debugger <https://docs.cython.org/en/latest/src/userguide/debugging.html>`_ and C/C++ extensions can be debugged using the tools shipped with your platform's compiler.
 
 For Python developers with limited or no C/C++ experience this can seem a daunting task. Core developer Will Ayd has written a 3 part blog series to help guide you from the standard Python debugger into these other tools:
 
@@ -23,7 +23,7 @@ By default building pandas from source will generate a release build. To generat
 
 .. note::
 
-   conda environements update CFLAGS/CPPFLAGS with flags that are geared towards generating releases. If using conda, you may need to set ``CFLAGS="$CFLAGS -O0"`` and ``CPPFLAGS="$CPPFLAGS -O0"`` to ensure optimizations are turned off for debugging
+   conda environments update CFLAGS/CPPFLAGS with flags that are geared towards generating releases. If using conda, you may need to set ``CFLAGS="$CFLAGS -O0"`` and ``CPPFLAGS="$CPPFLAGS -O0"`` to ensure optimizations are turned off for debugging
 
 By specifying ``builddir="debug"`` all of the targets will be built and placed in the debug directory relative to the project root. This helps to keep your debug and release artifacts separate; you are of course able to choose a different directory name or omit altogether if you do not care to separate build types.
 

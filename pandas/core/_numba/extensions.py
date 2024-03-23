@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import operator
+from typing import TYPE_CHECKING
 
 import numba
 from numba import types
@@ -37,7 +38,11 @@ from pandas._libs import lib
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexing import _iLocIndexer
+from pandas.core.internals import SingleBlockManager
 from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas._typing import Self
 
 
 # Helper function to hack around fact that Index casts numpy string dtype to object
@@ -83,7 +88,7 @@ class IndexType(types.Type):
     def as_array(self):
         return types.Array(self.dtype, 1, self.layout)
 
-    def copy(self, dtype=None, ndim: int = 1, layout=None):
+    def copy(self, dtype=None, ndim: int = 1, layout=None) -> Self:
         assert ndim == 1
         if dtype is None:
             dtype = self.dtype
@@ -113,7 +118,7 @@ class SeriesType(types.Type):
     def as_array(self):
         return self.values
 
-    def copy(self, dtype=None, ndim: int = 1, layout: str = "C"):
+    def copy(self, dtype=None, ndim: int = 1, layout: str = "C") -> Self:
         assert ndim == 1
         assert layout == "C"
         if dtype is None:
@@ -122,7 +127,7 @@ class SeriesType(types.Type):
 
 
 @typeof_impl.register(Index)
-def typeof_index(val, c):
+def typeof_index(val, c) -> IndexType:
     """
     This will assume that only strings are in object dtype
     index.
@@ -135,7 +140,7 @@ def typeof_index(val, c):
 
 
 @typeof_impl.register(Series)
-def typeof_series(val, c):
+def typeof_series(val, c) -> SeriesType:
     index = typeof_impl(val.index, c)
     arrty = typeof_impl(val.values, c)
     namety = typeof_impl(val.name, c)
@@ -387,32 +392,40 @@ def box_series(typ, val, c):
     Convert a native series structure to a Series object.
     """
     series = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
-    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series))
+    series_const_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series._from_mgr))
+    mgr_const_obj = c.pyapi.unserialize(
+        c.pyapi.serialize_object(SingleBlockManager.from_array)
+    )
     index_obj = c.box(typ.index, series.index)
     array_obj = c.box(typ.as_array, series.values)
     name_obj = c.box(typ.namety, series.name)
-    true_obj = c.pyapi.unserialize(c.pyapi.serialize_object(True))
-    # This is equivalent of
-    # pd.Series(data=array_obj, index=index_obj, dtype=None,
-    #           name=name_obj, copy=None, fastpath=True)
-    series_obj = c.pyapi.call_function_objargs(
-        class_obj,
+    # This is basically equivalent of
+    # pd.Series(data=array_obj, index=index_obj)
+    # To improve perf, we will construct the Series from a manager
+    # object to avoid checks.
+    # We'll also set the name attribute manually to avoid validation
+    mgr_obj = c.pyapi.call_function_objargs(
+        mgr_const_obj,
         (
             array_obj,
             index_obj,
-            c.pyapi.borrow_none(),
-            name_obj,
-            c.pyapi.borrow_none(),
-            true_obj,
         ),
     )
+    mgr_axes_obj = c.pyapi.object_getattr_string(mgr_obj, "axes")
+    # Series._constructor_from_mgr(mgr, axes)
+    series_obj = c.pyapi.call_function_objargs(
+        series_const_obj, (mgr_obj, mgr_axes_obj)
+    )
+    c.pyapi.object_setattr_string(series_obj, "_name", name_obj)
 
     # Decrefs
-    c.pyapi.decref(class_obj)
+    c.pyapi.decref(series_const_obj)
+    c.pyapi.decref(mgr_axes_obj)
+    c.pyapi.decref(mgr_obj)
+    c.pyapi.decref(mgr_const_obj)
     c.pyapi.decref(index_obj)
     c.pyapi.decref(array_obj)
     c.pyapi.decref(name_obj)
-    c.pyapi.decref(true_obj)
 
     return series_obj
 
@@ -523,7 +536,7 @@ class IlocType(types.Type):
 
 
 @typeof_impl.register(_iLocIndexer)
-def typeof_iloc(val, c):
+def typeof_iloc(val, c) -> IlocType:
     objtype = typeof_impl(val.obj, c)
     return IlocType(objtype)
 

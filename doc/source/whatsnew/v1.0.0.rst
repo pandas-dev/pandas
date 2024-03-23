@@ -1079,7 +1079,7 @@ Datetimelike
 - Bug in masking datetime-like arrays with a boolean mask of an incorrect length not raising an ``IndexError`` (:issue:`30308`)
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
-- Bug in :func:`pandas.to_datetime` failing for ``deques`` when using ``cache=True`` (the default) (:issue:`29403`)
+- Bug in :func:`pandas.to_datetime` failing for ``deque`` objects when using ``cache=True`` (the default) (:issue:`29403`)
 - Bug in :meth:`Series.item` with ``datetime64`` or ``timedelta64`` dtype, :meth:`DatetimeIndex.item`, and :meth:`TimedeltaIndex.item` returning an integer instead of a :class:`Timestamp` or :class:`Timedelta` (:issue:`30175`)
 - Bug in :class:`DatetimeIndex` addition when adding a non-optimized :class:`DateOffset` incorrectly dropping timezone information (:issue:`30336`)
 - Bug in :meth:`DataFrame.drop` where attempting to drop non-existent values from a DatetimeIndex would yield a confusing error message (:issue:`30399`)

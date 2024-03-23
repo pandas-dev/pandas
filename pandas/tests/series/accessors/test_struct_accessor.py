@@ -2,6 +2,11 @@ import re
 
 import pytest
 
+from pandas.compat.pyarrow import (
+    pa_version_under11p0,
+    pa_version_under13p0,
+)
+
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -9,9 +14,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.arrays.arrow.accessors import StructAccessor
 
 pa = pytest.importorskip("pyarrow")
+pc = pytest.importorskip("pyarrow.compute")
 
 
 def test_struct_accessor_dtypes():
@@ -54,6 +59,7 @@ def test_struct_accessor_dtypes():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field():
     index = Index([-100, 42, 123])
     ser = Series(
@@ -95,10 +101,11 @@ def test_struct_accessor_field():
 def test_struct_accessor_field_with_invalid_name_or_index():
     ser = Series([], dtype=ArrowDtype(pa.struct([("field", pa.int64())])))
 
-    with pytest.raises(ValueError, match="name_or_index must be an int or str"):
+    with pytest.raises(ValueError, match="name_or_index must be an int, str,"):
         ser.struct.field(1.1)
 
 
+@pytest.mark.skipif(pa_version_under11p0, reason="pyarrow>=11.0.0 required")
 def test_struct_accessor_explode():
     index = Index([-100, 42, 123])
     ser = Series(
@@ -141,7 +148,49 @@ def test_struct_accessor_explode():
     ],
 )
 def test_struct_accessor_api_for_invalid(invalid):
-    msg = re.escape(StructAccessor._validation_msg.format(dtype=invalid.dtype))
-
-    with pytest.raises(AttributeError, match=msg):
+    with pytest.raises(
+        AttributeError,
+        match=re.escape(
+            "Can only use the '.struct' accessor with 'struct[pyarrow]' dtype, "
+            f"not {invalid.dtype}."
+        ),
+    ):
         invalid.struct
+
+
+@pytest.mark.parametrize(
+    ["indices", "name"],
+    [
+        (0, "int_col"),
+        ([1, 2], "str_col"),
+        (pc.field("int_col"), "int_col"),
+        ("int_col", "int_col"),
+        (b"string_col", b"string_col"),
+        ([b"string_col"], "string_col"),
+    ],
+)
+@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
+def test_struct_accessor_field_expanded(indices, name):
+    arrow_type = pa.struct(
+        [
+            ("int_col", pa.int64()),
+            (
+                "struct_col",
+                pa.struct(
+                    [
+                        ("int_col", pa.int64()),
+                        ("float_col", pa.float64()),
+                        ("str_col", pa.string()),
+                    ]
+                ),
+            ),
+            (b"string_col", pa.string()),
+        ]
+    )
+
+    data = pa.array([], type=arrow_type)
+    ser = Series(data, dtype=ArrowDtype(arrow_type))
+    expected = pc.struct_field(data, indices)
+    result = ser.struct.field(indices)
+    tm.assert_equal(result.array._pa_array.combine_chunks(), expected)
+    assert result.name == name

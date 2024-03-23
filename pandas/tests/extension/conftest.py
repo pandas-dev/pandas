@@ -2,12 +2,7 @@ import operator
 
 import pytest
 
-from pandas._config.config import _get_option
-
-from pandas import (
-    Series,
-    options,
-)
+from pandas import Series
 
 
 @pytest.fixture
@@ -37,7 +32,7 @@ def data_for_twos(dtype):
     if not (dtype._is_numeric or dtype.kind == "m"):
         # Object-dtypes may want to allow this, but for the most part
         #  only numeric and timedelta-like dtypes will need to implement this.
-        pytest.skip("Not a numeric dtype")
+        pytest.skip(f"{dtype} is not a numeric dtype")
 
     raise NotImplementedError
 
@@ -116,6 +111,16 @@ def na_cmp():
     By default, uses ``operator.is_``
     """
     return operator.is_
+
+
+@pytest.fixture
+def na_value(dtype):
+    """
+    The scalar missing value for this type. Default dtype.na_value.
+
+    TODO: can be removed in 3.x (see https://github.com/pandas-dev/pandas/pull/54930)
+    """
+    return dtype.na_value
 
 
 @pytest.fixture
@@ -207,14 +212,3 @@ def invalid_scalar(data):
     If the array can hold any item (i.e. object dtype), then use pytest.skip.
     """
     return object.__new__(object)
-
-
-@pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return (
-        options.mode.copy_on_write
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )

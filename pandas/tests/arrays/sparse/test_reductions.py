@@ -126,13 +126,13 @@ class TestReductions:
 
     @pytest.mark.parametrize(
         "arr",
-        [np.array([0, 1, np.nan, 1]), np.array([0, 1, 1])],
+        [[0, 1, np.nan, 1], [0, 1, 1]],
     )
     @pytest.mark.parametrize("fill_value", [0, 1, np.nan])
     @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
     def test_sum_min_count(self, arr, fill_value, min_count, expected):
         # GH#25777
-        sparray = SparseArray(arr, fill_value=fill_value)
+        sparray = SparseArray(np.array(arr), fill_value=fill_value)
         result = sparray.sum(min_count=min_count)
         if np.isnan(expected):
             assert np.isnan(result)
@@ -296,11 +296,9 @@ class TestArgmaxArgmin:
         assert argmax_result == argmax_expected
         assert argmin_result == argmin_expected
 
-    @pytest.mark.parametrize(
-        "arr,method",
-        [(SparseArray([]), "argmax"), (SparseArray([]), "argmin")],
-    )
-    def test_empty_array(self, arr, method):
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
+        arr = SparseArray([])
         with pytest.raises(ValueError, match=msg):
-            arr.argmax() if method == "argmax" else arr.argmin()
+            getattr(arr, method)()

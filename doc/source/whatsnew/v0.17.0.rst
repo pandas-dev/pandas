@@ -632,9 +632,10 @@ Of course you can coerce this as well.
 
 To keep the previous behavior, you can use ``errors='ignore'``:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.to_datetime(["2009-07-31", "asd"], errors="ignore")
+   In [4]: pd.to_datetime(["2009-07-31", "asd"], errors="ignore")
+   Out[4]: Index(['2009-07-31', 'asd'], dtype='object')
 
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
@@ -726,10 +727,10 @@ be broadcast:
 
 or it can return False if broadcasting can not be done:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   np.array([1, 2, 3]) == np.array([1, 2])
+   In [11]: np.array([1, 2, 3]) == np.array([1, 2])
+   Out[11]: False
 
 Changes to boolean comparisons vs. None
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
