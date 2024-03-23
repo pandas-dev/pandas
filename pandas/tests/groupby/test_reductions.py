@@ -67,7 +67,7 @@ def test_basic_aggregations(dtype):
 
     # corner cases
     result = grouped.aggregate(lambda x: x * 2)
-    expected = pd.Series(
+    expected = Series(
         {
             0: data[data.index // 3 == 0] * 2,
             1: data[data.index // 3 == 1] * 2,
@@ -75,6 +75,7 @@ def test_basic_aggregations(dtype):
         },
     )
     tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "vals",
