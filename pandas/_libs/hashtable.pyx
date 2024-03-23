@@ -78,6 +78,9 @@ cdef class Factorizer:
     def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
         raise NotImplementedError
 
+    def hash_inner_join(self, values, mask=None):
+        raise NotImplementedError
+
 
 cdef class ObjectFactorizer(Factorizer):
     cdef public:
