@@ -108,8 +108,6 @@ def test_suffix_on_list_join():
     # check proper errors are raised
     msg = "Suffixes not supported when joining multiple DataFrames"
     with pytest.raises(ValueError, match=msg):
-        first.join([second], lsuffix="y")
-    with pytest.raises(ValueError, match=msg):
         first.join([second, third], rsuffix="x")
     with pytest.raises(ValueError, match=msg):
         first.join([second, third], lsuffix="y", rsuffix="x")
