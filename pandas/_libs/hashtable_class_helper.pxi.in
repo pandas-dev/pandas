@@ -583,8 +583,8 @@ cdef class {{name}}HashTable(HashTable):
                         continue
                     if needs_resize(l.size, l.capacity):
                         with gil:
-                            locs.resize()
-                            self_locs.resize()
+                            locs.resize(locs.data.capacity * 4)
+                            self_locs.resize(locs.data.capacity * 4)
                     append_data_int64(l, i)
                     append_data_int64(sl, na_position)
                 else:
@@ -593,8 +593,8 @@ cdef class {{name}}HashTable(HashTable):
                     if k != self.table.n_buckets:
                         if needs_resize(l.size, l.capacity):
                             with gil:
-                                locs.resize()
-                                self_locs.resize()
+                                locs.resize(locs.data.capacity * 4)
+                                self_locs.resize(locs.data.capacity * 4)
                         append_data_int64(l, i)
                         append_data_int64(sl, self.table.vals[k])
 
