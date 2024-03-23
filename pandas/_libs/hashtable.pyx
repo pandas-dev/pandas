@@ -7,6 +7,7 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
+from libc.string cimport memcpy
 
 import numpy as np
 
