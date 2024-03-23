@@ -21,7 +21,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import reduction_kernels
 
 
 @pytest.mark.parametrize(
@@ -288,16 +287,8 @@ def test_read_only_buffer_source_agg(agg):
     )
     df._mgr.arrays[0].flags.writeable = False
 
-    if agg in reduction_kernels:
-        warn = None
-        msg = ""
-    else:
-        warn = DeprecationWarning
-        msg = f"using the non-aggregation func='{agg}' will raise"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby(["species"]).agg({"sepal_length": agg})
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
+    result = df.groupby(["species"]).agg({"sepal_length": agg})
+    expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
 
     tm.assert_equal(result, expected)
 

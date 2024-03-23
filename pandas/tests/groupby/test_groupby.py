@@ -2936,11 +2936,9 @@ def test_groupby_dropna_with_nunique_unique():
     df = [[1, 1, 1, "A"], [1, None, 1, "A"], [1, None, 2, "A"], [1, None, 3, "A"]]
     df_dropna = DataFrame(df, columns=["a", "b", "c", "partner"])
 
-    msg = "using the non-aggregation func='unique' will raise"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
-            {"partner": ["nunique", "unique"]}
-        )
+    result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
+        {"partner": ["nunique", "unique"]}
+    )
 
     index = MultiIndex.from_tuples(
         [(1, 1.0, 1), (1, np.nan, 1), (1, np.nan, 2), (1, np.nan, 3)],

@@ -21,7 +21,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -33,7 +32,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -64,10 +62,6 @@ from pandas.core.apply import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
-from pandas.core.groupby.base import (
-    reduction_kernels,
-    transformation_kernels,
-)
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -332,14 +326,6 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
-            if func not in reduction_kernels and not self._grouper._is_resample:
-                meth = "transform" if func in transformation_kernels else "apply"
-                warnings.warn(
-                    f"In the future, using the non-aggregation {func=} will raise a "
-                    f"ValueError, use this function with {type(self).__name__}.{meth}",
-                    category=DeprecationWarning,
-                    stacklevel=find_stack_level(),
-                )
             if maybe_use_numba(engine) and engine is not None:
                 # Not all agg functions support numba, only propagate numba kwargs
                 # if user asks for numba, and engine is not None
@@ -1575,19 +1561,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # if user asks for numba
             kwargs["engine"] = engine
             kwargs["engine_kwargs"] = engine_kwargs
-
-        if (
-            isinstance(func, str)
-            and func not in reduction_kernels
-            and not self._grouper._is_resample
-        ):
-            meth = "transform" if func in transformation_kernels else "apply"
-            warnings.warn(
-                f"In the future, using the non-aggregation {func=} will raise a "
-                f"ValueError, use this function with {type(self).__name__}.{meth}",
-                category=DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
 
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()

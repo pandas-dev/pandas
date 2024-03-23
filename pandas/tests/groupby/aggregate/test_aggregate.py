@@ -486,9 +486,6 @@ def test_groupby_agg_dict_dup_columns():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:In the future, using the non-aggregation func:DeprecationWarning"
-)
 @pytest.mark.parametrize(
     "op",
     [
@@ -568,9 +565,7 @@ def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    msg = "using the non-aggregation func='ohlc' will raise"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
+    res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
     result = res.columns.levels[1]
 
     expected = Index(["sum", "max", "mean", "ohlc", "min"])
@@ -1176,6 +1171,22 @@ class TestLambdaMangling:
         expected = DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
+    def test_unused_kwargs(self):
+        # GH#39169 - Passing kwargs used to have agg pass the entire frame rather
+        # than column-by-column
+
+        # UDF that works on both the entire frame and column-by-column
+        func = lambda data, **kwargs: np.sum(np.sum(data))
+
+        df = DataFrame([[1, 2], [3, 4]])
+        expected = DataFrame({0: [1, 3], 1: [2, 4]})
+
+        result = df.groupby(level=0).agg(func)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby(level=0).agg(func, foo=42)
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_with_one_lambda(self):
         # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
         df = DataFrame(
@@ -1261,6 +1272,40 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+    def test_multiple_udf_same_name(self):
+        # GH#28570
+        quant50 = partial(np.percentile, q=50)
+        quant70 = partial(np.percentile, q=70)
+
+        df = DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+        expected = DataFrame(
+            [[1.5, 1.7], [4.0, 4.4]],
+            index=Index(["a", "b"], name="col1"),
+            columns=MultiIndex(
+                levels=[["col2"], ["percentile"]],
+                codes=[[0, 0], [0, 0]],
+            ),
+        )
+        gb = df.groupby("col1")
+        result = gb.agg({"col2": [quant50, quant70]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("use_kwargs", [True, False])
+    def test_multiple_udf_with_args(self, use_kwargs):
+        # GH#26611
+        def func(x, y):
+            return x.sum() + y
+
+        df = DataFrame({"A": [1, 2]})
+        expected = DataFrame({"A": [13]})
+        gb = df.groupby([0, 0])
+        if use_kwargs:
+            args, kwargs = (), {"y": 10}
+        else:
+            args, kwargs = (10,), {}
+        result = gb.agg(func, *args, **kwargs)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
@@ -1383,14 +1428,9 @@ def test_nonagg_agg():
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 2, 1]})
     g = df.groupby("a")
 
-    msg = "using the non-aggregation func='cumsum' will raise"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = g.agg(["cumsum"])
+    result = g.agg(["cumsum"])
     result.columns = result.columns.droplevel(-1)
-
-    msg = "using the non-aggregation func='cumsum' will raise"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        expected = g.agg("cumsum")
+    expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)
 
@@ -1467,7 +1507,6 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
             levels=[["a"], ["b"]], codes=[[0], [0]], names=["key1", "key2"]
         ),
     )
-
     result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
@@ -1672,9 +1711,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         }
     )
     gb = df.groupby("grps")
-    msg = "using the non-aggregation func='cumsum' will raise"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = gb.agg(td=("td", "cumsum"))
+    result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)
 
 
