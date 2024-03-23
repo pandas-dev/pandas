@@ -82,6 +82,7 @@ maintainers:
   - simonjayhawkins
   - topper-123
   - alimcmaster1
+  - bashtage
   - Dr-Irv
   - MarcoGorelli
   - rhshadrach
@@ -107,7 +108,6 @@ maintainers:
   - wesm
   - gfyoung
   - mzeitlin11
-  - bashtage
 workgroups:
   coc:
     name: Code of Conduct
@@ -126,7 +126,6 @@ workgroups:
     - Matthew Roeschke
     - Jeff Reback
     - Joris Van den Bossche
-    - Tom Augspurger
   infrastructure:
     name: Infrastructure
     contact: infrastructure@pandas.pydata.org
