@@ -510,11 +510,12 @@ def set_module(module):
 
     Example usage::
 
-        @set_module('pandas')
+        @set_module("pandas")
         def example():
             pass
 
-        assert example.__module__ == 'pandas'
+
+        assert example.__module__ == "pandas"
     """
 
     def decorator(func):
