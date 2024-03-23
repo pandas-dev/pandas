@@ -927,7 +927,7 @@ class TestTSPlot:
     @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
         # GH13341, using sharex=True
-        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)

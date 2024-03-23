@@ -208,7 +208,10 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57699`)
 - Enforced deprecation of string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
 - Enforced deprecation of string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57793`)
+- Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`57627`)
+- Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`57627`)
 - Enforced deprecation of the behavior of :func:`concat` when ``len(keys) != len(objs)`` would truncate to the shorter of the two. Now this raises a ``ValueError`` (:issue:`43485`)
+- Enforced deprecation of values "pad", "ffill", "bfill", and "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`57869`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
 - In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
 - Iterating over a :class:`.DataFrameGroupBy` or :class:`.SeriesGroupBy` will return tuples of length 1 for the groups when grouping by ``level`` a list of length 1 (:issue:`50064`)
@@ -254,6 +257,7 @@ Removal of prior version deprecations/changes
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
 - Removed the :class:`Grouper` attributes ``ax``, ``groups``, ``indexer``, and ``obj`` (:issue:`51206`, :issue:`51182`)
+- Removed deprecated keyword ``verbose`` on :func:`read_csv` and :func:`read_table` (:issue:`56556`)
 - Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 
 .. ---------------------------------------------------------------------------
@@ -298,6 +302,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
+- Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 
 Categorical
 ^^^^^^^^^^^
@@ -307,6 +312,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
+- Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
 -
 
 Timedelta
