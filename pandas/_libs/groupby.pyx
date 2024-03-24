@@ -133,12 +133,16 @@ cdef float64_t median_linear(
             raise MemoryError()
 
         j = 0
-        for i in range(n):
-            if is_datetimelike and a[i] == NPY_NAT:
-                continue
-            if a[i] == a[i]:
-                tmp[j] = a[i]
-                j += 1
+        if is_datetimelike:
+            for i in range(n):
+                if a[i] != NPY_NAT:
+                    tmp[j] = a[i]
+                    j += 1
+        else:
+            for i in range(n):
+                if a[i] == a[i]:
+                    tmp[j] = a[i]
+                    j += 1
 
         a = tmp
         n -= na_count
