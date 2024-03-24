@@ -797,19 +797,20 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       ifrac = (ifrac - out->days * per_day) % per_sec;
 
       if (base == NPY_FR_ms) {
-        out->ms = (npy_int32)ifrac;
+        out->ms = ifrac;
       } else if (base == NPY_FR_us) {
         out->ms = (npy_int32)(ifrac / 1000LL);
         ifrac = ifrac % 1000LL;
         out->us = (npy_int32)ifrac;
+        out->ms = (ifrac / 1000LL);
+        out->us = ifrac % 1000LL;
       } else if (base == NPY_FR_ns) {
-        out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
-        ifrac = ifrac % (1000LL * 1000LL);
-        out->us = (npy_int32)(ifrac / 1000LL);
-        ifrac = ifrac % 1000LL;
-        out->ns = (npy_int32)ifrac;
+        out->ms = (ifrac / (1000LL * 1000LL));
+        out->us = (ifrac / 1000LL);
+        out->nanoseconds = ifrac % 1000LL;
       }
     }
+    out->microseconds = out->ms * 1000 + out->us;
 
   } break;
   default:
