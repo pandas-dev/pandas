@@ -2365,6 +2365,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Accepted args are 'w' (writing) and 'a' (append) only.
             mode='a' is only supported when lines is True and orient is 'records'.
 
+        .. deprecated:: 2.2.2
+            'epoch' date format is deprecated and will be removed in a future version,
+            please use 'iso' instead.
+
         Returns
         -------
         None or str
@@ -2530,6 +2534,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
+        elif date_format == "epoch":
+            # GH#57063
+            warnings.warn(
+                "'Epoch' date format is deprecated and will be removed in a future "
+                "version, please use 'iso' date format instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         config.is_nonnegative_int(indent)
         indent = indent or 0

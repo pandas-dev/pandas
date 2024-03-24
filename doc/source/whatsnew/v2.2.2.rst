@@ -30,7 +30,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.contributors:

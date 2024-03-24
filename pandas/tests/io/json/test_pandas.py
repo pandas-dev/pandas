@@ -940,7 +940,12 @@ class TestPandasContainer:
         df.iloc[2, dl] = Timestamp("21460101 20:43:42")
         df.iloc[4, dl] = pd.NaT
 
-        json = df.to_json(date_format="epoch", date_unit=unit)
+        msg = (
+            "'Epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            json = df.to_json(date_format="epoch", date_unit=unit)
 
         # force date unit
         result = read_json(StringIO(json), date_unit=unit)
@@ -1669,7 +1674,17 @@ class TestPandasContainer:
     def test_timedelta_as_label(self, date_format, key):
         df = DataFrame([[1]], columns=[pd.Timedelta("1D")])
         expected = f'{{"{key}":{{"0":1}}}}'
-        result = df.to_json(date_format=date_format)
+
+        expected_warning = None
+        if date_format == "epoch":
+            expected_warning = FutureWarning
+
+        msg = (
+            "'Epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = df.to_json(date_format=date_format)
 
         assert result == expected
 
