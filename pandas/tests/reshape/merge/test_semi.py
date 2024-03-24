@@ -7,18 +7,21 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "vals_left, vals_right",
+    "vals_left, vals_right, dtype",
     [
-        ([1, 2, 3], [1, 2]),
-        (["a", "b", "c"], ["a", "b"]),
+        ([1, 2, 3], [1, 2], "int64"),
+        (["a", "b", "c"], ["a", "b"], "object"),
         pytest.param(
-            pd.Series(["a", "b", "c"], dtype="string[pyarrow]"),
-            pd.Series(["a", "b"], dtype="string[pyarrow]"),
+            ["a", "b", "c"],
+            ["a", "b"],
+            "string[pyarrow]",
             marks=td.skip_if_no("pyarrow"),
         ),
     ],
 )
-def test_leftsemi(vals_left, vals_right):
+def test_leftsemi(vals_left, vals_right, dtype):
+    vals_left = pd.Series(vals_left, dtype=dtype)
+    vals_right = pd.Series(vals_right, dtype=dtype)
     left = pd.DataFrame({"a": vals_left, "b": [1, 2, 3]})
     right = pd.DataFrame({"a": vals_right, "c": 1})
     expected = pd.DataFrame({"a": vals_right, "b": [1, 2]})
