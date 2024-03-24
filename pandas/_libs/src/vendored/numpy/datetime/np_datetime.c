@@ -813,8 +813,6 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
   out->seconds =
       (npy_int32)(out->hrs * sec_per_hour + out->min * sec_per_min + out->sec);
-  out->microseconds = out->ms * 1000 + out->us;
-  out->nanoseconds = out->ns;
 }
 
 /*
