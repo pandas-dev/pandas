@@ -14,10 +14,20 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_300.enhancements.enhancement1:
+.. _whatsnew_300.enhancements.semi_merge:
 
-enhancement1
-^^^^^^^^^^^^
+New merge method ``leftsemi``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new merge method ``leftsemi`` has been added to :func:`merge` and
+:meth:`DataFrame.merge` that returns only the rows from the left DataFrame that have
+a match in the right DataFrame. This is equivalent to a SQL ``LEFT SEMI JOIN``. (:issue:`42784`)
+
+.. ipython:: python
+
+    df1 = pd.DataFrame({"key": ["A", "B", "C"], "value": [1, 2, 3]})
+    df2 = pd.DataFrame({"key": ["A", "B"], "value": [1, 2]})
+    df1.merge(df2, how="leftsemi")
 
 .. _whatsnew_300.enhancements.enhancement2:
 

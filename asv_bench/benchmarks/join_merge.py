@@ -272,6 +272,9 @@ class Merge:
     def time_merge_dataframes_cross(self, sort):
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
+    def time_merge_semi(self, sort):
+        merge(self.df, self.df2, on="key1", how="leftsemi")
+
 
 class MergeEA:
     params = [
@@ -379,6 +382,9 @@ class MergeDatetime:
 
     def time_merge(self, units, tz, monotonic):
         merge(self.left, self.right)
+
+    def time_merge_semi(self, units, tz, monotonic):
+        merge(self.left, self.right, how="leftsemi")
 
 
 class MergeCategoricals:
