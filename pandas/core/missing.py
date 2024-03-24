@@ -322,13 +322,17 @@ def get_interp_index(method, index: Index) -> Index:
             or isinstance(index.dtype, DatetimeTZDtype)
             or lib.is_np_dtype(index.dtype, "mM")
         )
-        if method not in methods and not is_numeric_or_datetime:
-            raise ValueError(
-                "Index column must be numeric or datetime type when "
-                f"using {method} method other than linear. "
-                "Try setting a numeric or datetime index column before "
-                "interpolating."
-            )
+        valid = NP_METHODS + SP_METHODS
+        if method in valid:
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+        else:
+            raise ValueError(f"Can not interpolate with method={method}.")
 
     if isna(index).any():
         raise NotImplementedError(
@@ -611,7 +615,9 @@ def _interpolate_scipy_wrapper(
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        terp = alt_methods[method]
+        terp = alt_methods.get(method, None)
+        if terp is None:
+            raise ValueError(f"Can not interpolate with method={method}.")
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
@@ -799,59 +805,6 @@ def _cubicspline_interpolate(
     )
 
     return P(x)
-
-
-def _interpolate_with_limit_area(
-    values: np.ndarray,
-    method: Literal["pad", "backfill"],
-    limit: int | None,
-    limit_area: Literal["inside", "outside"],
-) -> None:
-    """
-    Apply interpolation and limit_area logic to values along a to-be-specified axis.
-
-    Parameters
-    ----------
-    values: np.ndarray
-        Input array.
-    method: str
-        Interpolation method. Could be "bfill" or "pad"
-    limit: int, optional
-        Index limit on interpolation.
-    limit_area: {'inside', 'outside'}
-        Limit area for interpolation.
-
-    Notes
-    -----
-    Modifies values in-place.
-    """
-
-    invalid = isna(values)
-    is_valid = ~invalid
-
-    if not invalid.all():
-        first = find_valid_index(how="first", is_valid=is_valid)
-        if first is None:
-            first = 0
-        last = find_valid_index(how="last", is_valid=is_valid)
-        if last is None:
-            last = len(values)
-
-        pad_or_backfill_inplace(
-            values,
-            method=method,
-            limit=limit,
-            limit_area=limit_area,
-        )
-
-        if limit_area == "inside":
-            invalid[first : last + 1] = False
-        elif limit_area == "outside":
-            invalid[:first] = invalid[last + 1 :] = False
-        else:
-            raise ValueError("limit_area should be 'inside' or 'outside'")
-
-        values[invalid] = np.nan
 
 
 def pad_or_backfill_inplace(
