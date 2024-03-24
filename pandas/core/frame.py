@@ -10703,6 +10703,12 @@ class DataFrame(NDFrame, OpsMixin):
         numpy.around : Round a numpy array to the given number of decimals.
         Series.round : Round a Series to the given number of decimals.
 
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
+
         Examples
         --------
         >>> df = pd.DataFrame(

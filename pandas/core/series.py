@@ -2509,13 +2509,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
 
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
+
         Examples
         --------
-        >>> s = pd.Series([0.1, 1.3, 2.7])
+        >>> s = pd.Series([-0.5, 0.1, 2.5, 1.3, 2.7])
         >>> s.round()
-        0    0.0
-        1    1.0
-        2    3.0
+        0   -0.0
+        1    0.0
+        2    2.0
+        3    1.0
+        4    3.0
         dtype: float64
         """
         nv.validate_round(args, kwargs)
