@@ -220,9 +220,15 @@ cdef int64_t cast_from_unit(
             f"cannot convert input {ts} with the unit '{unit}'"
         ) from err
 
-    frac = ts - base
-    if p:
-        frac = round(frac, p)
+    if isinstance(ts, np.integer):
+        # If ts is an integer then the fractional component will always be
+        # zero. It helps to set this explicitly following changes to type
+        # promotion behavior in NEP 50 (GH 56996).
+        frac = 0
+    else:
+        frac = ts - base
+        if p:
+            frac = round(frac, p)
 
     try:
         return <int64_t>(base * m) + <int64_t>(frac * m)
