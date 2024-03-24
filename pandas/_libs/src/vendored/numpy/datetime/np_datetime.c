@@ -778,12 +778,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
     if (frac >= sec_per_hour) {
       out->hrs = (npy_int32)(frac / sec_per_hour);
-      frac -= out->hrs * sec_per_hour;
+      frac %= sec_per_hour;
     }
 
     if (frac >= sec_per_min) {
       out->min = (npy_int32)(frac / sec_per_min);
-      frac -= out->min * sec_per_min;
+      frac %= sec_per_min;
     }
 
     if (frac >= 0) {
