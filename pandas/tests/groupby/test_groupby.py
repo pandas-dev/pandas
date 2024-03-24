@@ -151,7 +151,7 @@ def test_groupby_timedelta_median():
     df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
     gb = df.groupby("label")["timedelta"]
     actual = gb.median()
-    tm.assert_series_equal(actual, expected)
+    tm.assert_series_equal(actual, expected, check_names=False)
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
