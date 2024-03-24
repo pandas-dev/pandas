@@ -121,11 +121,12 @@ workgroups:
   finance:
     name: Finance
     contact: finance@pandas.pydata.org
-    responsibilities: "Approve the project expenses."
+    responsibilities: "Manage the funding. Coordinate the request of grants. Approve the project expenses."
     members:
     - Matthew Roeschke
     - Jeff Reback
     - Joris Van den Bossche
+    - Patrick Hoefler
   infrastructure:
     name: Infrastructure
     contact: infrastructure@pandas.pydata.org
