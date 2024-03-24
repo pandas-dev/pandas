@@ -147,9 +147,11 @@ def test_len_nan_group():
 
 def test_groupby_timedelta_median():
     # issue 57926
+    expected = Series(data=Timedelta("1d"), index=["foo"])
     df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
-    median = df.groupby("label")["timedelta"].median()
-    assert median.loc["foo"] == Timedelta("1d")
+    gb = df.groupby("label")["timedelta"]
+    actual = gb.median()
+    tm.assert_series_equal(actual, expected)
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
