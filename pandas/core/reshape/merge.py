@@ -1681,7 +1681,7 @@ def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
     sort: bool = False,
-    how: JoinHow = "inner",
+    how: JoinHow + Literal["leftsemi"] = "inner",
 ) -> tuple[npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
     """
 
@@ -2612,7 +2612,7 @@ def _factorize_keys(
     elif how == "leftsemi":
         # populate hashtable for right and then do a hash join
         rizer.factorize(rk_data, mask=rk_mask)
-        return rizer.hash_inner_join(lk_data, lk_mask)[1], None, -1
+        return rizer.hash_inner_join(lk_data, lk_mask)[1], None, -1  # type: ignore[return-value]
     else:
         llab = rizer.factorize(lk_data, mask=lk_mask)
         rlab = rizer.factorize(rk_data, mask=rk_mask)
