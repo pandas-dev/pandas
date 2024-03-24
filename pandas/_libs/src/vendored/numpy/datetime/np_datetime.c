@@ -788,7 +788,6 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
     if (frac >= 0) {
       out->sec = (npy_int32)frac;
-      frac -= out->sec;
     }
 
     if (sign < 0)
