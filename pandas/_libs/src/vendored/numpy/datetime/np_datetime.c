@@ -756,26 +756,26 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     const int sign = td < 0 ? -1 : 1;
     const int uneven_in_seconds = td % per_sec != 0 ? 1 : 0;
     // put frac in seconds
+    td = td / per_sec;
     if (sign < 0) {
-      td = td / per_sec - uneven_in_seconds;
+      td -= uneven_in_seconds;
       // even fraction
       if ((-td % sec_per_day) != 0) {
+        // days = td / sec_per_day - is_even_fraction
         out->days = td / sec_per_day - 1;
         td -= sec_per_day * out->days;
       } else {
-        td = -td;
-        if (td >= sec_per_day) {
-          out->days = -td / sec_per_day;
+        if (td <= sec_per_day) {
+          out->days = td / sec_per_day;
+          td = -td;
           td += out->days * sec_per_day;
+        } else {
+          td = -td;
         }
       }
-
-    } else {
-      td = td / per_sec;
-      if (td >= sec_per_day) {
-        out->days = td / sec_per_day;
-        td -= out->days * sec_per_day;
-      }
+    } else if (td >= sec_per_day) {
+      out->days = td / sec_per_day;
+      td -= out->days * sec_per_day;
     }
 
     if (td >= sec_per_hour) {
