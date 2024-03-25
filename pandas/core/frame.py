@@ -65,6 +65,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -498,6 +499,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
+@set_module("pandas")
 class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
@@ -9286,10 +9288,9 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame. The new inner-most levels are created by pivoting the
         columns of the current dataframe:
 
-          - if the columns have a single level, the output is a Series;
-          - if the columns have multiple levels, the new index
-            level(s) is (are) taken from the prescribed level(s) and
-            the output is a DataFrame.
+        - if the columns have a single level, the output is a Series;
+        - if the columns have multiple levels, the new index level(s) is (are)
+          taken from the prescribed level(s) and the output is a DataFrame.
 
         Parameters
         ----------
@@ -9305,7 +9306,7 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
-        future_stack : bool, default False
+        future_stack : bool, default True
             Whether to use the new implementation that will replace the current
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
@@ -10700,6 +10701,12 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         numpy.around : Round a numpy array to the given number of decimals.
         Series.round : Round a Series to the given number of decimals.
+
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
 
         Examples
         --------
