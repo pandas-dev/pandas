@@ -60,6 +60,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
+    maybe_sequence_to_range,
     union_indexes,
 )
 from pandas.core.internals.blocks import (
@@ -403,7 +404,7 @@ def dict_to_mgr(
                 arrays[i] = arr
 
     else:
-        keys = list(data.keys())
+        keys = maybe_sequence_to_range(list(data.keys()))
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
 
