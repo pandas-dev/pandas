@@ -431,6 +431,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if isinstance(vdtype, CategoricalDtype):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
+        elif isinstance(values, range):
+            from pandas.core.indexes.range import RangeIndex
+
+            values = RangeIndex(values)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             values = com.convert_to_list_like(values)
             if isinstance(values, list) and len(values) == 0:
@@ -988,6 +992,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Categorical
             Ordered Categorical.
 
+        See Also
+        --------
+        as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -1018,6 +1026,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Unordered Categorical.
+
+        See Also
+        --------
+        as_ordered : Set the Categorical to be ordered.
 
         Examples
         --------
@@ -2610,7 +2622,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
-        result = concat([counts, freqs], axis=1)
+        result = concat([counts, freqs], ignore_index=True, axis=1)
         result.columns = Index(["counts", "freqs"])
         result.index.name = "categories"
 
