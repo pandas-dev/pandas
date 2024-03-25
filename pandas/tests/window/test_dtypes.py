@@ -170,4 +170,4 @@ def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
     else:
         result = getattr(rolled, method)()
         expected = DataFrame(expected_data, dtype="float64")[::step]
-        tm.assert_frame_equal(result, expected, check_column_type=False)
+        tm.assert_frame_equal(result, expected)
