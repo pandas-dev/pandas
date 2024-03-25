@@ -18,13 +18,6 @@ from pandas.core.arrays.categorical import recode_for_categories
 
 
 class TestCategoricalAPI:
-    def test_to_list_deprecated(self):
-        # GH#51254
-        cat1 = Categorical(list("acb"), ordered=False)
-        msg = "Categorical.to_list is deprecated and will be removed"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            cat1.to_list()
-
     def test_ordered_api(self):
         # GH 9347
         cat1 = Categorical(list("acb"), ordered=False)
