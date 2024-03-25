@@ -287,7 +287,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-    _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
