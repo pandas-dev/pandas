@@ -220,15 +220,17 @@ cdef int64_t cast_from_unit(
             f"cannot convert input {ts} with the unit '{unit}'"
         ) from err
 
+    # In the event that ts itself is already an integer type, cast it to a
+    # 64-bit integer to ensure that frac will also be a 64-bit integer after
+    # type promotion changes in NEP 50. If this is not done, for example,
+    # np.int32 values for ts can lead to np.int32 values for frac, which can
+    # raise unexpected overflow errors downstream (GH 56996).
     if isinstance(ts, np.integer):
-        # If ts is an integer then the fractional component will always be
-        # zero. It helps to set this explicitly following changes to type
-        # promotion behavior in NEP 50 (GH 56996).
-        frac = 0
-    else:
-        frac = ts - base
-        if p:
-            frac = round(frac, p)
+        ts = <int64_t>ts
+
+    frac = ts - base
+    if p:
+        frac = round(frac, p)
 
     try:
         return <int64_t>(base * m) + <int64_t>(frac * m)
