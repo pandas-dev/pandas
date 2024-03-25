@@ -236,11 +236,13 @@ class TestAsFreq:
         "freq, freq_depr",
         [
             ("2ME", "2M"),
+            ("2ME", "2m"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
             ("1BQE", "1BQ"),
             ("2BQE-SEP", "2BQ-SEP"),
-            ("1YE", "1Y"),
+            ("2BQE-SEP", "2bq-sep"),
+            ("1YE", "1y"),
             ("2YE-MAR", "2Y-MAR"),
         ],
     )

@@ -767,7 +767,7 @@ class TestDatetimeArray:
         "freq",
         ["2M", "2SM", "2sm", "2Q", "2Q-SEP", "1Y", "2Y-MAR", "2m", "2q-sep", "2y"],
     )
-    def test_date_range_frequency_M_Q_Y_A_raises(self, freq):
+    def test_date_range_frequency_M_Q_Y_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
@@ -806,8 +806,7 @@ class TestDatetimeArray:
 
     def test_date_range_lowercase_frequency_deprecated(self):
         # GH#9586, GH#54939
-        depr_msg = "'w' is deprecated and will be removed in a "
-        "future version, please use 'W' instead."
+        depr_msg = "'w' is deprecated and will be removed in a future version"
 
         expected = pd.date_range("1/1/2000", periods=4, freq="2W")
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
