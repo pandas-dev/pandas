@@ -776,37 +776,35 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (td >= sec_per_hour) {
-      out->hrs = (td / sec_per_hour);
+      out->hrs = (npy_int32)(td / sec_per_hour);
       td %= sec_per_hour;
     }
 
     if (td >= sec_per_min) {
-      out->min = td / sec_per_min;
+      out->min = (npy_int32)(td / sec_per_min);
       td %= sec_per_min;
     }
 
     if (td >= 0) {
-      out->sec = td;
+      out->sec = (npy_int32)td;
     }
 
     if (sign < 0)
       out->days = -out->days;
 
     if (base > NPY_FR_s) {
-      // the days * per_day removes so many base units that ifrac is within
-      // int32 bounds
       ifrac = (ifrac - out->days * per_day) % per_sec;
 
       if (base == NPY_FR_ms) {
-        out->ms = ifrac;
+        out->ms = (npy_int32)ifrac;
       } else if (base == NPY_FR_us) {
-        out->ms = ifrac / 1000LL;
-        out->us = ifrac % 1000LL;
+        out->ms = (npy_int32)(ifrac / 1000LL);
+        out->us = (npy_int32)(ifrac % 1000LL);
       } else if (base == NPY_FR_ns) {
-        out->ms = ifrac / (1000LL * 1000LL);
+        out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
         ifrac = ifrac % (1000LL * 1000LL);
-        out->us = ifrac / 1000LL;
-        out->nanoseconds = ifrac % 1000LL;
+        out->us = (npy_int32)(ifrac / 1000LL);
+        out->nanoseconds = (npy_int32)(ifrac % 1000LL);
       }
       out->microseconds = out->ms * 1000 + out->us;
     }
