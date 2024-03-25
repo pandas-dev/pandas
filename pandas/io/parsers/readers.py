@@ -11,6 +11,7 @@ from collections import (
     defaultdict,
 )
 import csv
+from io import TextIOBase
 import sys
 from textwrap import fill
 from typing import (
@@ -654,6 +655,14 @@ def _read(
             )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
+
+    encoding = kwds.get("encoding")
+    if (
+        encoding
+        and isinstance(filepath_or_buffer, TextIOBase)
+        and filepath_or_buffer.encoding != encoding
+    ):
+        raise ValueError("File's encoding does not match with given encoding")
 
     nrows = kwds.get("nrows", None)
 
