@@ -1738,6 +1738,7 @@ class TestPivotTable:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=doy[mask])
         expected = DataFrame(expected, dtype=float).T
+        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(result, expected)
 
     def test_monthly(self):
@@ -1753,6 +1754,7 @@ class TestPivotTable:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=month[mask])
         expected = DataFrame(expected, dtype=float).T
+        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_with_iterator_values(self, data):

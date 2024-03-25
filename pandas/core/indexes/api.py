@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import textwrap
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -23,6 +22,7 @@ from pandas.core.indexes.base import (
     ensure_index,
     ensure_index_from_sequences,
     get_unanimous_names,
+    maybe_sequence_to_range,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -34,16 +34,6 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
     from pandas._typing import Axis
-_sort_msg = textwrap.dedent(
-    """\
-Sorting because non-concatenation axis is not aligned. A future version
-of pandas will change to not sort by default.
-
-To accept the future behavior, pass 'sort=False'.
-
-To retain the current behavior and silence the warning, pass 'sort=True'.
-"""
-)
 
 
 __all__ = [
@@ -66,6 +56,7 @@ __all__ = [
     "all_indexes_same",
     "default_index",
     "safe_sort_index",
+    "maybe_sequence_to_range",
 ]
 
 
