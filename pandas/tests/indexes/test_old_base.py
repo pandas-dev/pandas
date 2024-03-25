@@ -216,11 +216,19 @@ class TestBase:
         if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
+
         if idx.dtype.kind in "iufcbm":
-            assert idx.all() == idx._values.all()
-            assert idx.all() == idx.to_series().all()
-            assert idx.any() == idx._values.any()
-            assert idx.any() == idx.to_series().any()
+            msg = "cannot perform all with this index type: Index"
+
+            with pytest.raises(TypeError, match=msg):
+                assert idx.all() == idx._values.all()
+                assert idx.all() == idx.to_series().all()
+
+            msg = "cannot perform any with this index type: Index"
+
+            with pytest.raises(TypeError, match=msg):
+                assert idx.any() == idx._values.any()
+                assert idx.any() == idx.to_series().any()
         else:
             msg = "cannot perform (any|all)"
             if isinstance(idx, IntervalIndex):

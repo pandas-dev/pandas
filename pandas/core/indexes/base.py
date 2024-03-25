@@ -6960,14 +6960,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise if this Index subclass does not support any or all.
         """
-        if (
-            isinstance(self, ABCMultiIndex)
-            # TODO(3.0): PeriodArray and DatetimeArray any/all will raise,
-            #  so checking needs_i8_conversion will be unnecessary
-            or (needs_i8_conversion(self.dtype) and self.dtype.kind != "m")
-        ):
-            # This call will raise
+        if isinstance(self, ABCMultiIndex) or self.dtype.kind != "m":
             make_invalid_op(opname)(self)
+            raise TypeError("cannot perform all with this index type: Index")
 
     @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
