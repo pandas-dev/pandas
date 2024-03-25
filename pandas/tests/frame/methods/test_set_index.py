@@ -617,6 +617,20 @@ class TestSetIndexInvalid:
         with pytest.raises(ValueError, match=msg):
             df.set_index(["A", df.A, box(values)], drop=drop, append=append)
 
+    def test_set_index_with_FLS_Dtype(self):
+        string_length = 6
+        in_dtype, df_name = f"S{string_length}", "fruit"
+        data = ["apple", "banana", "orange", "grape"]
+
+        # Create array with FLS(|S{value}) dtype
+        arr = np.array(data, dtype=in_dtype)
+        df = DataFrame(Series(arr), columns=[df_name])
+
+        # This will create a new Index with FLS dtype
+        expected = Index(data=Series(arr), name=df_name)
+        df.set_index(df_name, inplace=True)
+        tm.assert_index_equal(df.index, expected)
+
 
 class TestSetIndexCustomLabelType:
     def test_set_index_custom_label_type(self):

@@ -1027,9 +1027,7 @@ class TestParquetPyArrow(Base):
 
         # bytes
         df.columns = [b"foo", b"bar"]
-        with pytest.raises(NotImplementedError, match="|S3"):
-            # Bytes fails on read_parquet
-            check_round_trip(df, pa)
+        check_round_trip(df, pa)
 
         # python object
         df.columns = [
