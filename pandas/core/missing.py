@@ -1060,6 +1060,7 @@ def _interp_limit(
     N = len(invalid)
     f_idx = np.array([], dtype=np.int64)
     b_idx = np.array([], dtype=np.int64)
+    assume_unique = True
 
     def inner(invalid, limit: int):
         limit = min(limit, N)
@@ -1073,6 +1074,7 @@ def _interp_limit(
     if fw_limit is not None:
         if fw_limit == 0:
             f_idx = np.where(invalid)[0]
+            assume_unique = False
         else:
             f_idx = inner(invalid, fw_limit)
 
@@ -1086,4 +1088,4 @@ def _interp_limit(
             if fw_limit == 0:
                 return b_idx
 
-    return np.intersect1d(f_idx, b_idx)
+    return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)
