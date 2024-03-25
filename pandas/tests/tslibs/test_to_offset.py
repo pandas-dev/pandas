@@ -178,8 +178,7 @@ def test_anchored_shortcuts(shortcut, expected):
 
 def test_to_offset_lowercase_frequency_w_deprecated():
     # GH#54939
-    msg = "'w' is deprecated and will be removed in a "
-    "future version, please use 'W' instead."
+    msg = "'w' is deprecated and will be removed in a future version"
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         to_offset("2w")
