@@ -752,59 +752,55 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     const npy_int64 per_day = sec_per_day * per_sec;
-    npy_int64 ifrac = td;
     const int sign = td < 0 ? -1 : 1;
+    const int is_negative = td < 0 ? 1 : 0;
     const int uneven_in_seconds = td % per_sec != 0 ? 1 : 0;
     // put frac in seconds
-    td = td / per_sec;
+    npy_int64 sfrac = td / per_sec - is_negative * uneven_in_seconds;
     if (sign < 0) {
-      td -= uneven_in_seconds;
       // even fraction
-      if ((-td % sec_per_day) != 0) {
-        // days = td / sec_per_day - is_even_fraction
-        out->days = td / sec_per_day - 1;
-        td -= sec_per_day * out->days;
+      if ((-sfrac % sec_per_day) != 0) {
+        out->days = sfrac / sec_per_day - 1;
+        sfrac -= sec_per_day * out->days;
       } else {
-        if (td <= sec_per_day) {
-          out->days = td / sec_per_day;
-          td = -td;
-          td += out->days * sec_per_day;
-        } else {
-          td = -td;
+        if (sfrac <= sec_per_day) {
+          out->days = sfrac / sec_per_day;
+          sfrac -= out->days * sec_per_day;
         }
+        sfrac = -sfrac;
       }
-    } else if (td >= sec_per_day) {
-      out->days = td / sec_per_day;
-      td -= out->days * sec_per_day;
+    } else if (sfrac >= sec_per_day) {
+      out->days = sfrac / sec_per_day;
+      sfrac -= out->days * sec_per_day;
     }
 
-    if (td >= sec_per_hour) {
-      out->hrs = (npy_int32)(td / sec_per_hour);
-      td %= sec_per_hour;
+    if (sfrac >= sec_per_hour) {
+      out->hrs = (npy_int32)(sfrac / sec_per_hour);
+      sfrac %= sec_per_hour;
     }
 
-    if (td >= sec_per_min) {
-      out->min = (npy_int32)(td / sec_per_min);
-      td %= sec_per_min;
+    if (sfrac >= sec_per_min) {
+      out->min = (npy_int32)(sfrac / sec_per_min);
+      sfrac %= sec_per_min;
     }
 
-    if (td >= 0) {
-      out->sec = (npy_int32)td;
+    if (sfrac >= 0) {
+      out->sec = (npy_int32)sfrac;
     }
 
     if (base > NPY_FR_s) {
-      ifrac = (ifrac - out->days * per_day) % per_sec;
+      npy_int32 ifrac = (npy_int32)((td - out->days * per_day) % per_sec);
 
       if (base == NPY_FR_ms) {
-        out->ms = (npy_int32)ifrac;
+        out->ms = ifrac;
       } else if (base == NPY_FR_us) {
-        out->ms = (npy_int32)(ifrac / 1000LL);
-        out->us = (npy_int32)(ifrac % 1000LL);
+        out->ms = ifrac / 1000LL;
+        out->us = ifrac % 1000LL;
       } else if (base == NPY_FR_ns) {
-        out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
+        out->ms = ifrac / (1000LL * 1000LL);
         ifrac = ifrac % (1000LL * 1000LL);
-        out->us = (npy_int32)(ifrac / 1000LL);
-        out->nanoseconds = (npy_int32)(ifrac % 1000LL);
+        out->us = ifrac / 1000LL;
+        out->nanoseconds = ifrac % 1000LL;
       }
       out->microseconds = out->ms * 1000 + out->us;
     }
