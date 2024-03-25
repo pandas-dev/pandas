@@ -692,8 +692,8 @@ _shared_docs["idxmin"] = """
     axis : {{0 or 'index', 1 or 'columns'}}, default 0
         The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
     skipna : bool, default True
-        Exclude NA/null values. If an entire row/column is NA, the result
-        will be NA.
+        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+        and there is an NA value, this method will raise a ``ValueError``.
     numeric_only : bool, default {numeric_only_default}
         Include only `float`, `int` or `boolean` data.
 
@@ -757,8 +757,8 @@ _shared_docs["idxmax"] = """
     axis : {{0 or 'index', 1 or 'columns'}}, default 0
         The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
     skipna : bool, default True
-        Exclude NA/null values. If an entire row/column is NA, the result
-        will be NA.
+        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+        and there is an NA value, this method will raise a ``ValueError``.
     numeric_only : bool, default {numeric_only_default}
         Include only `float`, `int` or `boolean` data.
 

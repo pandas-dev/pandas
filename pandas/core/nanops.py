@@ -1441,17 +1441,18 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                return -1
+                raise ValueError("Encountered all NA values")
         else:
             if mask.any():
-                return -1
+                raise ValueError("Encountered an NA value with skipna=False")
     else:
-        if skipna:
-            na_mask = mask.all(axis)
-        else:
-            na_mask = mask.any(axis)
+        na_mask = mask.all(axis)
         if na_mask.any():
-            result[na_mask] = -1
+            raise ValueError("Encountered all NA values")
+        elif not skipna:
+            na_mask = mask.any(axis)
+            if na_mask.any():
+                raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

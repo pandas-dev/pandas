@@ -259,6 +259,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated keyword ``verbose`` on :func:`read_csv` and :func:`read_table` (:issue:`56556`)
 - Removed the ``method`` keyword in ``ExtensionArray.fillna``, implement ``ExtensionArray._pad_or_backfill`` instead (:issue:`53621`)
 - Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
+- Enforced deprecation of ``argmin``, ``argmax``, ``idxmin``, and ``idxmax`` returning a result when ``skipna=False`` and an NA value is encountered or all values are NA values; these operations will now raise in such cases (:issue:`33941`, :issue:`51276`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
