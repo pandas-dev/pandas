@@ -328,6 +328,23 @@ class I8Merge:
         merge(self.left, self.right, how=how)
 
 
+class UniqueMerge:
+    params = [4_000_000, 1_000_000]
+    param_names = ["unique_elements"]
+
+    def setup(self, unique_elements):
+        N = 1_000_000
+        self.left = DataFrame({"a": np.random.randint(1, unique_elements, (N,))})
+        self.right = DataFrame({"a": np.random.randint(1, unique_elements, (N,))})
+        uniques = self.right.a.drop_duplicates()
+        self.right["a"] = concat(
+            [uniques, Series(np.arange(0, -(N - len(uniques)), -1))], ignore_index=True
+        )
+
+    def time_unique_merge(self, unique_elements):
+        merge(self.left, self.right, how="inner")
+
+
 class MergeDatetime:
     params = [
         [

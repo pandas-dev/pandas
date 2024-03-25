@@ -1376,7 +1376,10 @@ cdef class _Timedelta(timedelta):
         datetime.timedelta(days=3)
         """
         if self._creso == NPY_FR_ns:
-            return timedelta(microseconds=int(self._value) / 1000)
+            us, remainder = divmod(self._value, 1000)
+            if remainder >= 500:
+                us += 1
+            return timedelta(microseconds=us)
 
         # TODO(@WillAyd): is this the right way to use components?
         self._ensure_components()

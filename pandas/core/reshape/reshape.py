@@ -953,7 +953,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     result: Series | DataFrame
     if len(buf) > 0 and not frame.empty:
-        result = concat(buf)
+        result = concat(buf, ignore_index=True)
         ratio = len(result) // len(frame)
     else:
         # input is empty

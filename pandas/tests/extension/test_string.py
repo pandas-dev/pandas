@@ -136,10 +136,6 @@ class TestStringArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-        result = data.fillna(method="backfill")
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | None:

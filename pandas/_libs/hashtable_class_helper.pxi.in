@@ -557,6 +557,49 @@ cdef class {{name}}HashTable(HashTable):
                     self.table.vals[k] = i
         self.na_position = na_position
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def hash_inner_join(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
+        cdef:
+            Py_ssize_t i, n = len(values)
+            {{c_type}} val
+            khiter_t k
+            Int64Vector locs = Int64Vector()
+            Int64Vector self_locs = Int64Vector()
+            Int64VectorData *l
+            Int64VectorData *sl
+            int8_t na_position = self.na_position
+
+        l = &locs.data
+        sl = &self_locs.data
+
+        if self.uses_mask and mask is None:
+            raise NotImplementedError  # pragma: no cover
+
+        with nogil:
+            for i in range(n):
+                if self.uses_mask and mask[i]:
+                    if self.na_position == -1:
+                        continue
+                    if needs_resize(l.size, l.capacity):
+                        with gil:
+                            locs.resize(locs.data.capacity * 4)
+                            self_locs.resize(locs.data.capacity * 4)
+                    append_data_int64(l, i)
+                    append_data_int64(sl, na_position)
+                else:
+                    val = {{to_c_type}}(values[i])
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k != self.table.n_buckets:
+                        if needs_resize(l.size, l.capacity):
+                            with gil:
+                                locs.resize(locs.data.capacity * 4)
+                                self_locs.resize(locs.data.capacity * 4)
+                        append_data_int64(l, i)
+                        append_data_int64(sl, self.table.vals[k])
+
+        return self_locs.to_array(), locs.to_array()
+
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -879,8 +922,8 @@ cdef class {{name}}Factorizer(Factorizer):
         {{name}}HashTable table
         {{name}}Vector uniques
 
-    def __cinit__(self, size_hint: int):
-        self.table = {{name}}HashTable(size_hint)
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
+        self.table = {{name}}HashTable(size_hint, uses_mask=uses_mask)
         self.uniques = {{name}}Vector()
 
     def factorize(self, const {{c_type}}[:] values,
@@ -910,6 +953,9 @@ cdef class {{name}}Factorizer(Factorizer):
                                        na_value=na_value, mask=mask)
         self.count = len(self.uniques)
         return labels
+
+    def hash_inner_join(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
+        return self.table.hash_inner_join(values, mask)
 
 {{endfor}}
 

@@ -14,7 +14,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -35,7 +34,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -686,7 +684,8 @@ class IndexOpsMixin(OpsMixin):
         axis : {{None}}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values when showing the result.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
 
@@ -736,28 +735,15 @@ class IndexOpsMixin(OpsMixin):
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
+        if skipna and len(delegate) > 0 and isna(delegate).all():
+            raise ValueError("Encountered all NA values")
+        elif not skipna and isna(delegate).any():
+            raise ValueError("Encountered an NA value with skipna=False")
+
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
-            else:
-                return delegate.argmax()
+            return delegate.argmax()
         else:
             result = nanops.nanargmax(delegate, skipna=skipna)
-            if result == -1:
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
             return result  # type: ignore[return-value]
@@ -770,28 +756,15 @@ class IndexOpsMixin(OpsMixin):
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
+        if skipna and len(delegate) > 0 and isna(delegate).all():
+            raise ValueError("Encountered all NA values")
+        elif not skipna and isna(delegate).any():
+            raise ValueError("Encountered an NA value with skipna=False")
+
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
-            else:
-                return delegate.argmin()
+            return delegate.argmin()
         else:
             result = nanops.nanargmin(delegate, skipna=skipna)
-            if result == -1:
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
             return result  # type: ignore[return-value]
@@ -1065,7 +1038,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_unique(self) -> bool:
         """
-        Return boolean if values in the object are unique.
+        Return True if values in the object are unique.
 
         Returns
         -------
@@ -1086,7 +1059,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically increasing.
+        Return True if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1109,7 +1082,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically decreasing.
+        Return True if values in the object are monotonically decreasing.
 
         Returns
         -------

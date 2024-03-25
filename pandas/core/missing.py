@@ -322,13 +322,17 @@ def get_interp_index(method, index: Index) -> Index:
             or isinstance(index.dtype, DatetimeTZDtype)
             or lib.is_np_dtype(index.dtype, "mM")
         )
-        if method not in methods and not is_numeric_or_datetime:
-            raise ValueError(
-                "Index column must be numeric or datetime type when "
-                f"using {method} method other than linear. "
-                "Try setting a numeric or datetime index column before "
-                "interpolating."
-            )
+        valid = NP_METHODS + SP_METHODS
+        if method in valid:
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+        else:
+            raise ValueError(f"Can not interpolate with method={method}.")
 
     if isna(index).any():
         raise NotImplementedError(
@@ -611,7 +615,9 @@ def _interpolate_scipy_wrapper(
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        terp = alt_methods[method]
+        terp = alt_methods.get(method, None)
+        if terp is None:
+            raise ValueError(f"Can not interpolate with method={method}.")
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
