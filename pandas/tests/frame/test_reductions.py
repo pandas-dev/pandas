@@ -1184,21 +1184,21 @@ class TestDataFrameAnalytics:
         df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 0], index=[1, 2, 3])
+        expected = Series([0, 2, 0], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with NaTs
         df.loc[0, 3] = pd.NaT
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1], index=[1, 2, 3])
+        expected = Series([0, 2, 1], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with multi-column dt64 block
@@ -1206,11 +1206,11 @@ class TestDataFrameAnalytics:
         df._consolidate_inplace()
 
         result = df.idxmax()
-        expected = Series([1, 0, 2, 0], index=[1, 2, 3, 4])
+        expected = Series([1, 0, 2, 0], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
+        expected = Series([0, 2, 1, 2], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1833,7 +1833,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=Index([0, 1]))
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=range(2))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

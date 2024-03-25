@@ -565,7 +565,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(columns=["b"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [2, np.nan, None, float("nan")])
+    @pytest.mark.parametrize("value", [4, np.nan, None, float("nan")])
     def test_constructor_dict_nan_key(self, value):
         # GH 18455
         cols = [1, value, 3]
