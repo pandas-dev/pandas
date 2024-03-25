@@ -493,7 +493,6 @@ def _interpolate_1d(
     # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = np.union1d(start_nans, _interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
