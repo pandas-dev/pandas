@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -334,13 +335,15 @@ def lexsort_indexer(
         raise ValueError(f"invalid na_position: {na_position}")
 
     if isinstance(orders, bool):
-        orders = [orders] * len(keys)
+        orders = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = [True] * len(keys)
+        orders = itertools.repeat(True, len(keys))
+    else:
+        orders = reversed(orders)
 
     labels = []
 
-    for k, order in zip(keys, orders):
+    for k, order in zip(reversed(keys), orders):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast(np.ndarray, k)
@@ -361,7 +364,7 @@ def lexsort_indexer(
 
         labels.append(codes)
 
-    return np.lexsort(labels[::-1])
+    return np.lexsort(labels)
 
 
 def nargsort(
@@ -523,13 +526,13 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            sort_levels = [level]
+            level_iter = [level]
         else:
-            sort_levels = level
+            level_iter = level
 
-        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
-        sort_levels = list(range(index.nlevels))  # satisfies mypy
+        sort_levels = range(index.nlevels)
 
     mapped = [
         ensure_key_mapped(index._get_level_values(level), key)
