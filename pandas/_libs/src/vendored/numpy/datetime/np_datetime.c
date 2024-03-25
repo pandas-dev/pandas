@@ -765,8 +765,17 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       } else {
         td = -td;
       }
+      if (td >= sec_per_day) {
+        out->days += out->days + td / sec_per_day;
+        td -= out->days * sec_per_day;
+      }
+      out->days = -out->days;
     } else {
       td = td / per_sec;
+      if (td >= sec_per_day) {
+        out->days += out->days + td / sec_per_day;
+        td -= out->days * sec_per_day;
+      }
     }
 
     if (td >= sec_per_day) {
