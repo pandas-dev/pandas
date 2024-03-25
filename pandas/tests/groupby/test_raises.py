@@ -241,8 +241,8 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (None, ""),
-        "any": (None, ""),
+        "all": (TypeError, "'all' with datetime64 dtypes is no longer supported"),
+        "any": (TypeError, "'any' with datetime64 dtypes is no longer supported"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),
@@ -285,9 +285,7 @@ def test_groupby_raises_datetime(
         "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    if groupby_func in ["any", "all"]:
-        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
-    elif groupby_func == "fillna":
+    if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
     else:
