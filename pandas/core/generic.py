@@ -2328,6 +2328,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             'iso' = ISO8601. The default depends on the `orient`. For
             ``orient='table'``, the default is 'iso'. For all other orients,
             the default is 'epoch'.
+
+            .. deprecated:: 2.2.2
+                'epoch' date format is deprecated and will be removed in a future
+                version, please use 'iso' instead.
+
         double_precision : int, default 10
             The number of decimal places to use when encoding
             floating point values. The possible maximal value is 15.
@@ -2364,10 +2369,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specify the IO mode for output when supplying a path_or_buf.
             Accepted args are 'w' (writing) and 'a' (append) only.
             mode='a' is only supported when lines is True and orient is 'records'.
-
-        .. deprecated:: 2.2.2
-            'epoch' date format is deprecated and will be removed in a future version,
-            please use 'iso' instead.
 
         Returns
         -------

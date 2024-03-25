@@ -835,14 +835,22 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
-        result = ser.to_json(date_format=date_format)
 
+        expected_warning = None
         if date_format == "epoch":
             expected = '{"1577836800000":1577836800000,"null":null}'
+            expected_warning = FutureWarning
         else:
             expected = (
                 '{"2020-01-01T00:00:00.000":"2020-01-01T00:00:00.000","null":null}'
             )
+
+        msg = (
+            "'Epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = ser.to_json(date_format=date_format)
 
         if as_object:
             expected = expected.replace("}", ',"a":"a"}')
@@ -1111,17 +1119,24 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
+        expected_warning = None
         if date_format == "iso":
             expected = (
                 '{"P1DT0H0M0S":"P1DT0H0M0S","P2DT0H0M0S":"P2DT0H0M0S","null":null}'
             )
         else:
+            expected_warning = FutureWarning
             expected = '{"86400000":86400000,"172800000":172800000,"null":null}'
 
         if as_object:
             expected = expected.replace("}", ',"a":"a"}')
 
-        result = ser.to_json(date_format=date_format)
+        msg = (
+            "'Epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = ser.to_json(date_format=date_format)
         assert result == expected
 
     @pytest.mark.parametrize("as_object", [True, False])
