@@ -500,7 +500,6 @@ filterwarnings = [
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  "ignore:The --rsyncdir command line argument:DeprecationWarning",
 ]
 junit_family = "xunit2"
 markers = [
