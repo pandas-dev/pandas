@@ -666,11 +666,11 @@ class TestNestedToRecord:
         # If errors="raise" and nested metadata is null,
         # should NOT raise if the missing value is leaf value
         result = json_normalize(
-                data,
-                record_path="value",
-                meta=["meta", ["nested_meta", "leaf"]],
-                errors="raise",
-            )
+            data,
+            record_path="value",
+            meta=["meta", ["nested_meta", "leaf"]],
+            errors="raise",
+        )
         tm.assert_frame_equal(result, expected)
 
         # If errors="raise" and nested metadata is null,
@@ -679,7 +679,11 @@ class TestNestedToRecord:
 
         with pytest.raises(KeyError, match="'leaf' not found"):
             json_normalize(
-                data, record_path="value", meta=["meta", ["nested_meta", "leaf", "leaf"]], errors="raise", )
+                data,
+                record_path="value",
+                meta=["meta", ["nested_meta", "leaf", "leaf"]],
+                errors="raise",
+            )
 
     def test_missing_nested_meta_traverse_empty_list(self):
         # If errors="ignore" and nested metadata is nullable, return nan
