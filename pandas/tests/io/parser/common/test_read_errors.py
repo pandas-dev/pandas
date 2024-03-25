@@ -8,6 +8,7 @@ import csv
 from io import StringIO
 import os
 from pathlib import Path
+import uuid
 
 import numpy as np
 import pytest
@@ -322,3 +323,25 @@ a,b
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
+
+
+def test_filetype_encoding_miss_match_with_given_encoding(all_parsers):
+    # GH#57954
+
+    data = """
+A,B
+Ü,Ä
+"""
+    parser = all_parsers
+    path = f"__{uuid.uuid4()}__.csv"
+
+    with tm.ensure_clean(path) as path:
+        bytes_data = data.encode("latin1")
+
+        with open(path, "wb") as f:
+            f.write(bytes_data)
+        msg = "File's encoding does not match with given encoding"
+        err = ValueError
+        with pytest.raises(err, match=msg):
+            with open(path) as f:
+                parser.read_csv(f, encoding="latin1", on_bad_lines="warn")
