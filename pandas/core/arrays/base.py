@@ -38,7 +38,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
-    validate_fillna_kwargs,
     validate_insert_loc,
 )
 
@@ -1007,31 +1006,6 @@ class ExtensionArray:
         [<NA>, 2, 2, 3, <NA>, <NA>]
         Length: 6, dtype: Int64
         """
-
-        # If a 3rd-party EA has implemented this functionality in fillna,
-        #  we warn that they need to implement _pad_or_backfill instead.
-        if (
-            type(self).fillna is not ExtensionArray.fillna
-            and type(self)._pad_or_backfill is ExtensionArray._pad_or_backfill
-        ):
-            # Check for _pad_or_backfill here allows us to call
-            #  super()._pad_or_backfill without getting this warning
-            warnings.warn(
-                "ExtensionArray.fillna 'method' keyword is deprecated. "
-                "In a future version. arr._pad_or_backfill will be called "
-                "instead. 3rd-party ExtensionArray authors need to implement "
-                "_pad_or_backfill.",
-                DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
-            if limit_area is not None:
-                raise NotImplementedError(
-                    f"{type(self).__name__} does not implement limit_area "
-                    "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
-                    "need to add this argument to _pad_or_backfill."
-                )
-            return self.fillna(method=method, limit=limit)
-
         mask = self.isna()
 
         if mask.any():
@@ -1057,8 +1031,7 @@ class ExtensionArray:
 
     def fillna(
         self,
-        value: object | ArrayLike | None = None,
-        method: FillnaOptions | None = None,
+        value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -1071,14 +1044,6 @@ class ExtensionArray:
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series:
-
-            * pad / ffill: propagate last valid observation forward to next valid.
-            * backfill / bfill: use NEXT valid observation to fill gap.
-
-            .. deprecated:: 2.1.0
-
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -1086,9 +1051,6 @@ class ExtensionArray:
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
-
-            .. deprecated:: 2.1.0
-
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -1110,16 +1072,6 @@ class ExtensionArray:
         [0, 0, 2, 3, 0, 0]
         Length: 6, dtype: Int64
         """
-        if method is not None:
-            warnings.warn(
-                f"The 'method' keyword in {type(self).__name__}.fillna is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        value, method = validate_fillna_kwargs(value, method)
-
         mask = self.isna()
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -1130,24 +1082,12 @@ class ExtensionArray:
         )
 
         if mask.any():
-            if method is not None:
-                meth = missing.clean_fill_method(method)
-
-                npmask = np.asarray(mask)
-                if meth == "pad":
-                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
-                    return self.take(indexer, allow_fill=True)
-                else:
-                    # i.e. meth == "backfill"
-                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
-                    return self[::-1].take(indexer, allow_fill=True)
+            # fill with value
+            if not copy:
+                new_values = self[:]
             else:
-                # fill with value
-                if not copy:
-                    new_values = self[:]
-                else:
-                    new_values = self.copy()
-                new_values[mask] = value
+                new_values = self.copy()
+            new_values[mask] = value
         else:
             if not copy:
                 new_values = self[:]
