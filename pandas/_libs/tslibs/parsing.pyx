@@ -45,7 +45,6 @@ from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
@@ -703,17 +702,12 @@ cdef datetime dateutil_parse(
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
             if res.tzname != "UTC":
-                # If the system is localized in UTC (as many CI runs are)
-                #  we get tzlocal, once the deprecation is enforced will get
-                #  timezone.utc, not raise.
-                warnings.warn(
+                raise ValueError(
                     f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "is no longer supported. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level()
                 )
-            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
