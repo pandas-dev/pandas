@@ -754,8 +754,9 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     const npy_int64 per_day = sec_per_day * per_sec;
     npy_int64 ifrac = td;
     const int sign = td < 0 ? -1 : 1;
+    const int uneven_in_seconds = td % per_sec != 0;
     // put frac in seconds
-    if (sign < 0 && td % per_sec != 0)
+    if (sign < 0 && uneven_in_seconds)
       td = td / per_sec - 1;
     else
       td = td / per_sec;
@@ -774,6 +775,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       out->days += td / sec_per_day;
       td -= out->days * sec_per_day;
     }
+
+    out->days = sign * (out->days);
 
     if (td >= sec_per_hour) {
       out->hrs = (npy_int32)(td / sec_per_hour);
