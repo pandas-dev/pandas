@@ -113,7 +113,7 @@ def missing_metadata():
                     "number": 8449,
                 }
             ],
-            "previous_residences": [],
+            "previous_residences": {"cities": []},
         },
     ]
 
@@ -663,15 +663,23 @@ class TestNestedToRecord:
         )
         tm.assert_frame_equal(result, expected)
 
-        # If errors="raise" and nested metadata is null, we should raise with the
-        # key of the first missing level
-        with pytest.raises(KeyError, match="'leaf' not found"):
-            json_normalize(
+        # If errors="raise" and nested metadata is null,
+        # should NOT raise if the missing value is leaf value
+        result = json_normalize(
                 data,
                 record_path="value",
                 meta=["meta", ["nested_meta", "leaf"]],
                 errors="raise",
             )
+        tm.assert_frame_equal(result, expected)
+
+        # If errors="raise" and nested metadata is null,
+        # should raise if the missing value is node value:
+        # see ["nested_meta", "leaf", "leaf"] instruction
+
+        with pytest.raises(KeyError, match="'leaf' not found"):
+            json_normalize(
+                data, record_path="value", meta=["meta", ["nested_meta", "leaf", "leaf"]], errors="raise", )
 
     def test_missing_nested_meta_traverse_empty_list(self):
         # If errors="ignore" and nested metadata is nullable, return nan
@@ -707,8 +715,8 @@ class TestNestedToRecord:
 
     def test_missing_meta_multilevel_record_path_errors_ignore(self, missing_metadata):
         # GH41876
-        # Ensure errors='ignore' works as intended even when a record_path of length
-        # greater than one is passed in
+        # Ensure errors='ignore' works as intended
+        # even when a record_path of length greater than one is passed in
         result = json_normalize(
             data=missing_metadata,
             record_path=["previous_residences", "cities"],
@@ -726,20 +734,20 @@ class TestNestedToRecord:
     def test_missing_meta_multilevel_record_path_errors_raise_ignores_value(
         self, missing_metadata
     ):
-        # GH41876
         # Ensure errors='raise' works as intended
         # when a requested value is missing from json
         result = json_normalize(
             data=missing_metadata,
-            record_path=["previous_residences"],
+            record_path=["previous_residences", "cities"],
             meta="name",
-            errors="ignore",
+            errors="raise",
         )
         ex_data = [
-            [{"cities": [{"city_name": "Foo York City"}]}, "Alice"],
-            [{"cities": [{"city_name": "Barmingham"}]}, np.nan],
+            ["Foo York City", "Alice"],
+            ["Barmingham", np.nan],
+            [np.nan, "Minnie"],
         ]
-        columns = ["previous_residences", "name"]
+        columns = ["city_name", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
