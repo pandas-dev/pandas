@@ -1065,7 +1065,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_unique(self) -> bool:
         """
-        Return boolean if values in the object are unique.
+        Return True if values in the object are unique.
 
         Returns
         -------
@@ -1086,7 +1086,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically increasing.
+        Return True if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1109,7 +1109,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically decreasing.
+        Return True if values in the object are monotonically decreasing.
 
         Returns
         -------
