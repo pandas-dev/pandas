@@ -851,10 +851,10 @@ class TestDataFrameConstructors:
 
         expected = DataFrame(
             [
-                {0: 0, 1: None, 2: None, 3: None},
-                {0: None, 1: 2, 2: None, 3: None},
-                {0: None, 1: None, 2: 4, 3: None},
-                {0: None, 1: None, 2: None, 3: 6},
+                [0, None, None, None],
+                [None, 2, None, None],
+                [None, None, 4, None],
+                [None, None, None, 6],
             ],
             index=[Timestamp(dt) for dt in dates_as_str],
         )
