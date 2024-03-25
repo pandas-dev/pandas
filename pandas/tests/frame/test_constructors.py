@@ -2718,6 +2718,11 @@ class TestDataFrameConstructors:
         result = DataFrame({"a": ser})
         assert result.dtypes.iloc[0] == np.object_
 
+    def test_dict_keys_returns_rangeindex(self):
+        result = DataFrame({0: [1], 1: [2]}).columns
+        expected = RangeIndex(2)
+        tm.assert_index_equal(result, expected, exact=True)
+
     @pytest.mark.parametrize(
         "cons", [Series, Index, DatetimeIndex, DataFrame, pd.array, pd.to_datetime]
     )

@@ -2333,8 +2333,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2376,32 +2376,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s.idxmin()
         'A'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmin(skipna=False)
-        nan
         """
         axis = self._get_axis_number(axis)
-        with warnings.catch_warnings():
-            # TODO(3.0): this catching/filtering can be removed
-            # ignore warning produced by argmin since we will issue a different
-            #  warning for idxmin
-            warnings.simplefilter("ignore")
-            i = self.argmin(axis, skipna, *args, **kwargs)
-
-        if i == -1:
-            # GH#43587 give correct NA value for Index.
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmin with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self.index._na_value
-        return self.index[i]
+        iloc = self.argmin(axis, skipna, *args, **kwargs)
+        return self.index[iloc]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
         """
@@ -2415,8 +2393,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2459,32 +2437,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s.idxmax()
         'C'
-
-        If `skipna` is False and there is an NA value in the data,
-        the function returns ``nan``.
-
-        >>> s.idxmax(skipna=False)
-        nan
         """
         axis = self._get_axis_number(axis)
-        with warnings.catch_warnings():
-            # TODO(3.0): this catching/filtering can be removed
-            # ignore warning produced by argmax since we will issue a different
-            #  warning for argmax
-            warnings.simplefilter("ignore")
-            i = self.argmax(axis, skipna, *args, **kwargs)
-
-        if i == -1:
-            # GH#43587 give correct NA value for Index.
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmax with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self.index._na_value
-        return self.index[i]
+        iloc = self.argmax(axis, skipna, *args, **kwargs)
+        return self.index[iloc]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
         """
@@ -2509,13 +2465,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
 
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
+
         Examples
         --------
-        >>> s = pd.Series([0.1, 1.3, 2.7])
+        >>> s = pd.Series([-0.5, 0.1, 2.5, 1.3, 2.7])
         >>> s.round()
-        0    0.0
-        1    1.0
-        2    3.0
+        0   -0.0
+        1    0.0
+        2    2.0
+        3    1.0
+        4    3.0
         dtype: float64
         """
         nv.validate_round(args, kwargs)
