@@ -706,10 +706,6 @@ class TestArrowArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-        result = data.fillna(method="backfill")
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
