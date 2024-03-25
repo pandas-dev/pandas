@@ -65,6 +65,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -498,6 +499,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
+@set_module("pandas")
 class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
@@ -10700,6 +10702,12 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         numpy.around : Round a numpy array to the given number of decimals.
         Series.round : Round a Series to the given number of decimals.
+
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
 
         Examples
         --------
