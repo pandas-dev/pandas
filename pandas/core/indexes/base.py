@@ -6957,16 +6957,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -6976,16 +6970,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
