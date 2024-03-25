@@ -2116,7 +2116,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(level, (tuple, list)):
             level = [level]
 
-        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+        levnums = sorted((self._get_level_number(lev) for lev in level), reverse=True)
 
         return self._drop_level_numbers(levnums)
 
@@ -6976,16 +6976,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -6995,16 +6989,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
@@ -7169,24 +7157,17 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (ABCSeries, Index)):
+    if isinstance(sequence, (ABCSeries, Index, range, ExtensionArray)):
         return sequence
-    np_sequence = np.asarray(sequence)
-    if np_sequence.dtype.kind != "i" or len(np_sequence) == 1:
+    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
         return sequence
-    elif len(np_sequence) == 0:
+    elif len(sequence) == 0:
         return range(0)
-    diff = np_sequence[1] - np_sequence[0]
+    diff = sequence[1] - sequence[0]
     if diff == 0:
         return sequence
-    elif len(np_sequence) == 2:
-        return range(np_sequence[0], np_sequence[1] + diff, diff)
-    maybe_range_indexer, remainder = np.divmod(np_sequence - np_sequence[0], diff)
-    if (
-        lib.is_range_indexer(maybe_range_indexer, len(maybe_range_indexer))
-        and not remainder.any()
-    ):
-        return range(np_sequence[0], np_sequence[-1] + diff, diff)
+    elif len(sequence) == 2 or lib.is_sequence_range(np.asarray(sequence), diff):
+        return range(sequence[0], sequence[-1] + diff, diff)
     else:
         return sequence
 
