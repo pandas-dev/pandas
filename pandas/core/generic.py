@@ -2329,7 +2329,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``orient='table'``, the default is 'iso'. For all other orients,
             the default is 'epoch'.
 
-            .. deprecated:: 2.2.2
+            .. deprecated:: 3.0.0
                 'epoch' date format is deprecated and will be removed in a future
                 version, please use 'iso' instead.
 
