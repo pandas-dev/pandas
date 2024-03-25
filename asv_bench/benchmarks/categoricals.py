@@ -88,7 +88,7 @@ class AsType:
         )
 
         for col in ("int", "float", "timestamp"):
-            self.df[col + "_as_str"] = self.df[col].astype(str)
+            self.df[f"{col}_as_str"] = self.df[col].astype(str)
 
         for col in self.df.columns:
             self.df[col] = self.df[col].astype("category")
