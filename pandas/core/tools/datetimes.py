@@ -898,8 +898,8 @@ def to_datetime(
     Passing ``errors='coerce'`` will force an out-of-bounds date to :const:`NaT`,
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
-    >>> pd.to_datetime("13000101", format="%Y%m%d", errors="coerce")
-    Timestamp('1300-01-01 00:00:00')
+    >>> pd.to_datetime("invalid for Ymd", format="%Y%m%d", errors="coerce")
+    NaT
 
     .. _to_datetime_tz_examples:
 
