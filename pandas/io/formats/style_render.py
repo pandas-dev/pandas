@@ -1650,8 +1650,6 @@ class StylerRenderer:
 
         Examples
         --------
-        Basic use
-
         >>> df = pd.DataFrame(
         ...     [[1, 2], [3, 4]],
         ...     index=pd.Index(["a", "b"], name="idx"),
