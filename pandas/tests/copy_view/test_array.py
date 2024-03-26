@@ -141,3 +141,10 @@ def test_empty_dataframe():
     df = DataFrame()
     arr = np.asarray(df)
     assert arr.flags.writeable is True
+
+
+def test_series_array_not_writable():
+    # GH 58007
+    ser = Series([1, 2])
+    with pytest.raises(ValueError, match="assignment destination is read-only"):
+        ser.array[0] = 2

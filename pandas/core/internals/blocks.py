@@ -2112,7 +2112,9 @@ class NumpyBlock(Block):
 
     @property
     def array_values(self) -> ExtensionArray:
-        return NumpyExtensionArray(self.values)
+        values = self.values.view()
+        values.flags.writeable = False
+        return NumpyExtensionArray(values)
 
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         if dtype == _dtype_obj:
@@ -2363,7 +2365,5 @@ def external_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
-
-    # TODO(CoW) we should also mark our ExtensionArrays as read-only
 
     return values
