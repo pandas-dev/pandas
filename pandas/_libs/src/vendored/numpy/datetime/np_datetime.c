@@ -801,9 +801,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         out->ms = ifrac / (1000LL * 1000LL);
         ifrac = ifrac % (1000LL * 1000LL);
         out->us = ifrac / 1000LL;
-        out->nanoseconds = ifrac % 1000LL;
+        out->ns = ifrac % 1000LL;
       }
-      out->microseconds = out->ms * 1000 + out->us;
     }
 
   } break;
@@ -815,6 +814,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
   }
   out->seconds =
       (npy_int32)(out->hrs * sec_per_hour + out->min * sec_per_min + out->sec);
+  out->microseconds = out->ms * 1000 + out->us;
+  out->nanoseconds = out->ns;
 }
 
 /*
