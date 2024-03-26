@@ -7157,9 +7157,13 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (ABCSeries, Index, range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)):
         return sequence
     elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
+        return sequence
+    elif isinstance(sequence, (ABCSeries, Index)) and not (
+        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    ):
         return sequence
     elif len(sequence) == 0:
         return range(0)
