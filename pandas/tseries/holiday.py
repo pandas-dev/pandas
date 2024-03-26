@@ -156,6 +156,7 @@ class Holiday:
     for observance.
     """
 
+    offset: BaseOffset | list[BaseOffset] | None
     start_date: Timestamp | None
     end_date: Timestamp | None
     days_of_week: tuple[int, ...] | None
