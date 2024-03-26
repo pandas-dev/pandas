@@ -189,7 +189,7 @@ def use_numpy(request):
 def fillna_method(request):
     """
     Parametrized fixture giving method parameters 'ffill' and 'bfill' for
-    Series.fillna(method=<method>) testing.
+    Series.<method> testing.
     """
     return request.param
 
