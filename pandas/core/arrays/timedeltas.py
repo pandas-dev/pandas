@@ -113,7 +113,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Parameters
     ----------
-    values : array-like
+    data : array-like
         The timedelta data.
 
     dtype : numpy.dtype
