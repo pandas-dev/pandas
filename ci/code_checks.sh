@@ -504,7 +504,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.to_timedelta64 SA01" \
         -i "pandas.Timedelta.total_seconds SA01" \
         -i "pandas.Timedelta.view SA01" \
-        -i "pandas.TimedeltaIndex PR01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
         -i "pandas.TimedeltaIndex.ceil SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
