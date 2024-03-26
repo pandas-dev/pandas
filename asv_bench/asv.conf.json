@@ -42,6 +42,7 @@
     // followed by the pip installed packages).
     "matrix": {
         "Cython": ["3.0"],
+        "build": [],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],

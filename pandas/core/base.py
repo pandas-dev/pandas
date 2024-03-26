@@ -53,6 +53,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    nanops,
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
@@ -730,17 +731,31 @@ class IndexOpsMixin(OpsMixin):
         the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return self.array.argmax(skipna=skipna)
+
+        if isinstance(delegate, ExtensionArray):
+            return delegate.argmax()
+        else:
+            result = nanops.nanargmax(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return result  # type: ignore[return-value]
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return self.array.argmin(skipna=skipna)
+
+        if isinstance(delegate, ExtensionArray):
+            return delegate.argmin()
+        else:
+            result = nanops.nanargmin(delegate, skipna=skipna)
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return result  # type: ignore[return-value]
 
     def tolist(self) -> list:
         """
