@@ -336,6 +336,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
+    @final
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
         """

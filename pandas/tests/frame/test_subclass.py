@@ -26,6 +26,17 @@ def gpd_style_subclass_df():
 
 
 class TestDataFrameSubclassing:
+    def test_no_warning_on_mgr(self):
+        # GH#57032
+        df = tm.SubclassedDataFrame(
+            {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
+        )
+        with tm.assert_produces_warning(None):
+            # df.isna() goes through _constructor_from_mgr, which we want to
+            #  *not* pass a Manager do __init__
+            df.isna()
+            df["X"].isna()
+
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632
