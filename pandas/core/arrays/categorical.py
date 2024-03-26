@@ -626,19 +626,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def to_list(self) -> list:
-        """
-        Alias for tolist.
-        """
-        # GH#51254
-        warnings.warn(
-            "Categorical.to_list is deprecated and will be removed in a future "
-            "version. Use obj.tolist() instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.tolist()
-
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None

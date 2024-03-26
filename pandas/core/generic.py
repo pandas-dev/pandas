@@ -287,6 +287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
+    @final
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
         """
