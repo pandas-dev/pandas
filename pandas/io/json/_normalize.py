@@ -1,4 +1,6 @@
 # ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 # JSON normalization routines
 from __future__ import annotations
 
@@ -435,10 +437,10 @@ def json_normalize(
         if not isinstance(spec, list):
             spec = [spec]
         try:
-            for field in spec:
+            for i,field in enumerate(spec):
                 # GH 57810
                 if result is None or not len(result):
-                    if field == spec[-1]:
+                    if i==len(spec)-1:
                         return np.nan
                     raise KeyError(field)
                 result = result[field]
