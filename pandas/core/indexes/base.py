@@ -179,7 +179,6 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
-from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     ensure_key_mapped,
     get_group_index_sorter,
@@ -6961,7 +6960,6 @@ class Index(IndexOpsMixin, PandasObject):
         raise if this Index subclass does not support any or all.
         """
         if isinstance(self, ABCMultiIndex) or self.dtype.kind != "m":
-            make_invalid_op(opname)(self)
             raise TypeError("cannot perform all with this index type: Index")
 
     @Appender(IndexOpsMixin.argmin.__doc__)

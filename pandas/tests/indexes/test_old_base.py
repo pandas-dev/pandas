@@ -212,30 +212,24 @@ class TestBase:
         with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
-    def test_logical_compat(self, simple_index):
+    def test_logical_compat(self, simple_index, request):
         if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
 
         if idx.dtype.kind in "iufcbm":
-            msg = "cannot perform all with this index type: Index"
+            msg = "cannot perform (any|all) with this index type: Index"
 
-            with pytest.raises(TypeError, match=msg):
-                assert idx.all() == idx._values.all()
-                assert idx.all() == idx.to_series().all()
-
-            msg = "cannot perform any with this index type: Index"
-
-            with pytest.raises(TypeError, match=msg):
-                assert idx.any() == idx._values.any()
-                assert idx.any() == idx.to_series().any()
+            if request.node.callspec.id in [
+                "".join(["simple_index", t]) for t in ["1", "2", "3", "5", "6", "7"]
+            ]:
+                with pytest.raises(TypeError, match=msg):
+                    assert idx.all() == idx._values.all()
+                    assert idx.all() == idx.to_series().all()
+                    assert idx.any() == idx._values.any()
+                    assert idx.any() == idx.to_series().any()
         else:
             msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):

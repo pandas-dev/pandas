@@ -688,7 +688,7 @@ class TestIndex:
 
     def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
-        msg = f"cannot perform {all_boolean_reductions} with this index type: Index"
+        msg = "cannot perform (any|all) with this index type: Index"
 
         with pytest.raises(TypeError, match=msg):
             getattr(index, all_boolean_reductions)()
@@ -1393,7 +1393,7 @@ class TestMixedIntIndex:
 
     def test_logical_compat(self, simple_index):
         index = simple_index
-        msg = "cannot perform all with this index type: Index"
+        msg = "cannot perform (any|all) with this index type: Index"
 
         with pytest.raises(TypeError, match=msg):
             assert index.all() == index.values.all()

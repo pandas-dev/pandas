@@ -223,11 +223,14 @@ class TestFloatNumericIndex:
 
     def test_logical_compat(self, dtype):
         idx = Index(np.arange(5, dtype=dtype))
-        assert idx.all() == idx.values.all()
-        assert idx.any() == idx.values.any()
+        msg = "cannot perform all with this index type: Index"
 
-        assert idx.all() == idx.to_series().all()
-        assert idx.any() == idx.to_series().any()
+        with pytest.raises(TypeError, match=msg):
+            assert idx.all() == idx.values.all()
+            assert idx.any() == idx.values.any()
+
+            assert idx.all() == idx.to_series().all()
+            assert idx.any() == idx.to_series().any()
 
 
 class TestNumericInt:
@@ -278,10 +281,14 @@ class TestNumericInt:
         assert not index._is_strictly_monotonic_increasing
         assert not index._is_strictly_monotonic_decreasing
 
-    def test_logical_compat(self, simple_index):
+    def test_logical_compat(self, simple_index, request):
         idx = simple_index
-        assert idx.all() == idx.values.all()
-        assert idx.any() == idx.values.any()
+        msg = "cannot perform all with this index type: Index"
+
+        if request.node.callspec.id not in ["int", "int64"]:
+            with pytest.raises(TypeError, match=msg):
+                assert idx.all() == idx.values.all()
+                assert idx.any() == idx.values.any()
 
     def test_identical(self, simple_index, dtype):
         index = simple_index
