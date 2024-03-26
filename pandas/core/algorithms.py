@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     ensure_platform_int,
-    is_array_like,
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
@@ -1167,9 +1166,6 @@ def take(
             "pd.api.extensions.take requires a numpy.ndarray, "
             f"ExtensionArray, Index, or Series, got {type(arr).__name__}."
         )
-
-    if not is_array_like(arr):
-        arr = np.asarray(arr)
 
     indices = ensure_platform_int(indices)
 
