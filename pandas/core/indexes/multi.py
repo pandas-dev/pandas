@@ -921,7 +921,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = tuple(ensure_index(lev, copy=copy)._view() for lev in levels)
-            level_numbers = list(range(len(new_levels)))
+            level_numbers: range | list[int] = range(len(new_levels))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
@@ -2063,7 +2063,7 @@ class MultiIndex(Index):
 
         >>> mi2 = mi[2:].remove_unused_levels()
         >>> mi2.levels
-        (Index([1], dtype='int64'), Index(['a', 'b'], dtype='object'))
+        (RangeIndex(start=1, stop=2, step=1), Index(['a', 'b'], dtype='object'))
         """
         new_levels = []
         new_codes = []
@@ -3014,7 +3014,7 @@ class MultiIndex(Index):
                 raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
-                loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
+                loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
         # -- partial selection or non-unique index
@@ -3101,7 +3101,7 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(["b", "e"])
         (1, None)
         """
-        if not isinstance(level, (list, tuple)):
+        if not isinstance(level, (range, list, tuple)):
             level = self._get_level_number(level)
         else:
             level = [self._get_level_number(lev) for lev in level]
@@ -3589,7 +3589,7 @@ class MultiIndex(Index):
                 new_order = key_order_map[self.codes[i][indexer]]
             elif isinstance(k, slice) and k.step is not None and k.step < 0:
                 # flip order for negative step
-                new_order = np.arange(n)[::-1][indexer]
+                new_order = np.arange(n - 1, -1, -1)[indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
                 new_order = np.ones((n,), dtype=np.intp)[indexer]

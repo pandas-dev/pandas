@@ -65,6 +65,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -356,7 +357,7 @@ suffixes : list-like, default is ("_x", "_y")
     of a string to indicate that the column name from `left` or
     `right` should be left as-is, with no suffix. At least one of the
     values must not be None.
-copy : bool, default True
+copy : bool, default False
     If False, avoid copy if possible.
 
     .. note::
@@ -370,6 +371,8 @@ copy : bool, default True
 
         You can already get the future behavior and improvements through
         enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+    .. deprecated:: 3.0.0
 indicator : bool or str, default False
     If True, adds a column to the output DataFrame called "_merge" with
     information on the source of each row. The column can be given a different
@@ -498,6 +501,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
+@set_module("pandas")
 class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
@@ -651,25 +655,36 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes) -> DataFrame:
-        if self._constructor is DataFrame:
-            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return DataFrame._from_mgr(mgr, axes=axes)
-        else:
-            assert axes is mgr.axes
+        df = DataFrame._from_mgr(mgr, axes=axes)
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor is DataFrame`, but
+            #  this check is slightly faster, benefiting the most-common case.
+            return df
+
+        elif type(self).__name__ == "GeoDataFrame":
+            # Shim until geopandas can override their _constructor_from_mgr
+            #  bc they have different behavior for Managers than for DataFrames
             return self._constructor(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor(df)
 
     _constructor_sliced: Callable[..., Series] = Series
 
-    def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return Series._from_mgr(mgr, axes)
-
     def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
-        if self._constructor_sliced is Series:
-            ser = self._sliced_from_mgr(mgr, axes)
-            ser._name = None  # caller is responsible for setting real name
+        ser = Series._from_mgr(mgr, axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor_sliced is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        assert axes is mgr.axes
-        return self._constructor_sliced(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor_sliced(ser)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1883,6 +1898,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         numpy.ndarray
+            The NumPy array representing the values in the DataFrame.
 
         See Also
         --------
@@ -2930,7 +2946,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
-        Write a DataFrame to the ORC format.
+        Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
         .. versionadded:: 1.5.0
 
@@ -2957,7 +2973,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
+        bytes if no ``path`` argument is provided else None
+            Bytes object with DataFrame data if ``path`` is not specified else None.
 
         Raises
         ------
@@ -2977,6 +2994,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        * Find more information on ORC
+          `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
@@ -3559,7 +3578,11 @@ class DataFrame(NDFrame, OpsMixin):
             result = index_memory_usage._append(result)
         return result
 
-    def transpose(self, *args, copy: bool = False) -> DataFrame:
+    def transpose(
+        self,
+        *args,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame:
         """
         Transpose index and columns.
 
@@ -3589,6 +3612,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -3670,6 +3695,7 @@ class DataFrame(NDFrame, OpsMixin):
         1    object
         dtype: object
         """
+        self._check_copy_deprecation(copy)
         nv.validate_transpose(args, {})
         # construct the args
 
@@ -5045,9 +5071,9 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
-        return super().set_axis(labels, axis=axis)
+        return super().set_axis(labels, axis=axis, copy=copy)
 
     @doc(
         NDFrame.reindex,
@@ -5296,7 +5322,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[True],
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5310,7 +5336,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[False] = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5324,7 +5350,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5337,7 +5363,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -5367,7 +5393,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis to target with ``mapper``. Can be either the axis name
             ('index', 'columns') or number (0, 1). The default is 'index'.
-        copy : bool, default True
+        copy : bool, default False
             Also copy underlying data.
 
             .. note::
@@ -5381,6 +5407,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
             If True then value of copy is ignored.
@@ -5461,6 +5489,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  2  5
         4  3  6
         """
+        self._check_copy_deprecation(copy)
         return super()._rename(
             mapper=mapper,
             index=index,
@@ -5473,7 +5502,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def pop(self, item: Hashable) -> Series:
         """
-        Return item and drop from frame. Raise KeyError if not found.
+        Return item and drop it from DataFrame. Raise KeyError if not found.
 
         Parameters
         ----------
@@ -5483,6 +5512,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
+            Series representing the item that is dropped.
 
         Examples
         --------
@@ -7612,7 +7642,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
-        Rearrange index levels using input order. May not drop or duplicate levels.
+        Rearrange index or column levels using input ``order``.
+
+        May not drop or duplicate levels.
 
         Parameters
         ----------
@@ -7625,6 +7657,7 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+            DataFrame with indices or columns with reordered levels.
 
         Examples
         --------
@@ -9278,10 +9311,9 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame. The new inner-most levels are created by pivoting the
         columns of the current dataframe:
 
-          - if the columns have a single level, the output is a Series;
-          - if the columns have multiple levels, the new index
-            level(s) is (are) taken from the prescribed level(s) and
-            the output is a DataFrame.
+        - if the columns have a single level, the output is a Series;
+        - if the columns have multiple levels, the new index level(s) is (are)
+          taken from the prescribed level(s) and the output is a DataFrame.
 
         Parameters
         ----------
@@ -9297,7 +9329,7 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
-        future_stack : bool, default False
+        future_stack : bool, default True
             Whether to use the new implementation that will replace the current
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
@@ -9674,7 +9706,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="unstack")
 
-    @Appender(_shared_docs["melt"] % {"caller": "df.melt(", "other": "melt"})
     def melt(
         self,
         id_vars=None,
@@ -9684,6 +9715,127 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Level | None = None,
         ignore_index: bool = True,
     ) -> DataFrame:
+        """
+        Unpivot DataFrame from wide to long format, optionally leaving identifiers set.
+
+        This function is useful to massage a DataFrame into a format where one
+        or more columns are identifier variables (`id_vars`), while all other
+        columns, considered measured variables (`value_vars`), are "unpivoted" to
+        the row axis, leaving just two non-identifier columns, 'variable' and
+        'value'.
+
+        Parameters
+        ----------
+        id_vars : scalar, tuple, list, or ndarray, optional
+            Column(s) to use as identifier variables.
+        value_vars : scalar, tuple, list, or ndarray, optional
+            Column(s) to unpivot. If not specified, uses all columns that
+            are not set as `id_vars`.
+        var_name : scalar, default None
+            Name to use for the 'variable' column. If None it uses
+            ``frame.columns.name`` or 'variable'.
+        value_name : scalar, default 'value'
+            Name to use for the 'value' column, can't be an existing column label.
+        col_level : scalar, optional
+            If columns are a MultiIndex then use this level to melt.
+        ignore_index : bool, default True
+            If True, original index is ignored. If False, original index is retained.
+            Index labels will be repeated as necessary.
+
+        Returns
+        -------
+        DataFrame
+            Unpivoted DataFrame.
+
+        See Also
+        --------
+        melt : Identical method.
+        pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+        DataFrame.pivot : Return reshaped DataFrame organized
+            by given index / column values.
+        DataFrame.explode : Explode a DataFrame from list-like
+                columns to long format.
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": {0: "a", 1: "b", 2: "c"},
+        ...         "B": {0: 1, 1: 3, 2: 5},
+        ...         "C": {0: 2, 1: 4, 2: 6},
+        ...     }
+        ... )
+        >>> df
+        A  B  C
+        0  a  1  2
+        1  b  3  4
+        2  c  5  6
+
+        >>> df.melt(id_vars=["A"], value_vars=["B"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+
+        >>> df.melt(id_vars=["A"], value_vars=["B", "C"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+        3  a        C      2
+        4  b        C      4
+        5  c        C      6
+
+        The names of 'variable' and 'value' columns can be customized:
+
+        >>> df.melt(
+        ...     id_vars=["A"],
+        ...     value_vars=["B"],
+        ...     var_name="myVarname",
+        ...     value_name="myValname",
+        ... )
+        A myVarname  myValname
+        0  a         B          1
+        1  b         B          3
+        2  c         B          5
+
+        Original index values can be kept around:
+
+        >>> df.melt(id_vars=["A"], value_vars=["B", "C"], ignore_index=False)
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+        0  a        C      2
+        1  b        C      4
+        2  c        C      6
+
+        If you have multi-index columns:
+
+        >>> df.columns = [list("ABC"), list("DEF")]
+        >>> df
+        A  B  C
+        D  E  F
+        0  a  1  2
+        1  b  3  4
+        2  c  5  6
+
+        >>> df.melt(col_level=0, id_vars=["A"], value_vars=["B"])
+        A variable  value
+        0  a        B      1
+        1  b        B      3
+        2  c        B      5
+
+        >>> df.melt(id_vars=[("A", "D")], value_vars=[("B", "E")])
+        (A, D) variable_0 variable_1  value
+        0      a          B          E      1
+        1      b          B          E      3
+        2      c          B          E      5
+        """
         return melt(
             self,
             id_vars=id_vars,
@@ -10517,10 +10669,12 @@ class DataFrame(NDFrame, OpsMixin):
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         indicator: str | bool = False,
         validate: MergeValidate | None = None,
     ) -> DataFrame:
+        self._check_copy_deprecation(copy)
+
         from pandas.core.reshape.merge import merge
 
         return merge(
@@ -10572,6 +10726,12 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         numpy.around : Round a numpy array to the given number of decimals.
         Series.round : Round a Series to the given number of decimals.
+
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
 
         Examples
         --------
@@ -12316,7 +12476,7 @@ class DataFrame(NDFrame, OpsMixin):
         freq: Frequency | None = None,
         how: ToTimestampHow = "start",
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -12330,7 +12490,7 @@ class DataFrame(NDFrame, OpsMixin):
             vs. end.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default).
-        copy : bool, default True
+        copy : bool, default False
             If False then underlying input data is not copied.
 
             .. note::
@@ -12344,6 +12504,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -12381,6 +12543,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
+        self._check_copy_deprecation(copy)
         new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
@@ -12394,7 +12557,10 @@ class DataFrame(NDFrame, OpsMixin):
         return new_obj
 
     def to_period(
-        self, freq: Frequency | None = None, axis: Axis = 0, copy: bool | None = None
+        self,
+        freq: Frequency | None = None,
+        axis: Axis = 0,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
@@ -12408,7 +12574,7 @@ class DataFrame(NDFrame, OpsMixin):
             Frequency of the PeriodIndex.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default).
-        copy : bool, default True
+        copy : bool, default False
             If False then underlying input data is not copied.
 
             .. note::
@@ -12422,6 +12588,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -12450,6 +12618,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
+        self._check_copy_deprecation(copy)
         new_obj = self.copy(deep=False)
 
         axis_name = self._get_axis_name(axis)
