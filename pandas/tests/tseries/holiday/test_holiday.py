@@ -6,7 +6,6 @@ from pytz import utc
 from pandas import (
     DatetimeIndex,
     Series,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -199,33 +198,6 @@ def test_holidays_within_dates(holiday, start, expected):
     ) == [utc.localize(dt) for dt in expected]
 
 
-def test_holidays_within_dates_offset_of_offset():
-    # see gh-29049
-    # Test that the offset of an offset is correctly applied to the holiday
-    # And that dates can be calculated
-    holiday1 = Holiday(
-        "Holiday1",
-        month=USThanksgivingDay.month,
-        day=USThanksgivingDay.day,
-        offset=[USThanksgivingDay.offset, DateOffset(1)],
-    )
-    holiday2 = Holiday(
-        "Holiday2",
-        month=holiday1.month,
-        day=holiday1.day,
-        offset=[holiday1.offset, DateOffset(3)],
-    )
-    # there shall be no lists of lists here
-    for offset in holiday2.offset:
-        assert isinstance(offset, DateOffset)
-
-    min_date, max_date = (to_datetime(x) for x in ["2017-11-1", "2018-11-30"])
-    expected_min, expected_max = DatetimeIndex(["2017-11-27", "2018-11-26"])
-    actual_min, actual_max = holiday2.dates(min_date, max_date)
-    assert actual_min == expected_min
-    assert actual_max == expected_max
-
-
 @pytest.mark.parametrize(
     "transform", [lambda x: x.strftime("%Y-%m-%d"), lambda x: Timestamp(x)]
 )
@@ -296,6 +268,24 @@ def test_both_offset_observance_raises():
             day=1,
             offset=[DateOffset(weekday=SA(4))],
             observance=next_monday,
+        )
+
+
+def test_list_of_list_of_offsets_raises():
+    # see gh-29049
+    # Test that the offsets of offsets are forbidden
+    holiday1 = Holiday(
+        "Holiday1",
+        month=USThanksgivingDay.month,
+        day=USThanksgivingDay.day,
+        offset=[USThanksgivingDay.offset, DateOffset(1)],
+    )
+    with pytest.raises(ValueError, match="Nested lists are not supported for offset"):
+        Holiday(
+            "Holiday2",
+            month=holiday1.month,
+            day=holiday1.day,
+            offset=[holiday1.offset, DateOffset(3)],
         )
 
 

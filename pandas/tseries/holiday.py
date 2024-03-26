@@ -166,7 +166,7 @@ class Holiday:
         year=None,
         month=None,
         day=None,
-        offset: BaseOffset | list[BaseOffset | list[BaseOffset]] | None = None,
+        offset: BaseOffset | list[BaseOffset] | None = None,
         observance: Callable | None = None,
         start_date=None,
         end_date=None,
@@ -235,22 +235,17 @@ class Holiday:
         """
         if offset is not None and observance is not None:
             raise NotImplementedError("Cannot use both offset and observance.")
+        if isinstance(offset, list) and any(isinstance(off, list) for off in offset):
+            raise ValueError(
+                "Nested lists are not supported for offset. "
+                "Flatten composite offsets of `Holiday.offset`s first."
+            )
 
         self.name = name
         self.year = year
         self.month = month
         self.day = day
-        self.offset: None | BaseOffset | list[BaseOffset]
-        if isinstance(offset, list):
-            self.offset = []
-            for off in offset:
-                # check if we are handling composite offsets of another holiday
-                if isinstance(off, list):
-                    self.offset.extend(off)
-                else:
-                    self.offset.append(off)
-        else:
-            self.offset = offset
+        self.offset = offset
         self.start_date = (
             Timestamp(start_date) if start_date is not None else start_date
         )
