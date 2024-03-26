@@ -1490,3 +1490,41 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
         msg = f"DataFrameGroupBy.{how} with skipna=False encountered an NA value"
         with pytest.raises(ValueError, match=msg):
             gb.transform(how, skipna, numeric_only)
+
+
+def test_transform_sum_with_series():
+    # One column
+    df = DataFrame({"X": [1.0]})
+    series = Series(["Y"])
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0]})
+    tm.assert_frame_equal(result, expected)
+
+    # With labels
+    df = DataFrame({"X": [1.0, -93204, 4935]})
+    series = Series(["A", "B", "C"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0, -93204, 4935]})
+    tm.assert_frame_equal(result, expected)
+
+    # With matching labels
+    series = Series(["A", "B", "A"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [4936.0, -93204, 4936.0]})
+    tm.assert_frame_equal(result, expected)
+
+    # With missing labels
+    series = Series(["A", "C"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0, -93204, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+    # With missing labels and matching labels
+    series = Series(["A", "A"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [-93203.0, -93203.0, np.nan]})
+    tm.assert_frame_equal(result, expected)
