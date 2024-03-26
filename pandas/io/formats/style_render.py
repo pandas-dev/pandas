@@ -1629,6 +1629,11 @@ class StylerRenderer:
         Styler
             Returns itself for chaining.
 
+        Raises
+        ------
+        ValueError
+            If the `formatter` is a string and the dtypes are incompatible.
+
         See Also
         --------
         Styler.format_index: Format the text display value of index labels
@@ -1639,9 +1644,6 @@ class StylerRenderer:
         This method has a similar signature to :meth:`Styler.format_index`. Since
         `names` are generally label based, and often not numeric, the typical features
         expected to be more frequently used here are ``escape`` and ``hyperlinks``.
-
-        When using a ``formatter`` string the dtypes must be compatible, otherwise a
-        `ValueError` will be raised.
 
         .. warning::
             `Styler.format_index_names` is ignored when using the output format
