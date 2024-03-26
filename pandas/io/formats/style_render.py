@@ -1592,7 +1592,7 @@ class StylerRenderer:
         r"""
         Format the text display value of index names or column names.
 
-        .. versionadded:: TODO
+        .. versionadded:: 3.0
 
         Parameters
         ----------
