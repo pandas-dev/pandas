@@ -772,41 +772,20 @@ class TestDateRanges:
         )
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("h", "H"),
-            ("2min", "2T"),
-            ("1s", "1S"),
-            ("2ms", "2L"),
-            ("1us", "1U"),
-            ("2ns", "2N"),
-        ],
-    )
-    def test_frequencies_H_T_S_L_U_N_deprecated(self, freq, freq_depr):
-        # GH#52536
-        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
-        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = (
-            f"'{freq_depr_msg}' is deprecated and will be removed in a future version, "
-        )
-        f"please use '{freq_msg}' instead"
-
-        expected = date_range("1/1/2000", periods=2, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("1/1/2000", periods=2, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
+    @pytest.mark.parametrize("freq", ["2T", "2L", "1l", "1U", "2N", "2n"])
+    def test_frequency_H_T_S_L_U_N_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq)
 
     @pytest.mark.parametrize(
         "freq,freq_depr",
         [
-            ("200YE", "200A"),
             ("YE", "Y"),
-            ("2YE-MAY", "2A-MAY"),
             ("YE-MAY", "Y-MAY"),
         ],
     )
-    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
+    def test_frequencies_Y_renamed(self, freq, freq_depr):
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
@@ -835,6 +814,14 @@ class TestDateRanges:
         assert len(idx) == 20
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
+
+    @pytest.mark.parametrize("freq", ["200A", "2A-MAY"])
+    def test_frequency_A_raises(self, freq):
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        msg = f"Invalid frequency: {freq_msg}"
+
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq)
 
 
 class TestDateRangeTZ:
@@ -1727,5 +1714,20 @@ class TestDateRangeNonTickFreq:
             ["2021-12-31 00:00:01", "2022-12-31 00:00:01"],
             dtype=f"M8[{unit}]",
             freq="YE",
+        )
+        tm.assert_index_equal(rng, exp)
+
+    def test_date_range_negative_freq_year_end_inbounds(self, unit):
+        # GH#56147
+        rng = date_range(
+            start="2023-10-31 00:00:00",
+            end="2021-10-31 00:00:00",
+            freq="-1YE",
+            unit=unit,
+        )
+        exp = DatetimeIndex(
+            ["2022-12-31 00:00:00", "2021-12-31 00:00:00"],
+            dtype=f"M8[{unit}]",
+            freq="-1YE",
         )
         tm.assert_index_equal(rng, exp)

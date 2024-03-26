@@ -847,19 +847,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         else:
             return self
 
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing,
-            #  similar to dtl._period_dispatch
-            dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
-            # error: Incompatible return value type (got "Union[ExtensionArray,
-            # ndarray[Any, Any]]", expected "PeriodArray")
-            return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
-
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -1124,13 +1111,11 @@ def period_array(
 
 
 @overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
-    ...
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
 
 
 @overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
-    ...
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
 
 
 def validate_dtype_freq(

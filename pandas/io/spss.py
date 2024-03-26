@@ -50,6 +50,7 @@ def read_spss(
     Returns
     -------
     DataFrame
+        DataFrame based on the SPSS file.
 
     Examples
     --------

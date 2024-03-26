@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 from __future__ import annotations
 
 import string
@@ -132,10 +133,6 @@ class TestStringArray(base.ExtensionTests):
 
         valid = data[0]
         result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
-        result = data.fillna(method="backfill")
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 

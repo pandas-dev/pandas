@@ -1,4 +1,5 @@
-""" test parquet compat """
+"""test parquet compat"""
+
 import datetime
 from decimal import Decimal
 from io import BytesIO

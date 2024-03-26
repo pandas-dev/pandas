@@ -1,6 +1,7 @@
 """
 Concat routines.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -11,17 +12,12 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_iterator,
-)
+from pandas.core.dtypes.common import is_bool
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -80,8 +76,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -97,8 +92,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -114,8 +108,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 @overload
@@ -131,8 +124,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -148,8 +140,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
-) -> DataFrame | Series:
-    ...
+) -> DataFrame | Series: ...
 
 
 def concat(
@@ -203,10 +194,10 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned. One exception to
-        this is when the non-concatentation axis is a DatetimeIndex and join='outer'
-        and the axis is not already aligned. In that case, the non-concatenation
-        axis is always sorted lexicographically.
+        Sort non-concatenation axis. One exception to this is when the
+        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        not already aligned. In that case, the non-concatenation axis is always
+        sorted lexicographically.
     copy : bool, default True
         If False, do not copy data unnecessarily.
 
@@ -429,11 +420,12 @@ class _Concatenator:
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
 
-        objs, keys = self._clean_keys_and_objs(objs, keys)
+        objs, keys, ndims = _clean_keys_and_objs(objs, keys)
 
-        # figure out what our result ndim is going to be
-        ndims = self._get_ndims(objs)
-        sample, objs = self._get_sample_object(objs, ndims, keys, names, levels)
+        # select an object to be our result reference
+        sample, objs = _get_sample_object(
+            objs, ndims, keys, names, levels, self.intersect
+        )
 
         # Standardize axis parameter to int
         if sample.ndim == 1:
@@ -463,105 +455,6 @@ class _Concatenator:
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
-
-    def _get_ndims(self, objs: list[Series | DataFrame]) -> set[int]:
-        # figure out what our result ndim is going to be
-        ndims = set()
-        for obj in objs:
-            if not isinstance(obj, (ABCSeries, ABCDataFrame)):
-                msg = (
-                    f"cannot concatenate object of type '{type(obj)}'; "
-                    "only Series and DataFrame objs are valid"
-                )
-                raise TypeError(msg)
-
-            ndims.add(obj.ndim)
-        return ndims
-
-    def _clean_keys_and_objs(
-        self,
-        objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
-        keys,
-    ) -> tuple[list[Series | DataFrame], Index | None]:
-        if isinstance(objs, abc.Mapping):
-            if keys is None:
-                keys = list(objs.keys())
-            objs_list = [objs[k] for k in keys]
-        else:
-            objs_list = list(objs)
-
-        if len(objs_list) == 0:
-            raise ValueError("No objects to concatenate")
-
-        if keys is None:
-            objs_list = list(com.not_none(*objs_list))
-        else:
-            # GH#1649
-            clean_keys = []
-            clean_objs = []
-            if is_iterator(keys):
-                keys = list(keys)
-            if len(keys) != len(objs_list):
-                # GH#43485
-                warnings.warn(
-                    "The behavior of pd.concat with len(keys) != len(objs) is "
-                    "deprecated. In a future version this will raise instead of "
-                    "truncating to the smaller of the two sequences",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            for k, v in zip(keys, objs_list):
-                if v is None:
-                    continue
-                clean_keys.append(k)
-                clean_objs.append(v)
-            objs_list = clean_objs
-
-            if isinstance(keys, MultiIndex):
-                # TODO: retain levels?
-                keys = type(keys).from_tuples(clean_keys, names=keys.names)
-            else:
-                name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
-
-        if len(objs_list) == 0:
-            raise ValueError("All objects passed were None")
-
-        return objs_list, keys
-
-    def _get_sample_object(
-        self,
-        objs: list[Series | DataFrame],
-        ndims: set[int],
-        keys,
-        names,
-        levels,
-    ) -> tuple[Series | DataFrame, list[Series | DataFrame]]:
-        # get the sample
-        # want the highest ndim that we have, and must be non-empty
-        # unless all objs are empty
-        sample: Series | DataFrame | None = None
-        if len(ndims) > 1:
-            max_ndim = max(ndims)
-            for obj in objs:
-                if obj.ndim == max_ndim and np.sum(obj.shape):
-                    sample = obj
-                    break
-
-        else:
-            # filter out the empties if we have not multi-index possibilities
-            # note to keep empty Series as it affect to result columns / name
-            non_empties = [obj for obj in objs if sum(obj.shape) > 0 or obj.ndim == 1]
-
-            if len(non_empties) and (
-                keys is None and names is None and levels is None and not self.intersect
-            ):
-                objs = non_empties
-                sample = objs[0]
-
-        if sample is None:
-            sample = objs[0]
-        return sample, objs
 
     def _sanitize_mixed_ndim(
         self,
@@ -675,28 +568,23 @@ class _Concatenator:
             out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
             return out.__finalize__(self, method="concat")
 
-    def _get_result_dim(self) -> int:
-        if self._is_series and self.bm_axis == 1:
-            return 2
-        else:
-            return self.objs[0].ndim
-
     @cache_readonly
     def new_axes(self) -> list[Index]:
-        ndim = self._get_result_dim()
+        if self._is_series and self.bm_axis == 1:
+            ndim = 2
+        else:
+            ndim = self.objs[0].ndim
         return [
-            self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
+            self._get_concat_axis
+            if i == self.bm_axis
+            else get_objs_combined_axis(
+                self.objs,
+                axis=self.objs[0]._get_block_manager_axis(i),
+                intersect=self.intersect,
+                sort=self.sort,
+            )
             for i in range(ndim)
         ]
-
-    def _get_comb_axis(self, i: AxisInt) -> Index:
-        data_axis = self.objs[0]._get_block_manager_axis(i)
-        return get_objs_combined_axis(
-            self.objs,
-            axis=data_axis,
-            intersect=self.intersect,
-            sort=self.sort,
-        )
 
     @cache_readonly
     def _get_concat_axis(self) -> Index:
@@ -756,6 +644,98 @@ class _Concatenator:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
                 raise ValueError(f"Indexes have overlapping values: {overlap}")
+
+
+def _clean_keys_and_objs(
+    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+    keys,
+) -> tuple[list[Series | DataFrame], Index | None, set[int]]:
+    """
+    Returns
+    -------
+    clean_objs : list[Series | DataFrame]
+        LIst of DataFrame and Series with Nones removed.
+    keys : Index | None
+        None if keys was None
+        Index if objs was a Mapping or keys was not None. Filtered where objs was None.
+    ndim : set[int]
+        Unique .ndim attribute of obj encountered.
+    """
+    if isinstance(objs, abc.Mapping):
+        if keys is None:
+            keys = objs.keys()
+        objs_list = [objs[k] for k in keys]
+    else:
+        objs_list = list(objs)
+
+    if len(objs_list) == 0:
+        raise ValueError("No objects to concatenate")
+
+    if keys is not None:
+        if not isinstance(keys, Index):
+            keys = Index(keys)
+        if len(keys) != len(objs_list):
+            # GH#43485
+            raise ValueError(
+                f"The length of the keys ({len(keys)}) must match "
+                f"the length of the objects to concatenate ({len(objs_list)})"
+            )
+
+    # GH#1649
+    key_indices = []
+    clean_objs = []
+    ndims = set()
+    for i, obj in enumerate(objs_list):
+        if obj is None:
+            continue
+        elif isinstance(obj, (ABCSeries, ABCDataFrame)):
+            key_indices.append(i)
+            clean_objs.append(obj)
+            ndims.add(obj.ndim)
+        else:
+            msg = (
+                f"cannot concatenate object of type '{type(obj)}'; "
+                "only Series and DataFrame objs are valid"
+            )
+            raise TypeError(msg)
+
+    if keys is not None and len(key_indices) < len(keys):
+        keys = keys.take(key_indices)
+
+    if len(clean_objs) == 0:
+        raise ValueError("All objects passed were None")
+
+    return clean_objs, keys, ndims
+
+
+def _get_sample_object(
+    objs: list[Series | DataFrame],
+    ndims: set[int],
+    keys,
+    names,
+    levels,
+    intersect: bool,
+) -> tuple[Series | DataFrame, list[Series | DataFrame]]:
+    # get the sample
+    # want the highest ndim that we have, and must be non-empty
+    # unless all objs are empty
+    if len(ndims) > 1:
+        max_ndim = max(ndims)
+        for obj in objs:
+            if obj.ndim == max_ndim and sum(obj.shape):  # type: ignore[arg-type]
+                return obj, objs
+    elif keys is None and names is None and levels is None and not intersect:
+        # filter out the empties if we have not multi-index possibilities
+        # note to keep empty Series as it affect to result columns / name
+        if ndims.pop() == 2:
+            non_empties = [obj for obj in objs if sum(obj.shape)]
+        else:
+            non_empties = objs
+
+        if len(non_empties):
+            return non_empties[0], non_empties
+
+    return objs[0], objs
 
 
 def _concat_indexes(indexes) -> Index:

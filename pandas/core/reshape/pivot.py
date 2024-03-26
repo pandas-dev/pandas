@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -422,7 +423,7 @@ def _generate_marginal_results(
         row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
-        new_order_indices = [len(cols)] + list(range(len(cols)))
+        new_order_indices = itertools.chain([len(cols)], range(len(cols)))
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
@@ -834,7 +835,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -843,7 +844,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index
@@ -904,13 +905,7 @@ def _build_names_mapper(
         a list of column names with duplicate names replaced by dummy names
 
     """
-
-    def get_duplicates(names):
-        seen: set = set()
-        return {name for name in names if name not in seen}
-
-    shared_names = set(rownames).intersection(set(colnames))
-    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+    dup_names = set(rownames) | set(colnames)
 
     rownames_mapper = {
         f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names

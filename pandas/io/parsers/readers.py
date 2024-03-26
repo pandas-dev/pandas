@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 
 GH#48849 provides a convenient way of deprecating keyword arguments
 """
+
 from __future__ import annotations
 
 from collections import (
@@ -19,7 +20,6 @@ from typing import (
     Callable,
     Generic,
     Literal,
-    NamedTuple,
     TypedDict,
     overload,
 )
@@ -111,12 +111,11 @@ if TYPE_CHECKING:
         skiprows: list[int] | int | Callable[[Hashable], bool] | None
         skipfooter: int
         nrows: int | None
-        na_values: Hashable | Iterable[Hashable] | Mapping[
-            Hashable, Iterable[Hashable]
-        ] | None
+        na_values: (
+            Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+        )
         keep_default_na: bool
         na_filter: bool
-        verbose: bool | lib.NoDefault
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
         infer_datetime_format: bool | lib.NoDefault
@@ -295,10 +294,6 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of ``na_values``). In
     data without any ``NA`` values, passing ``na_filter=False`` can improve the
     performance of reading a large file.
-verbose : bool, default False
-    Indicate number of ``NA`` values placed in non-numeric columns.
-
-    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
 parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
@@ -556,30 +551,21 @@ _pyarrow_unsupported = {
     "converters",
     "iterator",
     "dayfirst",
-    "verbose",
     "skipinitialspace",
     "low_memory",
 }
 
 
-class _DeprecationConfig(NamedTuple):
-    default_value: Any
-    msg: str | None
+@overload
+def validate_integer(name: str, val: None, min_val: int = ...) -> None: ...
 
 
 @overload
-def validate_integer(name: str, val: None, min_val: int = ...) -> None:
-    ...
+def validate_integer(name: str, val: float, min_val: int = ...) -> int: ...
 
 
 @overload
-def validate_integer(name: str, val: float, min_val: int = ...) -> int:
-    ...
-
-
-@overload
-def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None:
-    ...
+def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None: ...
 
 
 def validate_integer(
@@ -691,8 +677,7 @@ def read_csv(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -702,8 +687,7 @@ def read_csv(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -713,8 +697,7 @@ def read_csv(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -724,8 +707,7 @@ def read_csv(
     iterator: bool = ...,
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
-    ...
+) -> DataFrame | TextFileReader: ...
 
 
 @Appender(
@@ -767,7 +749,6 @@ def read_csv(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -857,17 +838,6 @@ def read_csv(
     else:
         delim_whitespace = False
 
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -896,8 +866,7 @@ def read_table(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -907,8 +876,7 @@ def read_table(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -918,8 +886,7 @@ def read_table(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -929,8 +896,7 @@ def read_table(
     iterator: bool = ...,
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame | TextFileReader:
-    ...
+) -> DataFrame | TextFileReader: ...
 
 
 @Appender(
@@ -974,7 +940,6 @@ def read_table(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -1055,17 +1020,6 @@ def read_table(
     else:
         delim_whitespace = False
 
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1097,8 +1051,7 @@ def read_fwf(
     iterator: Literal[True],
     chunksize: int | None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -1111,8 +1064,7 @@ def read_fwf(
     iterator: bool = ...,
     chunksize: int,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> TextFileReader:
-    ...
+) -> TextFileReader: ...
 
 
 @overload
@@ -1125,8 +1077,7 @@ def read_fwf(
     iterator: Literal[False] = ...,
     chunksize: None = ...,
     **kwds: Unpack[_read_shared[HashableT]],
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 def read_fwf(
@@ -1158,7 +1109,7 @@ def read_fwf(
         ``file://localhost/path/to/table.csv``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
-        fields of each line as half-open intervals (i.e.,  [from, to[ ).
+        fields of each line as half-open intervals (i.e.,  [from, to] ).
         String value 'infer' can be used to instruct the parser to try
         detecting the column specifications from the first 100 rows of
         the data which are not being skipped via skiprows (default='infer').
@@ -1168,6 +1119,11 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    iterator : bool, default False
+        Return ``TextFileReader`` object for iteration or getting chunks with
+        ``get_chunk()``.
+    chunksize : int, optional
+        Number of lines to read from the file per chunk.
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1496,7 +1452,7 @@ class TextFileReader(abc.Iterator):
                 )
         else:
             if is_integer(skiprows):
-                skiprows = list(range(skiprows))
+                skiprows = range(skiprows)
             if skiprows is None:
                 skiprows = set()
             elif not callable(skiprows):

@@ -797,8 +797,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     day_of_year,"The ordinal day of year"
-    weekofyear,"The week ordinal of the year"
-    week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
@@ -811,6 +809,10 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
+
+.. note::
+
+   You can use ``DatetimeIndex.isocalendar().week`` to access week of year date information.
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
@@ -1327,8 +1329,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``A``, ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``Y``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1466,11 +1468,16 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
+    "next_workday", "move Saturday and Sunday to Monday"
+    "previous_workday", "move Saturday and Sunday to Friday"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
+    "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
+    "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"
     "sunday_to_monday", "move Sunday to following Monday"
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
     "previous_friday", move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
+    "weekend_to_monday", "same as ``next_monday``"
 
 An example of how holidays and holiday calendars are defined:
 

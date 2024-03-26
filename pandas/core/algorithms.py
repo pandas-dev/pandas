@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+
 from __future__ import annotations
 
 import decimal
@@ -436,6 +437,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
+        return values.unique()
+
+    if isinstance(values, ABCIndex):
+        # Dispatch to Index's unique.
         return values.unique()
 
     original = values
@@ -887,26 +892,9 @@ def value_counts_internal(
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
-            # For backwards compatibility, we let Index do its normal type
-            #  inference, _except_ for if if infers from object to bool.
-            idx = Index(keys)
-            if idx.dtype == bool and keys.dtype == object:
-                idx = idx.astype(object)
-            elif (
-                idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
-                and idx.dtype != "string[pyarrow_numpy]"
-            ):
-                warnings.warn(
-                    # GH#56161
-                    "The behavior of value_counts with object-dtype is deprecated. "
-                    "In a future version, this will *not* perform dtype inference "
-                    "on the resulting index. To retain the old behavior, use "
-                    "`result.index = result.index.infer_objects()`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            idx.name = index_name
-
+            # Starting in 3.0, we no longer perform dtype inference on the
+            #  Index object we construct here, xref GH#56161
+            idx = Index(keys, dtype=keys.dtype, name=index_name)
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
@@ -1601,16 +1589,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    with warnings.catch_warnings():
-        # filter warning from object dtype inference; we will end up discarding
-        # the index here, so the deprecation does not affect the end result here.
-        warnings.filterwarnings(
-            "ignore",
-            "The behavior of value_counts with object-dtype is deprecated",
-            category=FutureWarning,
-        )
-        l_count = value_counts_internal(lvals, dropna=False)
-        r_count = value_counts_internal(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)

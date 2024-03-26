@@ -28,7 +28,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -150,17 +149,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         inferred frequency upon creation.
     tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
         Set the Timezone of the data.
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
-
-        .. deprecated:: 2.1.0
-
-    closed : {'left', 'right'}, optional
-        Set whether to include `start` and `end` that are on the
-        boundary. The default includes boundary points on either end.
-
-        .. deprecated:: 2.1.0
-
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -322,8 +310,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        normalize: bool | lib.NoDefault = lib.no_default,
-        closed=lib.no_default,
         ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
@@ -331,23 +317,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         copy: bool = False,
         name: Hashable | None = None,
     ) -> Self:
-        if closed is not lib.no_default:
-            # GH#52628
-            warnings.warn(
-                f"The 'closed' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if normalize is not lib.no_default:
-            # GH#52628
-            warnings.warn(
-                f"The 'normalize' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -774,7 +743,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
+            Include boundaries; whether to set start bound as closed or open.
         include_end : bool, default True
+            Include boundaries; whether to set end bound as closed or open.
 
         Returns
         -------
@@ -839,13 +810,15 @@ def date_range(
     Return a fixed frequency DatetimeIndex.
 
     Returns the range of equally spaced time points (where the difference between any
-    two adjacent points is specified by the given frequency) such that they all
-    satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp.,
-    the first and last time points in that range that fall on the boundary of ``freq``
-    (if given as a frequency string) or that are valid for ``freq`` (if given as a
-    :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``,
-    ``end``, or ``freq`` is *not* specified, this missing parameter can be computed
-    given ``periods``, the number of timesteps in the range. See the note below.)
+    two adjacent points is specified by the given frequency) such that they fall in the
+    range `[start, end]` , where the first one and the last one are, resp., the first
+    and last time points in that range that fall on the boundary of ``freq`` (if given
+    as a frequency string) or that are valid for ``freq`` (if given as a
+    :class:`pandas.tseries.offsets.DateOffset`). If ``freq`` is positive, the points
+    satisfy `start <[=] x <[=] end`, and if ``freq`` is negative, the points satisfy
+    `end <[=] x <[=] start`. (If exactly one of ``start``, ``end``, or ``freq`` is *not*
+    specified, this missing parameter can be computed given ``periods``, the number of
+    timesteps in the range. See the note below.)
 
     Parameters
     ----------
