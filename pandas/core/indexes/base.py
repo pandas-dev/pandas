@@ -6975,7 +6975,6 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
             if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
             elif self._isnan.all():
@@ -6989,7 +6988,6 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
             if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
             elif self._isnan.all():
