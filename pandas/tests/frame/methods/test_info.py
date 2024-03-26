@@ -40,7 +40,7 @@ def test_info_empty():
     result = buf.getvalue()
     expected = textwrap.dedent(
         """\
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
         RangeIndex: 0 entries
         Empty DataFrame\n"""
     )
@@ -208,7 +208,7 @@ def test_info_memory():
     bytes = float(df.memory_usage().sum())
     expected = textwrap.dedent(
         f"""\
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 2 entries, 0 to 1
     Data columns (total 1 columns):
      #   Column  Non-Null Count  Dtype
@@ -501,7 +501,7 @@ def test_info_int_columns():
     result = buf.getvalue()
     expected = textwrap.dedent(
         """\
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
         Index: 2 entries, A to B
         Data columns (total 2 columns):
          #   Column  Non-Null Count  Dtype

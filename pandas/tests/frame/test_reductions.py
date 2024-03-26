@@ -1065,18 +1065,20 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            warn = None
-            if skipna is False or axis == 1:
-                warn = None if df is int_frame else FutureWarning
-            msg = "The behavior of DataFrame.idxmin with all-NA values"
-            with tm.assert_produces_warning(warn, match=msg):
+            if (not skipna or axis == 1) and df is not int_frame:
+                if axis == 1:
+                    msg = "Encountered all NA values"
+                else:
+                    msg = "Encountered an NA value"
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmin(axis=axis, skipna=skipna)
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmin(axis=axis, skipna=skipna)
+            else:
                 result = df.idxmin(axis=axis, skipna=skipna)
-
-            msg2 = "The behavior of Series.idxmin"
-            with tm.assert_produces_warning(warn, match=msg2):
                 expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
-            expected = expected.astype(df.index.dtype)
-            tm.assert_series_equal(result, expected)
+                expected = expected.astype(df.index.dtype)
+                tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -1113,16 +1115,17 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            warn = None
-            if skipna is False or axis == 1:
-                warn = None if df is int_frame else FutureWarning
-            msg = "The behavior of DataFrame.idxmax with all-NA values"
-            with tm.assert_produces_warning(warn, match=msg):
-                result = df.idxmax(axis=axis, skipna=skipna)
+            if (skipna is False or axis == 1) and df is frame:
+                if axis == 1:
+                    msg = "Encountered all NA values"
+                else:
+                    msg = "Encountered an NA value"
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmax(axis=axis, skipna=skipna)
+                return
 
-            msg2 = "The behavior of Series.idxmax"
-            with tm.assert_produces_warning(warn, match=msg2):
-                expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            result = df.idxmax(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
@@ -2118,15 +2121,16 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
     if method in ("prod", "product", "sum"):
         kwargs["min_count"] = min_count
 
-    warn = None
-    msg = None
     if not skipna and method in ("idxmax", "idxmin"):
-        warn = FutureWarning
+        # GH#57745 - EAs use groupby for axis=1 which still needs a proper deprecation.
         msg = f"The behavior of DataFrame.{method} with all-NA values"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(df, method)(axis=1, **kwargs)
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = getattr(expected_df, method)(axis=1, **kwargs)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            getattr(df, method)(axis=1, **kwargs)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            getattr(expected_df, method)(axis=1, **kwargs)
+        return
+    result = getattr(df, method)(axis=1, **kwargs)
+    expected = getattr(expected_df, method)(axis=1, **kwargs)
     if method not in ("idxmax", "idxmin"):
         expected = expected.astype(expected_dtype)
     tm.assert_series_equal(result, expected)
