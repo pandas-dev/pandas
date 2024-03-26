@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 # deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
-    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-postgresql": "0.10.0",
     "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
