@@ -889,7 +889,7 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        msg = "attempt to get argmin of an empty sequence"
+        msg = "attempt to get argmax of an empty sequence"
         with pytest.raises(ValueError, match=msg):
             allna.idxmax()
 
