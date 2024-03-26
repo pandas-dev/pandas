@@ -796,8 +796,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.formats.style.Styler.clear SA01" \
         -i "pandas.io.formats.style.Styler.concat RT03,SA01" \
         -i "pandas.io.formats.style.Styler.export RT03" \
-        -i "pandas.io.formats.style.Styler.format RT03" \
-        -i "pandas.io.formats.style.Styler.format_index RT03" \
         -i "pandas.io.formats.style.Styler.from_custom_template SA01" \
         -i "pandas.io.formats.style.Styler.hide RT03,SA01" \
         -i "pandas.io.formats.style.Styler.highlight_between RT03" \
@@ -807,7 +805,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.formats.style.Styler.highlight_quantile RT03" \
         -i "pandas.io.formats.style.Styler.map RT03" \
         -i "pandas.io.formats.style.Styler.map_index RT03" \
-        -i "pandas.io.formats.style.Styler.relabel_index RT03" \
         -i "pandas.io.formats.style.Styler.set_caption RT03,SA01" \
         -i "pandas.io.formats.style.Styler.set_properties RT03,SA01" \
         -i "pandas.io.formats.style.Styler.set_sticky RT03,SA01" \
