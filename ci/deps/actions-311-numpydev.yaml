@@ -12,6 +12,7 @@ dependencies:
 
   # test dependencies
   - pytest>=7.3.2
+  - pytest-cov
   - pytest-xdist>=2.2.0
   - hypothesis>=6.46.1
 
@@ -21,8 +22,6 @@ dependencies:
   - pip
 
   - pip:
-    # TODO: Move pytest-cov back to "test dependencies" once version 5 on conda forge
-    - pytest-cov
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
