@@ -636,7 +636,7 @@ def test_frame_select(setup_path, request):
             pytest.mark.xfail(
                 PY312,
                 reason="AST change in PY312",
-                raises=ValueError,
+                raises=TypeError,
             )
         )
         result = store.select("frame", [crit1, crit2])
