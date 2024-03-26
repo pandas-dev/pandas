@@ -1058,7 +1058,7 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
 
 
 def needs_object_conversion(dtype: DtypeObj | None) -> bool:
-    return isinstance(dtype, type(get_numpy_string_dtype_instance()))
+    return dtype.char == "T"
 
 
 def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
