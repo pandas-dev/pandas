@@ -20,8 +20,6 @@ from pandas._typing import (
     npt,
 )
 
-from .timedeltas import Timedelta
-
 _BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 _TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
@@ -113,8 +111,6 @@ class Tick(SingleConstructorOffset):
     _creso: int
     _prefix: str
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
-    @property
-    def delta(self) -> Timedelta: ...
     @property
     def nanos(self) -> int: ...
 
