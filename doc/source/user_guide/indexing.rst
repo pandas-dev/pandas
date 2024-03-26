@@ -262,6 +262,9 @@ The most robust and consistent way of slicing ranges along arbitrary axes is
 described in the :ref:`Selection by Position <indexing.integer>` section
 detailing the ``.iloc`` method. For now, we explain the semantics of slicing using the ``[]`` operator.
 
+However, there is an exception to this rule when the Series has float indices. 
+In such cases, integer slices behave more the ``.iloc`` method
+
 With Series, the syntax works exactly as with an ndarray, returning a slice of
 the values and the corresponding labels:
 
