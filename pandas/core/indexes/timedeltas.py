@@ -60,12 +60,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     ----------
     data : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with.
-    unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
-        The unit of ``data``.
-
-        .. deprecated:: 2.2.0
-         Use ``pd.to_timedelta`` instead.
-
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         ``'infer'`` can be passed in order to set the frequency of the index as
