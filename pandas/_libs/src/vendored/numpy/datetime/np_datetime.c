@@ -789,6 +789,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     }
 
     if (base > NPY_FR_s) {
+      // there will be at most 1 billion nanoseconds left here
       npy_int32 ifrac = (npy_int32)((td - out->days * per_day) % per_sec);
 
       if (base == NPY_FR_ms) {
