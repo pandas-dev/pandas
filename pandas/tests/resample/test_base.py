@@ -11,8 +11,6 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
-    NaT,
-    PeriodIndex,
     Series,
     TimedeltaIndex,
 )
@@ -75,19 +73,13 @@ def test_asfreq_fill_value(index):
     [
         timedelta_range("1 day", "10 day", freq="D"),
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
-        period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
 def test_resample_interpolate(index):
     # GH#12925
     df = DataFrame(range(len(index)), index=index)
-    warn = None
-    if isinstance(df.index, PeriodIndex):
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.resample("1min").asfreq().interpolate()
-        expected = df.resample("1min").interpolate()
+    result = df.resample("1min").asfreq().interpolate()
+    expected = df.resample("1min").interpolate()
     tm.assert_frame_equal(result, expected)
 
 
@@ -95,7 +87,7 @@ def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "Only valid with DatetimeIndex or TimedeltaIndex, "
         "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
@@ -105,7 +97,6 @@ def test_raises_on_non_datetimelike_index():
 @pytest.mark.parametrize(
     "index",
     [
-        PeriodIndex([], freq="D", name="a"),
         DatetimeIndex([], name="a"),
         TimedeltaIndex([], name="a"),
     ],
@@ -123,16 +114,8 @@ def test_resample_empty_series(freq, index, resample_method):
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
         return
-    elif freq == "ME" and isinstance(ser.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    warn = None
-    if isinstance(ser.index, PeriodIndex):
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = ser.resample(freq)
+    rs = ser.resample(freq)
     result = getattr(rs, resample_method)()
 
     if resample_method == "ohlc":
@@ -151,39 +134,8 @@ def test_resample_empty_series(freq, index, resample_method):
 
 
 @pytest.mark.parametrize(
-    "freq",
-    [
-        pytest.param("ME", marks=pytest.mark.xfail(reason="Don't know why this fails")),
-        "D",
-        "h",
-    ],
-)
-def test_resample_nat_index_series(freq, resample_method):
-    # GH39227
-
-    ser = Series(range(5), index=PeriodIndex([NaT] * 5, freq=freq))
-
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.resample(freq)
-    result = getattr(rs, resample_method)()
-
-    if resample_method == "ohlc":
-        expected = DataFrame(
-            [], index=ser.index[:0], columns=["open", "high", "low", "close"]
-        )
-        tm.assert_frame_equal(result, expected, check_dtype=False)
-    else:
-        expected = ser[:0].copy()
-        tm.assert_series_equal(result, expected, check_dtype=False)
-    tm.assert_index_equal(result.index, expected.index)
-    assert result.index.freq == expected.index.freq
-
-
-@pytest.mark.parametrize(
     "index",
     [
-        PeriodIndex([], freq="D", name="a"),
         DatetimeIndex([], name="a"),
         TimedeltaIndex([], name="a"),
     ],
@@ -201,16 +153,8 @@ def test_resample_count_empty_series(freq, index, resample_method):
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
         return
-    elif freq == "ME" and isinstance(ser.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    warn = None
-    if isinstance(ser.index, PeriodIndex):
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = ser.resample(freq)
+    rs = ser.resample(freq)
 
     result = getattr(rs, resample_method)()
 
@@ -221,9 +165,7 @@ def test_resample_count_empty_series(freq, index, resample_method):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "index", [DatetimeIndex([]), TimedeltaIndex([]), PeriodIndex([], freq="D")]
-)
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
 @pytest.mark.parametrize("freq", ["ME", "D", "h"])
 def test_resample_empty_dataframe(index, freq, resample_method):
     # GH13212
@@ -237,16 +179,8 @@ def test_resample_empty_dataframe(index, freq, resample_method):
         with pytest.raises(ValueError, match=msg):
             df.resample(freq, group_keys=False)
         return
-    elif freq == "ME" and isinstance(df.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    warn = None
-    if isinstance(df.index, PeriodIndex):
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = df.resample(freq, group_keys=False)
+    rs = df.resample(freq, group_keys=False)
     result = getattr(rs, resample_method)()
     if resample_method == "ohlc":
         # TODO: no tests with len(df.columns) > 0
@@ -269,9 +203,7 @@ def test_resample_empty_dataframe(index, freq, resample_method):
     # test size for GH13212 (currently stays as df)
 
 
-@pytest.mark.parametrize(
-    "index", [DatetimeIndex([]), TimedeltaIndex([]), PeriodIndex([], freq="D")]
-)
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
 @pytest.mark.parametrize("freq", ["ME", "D", "h"])
 def test_resample_count_empty_dataframe(freq, index):
     # GH28427
@@ -285,16 +217,8 @@ def test_resample_count_empty_dataframe(freq, index):
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
         return
-    elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    warn = None
-    if isinstance(empty_frame_dti.index, PeriodIndex):
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = empty_frame_dti.resample(freq)
+    rs = empty_frame_dti.resample(freq)
     result = rs.count()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -304,9 +228,7 @@ def test_resample_count_empty_dataframe(freq, index):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "index", [DatetimeIndex([]), TimedeltaIndex([]), PeriodIndex([], freq="D")]
-)
+@pytest.mark.parametrize("index", [DatetimeIndex([]), TimedeltaIndex([])])
 @pytest.mark.parametrize("freq", ["ME", "D", "h"])
 def test_resample_size_empty_dataframe(freq, index):
     # GH28427
@@ -321,16 +243,8 @@ def test_resample_size_empty_dataframe(freq, index):
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
         return
-    elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    msg = "Resampling with a PeriodIndex"
-    warn = None
-    if isinstance(empty_frame_dti.index, PeriodIndex):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = empty_frame_dti.resample(freq)
+    rs = empty_frame_dti.resample(freq)
     result = rs.size()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -343,27 +257,18 @@ def test_resample_size_empty_dataframe(freq, index):
 @pytest.mark.parametrize(
     "index",
     [
-        PeriodIndex([], freq="M", name="a"),
         DatetimeIndex([], name="a"),
         TimedeltaIndex([], name="a"),
     ],
 )
 @pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
-    warn = None
-    if isinstance(index, PeriodIndex):
-        # GH#53511
-        index = PeriodIndex([], freq="B", name=index.name)
-        warn = FutureWarning
-    msg = "Resampling with a PeriodIndex is deprecated"
 
     empty_series_dti = Series([], index, dtype)
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = empty_series_dti.resample("d", group_keys=False)
+    rs = empty_series_dti.resample("d", group_keys=False)
     try:
         getattr(rs, resample_method)()
     except DataError:
@@ -375,7 +280,6 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 @pytest.mark.parametrize(
     "index",
     [
-        PeriodIndex([], freq="D", name="a"),
         DatetimeIndex([], name="a"),
         TimedeltaIndex([], name="a"),
     ],
@@ -393,21 +297,11 @@ def test_apply_to_empty_series(index, freq):
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
         return
-    elif freq == "ME" and isinstance(ser.index, PeriodIndex):
-        # index is PeriodIndex, so convert to corresponding Period freq
-        freq = "M"
 
-    msg = "Resampling with a PeriodIndex"
-    warn = None
-    if isinstance(ser.index, PeriodIndex):
-        warn = FutureWarning
-
-    with tm.assert_produces_warning(warn, match=msg):
-        rs = ser.resample(freq, group_keys=False)
+    rs = ser.resample(freq, group_keys=False)
 
     result = rs.apply(lambda x: 1)
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = ser.resample(freq).apply("sum")
+    expected = ser.resample(freq).apply("sum")
 
     tm.assert_series_equal(result, expected, check_dtype=False)
 
@@ -417,7 +311,6 @@ def test_apply_to_empty_series(index, freq):
     [
         timedelta_range("1 day", "10 day", freq="D"),
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
-        period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
 def test_resampler_is_iterable(index):
@@ -425,16 +318,9 @@ def test_resampler_is_iterable(index):
     series = Series(range(len(index)), index=index)
     freq = "h"
     tg = Grouper(freq=freq, convention="start")
-    msg = "Resampling with a PeriodIndex"
-    warn = None
-    if isinstance(series.index, PeriodIndex):
-        warn = FutureWarning
 
-    with tm.assert_produces_warning(warn, match=msg):
-        grouped = series.groupby(tg)
-
-    with tm.assert_produces_warning(warn, match=msg):
-        resampled = series.resample(freq)
+    grouped = series.groupby(tg)
+    resampled = series.resample(freq)
     for (rk, rv), (gk, gv) in zip(resampled, grouped):
         assert rk == gk
         tm.assert_series_equal(rv, gv)
@@ -445,7 +331,6 @@ def test_resampler_is_iterable(index):
     [
         timedelta_range("1 day", "10 day", freq="D"),
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
-        period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
 def test_resample_quantile(index):
@@ -454,13 +339,8 @@ def test_resample_quantile(index):
     q = 0.75
     freq = "h"
 
-    msg = "Resampling with a PeriodIndex"
-    warn = None
-    if isinstance(ser.index, PeriodIndex):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
-        result = ser.resample(freq).quantile(q)
-        expected = ser.resample(freq).agg(lambda x: x.quantile(q)).rename(ser.name)
+    result = ser.resample(freq).quantile(q)
+    expected = ser.resample(freq).agg(lambda x: x.quantile(q)).rename(ser.name)
     tm.assert_series_equal(result, expected)
 
 
@@ -488,3 +368,16 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
     expected = getattr(gb, how)(skipna=skipna)
     expected.index.freq = "ME"
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_with_period_disallowed():
+    # GH#53481
+    ser = Series(
+        np.random.default_rng(2).integers(0, 5, 50),
+        index=period_range("2012-01-01", freq="h", periods=50),
+        dtype="float64",
+    )
+
+    msg = "Resample is no longer supported with PeriodIndex"
+    with pytest.raises(TypeError, match=msg):
+        ser.resample("D")

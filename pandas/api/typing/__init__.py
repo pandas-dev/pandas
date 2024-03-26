@@ -11,7 +11,6 @@ from pandas.core.groupby import (
 )
 from pandas.core.resample import (
     DatetimeIndexResamplerGroupby,
-    PeriodIndexResamplerGroupby,
     Resampler,
     TimedeltaIndexResamplerGroupby,
     TimeGrouper,
@@ -41,7 +40,6 @@ __all__ = [
     "JsonReader",
     "NaTType",
     "NAType",
-    "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",
     "RollingGroupby",

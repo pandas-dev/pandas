@@ -215,6 +215,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation in :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype performing dtype inference on the ``.index`` of the result (:issue:`56161`)
 - Enforced deprecation of :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` allowing the ``name`` argument to be a non-tuple when grouping by a list of length 1 (:issue:`54155`)
 - Enforced deprecation of :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`57820`)
+- Enforced deprecation of :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex`, convert the index to :class:`DatetimeIndex` before resampling instead (:issue:`53481`)
 - Enforced deprecation of :meth:`offsets.Tick.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
 - Enforced deprecation of parsing system timezone strings to ``tzlocal``, which depended on system timezone, pass the 'tz' keyword instead (:issue:`50791`)
