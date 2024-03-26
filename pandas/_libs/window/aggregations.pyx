@@ -508,8 +508,7 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         #         if the variance is less than 1e-14, it could be
         #         treat as zero, here we follow the original
         #         skew/kurt behaviour to check B <= 1e-14
-        # #57972: for small arrays the cutoff can be lowered
-        elif B <= 1e-14 and nobs > 100 or B <= 1e-16:
+        elif B <= 1e-14:
             result = NaN
         else:
             R = sqrt(B)
