@@ -482,6 +482,10 @@ doctest_optionflags = [
 ]
 filterwarnings = [
   "error:::pandas",
+  "error::FutureWarning:numpy",
+  "error::DeprecationWarning:numpy",
+  "error::FutureWarning:pyarrow",
+  "error::DeprecationWarning:pyarrow",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
