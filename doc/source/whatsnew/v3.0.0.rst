@@ -134,7 +134,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | Package                | New Minimum Version |
 +========================+=====================+
-| fastparquet            | 2023.04.0           |
+| fastparquet            | 2023.10.0           |
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
 +------------------------+---------------------+
