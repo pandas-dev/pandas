@@ -1632,15 +1632,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
-        if index:
-            result_index = self
-        else:
-            result_index = None
         if name is lib.no_default:
             result_name = self._get_level_names()
         else:
             result_name = [name]
-        return DataFrame(self, index=result_index, columns=result_name, copy=False)  # type: ignore[arg-type]
+        result = DataFrame(self, copy=False)
+        result.columns = result_name
+
+        if index:
+            result.index = self
+        return result
 
     # --------------------------------------------------------------------
     # Name-Centric Methods
