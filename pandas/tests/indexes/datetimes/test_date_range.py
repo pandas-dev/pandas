@@ -135,7 +135,7 @@ class TestDateRanges:
         assert idx.name == "TEST"
 
     def test_date_range_invalid_periods(self):
-        msg = "periods must be a integer, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
@@ -1118,7 +1118,7 @@ class TestCustomDateRange:
         bdate_range(START, periods=20, freq=CDay())
         bdate_range(end=START, periods=20, freq=CDay())
 
-        msg = "periods must be a number, got C"
+        msg = "periods must be an integer, got C"
         with pytest.raises(TypeError, match=msg):
             date_range("2011-1-1", "2012-1-1", "C")
 

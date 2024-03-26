@@ -339,7 +339,7 @@ class TestIntervalRange:
             interval_range(start=Timedelta("1 day"), end=Timedelta("10 days"), freq=2)
 
         # invalid periods
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=0, periods="foo")
 
