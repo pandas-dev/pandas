@@ -6976,10 +6976,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
+
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -6989,10 +6990,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):

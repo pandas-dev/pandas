@@ -171,9 +171,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
@@ -189,9 +189,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
@@ -856,7 +856,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "attempt to get argmin of an empty sequence"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmin()
 
         # datetime64[ns]
@@ -888,7 +889,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "attempt to get argmin of an empty sequence"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmax()
 
         s = Series(date_range("20130102", periods=6))
@@ -1143,14 +1145,17 @@ class TestSeriesReductions:
         if not using_infer_string:
             # attempting to compare np.nan with string raises
             ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
-            msg = "'>' not supported between instances of 'float' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmax()
+            result = ser3.idxmax()
+            expected = 0
+            assert result == expected
+
             with pytest.raises(ValueError, match="Encountered an NA value"):
                 ser3.idxmax(skipna=False)
-            msg = "'<' not supported between instances of 'float' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                ser3.idxmin()
+
+            result = ser3.idxmin()
+            expected = 2
+            assert result == expected
+
             with pytest.raises(ValueError, match="Encountered an NA value"):
                 ser3.idxmin(skipna=False)
 

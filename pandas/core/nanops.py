@@ -1447,7 +1447,7 @@ def _maybe_arg_null_out(
                 raise ValueError("Encountered an NA value with skipna=False")
     else:
         na_mask = mask.all(axis)
-        if na_mask.any():
+        if skipna and na_mask.any():
             raise ValueError("Encountered all NA values")
         elif not skipna:
             na_mask = mask.any(axis)
