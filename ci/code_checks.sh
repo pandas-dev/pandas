@@ -504,7 +504,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.to_timedelta64 SA01" \
         -i "pandas.Timedelta.total_seconds SA01" \
         -i "pandas.Timedelta.view SA01" \
-        -i "pandas.TimedeltaIndex PR01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
         -i "pandas.TimedeltaIndex.ceil SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
@@ -1022,7 +1021,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.rule_code GL08" \
         -i "pandas.tseries.offsets.Day PR02" \
         -i "pandas.tseries.offsets.Day.copy SA01" \
-        -i "pandas.tseries.offsets.Day.delta GL08" \
         -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.kwds SA01" \
@@ -1075,7 +1073,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.year_has_extra_week GL08" \
         -i "pandas.tseries.offsets.Hour PR02" \
         -i "pandas.tseries.offsets.Hour.copy SA01" \
-        -i "pandas.tseries.offsets.Hour.delta GL08" \
         -i "pandas.tseries.offsets.Hour.freqstr SA01" \
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.kwds SA01" \
@@ -1098,7 +1095,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.LastWeekOfMonth.weekday GL08" \
         -i "pandas.tseries.offsets.Micro PR02" \
         -i "pandas.tseries.offsets.Micro.copy SA01" \
-        -i "pandas.tseries.offsets.Micro.delta GL08" \
         -i "pandas.tseries.offsets.Micro.freqstr SA01" \
         -i "pandas.tseries.offsets.Micro.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Micro.kwds SA01" \
@@ -1109,7 +1105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Micro.rule_code GL08" \
         -i "pandas.tseries.offsets.Milli PR02" \
         -i "pandas.tseries.offsets.Milli.copy SA01" \
-        -i "pandas.tseries.offsets.Milli.delta GL08" \
         -i "pandas.tseries.offsets.Milli.freqstr SA01" \
         -i "pandas.tseries.offsets.Milli.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Milli.kwds SA01" \
@@ -1120,7 +1115,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Milli.rule_code GL08" \
         -i "pandas.tseries.offsets.Minute PR02" \
         -i "pandas.tseries.offsets.Minute.copy SA01" \
-        -i "pandas.tseries.offsets.Minute.delta GL08" \
         -i "pandas.tseries.offsets.Minute.freqstr SA01" \
         -i "pandas.tseries.offsets.Minute.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Minute.kwds SA01" \
@@ -1151,7 +1145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.Nano PR02" \
         -i "pandas.tseries.offsets.Nano.copy SA01" \
-        -i "pandas.tseries.offsets.Nano.delta GL08" \
         -i "pandas.tseries.offsets.Nano.freqstr SA01" \
         -i "pandas.tseries.offsets.Nano.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Nano.kwds SA01" \
@@ -1184,7 +1177,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.QuarterEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.Second PR02" \
         -i "pandas.tseries.offsets.Second.copy SA01" \
-        -i "pandas.tseries.offsets.Second.delta GL08" \
         -i "pandas.tseries.offsets.Second.freqstr SA01" \
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Second.kwds SA01" \
@@ -1217,7 +1209,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.Tick GL08" \
         -i "pandas.tseries.offsets.Tick.copy SA01" \
-        -i "pandas.tseries.offsets.Tick.delta GL08" \
         -i "pandas.tseries.offsets.Tick.freqstr SA01" \
         -i "pandas.tseries.offsets.Tick.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Tick.kwds SA01" \
