@@ -72,11 +72,9 @@ blog:
   - https://phofl.github.io/feeds/pandas.atom.xml
 maintainers:
   active:
-  - wesm
   - jorisvandenbossche
   - TomAugspurger
   - jreback
-  - gfyoung
   - WillAyd
   - mroeschke
   - jbrockmendel
@@ -93,7 +91,6 @@ maintainers:
   - fangchenli
   - twoertwein
   - lithomas1
-  - mzeitlin11
   - lukemanley
   - noatamir
   inactive:
@@ -108,6 +105,9 @@ maintainers:
   - jschendel
   - charlesdong1991
   - dsaxton
+  - wesm
+  - gfyoung
+  - mzeitlin11
 workgroups:
   coc:
     name: Code of Conduct
@@ -121,13 +121,12 @@ workgroups:
   finance:
     name: Finance
     contact: finance@pandas.pydata.org
-    responsibilities: "Approve the project expenses."
+    responsibilities: "Manage the funding. Coordinate the request of grants. Approve the project expenses."
     members:
-    - Wes McKinney
+    - Matthew Roeschke
     - Jeff Reback
     - Joris Van den Bossche
-    - Tom Augspurger
-    - Matthew Roeschke
+    - Patrick Hoefler
   infrastructure:
     name: Infrastructure
     contact: infrastructure@pandas.pydata.org
