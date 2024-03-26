@@ -347,7 +347,7 @@ SQLAlchemy                2.0.0              postgresql,     SQL support for dat
 psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
 pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
 adbc-driver-postgresql    0.10.0             postgresql      ADBC Driver for PostgreSQL
-adbc-driver-sqlite        0.8.0              sql-other       ADBC Driver for SQLite
+adbc-driver-sqlite        0.10.0             sql-other       ADBC Driver for SQLite
 ========================= ================== =============== =============================================================
 
 Other data sources
