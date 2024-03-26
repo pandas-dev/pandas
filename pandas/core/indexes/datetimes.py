@@ -774,7 +774,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
+            Include boundaries; whether to set start bound as closed or open.
         include_end : bool, default True
+            Include boundaries; whether to set end bound as closed or open.
 
         Returns
         -------
@@ -839,13 +841,15 @@ def date_range(
     Return a fixed frequency DatetimeIndex.
 
     Returns the range of equally spaced time points (where the difference between any
-    two adjacent points is specified by the given frequency) such that they all
-    satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp.,
-    the first and last time points in that range that fall on the boundary of ``freq``
-    (if given as a frequency string) or that are valid for ``freq`` (if given as a
-    :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``,
-    ``end``, or ``freq`` is *not* specified, this missing parameter can be computed
-    given ``periods``, the number of timesteps in the range. See the note below.)
+    two adjacent points is specified by the given frequency) such that they fall in the
+    range `[start, end]` , where the first one and the last one are, resp., the first
+    and last time points in that range that fall on the boundary of ``freq`` (if given
+    as a frequency string) or that are valid for ``freq`` (if given as a
+    :class:`pandas.tseries.offsets.DateOffset`). If ``freq`` is positive, the points
+    satisfy `start <[=] x <[=] end`, and if ``freq`` is negative, the points satisfy
+    `end <[=] x <[=] start`. (If exactly one of ``start``, ``end``, or ``freq`` is *not*
+    specified, this missing parameter can be computed given ``periods``, the number of
+    timesteps in the range. See the note below.)
 
     Parameters
     ----------

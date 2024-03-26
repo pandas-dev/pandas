@@ -452,7 +452,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.reindex(index)
                 copy = False
                 data = data._mgr
-        elif is_dict_like(data):
+        elif isinstance(data, Mapping):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
             copy = False
@@ -519,7 +519,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
     def _init_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+        self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -2509,13 +2509,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numpy.around : Round values of an np.array.
         DataFrame.round : Round values of a DataFrame.
 
+        Notes
+        -----
+        For values exactly halfway between rounded decimal values, pandas rounds
+        to the nearest even value (e.g. -0.5 and 0.5 round to 0.0, 1.5 and 2.5
+        round to 2.0, etc.).
+
         Examples
         --------
-        >>> s = pd.Series([0.1, 1.3, 2.7])
+        >>> s = pd.Series([-0.5, 0.1, 2.5, 1.3, 2.7])
         >>> s.round()
-        0    0.0
-        1    1.0
-        2    3.0
+        0   -0.0
+        1    0.0
+        2    2.0
+        3    1.0
+        4    3.0
         dtype: float64
         """
         nv.validate_round(args, kwargs)
@@ -5510,9 +5518,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             replacements = updated_replacements
             default = default.astype(common_dtype)
 
-        counter = reversed(range(len(conditions)))
+        counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, conditions[::-1], replacements[::-1]
+            counter, reversed(conditions), reversed(replacements)
         ):
             try:
                 default = default.mask(
