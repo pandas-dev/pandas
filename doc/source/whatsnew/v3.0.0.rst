@@ -129,11 +129,13 @@ For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
-+-----------------+---------------------+
-| Package         | New Minimum Version |
-+=================+=====================+
-| fastparquet     | 2023.04.0           |
-+-----------------+---------------------+
++------------------------+---------------------+
+| Package                | New Minimum Version |
++========================+=====================+
+| fastparquet            | 2023.04.0           |
++------------------------+---------------------+
+| adbc-driver-postgresql | 0.10.0              |
++------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
