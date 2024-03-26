@@ -753,11 +753,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
     const npy_int64 per_day = sec_per_day * per_sec;
     const int sign = td < 0 ? -1 : 1;
-    const int is_negative = td < 0 ? 1 : 0;
-    const int uneven_in_seconds = td % per_sec != 0 ? 1 : 0;
     // put frac in seconds
-    npy_int64 sfrac = td / per_sec - is_negative * uneven_in_seconds;
+    npy_int64 sfrac = td / per_sec;
     if (sign < 0) {
+      if (td % per_sec != 0)
+        sfrac -= 1;
+
       // even fraction
       if ((-sfrac % sec_per_day) != 0) {
         out->days = sfrac / sec_per_day - 1;
