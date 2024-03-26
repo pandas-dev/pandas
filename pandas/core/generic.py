@@ -99,7 +99,6 @@ from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
-    validate_fillna_kwargs,
     validate_inclusive,
 )
 
@@ -288,6 +287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
+    @final
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
         """
@@ -9578,7 +9578,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fill
         fill_na = notna(fill_value)
         if fill_na:
-            fill_value, _ = validate_fillna_kwargs(fill_value, None)
             left = left.fillna(fill_value)
             right = right.fillna(fill_value)
 
