@@ -56,7 +56,6 @@ class TestTimedeltaIndex:
         #  has one and it does not match the `freq` input
         tdi = timedelta_range("1 second", periods=100, freq="1s")
 
-        depr_msg = "TimedeltaArray.__init__ is deprecated"
         msg = (
             "Inferred frequency .* from passed values does "
             "not conform to passed frequency"
@@ -65,16 +64,7 @@ class TestTimedeltaIndex:
             TimedeltaIndex(tdi, freq="D")
 
         with pytest.raises(ValueError, match=msg):
-            # GH#23789
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                TimedeltaArray(tdi, freq="D")
-
-        with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(tdi._data, freq="D")
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                TimedeltaArray(tdi._data, freq="D")
 
     def test_dt64_data_invalid(self):
         # GH#23539
@@ -239,11 +229,6 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
-
-        msg = "TimedeltaArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tda = TimedeltaArray(tdi, freq=None)
-        assert tda.freq is None
 
     def test_from_categorical(self):
         tdi = timedelta_range(1, periods=5)
