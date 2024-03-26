@@ -1592,7 +1592,7 @@ class StylerRenderer:
         r"""
         Format the text display value of index names or column names.
 
-        .. versionadded:: TODO
+        .. versionadded:: 3.0
 
         Parameters
         ----------
@@ -1652,8 +1652,6 @@ class StylerRenderer:
 
         Examples
         --------
-        Basic use
-
         >>> df = pd.DataFrame(
         ...     [[1, 2], [3, 4]],
         ...     index=pd.Index(["a", "b"], name="idx"),
