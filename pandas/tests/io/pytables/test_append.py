@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -283,7 +284,7 @@ def test_append_all_nans(setup_path):
             tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
 
-def test_append_frame_column_oriented(setup_path):
+def test_append_frame_column_oriented(setup_path, request):
     with ensure_clean_store(setup_path) as store:
         # column oriented
         df = DataFrame(
@@ -303,6 +304,13 @@ def test_append_frame_column_oriented(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # selection on the non-indexable
+        request.applymarker(
+            pytest.mark.xfail(
+                PY312,
+                reason="AST change in PY312",
+                raises=ValueError,
+            )
+        )
         result = store.select("df1", ("columns=A", "index=df.index[0:4]"))
         expected = df.reindex(columns=["A"], index=df.index[0:4])
         tm.assert_frame_equal(expected, result)
