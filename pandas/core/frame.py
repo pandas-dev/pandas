@@ -653,25 +653,36 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes) -> DataFrame:
-        if self._constructor is DataFrame:
-            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return DataFrame._from_mgr(mgr, axes=axes)
-        else:
-            assert axes is mgr.axes
+        df = DataFrame._from_mgr(mgr, axes=axes)
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor is DataFrame`, but
+            #  this check is slightly faster, benefiting the most-common case.
+            return df
+
+        elif type(self).__name__ == "GeoDataFrame":
+            # Shim until geopandas can override their _constructor_from_mgr
+            #  bc they have different behavior for Managers than for DataFrames
             return self._constructor(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor(df)
 
     _constructor_sliced: Callable[..., Series] = Series
 
-    def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return Series._from_mgr(mgr, axes)
-
     def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
-        if self._constructor_sliced is Series:
-            ser = self._sliced_from_mgr(mgr, axes)
-            ser._name = None  # caller is responsible for setting real name
+        ser = Series._from_mgr(mgr, axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor_sliced is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        assert axes is mgr.axes
-        return self._constructor_sliced(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor_sliced(ser)
 
     # ----------------------------------------------------------------------
     # Constructors
