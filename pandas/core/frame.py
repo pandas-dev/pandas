@@ -1414,7 +1414,8 @@ class DataFrame(NDFrame, OpsMixin):
             na_rep=na_rep,
             quoting=quoting,
         )
-        return self._constructor_from_mgr(mgr, axes=mgr.axes)
+        # error: Incompatible return value type (got "DataFrame", expected "Self")
+        return self._constructor_from_mgr(mgr, axes=mgr.axes)  # type: ignore[return-value]
 
     # ----------------------------------------------------------------------
 
@@ -5088,7 +5089,8 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
+        # error: Incompatible return value type (got "DataFrame", expected "Self")
+        return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)  # type: ignore[return-value]
 
     def insert(
         self,
