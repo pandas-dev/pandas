@@ -174,7 +174,7 @@ class ParserBase:
                     and all(map(is_integer, self.index_col))
                 ):
                     raise ValueError(
-                        "index_col must only contain row numbers "
+                        "index_col must only contain integers of column positions "
                         "when specifying a multi-index header"
                     )
                 else:
