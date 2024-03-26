@@ -576,14 +576,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is Series:
-            # we are pandas.Series (or a subclass that doesn't override _constructor)
-            ser = Series._from_mgr(mgr, axes=axes)
-            ser._name = None  # caller is responsible for setting real name
+        ser = Series._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is Series:
+            # This would also work `if self._constructor is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        else:
-            assert axes is mgr.axes
-            return self._constructor(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor(ser)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -595,18 +598,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return DataFrame
 
-    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        from pandas.core.frame import DataFrame
-
-        return DataFrame._from_mgr(mgr, axes=mgr.axes)
-
     def _constructor_expanddim_from_mgr(self, mgr, axes):
         from pandas.core.frame import DataFrame
 
-        if self._constructor_expanddim is DataFrame:
-            return self._expanddim_from_mgr(mgr, axes)
-        assert axes is mgr.axes
-        return self._constructor_expanddim(mgr)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+
+        if type(self) is Series:
+            # This would also work `if self._constructor_expanddim is DataFrame`,
+            #  but this check is slightly faster, benefiting the most-common case.
+            return df
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor_expanddim(df)
 
     # types
     @property
