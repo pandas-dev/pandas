@@ -974,8 +974,13 @@ class TestIndex:
         """Test that is_monotonic resets on slices."""
         index = Index([1, 2, 3, 3])
         assert not index.is_monotonic_decreasing
+
         filtered_index = index[2:].copy()
         assert filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[1:].copy()
+        assert not filtered_index.is_monotonic_decreasing
         assert filtered_index.is_monotonic_increasing
 
     @pytest.mark.parametrize(
