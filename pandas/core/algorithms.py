@@ -1180,12 +1180,9 @@ def take(
     """
     if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
         # GH#52981
-        warnings.warn(
-            "pd.api.extensions.take accepting non-standard inputs is deprecated "
-            "and will raise in a future version. Pass either a numpy.ndarray, "
-            "ExtensionArray, Index, or Series instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise TypeError(
+            "pd.api.extensions.take requires a numpy.ndarray, "
+            f"ExtensionArray, Index, or Series, got {type(arr).__name__}."
         )
 
     if not is_array_like(arr):
