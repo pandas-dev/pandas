@@ -176,13 +176,6 @@ def test_methods_series_copy_keyword(request, method, copy):
     assert np.shares_memory(get_array(ser2), get_array(ser))
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_transpose_copy_keyword(copy):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.transpose(copy=copy)
-    assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
-
-
 # -----------------------------------------------------------------------------
 # DataFrame methods returning new DataFrame using shallow copy
 
@@ -1415,11 +1408,10 @@ def test_inplace_arithmetic_series_with_reference():
     tm.assert_series_equal(ser_orig, view)
 
 
-@pytest.mark.parametrize("copy", [True, False])
-def test_transpose(copy):
+def test_transpose():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
-    result = df.transpose(copy=copy)
+    result = df.transpose()
     assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
     result.iloc[0, 0] = 100

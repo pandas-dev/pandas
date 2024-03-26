@@ -173,6 +173,13 @@ will be removed in a future version:
 - :meth:`DataFrame.astype` / :meth:`Series.astype`
 - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
 - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+- :meth:`DataFrame.to_period` / :meth:`Series.to_period`
+- :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
+- :meth:`DataFrame.rename` / :meth:`Series.rename`
+- :meth:`DataFrame.transpose`
+- :meth:`DataFrame.swaplevel`
+- :meth:`DataFrame.merge` / :func:`pd.merge`
 
 Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
 necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect

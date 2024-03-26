@@ -101,7 +101,7 @@ class TestIndexConcat:
     def test_concat_copy_index_series(self, axis):
         # GH 29879
         ser = Series([1, 2])
-        comb = concat([ser, ser], axis=axis, copy=True)
+        comb = concat([ser, ser], axis=axis)
         if axis in [0, "index"]:
             assert comb.index is not ser.index
         else:
@@ -110,7 +110,7 @@ class TestIndexConcat:
     def test_concat_copy_index_frame(self, axis):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        comb = concat([df, df], axis=axis, copy=True)
+        comb = concat([df, df], axis=axis)
         if axis in [0, "index"]:
             assert not comb.index.is_(df.index)
             assert comb.columns.is_(df.columns)
