@@ -49,29 +49,22 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 def _get_expected_range(
-    begin_to_match,
-    end_to_match,
     both_range,
     inclusive_endpoints,
 ):
     """Helper to get expected range from a both inclusive range"""
-    left_match = begin_to_match == both_range[0]
-    right_match = end_to_match == both_range[-1]
-
-    if inclusive_endpoints == "left" and right_match:
+    if inclusive_endpoints == "left":
         expected_range = both_range[:-1]
-    elif inclusive_endpoints == "right" and left_match:
-        expected_range = both_range[1:]
-    elif inclusive_endpoints == "neither" and left_match and right_match:
-        expected_range = both_range[1:-1]
-    elif inclusive_endpoints == "neither" and right_match:
-        expected_range = both_range[:-1]
-    elif inclusive_endpoints == "neither" and left_match:
+    elif inclusive_endpoints == "right":
         expected_range = both_range[1:]
     elif inclusive_endpoints == "both":
         expected_range = both_range[:]
+    elif inclusive_endpoints == "neither":
+        expected_range = both_range[1:-1]
     else:
-        expected_range = both_range[:]
+        raise ValueError(
+            "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        )
 
     return expected_range
 
@@ -591,8 +584,25 @@ class TestDateRanges:
             begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
+        expected_range = _get_expected_range(both_range, inclusive_endpoints_fixture)
+
+        tm.assert_index_equal(expected_range, result_range)
+
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
+    def test_range_closed_with_tz_aware_start_end(
+        self, freq, inclusive_endpoints_fixture
+    ):
+        # GH12409, GH12684
+        begin = Timestamp("2011/1/1", tz="US/Eastern")
+        end = Timestamp("2014/1/1", tz="US/Eastern")
+
+        result_range = date_range(
+            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
+        )
+        both_range = date_range(begin, end, inclusive="both", freq=freq)
         expected_range = _get_expected_range(
-            begin, end, both_range, inclusive_endpoints_fixture
+            both_range,
+            inclusive_endpoints_fixture,
         )
 
         tm.assert_index_equal(expected_range, result_range)
@@ -603,8 +613,8 @@ class TestDateRanges:
     ):
         begin = Timestamp("2011/1/1")
         end = Timestamp("2014/1/1")
-        begintz = Timestamp("2011/1/1", tz="US/Eastern")
-        endtz = Timestamp("2014/1/1", tz="US/Eastern")
+        # begintz = Timestamp("2011/1/1", tz="US/Eastern")
+        # endtz = Timestamp("2014/1/1", tz="US/Eastern")
 
         result_range = date_range(
             begin,
@@ -617,8 +627,6 @@ class TestDateRanges:
             begin, end, inclusive="both", freq=freq, tz="US/Eastern"
         )
         expected_range = _get_expected_range(
-            begintz,
-            endtz,
             both_range,
             inclusive_endpoints_fixture,
         )
@@ -652,18 +660,9 @@ class TestDateRanges:
             inclusive=inclusive_endpoints_fixture,
         )
 
-        expected_right = both_boundary
-        expected_left = both_boundary
-        expected_both = both_boundary
-
-        if inclusive_endpoints_fixture == "right":
-            expected_left = both_boundary[1:]
-        elif inclusive_endpoints_fixture == "left":
-            expected_right = both_boundary[:-1]
-        elif inclusive_endpoints_fixture == "both":
-            expected_right = both_boundary[1:]
-            expected_left = both_boundary[:-1]
-
+        expected_right = both_boundary[1:]
+        expected_left = both_boundary[:-1]
+        expected_both = both_boundary[:]
         expected_neither = both_boundary[1:-1]
 
         tm.assert_index_equal(right_boundary, expected_right)
@@ -744,10 +743,7 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture == "neither":
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture in ("left", "right", "both"):
-            expected = both_range[:]
+        expected = _get_expected_range(both_range, inclusive_endpoints_fixture)
 
         tm.assert_index_equal(result, expected)
 
@@ -1095,7 +1091,7 @@ class TestBusinessDateRange:
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
-        expected = date_range(bday_start, bday_end, freq="D")
+        expected = date_range(bday_start, bday_end, freq="D", inclusive=inclusive)
         tm.assert_index_equal(result, expected)
         # Note: we do _not_ expect the freqs to match here
 
