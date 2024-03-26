@@ -688,12 +688,12 @@ class TestIndex:
 
     def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
-        msg = "cannot perform (any|all) with this index type: Index"
-
-        with pytest.raises(TypeError, match=msg):
-            getattr(index, all_boolean_reductions)()
-            getattr(index.values, all_boolean_reductions)()
-            getattr(index.to_series(), all_boolean_reductions)()
+        left = getattr(index, all_boolean_reductions)()
+        assert left == getattr(index.values, all_boolean_reductions)()
+        right = getattr(index.to_series(), all_boolean_reductions)()
+        # left might not match right exactly in e.g. string cases where the
+        # because we use np.any/all instead of .any/all
+        assert bool(left) == bool(right)
 
     @pytest.mark.parametrize(
         "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
@@ -1393,11 +1393,8 @@ class TestMixedIntIndex:
 
     def test_logical_compat(self, simple_index):
         index = simple_index
-        msg = "cannot perform (any|all) with this index type: Index"
-
-        with pytest.raises(TypeError, match=msg):
-            assert index.all() == index.values.all()
-            assert index.any() == index.values.any()
+        assert index.all() == index.values.all()
+        assert index.any() == index.values.any()
 
     @pytest.mark.parametrize("how", ["any", "all"])
     @pytest.mark.parametrize("dtype", [None, object, "category"])

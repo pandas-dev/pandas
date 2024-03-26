@@ -6959,8 +6959,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise if this Index subclass does not support any or all.
         """
-        if isinstance(self, ABCMultiIndex) or self.dtype.kind != "m":
-            raise TypeError("cannot perform all with this index type: Index")
+        if isinstance(self, ABCMultiIndex):
+            raise TypeError(f"cannot perform {opname} with this index type: Index")
 
     @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
