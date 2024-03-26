@@ -1374,16 +1374,19 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
-    def _get_level_names(self) -> Hashable | Sequence[Hashable]:
+    def _get_level_names(self) -> range | Sequence[Hashable]:
         """
         Return a name or list of names with None replaced by the level number.
         """
         if self._is_multi:
-            return [
-                level if name is None else name for level, name in enumerate(self.names)
-            ]
+            return maybe_sequence_to_range(
+                [
+                    level if name is None else name
+                    for level, name in enumerate(self.names)
+                ]
+            )
         else:
-            return 0 if self.name is None else self.name
+            return range(1) if self.name is None else [self.name]
 
     @final
     def _mpl_repr(self) -> np.ndarray:
@@ -1629,13 +1632,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
-        if name is lib.no_default:
-            name = self._get_level_names()
-        result = DataFrame({name: self}, copy=False)
-
         if index:
-            result.index = self
-        return result
+            result_index = self
+        else:
+            result_index = None
+        if name is lib.no_default:
+            result_name = self._get_level_names()
+        else:
+            result_name = [name]
+        return DataFrame(self, index=result_index, columns=result_name, copy=False)  # type: ignore[arg-type]
 
     # --------------------------------------------------------------------
     # Name-Centric Methods

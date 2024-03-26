@@ -508,3 +508,10 @@ def test_compare_read_only_array():
     idx = pd.Index(arr)
     result = idx > 69
     assert result.dtype == bool
+
+
+def test_to_frame_column_rangeindex():
+    idx = pd.Index([1])
+    result = idx.to_frame().columns
+    expected = RangeIndex(1)
+    tm.assert_index_equal(result, expected, exact=True)
