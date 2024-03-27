@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import Callable
 import warnings
 
 from dateutil.relativedelta import (
@@ -21,6 +18,7 @@ from dateutil.relativedelta import (
 )
 import numpy as np
 
+from pandas._libs.tslibs.offsets import BaseOffset
 from pandas.errors import PerformanceWarning
 
 from pandas import (
@@ -36,9 +34,6 @@ from pandas.tseries.offsets import (
     Day,
     Easter,
 )
-
-if TYPE_CHECKING:
-    from pandas._libs.tslibs.offsets import BaseOffset
 
 
 def next_monday(dt: datetime) -> datetime:
@@ -156,7 +151,6 @@ class Holiday:
     for observance.
     """
 
-    offset: BaseOffset | list[BaseOffset] | None
     start_date: Timestamp | None
     end_date: Timestamp | None
     days_of_week: tuple[int, ...] | None
@@ -234,13 +228,19 @@ class Holiday:
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
         """
-        if offset is not None and observance is not None:
-            raise NotImplementedError("Cannot use both offset and observance.")
-        if isinstance(offset, list) and any(isinstance(off, list) for off in offset):
-            raise ValueError(
-                "Nested lists are not supported for offset. "
-                "Flatten composite offsets of `Holiday.offset`s first."
-            )
+        if offset is not None:
+            if observance is not None:
+                raise NotImplementedError("Cannot use both offset and observance.")
+            if not (
+                isinstance(offset, BaseOffset)
+                or (
+                    isinstance(offset, list)
+                    and all(isinstance(off, BaseOffset) for off in offset)
+                )
+            ):
+                raise ValueError(
+                    "Only BaseOffsets and flat lists of them are supported for offset."
+                )
 
         self.name = name
         self.year = year
