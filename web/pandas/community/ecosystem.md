@@ -82,6 +82,20 @@ pd.set_option("plotting.backend", "pandas_bokeh")
 It is very similar to the matplotlib plotting backend, but provides
 interactive web-based charts and maps.
 
+### [pygwalker](https://github.com/Kanaries/pygwalker)
+
+PyGWalker is an interactive data visualization and
+exploratory data analysis tool built upon Graphic Walker
+with support for visualization, cleaning, and annotation workflows.
+
+pygwalker can save interactively created charts
+to Graphic-Walker and Vega-Lite JSON.
+
+```
+import pygwalker as pyg
+pyg.walk(df)
+```
+
 ### [seaborn](https://seaborn.pydata.org)
 
 Seaborn is a Python visualization library based on
@@ -93,6 +107,11 @@ of complex visualizations. Seaborn also goes beyond matplotlib and
 pandas with the option to perform statistical estimation while plotting,
 aggregating across observations and visualizing the fit of statistical
 models to emphasize patterns in a dataset.
+
+```
+import seaborn as sns
+sns.set_theme()
+```
 
 ### [plotnine](https://github.com/has2k1/plotnine/)
 
