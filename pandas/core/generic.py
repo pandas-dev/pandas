@@ -7788,11 +7788,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("'method' should be a string, not None.")
 
         obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
-        # GH#53631
-        if np.any(obj.dtypes == object):
-            raise TypeError(
-                f"{type(self).__name__} cannot interpolate with object dtype."
-            )
 
         if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
