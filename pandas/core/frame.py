@@ -6011,7 +6011,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
-            index data. If the DataFrame has a MultiIndex, this has to be a list 
+            index data. If the DataFrame has a MultiIndex, this has to be a list
             with length equal to the number of levels.
 
             .. versionadded:: 1.5.0
