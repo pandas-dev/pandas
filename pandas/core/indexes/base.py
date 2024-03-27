@@ -2916,29 +2916,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if isinstance(self.dtype, CategoricalDtype) and isinstance(
-            other.dtype, CategoricalDtype
-        ):
-            both_categories = self.categories  # type: ignore[attr-defined]
-            # if ordered and unordered, we set categories to be unordered
-            ordered = False if self.ordered != other.ordered else None  # type: ignore[attr-defined]
-            if len(self.categories) != len(other.categories) or any(  # type: ignore[attr-defined]
-                self.categories != other.categories  # type: ignore[attr-defined]
-            ):
-                if ordered is False:
-                    both_categories = union_categoricals(
-                        [self.as_unordered(), other.as_unordered()],  # type: ignore[attr-defined]
-                        sort_categories=True,
-                    ).categories
-                else:
-                    both_categories = union_categoricals(
-                        [self, other], sort_categories=True
-                    ).categories
-            # Convert both indexes to have the same categories
-            self = self.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
-            other = other.set_categories(both_categories, ordered=ordered)
-
-        elif self.dtype != other.dtype:
+        if self.dtype != other.dtype:
             if (
                 isinstance(self, ABCMultiIndex)
                 and not is_object_dtype(_unpack_nested_dtype(other))
@@ -2948,6 +2926,27 @@ class Index(IndexOpsMixin, PandasObject):
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
                 )
+
+            if isinstance(self, ABCCategoricalIndex) and isinstance(
+                other, ABCCategoricalIndex
+            ):
+                both_categories = self.categories
+                # if ordered and unordered, we set categories to be unordered
+                ordered = False if self.ordered != other.ordered else None
+                if ordered is False:
+                    both_categories = union_categoricals(
+                        [self.as_unordered(), other.as_unordered()],  # type: ignore[attr-defined]
+                        sort_categories=True,
+                    ).categories
+                else:
+                    both_categories = union_categoricals(
+                        [self, other], sort_categories=True
+                    ).categories
+                # Convert both indexes to have the same categories
+                self = self.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
+                other = other.set_categories(both_categories, ordered=ordered)  # type: ignore[attr-defined]
+                return self.union(other, sort=sort)
+
             self, other = self._dti_setop_align_tzs(other, "union")
 
             dtype = self._find_common_type_compat(other)
