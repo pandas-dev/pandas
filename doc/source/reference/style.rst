@@ -41,6 +41,7 @@ Style application
    Styler.map_index
    Styler.format
    Styler.format_index
+   Styler.format_index_names
    Styler.relabel_index
    Styler.hide
    Styler.concat

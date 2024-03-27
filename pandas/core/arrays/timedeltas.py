@@ -113,7 +113,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Parameters
     ----------
-    values : array-like
+    data : array-like
         The timedelta data.
 
     dtype : numpy.dtype
@@ -196,7 +196,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Constructors
 
     _freq = None
-    _default_dtype = TD64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _validate_dtype(cls, values, dtype):

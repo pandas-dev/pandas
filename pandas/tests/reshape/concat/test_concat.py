@@ -50,12 +50,12 @@ class TestConcatenate:
         df3 = DataFrame({5: "foo"}, index=range(4))
 
         # These are actual copies.
-        result = concat([df, df2, df3], axis=1, copy=True)
+        result = concat([df, df2, df3], axis=1)
         for arr in result._mgr.arrays:
             assert arr.base is not None
 
         # These are the same.
-        result = concat([df, df2, df3], axis=1, copy=False)
+        result = concat([df, df2, df3], axis=1)
 
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
@@ -67,7 +67,7 @@ class TestConcatenate:
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
-        result = concat([df, df2, df3, df4], axis=1, copy=False)
+        result = concat([df, df2, df3, df4], axis=1)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
                 # this is a view on some array in either df or df4

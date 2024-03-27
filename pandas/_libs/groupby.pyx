@@ -101,7 +101,11 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
+cdef float64_t median_linear(
+    float64_t* a,
+    int n,
+    bint is_datetimelike=False
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -111,9 +115,14 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
         return NaN
 
     # count NAs
-    for i in range(n):
-        if a[i] != a[i]:
-            na_count += 1
+    if is_datetimelike:
+        for i in range(n):
+            if a[i] == NPY_NAT:
+                na_count += 1
+    else:
+        for i in range(n):
+            if a[i] != a[i]:
+                na_count += 1
 
     if na_count:
         if na_count == n:
@@ -124,10 +133,16 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
             raise MemoryError()
 
         j = 0
-        for i in range(n):
-            if a[i] == a[i]:
-                tmp[j] = a[i]
-                j += 1
+        if is_datetimelike:
+            for i in range(n):
+                if a[i] != NPY_NAT:
+                    tmp[j] = a[i]
+                    j += 1
+        else:
+            for i in range(n):
+                if a[i] == a[i]:
+                    tmp[j] = a[i]
+                    j += 1
 
         a = tmp
         n -= na_count
@@ -170,6 +185,7 @@ def group_median_float64(
     Py_ssize_t min_count=-1,
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint is_datetimelike=False,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -228,7 +244,7 @@ def group_median_float64(
                 ptr += _counts[0]
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    out[j, i] = median_linear(ptr, size)
+                    out[j, i] = median_linear(ptr, size, is_datetimelike)
                     ptr += size
 
 

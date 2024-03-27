@@ -35,6 +35,16 @@ def styler_mi():
 
 
 @pytest.fixture
+def styler_multi():
+    df = DataFrame(
+        data=np.arange(16).reshape(4, 4),
+        columns=MultiIndex.from_product([["A", "B"], ["a", "b"]], names=["A&", "b&"]),
+        index=MultiIndex.from_product([["X", "Y"], ["x", "y"]], names=["X>", "y_"]),
+    )
+    return Styler(df)
+
+
+@pytest.fixture
 def tpl_style(env):
     return env.get_template("html_style.tpl")
 
@@ -1003,3 +1013,23 @@ def test_to_html_na_rep_non_scalar_data(datapath):
 </table>
 """
     assert result == expected
+
+
+@pytest.mark.parametrize("escape_axis_0", [True, False])
+@pytest.mark.parametrize("escape_axis_1", [True, False])
+def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
+    if escape_axis_0:
+        styler_multi.format_index_names(axis=0, escape="html")
+        expected_index = ["X&gt;", "y_"]
+    else:
+        expected_index = ["X>", "y_"]
+
+    if escape_axis_1:
+        styler_multi.format_index_names(axis=1, escape="html")
+        expected_columns = ["A&amp;", "b&amp;"]
+    else:
+        expected_columns = ["A&", "b&"]
+
+    result = styler_multi.to_html(table_uuid="test")
+    for expected_str in expected_index + expected_columns:
+        assert f"{expected_str}</th>" in result

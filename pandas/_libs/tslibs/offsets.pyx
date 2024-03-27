@@ -958,22 +958,6 @@ cdef class Tick(SingleConstructorOffset):
         return Timedelta(self)
 
     @property
-    def delta(self):
-        warnings.warn(
-            # GH#55498
-            f"{type(self).__name__}.delta is deprecated and will be removed in "
-            "a future version. Use pd.Timedelta(obj) instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        try:
-            return self.n * Timedelta(self._nanos_inc)
-        except OverflowError as err:
-            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
-            Timedelta(self).as_unit("ns")
-            raise AssertionError("This should not be reached.")
-
-    @property
     def nanos(self) -> int64_t:
         """
         Return an integer of the total number of nanoseconds.

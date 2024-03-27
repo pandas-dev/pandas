@@ -126,30 +126,26 @@ class TestTimedeltaConstructorUnitKeyword:
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
 
-        msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = to_timedelta(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
 
-            str_repr = [f"{x}{unit}" for x in np.arange(5)]
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
+        str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
 
-            # scalar
-            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-            result = to_timedelta(2, unit=unit)
-            assert result == expected
-            result = Timedelta(2, unit=unit)
-            assert result == expected
+        # scalar
+        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        result = to_timedelta(2, unit=unit)
+        assert result == expected
+        result = Timedelta(2, unit=unit)
+        assert result == expected
 
-            result = to_timedelta(f"2{unit}")
-            assert result == expected
-            result = Timedelta(f"2{unit}")
-            assert result == expected
+        result = to_timedelta(f"2{unit}")
+        assert result == expected
+        result = Timedelta(f"2{unit}")
+        assert result == expected
 
     @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
     def test_unit_T_L_N_U_raises(self, unit):
