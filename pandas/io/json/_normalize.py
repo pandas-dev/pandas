@@ -435,11 +435,9 @@ def json_normalize(
         if not isinstance(spec, list):
             spec = [spec]
         try:
-            for i, field in enumerate(spec):
+            for field in spec:
                 # GH 57810
                 if result is None or not len(result):
-                    if i == len(spec) - 1:
-                        return np.nan
                     raise KeyError(field)
                 result = result[field]
         except KeyError as e:

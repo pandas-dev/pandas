@@ -646,7 +646,7 @@ class TestNestedToRecord:
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_nested_meta_traverse_none(self):
+    def test_missing_nested_meta_traverse_none_errors_ignore(self):
         # GH44312
         # If errors="ignore" and nested metadata is nullable, return nan
         data = {"meta": "foo", "nested_meta": None, "value": [{"rec": 1}, {"rec": 2}]}
@@ -663,29 +663,20 @@ class TestNestedToRecord:
         )
         tm.assert_frame_equal(result, expected)
 
-        # If errors="raise" and nested metadata is null,
-        # should NOT raise if the missing value is leaf value
-        result = json_normalize(
-            data,
-            record_path="value",
-            meta=["meta", ["nested_meta", "leaf"]],
-            errors="raise",
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # If errors="raise" and nested metadata is null,
-        # should raise if the missing value is node value:
-        # see ["nested_meta", "leaf", "leaf"] instruction
+    def test_missing_nested_meta_traverse_none_errors_raise(self):
+        # GH44312
+        # If errors="raise" and nested metadata is null, should raise
+        data = {"meta": "foo", "nested_meta": None, "value": [{"rec": 1}, {"rec": 2}]}
 
         with pytest.raises(KeyError, match="'leaf' not found"):
             json_normalize(
                 data,
                 record_path="value",
-                meta=["meta", ["nested_meta", "leaf", "leaf"]],
+                meta=["meta", ["nested_meta", "leaf"]],
                 errors="raise",
             )
 
-    def test_missing_nested_meta_traverse_empty_list(self):
+    def test_missing_nested_meta_traverse_empty_list_errors_ignore(self):
         # If errors="ignore" and nested metadata is nullable, return nan
         data = {"meta": "foo", "nested_meta": [], "value": [{"rec": 1}, {"rec": 2}]}
         result = json_normalize(
