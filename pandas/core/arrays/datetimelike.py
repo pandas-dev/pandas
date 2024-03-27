@@ -1665,12 +1665,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 raise TypeError(f"datetime64 type does not support {how} operations")
             if how in ["any", "all"]:
                 # GH#34479
-                warnings.warn(
-                    f"'{how}' with datetime64 dtypes is deprecated and will raise in a "
-                    f"future version. Use (obj != pd.Timestamp(0)).{how}() instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+                raise TypeError(f"'{how}' with datetime64 dtypes is not supported")
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid
