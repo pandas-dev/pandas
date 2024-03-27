@@ -148,7 +148,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[s]', freq=None)
     >>> pd.isna(index)
     array([False, False,  True, False])
 
@@ -362,7 +362,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[s]', freq=None)
     >>> pd.notna(index)
     array([ True,  True, False,  True])
 
