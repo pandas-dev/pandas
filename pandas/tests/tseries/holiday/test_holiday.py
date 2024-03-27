@@ -280,7 +280,7 @@ def test_list_of_list_of_offsets_raises():
         day=USThanksgivingDay.day,
         offset=[USThanksgivingDay.offset, DateOffset(1)],
     )
-    msg = "Only BaseOffsets and flat lists thereof are supported for offset."
+    msg = "Only BaseOffsets and flat lists of them are supported for offset."
     with pytest.raises(ValueError, match=msg):
         Holiday(
             "Holiday2",
