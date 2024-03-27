@@ -145,11 +145,12 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool | None = None,
+    copy: bool | lib.NoDefault = lib.no_default,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     left_df = _validate_operand(left)
+    left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
     if how == "cross":
         return _cross_merge(

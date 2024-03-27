@@ -134,7 +134,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | Package                | New Minimum Version |
 +========================+=====================+
-| fastparquet            | 2023.04.0           |
+| fastparquet            | 2023.10.0           |
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
 +------------------------+---------------------+
@@ -173,6 +173,13 @@ will be removed in a future version:
 - :meth:`DataFrame.astype` / :meth:`Series.astype`
 - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
 - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+- :meth:`DataFrame.to_period` / :meth:`Series.to_period`
+- :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
+- :meth:`DataFrame.rename` / :meth:`Series.rename`
+- :meth:`DataFrame.transpose`
+- :meth:`DataFrame.swaplevel`
+- :meth:`DataFrame.merge` / :func:`pd.merge`
 
 Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
 necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect
@@ -199,11 +206,13 @@ Removal of prior version deprecations/changes
 - :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
+- Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
 - All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
+- Enforce deprecation in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with object dtype and mismatched null-like values, which are now considered not-equal (:issue:`18463`)
 - Enforced deprecation disallowing :meth:`GroupBy.all` and :meth:`GroupBy.any` with ``datetime64`` and :class:`PeriodDtype` dtypes (:issue:`34479`)
 - Enforced deprecation disallowing ``float`` "periods" in :func:`date_range`, :func:`period_range`, :func:`timedelta_range`, func:`interval_range`,  (:issue:`56036`)
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
@@ -311,6 +320,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
+- Fixed bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
