@@ -241,8 +241,8 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (TypeError, "'all' with datetime64 dtypes is not supported"),
-        "any": (TypeError, "'any' with datetime64 dtypes is not supported"),
+        "all": (TypeError, "datetime64 type does not support all operations"),
+        "any": (TypeError, "datetime64 type does not support any operations"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),

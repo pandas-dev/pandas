@@ -520,7 +520,7 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("'any' with datetime64 dtypes is not supported")
+        raise TypeError("datetime64 type does not support any operations")
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -576,7 +576,7 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("'all' with datetime64 dtypes is not supported")
+        raise TypeError("datetime64 type does not support all operations")
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
