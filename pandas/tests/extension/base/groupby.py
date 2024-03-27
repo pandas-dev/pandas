@@ -162,7 +162,9 @@ class BaseGroupbyTests:
 
             msg = "|".join(
                 [
-                    # period/datetime
+                    # period
+                    "does not support sum operations",
+                    # datetime
                     "does not support operation: 'sum'",
                     # all others
                     re.escape(f"agg function failed [how->sum,dtype->{dtype}"),
