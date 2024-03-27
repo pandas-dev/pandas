@@ -20,10 +20,6 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):

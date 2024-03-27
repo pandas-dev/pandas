@@ -10,10 +10,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-)
-
 
 class TestDataFrameSubclassing:
     def test_no_warning_on_mgr(self):

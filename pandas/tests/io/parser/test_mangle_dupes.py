@@ -14,11 +14,6 @@ import pandas._testing as tm
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
-
 @xfail_pyarrow  # ValueError: Found non-unique column index
 def test_basic(all_parsers):
     parser = all_parsers

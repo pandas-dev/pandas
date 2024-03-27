@@ -362,28 +362,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
     ) -> None:
-        allow_mgr = False
-        if (
-            isinstance(data, SingleBlockManager)
-            and index is None
-            and dtype is None
-            and (copy is False or copy is None)
-        ):
-            if not allow_mgr:
-                # GH#52419
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            data = data.copy(deep=False)
-            # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
-            self.name = name
-            return
-
         is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
         data_dtype = getattr(data, "dtype", None)
         original_dtype = dtype
@@ -394,18 +372,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = data.copy()
         if copy is None:
             copy = False
-
-        if isinstance(data, SingleBlockManager) and not copy:
-            data = data.copy(deep=False)
-
-            if not allow_mgr:
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -457,27 +423,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype = None
             copy = False
         elif isinstance(data, SingleBlockManager):
-            if index is None:
-                index = data.index
-            elif not data.index.equals(index) or copy:
-                # GH#19275 SingleBlockManager input should only be called
-                # internally
-                raise AssertionError(
-                    "Cannot pass both SingleBlockManager "
-                    "`data` argument and a different "
-                    "`index` argument. `copy` must be False."
-                )
-
-            if not allow_mgr:
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                allow_mgr = True
-
+            raise TypeError(
+                # GH#52419
+                f"{type(data).__name__} is no longer accepted in the "
+                f"{type(self).__name__} constructor. Use public APIs instead."
+            )
         elif isinstance(data, ExtensionArray):
             pass
         else:

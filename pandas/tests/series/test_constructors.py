@@ -2178,6 +2178,13 @@ class TestSeriesConstructorIndexCoercion:
 
 
 class TestSeriesConstructorInternals:
+    def test_manager_disallowed(self):
+        # GH#52419
+        ser = Series([1, 2, 3], dtype="int64")
+        msg = "SingleBlockManager is no longer accepted in the Series constructor"
+        with pytest.raises(TypeError, match=msg):
+            Series(ser._mgr, dtype="int32")
+
     def test_constructor_no_pandas_array(self):
         ser = Series([1, 2, 3])
         result = Series(ser.array)
