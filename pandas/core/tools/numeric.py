@@ -44,6 +44,8 @@ def to_numeric(
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    thousands: str | None = None,
+    decimal: str = ".",
 ):
     """
     Convert argument to a numeric type.
@@ -98,6 +100,20 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
+
+    thousands : str | None, default None
+        Character used to separate groups of thousands for readability,
+        e.g. ',' in 1,000,000
+        Must only be 1 character long.
+
+        .. versionadded:: 2.2.1
+
+    decimal : str, default '.'
+        Character used to separate decimal section from the integer
+        section of the number, e.g., '.' in 12.45
+        Must only be 1 character long.
+
+        .. versionadded:: 2.2.1
 
     Returns
     -------
@@ -155,6 +171,15 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
+
+    Handling of data with non standard decimal or thousand separators
+
+    >>> s = pd.Series(["1,5", "2.000.000", -3])
+    >>> pd.to_numeric(s, thousands=".", decimal=",")
+    0   1.5
+    1   2000000.0
+    2   -3.0
+    dtype: float64
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -203,6 +228,7 @@ def to_numeric(
         mask = values.isna()
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
+
     if is_numeric_dtype(values_dtype):
         pass
     elif lib.is_np_dtype(values_dtype, "mM"):
@@ -217,6 +243,8 @@ def to_numeric(
             convert_to_masked_nullable=dtype_backend is not lib.no_default
             or isinstance(values_dtype, StringDtype)
             and not values_dtype.storage == "pyarrow_numpy",
+            thousands=thousands,
+            decimal=decimal,
         )
 
     if new_mask is not None:

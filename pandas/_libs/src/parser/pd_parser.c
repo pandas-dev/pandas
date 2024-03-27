@@ -13,22 +13,22 @@ Distributed under the terms of the BSD Simplified License.
 #include "pandas/portable.h"
 
 static int to_double(char *item, double *p_value, char sci, char decimal,
-                     int *maybe_int) {
+                     char tsep, int *maybe_int) {
   char *p_end = NULL;
   int error = 0;
 
   /* Switch to precise xstrtod GH 31364 */
   *p_value =
-      precise_xstrtod(item, &p_end, decimal, sci, '\0', 1, &error, maybe_int);
+      precise_xstrtod(item, &p_end, decimal, sci, tsep, 1, &error, maybe_int);
 
   return (error == 0) && (!*p_end);
 }
 
-static int floatify(PyObject *str, double *result, int *maybe_int) {
+static int floatify(PyObject *str, double *result, int *maybe_int, char dec,
+                    char tsep) {
   char *data;
   PyObject *tmp = NULL;
   const char sci = 'E';
-  const char dec = '.';
 
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
@@ -43,7 +43,7 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
     return -1;
   }
 
-  const int status = to_double(data, result, sci, dec, maybe_int);
+  const int status = to_double(data, result, sci, dec, tsep, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */

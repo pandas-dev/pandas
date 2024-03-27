@@ -14,7 +14,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_300.enhancements.enhancement1:
+.. _whatsnew_300.enhancements.to_numeric_separators:
+
+Custom Thousand and Decimal Separators added to :func:`to_numeric`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Added two new parameters, ``decimal`` and ``thousands`` to :func:`to_numeric`, allowing users to specify custom decimal points and thousand separators. (:issue:`#4674`).
+``decimal`` has default value ``'.''`` and ``thousands`` has default value ``None``, meaning the string would contain no symbols to demarcate groups of thousands and use ``.`` as the decimal point. This default behaviour is the same as :func:`to_numeric` before the parameters were added.
+:func:`to_numeric` will now be able to parse number strings such as '1,000,000' or '1.000,5' if the user provides the correct parameters.
+
+An example of the new functionality:
+
+.. code-block:: python
+
+    >>> s = pd.Series(['1,5', '2.000.000', -3])
+    >>> pd.to_numeric(s, thousands='.', decimal=',')
+    0   1.5
+    1   2000000.0
+    2   -3.0
+    dtype: float64
 
 enhancement1
 ^^^^^^^^^^^^

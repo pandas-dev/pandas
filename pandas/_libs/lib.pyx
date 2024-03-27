@@ -69,7 +69,8 @@ from pandas._libs.interval import Interval
 
 
 cdef extern from "pandas/parser/pd_parser.h":
-    int floatify(object, float64_t *result, int *maybe_int) except -1
+    int floatify(object, float64_t *result, int *maybe_int,
+                 char dec, char tsep) except -1
     void PandasParser_IMPORT()
 
 PandasParser_IMPORT
@@ -2226,6 +2227,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
+    str thousands=None,
+    str decimal="."
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2253,6 +2256,14 @@ def maybe_convert_numeric(
     convert_to_masked_nullable : bool, default False
         Whether to return a mask for the converted values. This also disables
         upcasting for ints with nulls to float64.
+    thousands : str, default None
+        Character used to separate groups of thousands for readability,
+        e.g. ',' in 1,000,000
+        Must only be 1 character long.
+    decimal : str, default '.'
+        Character used to separate decimal section from the integer
+        section of the number, e.g., '.' in 12.45
+        Must only be 1 character long.
     Returns
     -------
     np.ndarray
@@ -2268,6 +2279,28 @@ def maybe_convert_numeric(
     # fastpath for ints - try to convert all based on first value
     cdef:
         object val = values[0]
+
+    # Convert python strings into ones readable by C
+
+    cdef char* tsep
+    cdef char* dsep
+    # Use null char to represent lack of separator
+    if thousands is None:
+        tsep = "\0"
+    else:
+        bytes_tsep = thousands.encode("UTF-8")
+        tsep = bytes_tsep
+
+    bytes_dsep = decimal.encode("UTF-8")
+    dsep = bytes_dsep
+
+    # Validate separators
+    if thousands is not None and len(tsep) != 1:
+        raise ValueError("Thousands separator must be length 1 or None")
+    if len(dsep) != 1:
+        raise ValueError("Decimal separator must be length 1")
+    if tsep == dsep:
+        raise ValueError("Decimal and thousand separators must not be the same")
 
     if util.is_integer_object(val):
         try:
@@ -2376,8 +2409,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int)
-
+                floatify(val, &fval, &maybe_int, dsep[0], tsep[0])
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -2390,7 +2422,10 @@ def maybe_convert_numeric(
                     floats[i] = fval
 
                 if maybe_int:
-                    as_int = int(val)
+                    if thousands is None:
+                        as_int = int(val)
+                    else:
+                        as_int = int(val.replace(thousands, ""))
 
                     if as_int in na_values:
                         mask[i] = 1

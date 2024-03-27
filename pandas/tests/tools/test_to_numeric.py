@@ -904,3 +904,49 @@ def test_coerce_pyarrow_backend():
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
+
+
+def test_custom_decimals():
+    # GH 4674
+    ser = Series(["1,5", "20,005", -3])
+    result = to_numeric(ser, decimal=",")
+    expected = Series([1.5, 20.005, -3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_custom_thousands():
+    # GH 4674
+    ser = Series(["1,001", "2,000,000", -3])
+    result = to_numeric(ser, thousands=",")
+    expected = Series([1001, 2000000, -3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_custom_thousands_and_decimals():
+    # GH 4674
+    ser = Series(["1.000,0", "2.000.000,5", "2,5", "3"])
+    result = to_numeric(ser, decimal=",", thousands=".")
+    expected = Series([1000.0, 2000000.5, 2.5, 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_separator_validation():
+    # GH 4674
+    ser = Series(["1", "2", "3"])
+    with pytest.raises(
+        ValueError, match="Decimal and thousand separators must not be the same"
+    ):
+        to_numeric(ser, thousands=".")
+
+    with pytest.raises(
+        ValueError, match="Decimal and thousand separators must not be the same"
+    ):
+        to_numeric(ser, thousands=",", decimal=",")
+
+    with pytest.raises(
+        ValueError, match="Thousands separator must be length 1 or None"
+    ):
+        to_numeric(ser, thousands="test")
+
+    with pytest.raises(ValueError, match="Decimal separator must be length 1"):
+        to_numeric(ser, decimal="test")

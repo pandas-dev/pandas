@@ -17,8 +17,8 @@ extern "C" {
 #include <Python.h>
 
 typedef struct {
-  int (*to_double)(char *, double *, char, char, int *);
-  int (*floatify)(PyObject *, double *, int *);
+  int (*to_double)(char *, double *, char, char, char, int *);
+  int (*floatify)(PyObject *, double *, int *, char, char);
   void *(*new_rd_source)(PyObject *);
   void (*del_rd_source)(void *);
   char *(*buffer_rd_bytes)(void *, size_t, size_t *, int *, const char *);
@@ -58,8 +58,8 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
 
 #define to_double(item, p_value, sci, decimal, maybe_int)                      \
   PandasParserAPI->to_double((item), (p_value), (sci), (decimal), (maybe_int))
-#define floatify(str, result, maybe_int)                                       \
-  PandasParserAPI->floatify((str), (result), (maybe_int))
+#define floatify(str, result, maybe_int, dec, tsep)                            \
+  PandasParserAPI->floatify((str), (result), (maybe_int), (dec), (tsep))
 #define new_rd_source(obj) PandasParserAPI->new_rd_source((obj))
 #define del_rd_source(src) PandasParserAPI->del_rd_source((src))
 #define buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)   \
