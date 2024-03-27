@@ -49,9 +49,8 @@ def _cum_func(
     if not skipna:
         mask = np.maximum.accumulate(mask)
 
-    result = func(
-        y, axis=0
-    )  # Avoid axis = None for np.cumsum which flattens the array (GH#57956)
+    # GH 57956
+    result = func(y, axis=0)
     result[mask] = iNaT
 
     if values.dtype.kind in "mM":
