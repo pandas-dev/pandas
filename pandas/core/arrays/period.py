@@ -134,11 +134,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     dtype : PeriodDtype, optional
         A PeriodDtype instance from which to extract a `freq`. If both
         `freq` and `dtype` are specified, then the frequencies must match.
-    freq : str or DateOffset
-        The `freq` to use for the array. Mostly applicable when `values`
-        is an ndarray of integers, when `freq` is required. When `values`
-        is a PeriodArray (or box around), it's checked that ``values.freq``
-        matches `freq`.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
