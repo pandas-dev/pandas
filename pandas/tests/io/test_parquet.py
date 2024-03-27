@@ -43,14 +43,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = [
-    pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-]
-
-
 # setup engines & skips
 @pytest.fixture(
     params=[

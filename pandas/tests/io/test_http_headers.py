@@ -16,9 +16,6 @@ import pandas._testing as tm
 pytestmark = [
     pytest.mark.single_cpu,
     pytest.mark.network,
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
 ]
 
 

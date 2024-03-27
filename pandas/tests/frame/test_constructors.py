@@ -1722,17 +1722,21 @@ class TestDataFrameConstructors:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_manager_resize(self, float_frame):
+    def test_constructor_manager_raises(self, float_frame):
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            result = DataFrame(float_frame._mgr, index=index, columns=columns)
-        tm.assert_index_equal(result.index, Index(index))
-        tm.assert_index_equal(result.columns, Index(columns))
+        # passing index/columns along with Manager
+        msg = "BlockManager is no longer accepted in the DataFrame constructor"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, index=index, columns=columns)
+
+        # Passing dtype along with Manager
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, dtype=int)
+
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, dtype=np.int32)
 
     def test_constructor_mix_series_nonseries(self, float_frame):
         df = DataFrame(

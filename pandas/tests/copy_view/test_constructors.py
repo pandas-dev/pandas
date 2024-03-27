@@ -120,30 +120,15 @@ def test_series_from_index_different_dtypes():
     assert ser._mgr._has_no_reference(0)
 
 
-def test_series_from_block_manager_different_dtype():
-    ser = Series([1, 2, 3], dtype="int64")
-    msg = "Passing a SingleBlockManager to Series"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        ser2 = Series(ser._mgr, dtype="int32")
-    assert not np.shares_memory(get_array(ser), get_array(ser2))
-    assert ser2._mgr._has_no_reference(0)
-
-
-@pytest.mark.parametrize("use_mgr", [True, False])
+# TODO: this test used to be checking for similar behavior when passed a
+# DataFrame or a BlockManager. Now that the BlockManager case is disallowed
+# and removed from the test, is the rest of the test still useful?
 @pytest.mark.parametrize("columns", [None, ["a"]])
-def test_dataframe_constructor_mgr_or_df(columns, use_mgr):
+def test_dataframe_constructor(columns):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
-    if use_mgr:
-        data = df._mgr
-        warn = DeprecationWarning
-    else:
-        data = df
-        warn = None
-    msg = "Passing a BlockManager to DataFrame"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        new_df = DataFrame(data)
+    new_df = DataFrame(df)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
     new_df.iloc[0] = 100

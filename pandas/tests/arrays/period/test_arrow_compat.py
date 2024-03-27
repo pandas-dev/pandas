@@ -11,11 +11,6 @@ from pandas.core.arrays import (
     period_array,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
-
 pa = pytest.importorskip("pyarrow")
 
 
