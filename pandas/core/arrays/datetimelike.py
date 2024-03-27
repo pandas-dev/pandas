@@ -2451,7 +2451,9 @@ def validate_periods(periods: int | None) -> int | None:
     """
     if periods is not None and not lib.is_integer(periods):
         raise TypeError(f"periods must be an integer, got {periods}")
-    return periods
+    # error: Incompatible return value type (got "int | integer[Any] | None",
+    # expected "int | None")
+    return periods  # type: ignore[return-value]
 
 
 def _validate_inferred_freq(
