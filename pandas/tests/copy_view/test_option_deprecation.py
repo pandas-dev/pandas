@@ -1,5 +1,7 @@
 import importlib
 
+import pytest
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -15,11 +17,8 @@ def test_configs_deprecated():
 
 def test_env_variable():
     # GH#57872
-    import os
-
-    os.environ["PANDAS_COPY_ON_WRITE"] = "1"
+    pytest.MonkeyPatch().setenv("PANDAS_COPY_ON_WRITE", "1")
     with tm.assert_produces_warning(
         FutureWarning, match="deprecated", check_stacklevel=False
     ):
         importlib.reload(pd)
-    os.environ.pop("PANDAS_COPY_ON_WRITE")
