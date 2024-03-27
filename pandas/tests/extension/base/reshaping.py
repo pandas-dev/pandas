@@ -106,7 +106,7 @@ class BaseReshapingTests:
                 "B": data[3:7],
             }
         )
-        result = pd.concat([df1, df2], axis=1, copy=False)
+        result = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_with_reindex(self, data):
