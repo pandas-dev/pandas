@@ -2887,13 +2887,7 @@ supported types."""
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Downcasting object dtype arrays",
-                        category=FutureWarning,
-                    )
-                    dc = data[col].fillna("")
+                dc = data[col].fillna("")
                 data[col] = dc.apply(_pad_bytes, args=(typ,))
                 stype = f"S{typ}"
                 dtypes[col] = stype

@@ -1272,7 +1272,6 @@ class TestDataFrameAnalytics:
     ):
         getattr(bool_frame_with_na, all_boolean_reductions)(axis=axis, bool_only=False)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_any_all_bool_frame(self, all_boolean_reductions, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
         # so fill NaNs to compare with pandas behavior

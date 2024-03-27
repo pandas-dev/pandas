@@ -1725,13 +1725,7 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "Downcasting object dtype arrays",
-                category=FutureWarning,
-            )
-            data = data.fillna(value=0)
+        data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:

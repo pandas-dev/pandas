@@ -195,7 +195,6 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",
         [
