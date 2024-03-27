@@ -398,7 +398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def set_flags(
         self,
         *,
-        copy: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
         allows_duplicate_labels: bool | None = None,
     ) -> Self:
         """
@@ -420,6 +420,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
@@ -454,6 +456,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.flags.allows_duplicate_labels
         False
         """
+        self._check_copy_deprecation(copy)
         df = self.copy(deep=False)
         if allows_duplicate_labels is not None:
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
@@ -679,7 +682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Self:
         """
         Assign desired index to given axis.
@@ -696,7 +699,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The axis to update. The value 0 identifies the rows. For `Series`
             this parameter is unused and defaults to 0.
 
-        copy : bool, default True
+        copy : bool, default False
             Whether to make a copy of the underlying data.
 
             .. note::
@@ -711,6 +714,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
 
+            .. deprecated:: 3.0.0
+
         Returns
         -------
         %(klass)s
@@ -720,6 +725,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        self._check_copy_deprecation(copy)
         return self._set_axis_nocheck(labels, axis, inplace=False)
 
     @overload
@@ -948,7 +954,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: Literal[False] = ...,
         level: Level | None = ...,
         errors: str = ...,
@@ -962,7 +967,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: Literal[True],
         level: Level | None = ...,
         errors: str = ...,
@@ -976,7 +980,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: bool,
         level: Level | None = ...,
         errors: str = ...,
@@ -990,7 +993,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: str = "ignore",
@@ -1061,7 +1063,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[False] = ...,
     ) -> Self: ...
 
@@ -1073,7 +1075,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[True],
     ) -> None: ...
 
@@ -1085,7 +1087,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = ...,
     ) -> Self | None: ...
 
@@ -1096,7 +1098,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=lib.no_default,
         columns=lib.no_default,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
     ) -> Self | None:
         """
@@ -1118,7 +1120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             apply to that axis' values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename.
-        copy : bool, default None
+        copy : bool, default False
             Also copy underlying data.
 
             .. note::
@@ -1132,6 +1134,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
@@ -1219,6 +1223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
+        self._check_copy_deprecation(copy)
         axes = {"index": index, "columns": columns}
 
         if axis is not None:
@@ -6327,7 +6332,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
-        result = concat(results, axis=1, copy=False)
+        result = concat(results, axis=1)
         # GH#40810 retain subclass
         # error: Incompatible types in assignment
         # (expression has type "Self", variable has type "DataFrame")
