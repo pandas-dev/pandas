@@ -13,10 +13,7 @@ dependencies:
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
-  # Once pytest-cov > 4 comes out, unpin this
-  # Right now, a DeprecationWarning related to rsyncdir
-  # causes an InternalError within pytest
-  - pytest-xdist>=2.2.0, <3
+  - pytest-xdist>=2.2.0
   - hypothesis>=6.46.1
 
   # pandas dependencies
