@@ -1382,7 +1382,7 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        msg = "datetime64 type does not support any operations"
+        msg = "datetime64 type does not support operation: 'any'"
         with pytest.raises(TypeError, match=msg):
             df.any(axis=1)
 
@@ -1478,7 +1478,7 @@ class TestDataFrameAnalytics:
                 getattr(DataFrame(data), func.__name__)(axis=None)
         if data.dtypes.apply(lambda x: x.kind == "M").any():
             # GH#34479
-            msg = "datetime64 type does not support (any|all) operations"
+            msg = "datetime64 type does not support operation: '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 func(data)
 

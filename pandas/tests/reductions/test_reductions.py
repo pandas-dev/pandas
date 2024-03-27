@@ -1010,7 +1010,7 @@ class TestSeriesReductions:
         df = DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support (any|all) operations"
+        msg = "datetime64 type does not support operation: '(any|all)'"
         with pytest.raises(TypeError, match=msg):
             dta.all()
         with pytest.raises(TypeError, match=msg):
