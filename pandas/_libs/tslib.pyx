@@ -277,7 +277,7 @@ def array_with_unit_to_datetime(
         bint is_raise = errors == "raise"
         ndarray[int64_t] iresult
         tzinfo tz = None
-        float fval
+        double fval
 
     assert is_ignore or is_coerce or is_raise
 
