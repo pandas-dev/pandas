@@ -7170,7 +7170,9 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     diff = sequence[1] - sequence[0]
     if diff == 0:
         return sequence
-    elif len(sequence) == 2 or lib.is_sequence_range(np.asarray(sequence), diff):
+    elif len(sequence) == 2 or lib.is_sequence_range(
+        np.asarray(sequence, dtype=np.int64), diff
+    ):
         return range(sequence[0], sequence[-1] + diff, diff)
     else:
         return sequence
