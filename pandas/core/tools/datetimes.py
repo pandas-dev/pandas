@@ -665,7 +665,7 @@ def to_datetime(
     yearfirst: bool = False,
     utc: bool = False,
     format: str | None = None,
-    exact: bool | lib.NoDefault = lib.no_default,
+    exact: bool = True,
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
