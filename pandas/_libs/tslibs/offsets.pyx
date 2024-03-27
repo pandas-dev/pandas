@@ -457,10 +457,9 @@ cdef class BaseOffset:
 
     def __add__(self, other):
         if util.is_array(other):
-            from pandas.api.types import is_datetime64_any_dtype
             if other.dtype == object:
                 return np.array([self + x for x in other])
-            elif is_datetime64_any_dtype(other):
+            elif other.dtype.kind == "M":
                 return self._apply_array(other).astype(other.dtype)
 
         try:
