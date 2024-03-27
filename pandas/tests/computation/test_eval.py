@@ -737,6 +737,13 @@ class TestEval:
         assert pd.eval(f"{event.str.match('hello').a}")
         assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
+    def test_using_numpy(self):
+        # GH 58041
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("@np.floor(a)")
+        expected = np.floor(df["a"])
+        tm.assert_series_equal(expected, res)
+
 
 # -------------------------------------
 # gh-12388: Typecasting rules consistency with python
