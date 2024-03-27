@@ -84,8 +84,8 @@ interactive web-based charts and maps.
 
 ### [pygwalker](https://github.com/Kanaries/pygwalker)
 
-PyGWalker is an interactive data visualization and 
-exploratory data analysis tool built upon Graphic Walker 
+PyGWalker is an interactive data visualization and
+exploratory data analysis tool built upon Graphic Walker
 with support for visualization, cleaning, and annotation workflows.
 
 pygwalker can save interactively created charts
