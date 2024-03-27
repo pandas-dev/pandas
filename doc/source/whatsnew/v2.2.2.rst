@@ -22,8 +22,10 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+
 - :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
 - :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
+- Fixed bug in :func:`pandas.io.json_normalize` raising with errors='ignore' while traversing empty list (:issue:`57810`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.other:

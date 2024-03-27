@@ -432,14 +432,14 @@ def json_normalize(
     ) -> Scalar | Iterable:
         """Internal function to pull field"""
         result = js
+        if not isinstance(spec, list):
+            spec = [spec]
         try:
-            if isinstance(spec, list):
-                for field in spec:
-                    if result is None:
-                        raise KeyError(field)
-                    result = result[field]
-            else:
-                result = result[spec]
+            for field in spec:
+                # GH 57810
+                if result is None or not len(result):
+                    raise KeyError(field)
+                result = result[field]
         except KeyError as e:
             if extract_record:
                 raise KeyError(
