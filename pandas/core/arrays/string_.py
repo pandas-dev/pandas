@@ -588,7 +588,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
             result = np.zeros(len(self._ndarray), dtype="bool")
             try:
                 result[valid] = op(self._ndarray[valid], other)
-            except TypeError
+            except TypeError:
                 if hasattr(other, "_ndarray"):
                     other_type = other._ndarray.dtype
                 else:
