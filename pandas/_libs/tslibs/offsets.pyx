@@ -456,8 +456,11 @@ cdef class BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if util.is_array(other) and other.dtype == object:
-            return np.array([self + x for x in other])
+        if util.is_array(other):
+            if other.dtype == object:
+                return np.array([self + x for x in other])
+            elif other.dtype.kind == "M":
+                return self._apply_array(other).astype(other.dtype)
 
         try:
             return self._apply(other)
