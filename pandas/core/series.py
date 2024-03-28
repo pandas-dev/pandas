@@ -9,6 +9,7 @@ from collections.abc import (
     Iterable,
     Mapping,
     Sequence,
+    Sized,
 )
 import operator
 import sys
@@ -363,72 +364,114 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | None = None,
     ) -> None:
         allow_mgr = False
-        if (
-            isinstance(data, SingleBlockManager)
-            and index is None
-            and dtype is None
-            and (copy is False or copy is None)
-        ):
-            if not allow_mgr:
-                # GH#52419
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            data = data.copy(deep=False)
-            # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
-            self.name = name
-            return
+        deep = True  # deep copy
 
-        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
-        original_dtype = dtype
-
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                    data = data.copy()
-        if copy is None:
-            copy = False
-
-        if isinstance(data, SingleBlockManager) and not copy:
-            data = data.copy(deep=False)
-
-            if not allow_mgr:
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-        name = ibase.maybe_extract_name(name, data, type(self))
-
-        if index is not None:
-            index = ensure_index(index)
-
+        # Series TASK 1: VALIDATE BASIC TYPES.
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
-        if data is None:
-            index = index if index is not None else default_index(0)
-            if len(index) or dtype is not None:
-                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-            else:
-                data = []
+        copy_arrays = copy is True or copy is None  # Arrays and ExtendedArrays
+        copy = copy is True  # Series and Manager
 
+        # Series TASK 2: RAISE ERRORS ON KNOWN UNACEPPTED CASES.
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
             )
 
+        if isinstance(data, SingleBlockManager):
+            if not (data.index.equals(index) or index is None) or copy:
+                # GH #19275 SingleBlockManager input should only be called internally
+                raise AssertionError(
+                    "Cannot pass both SingleBlockManager "
+                    "`data` argument and a different "
+                    "`index` argument. `copy` must be False."
+                )
+
+        if isinstance(data, np.ndarray):
+            if len(data.dtype):
+                # GH#13296 we are dealing with a compound dtype,
+                # which should be treated as 2D.
+                raise ValueError(
+                    "Cannot construct a Series from an ndarray with "
+                    "compound dtype. Use DataFrame instead."
+                )
+
+        # Series TASK 3: CAPTURE INPUT SIGNATURE.
+        is_array = isinstance(data, (np.ndarray, ExtensionArray))
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        original_dtype = dtype
+        original_data_type = type(data)
+        original_data_dtype = getattr(data, "dtype", None)
         refs = None
-        if isinstance(data, Index):
+        name = ibase.maybe_extract_name(name, data, type(self))
+        na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+
+        # Series TASK 4: DATA TRANSFORMATIONS.
+        if isinstance(data, Mapping):
+            # if is_dict_like(data) and not is_pandas_object and data is not None:
+            # Dict is SPECIAL case, since it's data has data values and index keys.
+
+            # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
+            # raises KeyError). Send it to Series for "standard" construction:
+
+            # index = tuple(data.keys()) consumes more memory (up to 25%).
+            if data:
+                data = Series(
+                    data=list(data.values()),
+                    index=data.keys(),
+                    dtype=dtype,
+                )
+            else:
+                data = None
+
+        if is_list_like(data) and not isinstance(data, Sized):
+            data = list(data)
+
+        if (
+            (is_scalar(data) or not isinstance(data, Sized))
+            and index is None
+            and data is not None
+        ):
+            data = [data]
+
+        # Series TASK 5: TRANSFORMATION ON INDEX. There is always an index after this.
+        original_index = index
+        if index is None:
+            if data is None:
+                index = default_index(0)
+            else:
+                if isinstance(data, (SingleBlockManager, Series)):
+                    index = data.index
+                else:
+                    index = default_index(len(data))
+        else:
+            index = ensure_index(index)
+
+        # Series TASK 6: TRANSFORMATIONS ON DATA.
+        # REQUIREMENTS FOR COPYING AND MANAGER CREATION (WHEN NEEDED).
+        list_like_input = False
+        require_manager = True
+        fast_path_manager = False
+        if data is None and len(index):
+            data = na_value
+
+        elif isinstance(data, Series):
+            require_manager = False
+            copy = True if original_index is None else False
+            deep = not copy
+
+            if original_index is not None:
+                data = data.reindex(index)  # copy
+                index = data.index
+
+            data = data._mgr
+
+        elif isinstance(data, SingleBlockManager):
+            require_manager = False
+            fast_path_manager = original_index is None and not copy and dtype is None
+
+        elif isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
 
@@ -436,38 +479,63 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             data = data._values
             copy = False
 
-        elif isinstance(data, np.ndarray):
-            if len(data.dtype):
-                # GH#13296 we are dealing with a compound dtype, which
-                #  should be treated as 2D
-                raise ValueError(
-                    "Cannot construct a Series from an ndarray with "
-                    "compound dtype.  Use DataFrame instead."
-                )
-        elif isinstance(data, Series):
-            if index is None:
-                index = data.index
-                data = data._mgr.copy(deep=False)
-            else:
-                data = data.reindex(index)
-                copy = False
-                data = data._mgr
-        elif isinstance(data, Mapping):
-            data, index = self._init_dict(data, index, dtype)
-            dtype = None
-            copy = False
-        elif isinstance(data, SingleBlockManager):
-            if index is None:
-                index = data.index
-            elif not data.index.equals(index) or copy:
-                # GH#19275 SingleBlockManager input should only be called
-                # internally
-                raise AssertionError(
-                    "Cannot pass both SingleBlockManager "
-                    "`data` argument and a different "
-                    "`index` argument. `copy` must be False."
-                )
+        elif is_array:
+            pass
 
+        elif is_list_like(data):
+            list_like_input = True
+
+        # Series TASK 7: COPYING THE MANAGER.
+        if require_manager:
+            # GH 29405: Pre-2.0, this defaulted to float.
+            default_empty_series = list_like_input and not len(data) and dtype is None
+            if default_empty_series:
+                dtype = np.dtype(object)
+
+            # Final requirements
+            if is_list_like(data):
+                com.require_length_match(data, index)
+
+            if is_array and copy_arrays:
+                if copy_arrays:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        data = data.copy()  # not np.ndarray.copy(deep=...)
+
+            data = sanitize_array(data, index, dtype, copy)
+            data = SingleBlockManager.from_array(data, index, refs=refs)
+
+        else:
+            deep = deep if not fast_path_manager else False
+            if dtype is not None:
+                data = data.astype(dtype=dtype, errors="ignore")  # Copy the manager
+                copy = False
+
+            if copy or fast_path_manager:
+                data = data.copy(deep)
+
+        # Series TASK 8: CREATE THE DATAFRAME
+        NDFrame.__init__(self, data)
+        self.name = name
+        if not fast_path_manager:
+            self._set_axis(0, index)
+
+        # Series TASK 9: RAISE WARNINGS
+        if (
+            original_dtype is None
+            and is_pandas_object
+            and original_data_dtype == np.object_
+            and self.dtype != original_data_dtype
+        ):
+            warnings.warn(
+                "Dtype inference on a pandas object "
+                "(Series, Index, ExtensionArray) is deprecated. The Series "
+                "constructor will keep the original dtype in the future. "
+                "Call `infer_objects` on the result to get the old behavior.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if original_data_type is SingleBlockManager:
             if not allow_mgr:
                 warnings.warn(
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
@@ -476,98 +544,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                allow_mgr = True
-
-        elif isinstance(data, ExtensionArray):
-            pass
-        else:
-            data = com.maybe_iterable_to_list(data)
-            if is_list_like(data) and not len(data) and dtype is None:
-                # GH 29405: Pre-2.0, this defaulted to float.
-                dtype = np.dtype(object)
-
-        if index is None:
-            if not is_list_like(data):
-                data = [data]
-            index = default_index(len(data))
-        elif is_list_like(data):
-            com.require_length_match(data, index)
-
-        # create/copy the manager
-        if isinstance(data, SingleBlockManager):
-            if dtype is not None:
-                data = data.astype(dtype=dtype, errors="ignore")
-            elif copy:
-                data = data.copy()
-        else:
-            data = sanitize_array(data, index, dtype, copy)
-            data = SingleBlockManager.from_array(data, index, refs=refs)
-
-        NDFrame.__init__(self, data)
-        self.name = name
-        self._set_axis(0, index)
-
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtype != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Series "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old behavior.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-    def _init_dict(
-        self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
-    ):
-        """
-        Derive the "_mgr" and "index" attributes of a new Series from a
-        dictionary input.
-
-        Parameters
-        ----------
-        data : dict or dict-like
-            Data used to populate the new Series.
-        index : Index or None, default None
-            Index for the new Series: if None, use dict keys.
-        dtype : np.dtype, ExtensionDtype, or None, default None
-            The dtype for the new Series: if None, infer from data.
-
-        Returns
-        -------
-        _data : BlockManager for the new Series
-        index : index for the new Series
-        """
-        keys: Index | tuple
-
-        # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
-        # raises KeyError), so we iterate the entire dict, and align
-        if data:
-            # GH:34717, issue was using zip to extract key and values from data.
-            # using generators in effects the performance.
-            # Below is the new way of extracting the keys and values
-
-            keys = tuple(data.keys())
-            values = list(data.values())  # Generating list of values- faster way
-        elif index is not None:
-            # fastpath for Series(data=None). Just use broadcasting a scalar
-            # instead of reindexing.
-            if len(index) or dtype is not None:
-                values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
-            else:
-                values = []
-            keys = index
-        else:
-            keys, values = default_index(0), []
-
-        # Input is now list-like, so rely on "standard" construction:
-        s = Series(values, index=keys, dtype=dtype)
-
-        # Now we just make sure the order is respected, if any
-        if data and index is not None:
-            s = s.reindex(index)
-        return s._mgr, s.index
 
     # ----------------------------------------------------------------------
 
