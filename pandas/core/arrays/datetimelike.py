@@ -1661,16 +1661,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         dtype = self.dtype
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew"]:
-                raise TypeError(f"datetime64 type does not support {how} operations")
-            if how in ["any", "all"]:
-                # GH#34479
-                warnings.warn(
-                    f"'{how}' with datetime64 dtypes is deprecated and will raise in a "
-                    f"future version. Use (obj != pd.Timestamp(0)).{how}() instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            if how in ["any", "all", "sum", "prod", "cumsum", "cumprod", "var", "skew"]:
+                raise TypeError(f"datetime64 type does not support operation: '{how}'")
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid
@@ -2217,11 +2209,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # Reductions
 
     def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
+        # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
-        # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
+        # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
 
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 

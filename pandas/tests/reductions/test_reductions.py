@@ -1009,32 +1009,41 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        msg = "'(any|all)' with datetime64 dtypes is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        # GH#34479
+        msg = "datetime64 type does not support operation: '(any|all)'"
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-            assert ser.all()
-            assert ser.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
+        # GH#34479
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert ser.all()
-            assert ser.any()
-
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)

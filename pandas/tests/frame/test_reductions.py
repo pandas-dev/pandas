@@ -1370,10 +1370,6 @@ class TestDataFrameAnalytics:
         expected = Series([True, True, val, True])
         tm.assert_series_equal(result, expected)
 
-    # GH#50947 deprecates this but it is not emitting a warning in some builds.
-    @pytest.mark.filterwarnings(
-        "ignore:'any' with datetime64 dtypes is deprecated.*:FutureWarning"
-    )
     def test_any_datetime(self):
         # GH 23070
         float_data = [1, np.nan, 3, np.nan]
@@ -1385,10 +1381,9 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(axis=1)
-
-        expected = Series([True, True, True, False])
-        tm.assert_series_equal(result, expected)
+        msg = "datetime64 type does not support operation: 'any'"
+        with pytest.raises(TypeError, match=msg):
+            df.any(axis=1)
 
     def test_any_all_bool_only(self):
         # GH 25101
@@ -1480,23 +1475,23 @@ class TestDataFrameAnalytics:
                 TypeError, match="dtype category does not support reduction"
             ):
                 getattr(DataFrame(data), func.__name__)(axis=None)
-        else:
-            msg = "'(any|all)' with datetime64 dtypes is deprecated"
-            if data.dtypes.apply(lambda x: x.kind == "M").any():
-                warn = FutureWarning
-            else:
-                warn = None
+        if data.dtypes.apply(lambda x: x.kind == "M").any():
+            # GH#34479
+            msg = "datetime64 type does not support operation: '(any|all)'"
+            with pytest.raises(TypeError, match=msg):
+                func(data)
 
-            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-                # GH#34479
-                result = func(data)
+            # method version
+            with pytest.raises(TypeError, match=msg):
+                getattr(DataFrame(data), func.__name__)(axis=None)
+
+        elif data.dtypes.apply(lambda x: x != "category").any():
+            result = func(data)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
             # method version
-            with tm.assert_produces_warning(warn, match=msg):
-                # GH#34479
-                result = getattr(DataFrame(data), func.__name__)(axis=None)
+            result = getattr(DataFrame(data), func.__name__)(axis=None)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 

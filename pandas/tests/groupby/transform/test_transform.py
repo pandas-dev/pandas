@@ -749,6 +749,7 @@ def test_cython_transform_frame_column(
         msg = "|".join(
             [
                 "does not support .* operations",
+                "does not support operation",
                 ".* is not supported for object dtype",
                 "is not implemented for this dtype",
             ]
