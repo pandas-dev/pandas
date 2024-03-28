@@ -33,7 +33,7 @@ class TestPeriodIndexDisallowedFreqs:
     )
     def test_period_index_offsets_frequency_error_message(self, freq, freq_depr):
         # GH#52064
-        msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
+        msg = f"{freq_depr[1:]} is not supported as period frequency"
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)

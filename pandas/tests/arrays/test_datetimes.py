@@ -764,29 +764,14 @@ class TestDatetimeArray:
         assert left.utcoffset() == right2.utcoffset()
 
     @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
-            ("2ME", "2M"),
-            ("2SME", "2SM"),
-            ("2SME", "2sm"),
-            ("2QE", "2Q"),
-            ("2QE-SEP", "2Q-SEP"),
-            ("1YE", "1Y"),
-            ("2YE-MAR", "2Y-MAR"),
-            ("2ME", "2m"),
-            ("2QE-SEP", "2q-sep"),
-            ("2YE", "2y"),
-        ],
+        "freq",
+        ["2M", "2SM", "2sm", "2Q", "2Q-SEP", "1Y", "2Y-MAR", "2m", "2q-sep", "2y"],
     )
-    def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
-        # GH#9586, GH#54275
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    def test_date_range_frequency_M_Q_Y_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            pd.date_range("1/1/2000", periods=4, freq=freq)
 
     @pytest.mark.parametrize("freq_depr", ["2H", "2CBH", "2MIN", "2S", "2mS", "2Us"])
     def test_date_range_uppercase_frequency_deprecated(self, freq_depr):
@@ -800,7 +785,7 @@ class TestDatetimeArray:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "freq_depr",
+        "freq",
         [
             "2ye-mar",
             "2ys",
@@ -811,17 +796,21 @@ class TestDatetimeArray:
             "2bms",
             "2cbme",
             "2me",
-            "2w",
         ],
     )
-    def test_date_range_lowercase_frequency_deprecated(self, freq_depr):
-        # GH#9586, GH#54939
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version, please use '{freq_depr.upper()[1:]}' instead."
+    def test_date_range_lowercase_frequency_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.upper())
+        with pytest.raises(ValueError, match=msg):
+            pd.date_range("1/1/2000", periods=4, freq=freq)
+
+    def test_date_range_lowercase_frequency_deprecated(self):
+        # GH#9586, GH#54939
+        depr_msg = "'w' is deprecated and will be removed in a future version"
+
+        expected = pd.date_range("1/1/2000", periods=4, freq="2W")
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
+            result = pd.date_range("1/1/2000", periods=4, freq="2w")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["1A", "2A-MAR", "2a-mar"])
