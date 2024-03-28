@@ -35,6 +35,7 @@ from pandas.core.algorithms import (
     factorize,
     unique,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -231,20 +232,31 @@ class _Unstacker:
         return new_values, mask.any(0)
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
-    def get_result(self, values, value_columns, fill_value) -> DataFrame:
+    def get_result(self, obj, value_columns, fill_value) -> DataFrame:
+        values = obj._values
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        values, _ = self.get_new_values(values, fill_value)
+        new_values, _ = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(
-            values, index=index, columns=columns, dtype=values.dtype
+        result = self.constructor(
+            new_values, index=index, columns=columns, dtype=new_values.dtype, copy=False
         )
+        if isinstance(values, np.ndarray):
+            base, new_base = values.base, new_values.base
+        elif isinstance(values, NDArrayBackedExtensionArray):
+            base, new_base = values._ndarray.base, new_values._ndarray.base
+        else:
+            base, new_base = 1, 2  # type: ignore[assignment]
+        if base is new_base:
+            # We can only get here if one of the dimensions is size 1
+            result._mgr.add_references(obj._mgr)
+        return result
 
     def get_new_values(self, values, fill_value=None):
         if values.ndim == 1:
@@ -532,9 +544,7 @@ def unstack(
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
         )
-        return unstacker.get_result(
-            obj._values, value_columns=None, fill_value=fill_value
-        )
+        return unstacker.get_result(obj, value_columns=None, fill_value=fill_value)
 
 
 def _unstack_frame(
@@ -550,7 +560,7 @@ def _unstack_frame(
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
-            obj._values, value_columns=obj.columns, fill_value=fill_value
+            obj, value_columns=obj.columns, fill_value=fill_value
         )
 
 
