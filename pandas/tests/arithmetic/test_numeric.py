@@ -1003,7 +1003,7 @@ class TestAdditionSubtraction:
         df = pd.DataFrame({"a": ["a", None, "b"]})
         tm.assert_frame_equal(df + df, pd.DataFrame({"a": ["aa", np.nan, "bb"]}))
 
-    @pytest.mark.parametrize("dtype", ("float", "int64"))
+    @pytest.mark.parametrize("dtype", ("float", "int64", "complex128"))
     def test_frame_operators_empty_like(self, dtype):
         # Test for issue #10181
         frames = [
@@ -1101,7 +1101,7 @@ class TestAdditionSubtraction:
 class TestUFuncCompat:
     # TODO: add more dtypes
     @pytest.mark.parametrize("holder", [Index, RangeIndex, Series])
-    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64, np.complex128])
     def test_ufunc_compat(self, holder, dtype):
         box = Series if holder is Series else Index
 
@@ -1116,45 +1116,75 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64, np.complex128])
     def test_ufunc_coercions(self, index_or_series, dtype):
         idx = index_or_series([1, 2, 3, 4, 5], dtype=dtype, name="x")
         box = index_or_series
 
         result = np.sqrt(idx)
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=np.float64)), name="x")
+        assert isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=exp_dtype)), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         # _evaluate_numeric_binop
         result = idx + 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=np.float64, name="x")
+        isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=np.float64, name="x")
+        isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64, name="x")
+        isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
+        isinstance(result, box)
+        if result.dtype.kind == "c":
+            exp_dtype = dtype
+        else:
+            # assert result.dtype == "f8"
+            exp_dtype = np.float64
+        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
@@ -1408,7 +1438,7 @@ class TestNumericArithmeticUnsorted:
         # __floordiv__
         tm.assert_index_equal(idx // div, expected, exact=True)
 
-    @pytest.mark.parametrize("dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.complex128])
     @pytest.mark.parametrize("delta", [1, 0, -1])
     def test_addsub_arithmetic(self, dtype, delta):
         # GH#8142

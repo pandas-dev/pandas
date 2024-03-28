@@ -9,6 +9,7 @@ from pandas._libs.missing import is_matching_na
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_complex_dtype,
     is_integer_dtype,
 )
 
@@ -273,6 +274,9 @@ class Dim2CompatTests:
                 data = data.astype("Float64")
             if method == "mean":
                 tm.assert_extension_array_equal(result, data)
+            elif is_complex_dtype(data) and method in ["std", "var"]:
+                # std and var produce real-only results
+                tm.assert_extension_array_equal(result, data - data, check_dtype=False)
             else:
                 tm.assert_extension_array_equal(result, data - data)
 

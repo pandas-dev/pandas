@@ -171,6 +171,11 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
+        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype]"
+        # has no attribute "itemsize"
+        if values.dtype.itemsize == 16:  # type: ignore[union-attr]
+            # We have support for complex128
+            return np.asarray(values)
         return cast(np.ndarray, values)
 
     # datetimelike
