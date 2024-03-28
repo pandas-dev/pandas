@@ -1172,12 +1172,20 @@ def take(
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
+        # error: Argument 1 to "take_nd" has incompatible type
+        # "ndarray[Any, Any] | ExtensionArray | Index | Series"; expected
+        # "ndarray[Any, Any]"
         result = take_nd(
-            arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
+            arr,  # type: ignore[arg-type]
+            indices,
+            axis=axis,
+            allow_fill=True,
+            fill_value=fill_value,
         )
     else:
         # NumPy style
-        result = arr.take(indices, axis=axis)
+        # error: Unexpected keyword argument "axis" for "take" of "ExtensionArray"
+        result = arr.take(indices, axis=axis)  # type: ignore[call-arg,assignment]
     return result
 
 
