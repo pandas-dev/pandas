@@ -2400,7 +2400,9 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
+            total_inserted = cur.adbc_ingest(
+                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+            )
 
         self.con.commit()
         return total_inserted
