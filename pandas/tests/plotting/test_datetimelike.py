@@ -460,9 +460,8 @@ class TestTSPlot:
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        msg = "Period with BDay freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            xpl1 = xpl2 = [Period("1999-1-1", freq="B").ordinal] * len(day_lst)
+        xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
+        xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
         rs1 = []
         rs2 = []
         for n in day_lst:
@@ -484,7 +483,8 @@ class TestTSPlot:
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        xpl1 = xpl2 = [Period("1988Q1").ordinal] * len(yrs)
+        xpl1 = [68, 72]
+        xpl2 = [72, 72]
         rs1 = []
         rs2 = []
         for n in yrs:
@@ -506,7 +506,8 @@ class TestTSPlot:
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
-        xpl1 = xpl2 = [Period("Jan 1988").ordinal] * len(yrs)
+        xpl1 = [216, 216, 204, 204]
+        xpl2 = [216, 216, 216, 204]
         rs1 = []
         rs2 = []
         for n in yrs:
@@ -536,8 +537,7 @@ class TestTSPlot:
         assert rs == xp
 
     def test_finder_annual(self):
-        xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        xp = [Period(x, freq="Y").ordinal for x in xp]
+        xp = [16, 16, 20, 20, 25, 50, 0, 0]
         rs = []
         for nyears in [5, 10, 19, 49, 99, 199, 599, 1001]:
             rng = period_range("1987", periods=nyears, freq="Y")
@@ -559,9 +559,8 @@ class TestTSPlot:
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period("1/1/1999", freq="Min").ordinal
 
-        assert rs == xp
+        assert rs == 15248880
 
     def test_finder_hourly(self):
         nhours = 23
@@ -571,9 +570,8 @@ class TestTSPlot:
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period("1/1/1999", freq="h").ordinal
 
-        assert rs == xp
+        assert rs == 254206
 
     def test_gaps(self):
         ts = Series(
@@ -1541,7 +1539,15 @@ class TestTSPlot:
         ax.plot(values)
 
     def test_format_timedelta_ticks_narrow(self):
-        expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
+        expected_labels = [
+            "-1 days 23:59:59.999999998",
+            "00:00:00.000000000",
+            "00:00:00.000000002",
+            "00:00:00.000000004",
+            "00:00:00.000000006",
+            "00:00:00.000000008",
+            "00:00:00.000000010",
+        ]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
@@ -1556,6 +1562,7 @@ class TestTSPlot:
 
     def test_format_timedelta_ticks_wide(self):
         expected_labels = [
+            "-2 days 20:13:20",
             "00:00:00",
             "1 days 03:46:40",
             "2 days 07:33:20",
@@ -1565,6 +1572,7 @@ class TestTSPlot:
             "6 days 22:40:00",
             "8 days 02:26:40",
             "9 days 06:13:20",
+            "10 days 10:00:00",
         ]
 
         rng = timedelta_range("0", periods=10, freq="1 d")

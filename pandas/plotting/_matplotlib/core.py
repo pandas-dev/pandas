@@ -1560,11 +1560,10 @@ class LinePlot(MPLPlot):
             self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
-                # reset of xlim should be used for ts data
-                # TODO: GH28021, should find a way to change view limit on xaxis
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
-                ax.set_xlim(left, right)
+                padding = (right - left) * 0.05
+                ax.set_xlim(left - padding, right + padding)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
