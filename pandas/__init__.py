@@ -2,6 +2,9 @@ from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
+import os
+import warnings
+
 # Let users know if they're missing any of our hard dependencies
 _hard_dependencies = ("numpy", "pytz", "dateutil")
 _missing_dependencies = []
@@ -188,6 +191,18 @@ except ImportError:
     __version__ = v.get("closest-tag", v["version"])
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
+
+
+if "PANDAS_COPY_ON_WRITE" in os.environ:
+    warnings.warn(
+        "The env variable PANDAS_COPY_ON_WRITE is set. The copy_on_write option is "
+        "deprecated and will be removed in a future version. Copy-on-Write "
+        "is already enabled by default.",
+        FutureWarning,
+        stacklevel=2,
+    )
+
+del os, warnings
 
 
 # module level doc-string
