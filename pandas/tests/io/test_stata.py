@@ -2002,7 +2002,7 @@ the string values returned are correct."""
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
 
-@pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
+@pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114])
 def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
