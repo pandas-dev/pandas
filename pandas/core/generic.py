@@ -6727,12 +6727,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         method = clean_fill_method(method)
 
-        if not self._mgr.is_single_block and axis == 1:
-            # e.g. test_align_fill_method
-            # TODO(3.0): once downcast is removed, we can do the .T
-            #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
-            if inplace:
+        if axis == 1:
+            if not self._mgr.is_single_block and inplace:
                 raise NotImplementedError()
+            # e.g. test_align_fill_method
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
@@ -6741,7 +6739,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_mgr = self._mgr.pad_or_backfill(
             method=method,
-            axis=self._get_block_manager_axis(axis),
             limit=limit,
             limit_area=limit_area,
             inplace=inplace,
