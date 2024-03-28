@@ -16,7 +16,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -1173,13 +1172,7 @@ class Parser:
                 if all(notna(data)):
                     return data, False
 
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Downcasting object dtype arrays",
-                        category=FutureWarning,
-                    )
-                    filled = data.fillna(np.nan)
+                filled = data.fillna(np.nan)
 
                 return filled, True
 

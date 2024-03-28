@@ -1013,7 +1013,7 @@ class Index(IndexOpsMixin, PandasObject):
     def view(self, cls=None):
         # we need to see if we are subclassing an
         # index type here
-        if cls is not None and not hasattr(cls, "_typ"):
+        if cls is not None:
             dtype = cls
             if isinstance(cls, str):
                 dtype = pandas_dtype(cls)
@@ -1030,16 +1030,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             result = self._data.view(cls)
         else:
-            if cls is not None:
-                warnings.warn(
-                    # GH#55709
-                    f"Passing a type in {type(self).__name__}.view is deprecated "
-                    "and will raise in a future version. "
-                    "Call view without any argument to retain the old behavior.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
             result = self._view()
         if isinstance(result, Index):
             result._id = self._id
@@ -1374,16 +1364,19 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
-    def _get_level_names(self) -> Hashable | Sequence[Hashable]:
+    def _get_level_names(self) -> range | Sequence[Hashable]:
         """
         Return a name or list of names with None replaced by the level number.
         """
         if self._is_multi:
-            return [
-                level if name is None else name for level, name in enumerate(self.names)
-            ]
+            return maybe_sequence_to_range(
+                [
+                    level if name is None else name
+                    for level, name in enumerate(self.names)
+                ]
+            )
         else:
-            return 0 if self.name is None else self.name
+            return range(1) if self.name is None else [self.name]
 
     @final
     def _mpl_repr(self) -> np.ndarray:
@@ -1630,8 +1623,11 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
 
         if name is lib.no_default:
-            name = self._get_level_names()
-        result = DataFrame({name: self}, copy=False)
+            result_name = self._get_level_names()
+        else:
+            result_name = Index([name])  # type: ignore[assignment]
+        result = DataFrame(self, copy=False)
+        result.columns = result_name
 
         if index:
             result.index = self
