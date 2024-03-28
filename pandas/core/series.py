@@ -5113,28 +5113,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: Literal[False], limit
-    ) -> Self: ...
+    def _replace_single(self, to_replace, inplace: Literal[False]) -> Self: ...
 
     @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: Literal[True], limit
-    ) -> None: ...
+    def _replace_single(self, to_replace, inplace: Literal[True]) -> None: ...
 
     @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: bool, limit
-    ) -> Self | None: ...
+    def _replace_single(self, to_replace, inplace: bool) -> Self | None: ...
 
     # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(
-        self, to_replace, method: str, inplace: bool, limit
-    ) -> Self | None:
+    def _replace_single(self, to_replace, inplace: bool) -> Self | None:
         """
         Replaces values in a Series using the fill method specified when no
         replacement value is given in the replace method
         """
+        limit = None
+        method = "pad"
 
         result = self if inplace else self.copy()
 

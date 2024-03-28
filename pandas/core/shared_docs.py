@@ -429,20 +429,11 @@ _shared_docs["replace"] = """
         filled). Regular expressions, strings and lists or dicts of such
         objects are also allowed.
     {inplace}
-    limit : int, default None
-        Maximum size gap to forward or backward fill.
-
-        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
         expressions. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
-    method : {{'pad', 'ffill', 'bfill'}}
-        The method to use when for replacement, when `to_replace` is a
-        scalar, list or tuple and `value` is ``None``.
-
-        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -538,14 +529,6 @@ _shared_docs["replace"] = """
     3  1  8  d
     4  4  9  e
 
-    >>> s.replace([1, 2], method='bfill')
-    0    3
-    1    3
-    2    3
-    3    4
-    4    5
-    dtype: int64
-
     **dict-like `to_replace`**
 
     >>> df.replace({{0: 10, 1: 100}})
@@ -615,7 +598,7 @@ _shared_docs["replace"] = """
     When one uses a dict as the `to_replace` value, it is like the
     value(s) in the dict are equal to the `value` parameter.
     ``s.replace({{'a': None}})`` is equivalent to
-    ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
+    ``s.replace(to_replace={{'a': None}}, value=None)``:
 
     >>> s.replace({{'a': None}})
     0      10
