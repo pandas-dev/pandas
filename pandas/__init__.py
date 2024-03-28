@@ -172,22 +172,15 @@ from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 
-# use the closest tagged version if possible
-_built_with_meson = False
-try:
-    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
-        __version__,
-        __git_version__,
-    )
+# If a version with git hash was stored, use that instead
+from pandas._version import (  # pyright: ignore [reportMissingImports]
+    __version__ as generated_ver,
+    git_revision,
+)
 
-    _built_with_meson = True
-except ImportError:
-    from pandas._version import get_versions
-
-    v = get_versions()
-    __version__ = v.get("closest-tag", v["version"])
-    __git_version__ = v.get("full-revisionid")
-    del get_versions, v
+__version__ = generated_ver
+__git_version__ = git_revision
+del git_revision, generated_ver
 
 
 # module level doc-string

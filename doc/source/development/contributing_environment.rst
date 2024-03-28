@@ -303,8 +303,3 @@ output when importing pandas, you can set the environment variable ``MESONPY_EDT
 If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::
 
    python -m pip install -ve . --config-settings editable-verbose=true
-
-.. tip::
-   If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
-   you can check the value of ``pandas._built_with_meson``, which will be true if meson was used
-   to compile pandas.

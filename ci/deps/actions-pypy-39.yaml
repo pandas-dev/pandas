@@ -8,7 +8,6 @@ dependencies:
   - python=3.9[build=*_pypy]
 
   # build dependencies
-  - versioneer[toml]
   - cython>=0.29.33
   - meson[ninja]=1.2.1
   - meson-python=0.13.1

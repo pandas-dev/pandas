@@ -12,16 +12,13 @@ requires = [
     # Pin <2.0 for releases until tested against an RC.  But explicitly allow
     # testing the `.dev0` nightlies (which require the extra index).
     "numpy>1.22.4,<=2.0.0.dev0",
-    "versioneer[toml]"
 ]
 
 build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+version = "3.0.0.dev0"
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
@@ -133,17 +130,6 @@ namespaces = false
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.c", "*.h"]
-
-# See the docstring in versioneer.py for instructions. Note that you must
-# re-run 'versioneer.py setup' after changing this section, and commit the
-# resulting files.
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "pandas/_version.py"
-versionfile_build = "pandas/_version.py"
-tag_prefix = "v"
-parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
 setup = ['--vsenv'] # For Windows
