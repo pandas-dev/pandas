@@ -129,25 +129,3 @@ class BaseReduceTests:
             pytest.skip(f"Reduction {op_name} not supported for this dtype")
 
         self.check_reduce_frame(ser, op_name, skipna)
-
-
-# TODO(3.0): remove BaseNoReduceTests, BaseNumericReduceTests,
-#  BaseBooleanReduceTests
-class BaseNoReduceTests(BaseReduceTests):
-    """we don't define any reductions"""
-
-
-class BaseNumericReduceTests(BaseReduceTests):
-    # For backward compatibility only, this only runs the numeric reductions
-    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name in ["any", "all"]:
-            pytest.skip("These are tested in BaseBooleanReduceTests")
-        return True
-
-
-class BaseBooleanReduceTests(BaseReduceTests):
-    # For backward compatibility only, this only runs the numeric reductions
-    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if op_name not in ["any", "all"]:
-            pytest.skip("These are tested in BaseNumericReduceTests")
-        return True
