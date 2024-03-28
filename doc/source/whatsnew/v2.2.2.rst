@@ -15,13 +15,14 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
 - :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pyarrow nullable on with missing values (:issue:`57664`)
--
+- Fixed regression in precision of :func:`to_datetime` with string and ``unit`` input (:issue:`57051`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the column's type was nullable boolean (:issue:`55332`)
 - :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
 - :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
 
