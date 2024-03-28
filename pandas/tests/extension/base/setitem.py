@@ -202,24 +202,24 @@ class BaseSetitemTests:
         arr[idx] = arr[0]
         tm.assert_equal(arr, expected)
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     @pytest.mark.parametrize(
         "idx, box_in_series",
         [
             ([0, 1, 2, pd.NA], False),
             pytest.param(
-                [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
+                [0, 1, 2, pd.NA],
+                True,
+                marks=pytest.mark.xfail(reason="KeyError: '[0 1 2 <NA>] not in index'"),
             ),
             (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            # TODO: change False to True?
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),  # noqa: PT014
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), True),
         ],
         ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
     def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
         arr = data.copy()
 
-        # TODO(xfail) this raises KeyError about labels not found (it tries label-based)
-        # for list of labels with Series
         if box_in_series:
             arr = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
 
