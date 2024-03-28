@@ -216,7 +216,12 @@ class TestBase:
         if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
-        if idx.dtype.kind in "iufcbm":
+
+        if isinstance(idx, DatetimeIndex):
+            msg = "'(any|all)' with datetime64 dtypes is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                idx.all()
+        elif idx.dtype.kind in "iufcbm":
             assert idx.all() == idx._values.all()
             assert idx.all() == idx.to_series().all()
             assert idx.any() == idx._values.any()
@@ -228,6 +233,8 @@ class TestBase:
                     r"'IntervalArray' with dtype interval\[.*\] does "
                     "not support reduction '(any|all)'"
                 )
+            if isinstance(idx, PeriodIndex):
+                msg = "does not support reduction '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
