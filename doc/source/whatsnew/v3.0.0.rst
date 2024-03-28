@@ -326,6 +326,7 @@ Bug fixes
 - Fixed bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Fixed bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Fixed bug in :meth:`DataFrame.join` join with a list of a single element should behave as a join with a single element (:issue:`57676`)
 - Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Fixed bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Fixed bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)

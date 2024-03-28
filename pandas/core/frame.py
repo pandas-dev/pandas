@@ -10584,6 +10584,9 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
 
+        if isinstance(other, list) and len(other) == 1:
+            other = other[0]
+
         if isinstance(other, Series):
             if other.name is None:
                 raise ValueError("Other Series must have a name")
