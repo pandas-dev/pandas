@@ -1310,6 +1310,16 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 "The 'python' engine cannot iterate through this file buffer."
             )
+        if hasattr(f, "encoding"):
+            file_encoding = f.encoding
+            orig_reader_enc = self.orig_options.get("encoding", None)
+            any_none = file_encoding is None or orig_reader_enc is None
+            if file_encoding != orig_reader_enc and not any_none:
+                file_path = getattr(f, "name", None)
+                raise ValueError(
+                    f"The specified reader encoding {orig_reader_enc} is different "
+                    f"from the encoding {file_encoding} of file {file_path}."
+                )
 
     def _clean_options(
         self, options: dict[str, Any], engine: CSVEngine
@@ -1485,6 +1495,7 @@ class TextFileReader(abc.Iterator):
             "pyarrow": ArrowParserWrapper,
             "python-fwf": FixedWidthFieldParser,
         }
+
         if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
