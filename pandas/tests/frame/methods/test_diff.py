@@ -306,3 +306,21 @@ class TestDataFrameDiff:
         )
         expected = DataFrame([np.nan, 1.0, 1.0, 1.0, 1.0], dtype=expected_dtype)
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_all_bool_dtype(self):
+        # GH#52579
+        df = DataFrame({0: [True], 1: [False], 2: [False]})
+
+        result = df.diff(periods=1, axis=1)
+        expected = DataFrame({0: [np.nan], 1: [True], 2: [False]})
+        tm.assert_frame_equal(result, expected)
+
+        # negative period
+        result = df.diff(periods=-1, axis=1)
+        expected = DataFrame({0: [True], 1: [False], 2: [np.nan]})
+        tm.assert_frame_equal(result, expected)
+
+        # large period
+        result = df.diff(periods=3, axis=1)
+        expected = df * np.nan
+        tm.assert_frame_equal(result, expected)
