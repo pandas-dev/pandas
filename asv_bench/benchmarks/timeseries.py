@@ -158,12 +158,11 @@ class ResampleDataFrame:
 
 
 class ResampleSeries:
-    params = (["period", "datetime"], ["5min", "1D"], ["mean", "ohlc"])
+    params = (["datetime"], ["5min", "1D"], ["mean", "ohlc"])
     param_names = ["index", "freq", "method"]
 
     def setup(self, index, freq, method):
         indexes = {
-            "period": period_range(start="1/1/2000", end="1/1/2001", freq="min"),
             "datetime": date_range(start="1/1/2000", end="1/1/2001", freq="min"),
         }
         idx = indexes[index]

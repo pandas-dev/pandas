@@ -11,14 +11,12 @@ from typing import (
     no_type_check,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     BaseOffset,
-    IncompatibleFrequency,
     NaT,
     Period,
     Timedelta,
@@ -32,10 +30,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
+from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -81,10 +76,6 @@ from pandas.core.indexes.timedeltas import (
     timedelta_range,
 )
 
-from pandas.tseries.frequencies import (
-    is_subperiod,
-    is_superperiod,
-)
 from pandas.tseries.offsets import (
     Day,
     Tick,
@@ -1704,127 +1695,6 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
         return DatetimeIndexResampler
 
 
-class PeriodIndexResampler(DatetimeIndexResampler):
-    # error: Incompatible types in assignment (expression has type "PeriodIndex", base
-    # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
-    ax: PeriodIndex  # type: ignore[assignment]
-
-    @property
-    def _resampler_for_grouping(self):
-        warnings.warn(
-            "Resampling a groupby with a PeriodIndex is deprecated. "
-            "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return PeriodIndexResamplerGroupby
-
-    def _get_binner_for_time(self):
-        if self.kind == "timestamp":
-            return super()._get_binner_for_time()
-        return self._timegrouper._get_period_bins(self.ax)
-
-    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
-        obj = super()._convert_obj(obj)
-
-        if self._from_selection:
-            # see GH 14008, GH 12871
-            msg = (
-                "Resampling from level= or on= selection "
-                "with a PeriodIndex is not currently supported, "
-                "use .set_index(...) to explicitly set index"
-            )
-            raise NotImplementedError(msg)
-
-        # convert to timestamp
-        if self.kind == "timestamp":
-            obj = obj.to_timestamp(how=self.convention)
-
-        return obj
-
-    def _downsample(self, how, **kwargs):
-        """
-        Downsample the cython defined function.
-
-        Parameters
-        ----------
-        how : string / cython mapped function
-        **kwargs : kw args passed to how function
-        """
-        # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
-            return super()._downsample(how, **kwargs)
-
-        ax = self.ax
-
-        if is_subperiod(ax.freq, self.freq):
-            # Downsampling
-            return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freq, self.freq):
-            if how == "ohlc":
-                # GH #13083
-                # upsampling to subperiods is handled as an asfreq, which works
-                # for pure aggregating/reducing methods
-                # OHLC reduces along the time dimension, but creates multiple
-                # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how)
-            return self.asfreq()
-        elif ax.freq == self.freq:
-            return self.asfreq()
-
-        raise IncompatibleFrequency(
-            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            "as they are not sub or super periods"
-        )
-
-    def _upsample(self, method, limit: int | None = None, fill_value=None):
-        """
-        Parameters
-        ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill'}
-            Method for upsampling.
-        limit : int, default None
-            Maximum size gap to fill when reindexing.
-        fill_value : scalar, default None
-            Value to use for missing values.
-        """
-        # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
-            return super()._upsample(method, limit=limit, fill_value=fill_value)
-
-        ax = self.ax
-        obj = self.obj
-        new_index = self.binner
-
-        # Start vs. end of period
-        memb = ax.asfreq(self.freq, how=self.convention)
-
-        # Get the fill indexer
-        if method == "asfreq":
-            method = None
-        indexer = memb.get_indexer(new_index, method=method, limit=limit)
-        new_obj = _take_new_index(
-            obj,
-            indexer,
-            new_index,
-        )
-        return self._wrap_result(new_obj)
-
-
-# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
-# definition in base class "PeriodIndexResampler"
-class PeriodIndexResamplerGroupby(  # type: ignore[misc]
-    _GroupByMixin, PeriodIndexResampler
-):
-    """
-    Provides a resample of a groupby implementation.
-    """
-
-    @property
-    def _resampler_cls(self):
-        return PeriodIndexResampler
-
-
 class TimedeltaIndexResampler(DatetimeIndexResampler):
     # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
     # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
@@ -2054,27 +1924,11 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            if isinstance(ax, PeriodIndex):
+            raise TypeError(
                 # GH#53481
-                warnings.warn(
-                    "Resampling with a PeriodIndex is deprecated. "
-                    "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "Resampling with kind='period' is deprecated.  "
-                    "Use datetime paths instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return PeriodIndexResampler(
-                obj,
-                timegrouper=self,
-                kind=kind,
-                group_keys=self.group_keys,
-                gpr_index=ax,
+                "Resample is no longer supported with PeriodIndex. "
+                "Cast index to DatetimeIndex (with obj.index.to_timestamp()) "
+                "first instead."
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
@@ -2085,8 +1939,7 @@ class TimeGrouper(Grouper):
             )
 
         raise TypeError(
-            "Only valid with DatetimeIndex, "
-            "TimedeltaIndex or PeriodIndex, "
+            "Only valid with DatetimeIndex or TimedeltaIndex, "
             f"but got an instance of '{type(ax).__name__}'"
         )
 

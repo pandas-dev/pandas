@@ -674,7 +674,7 @@ def test_selection_api_validation():
 
     # non DatetimeIndex
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "Only valid with DatetimeIndex or TimedeltaIndex, "
         "but got an instance of 'Index'"
     )
     with pytest.raises(TypeError, match=msg):
