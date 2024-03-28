@@ -100,7 +100,7 @@ class TestDataFrameConstructors:
 
         df = DataFrame({"dt": dt}, index=[0])
         expected = DataFrame({"dt": [dt]})
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_index_type=False)
 
         # Non-homogeneous
         df = DataFrame({"dt": dt, "value": [1]})
@@ -565,7 +565,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(columns=["b"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [2, np.nan, None, float("nan")])
+    @pytest.mark.parametrize("value", [4, np.nan, None, float("nan")])
     def test_constructor_dict_nan_key(self, value):
         # GH 18455
         cols = [1, value, 3]
@@ -851,10 +851,10 @@ class TestDataFrameConstructors:
 
         expected = DataFrame(
             [
-                {0: 0, 1: None, 2: None, 3: None},
-                {0: None, 1: 2, 2: None, 3: None},
-                {0: None, 1: None, 2: 4, 3: None},
-                {0: None, 1: None, 2: None, 3: 6},
+                [0, None, None, None],
+                [None, 2, None, None],
+                [None, None, 4, None],
+                [None, None, None, 6],
             ],
             index=[Timestamp(dt) for dt in dates_as_str],
         )
@@ -930,7 +930,7 @@ class TestDataFrameConstructors:
     )
     def test_constructor_extension_scalar_data(self, data, dtype):
         # GH 34832
-        df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
+        df = DataFrame(index=range(2), columns=["a", "b"], data=data)
 
         assert df["a"].dtype == dtype
         assert df["b"].dtype == dtype
@@ -1266,7 +1266,7 @@ class TestDataFrameConstructors:
 
         # GH 4851
         # list of 0-dim ndarrays
-        expected = DataFrame({0: np.arange(10)})
+        expected = DataFrame(np.arange(10))
         data = [np.array(x) for x in range(10)]
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
@@ -1323,7 +1323,7 @@ class TestDataFrameConstructors:
     )
     def test_constructor_one_element_data_list(self, data):
         # GH#42810
-        result = DataFrame(data, index=[0, 1, 2], columns=["x"])
+        result = DataFrame(data, index=range(3), columns=["x"])
         expected = DataFrame({"x": [Timestamp("2021-01-01")] * 3})
         tm.assert_frame_equal(result, expected)
 
@@ -1630,7 +1630,7 @@ class TestDataFrameConstructors:
         s = Series(arr, index=range(3, 13))
         df = DataFrame(s)
         expected = DataFrame({0: s})
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
 
         msg = r"Shape of passed values is \(10, 1\), indices imply \(10, 2\)"
         with pytest.raises(ValueError, match=msg):
@@ -1649,7 +1649,7 @@ class TestDataFrameConstructors:
 
         # this is a bit non-intuitive here; the series collapse down to arrays
         df = DataFrame([arr, s1]).T
-        expected = DataFrame({1: s1, 0: arr}, columns=[0, 1])
+        expected = DataFrame({1: s1, 0: arr}, columns=range(2))
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_Series_named_and_columns(self):

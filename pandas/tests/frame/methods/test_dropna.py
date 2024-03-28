@@ -195,7 +195,7 @@ class TestDataFrameMissingData:
         # Ex2
         df = DataFrame({"Time": [dt1, None, np.nan, dt2]})
         result = df.dropna(axis=0)
-        expected = DataFrame([dt1, dt2], columns=["Time"], index=[0, 3])
+        expected = DataFrame([dt1, dt2], columns=["Time"], index=range(0, 6, 3))
         tm.assert_frame_equal(result, expected)
 
     def test_dropna_categorical_interval_index(self):
@@ -233,7 +233,7 @@ class TestDataFrameMissingData:
         # GH 41021
         df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.nan, 5]})
         expected = DataFrame(
-            {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=[0, 2]
+            {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=range(0, 4, 2)
         )
         result = df.dropna(subset="C")
         tm.assert_frame_equal(result, expected)

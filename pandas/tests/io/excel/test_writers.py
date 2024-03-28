@@ -339,6 +339,7 @@ class TestRoundTrip:
                     ],
                 ]
             ),
+            columns=Index([0]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -384,7 +385,10 @@ class TestExcelWriter:
             col_df.to_excel(tmp_excel)
 
     def test_excel_sheet_by_name_raise(self, tmp_excel):
-        gt = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        gt = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=Index(list(range(10))),
+        )
         gt.to_excel(tmp_excel)
 
         with ExcelFile(tmp_excel) as xl:
@@ -505,7 +509,9 @@ class TestExcelWriter:
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
         df = DataFrame(
-            np.random.default_rng(2).integers(-10, 10, size=(10, 2)), dtype=np_type
+            np.random.default_rng(2).integers(-10, 10, size=(10, 2)),
+            dtype=np_type,
+            index=Index(list(range(10))),
         )
         df.to_excel(tmp_excel, sheet_name="test1")
 
@@ -521,7 +527,11 @@ class TestExcelWriter:
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, tmp_excel):
         # Test np.float values read come back as float.
-        df = DataFrame(np.random.default_rng(2).random(10), dtype=np_type)
+        df = DataFrame(
+            np.random.default_rng(2).random(10),
+            dtype=np_type,
+            index=Index(list(range(10))),
+        )
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -533,7 +543,7 @@ class TestExcelWriter:
 
     def test_bool_types(self, tmp_excel):
         # Test np.bool_ values read come back as float.
-        df = DataFrame([1, 0, True, False], dtype=np.bool_)
+        df = DataFrame([1, 0, True, False], dtype=np.bool_, index=Index(list(range(4))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -544,7 +554,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_inf_roundtrip(self, tmp_excel):
-        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
+        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)], index=Index(list(range(3))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -640,7 +650,13 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
+        df = (
+            DataFrame(
+                np.random.default_rng(2).standard_normal((10, 2)),
+                index=Index(list(range(10))),
+            )
+            >= 0
+        )
         df.to_excel(
             tmp_excel, sheet_name="test1", index_label="test", merge_cells=merge_cells
         )

@@ -41,7 +41,7 @@ class TestSetOps:
 
         other = Index([1, 2, 3, 4, 5])
         result = index.intersection(other)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
+        expected = Index(range(1, 5))
         tm.assert_index_equal(result, expected)
 
         result = other.intersection(index)

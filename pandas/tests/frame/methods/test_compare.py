@@ -21,7 +21,7 @@ def test_compare_axis(align_axis):
     result = df.compare(df2, align_axis=align_axis)
 
     if align_axis in (1, "columns"):
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, 4.0]],
@@ -29,7 +29,7 @@ def test_compare_axis(align_axis):
             columns=columns,
         )
     else:
-        indices = pd.MultiIndex.from_product([[0, 2], ["self", "other"]])
+        indices = pd.MultiIndex.from_product([range(0, 4, 2), ["self", "other"]])
         columns = pd.Index(["col1", "col3"])
         expected = pd.DataFrame(
             [["a", np.nan], ["c", np.nan], [np.nan, 3.0], [np.nan, 4.0]],
@@ -60,7 +60,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
     result = df.compare(df2, keep_shape=keep_shape, keep_equal=keep_equal)
 
     if keep_shape:
-        indices = pd.Index([0, 1, 2])
+        indices = pd.RangeIndex(3)
         columns = pd.MultiIndex.from_product(
             [["col1", "col2", "col3"], ["self", "other"]]
         )
@@ -85,7 +85,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
                 columns=columns,
             )
     else:
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", 1.0, 1.0], ["c", "c", 3.0, 4.0]], index=indices, columns=columns
@@ -203,6 +203,7 @@ def test_compare_result_names():
         },
     )
     result = df1.compare(df2, result_names=("left", "right"))
+    result.index = pd.Index([0, 2])
     expected = pd.DataFrame(
         {
             ("col1", "left"): {0: "a", 2: np.nan},

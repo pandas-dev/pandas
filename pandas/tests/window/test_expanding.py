@@ -502,8 +502,8 @@ def test_expanding_apply_min_periods_0(engine_and_raw):
 
 def test_expanding_cov_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().cov(s2)
     expected = Series([None, None, 2.0])
     tm.assert_series_equal(result, expected)
@@ -515,14 +515,14 @@ def test_expanding_cov_diff_index():
     s1 = Series([7, 8, 10], index=[0, 1, 3])
     s2 = Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().cov(s2)
-    expected = Series([None, None, None, 4.5])
+    expected = Series([None, None, None, 4.5], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding_corr_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().corr(s2)
     expected = Series([None, None, 1.0])
     tm.assert_series_equal(result, expected)
@@ -534,7 +534,7 @@ def test_expanding_corr_diff_index():
     s1 = Series([7, 8, 10], index=[0, 1, 3])
     s2 = Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().corr(s2)
-    expected = Series([None, None, None, 1.0])
+    expected = Series([None, None, None, 1.0], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
