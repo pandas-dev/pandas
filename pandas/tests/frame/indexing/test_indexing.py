@@ -524,6 +524,16 @@ class TestDataFrameIndexing:
         result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
+    def test_getitem_slice_empty(self):
+        df = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+        result = df[:]
+
+        expected = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+
+        tm.assert_frame_equal(result, expected)
+        # Ensure df[:] returns a view of df, not the same object
+        assert result is not df
+
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
