@@ -165,6 +165,7 @@ def pyarrow_parser_only(request):
     """
     Fixture all of the CSV parsers using the Pyarrow engine.
     """
+    pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
     return request.param()
 
 
@@ -198,6 +199,9 @@ def all_parsers_all_precisions(request):
     Fixture for all allowable combinations of parser
     and float precision
     """
+    parser = request.param[0]
+    if parser.engine == "pyarrow":
+        pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
     return request.param
 
 
