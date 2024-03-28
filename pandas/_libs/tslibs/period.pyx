@@ -115,6 +115,8 @@ from pandas._libs.tslibs.offsets import (
     BDay,
 )
 
+from pandas.util._decorators import set_module
+
 cdef:
     enum:
         INT32_MIN = -2_147_483_648LL
@@ -2662,6 +2664,7 @@ cdef class _Period(PeriodMixin):
         return period_format(self.ordinal, base, fmt)
 
 
+@set_module("pandas")
 class Period(_Period):
     """
     Represents a period of time.
