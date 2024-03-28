@@ -733,12 +733,6 @@ class IndexOpsMixin(OpsMixin):
         """
         delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
 
         if isinstance(delegate, ExtensionArray):
             return delegate.argmax()
@@ -754,12 +748,6 @@ class IndexOpsMixin(OpsMixin):
     ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
 
         if isinstance(delegate, ExtensionArray):
             return delegate.argmin()

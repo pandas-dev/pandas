@@ -1623,13 +1623,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def argmax(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmax")
 
     def argmin(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------
