@@ -730,3 +730,11 @@ b,j,y
     )
     expected = DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+def test_names_pyarrow(pyarrow_parser_only):
+    result = pyarrow_parser_only.read_csv(
+        StringIO("1,2"), engine="pyarrow", names=["A", "B"], header=None
+    )
+    expected = DataFrame({"A": [1], "B": [2]})
+    tm.assert_frame_equal(result, expected)
