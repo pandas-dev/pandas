@@ -299,9 +299,11 @@ class TestExtensionTake:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_take_coerces_list(self):
+        # GH#52981 coercing is deprecated, disabled in 3.0
         arr = [1, 2, 3]
-        msg = "take accepting non-standard inputs is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.take(arr, [0, 0])
-        expected = np.array([1, 1])
-        tm.assert_numpy_array_equal(result, expected)
+        msg = (
+            "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
+            "Index, or Series, got list"
+        )
+        with pytest.raises(TypeError, match=msg):
+            algos.take(arr, [0, 0])
