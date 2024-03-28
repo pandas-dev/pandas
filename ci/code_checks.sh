@@ -96,29 +96,24 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
         -i "pandas.DataFrame.keys SA01" \
-        -i "pandas.DataFrame.kurt RT03,SA01" \
-        -i "pandas.DataFrame.kurtosis RT03,SA01" \
+        -i "pandas.DataFrame.kurt SA01" \
+        -i "pandas.DataFrame.kurtosis SA01" \
         -i "pandas.DataFrame.last_valid_index SA01" \
         -i "pandas.DataFrame.mask RT03" \
-        -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03,SA01" \
-        -i "pandas.DataFrame.median RT03,SA01" \
-        -i "pandas.DataFrame.min RT03" \
+        -i "pandas.DataFrame.mean SA01" \
+        -i "pandas.DataFrame.median SA01" \
         -i "pandas.DataFrame.pad PR01,SA01" \
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.DataFrame.pop SA01" \
-        -i "pandas.DataFrame.prod RT03" \
-        -i "pandas.DataFrame.product RT03" \
         -i "pandas.DataFrame.reorder_levels SA01" \
-        -i "pandas.DataFrame.sem PR01,RT03,SA01" \
-        -i "pandas.DataFrame.skew RT03,SA01" \
+        -i "pandas.DataFrame.sem PR01,SA01" \
+        -i "pandas.DataFrame.skew SA01" \
         -i "pandas.DataFrame.sparse PR01,SA01" \
         -i "pandas.DataFrame.sparse.density SA01" \
         -i "pandas.DataFrame.sparse.from_spmatrix SA01" \
         -i "pandas.DataFrame.sparse.to_coo SA01" \
         -i "pandas.DataFrame.sparse.to_dense SA01" \
-        -i "pandas.DataFrame.std PR01,RT03,SA01" \
-        -i "pandas.DataFrame.sum RT03" \
+        -i "pandas.DataFrame.std PR01,SA01" \
         -i "pandas.DataFrame.swapaxes PR01,SA01" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_feather SA01" \
@@ -130,7 +125,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.tz_localize SA01" \
         -i "pandas.DataFrame.unstack RT03" \
         -i "pandas.DataFrame.value_counts RT03" \
-        -i "pandas.DataFrame.var PR01,RT03,SA01" \
+        -i "pandas.DataFrame.var PR01,SA01" \
         -i "pandas.DataFrame.where RT03" \
         -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
@@ -392,8 +387,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_unique SA01" \
         -i "pandas.Series.item SA01" \
         -i "pandas.Series.keys SA01" \
-        -i "pandas.Series.kurt RT03,SA01" \
-        -i "pandas.Series.kurtosis RT03,SA01" \
+        -i "pandas.Series.kurt SA01" \
+        -i "pandas.Series.kurtosis SA01" \
         -i "pandas.Series.last_valid_index SA01" \
         -i "pandas.Series.le PR07,SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
@@ -401,10 +396,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
         -i "pandas.Series.mask RT03" \
-        -i "pandas.Series.max RT03" \
-        -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
-        -i "pandas.Series.min RT03" \
+        -i "pandas.Series.mean SA01" \
+        -i "pandas.Series.median SA01" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.mul PR07" \
@@ -416,8 +409,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.plot PR02,SA01" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.pow PR07" \
-        -i "pandas.Series.prod RT03" \
-        -i "pandas.Series.product RT03" \
         -i "pandas.Series.radd PR07" \
         -i "pandas.Series.rdiv PR07" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
@@ -427,10 +418,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rpow PR07" \
         -i "pandas.Series.rsub PR07" \
         -i "pandas.Series.rtruediv PR07" \
-        -i "pandas.Series.sem PR01,RT03,SA01" \
+        -i "pandas.Series.sem PR01,SA01" \
         -i "pandas.Series.shape SA01" \
         -i "pandas.Series.size SA01" \
-        -i "pandas.Series.skew RT03,SA01" \
+        -i "pandas.Series.skew SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
@@ -438,7 +429,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
-        -i "pandas.Series.std PR01,RT03,SA01" \
+        -i "pandas.Series.std PR01,SA01" \
         -i "pandas.Series.str PR01,SA01" \
         -i "pandas.Series.str.capitalize RT03" \
         -i "pandas.Series.str.casefold RT03" \
@@ -471,7 +462,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
         -i "pandas.Series.sub PR07" \
-        -i "pandas.Series.sum RT03" \
         -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
         -i "pandas.Series.to_frame SA01" \
@@ -486,7 +476,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.unstack SA01" \
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Series.value_counts RT03" \
-        -i "pandas.Series.var PR01,RT03,SA01" \
+        -i "pandas.Series.var PR01,SA01" \
         -i "pandas.Series.where RT03" \
         -i "pandas.SparseDtype SA01" \
         -i "pandas.Timedelta PR07,SA01" \

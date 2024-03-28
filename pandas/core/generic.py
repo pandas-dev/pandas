@@ -11720,7 +11720,9 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar\
+{return_type}
+    The result of applying the {name} function to the {obj_type} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 {see_also}\
 {examples}
 """
@@ -11753,7 +11755,9 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar\
+{return_type}
+    The result of applying the {name} function to the {obj_type} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 {see_also}\
 {examples}
 """
@@ -11783,7 +11787,9 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or {name2} (if level specified) \
+{return_type}
+    The result of applying the {name} function to the {obj_type} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.\
 {notes}\
 {examples}
 """
@@ -11881,9 +11887,9 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    If level is specified, then, {name2} is returned; otherwise, {name1}
-    is returned.
+{return_type}
+    The result of applying the {name} function to the {obj_type} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.
 
 {see_also}
 {examples}"""
@@ -11968,19 +11974,20 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    Return cumulative {desc} of {name1} or {name2}.
+{return_type}
+    The result of applying the cumulative {desc} function to the {obj_type} elements,
+    possibly just for rows or columns based on the ``axis`` parameter.
 
 See Also
 --------
 core.window.expanding.Expanding.{accum_func_name} : Similar functionality
     but ignores ``NaN`` values.
-{name2}.{accum_func_name} : Return the {desc} over
-    {name2} axis.
-{name2}.cummax : Return cumulative maximum over {name2} axis.
-{name2}.cummin : Return cumulative minimum over {name2} axis.
-{name2}.cumsum : Return cumulative sum over {name2} axis.
-{name2}.cumprod : Return cumulative product over {name2} axis.
+{obj_type}.{accum_func_name} : Return the {desc} over
+    {obj_type} axis.
+{obj_type}.cummax : Return cumulative maximum over {obj_type} axis.
+{obj_type}.cummin : Return cumulative minimum over {obj_type} axis.
+{obj_type}.cumsum : Return cumulative sum over {obj_type} axis.
+{obj_type}.cumprod : Return cumulative product over {obj_type} axis.
 
 {examples}"""
 
@@ -12434,14 +12441,6 @@ def make_doc(name: str, ndim: int) -> str:
     """
     Generate the docstring for a Series/DataFrame reduction.
     """
-    if ndim == 1:
-        name1 = "scalar"
-        name2 = "Series"
-        axis_descr = "{index (0)}"
-    else:
-        name1 = "Series"
-        name2 = "DataFrame"
-        axis_descr = "{index (0), columns (1)}"
 
     if name == "any":
         base_doc = _bool_doc
@@ -12769,11 +12768,24 @@ def make_doc(name: str, ndim: int) -> str:
     else:
         raise NotImplementedError
 
+    if ndim == 1:
+        return_type = "Scalar"
+        axis_descr = "{index (0)}"
+        obj_type = "Series"
+        if base_doc in (_cnum_doc):
+            return_type = "Series or Scalar"
+    else:
+        return_type = "Series or Scalar"
+        axis_descr = "{index (0), columns (1)}"
+        obj_type = "DataFrame"
+        if base_doc in (_cnum_doc):
+            return_type = "DataFrame or Series"
+
     docstr = base_doc.format(
         desc=desc,
         name=name,
-        name1=name1,
-        name2=name2,
+        return_type=return_type,
+        obj_type=obj_type,
         axis_descr=axis_descr,
         see_also=see_also,
         examples=examples,
