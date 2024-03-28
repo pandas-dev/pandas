@@ -379,6 +379,17 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
 
+.. note::
+
+
+    We encourage explicitly subtracting 1970-01-01 from the timestamps over using the
+    ``.timestamp`` method because the ``Timestamp.timestamp`` method in pandas exhibits a
+    distinct behavior compared to ``datetime.timestamp``, particularly in cases involving
+    timezone-naive (tznaive) instances. Specifically, ``Timestamp.timestamp`` treats
+    timezone-naive datetime objects as UTC by default while the ``datetime.timestamp``
+    method treats them as implicitly belonging to the system's local timezone.
+
+
 .. _timeseries.origin:
 
 Using the ``origin`` parameter
