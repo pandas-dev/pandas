@@ -3849,6 +3849,11 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
+        # Do we have a slicer (on rows)?
+        # As of Python 3.12, slice is hashable so check it first
+        if isinstance(key, slice):
+            return self._getitem_slice(key)
+
         if is_hashable(key) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
@@ -3864,10 +3869,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
-
-        # Do we have a slicer (on rows)?
-        if isinstance(key, slice):
-            return self._getitem_slice(key)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
