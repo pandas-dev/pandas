@@ -487,6 +487,8 @@ class ParserBase:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
+                else:
+                    col_na_values, col_na_fvalues = set(), set()
 
             clean_dtypes = self._clean_mapping(self.dtype)
 
