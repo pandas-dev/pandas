@@ -70,7 +70,7 @@ class TestPeriodRangeKeywords:
 
     def test_periods_requires_integer(self):
         # invalid periods param
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             period_range(start="2017Q1", periods="foo")
 
