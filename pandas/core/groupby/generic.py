@@ -240,6 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series or DataFrame
+            A pandas object with the result of applying ``func`` to each group.
 
         See Also
         --------
@@ -600,6 +601,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+            The filtered subset of the original Series.
 
         Notes
         -----
@@ -1078,6 +1080,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+            Unbiased skew within groups.
 
         See Also
         --------
@@ -1941,6 +1944,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
+            The filtered subset of the original DataFrame.
 
         Notes
         -----
@@ -2108,6 +2112,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         nunique: DataFrame
+            Counts of unique elements in each position.
 
         Examples
         --------
@@ -2506,6 +2511,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
+            Unbiased skew within groups.
 
         See Also
         --------
