@@ -1343,7 +1343,6 @@ class Block(PandasObject, libinternals.Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1357,16 +1356,12 @@ class Block(PandasObject, libinternals.Block):
         # Dispatch to the NumpyExtensionArray method.
         # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
         vals = cast(NumpyExtensionArray, self.array_values)
-        if axis == 1:
-            vals = vals.T
-        new_values = vals._pad_or_backfill(
+        new_values = vals.T._pad_or_backfill(
             method=method,
             limit=limit,
             limit_area=limit_area,
             copy=copy,
-        )
-        if axis == 1:
-            new_values = new_values.T
+        ).T
 
         data = extract_array(new_values, extract_numpy=True)
         return [self.make_block_same_class(data, refs=refs)]
@@ -1814,7 +1809,6 @@ class EABackedBlock(Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1827,11 +1821,11 @@ class EABackedBlock(Block):
         elif limit_area is not None:
             raise NotImplementedError(
                 f"{type(values).__name__} does not implement limit_area "
-                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "(added in pandas 2.2). 3rd-party ExtensionArray authors "
                 "need to add this argument to _pad_or_backfill."
             )
 
-        if values.ndim == 2 and axis == 1:
+        if values.ndim == 2:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
             new_values = values.T._pad_or_backfill(**kwargs).T
         else:
