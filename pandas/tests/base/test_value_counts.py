@@ -21,7 +21,7 @@ from pandas.tests.base.common import allow_na_ops
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_value_counts(index_or_series_obj):
+def test_value_counts(index_or_series_obj, request):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
     result = obj.value_counts()
@@ -47,17 +47,23 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    # TODO(GH#32514): Order of entries with the same count is inconsistent
-    #  on CI (gh-32449)
-    if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
-    tm.assert_series_equal(result, expected)
+    # This check is written for the mixed-int-string entry
+    if request.node.callspec.id == "mixed-int-string":
+        msg = "'<' not supported between instances of 'int' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            result.sort_index()
+    else:
+        # TODO(GH#32514): Order of entries with the same count is inco8nsistent
+        #  on CI (gh-32449)
+        if obj.duplicated().any():
+            result = result.sort_index()
+            expected = expected.sort_index()
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_value_counts_null(null_obj, index_or_series_obj):
+def test_value_counts_null(null_obj, index_or_series_obj, request):
     orig = index_or_series_obj
     obj = orig.copy()
 
@@ -67,6 +73,9 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
+    # This check is written for the mixed-int-string entry
+    if request.node.callspec.id in ["mixed-int-string-nan", "mixed-int-string-None"]:
+        pytest.skip("'<' not supported between instances of 'str' and 'int'")
 
     values = obj._values
     values[0:2] = null_obj
