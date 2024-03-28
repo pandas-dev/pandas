@@ -2271,6 +2271,9 @@ class ArrowDtype(StorageExtensionDtype):
                     "instance with specific parameters."
                 ) from err
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
+        except NameError as err:
+            # GH#57928
+            raise ImportError("pyarrow>=10.0.1 is required for ArrowDtype") from err
         return cls(pa_dtype)
 
     # TODO(arrow#33642): This can be removed once supported by pyarrow
