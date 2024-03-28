@@ -1,4 +1,9 @@
-from datetime import datetime
+from contextlib import nullcontext
+from datetime import (
+    datetime,
+    time,
+)
+import locale
 import pprint
 
 import dateutil.tz
@@ -6,6 +11,9 @@ import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
+import pandas._testing as tm
+
+from pandas.tseries.api import convert_strftime_format
 
 ts_no_ns = Timestamp(
     year=2019,
@@ -85,6 +93,13 @@ ts_no_us = Timestamp(
 )
 def test_isoformat(ts, timespec, expected_iso):
     assert ts.isoformat(timespec=timespec) == expected_iso
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 class TestTimestampRendering:
@@ -199,3 +214,41 @@ class TestTimestampRendering:
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_strftime_locale(self, locale_str):
+        """
+        Test that `convert_strftime_format` and `fast_strftime`
+        work well together and rely on runtime locale
+        """
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="datetime")
+            assert str_tmp == "%(ampm)s"
+
+            # Now what about the classes ?
+            # Timestamp
+            am_ts = Timestamp(2020, 1, 1, 1)
+            assert am_local == am_ts.strftime("%p")
+            assert am_local == am_ts._fast_strftime(str_tmp, loc_s)
+            pm_ts = Timestamp(2020, 1, 1, 13)
+            assert pm_local == pm_ts.strftime("%p")
+            assert pm_local == pm_ts._fast_strftime(str_tmp, loc_s)

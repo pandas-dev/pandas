@@ -281,6 +281,69 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    def test_to_csv_datetime_format_index(self):
+        """Test that formatting also works for datetime index"""
+        df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
+        df_sec = df_sec.set_index("A")
+
+        # default date_format
+        res = df_sec.to_csv()
+        expected_rows = [
+            "A",
+            "2013-01-01 00:00:00",
+            "2013-01-01 00:00:01",
+            "2013-01-01 00:00:02",
+            "2013-01-01 00:00:03",
+            "2013-01-01 00:00:04",
+        ]
+        expected_default_sec = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert res == expected_default_sec
+
+        # custom date_format
+        res = df_sec.to_csv(date_format="%Y-%m-%d %H:%M:%S.%f")
+        expected_rows = [
+            "A",
+            "2013-01-01 00:00:00.000000",
+            "2013-01-01 00:00:01.000000",
+            "2013-01-01 00:00:02.000000",
+            "2013-01-01 00:00:03.000000",
+            "2013-01-01 00:00:04.000000",
+        ]
+        expected_default_sec = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert res == expected_default_sec
+
+    def test_to_csv_period_format_index(self):
+        """Test that formatting also works for period index"""
+        # same for periods
+        df_month = DataFrame({"A": pd.period_range("20130101", periods=5, freq="M")})
+        df_month = df_month.set_index("A")
+
+        # default date_format
+        res = df_month.to_csv()
+        expected_rows = [
+            "A",
+            "2013-01",
+            "2013-02",
+            "2013-03",
+            "2013-04",
+            "2013-05",
+        ]
+        expected_default_mon = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert res == expected_default_mon
+
+        # custom format
+        res = df_month.to_csv(date_format="%F : %q")
+        expected_rows = [
+            "A",
+            "2013 : 1",
+            "2013 : 1",
+            "2013 : 1",
+            "2013 : 2",
+            "2013 : 2",
+        ]
+        expected_ymdhms_month = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert res == expected_ymdhms_month
+
     def test_to_csv_different_datetime_formats(self):
         # GH#21734
         df = DataFrame(

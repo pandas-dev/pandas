@@ -51,6 +51,7 @@ sources_to_install = [
     'offsets.pyi',
     'parsing.pyi',
     'period.pyi',
+    'strftime.py',
     'strptime.pyi',
     'timedeltas.pyi',
     'timestamps.pyi',

@@ -76,7 +76,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time"] + PeriodArray._field_ops,
+    ["start_time", "end_time"] + PeriodArray._field_ops,
     PeriodArray,
     wrap=True,
 )
@@ -176,6 +176,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
+
+    @doc(PeriodArray.strftime)
+    def strftime(self, date_format: str) -> Index:
+        arr = self._data.strftime(date_format)
+        return Index(arr, name=self.name, dtype=object)
 
     @doc(
         PeriodArray.asfreq,
