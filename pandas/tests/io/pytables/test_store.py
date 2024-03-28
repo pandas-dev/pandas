@@ -1024,7 +1024,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
-    data_columns = list(df.index.names) + df.columns.tolist()
+    data_columns = df.index.names + df.columns.tolist()
     path = tmp_path / setup_path
     df.to_hdf(
         path,
