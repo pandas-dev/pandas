@@ -239,6 +239,7 @@ Removal of prior version deprecations/changes
 - Iterating over a :class:`.DataFrameGroupBy` or :class:`.SeriesGroupBy` will return tuples of length 1 for the groups when grouping by ``level`` a list of length 1 (:issue:`50064`)
 - Methods ``apply``, ``agg``, and ``transform`` will no longer replace NumPy functions (e.g. ``np.sum``) and built-in functions (e.g. ``min``) with the equivalent pandas implementation; use string aliases (e.g. ``"sum"`` and ``"min"``) if you desire to use the pandas implementation (:issue:`53974`)
 - Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
+- Removed :func:`pandas.api.types.is_categorical_dtype`, :func:`pandas.api.types.is_datetime64tz_dtype`, :func:`pandas.api.types.is_int64_dtype`, :func:`pandas.api.types.is_interval_dtype`, :func:`pandas.api.types.is_period_dtype` and :func:`pandas.api.types.is_sparse` (:issue:`52607`)
 - Removed :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` supporting bool dtype (:issue:`53975`)
 - Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
 - Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
