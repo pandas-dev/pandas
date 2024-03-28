@@ -2155,6 +2155,36 @@ class TestSeriesConstructors:
             result = Series(idx)
         assert result.dtype != np.object_
 
+    def test_series_constructor_maskedarray_int_overflow(self):
+        # GH#56566
+        mx = ma.masked_array(
+            [
+                4873214862074861312,
+                4875446630161458944,
+                4824652147895424384,
+                0,
+                3526420114272476800,
+            ],
+            mask=[0, 0, 0, 1, 0],
+        )
+        result = Series(mx, dtype="Int64")
+        expected = Series(
+            IntegerArray(
+                np.array(
+                    [
+                        4873214862074861312,
+                        4875446630161458944,
+                        4824652147895424384,
+                        0,
+                        3526420114272476800,
+                    ],
+                    dtype="int64",
+                ),
+                np.array([0, 0, 0, 1, 0], dtype=np.bool_),
+            )
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
