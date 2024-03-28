@@ -304,9 +304,6 @@ cdef dict c_OFFSET_REMOVED_FREQSTR = {
     "BQ-NOV": "BQE-NOV",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_REVERSE_OFFSET_REMOVED_FREQSTR = {
-    v: k for k, v in c_OFFSET_REMOVED_FREQSTR.items()
-}
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {

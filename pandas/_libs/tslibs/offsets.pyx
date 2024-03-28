@@ -58,7 +58,6 @@ from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_REMOVED_FREQSTR,
-    c_REVERSE_OFFSET_REMOVED_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4858,21 +4857,14 @@ cpdef to_offset(freq, bint is_period=False):
                     raise ValueError(
                         f"\'{name}\' is no longer supported for offsets."
                     )
-                if is_period and name.upper() in c_REVERSE_OFFSET_REMOVED_FREQSTR:
-                    if name.upper().startswith("Y"):
-                        raise ValueError(
-                            f"for Period, please use \'Y{name.upper()[2:]}\' "
-                            f"instead of \'{name}\'"
-                        )
+                if is_period and name.upper().split("-")[0].endswith(("E")):
                     if (name.upper().startswith("B") or
                             name.upper().startswith("S") or
                             name.upper().startswith("C")):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
-                            f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' "
-                            f"instead of \'{name}\'"
+                            f"{name} is not supported as period frequency"
                         )
                 elif is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
                     if name.upper() != name:

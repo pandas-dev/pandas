@@ -1055,7 +1055,7 @@ class TestPeriodIndex:
 )
 def test_resample_frequency_ME_QE_YE_error_message(frame_or_series, freq, freq_depr):
     # GH#9586
-    msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
+    msg = f"{freq_depr[1:]} is not supported as period frequency"
 
     obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
