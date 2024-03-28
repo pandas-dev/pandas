@@ -1,0 +1,34 @@
+# Note: This is the pyproject.toml for the pandas-tests package
+# The pyproject.toml for the pandas package is in the parent directory
+# of this one
+[build-system]
+requires = [
+    "setuptools>=61.0.0",
+]
+[project]
+name="pandas-tests"
+# Note: The version is hardcoded since the pandas version has to
+# match the tests version. Remember to bump both!
+dynamic = ["version"]
+#dependencies=[
+#    "pandas==2.1.0"
+#]
+requires-python=">=3.9"
+
+[tool.setuptools]
+package-dir={"pandas_tests"= "tests"}
+
+[tool.setuptools_scm]
+root = ".."
+
+[tool.setuptools.package-data]
+"pandas_tests"=["pytest.ini"]
+
+# Only present to specify options for the doctests
+[tool.pytest.ini_options]
+minversion = "7.3.2"
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "IGNORE_EXCEPTION_DETAIL",
+  "ELLIPSIS",
+]

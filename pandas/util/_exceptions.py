@@ -42,6 +42,16 @@ def find_stack_level() -> int:
     pkg_dir = os.path.dirname(pd.__file__)
     test_dir = os.path.join(pkg_dir, "tests")
 
+    # Note: we also want to account for stuff being in the pandas_tests test_dir
+    try:
+        # can't use import_optional_dependency cause it uses find_stack_level and we'd
+        # have ourselves a circular import :(
+        import pandas_tests  # pyright: ignore [reportMissingImports]
+
+        pd_tests_dir = os.path.dirname(pandas_tests.__file__)
+    except ImportError:
+        pd_tests_dir = None
+
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     frame: FrameType | None = inspect.currentframe()
     try:
@@ -49,6 +59,8 @@ def find_stack_level() -> int:
         while frame:
             filename = inspect.getfile(frame)
             if filename.startswith(pkg_dir) and not filename.startswith(test_dir):
+                if pd_tests_dir is not None and filename.startswith(pd_tests_dir):
+                    break
                 frame = frame.f_back
                 n += 1
             else:

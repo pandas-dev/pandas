@@ -189,6 +189,19 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
+import sys
+
+try:
+    import pandas_tests  # pyright: ignore [reportMissingImports]
+
+    sys.modules["pandas.tests"] = pandas_tests
+
+    del pandas_tests
+except ImportError:
+    pass
+
+del sys
+
 
 # module level doc-string
 __doc__ = """

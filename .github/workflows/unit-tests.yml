@@ -77,7 +77,7 @@ jobs:
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
-      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas/tests' }}
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
@@ -180,7 +180,7 @@ jobs:
       cancel-in-progress: true
     env:
       PANDAS_CI: 1
-      PYTEST_TARGET: pandas
+      PYTEST_TARGET: pandas/tests
       PATTERN: "not slow and not db and not network and not single_cpu"
       PYTEST_WORKERS: 'auto'
 
@@ -232,7 +232,7 @@ jobs:
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas/tests --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
@@ -274,7 +274,7 @@ jobs:
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
           export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas/tests --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
@@ -322,7 +322,7 @@ jobs:
       PYTEST_WORKERS: "auto"
       PANDAS_CI: 1
       PATTERN: "not slow and not network and not clipboard and not single_cpu"
-      PYTEST_TARGET: pandas
+      PYTEST_TARGET: pandas/tests
 
     steps:
       - uses: actions/checkout@v4

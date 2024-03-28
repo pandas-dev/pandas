@@ -34,10 +34,18 @@ subdirs_list = [
     'errors',
     'io',
     'plotting',
-    'tests',
     'tseries',
     'util'
 ]
+
+# Add the tests in if they are present
+# (they would be present normally but
+# would not be present in an sdist since
+# we strip them out for build size reasons)
+if fs.is_dir('tests')
+    subdirs_list += 'tests'
+endif
+
 foreach subdir: subdirs_list
     install_subdir(subdir, install_dir: py.get_install_dir() / 'pandas')
 endforeach

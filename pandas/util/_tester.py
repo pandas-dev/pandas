@@ -6,10 +6,9 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import cast
 
 from pandas.compat._optional import import_optional_dependency
-
-PKG = os.path.dirname(os.path.dirname(__file__))
 
 
 def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:
@@ -39,12 +38,17 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
         cmd = extra_args
+    # Don't require pandas_tests if only running doctests
     if run_doctests:
+        PKG = os.path.dirname(os.path.dirname(__file__))
         cmd = [
             "--doctest-modules",
             "--doctest-cython",
             f"--ignore={os.path.join(PKG, 'tests')}",
         ]
+    else:
+        pandas_tests = import_optional_dependency("pandas_tests")
+        PKG = os.path.dirname(cast(str, pandas_tests.__file__))
     cmd += [PKG]
     joined = " ".join(cmd)
     print(f"running: pytest {joined}")
