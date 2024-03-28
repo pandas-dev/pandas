@@ -234,6 +234,8 @@ class TestAppend:
         result = df._append(ser)
         idx_diff = ser.index.difference(df_columns)
         combined_columns = Index(df_columns.tolist()).append(idx_diff)
+        if isinstance(result.columns, pd.CategoricalIndex):
+            combined_columns = pd.CategoricalIndex(combined_columns)
         expected = DataFrame(
             [
                 [1.0, 2.0, 3.0, np.nan, np.nan, np.nan],
