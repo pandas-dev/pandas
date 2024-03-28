@@ -123,3 +123,6 @@ cdef class ObjectFactorizer(Factorizer):
                                        self.count, na_sentinel, na_value)
         self.count = len(self.uniques)
         return labels
+
+    def hash_inner_join(self, values, mask=None):
+        return self.table.hash_inner_join(values, mask)
