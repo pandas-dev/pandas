@@ -70,6 +70,7 @@ class TestNormalize:
         assert not rng.is_normalized
 
     @td.skip_if_windows
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     @pytest.mark.parametrize(
         "timezone",
         [

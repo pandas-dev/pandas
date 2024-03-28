@@ -959,6 +959,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
@@ -975,7 +976,8 @@ class TestToDatetime:
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
 
-    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     @pytest.mark.parametrize("tz", ["Pacific/Auckland", "US/Samoa"])
     def test_to_datetime_today(self, tz):
         # See GH#18666
@@ -1007,6 +1009,7 @@ class TestToDatetime:
         to_datetime([arg])
 
     @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
+    @td.skip_if_wasm  # tzset is available only on Unix-like systems
     @pytest.mark.parametrize(
         "format, expected_ds",
         [
