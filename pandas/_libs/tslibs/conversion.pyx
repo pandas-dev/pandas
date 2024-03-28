@@ -105,7 +105,7 @@ def cast_from_unit_vectorized(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso, out_reso
-        Py_ssize_t i
+        Py_ssize_t i = 0
 
     assert values.dtype.kind == "f"
 

@@ -1,7 +1,13 @@
-incdir_numpy = run_command(py,
-  [
-    '-c',
-    '''
+# NumPy 2.0 can be detected with meson >= 0.14.0
+np_dep = dependency('numpy', required : false)
+
+if np_dep.found()
+    inc_np = []
+else
+    incdir_numpy = run_command(py,
+      [
+        '-c',
+        '''
 import os
 import numpy as np
 try:
@@ -12,12 +18,14 @@ try:
 except Exception:
     incdir = np.get_include()
 print(incdir)
-     '''
-  ],
-  check: true
-).stdout().strip()
+         '''
+      ],
+      check: true
+    ).stdout().strip()
 
-inc_np = include_directories(incdir_numpy)
+    inc_np = include_directories(incdir_numpy)
+endif
+
 inc_pd = include_directories('_libs/include')
 
 fs.copyfile('__init__.py')
