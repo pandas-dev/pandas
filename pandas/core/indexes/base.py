@@ -1635,7 +1635,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is lib.no_default:
             result_name = self._get_level_names()
         else:
-            result_name = Index([name])
+            result_name = Index([name])  # type: ignore[assignment]
         result = DataFrame(self, copy=False)
         result.columns = result_name
 
