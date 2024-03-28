@@ -139,14 +139,15 @@ class ArrowParserWrapper(ParserBase):
             ]
 
         self.read_options = {
-            "autogenerate_column_names": self.header is None and self.names is None,
             "skip_rows": self.header
             if self.header is not None
             else self.kwds["skiprows"],
             "encoding": self.encoding,
         }
-        if self.names:
+        if self.header is None and self.names is not None:
             self.read_options["column_names"] = self.names
+        else:
+            self.read_options["autogenerate_column_names"] = True
 
     def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
         """
