@@ -10,7 +10,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -209,6 +208,7 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
+        old_values = values
         coerce_numeric = errors != "raise"
         values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
             values,
@@ -254,8 +254,8 @@ def to_numeric(
             # from smallest to largest
             for typecode in typecodes:
                 dtype = np.dtype(typecode)
-                if dtype.itemsize <= values.dtype.itemsize:
-                    values = maybe_downcast_numeric(values, dtype)
+                if dtype.itemsize == values.dtype.itemsize:
+                    values = np.array(old_values, dtype=dtype)
 
                     # successful conversion
                     if values.dtype == dtype:
