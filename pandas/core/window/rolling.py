@@ -101,8 +101,11 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        Concatenate,
         NDFrameT,
+        P,
         QuantileInterpolation,
+        T,
         WindowingRankType,
         npt,
     )
@@ -1483,6 +1486,14 @@ class RollingAndExpandingMixin(BaseWindow):
             numba_args=numba_args,
         )
 
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        return com.pipe(self, func, *args, **kwargs)
+
     def _generate_cython_apply_func(
         self,
         args: tuple[Any, ...],
@@ -2019,6 +2030,29 @@ class Rolling(RollingAndExpandingMixin):
             raw=raw,
             engine=engine,
             engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
+
+    @doc(
+        dedent(),
+        create_section_header("Parameters"),
+        dedent(),
+        create_section_header("Returns"),
+        dedent(),
+        create_section_header("See Also"),
+        dedent(),
+        create_section_header("Examples"),
+        dedent(),
+    )
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        return super().pipe(
+            func,
             args=args,
             kwargs=kwargs,
         )
