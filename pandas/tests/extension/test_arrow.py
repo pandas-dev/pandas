@@ -1317,9 +1317,11 @@ def test_construct_from_string_with_name_exception(monkeypatch):
         raise NameError
 
     with monkeypatch.context() as m:
-        # Doing this as a subsitute for pyarrow not being defined.
+        # Doing this as a substitute for pyarrow not being defined.
         m.setattr(pa, "type_for_alias", mock_type_for_alias)
-        with pytest.raises(ImportError, match="pyarrow>=10.0.1 is required for ArrowDtype"): 
+        with pytest.raises(
+            ImportError, match="pyarrow>=10.0.1 is required for ArrowDtype"
+        ):
             ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
 
 
