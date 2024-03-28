@@ -540,7 +540,9 @@ def boxplot_frame_groupby(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            ret.loc[key] = d
+            # GH 14701 'key' needs to be converted to text as 'key' is a tuple when
+            # there is more than one group
+            ret.loc[pprint_thing(key)] = d
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
