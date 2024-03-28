@@ -18,6 +18,7 @@ from pandas.core.algorithms import take
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
+    NDArrayBackedExtensionArray,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "take",
     "ExtensionArray",
     "ExtensionScalarOpsMixin",
+    "NDArrayBackedExtensionArray",
 ]
