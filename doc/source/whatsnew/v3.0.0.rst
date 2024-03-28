@@ -208,6 +208,7 @@ Removal of prior version deprecations/changes
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
+- Removed ``Block``, ``DatetimeTZBlock``, ``ExtensionBlock``, ``create_block_manager_from_blocks`` from ``pandas.core.internals`` and ``pandas.core.internals.api`` (:issue:`55139`)
 - Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
