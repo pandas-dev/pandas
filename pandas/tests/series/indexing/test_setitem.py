@@ -495,11 +495,11 @@ class TestSetitemCallable:
 
 class TestSetitemWithExpansion:
     def test_setitem_empty_series(self):
-        # GH#10193
+        # GH#10193, GH#51363 changed in 3.0 to not do inference in Index.insert
         key = Timestamp("2012-01-01")
         series = Series(dtype=object)
         series[key] = 47
-        expected = Series(47, [key])
+        expected = Series(47, Index([key], dtype=object))
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
