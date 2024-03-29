@@ -1199,7 +1199,7 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
-            PeriodArray/PeriodIndex with each value rounded down 
+            PeriodArray/PeriodIndex with each value rounded down
             to the frequency specified.
 
         Raises
