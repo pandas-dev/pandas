@@ -226,12 +226,9 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
         # GH#52986
         if func_name != "isin-targets":
             # Make an exception for the comps argument in isin.
-            warnings.warn(
-                f"{func_name} with argument that is not not a Series, Index, "
-                "ExtensionArray, or np.ndarray is deprecated and will raise in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{func_name} requires a Series, Index, "
+                f"ExtensionArray, or np.ndarray, got {type(values).__name__}."
             )
 
         inferred = lib.infer_dtype(values, skipna=False)
