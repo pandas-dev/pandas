@@ -124,7 +124,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.to_feather SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
-        -i "pandas.DataFrame.to_period SA01" \
         -i "pandas.DataFrame.to_timestamp SA01" \
         -i "pandas.DataFrame.tz_convert SA01" \
         -i "pandas.DataFrame.tz_localize SA01" \
@@ -157,8 +156,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.std PR01,RT03" \
         -i "pandas.DatetimeIndex.time SA01" \
         -i "pandas.DatetimeIndex.timetz SA01" \
-        -i "pandas.DatetimeIndex.to_period RT03" \
-        -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
         -i "pandas.DatetimeIndex.tz SA01" \
         -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeIndex.year SA01" \
