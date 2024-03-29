@@ -212,6 +212,7 @@ Removal of prior version deprecations/changes
 - Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
+- Removed extension test classes ``BaseNoReduceTests``, ``BaseNumericReduceTests``, ``BaseBooleanReduceTests`` (:issue:`54663`)
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
 - Stopped performing dtype inference with in :meth:`Index.insert` with object-dtype index; this often affects the index/columns that result when setting new entries into an empty :class:`Series` or :class:`DataFrame` (:issue:`51363`)
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
