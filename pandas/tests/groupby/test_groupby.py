@@ -224,8 +224,6 @@ def test_indices_concatenation_order():
 
     df2 = DataFrame({"a": [3, 2, 2, 2], "b": range(4), "c": range(5, 9)})
 
-    depr_msg = "The behavior of array concatenation with empty entries is deprecated"
-
     # correct result
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
@@ -245,8 +243,7 @@ def test_indices_concatenation_order():
     with pytest.raises(AssertionError, match=msg):
         df.groupby("a").apply(f3)
     with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            df2.groupby("a").apply(f3)
+        df2.groupby("a").apply(f3)
 
 
 def test_attr_wrapper(ts):
