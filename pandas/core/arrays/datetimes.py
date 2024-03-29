@@ -1118,8 +1118,8 @@ default 'raise'
 
         Returns
         -------
-        numpy.ndarray
-            numpy.ndarray with ``datetime.datetime`` objects
+        A numpy.ndarray
+            A numpy.ndarray with ``datetime.datetime`` objects
             from the date strings.
 
         See Also

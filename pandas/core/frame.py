@@ -12596,6 +12596,11 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             The DataFrame has a PeriodIndex.
 
+        See Also
+        --------
+        DatetimeIndex: Immutable ndarray-like of datetime64 data.
+        PeriodIndex: Immutable ndarray holding ordinal values.
+
         Examples
         --------
         >>> idx = pd.to_datetime(
