@@ -145,6 +145,15 @@ def test_len_nan_group():
     assert len(df.groupby(["a", "b"])) == 0
 
 
+def test_groupby_timedelta_median():
+    # issue 57926
+    expected = Series(data=Timedelta("1d"), index=["foo"])
+    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
+    gb = df.groupby("label")["timedelta"]
+    actual = gb.median()
+    tm.assert_series_equal(actual, expected, check_names=False)
+
+
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_len_categorical(dropna, observed, keys):
     # GH#57595
@@ -665,7 +674,7 @@ def test_raises_on_nuisance(df):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support sum operations"
+    msg = "datetime64 type does not support operation: 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
