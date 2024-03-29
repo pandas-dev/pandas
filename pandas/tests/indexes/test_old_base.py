@@ -217,11 +217,7 @@ class TestBase:
             pytest.skip("Tested elsewhere.")
         idx = simple_index
 
-        if isinstance(idx, DatetimeIndex):
-            msg = "'(any|all)' with datetime64 dtypes is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                idx.all()
-        elif idx.dtype.kind in "iufcbm":
+        if idx.dtype.kind in "iufcbm":
             assert idx.all() == idx._values.all()
             assert idx.all() == idx.to_series().all()
             assert idx.any() == idx._values.any()
@@ -230,6 +226,8 @@ class TestBase:
             msg = "cannot perform (any|all)"
             if isinstance(idx, IntervalIndex | PeriodIndex):
                 msg = "does not support reduction '(any|all)'"
+            if isinstance(idx, DatetimeIndex):
+                msg = "datetime64 type does not support operation: '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
