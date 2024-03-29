@@ -2193,6 +2193,9 @@ timedelta}, default 'raise'
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
+    def __round__(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self.round(freq, ambiguous, nonexistent)
+
     @property
     def tz(self):
         """

@@ -2290,6 +2290,9 @@ class Timedelta(_Timedelta):
         div = other // self
         return div, other - div * self
 
+    def __round__(self, freq):
+        return self.round(freq)
+
 
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
