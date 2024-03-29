@@ -333,6 +333,8 @@ def test_mismatched_na_assert_almost_equal(left, right):
     else:
         with pytest.raises(AssertionError, match=msg):
             _assert_almost_equal_both(left, right, check_dtype=False)
+        
+        _assert_almost_equal_both(left, right, check_dtype=False, strict_na=False)
 
         # TODO: to get the same deprecation in assert_numpy_array_equal we need
         #  to change/deprecate the default for strict_nan to become True
@@ -343,11 +345,17 @@ def test_mismatched_na_assert_almost_equal(left, right):
             tm.assert_series_equal(
                 Series(left_arr, dtype=object), Series(right_arr, dtype=object)
             )
+        tm.assert_series_equal(
+                Series(left_arr, dtype=object), Series(right_arr, dtype=object), strict_na=False
+            )
+
         with pytest.raises(AssertionError, match="DataFrame.iloc.* are different"):
             tm.assert_frame_equal(
                 DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
             )
-
+        tm.assert_frame_equal(
+                DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object), strict_na=False
+            )
 
 def test_assert_not_almost_equal_inf():
     _assert_not_almost_equal_both(np.inf, 0)
