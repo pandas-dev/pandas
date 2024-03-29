@@ -131,7 +131,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.unstack RT03" \
         -i "pandas.DataFrame.value_counts RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DataFrame.where RT03" \
         -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day SA01" \
