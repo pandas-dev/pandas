@@ -211,6 +211,7 @@ Removal of prior version deprecations/changes
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
+- Stopped performing dtype inference with in :meth:`Index.insert` with object-dtype index; this often affects the index/columns that result when setting new entries into an empty :class:`Series` or :class:`DataFrame` (:issue:`51363`)
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
 - All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
