@@ -216,7 +216,6 @@ class TestBase:
         if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
-
         if idx.dtype.kind in "iufcbm":
             assert idx.all() == idx._values.all()
             assert idx.all() == idx.to_series().all()
@@ -224,10 +223,10 @@ class TestBase:
             assert idx.any() == idx.to_series().any()
         else:
             msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex | PeriodIndex):
-                msg = "does not support reduction '(any|all)'"
             if isinstance(idx, DatetimeIndex):
                 msg = "datetime64 type does not support operation: '(any|all)'"
+            else:
+                msg = "does not support reduction '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
