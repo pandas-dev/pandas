@@ -622,6 +622,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        See Also
+        --------
+        ordered : Whether the categories have an ordered relationship.
+
         Examples
         --------
         >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
@@ -634,6 +638,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        See Also
+        --------
+        categories : An Index containing the unique categories allowed.
 
         Examples
         --------
