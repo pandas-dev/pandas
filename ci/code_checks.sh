@@ -99,7 +99,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
         -i "pandas.DataFrame.last_valid_index SA01" \
-        -i "pandas.DataFrame.mask RT03" \
         -i "pandas.DataFrame.max RT03" \
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
@@ -399,7 +398,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.mask RT03" \
         -i "pandas.Series.max RT03" \
         -i "pandas.Series.mean RT03,SA01" \
         -i "pandas.Series.median RT03,SA01" \
@@ -486,7 +484,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Series.value_counts RT03" \
         -i "pandas.Series.var PR01,RT03,SA01" \
-        -i "pandas.Series.where RT03" \
         -i "pandas.SparseDtype SA01" \
         -i "pandas.Timedelta PR07,SA01" \
         -i "pandas.Timedelta.as_unit SA01" \
