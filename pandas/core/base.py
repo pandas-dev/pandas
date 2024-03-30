@@ -733,9 +733,10 @@ class IndexOpsMixin(OpsMixin):
         """
         delegate = self._values
         nv.validate_minmax_axis(axis)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmax()
+            return delegate.argmax(skipna=skipna)
         else:
             result = nanops.nanargmax(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
@@ -748,9 +749,10 @@ class IndexOpsMixin(OpsMixin):
     ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmin()
+            return delegate.argmin(skipna=skipna)
         else:
             result = nanops.nanargmin(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected

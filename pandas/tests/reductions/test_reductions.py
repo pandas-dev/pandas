@@ -856,7 +856,7 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        msg = "attempt to get argmin of an empty sequence"
+        msg = "Encountered all NA values"
         with pytest.raises(ValueError, match=msg):
             allna.idxmin()
 
@@ -889,7 +889,7 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        msg = "attempt to get argmax of an empty sequence"
+        msg = "Encountered all NA values"
         with pytest.raises(ValueError, match=msg):
             allna.idxmax()
 
@@ -1145,18 +1145,15 @@ class TestSeriesReductions:
         if not using_infer_string:
             # attempting to compare np.nan with string raises
             ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
-            result = ser3.idxmax()
-            expected = 0
-            assert result == expected
-
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            msg = "'>' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmax()
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmax(skipna=False)
-
-            result = ser3.idxmin()
-            expected = 2
-            assert result == expected
-
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            msg = "'<' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmin()
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):
