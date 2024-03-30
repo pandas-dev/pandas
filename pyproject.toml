@@ -154,7 +154,7 @@ build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
 # TODO: remove this once numpy 2.0 proper releases
 # and specify numpy 2.0 as a dependency in [build-system] requires in pyproject.toml
-before-build: "pip install numpy==2.0.0rc1"
+before-build = "pip install numpy==2.0.0rc1"
 test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
