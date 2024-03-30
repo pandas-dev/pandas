@@ -2543,7 +2543,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     notnull = notna
 
-    def fillna(self, value=None):
+    def fillna(self, value):
         """
         Fill NA/NaN values with the specified value.
 

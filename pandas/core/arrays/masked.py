@@ -236,7 +236,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
 
         value = missing.check_value_size(value, mask, len(self))
