@@ -64,9 +64,10 @@ def melt(
     value_vars : scalar, tuple, list, or ndarray, optional
         Column(s) to unpivot. If not specified, uses all columns that
         are not set as `id_vars`.
-    var_name : scalar, default None
+    var_name : scalar, tuple, list, or ndarray, optional
         Name to use for the 'variable' column. If None it uses
-        ``frame.columns.name`` or 'variable'.
+        ``frame.columns.name`` or 'variable'. Must be a scalar if columns are a
+        MultiIndex.
     value_name : scalar, default 'value'
         Name to use for the 'value' column, can't be an existing column label.
     col_level : scalar, optional
@@ -217,7 +218,15 @@ def melt(
                 frame.columns.name if frame.columns.name is not None else "variable"
             ]
     elif is_list_like(var_name):
-        raise ValueError(f"{var_name=} must be a scalar.")
+        if isinstance(frame.columns, MultiIndex):
+            var_name = list(var_name)
+            if len(var_name) > len(frame.columns):
+                raise ValueError(
+                    f"{var_name=} has {len(var_name)} items, "
+                    f"but the dataframe columns only have {len(frame.columns)} levels."
+                )
+        else:
+            raise ValueError(f"{var_name=} must be a scalar.")
     else:
         var_name = [var_name]
 
