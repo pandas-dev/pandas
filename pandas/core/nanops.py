@@ -31,7 +31,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_complex,
@@ -521,12 +520,7 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        warnings.warn(
-            "'any' with datetime64 dtypes is deprecated and will raise in a "
-            "future version. Use (obj != pd.Timestamp(0)).any() instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+        raise TypeError("datetime64 type does not support operation: 'any'")
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -582,12 +576,7 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        warnings.warn(
-            "'all' with datetime64 dtypes is deprecated and will raise in a "
-            "future version. Use (obj != pd.Timestamp(0)).all() instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+        raise TypeError("datetime64 type does not support operation: 'all'")
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
@@ -1441,17 +1430,18 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                return -1
+                raise ValueError("Encountered all NA values")
         else:
             if mask.any():
-                return -1
+                raise ValueError("Encountered an NA value with skipna=False")
     else:
-        if skipna:
-            na_mask = mask.all(axis)
-        else:
-            na_mask = mask.any(axis)
+        na_mask = mask.all(axis)
         if na_mask.any():
-            result[na_mask] = -1
+            raise ValueError("Encountered all NA values")
+        elif not skipna:
+            na_mask = mask.any(axis)
+            if na_mask.any():
+                raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

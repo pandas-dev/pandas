@@ -260,7 +260,7 @@ class TestMerge:
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
-        merged = merge(left, right, left_index=True, right_index=True, copy=True)
+        merged = merge(left, right, left_index=True, right_index=True)
 
         merged["a"] = 6
         assert (left["a"] == 0).all()
@@ -272,7 +272,7 @@ class TestMerge:
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
-        merged = merge(left, right, left_index=True, right_index=True, copy=False)
+        merged = merge(left, right, left_index=True, right_index=True)
 
         assert np.shares_memory(merged["a"]._values, left["a"]._values)
         if not using_infer_string:
