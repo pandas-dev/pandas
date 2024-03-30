@@ -62,11 +62,9 @@ class TestEmptyConcat:
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = concat([s1, s2], axis=0)
+        res = concat([s1, s2], axis=0)
         # name will be reset
-        exp = Series([1, 2, 3])
+        exp = Series([1, 2, 3], dtype="float64")
         tm.assert_series_equal(res, exp)
 
         # empty Series with no name
