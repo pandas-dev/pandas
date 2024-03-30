@@ -124,7 +124,22 @@ class NumpyExtensionArray(  # type: ignore[misc]
         # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
         # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
         # _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        if (None not in scalars):
+            result = np.asarray(scalars, dtype=dtype)
+        else:
+            try:
+                scalars_not_none=[item for item in scalars if item is not None]
+            except:
+                raise ValueError("NumpyExtensionArray must be 1-dimensional")
+            indexes_not_none=[]
+            indexed_data=[None]* len(scalars)
+            scalars_not_none_casted=np.asarray(scalars_not_none, dtype=dtype)
+            for i in range(len(scalars)):
+                if scalars[i] is not None:
+                    indexes_not_none.append(i)
+            for i in range(len(scalars_not_none)):
+                indexed_data[indexes_not_none[i]]=scalars_not_none_casted[i]
+            result=np.asarray(indexed_data, dtype="object")
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
