@@ -72,9 +72,6 @@ jobs:
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
             pip3 install cibuildwheel==2.15.0
-            # TODO: remove this once numpy 2.0 proper releases
-            # and specify numpy 2.0 as a dependency in [build-system] requires in pyproject.toml
-            export CIBW_BEFORE_BUILD="pip install numpy==2.0.0rc1"
             cibuildwheel --prerelease-pythons --output-dir wheelhouse
 
           environment:

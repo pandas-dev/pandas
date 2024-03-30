@@ -146,9 +146,6 @@ jobs:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_PRERELEASE_PYTHONS: True
-          # TODO: remove this once numpy 2.0 proper releases
-          # and specify numpy 2.0 as a dependency in [build-system] requires in pyproject.toml
-          CIBW_BEFORE_BUILD: pip install numpy==2.0.0rc1
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       - name: Set up Python
