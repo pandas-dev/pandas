@@ -329,11 +329,10 @@ class BaseGetitemTests:
         result = s.get("Z")
         assert result is None
 
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert s.get(4) == s.iloc[4]
-            assert s.get(-1) == s.iloc[-1]
-            assert s.get(len(s)) is None
+        # As of 3.0, getitem with int keys treats them as labels
+        assert s.get(4) is None
+        assert s.get(-1) is None
+        assert s.get(len(s)) is None
 
         # GH 21257
         s = pd.Series(data)

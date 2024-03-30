@@ -32,27 +32,16 @@ def test_basic_indexing():
         np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
     )
 
-    warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
-    msg = "index 5 is out of bounds for axis 0 with size 5"
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+    with pytest.raises(KeyError, match="^5$"):
+        s[5]
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
 
     s = s.sort_index()
 
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
-    msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+    with pytest.raises(KeyError, match="^5$"):
+        s[5]
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
@@ -153,9 +142,7 @@ def test_series_box_timestamp():
     assert isinstance(ser.iloc[4], Timestamp)
 
     ser = Series(rng, index=rng)
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert isinstance(ser[0], Timestamp)
+    assert isinstance(ser[rng[0]], Timestamp)
     assert isinstance(ser.at[rng[1]], Timestamp)
     assert isinstance(ser.iat[2], Timestamp)
     assert isinstance(ser.loc[rng[3]], Timestamp)
