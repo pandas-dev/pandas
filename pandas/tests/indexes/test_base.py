@@ -969,7 +969,8 @@ class TestIndex:
         assert filtered_index.is_unique
 
     def test_slice_is_montonic(self):
-        """Test that is_monotonic resets on slices."""
+        """Test that is_monotonic_decreasing is correct on slices."""
+        # GH 57911
         index = Index([1, 2, 3, 3])
         assert not index.is_monotonic_decreasing
 
