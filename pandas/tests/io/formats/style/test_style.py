@@ -77,6 +77,8 @@ def mi_styler_comp(mi_styler):
             columns=mi_styler.columns,
         )
     )
+    mi_styler.format_index_names(escape="html", axis=0)
+    mi_styler.format_index_names(escape="html", axis=1)
     return mi_styler
 
 

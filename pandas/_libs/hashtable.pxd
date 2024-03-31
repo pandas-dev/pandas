@@ -183,7 +183,7 @@ cdef class Int64Vector(Vector):
     cdef Int64VectorData data
     cdef ndarray ao
 
-    cdef resize(self)
+    cdef resize(self, Py_ssize_t new_size)
     cpdef ndarray to_array(self)
     cdef void append(self, int64_t x) noexcept
     cdef extend(self, int64_t[:] x)
