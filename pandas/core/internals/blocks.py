@@ -1389,12 +1389,9 @@ class Block(PandasObject, libinternals.Block):
             return [self.copy(deep=False)]
 
         if self.dtype == _dtype_obj:
-            # only deal with floats
-            # bc we already checked that can_hold_na, we don't have int dtype here
-            # test_interp_basic checks that we make a copy here
-            raise TypeError(
-                f"{type(self).__name__} cannot interpolate with object dtype."
-            )
+            # GH#53631
+            name = {1: "Series", 2: "DataFrame"}[self.ndim]
+            raise TypeError(f"{name} cannot interpolate with object dtype.")
 
         copy, refs = self._get_refs_and_copy(inplace)
 

@@ -76,7 +76,7 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        msg = ".* cannot interpolate with object dtype"
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
@@ -102,7 +102,7 @@ class TestDataFrameInterpolate:
             }
         )
 
-        msg = ".* cannot interpolate with object dtype"
+        msg = "DataFrame cannot interpolate with object dtype"
         if not using_infer_string:
             with pytest.raises(TypeError, match=msg):
                 df.set_index("C").interpolate()
@@ -296,14 +296,14 @@ class TestDataFrameInterpolate:
                 "E": [1, 2, 3, 4],
             }
         )
-        msg = ".* cannot interpolate with object dtype"
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.astype("object").interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype="object")
-        msg = ".* cannot interpolate with object dtype"
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
