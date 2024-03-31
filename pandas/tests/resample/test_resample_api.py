@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -35,13 +34,13 @@ def test_frame(dti, _test_series):
 def test_str(_test_series):
     r = _test_series.resample("h")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, closed=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
     r = _test_series.resample("h", origin="2000-01-01")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, closed=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
@@ -78,7 +77,7 @@ def test_groupby_resample_api():
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
@@ -297,32 +296,6 @@ def test_transform_frame(on):
     tm.assert_frame_equal(result, expected)
 
 
-def test_fillna():
-    # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2s")
-    ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
-    r = ts.resample("s")
-
-    expected = r.ffill()
-    msg = "DatetimeIndexResampler.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="ffill")
-    tm.assert_series_equal(result, expected)
-
-    expected = r.bfill()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="bfill")
-    tm.assert_series_equal(result, expected)
-
-    msg2 = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
-        r"\(bfill\) or nearest\. Got 0"
-    )
-    with pytest.raises(ValueError, match=msg2):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            r.fillna(0)
-
-
 @pytest.mark.parametrize(
     "func",
     [
@@ -467,34 +440,30 @@ def cases(request):
 
 def test_agg_mixed_column_aggregation(cases, a_mean, a_std, b_mean, b_std, request):
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
-    msg = "using SeriesGroupBy.[mean|std]"
+    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "<lambda_0>"]])
     # "date" is an index and a column, so get included in the agg
     if "df_mult" in request.node.callspec.id:
         date_mean = cases["date"].mean()
         date_std = cases["date"].std()
         expected = pd.concat([date_mean, date_std, expected], axis=1)
         expected.columns = pd.MultiIndex.from_product(
-            [["date", "A", "B"], ["mean", "std"]]
+            [["date", "A", "B"], ["mean", "<lambda_0>"]]
         )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.aggregate([np.mean, np.std])
+    result = cases.aggregate([np.mean, lambda x: np.std(x, ddof=1)])
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "agg",
     [
-        {"func": {"A": np.mean, "B": np.std}},
-        {"A": ("A", np.mean), "B": ("B", np.std)},
-        {"A": NamedAgg("A", np.mean), "B": NamedAgg("B", np.std)},
+        {"func": {"A": np.mean, "B": lambda x: np.std(x, ddof=1)}},
+        {"A": ("A", np.mean), "B": ("B", lambda x: np.std(x, ddof=1))},
+        {"A": NamedAgg("A", np.mean), "B": NamedAgg("B", lambda x: np.std(x, ddof=1))},
     ],
 )
 def test_agg_both_mean_std_named_result(cases, a_mean, b_std, agg):
-    msg = "using SeriesGroupBy.[mean|std]"
     expected = pd.concat([a_mean, b_std], axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.aggregate(**agg)
+    result = cases.aggregate(**agg)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -550,11 +519,9 @@ def test_agg_dict_of_lists(cases, a_mean, a_std, b_mean, b_std):
 )
 def test_agg_with_lambda(cases, agg):
     # passed lambda
-    msg = "using SeriesGroupBy.sum"
     rcustom = cases["B"].apply(lambda x: np.std(x, ddof=1))
     expected = pd.concat([cases["A"].sum(), rcustom], axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.agg(**agg)
+    result = cases.agg(**agg)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -618,26 +585,6 @@ def test_agg_specificationerror_invalid_names(cases):
     msg = r"Column\(s\) \['B'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         cases[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-
-
-@pytest.mark.parametrize(
-    "func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}]
-)
-def test_multi_agg_axis_1_raises(func):
-    # GH#46904
-
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
-    index.name = "date"
-    df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
-    ).T
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        res = df.resample("ME", axis=1)
-        with pytest.raises(
-            NotImplementedError, match="axis other than 0 is not supported"
-        ):
-            res.agg(func)
 
 
 def test_agg_nested_dicts():
@@ -761,7 +708,9 @@ def test_selection_api_validation():
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    with pytest.raises(TypeError, match="datetime64 type does not support sum"):
+    with pytest.raises(
+        TypeError, match="datetime64 type does not support operation: 'sum'"
+    ):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)
     tm.assert_frame_equal(exp, result)
@@ -1005,77 +954,6 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "method, raises",
-    [
-        ("sum", True),
-        ("prod", True),
-        ("min", True),
-        ("max", True),
-        ("first", False),
-        ("last", False),
-        ("median", False),
-        ("mean", True),
-        ("std", True),
-        ("var", True),
-        ("sem", False),
-        ("ohlc", False),
-        ("nunique", False),
-    ],
-)
-def test_args_kwargs_depr(method, raises):
-    index = date_range("20180101", periods=3, freq="h")
-    df = Series([2, 4, 6], index=index)
-    resampled = df.resample("30min")
-    args = ()
-
-    func = getattr(resampled, method)
-
-    error_msg = "numpy operations are not valid with resample."
-    error_msg_type = "too many arguments passed in"
-    warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
-
-    if raises:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                func(*args, 1, 2, 3)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(TypeError, match=error_msg_type):
-                func(*args, 1, 2, 3)
-
-
-def test_df_axis_param_depr():
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
-    index.name = "date"
-    df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
-    ).T
-
-    # Deprecation error when axis=1 is explicitly passed
-    warning_msg = "DataFrame.resample with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("ME", axis=1)
-
-    # Deprecation error when axis=0 is explicitly passed
-    df = df.T
-    warning_msg = (
-        "The 'axis' keyword in DataFrame.resample is deprecated and "
-        "will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("ME", axis=0)
-
-
-def test_series_axis_param_depr(_test_series):
-    warning_msg = (
-        "The 'axis' keyword in Series.resample is "
-        "deprecated and will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        _test_series.resample("h", axis=0)
 
 
 def test_resample_empty():

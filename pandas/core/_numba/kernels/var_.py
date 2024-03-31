@@ -6,6 +6,7 @@ Numba 1D var kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -116,7 +117,7 @@ def sliding_var(
                     ssqdm_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
+                    prev_value,
                 )
         else:
             for j in range(start[i - 1], s):
@@ -141,7 +142,7 @@ def sliding_var(
                     ssqdm_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
+                    prev_value,
                 )
 
         if nobs >= min_periods and nobs > ddof:

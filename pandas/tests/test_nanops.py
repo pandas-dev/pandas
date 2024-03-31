@@ -14,7 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import nanops
-from pandas.core.arrays import DatetimeArray
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -297,6 +296,7 @@ class TestnanopsDataFrame:
         self,
         testfunc,
         targfunc,
+        testar,
         testarval,
         targarval,
         skipna,
@@ -320,6 +320,13 @@ class TestnanopsDataFrame:
                 else:
                     targ = bool(targ)
 
+            if testfunc.__name__ in ["nanargmax", "nanargmin"] and (
+                testar.startswith("arr_nan")
+                or (testar.endswith("nan") and (not skipna or axis == 1))
+            ):
+                with pytest.raises(ValueError, match="Encountered .* NA value"):
+                    testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+                return
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
@@ -351,6 +358,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval2,
             targarval2,
             skipna=skipna,
@@ -371,6 +379,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval,
             targarval,
             skipna=skipna,
@@ -749,7 +758,6 @@ class TestnanopsDataFrame:
         ("arr_bool", False),
         ("arr_str", False),
         ("arr_utf", False),
-        ("arr_complex", False),
         ("arr_complex_nan", False),
         ("arr_nan_nanj", False),
         ("arr_nan_infj", True),
@@ -1103,27 +1111,19 @@ class TestNankurtFixedValues:
 
 
 class TestDatetime64NaNOps:
-    @pytest.fixture(params=["s", "ms", "us", "ns"])
-    def unit(self, request):
-        return request.param
-
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, unit):
         dti = pd.date_range("2016-01-01", periods=3).as_unit(unit)
         expected = dti[1]
 
-        for obj in [dti, DatetimeArray(dti), Series(dti)]:
-            if isinstance(obj, Series):
-                obj = obj._values
+        for obj in [dti, dti._data]:
             result = nanops.nanmean(obj)
             assert result == expected
 
         dti2 = dti.insert(1, pd.NaT)
 
-        for obj in [dti2, DatetimeArray(dti2), Series(dti2)]:
-            if isinstance(obj, Series):
-                obj = obj._values
+        for obj in [dti2, dti2._data]:
             result = nanops.nanmean(obj)
             assert result == expected
 

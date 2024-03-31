@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import is_platform_little_endian
 
 from pandas import (
@@ -15,19 +17,16 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
-    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
     def test_from_records_dt64tz_frame(self):
-        # GH#51162 don't lose tz when calling from_records with DataFrame input
-        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
-        df = DataFrame({i: dti for i in range(4)})
-        with tm.assert_produces_warning(FutureWarning):
-            res = DataFrame.from_records(df)
-        tm.assert_frame_equal(res, df)
+        # GH#51697
+        df = DataFrame({"a": [1, 2, 3]})
+        with pytest.raises(TypeError, match="not supported"):
+            DataFrame.from_records(df)
 
     def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
@@ -56,6 +55,9 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
+    )
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -80,7 +82,7 @@ class TestFromRecords:
 
         # this is actually tricky to create the recordlike arrays and
         # have the dtypes be intact
-        blocks = df._to_dict_of_blocks(copy=False)
+        blocks = df._to_dict_of_blocks()
         tuples = []
         columns = []
         dtypes = []
@@ -169,7 +171,7 @@ class TestFromRecords:
 
         # columns is in a different order here than the actual items iterated
         # from the dict
-        blocks = df._to_dict_of_blocks(copy=False)
+        blocks = df._to_dict_of_blocks()
         columns = []
         for b in blocks.values():
             columns.extend(b.columns)
@@ -189,43 +191,6 @@ class TestFromRecords:
 
         for r in results:
             tm.assert_frame_equal(r, df)
-
-    def test_from_records_with_index_data(self):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        data = np.random.default_rng(2).standard_normal(10)
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index=data)
-        tm.assert_index_equal(df1.index, Index(data))
-
-    def test_from_records_bad_index_column(self):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        # should pass
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index=["C"])
-        tm.assert_index_equal(df1.index, Index(df.C))
-
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index="C")
-        tm.assert_index_equal(df1.index, Index(df.C))
-
-        # should fail
-        msg = "|".join(
-            [
-                r"'None of \[2\] are in the columns'",
-            ]
-        )
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
         class Record:

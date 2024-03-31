@@ -81,6 +81,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
         for i in range(n):
@@ -99,7 +101,11 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
+cdef float64_t median_linear(
+    float64_t* a,
+    int n,
+    bint is_datetimelike=False
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -109,21 +115,34 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
         return NaN
 
     # count NAs
-    for i in range(n):
-        if a[i] != a[i]:
-            na_count += 1
+    if is_datetimelike:
+        for i in range(n):
+            if a[i] == NPY_NAT:
+                na_count += 1
+    else:
+        for i in range(n):
+            if a[i] != a[i]:
+                na_count += 1
 
     if na_count:
         if na_count == n:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
-        for i in range(n):
-            if a[i] == a[i]:
-                tmp[j] = a[i]
-                j += 1
+        if is_datetimelike:
+            for i in range(n):
+                if a[i] != NPY_NAT:
+                    tmp[j] = a[i]
+                    j += 1
+        else:
+            for i in range(n):
+                if a[i] == a[i]:
+                    tmp[j] = a[i]
+                    j += 1
 
         a = tmp
         n -= na_count
@@ -166,6 +185,7 @@ def group_median_float64(
     Py_ssize_t min_count=-1,
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint is_datetimelike=False,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -224,7 +244,7 @@ def group_median_float64(
                 ptr += _counts[0]
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    out[j, i] = median_linear(ptr, size)
+                    out[j, i] = median_linear(ptr, size, is_datetimelike)
                     ptr += size
 
 
@@ -493,10 +513,10 @@ def group_shift_indexer(
 def group_fillna_indexer(
     ndarray[intp_t] out,
     ndarray[intp_t] labels,
-    ndarray[intp_t] sorted_labels,
     ndarray[uint8_t] mask,
     int64_t limit,
-    bint dropna,
+    bint compute_ffill,
+    int ngroups,
 ) -> None:
     """
     Indexes how to fill values forwards or backwards within a group.
@@ -508,50 +528,52 @@ def group_fillna_indexer(
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
-    sorted_labels : np.ndarray[np.intp]
-        obtained by `np.argsort(labels, kind="mergesort")`
-    values : np.ndarray[np.uint8]
-        Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
-    limit : Consecutive values to fill before stopping, or -1 for no limit
-    dropna : Flag to indicate if NaN groups should return all NaN values
+    limit : int64_t
+        Consecutive values to fill before stopping, or -1 for no limit.
+    compute_ffill : bint
+        Whether to compute ffill or bfill.
+    ngroups : int
+        Number of groups, larger than all entries of `labels`.
 
     Notes
     -----
     This method modifies the `out` parameter rather than returning an object
     """
     cdef:
-        Py_ssize_t i, N, idx
-        intp_t curr_fill_idx=-1
-        int64_t filled_vals = 0
-
-    N = len(out)
+        Py_ssize_t idx, N = len(out)
+        intp_t label
+        intp_t[::1] last = -1 * np.ones(ngroups, dtype=np.intp)
+        intp_t[::1] fill_count = np.zeros(ngroups, dtype=np.intp)
 
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
 
     with nogil:
-        for i in range(N):
-            idx = sorted_labels[i]
-            if dropna and labels[idx] == -1:  # nan-group gets nan-values
-                curr_fill_idx = -1
+        # Can't use for loop with +/- step
+        # https://github.com/cython/cython/issues/1106
+        idx = 0 if compute_ffill else N-1
+        for _ in range(N):
+            label = labels[idx]
+            if label == -1:  # na-group gets na-values
+                out[idx] = -1
             elif mask[idx] == 1:  # is missing
                 # Stop filling once we've hit the limit
-                if filled_vals >= limit and limit != -1:
-                    curr_fill_idx = -1
-                filled_vals += 1
-            else:  # reset items when not missing
-                filled_vals = 0
-                curr_fill_idx = idx
+                if limit != -1 and fill_count[label] >= limit:
+                    out[idx] = -1
+                else:
+                    out[idx] = last[label]
+                    fill_count[label] += 1
+            else:
+                fill_count[label] = 0  # reset items when not missing
+                last[label] = idx
+                out[idx] = idx
 
-            out[idx] = curr_fill_idx
-
-            # If we move to the next group, reset
-            # the fill_idx and counter
-            if i == N - 1 or labels[idx] != labels[sorted_labels[i + 1]]:
-                curr_fill_idx = -1
-                filled_vals = 0
+            if compute_ffill:
+                idx += 1
+            else:
+                idx -= 1
 
 
 @cython.boundscheck(False)
@@ -1284,7 +1306,9 @@ def group_quantile(
                     elif interp == INTERPOLATION_MIDPOINT:
                         out[i, k] = (val + next_val) / 2.0
                     elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and q_val > .5):  # Always OK?
+                        if frac > .5 or (frac == .5 and idx % 2 == 1):
+                            # If quantile lies in the middle of two indexes,
+                            # take the even index, as np.quantile.
                             out[i, k] = next_val
                         else:
                             out[i, k] = val
@@ -1424,6 +1448,7 @@ def group_last(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=-1,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1458,14 +1483,19 @@ def group_last(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                if skipna:
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+                    if isna_entry:
+                        continue
 
-                if not isna_entry:
-                    nobs[lab, j] += 1
-                    resx[lab, j] = val
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+                if uses_mask and not skipna:
+                    result_mask[lab, j] = mask[i, j]
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
@@ -1486,6 +1516,7 @@ def group_nth(
     int64_t min_count=-1,
     int64_t rank=1,
     bint is_datetimelike=False,
+    bint skipna=True,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1520,15 +1551,19 @@ def group_nth(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                if skipna:
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+                    if isna_entry:
+                        continue
 
-                if not isna_entry:
-                    nobs[lab, j] += 1
-                    if nobs[lab, j] == rank:
-                        resx[lab, j] = val
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+                    if uses_mask and not skipna:
+                        result_mask[lab, j] = mask[i, j]
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, resx
@@ -1767,6 +1802,7 @@ def group_idxmin_idxmax(
         Py_ssize_t i, j, N, K, lab
         numeric_object_t val
         numeric_object_t[:, ::1] group_min_or_max
+        uint8_t[:, ::1] seen
         bint uses_mask = mask is not None
         bint isna_entry
         bint compute_max = name == "idxmax"
@@ -1780,13 +1816,10 @@ def group_idxmin_idxmax(
 
     if numeric_object_t is object:
         group_min_or_max = np.empty((<object>out).shape, dtype=object)
+        seen = np.zeros((<object>out).shape, dtype=np.uint8)
     else:
         group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    if N > 0 and K > 0:
-        # When N or K is zero, we never use group_min_or_max
-        group_min_or_max[:] = _get_min_or_max(
-            values[0, 0], compute_max, is_datetimelike
-        )
+        seen = np.zeros_like(out, dtype=np.uint8)
 
     # When using transform, we need a valid value for take in the case
     # a category is not observed; these values will be dropped
@@ -1802,6 +1835,7 @@ def group_idxmin_idxmax(
                 if not skipna and out[lab, j] == -1:
                     # Once we've hit NA there is no going back
                     continue
+
                 val = values[i, j]
 
                 if uses_mask:
@@ -1810,10 +1844,14 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna:
+                    if not skipna or not seen[lab, j]:
                         out[lab, j] = -1
                 else:
-                    if compute_max:
+                    if not seen[lab, j]:
+                        seen[lab, j] = True
+                        group_min_or_max[lab, j] = val
+                        out[lab, j] = i
+                    elif compute_max:
                         if val > group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i

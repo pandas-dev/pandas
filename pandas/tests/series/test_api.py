@@ -138,13 +138,6 @@ class TestSeriesMisc:
         expected = Series(1, index=range(10), dtype="float64")
         tm.assert_series_equal(result, expected)
 
-    def test_ndarray_compat_ravel(self):
-        # ravel
-        s = Series(np.random.default_rng(2).standard_normal(10))
-        with tm.assert_produces_warning(FutureWarning, match="ravel is deprecated"):
-            result = s.ravel(order="F")
-        tm.assert_almost_equal(result, s.values.ravel(order="F"))
-
     def test_empty_method(self):
         s_empty = Series(dtype=object)
         assert s_empty.empty
@@ -171,11 +164,7 @@ class TestSeriesMisc:
         # GH38782
         pytest.importorskip("jinja2")
         ser = Series(dtype=object)
-        msg = "Series._data is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            inspect.getmembers(ser)
+        inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
         # GH#9680
@@ -206,7 +195,6 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",
         [
@@ -227,7 +215,6 @@ class TestSeriesMisc:
             ("count", False),
             ("median", True),
             ("std", True),
-            ("backfill", False),
             ("rank", True),
             ("pct_change", False),
             ("cummax", False),
@@ -238,7 +225,6 @@ class TestSeriesMisc:
             ("cumprod", False),
             ("fillna", False),
             ("ffill", False),
-            ("pad", False),
             ("bfill", False),
             ("sample", False),
             ("tail", False),
@@ -291,10 +277,3 @@ class TestSeriesMisc:
             else:
                 # reducer
                 assert result == expected
-
-
-@pytest.mark.parametrize("converter", [int, float, complex])
-def test_float_int_deprecated(converter):
-    # GH 51101
-    with tm.assert_produces_warning(FutureWarning):
-        assert converter(Series([1])) == converter(1)

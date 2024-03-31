@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import Callable
 import warnings
 
 from dateutil.relativedelta import (
@@ -17,6 +18,7 @@ from dateutil.relativedelta import (
 )
 import numpy as np
 
+from pandas._libs.tslibs.offsets import BaseOffset
 from pandas.errors import PerformanceWarning
 
 from pandas import (
@@ -108,7 +110,7 @@ def nearest_workday(dt: datetime) -> datetime:
 
 def next_workday(dt: datetime) -> datetime:
     """
-    returns next weekday used for observances
+    returns next workday used for observances
     """
     dt += timedelta(days=1)
     while dt.weekday() > 4:
@@ -119,7 +121,7 @@ def next_workday(dt: datetime) -> datetime:
 
 def previous_workday(dt: datetime) -> datetime:
     """
-    returns previous weekday used for observances
+    returns previous workday used for observances
     """
     dt -= timedelta(days=1)
     while dt.weekday() > 4:
@@ -130,7 +132,7 @@ def previous_workday(dt: datetime) -> datetime:
 
 def before_nearest_workday(dt: datetime) -> datetime:
     """
-    returns previous workday after nearest workday
+    returns previous workday before nearest workday
     """
     return previous_workday(nearest_workday(dt))
 
@@ -159,24 +161,34 @@ class Holiday:
         year=None,
         month=None,
         day=None,
-        offset=None,
-        observance=None,
+        offset: BaseOffset | list[BaseOffset] | None = None,
+        observance: Callable | None = None,
         start_date=None,
         end_date=None,
-        days_of_week=None,
+        days_of_week: tuple | None = None,
     ) -> None:
         """
         Parameters
         ----------
         name : str
             Name of the holiday , defaults to class name
-        offset : array of pandas.tseries.offsets or
-                class from pandas.tseries.offsets
-            computes offset from date
-        observance: function
-            computes when holiday is given a pandas Timestamp
-        days_of_week:
-            provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
+        year : int, default None
+            Year of the holiday
+        month : int, default None
+            Month of the holiday
+        day : int, default None
+            Day of the holiday
+        offset : list of pandas.tseries.offsets or
+                class from pandas.tseries.offsets, default None
+            Computes offset from date
+        observance : function, default None
+            Computes when holiday is given a pandas Timestamp
+        start_date : datetime-like, default None
+            First date the holiday is observed
+        end_date : datetime-like, default None
+            Last date the holiday is observed
+        days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
+            Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
 
         Examples
@@ -200,8 +212,10 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = pd.tseries.holiday.Holiday(
-        ...     "New Years Day", month=1,  day=1,
-        ...      observance=pd.tseries.holiday.nearest_workday
+        ...     "New Years Day",
+        ...     month=1,
+        ...     day=1,
+        ...     observance=pd.tseries.holiday.nearest_workday,
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
@@ -209,14 +223,24 @@ class Holiday:
         )
 
         >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3,
-        ...     days_of_week=(0, 1, 2, 3)
+        ...     "July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3)
         ... )
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
         """
-        if offset is not None and observance is not None:
-            raise NotImplementedError("Cannot use both offset and observance.")
+        if offset is not None:
+            if observance is not None:
+                raise NotImplementedError("Cannot use both offset and observance.")
+            if not (
+                isinstance(offset, BaseOffset)
+                or (
+                    isinstance(offset, list)
+                    and all(isinstance(off, BaseOffset) for off in offset)
+                )
+            ):
+                raise ValueError(
+                    "Only BaseOffsets and flat lists of them are supported for offset."
+                )
 
         self.name = name
         self.year = year
@@ -384,7 +408,7 @@ def register(cls) -> None:
     holiday_calendars[name] = cls
 
 
-def get_calendar(name: str):
+def get_calendar(name: str) -> AbstractHolidayCalendar:
     """
     Return an instance of a calendar based on its name.
 
@@ -433,7 +457,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if rules is not None:
             self.rules = rules
 
-    def rule_from_name(self, name: str):
+    def rule_from_name(self, name: str) -> Holiday | None:
         for rule in self.rules:
             if rule.name == name:
                 return rule
@@ -484,9 +508,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "DataFrame")
-                holidays = Series(
-                    index=DatetimeIndex([]), dtype=object
-                )  # type: ignore[assignment]
+                holidays = Series(index=DatetimeIndex([]), dtype=object)  # type: ignore[assignment]
 
             self._cache = (start, end, holidays.sort_index())
 

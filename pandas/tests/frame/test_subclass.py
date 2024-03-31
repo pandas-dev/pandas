@@ -15,17 +15,18 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
-def gpd_style_subclass_df():
-    class SubclassedDataFrame(DataFrame):
-        @property
-        def _constructor(self):
-            return SubclassedDataFrame
-
-    return SubclassedDataFrame({"a": [1, 2, 3]})
-
-
 class TestDataFrameSubclassing:
+    def test_no_warning_on_mgr(self):
+        # GH#57032
+        df = tm.SubclassedDataFrame(
+            {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
+        )
+        with tm.assert_produces_warning(None):
+            # df.isna() goes through _constructor_from_mgr, which we want to
+            #  *not* pass a Manager do __init__
+            df.isna()
+            df["X"].isna()
+
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632
@@ -218,7 +219,7 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.stack(future_stack=True)
+        res = df.stack()
         exp = tm.SubclassedSeries(
             [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
         )
@@ -255,10 +256,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack(future_stack=True)
+        res = df.stack()
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy", future_stack=True)
+        res = df.stack("yyy")
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -279,7 +280,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www", future_stack=True)
+        res = df.stack("www")
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_stack_multi_mixed(self):
@@ -317,10 +318,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack(future_stack=True)
+        res = df.stack()
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy", future_stack=True)
+        res = df.stack("yyy")
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -341,7 +342,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www", future_stack=True)
+        res = df.stack("www")
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
@@ -710,14 +711,21 @@ class TestDataFrameSubclassing:
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
-    def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
+    def test_convert_dtypes_preserves_subclass(self):
         # GH 43668
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.convert_dtypes()
         assert isinstance(result, tm.SubclassedDataFrame)
 
-        result = gpd_style_subclass_df.convert_dtypes()
-        assert isinstance(result, type(gpd_style_subclass_df))
+    def test_convert_dtypes_preserves_subclass_with_constructor(self):
+        class SubclassedDataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return SubclassedDataFrame
+
+        df = SubclassedDataFrame({"a": [1, 2, 3]})
+        result = df.convert_dtypes()
+        assert isinstance(result, SubclassedDataFrame)
 
     def test_astype_preserves_subclass(self):
         # GH#40810
@@ -733,18 +741,6 @@ class TestDataFrameSubclassing:
         df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
         assert df1.equals(df2)
         assert df2.equals(df1)
-
-    def test_replace_list_method(self):
-        # https://github.com/pandas-dev/pandas/pull/46018
-        df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
-            result = df.replace([1, 2], method="ffill")
-        expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
-        assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
 
 
 class MySubclassWithMetadata(DataFrame):

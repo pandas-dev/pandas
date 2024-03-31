@@ -45,7 +45,6 @@ from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
@@ -703,17 +702,12 @@ cdef datetime dateutil_parse(
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
             if res.tzname != "UTC":
-                # If the system is localized in UTC (as many CI runs are)
-                #  we get tzlocal, once the deprecation is enforced will get
-                #  timezone.utc, not raise.
-                warnings.warn(
+                raise ValueError(
                     f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "is no longer supported. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level()
                 )
-            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
@@ -733,15 +727,10 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
@@ -920,8 +909,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
         (("hour", "minute", "second"), "%H%M%S", 0),
-        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
         (("month",), "%m", 2),
@@ -941,8 +930,10 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
-    # same default used by dateutil
-    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Use this instead of the dateutil default of
+    # `datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)`
+    # as that causes issues on the 29th of February.
+    default = datetime(1970, 1, 1)
     try:
         parsed_datetime = dateutil_parse(
             dt_str,

@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from datetime import datetime
 from io import StringIO
 import os
@@ -145,20 +146,21 @@ bar,two,12,13,14,15
 
 @xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
-    "data,expected,header",
+    "data,columns,header",
     [
-        ("a,b", DataFrame(columns=["a", "b"]), [0]),
+        ("a,b", ["a", "b"], [0]),
         (
             "a,b\nc,d",
-            DataFrame(columns=MultiIndex.from_tuples([("a", "c"), ("b", "d")])),
+            MultiIndex.from_tuples([("a", "c"), ("b", "d")]),
             [0, 1],
         ),
     ],
 )
 @pytest.mark.parametrize("round_trip", [True, False])
-def test_multi_index_blank_df(all_parsers, data, expected, header, round_trip):
+def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip):
     # see gh-14545
     parser = all_parsers
+    expected = DataFrame(columns=columns)
     data = expected.to_csv(index=False) if round_trip else data
 
     result = parser.read_csv(StringIO(data), header=header)

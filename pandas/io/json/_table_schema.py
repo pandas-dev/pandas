@@ -3,6 +3,7 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/table-schema/
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -15,7 +16,6 @@ import warnings
 from pandas._libs import lib
 from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
@@ -212,8 +212,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
         elif field.get("freq"):
             # GH#9586 rename frequency M to ME for offsets
             offset = to_offset(field["freq"])
-            freq_n, freq_name = offset.n, offset.name
-            freq = freq_to_period_freqstr(freq_n, freq_name)
+            freq = PeriodDtype(offset)._freqstr
             # GH#47747 using datetime over period to minimize the change surface
             return f"period[{freq}]"
         else:
@@ -277,7 +276,7 @@ def build_table_schema(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],
     ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
-    ...     }, index=pd.Index(range(3), name='idx'))
+    ...      }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
     {'fields': \
 [{'name': 'idx', 'type': 'integer'}, \

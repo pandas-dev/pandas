@@ -8,10 +8,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
@@ -153,7 +150,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -553,9 +552,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
         #  of a NumpyExtensionArray
-        if result.dtype.kind == "m" and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        if result.dtype.kind == "m" and is_supported_dtype(result.dtype):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)

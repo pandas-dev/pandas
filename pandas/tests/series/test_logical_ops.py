@@ -15,7 +15,6 @@ from pandas.core import ops
 
 
 class TestSeriesLogicalOps:
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize("bool_op", [operator.and_, operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
         # boolean &, |, ^ should work with object arrays and propagate NAs
@@ -40,11 +39,11 @@ class TestSeriesLogicalOps:
         s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
-        expected = s_fff
+        expected = s_fff.sort_index()
         tm.assert_series_equal(res, expected)
 
         res = s_tft | s_empty
-        expected = s_tft
+        expected = s_tft.sort_index()
         tm.assert_series_equal(res, expected)
 
     def test_logical_operators_int_dtype_with_int_dtype(self):
@@ -345,9 +344,9 @@ class TestSeriesLogicalOps:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (ops.rand_, Series([False, False])),
-            (ops.ror_, Series([True, True])),
-            (ops.rxor, Series([True, True])),
+            (ops.rand_, [False, False]),
+            (ops.ror_, [True, True]),
+            (ops.rxor, [True, True]),
         ],
     )
     def test_reverse_ops_with_index(self, op, expected):
@@ -358,6 +357,7 @@ class TestSeriesLogicalOps:
         idx = Index([False, True])
 
         result = op(ser, idx)
+        expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
     def test_logical_ops_label_based(self, using_infer_string):
@@ -396,12 +396,12 @@ class TestSeriesLogicalOps:
         # vs empty
         empty = Series([], dtype=object)
 
-        result = a & empty.copy()
-        expected = Series([False, False, False], list("bca"))
+        result = a & empty
+        expected = Series([False, False, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
-        result = a | empty.copy()
-        expected = Series([True, False, True], list("bca"))
+        result = a | empty
+        expected = Series([True, True, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
@@ -530,3 +530,19 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+    def test_pyarrow_numpy_string_invalid(self):
+        # GH#56008
+        pytest.importorskip("pyarrow")
+        ser = Series([False, True])
+        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = ser == ser2
+        expected = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        result = ser != ser2
+        expected = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser2

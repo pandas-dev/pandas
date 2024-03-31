@@ -257,18 +257,14 @@ def test_assert_almost_equal_strings():
     _assert_almost_equal_both("abc", "abc")
 
 
-@pytest.mark.parametrize(
-    "a,b", [("abc", "abcd"), ("abc", "abd"), ("abc", 1), ("abc", [1])]
-)
-def test_assert_not_almost_equal_strings(a, b):
-    _assert_not_almost_equal_both(a, b)
+@pytest.mark.parametrize("b", ["abcd", "abd", 1, [1]])
+def test_assert_not_almost_equal_strings(b):
+    _assert_not_almost_equal_both("abc", b)
 
 
-@pytest.mark.parametrize(
-    "a,b", [([1, 2, 3], [1, 2, 3]), (np.array([1, 2, 3]), np.array([1, 2, 3]))]
-)
-def test_assert_almost_equal_iterables(a, b):
-    _assert_almost_equal_both(a, b)
+@pytest.mark.parametrize("box", [list, np.array])
+def test_assert_almost_equal_iterables(box):
+    _assert_almost_equal_both(box([1, 2, 3]), box([1, 2, 3]))
 
 
 @pytest.mark.parametrize(
@@ -315,7 +311,7 @@ objs = [NA, np.nan, NaT, None, np.datetime64("NaT"), np.timedelta64("NaT")]
 
 @pytest.mark.parametrize("left", objs)
 @pytest.mark.parametrize("right", objs)
-def test_mismatched_na_assert_almost_equal_deprecation(left, right):
+def test_mismatched_na_assert_almost_equal(left, right):
     left_arr = np.array([left], dtype=object)
     right_arr = np.array([right], dtype=object)
 
@@ -335,7 +331,7 @@ def test_mismatched_na_assert_almost_equal_deprecation(left, right):
         )
 
     else:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(AssertionError, match=msg):
             _assert_almost_equal_both(left, right, check_dtype=False)
 
         # TODO: to get the same deprecation in assert_numpy_array_equal we need
@@ -343,11 +339,11 @@ def test_mismatched_na_assert_almost_equal_deprecation(left, right):
         # TODO: to get the same deprecation in assert_index_equal we need to
         #  change/deprecate array_equivalent_object to be stricter, as
         #  assert_index_equal uses Index.equal which uses array_equivalent.
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(AssertionError, match="Series are different"):
             tm.assert_series_equal(
                 Series(left_arr, dtype=object), Series(right_arr, dtype=object)
             )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(AssertionError, match="DataFrame.iloc.* are different"):
             tm.assert_frame_equal(
                 DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
             )

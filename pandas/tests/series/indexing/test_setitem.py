@@ -7,6 +7,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
@@ -436,7 +437,7 @@ class TestSetitemBooleanMask:
 
 
 class TestSetitemViewCopySemantics:
-    def test_setitem_invalidates_datetime_index_freq(self, using_copy_on_write):
+    def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz Series inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex
 
@@ -444,10 +445,7 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        if using_copy_on_write:
-            assert ser._values._ndarray.base is dti._data._ndarray.base
-        else:
-            assert ser._values._ndarray.base is not dti._data._ndarray.base
+        assert ser._values._ndarray.base is dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
@@ -458,18 +456,14 @@ class TestSetitemViewCopySemantics:
         assert dti[1] == ts
         assert dti.freq == "D"
 
-    def test_dt64tz_setitem_does_not_mutate_dti(self, using_copy_on_write):
+    def test_dt64tz_setitem_does_not_mutate_dti(self):
         # GH#21907, GH#24096
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        if using_copy_on_write:
-            assert ser._values._ndarray.base is dti._data._ndarray.base
-            assert ser._mgr.arrays[0]._ndarray.base is dti._data._ndarray.base
-        else:
-            assert ser._values._ndarray.base is not dti._data._ndarray.base
-            assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
+        assert ser._values._ndarray.base is dti._data._ndarray.base
+        assert ser._mgr.arrays[0]._ndarray.base is dti._data._ndarray.base
 
         assert ser._mgr.arrays[0] is not dti
 
@@ -501,11 +495,11 @@ class TestSetitemCallable:
 
 class TestSetitemWithExpansion:
     def test_setitem_empty_series(self):
-        # GH#10193
+        # GH#10193, GH#51363 changed in 3.0 to not do inference in Index.insert
         key = Timestamp("2012-01-01")
         series = Series(dtype=object)
         series[key] = 47
-        expected = Series(47, [key])
+        expected = Series(47, Index([key], dtype=object))
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
@@ -1440,6 +1434,10 @@ class TestCoercionFloat64(CoercionTest):
             np.float32,
             None,
             marks=pytest.mark.xfail(
+                (
+                    not np_version_gte1p24
+                    or (np_version_gte1p24 and np._get_promotion_state() != "weak")
+                ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",
             ),
@@ -1794,11 +1792,7 @@ def test_setitem_with_bool_indexer():
 @pytest.mark.parametrize(
     "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
-# Test numpy arrays, lists and tuples as the input to be
-# broadcast
-@pytest.mark.parametrize(
-    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
-)
+@pytest.mark.parametrize("box", [np.array, list, tuple])
 def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, box):
     # GH#44265
     # see also tests.series.indexing.test_where.test_broadcast
@@ -1816,11 +1810,11 @@ def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, bo
         )
         with pytest.raises(ValueError, match=msg):
             # GH#44265
-            ser[selection] = box(item)
+            ser[selection] = box([item])
     else:
         # In this corner case setting is equivalent to setting with the unboxed
         #  item
-        ser[selection] = box(item)
+        ser[selection] = box([item])
 
         expected = Series(np.arange(size, dtype=float))
         expected[selection] = item
