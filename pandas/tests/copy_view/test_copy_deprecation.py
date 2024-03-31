@@ -1,6 +1,10 @@
 import pytest
 
 import pandas as pd
+from pandas import (
+    concat,
+    merge,
+)
 import pandas._testing as tm
 
 
@@ -13,20 +17,33 @@ import pandas._testing as tm
         ("infer_objects", {}),
         ("astype", {"dtype": "float64"}),
         ("reindex", {"index": [2, 0, 1]}),
+        ("transpose", {}),
+        ("set_axis", {"labels": [1, 2, 3]}),
+        ("rename", {"index": {1: 2}}),
+        ("set_flags", {}),
+        ("to_period", {}),
+        ("to_timestamp", {}),
+        ("swaplevel", {"i": 0, "j": 1}),
     ],
 )
 def test_copy_deprecation(meth, kwargs):
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": 1})
 
-    if meth in ("tz_convert", "tz_localize"):
-        tz = None if meth == "tz_localize" else "US/Eastern"
+    if meth in ("tz_convert", "tz_localize", "to_period"):
+        tz = None if meth in ("tz_localize", "to_period") else "US/Eastern"
         df.index = pd.date_range("2020-01-01", freq="D", periods=len(df), tz=tz)
+    elif meth == "to_timestamp":
+        df.index = pd.period_range("2020-01-01", freq="D", periods=len(df))
+    elif meth == "swaplevel":
+        df = df.set_index(["b", "c"])
 
-    with tm.assert_produces_warning(DeprecationWarning, match="copy"):
-        getattr(df, meth)(copy=False, **kwargs)
+    if meth != "swaplevel":
+        with tm.assert_produces_warning(DeprecationWarning, match="copy"):
+            getattr(df, meth)(copy=False, **kwargs)
 
-    with tm.assert_produces_warning(DeprecationWarning, match="copy"):
-        getattr(df.a, meth)(copy=False, **kwargs)
+    if meth != "transpose":
+        with tm.assert_produces_warning(DeprecationWarning, match="copy"):
+            getattr(df.a, meth)(copy=False, **kwargs)
 
 
 def test_copy_deprecation_reindex_like_align():
@@ -51,3 +68,22 @@ def test_copy_deprecation_reindex_like_align():
         DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.a.align(df.a, copy=False)
+
+
+def test_copy_deprecation_merge_concat():
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    with tm.assert_produces_warning(
+        DeprecationWarning, match="copy", check_stacklevel=False
+    ):
+        df.merge(df, copy=False)
+
+    with tm.assert_produces_warning(
+        DeprecationWarning, match="copy", check_stacklevel=False
+    ):
+        merge(df, df, copy=False)
+
+    with tm.assert_produces_warning(
+        DeprecationWarning, match="copy", check_stacklevel=False
+    ):
+        concat([df, df], copy=False)

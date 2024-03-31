@@ -241,16 +241,16 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (None, ""),
-        "any": (None, ""),
+        "all": (TypeError, "datetime64 type does not support operation: 'all'"),
+        "any": (TypeError, "datetime64 type does not support operation: 'any'"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (None, ""),
         "cummin": (None, ""),
-        "cumprod": (TypeError, "datetime64 type does not support cumprod operations"),
-        "cumsum": (TypeError, "datetime64 type does not support cumsum operations"),
+        "cumprod": (TypeError, "datetime64 type does not support operation: 'cumprod'"),
+        "cumsum": (TypeError, "datetime64 type does not support operation: 'cumsum'"),
         "diff": (None, ""),
         "ffill": (None, ""),
         "fillna": (None, ""),
@@ -265,7 +265,7 @@ def test_groupby_raises_datetime(
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "cannot perform __truediv__ with this index type"),
-        "prod": (TypeError, "datetime64 type does not support prod"),
+        "prod": (TypeError, "datetime64 type does not support operation: 'prod'"),
         "quantile": (None, ""),
         "rank": (None, ""),
         "sem": (None, ""),
@@ -276,18 +276,16 @@ def test_groupby_raises_datetime(
             "|".join(
                 [
                     r"dtype datetime64\[ns\] does not support reduction",
-                    "datetime64 type does not support skew operations",
+                    "datetime64 type does not support operation: 'skew'",
                 ]
             ),
         ),
         "std": (None, ""),
-        "sum": (TypeError, "datetime64 type does not support sum operations"),
-        "var": (TypeError, "datetime64 type does not support var operations"),
+        "sum": (TypeError, "datetime64 type does not support operation: 'sum"),
+        "var": (TypeError, "datetime64 type does not support operation: 'var'"),
     }[groupby_func]
 
-    if groupby_func in ["any", "all"]:
-        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
-    elif groupby_func == "fillna":
+    if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
     else:

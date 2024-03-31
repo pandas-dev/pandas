@@ -196,19 +196,6 @@ class TestSeriesReplace:
         assert return_value is None
         tm.assert_series_equal(s, pd.Series([0, 0, 0, 0, 4]))
 
-        # make sure things don't get corrupted when fillna call fails
-        s = ser.copy()
-        msg = (
-            r"Invalid fill method\. Expecting pad \(ffill\) or backfill "
-            r"\(bfill\)\. Got crash_cymbal"
-        )
-        msg3 = "The 'method' keyword in Series.replace is deprecated"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg3):
-                return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
-            assert return_value is None
-        tm.assert_series_equal(s, ser)
-
     def test_replace_mixed_types(self):
         ser = pd.Series(np.arange(5), dtype="int64")
 
@@ -549,62 +536,6 @@ class TestSeriesReplace:
         result = obj.replace("", "")  # no exception
         # should not have changed dtype
         tm.assert_equal(obj, result)
-
-    def _check_replace_with_method(self, ser: pd.Series):
-        df = ser.to_frame()
-
-        msg1 = "The 'method' keyword in Series.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg1):
-            res = ser.replace(ser[1], method="pad")
-        expected = pd.Series([ser[0], ser[0]] + list(ser[2:]), dtype=ser.dtype)
-        tm.assert_series_equal(res, expected)
-
-        msg2 = "The 'method' keyword in DataFrame.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            res_df = df.replace(ser[1], method="pad")
-        tm.assert_frame_equal(res_df, expected.to_frame())
-
-        ser2 = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg1):
-            res2 = ser2.replace(ser[1], method="pad", inplace=True)
-        assert res2 is None
-        tm.assert_series_equal(ser2, expected)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            res_df2 = df.replace(ser[1], method="pad", inplace=True)
-        assert res_df2 is None
-        tm.assert_frame_equal(df, expected.to_frame())
-
-    def test_replace_ea_dtype_with_method(self, any_numeric_ea_dtype):
-        arr = pd.array([1, 2, pd.NA, 4], dtype=any_numeric_ea_dtype)
-        ser = pd.Series(arr)
-
-        self._check_replace_with_method(ser)
-
-    @pytest.mark.parametrize("as_categorical", [True, False])
-    def test_replace_interval_with_method(self, as_categorical):
-        # in particular interval that can't hold NA
-
-        idx = pd.IntervalIndex.from_breaks(range(4))
-        ser = pd.Series(idx)
-        if as_categorical:
-            ser = ser.astype("category")
-
-        self._check_replace_with_method(ser)
-
-    @pytest.mark.parametrize("as_period", [True, False])
-    @pytest.mark.parametrize("as_categorical", [True, False])
-    def test_replace_datetimelike_with_method(self, as_period, as_categorical):
-        idx = pd.date_range("2016-01-01", periods=5, tz="US/Pacific")
-        if as_period:
-            idx = idx.tz_localize(None).to_period("D")
-
-        ser = pd.Series(idx)
-        ser.iloc[-2] = pd.NaT
-        if as_categorical:
-            ser = ser.astype("category")
-
-        self._check_replace_with_method(ser)
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
