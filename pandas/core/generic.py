@@ -11882,8 +11882,8 @@ skipna : bool, default True
 Returns
 -------
 {name2} or {name1}
-If axis=None, then a scalar boolean is returned.
-Otherwise a Series is returned with index matching the index argument.
+    If axis=None, then a scalar boolean is returned.
+    Otherwise a Series is returned with index matching the index argument.
 
 {see_also}
 {examples}"""
