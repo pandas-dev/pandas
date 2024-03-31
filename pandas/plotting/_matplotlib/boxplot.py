@@ -539,10 +539,8 @@ def boxplot_frame_groupby(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            # GH 14701 refactored to allow the 'key' to be passed as a tuple,
-            # which occurs when there is more than one group
             data[key] = d
-            ret = pd.Series(data)
+        ret = pd.Series(data)
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
