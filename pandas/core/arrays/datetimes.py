@@ -290,9 +290,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     @classmethod
     def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
-            # TODO: require any NAs be valid-for-DTA
-            # TODO: if dtype is passed, check for tzawareness compat?
+        # TODO: require any NAs be valid-for-DTA
+        # TODO: if dtype is passed, check for tzawareness compat?
+        if not lib.is_datetime64_array(scalars):
+            raise ValueError
+        elif isinstance(
+            dtype, DatetimeTZDtype
+        ) and not lib.is_datetime_with_singletz_array(scalars):
+            raise ValueError
+        elif isinstance(dtype, np.dtype) and not lib.is_datetime_naive_array(scalars):
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
 
