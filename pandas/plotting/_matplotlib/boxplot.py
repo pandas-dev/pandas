@@ -533,14 +533,14 @@ def boxplot_frame_groupby(
         )
         axes = flatten_axes(axes)
 
-        ret = pd.Series(dtype=object)
-
+        data = {}
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            ret.loc[key] = d
+            data[key] = d
+        ret = pd.Series(data)
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)

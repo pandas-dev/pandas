@@ -409,7 +409,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in  :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
 -
 
 Groupby/resample/rolling
