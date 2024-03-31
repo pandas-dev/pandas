@@ -6752,7 +6752,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
@@ -6762,7 +6762,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: Literal[True],
@@ -6772,7 +6772,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: bool = ...,
@@ -6814,10 +6814,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             This is the maximum number of entries along the entire axis
             where NaNs will be filled. Must be greater than 0 if not None.
 
-        Notes
-        -----
-        For non-object dtype, ``value=None`` will use the NA value of the dtype.
-
         Returns
         -------
         {klass} or None
@@ -6830,6 +6826,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         interpolate : Fill NaN values using interpolation.
         reindex : Conform object to new index.
         asfreq : Convert TimeSeries to specified frequency.
+
+        Notes
+        -----
+        For non-object dtype, ``value=None`` will use the NA value of the dtype.
 
         Examples
         --------

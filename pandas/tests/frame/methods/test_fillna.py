@@ -64,7 +64,7 @@ class TestFillNA:
             padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
         ).all()
 
-        msg = r"NDFrame.fillna\(\) missing 1 required positional argument: 'value'"
+        msg = r"missing 1 required positional argument: 'value'"
         with pytest.raises(TypeError, match=msg):
             datetime_frame.fillna()
 
