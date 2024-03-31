@@ -127,9 +127,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.to_period SA01" \
         -i "pandas.DataFrame.to_timestamp SA01" \
         -i "pandas.DataFrame.tz_convert SA01" \
-        -i "pandas.DataFrame.tz_localize SA01" \
-        -i "pandas.DataFrame.unstack RT03" \
-        -i "pandas.DataFrame.value_counts RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DataFrame.where RT03" \
         -i "pandas.DatetimeIndex.ceil SA01" \
@@ -482,8 +479,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_timestamp RT03,SA01" \
         -i "pandas.Series.truediv PR07" \
         -i "pandas.Series.tz_convert SA01" \
-        -i "pandas.Series.tz_localize SA01" \
-        -i "pandas.Series.unstack SA01" \
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Series.value_counts RT03" \
         -i "pandas.Series.var PR01,RT03,SA01" \
@@ -570,7 +565,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz SA01" \
         -i "pandas.Timestamp.tz_convert SA01" \
-        -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \
         -i "pandas.Timestamp.unit SA01" \
