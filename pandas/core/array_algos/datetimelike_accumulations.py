@@ -18,7 +18,7 @@ def _cum_func(
     values: np.ndarray,
     *,
     skipna: bool = True,
-):
+) -> np.ndarray:
     """
     Accumulations for 1D datetimelike arrays.
 
@@ -49,7 +49,8 @@ def _cum_func(
     if not skipna:
         mask = np.maximum.accumulate(mask)
 
-    result = func(y)
+    # GH 57956
+    result = func(y, axis=0)
     result[mask] = iNaT
 
     if values.dtype.kind in "mM":
@@ -61,9 +62,9 @@ def cumsum(values: np.ndarray, *, skipna: bool = True) -> np.ndarray:
     return _cum_func(np.cumsum, values, skipna=skipna)
 
 
-def cummin(values: np.ndarray, *, skipna: bool = True):
+def cummin(values: np.ndarray, *, skipna: bool = True) -> np.ndarray:
     return _cum_func(np.minimum.accumulate, values, skipna=skipna)
 
 
-def cummax(values: np.ndarray, *, skipna: bool = True):
+def cummax(values: np.ndarray, *, skipna: bool = True) -> np.ndarray:
     return _cum_func(np.maximum.accumulate, values, skipna=skipna)

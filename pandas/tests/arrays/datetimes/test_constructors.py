@@ -16,34 +16,6 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
             DatetimeArray._from_sequence(mi, dtype="M8[ns]")
 
-    def test_only_1dim_accepted(self):
-        arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
-
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Only 1-dimensional"):
-                # 3-dim, we allow 2D to sneak in for ops purposes GH#29853
-                DatetimeArray(arr.reshape(2, 2, 1))
-
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Only 1-dimensional"):
-                # 0-dim
-                DatetimeArray(arr[[0]].squeeze())
-
-    def test_freq_validation(self):
-        # GH#24623 check that invalid instances cannot be created with the
-        #  public constructor
-        arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
-
-        msg = (
-            "Inferred frequency h from passed values does not "
-            "conform to passed frequency W-SUN"
-        )
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match=msg):
-                DatetimeArray(arr, freq="W")
-
     @pytest.mark.parametrize(
         "meth",
         [
@@ -76,41 +48,8 @@ class TestDatetimeArrayConstructor:
         expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
         tm.assert_datetime_array_equal(result, expected)
 
-    def test_mismatched_timezone_raises(self):
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            arr = DatetimeArray(
-                np.array(["2000-01-01T06:00:00"], dtype="M8[ns]"),
-                dtype=DatetimeTZDtype(tz="US/Central"),
-            )
-        dtype = DatetimeTZDtype(tz="US/Eastern")
-        msg = r"dtype=datetime64\[ns.*\] does not match data dtype datetime64\[ns.*\]"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(TypeError, match=msg):
-                DatetimeArray(arr, dtype=dtype)
-
-        # also with mismatched tzawareness
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(TypeError, match=msg):
-                DatetimeArray(arr, dtype=np.dtype("M8[ns]"))
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(TypeError, match=msg):
-                DatetimeArray(arr.tz_localize(None), dtype=arr.dtype)
-
-    def test_non_array_raises(self):
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="list"):
-                DatetimeArray([1, 2, 3])
-
     def test_bool_dtype_raises(self):
         arr = np.array([1, 2, 3], dtype="bool")
-
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        msg = "Unexpected value for 'dtype': 'bool'. Must be"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match=msg):
-                DatetimeArray(arr)
 
         msg = r"dtype bool cannot be converted to datetime64\[ns\]"
         with pytest.raises(TypeError, match=msg):
@@ -121,41 +60,6 @@ class TestDatetimeArrayConstructor:
 
         with pytest.raises(TypeError, match=msg):
             pd.to_datetime(arr)
-
-    def test_incorrect_dtype_raises(self):
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
-                DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
-
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
-                DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="m8[s]")
-
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
-                DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="M8[D]")
-
-    def test_mismatched_values_dtype_units(self):
-        arr = np.array([1, 2, 3], dtype="M8[s]")
-        dtype = np.dtype("M8[ns]")
-        msg = "Values resolution does not match dtype."
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match=msg):
-                DatetimeArray(arr, dtype=dtype)
-
-        dtype2 = DatetimeTZDtype(tz="UTC", unit="ns")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match=msg):
-                DatetimeArray(arr, dtype=dtype2)
-
-    def test_freq_infer_raises(self):
-        depr_msg = "DatetimeArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            with pytest.raises(ValueError, match="Frequency inference"):
-                DatetimeArray(np.array([1, 2, 3], dtype="i8"), freq="infer")
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype="M8[ns]")

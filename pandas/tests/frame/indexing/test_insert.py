@@ -3,6 +3,7 @@ test_insert is specifically for the DataFrame.insert method; not to be
 confused with tests with "insert" in their names that are really testing
 __setitem__.
 """
+
 import numpy as np
 import pytest
 
@@ -71,10 +72,10 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self):
+    def test_insert_item_cache(self, performance_warning):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         ser = df[0]
-        expected_warning = PerformanceWarning
+        expected_warning = PerformanceWarning if performance_warning else None
 
         with tm.assert_produces_warning(expected_warning):
             for n in range(100):

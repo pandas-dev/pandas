@@ -3,6 +3,7 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+
 from copy import (
     copy,
     deepcopy,
@@ -32,7 +33,7 @@ import pandas._testing as tm
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, index_flat, using_copy_on_write):
+    def test_to_frame(self, name, index_flat):
         # see GH#15230, GH#22580
         idx = index_flat
 
@@ -46,8 +47,6 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        if not using_copy_on_write:
-            assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
@@ -509,3 +508,17 @@ def test_compare_read_only_array():
     idx = pd.Index(arr)
     result = idx > 69
     assert result.dtype == bool
+
+
+def test_to_frame_column_rangeindex():
+    idx = pd.Index([1])
+    result = idx.to_frame().columns
+    expected = RangeIndex(1)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_to_frame_name_tuple_multiindex():
+    idx = pd.Index([1])
+    result = idx.to_frame(name=(1, 2))
+    expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
+    tm.assert_frame_equal(result, expected)

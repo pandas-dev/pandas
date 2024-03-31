@@ -248,6 +248,7 @@ ul.task-bullet > li > p:first-child {
 }
 
 .tutorial-card .card-header {
+  --bs-card-cap-color: var(--pst-color-text-base);
   cursor: pointer;
   background-color: var(--pst-color-surface);
   border: 1px solid var(--pst-color-border)
@@ -269,7 +270,7 @@ ul.task-bullet > li > p:first-child {
 
 
 .tutorial-card .gs-badge-link a {
-  color: var(--pst-color-text-base);
+  color: var(--pst-color-primary-text);
   text-decoration: none;
 }
 

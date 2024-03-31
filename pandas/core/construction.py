@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -14,7 +15,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -34,7 +34,6 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -372,13 +371,10 @@ def array(
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     elif lib.is_np_dtype(dtype, "mM"):
-        warnings.warn(
+        raise ValueError(
+            # GH#53817
             r"datetime64 and timedelta64 dtype resolutions other than "
-            r"'s', 'ms', 'us', and 'ns' are deprecated. "
-            r"In future releases passing unsupported resolutions will "
-            r"raise an exception.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+            r"'s', 'ms', 'us', and 'ns' are no longer supported."
         )
 
     return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
@@ -402,15 +398,13 @@ _typs = frozenset(
 @overload
 def extract_array(
     obj: Series | Index, extract_numpy: bool = ..., extract_range: bool = ...
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 @overload
 def extract_array(
     obj: T, extract_numpy: bool = ..., extract_range: bool = ...
-) -> T | ArrayLike:
-    ...
+) -> T | ArrayLike: ...
 
 
 def extract_array(
@@ -626,7 +620,10 @@ def sanitize_array(
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
-        data = np.array(data, copy=copy)
+        if not copy:
+            data = np.asarray(data)
+        else:
+            data = np.array(data, copy=copy)
         return sanitize_array(
             data,
             index=index,
@@ -744,8 +741,11 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            result = np.array(data, dtype=object, copy=copy)
+                data = np.asarray(data, dtype=dtype)
+            if not copy:
+                result = np.asarray(data, dtype=object)
+            else:
+                result = np.array(data, dtype=object, copy=copy)
     return result
 
 
@@ -810,6 +810,8 @@ def _try_cast(
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)
+    elif not copy:
+        subarr = np.asarray(arr, dtype=dtype)
     else:
         subarr = np.array(arr, dtype=dtype, copy=copy)
 

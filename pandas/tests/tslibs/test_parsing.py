@@ -1,11 +1,11 @@
 """
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
+
 from datetime import datetime
 import re
 
 from dateutil.parser import parse as du_parse
-from dateutil.tz import tzlocal
 from hypothesis import given
 import numpy as np
 import pytest
@@ -21,6 +21,10 @@ from pandas.compat import (
 )
 import pandas.util._test_decorators as td
 
+# Usually we wouldn't want this import in this test file (which is targeted at
+#  tslibs.parsing), but it is convenient to test the Timestamp constructor at
+#  the same time as the other parsing functions.
+from pandas import Timestamp
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 
@@ -32,20 +36,21 @@ from pandas._testing._hypothesis import DATETIME_NO_TZ
 def test_parsing_tzlocal_deprecated():
     # GH#50791
     msg = (
-        "Parsing 'EST' as tzlocal.*"
+        r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
+        r"is no longer supported\. "
         "Pass the 'tz' keyword or call tz_localize after construction instead"
     )
     dtstr = "Jan 15 2004 03:00 EST"
 
     with tm.set_timezone("US/Eastern"):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res, _ = parse_datetime_string_with_reso(dtstr)
+        with pytest.raises(ValueError, match=msg):
+            parse_datetime_string_with_reso(dtstr)
 
-        assert isinstance(res.tzinfo, tzlocal)
+        with pytest.raises(ValueError, match=msg):
+            parsing.py_parse_datetime_string(dtstr)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = parsing.py_parse_datetime_string(dtstr)
-        assert isinstance(res.tzinfo, tzlocal)
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(dtstr)
 
 
 def test_parse_datetime_string_with_reso():
@@ -218,6 +223,7 @@ def test_parsers_month_freq(date_str, expected):
         ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
         ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
+        ("2023-11-09T20:23:46Z", "%Y-%m-%dT%H:%M:%S%z"),  # GH57452
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):

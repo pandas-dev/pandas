@@ -1,6 +1,7 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
+
 from __future__ import annotations
 
 import codecs
@@ -10,7 +11,6 @@ from typing import (
     Any,
     final,
 )
-import warnings
 
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -207,13 +207,7 @@ class _BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Downcasting object dtype arrays",
-                    category=FutureWarning,
-                )
-                df = df.fillna(self.na_rep)
+            df = df.fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 

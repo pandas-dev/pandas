@@ -34,6 +34,7 @@ Your class ``TestDtype`` will inherit all the tests defined on
 wherever the test requires it. You're free to implement additional tests.
 
 """
+
 from pandas.tests.extension.base.accumulate import BaseAccumulateTests
 from pandas.tests.extension.base.casting import BaseCastingTests
 from pandas.tests.extension.base.constructors import BaseConstructorsTests
@@ -63,9 +64,7 @@ from pandas.tests.extension.base.setitem import BaseSetitemTests
 
 # One test class that you can inherit as an alternative to inheriting all the
 # test classes above.
-# Note 1) this excludes Dim2CompatTests and NDArrayBacked2DTests.
-# Note 2) this uses BaseReduceTests and and _not_ BaseBooleanReduceTests,
-#  BaseNoReduceTests, or BaseNumericReduceTests
+# Note this excludes Dim2CompatTests and NDArrayBacked2DTests.
 class ExtensionTests(
     BaseAccumulateTests,
     BaseCastingTests,
@@ -88,44 +87,3 @@ class ExtensionTests(
     Dim2CompatTests,
 ):
     pass
-
-
-def __getattr__(name: str):
-    import warnings
-
-    if name == "BaseNoReduceTests":
-        warnings.warn(
-            "BaseNoReduceTests is deprecated and will be removed in a "
-            "future version. Use BaseReduceTests and override "
-            "`_supports_reduction` instead.",
-            FutureWarning,
-        )
-        from pandas.tests.extension.base.reduce import BaseNoReduceTests
-
-        return BaseNoReduceTests
-
-    elif name == "BaseNumericReduceTests":
-        warnings.warn(
-            "BaseNumericReduceTests is deprecated and will be removed in a "
-            "future version. Use BaseReduceTests and override "
-            "`_supports_reduction` instead.",
-            FutureWarning,
-        )
-        from pandas.tests.extension.base.reduce import BaseNumericReduceTests
-
-        return BaseNumericReduceTests
-
-    elif name == "BaseBooleanReduceTests":
-        warnings.warn(
-            "BaseBooleanReduceTests is deprecated and will be removed in a "
-            "future version. Use BaseReduceTests and override "
-            "`_supports_reduction` instead.",
-            FutureWarning,
-        )
-        from pandas.tests.extension.base.reduce import BaseBooleanReduceTests
-
-        return BaseBooleanReduceTests
-
-    raise AttributeError(
-        f"module 'pandas.tests.extension.base' has no attribute '{name}'"
-    )

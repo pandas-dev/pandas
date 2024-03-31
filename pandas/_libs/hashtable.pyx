@@ -1,8 +1,4 @@
 cimport cython
-from cpython.mem cimport (
-    PyMem_Free,
-    PyMem_Malloc,
-)
 from cpython.ref cimport (
     Py_INCREF,
     PyObject,
@@ -11,6 +7,7 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
+from libc.string cimport memcpy
 
 import numpy as np
 
@@ -73,7 +70,7 @@ cdef class Factorizer:
     cdef readonly:
         Py_ssize_t count
 
-    def __cinit__(self, size_hint: int):
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
         self.count = 0
 
     def get_count(self) -> int:
@@ -82,13 +79,16 @@ cdef class Factorizer:
     def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
         raise NotImplementedError
 
+    def hash_inner_join(self, values, mask=None):
+        raise NotImplementedError
+
 
 cdef class ObjectFactorizer(Factorizer):
     cdef public:
         PyObjectHashTable table
         ObjectVector uniques
 
-    def __cinit__(self, size_hint: int):
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
         self.table = PyObjectHashTable(size_hint)
         self.uniques = ObjectVector()
 

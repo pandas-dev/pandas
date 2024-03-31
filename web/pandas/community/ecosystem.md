@@ -21,10 +21,6 @@ please let us know.
 
 ## Statistics and machine learning
 
-### [pandas-tfrecords](https://pypi.org/project/pandas-tfrecords/)
-
-Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
-
 ### [Statsmodels](https://www.statsmodels.org/)
 
 Statsmodels is the prominent Python "statistics and econometrics
@@ -33,11 +29,6 @@ Statsmodels provides powerful statistics, econometrics, analysis and
 modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
-
-### [sklearn-pandas](https://github.com/scikit-learn-contrib/sklearn-pandas)
-
-Use pandas DataFrames in your [scikit-learn](https://scikit-learn.org/)
-ML pipeline.
 
 ### [Featuretools](https://github.com/alteryx/featuretools/)
 
@@ -91,6 +82,20 @@ pd.set_option("plotting.backend", "pandas_bokeh")
 It is very similar to the matplotlib plotting backend, but provides
 interactive web-based charts and maps.
 
+### [pygwalker](https://github.com/Kanaries/pygwalker)
+
+PyGWalker is an interactive data visualization and
+exploratory data analysis tool built upon Graphic Walker
+with support for visualization, cleaning, and annotation workflows.
+
+pygwalker can save interactively created charts
+to Graphic-Walker and Vega-Lite JSON.
+
+```
+import pygwalker as pyg
+pyg.walk(df)
+```
+
 ### [seaborn](https://seaborn.pydata.org)
 
 Seaborn is a Python visualization library based on
@@ -102,6 +107,11 @@ of complex visualizations. Seaborn also goes beyond matplotlib and
 pandas with the option to perform statistical estimation while plotting,
 aggregating across observations and visualizing the fit of statistical
 models to emphasize patterns in a dataset.
+
+```
+import seaborn as sns
+sns.set_theme()
+```
 
 ### [plotnine](https://github.com/has2k1/plotnine/)
 
@@ -149,13 +159,6 @@ df  # discover interesting insights!
 ```
 
 By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
-
-### [QtPandas](https://github.com/draperjames/qtpandas)
-
-Spun off from the main pandas library, the
-[qtpandas](https://github.com/draperjames/qtpandas) library enables
-DataFrame visualization and manipulation in PyQt4 and PySide
-applications.
 
 ### [D-Tale](https://github.com/man-group/dtale)
 
@@ -209,12 +212,6 @@ or may not be compatible with non-HTML Jupyter output formats.)
 
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
-
-### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
-
-modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
-It is a fork of qgrid and is actively maintained by the modin project.
-modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -271,18 +268,6 @@ The following data feeds are available:
 - Stooq Index Data
 - MOEX Data
 
-### [quandl/Python](https://github.com/quandl/Python)
-
-Quandl API for Python wraps the Quandl REST API to return Pandas
-DataFrames with timeseries indexes.
-
-### [pydatastream](https://github.com/vfilimonov/pydatastream)
-
-PyDatastream is a Python interface to the [Thomson Dataworks Enterprise
-(DWE/Datastream)](http://dataworks.thomson.com/Dataworks/Enterprise/1.0/)
-SOAP API to return indexed Pandas DataFrames with financial data. This
-package requires valid credentials for this API (non free).
-
 ### [pandaSDMX](https://pandasdmx.readthedocs.io)
 
 pandaSDMX is a library to retrieve and acquire statistical data and
@@ -304,13 +289,6 @@ and also provides several convenient methods for parsing and analyzing
 point-in-time data from ALFRED. fredapi makes use of pandas and returns
 data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
-
-### [dataframe_sql](https://github.com/zbrookle/dataframe_sql)
-
-``dataframe_sql`` is a Python package that translates SQL syntax directly into
-operations on pandas DataFrames. This is useful when migrating from a database to
-using pandas or for users more comfortable with SQL looking for a way to interface
-with pandas.
 
 ## Domain specific
 
@@ -384,12 +362,6 @@ any Delta table into Pandas dataframe.
 
 ## Out-of-core
 
-### [Blaze](https://blaze.pydata.org/)
-
-Blaze provides a standard API for doing computations with various
-in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB,
-PyTables, PySpark.
-
 ### [Cylon](https://cylondata.org/)
 
 Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
@@ -457,14 +429,6 @@ import modin.pandas as pd
 df = pd.read_csv("big.csv")  # use all your cores!
 ```
 
-### [Odo](http://odo.pydata.org)
-
-Odo provides a uniform API for moving data between different formats. It
-uses pandas own `read_csv` for CSV IO and leverages many existing
-packages such as PyTables, h5py, and pymongo to move data between non
-pandas formats. Its graph based approach is also extensible by end users
-for custom formats that may be too specific for the core of odo.
-
 ### [Pandarallel](https://github.com/nalepae/pandarallel)
 
 Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
@@ -477,23 +441,6 @@ pandarallel.initialize(progress_bar=True)
 
 # df.apply(func)
 df.parallel_apply(func)
-```
-
-### [Ray](https://docs.ray.io/en/latest/data/modin/index.html)
-
-Pandas on Ray is an early stage DataFrame library that wraps Pandas and
-transparently distributes the data and computation. The user does not
-need to know how many cores their system has, nor do they need to
-specify how to distribute the data. In fact, users can continue using
-their previous Pandas notebooks while experiencing a considerable
-speedup from Pandas on Ray, even on a single machine. Only a
-modification of the import statement is needed, as we demonstrate below.
-Once you've changed your import statement, you're ready to use Pandas on
-Ray just like you would Pandas.
-
-```
-# import pandas as pd
-import ray.dataframe as pd
 ```
 
 ### [Vaex](https://vaex.io/docs/)
@@ -540,11 +487,6 @@ to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
 
-### [Engarde](https://engarde.readthedocs.io/en/latest/)
-
-Engarde is a lightweight library used to explicitly state your
-assumptions about your datasets and check that they're *actually* true.
-
 ## Extension data types
 
 Pandas provides an interface for defining
@@ -558,12 +500,6 @@ Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
-
-### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
-
-Cyberpandas provides an extension type for storing arrays of IP
-Addresses. These arrays can be stored inside pandas' Series and
-DataFrame.
 
 ### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
 
@@ -599,14 +535,10 @@ authors to coordinate on the namespace.
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
-  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
-  | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
-  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
-  | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |

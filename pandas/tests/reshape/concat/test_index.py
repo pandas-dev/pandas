@@ -3,8 +3,6 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -103,7 +101,7 @@ class TestIndexConcat:
     def test_concat_copy_index_series(self, axis):
         # GH 29879
         ser = Series([1, 2])
-        comb = concat([ser, ser], axis=axis, copy=True)
+        comb = concat([ser, ser], axis=axis)
         if axis in [0, "index"]:
             assert comb.index is not ser.index
         else:
@@ -112,7 +110,7 @@ class TestIndexConcat:
     def test_concat_copy_index_frame(self, axis):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        comb = concat([df, df], axis=axis, copy=True)
+        comb = concat([df, df], axis=axis)
         if axis in [0, "index"]:
             assert not comb.index.is_(df.index)
             assert comb.columns.is_(df.columns)
@@ -337,7 +335,7 @@ class TestMultiIndexConcat:
         )
         tm.assert_frame_equal(result_df, expected_df)
 
-    def test_concat_with_key_not_unique(self):
+    def test_concat_with_key_not_unique(self, performance_warning):
         # GitHub #46519
         df1 = DataFrame({"name": [1]})
         df2 = DataFrame({"name": [2]})
@@ -345,7 +343,7 @@ class TestMultiIndexConcat:
         df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         # the warning is caused by indexing unsorted multi-index
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
 
@@ -353,7 +351,7 @@ class TestMultiIndexConcat:
             {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
         )
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_b = df_b.loc[("x", 0)]
 
@@ -364,7 +362,7 @@ class TestMultiIndexConcat:
         df3 = DataFrame({"name": ["c", "d"]})
         df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
 
@@ -377,7 +375,7 @@ class TestMultiIndexConcat:
         ).set_index(["a", "b"])
         df_b.index.names = [None, None]
         with tm.assert_produces_warning(
-            PerformanceWarning, match="indexing past lexsort depth"
+            performance_warning, match="indexing past lexsort depth"
         ):
             out_b = df_b.loc[("x", 0), :]
 
