@@ -6939,7 +6939,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif isinstance(value, (dict, ABCSeries)):
             if axis == 1:
                 raise NotImplementedError(
-                    "Currently only can fill " "with dict/Series column " "by column"
+                    "Currently only can fill with dict/Series column by column"
                 )
             result = self if inplace else self.copy(deep=False)
             for k, v in value.items():
