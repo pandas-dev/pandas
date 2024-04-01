@@ -914,16 +914,19 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
 
-        if not isinstance(obj._values, np.ndarray):
+        result = self._aggregate_series_pure_python(obj, func)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+
+        if not isinstance(obj._values, np.ndarray) and obj._values.dtype._is_boolean:
+            if npvalues.dtype == "bool":
+                preserve_dtype = True
+        elif not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        result = self._aggregate_series_pure_python(obj, func)
-
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
