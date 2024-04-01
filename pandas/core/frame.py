@@ -6011,8 +6011,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
-            index data. If the DataFrame has a MultiIndex, this has to be a list or
-            tuple with length equal to the number of levels.
+            index data. If the DataFrame has a MultiIndex, this has to be a list
+            with length equal to the number of levels.
 
             .. versionadded:: 1.5.0
 
@@ -7162,7 +7162,7 @@ class DataFrame(NDFrame, OpsMixin):
         dropna: bool = True,
     ) -> Series:
         """
-        Return a Series containing the frequency of each distinct row in the Dataframe.
+        Return a Series containing the frequency of each distinct row in the DataFrame.
 
         Parameters
         ----------
@@ -7175,13 +7175,14 @@ class DataFrame(NDFrame, OpsMixin):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don't include counts of rows that contain NA values.
+            Do not include counts of rows that contain NA values.
 
             .. versionadded:: 1.3.0
 
         Returns
         -------
         Series
+            Series containing the frequency of each distinct row in the DataFrame.
 
         See Also
         --------
@@ -7192,8 +7193,8 @@ class DataFrame(NDFrame, OpsMixin):
         The returned Series will have a MultiIndex with one level per input
         column but an Index (non-multi) for a single label. By default, rows
         that contain any NA values are omitted from the result. By default,
-        the resulting Series will be in descending order so that the first
-        element is the most frequently-occurring row.
+        the resulting Series will be sorted by frequencies in descending order so that
+        the first element is the most frequently-occurring row.
 
         Examples
         --------
@@ -9658,6 +9659,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or DataFrame
+            If index is a MultiIndex: DataFrame with pivoted index labels as new
+            inner-most level column labels, else Series.
 
         See Also
         --------
@@ -11494,7 +11497,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("any", ndim=2))
+    @doc(make_doc("any", ndim=1))
     def any(
         self,
         *,
@@ -11540,7 +11543,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("all", ndim=2))
+    @doc(make_doc("all", ndim=1))
     def all(
         self,
         axis: Axis | None = 0,
