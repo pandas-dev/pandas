@@ -41,15 +41,26 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             period_range(start="2020-01-01", end="2020-01-02", freq=freq_depr)
 
-    @pytest.mark.parametrize("freq_depr", ["2SME", "2sme", "2CBME", "2BYE", "2Bye"])
-    def test_period_index_frequency_invalid_freq(self, freq_depr):
+    @pytest.mark.parametrize(
+        "freq, invalid",
+        [
+            ("2SME", True),
+            ("2sme", True),
+            ("2BYE", True),
+            ("2Bye", True),
+            ("2CBME", False),
+        ],
+    )
+    def test_period_index_frequency_invalid_freq(self, freq, invalid):
         # GH#9586
-        msg = f"Invalid frequency: {freq_depr[1:]}"
+        msg = f"Invalid frequency: {freq}"
 
+        if not invalid:
+            msg = f"{freq[1:]} is not supported as period frequency"
         with pytest.raises(ValueError, match=msg):
-            period_range("2020-01", "2020-05", freq=freq_depr)
+            period_range("2020-01", "2020-05", freq=freq)
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
+            PeriodIndex(["2020-01", "2020-05"], freq=freq)
 
     @pytest.mark.parametrize("freq", ["2BQE-SEP", "2BYE-MAR", "2BME"])
     def test_period_index_from_datetime_index_invalid_freq(self, freq):

@@ -208,7 +208,7 @@ class TestToPeriod:
         "freq, msg",
         [
             ("2BME", "Invalid frequency: 2BME"),
-            ("1SME-15", "Invalid frequency: SME-15"),
+            ("1SME-15", "SME-15 is not supported as period frequency"),
             ("2BMS", "BMS is not supported as period frequency"),
         ],
     )

@@ -58,6 +58,7 @@ from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_REMOVED_FREQSTR,
+    c_OFFSET_TO_PERIOD_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4848,33 +4849,33 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if not is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
                     raise ValueError(
-                        f"\'{name}\' is no longer supported for offsets."
+                        f"\'{name}\' is no longer supported for offsets. Please use "
+                        f"\'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' instead."
                     )
                 if (not is_period and
                         name != name.upper() and
                         name.lower() not in {"s", "ms", "us", "ns"} and
                         name.upper().split("-")[0].endswith(("S", "E"))):
-                    raise ValueError(
-                        f"\'{name}\' is no longer supported for offsets."
-                    )
-                if is_period and name.upper().split("-")[0].endswith(("E")):
-                    if (name.upper().startswith("B") or
-                            name.upper().startswith("S") or
-                            name.upper().startswith("C")):
+                    if name.upper() in c_OFFSET_TO_PERIOD_FREQSTR:
+                        raise ValueError(
+                            f"\'{name}\' is no longer supported for offsets. Please "
+                            f"use \'{name.upper()}\' instead."
+                        )
+                    else:
+                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
+                if (is_period and
+                        name.upper().split("-")[0].endswith(("E")) and
+                        name.upper() in c_OFFSET_TO_PERIOD_FREQSTR):
+                    if name.upper().startswith("B"):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
                             f"{name} is not supported as period frequency"
                         )
+
                 elif is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
                     if name.upper() != name:
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in "
-                            f"a future version, please use \'{name.upper()}\' "
-                            f"instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
+                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     name = c_OFFSET_REMOVED_FREQSTR.get(name.upper())
 
                 if sep != "" and not sep.isspace():
