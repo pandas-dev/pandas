@@ -74,7 +74,7 @@ repos:
         args: [--remove]
     -   id: trailing-whitespace
 -   repo: https://github.com/pylint-dev/pylint
-    rev: v3.1.0
+    rev: v3.0.1
     hooks:
     -   id: pylint
         stages: [manual]
