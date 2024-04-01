@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.assign SA01" \
         -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.axes SA01" \
-        -i "pandas.DataFrame.backfill PR01,SA01" \
         -i "pandas.DataFrame.bfill SA01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
@@ -104,7 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.pad PR01,SA01" \
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.DataFrame.pop SA01" \
         -i "pandas.DataFrame.prod RT03" \
@@ -119,7 +117,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.sparse.to_dense SA01" \
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
         -i "pandas.DataFrame.sum RT03" \
-        -i "pandas.DataFrame.swapaxes PR01,SA01" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_feather SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
