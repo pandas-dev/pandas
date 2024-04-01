@@ -1,0 +1,32 @@
+name: Format Pixeebot PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  apply-black:
+    if: github.event.pull_request.user.login == 'pixeebot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install black
+        run: pip install black
+
+      - name: Apply black formatting
+        run: black .
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ":art: Apply formatting"
