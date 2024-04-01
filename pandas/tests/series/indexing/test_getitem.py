@@ -7,7 +7,6 @@ from datetime import (
     datetime,
     time,
 )
-import re
 
 import numpy as np
 import pytest
@@ -383,8 +382,8 @@ class TestSeriesGetitemListLike:
         ser = Series(range(len(ii)), index=ii)
 
         key = box([0])
-        msg = "None of [Index([0], dtype='int64')] are in the [index]"
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        msg = r"None of \[Index\(\[0\], dtype='int(32|64)'\)\] are in the \[index\]"
+        with pytest.raises(KeyError, match=msg):
             ser[key]
 
     @pytest.mark.parametrize("box", [list, np.array, Index])
@@ -653,10 +652,10 @@ def test_getitem_missing(datetime_series):
 
 
 def test_getitem_fancy(string_series, object_series):
-    msg = "None of [Index([1, 2, 3], dtype='int64')] are in the [index]"
-    with pytest.raises(KeyError, match=re.escape(msg)):
+    msg = r"None of \[Index\(\[1, 2, 3\], dtype='int(32|64)'\)\] are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
         string_series[[1, 2, 3]]
-    with pytest.raises(KeyError, match=re.escape(msg)):
+    with pytest.raises(KeyError, match=msg):
         object_series[[1, 2, 3]]
 
 
