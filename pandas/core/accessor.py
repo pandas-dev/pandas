@@ -380,7 +380,7 @@ AttributeError: The index must only be an integer value.
 >>> df = pd.DataFrame(
 ...     {"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]}, index=[1, 2, 5, 8]
 ... )
->>> df.index.my_accessor.even()
+>>> df.index.int_accessor.even()
 [2,8]"""
 
 
