@@ -266,7 +266,7 @@ def create_pickle_data():
         "Week_Tues": Week(2, normalize=False, weekday=1),
         "WeekOfMonth": WeekOfMonth(week=3, weekday=4),
         "LastWeekOfMonth": LastWeekOfMonth(n=1, weekday=3),
-        "FY5253": FY5253(n=2, weekday=6, startingMonth=7, variation="last"),
+        "FY5253": FY5253(n=2, weekday=6, starting_month=7, variation="last"),
         "Easter": Easter(),
         "Hour": Hour(1),
         "Minute": Minute(1),

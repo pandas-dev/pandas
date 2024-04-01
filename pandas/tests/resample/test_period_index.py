@@ -164,7 +164,7 @@ class TestPeriodIndex:
         "rule,expected_error_msg",
         [
             ("Y-DEC", "<YearEnd: month=12>"),
-            ("Q-MAR", "<QuarterEnd: startingMonth=3>"),
+            ("Q-MAR", "<QuarterEnd: starting_month=3>"),
             ("M", "<MonthEnd>"),
             ("w-thu", "<Week: weekday=3>"),
         ],

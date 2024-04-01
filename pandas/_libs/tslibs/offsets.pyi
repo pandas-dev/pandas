@@ -161,7 +161,7 @@ class YearBegin(YearOffset): ...
 
 class QuarterOffset(SingleConstructorOffset):
     def __init__(
-        self, n: int = ..., normalize: bool = ..., startingMonth: int | None = ...
+        self, n: int = ..., normalize: bool = ..., starting_month: int | None = ...
     ) -> None: ...
 
 class BQuarterEnd(QuarterOffset): ...
@@ -203,7 +203,7 @@ class FY5253Mixin(SingleConstructorOffset):
         n: int = ...,
         normalize: bool = ...,
         weekday: int = ...,
-        startingMonth: int = ...,
+        starting_month: int = ...,
         variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
@@ -215,7 +215,7 @@ class FY5253Quarter(FY5253Mixin):
         n: int = ...,
         normalize: bool = ...,
         weekday: int = ...,
-        startingMonth: int = ...,
+        starting_month: int = ...,
         qtr_with_extra_week: int = ...,
         variation: Literal["nearest", "last"] = ...,
     ) -> None: ...

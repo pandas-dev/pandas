@@ -46,7 +46,7 @@ def _get_offset(klass, value=1, normalize=False):
     if klass is FY5253:
         klass = klass(
             n=value,
-            startingMonth=1,
+            starting_month=1,
             weekday=1,
             variation="last",
             normalize=normalize,
@@ -54,7 +54,7 @@ def _get_offset(klass, value=1, normalize=False):
     elif klass is FY5253Quarter:
         klass = klass(
             n=value,
-            startingMonth=1,
+            starting_month=1,
             weekday=1,
             qtr_with_extra_week=1,
             variation="last",

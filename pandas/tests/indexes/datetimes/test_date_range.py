@@ -1672,7 +1672,7 @@ class TestDateRangeNonTickFreq:
         assert rng.freq == "-2ME"
 
     def test_date_range_fy5253(self, unit):
-        freq = offsets.FY5253(startingMonth=1, weekday=3, variation="nearest")
+        freq = offsets.FY5253(starting_month=1, weekday=3, variation="nearest")
         dti = date_range(
             start="2013-01-01",
             periods=2,
@@ -1688,8 +1688,8 @@ class TestDateRangeNonTickFreq:
     @pytest.mark.parametrize(
         "freqstr,offset",
         [
-            ("QS", offsets.QuarterBegin(startingMonth=1)),
-            ("BQE", offsets.BQuarterEnd(startingMonth=12)),
+            ("QS", offsets.QuarterBegin(starting_month=1)),
+            ("BQE", offsets.BQuarterEnd(starting_month=12)),
             ("W-SUN", offsets.Week(weekday=6)),
         ],
     )

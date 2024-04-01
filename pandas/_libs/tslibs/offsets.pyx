@@ -438,7 +438,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.FY5253Quarter().kwds
         {'weekday': 0,
-         'startingMonth': 1,
+         'starting_month': 1,
          'qtr_with_extra_week': 1,
          'variation': 'nearest'}
         """
@@ -2657,27 +2657,27 @@ cdef class YearBegin(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
-    _attributes = tuple(["n", "normalize", "startingMonth"])
+    _attributes = tuple(["n", "normalize", "starting_month"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
-    #       startingMonth vs month attr names are resolved
+    #       starting_month vs month attr names are resolved
 
     # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
 
     cdef readonly:
-        int startingMonth
+        int starting_month
 
-    def __init__(self, n=1, normalize=False, startingMonth=None):
+    def __init__(self, n=1, normalize=False, starting_month=None):
         BaseOffset.__init__(self, n, normalize)
 
-        if startingMonth is None:
-            startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        if starting_month is None:
+            starting_month = self._default_starting_month
+        self.starting_month = starting_month
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self.starting_month = state.pop("starting_month")
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
 
@@ -2685,21 +2685,21 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+            kwargs["starting_month"] = MONTH_TO_CAL_NUM[suffix]
         else:
             if cls._from_name_starting_month is not None:
-                kwargs["startingMonth"] = cls._from_name_starting_month
+                kwargs["starting_month"] = cls._from_name_starting_month
         return cls(**kwargs)
 
     @property
     def rule_code(self) -> str:
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self.starting_month]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 3
+        mod_month = (dt.month - self.starting_month) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -2709,9 +2709,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
         # Then find the month in that quarter containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 3 - self.startingMonth % 3
+        months_since = other.month % 3 - self.starting_month % 3
         qtrs = roll_qtrday(
-            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=3
+            other, self.n, self.starting_month, day_opt=self._day_opt, modby=3
         )
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
@@ -2721,7 +2721,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtarr.view("i8"),
             self.n,
-            self.startingMonth,
+            self.starting_month,
             self._day_opt,
             modby=3,
             reso=reso,
@@ -2733,9 +2733,9 @@ cdef class BQuarterEnd(QuarterOffset):
     """
     DateOffset increments between the last business day of each Quarter.
 
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+    starting_month = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    starting_month = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    starting_month = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
     Parameters
     ----------
@@ -2743,7 +2743,7 @@ cdef class BQuarterEnd(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    starting_month : int, default 3
         A specific integer for the month of the year from which we start quarters.
 
     See Also
@@ -2758,9 +2758,9 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-06-30 05:01:15')
     >>> ts + BQuarterEnd(2)
     Timestamp('2020-09-30 05:01:15')
-    >>> ts + BQuarterEnd(1, startingMonth=2)
+    >>> ts + BQuarterEnd(1, starting_month=2)
     Timestamp('2020-05-29 05:01:15')
-    >>> ts + BQuarterEnd(startingMonth=2)
+    >>> ts + BQuarterEnd(starting_month=2)
     Timestamp('2020-05-29 05:01:15')
     """
     _output_name = "BusinessQuarterEnd"
@@ -2774,9 +2774,9 @@ cdef class BQuarterBegin(QuarterOffset):
     """
     DateOffset increments between the first business day of each Quarter.
 
-    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
-    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
-    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+    starting_month = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    starting_month = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    starting_month = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
     Parameters
     ----------
@@ -2784,7 +2784,7 @@ cdef class BQuarterBegin(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    starting_month : int, default 3
         A specific integer for the month of the year from which we start quarters.
 
     See Also
@@ -2799,7 +2799,7 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-06-01 05:01:15')
     >>> ts + BQuarterBegin(2)
     Timestamp('2020-09-01 05:01:15')
-    >>> ts + BQuarterBegin(startingMonth=2)
+    >>> ts + BQuarterBegin(starting_month=2)
     Timestamp('2020-08-03 05:01:15')
     >>> ts + BQuarterBegin(-1)
     Timestamp('2020-03-02 05:01:15')
@@ -2815,9 +2815,9 @@ cdef class QuarterEnd(QuarterOffset):
     """
     DateOffset increments between Quarter end dates.
 
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
+    starting_month = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    starting_month = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    starting_month = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
     Parameters
     ----------
@@ -2825,7 +2825,7 @@ cdef class QuarterEnd(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    starting_month : int, default 3
         A specific integer for the month of the year from which we start quarters.
 
     See Also
@@ -2845,20 +2845,20 @@ cdef class QuarterEnd(QuarterOffset):
     cdef readonly:
         int _period_dtype_code
 
-    def __init__(self, n=1, normalize=False, startingMonth=None):
+    def __init__(self, n=1, normalize=False, starting_month=None):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
-        QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
+        QuarterOffset.__init__(self, n, normalize, starting_month)
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.starting_month % 12
 
 
 cdef class QuarterBegin(QuarterOffset):
     """
     DateOffset increments between Quarter start dates.
 
-    startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
-    startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
-    startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+    starting_month = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
+    starting_month = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
+    starting_month = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
     Parameters
     ----------
@@ -2866,7 +2866,7 @@ cdef class QuarterBegin(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    starting_month : int, default 3
         A specific integer for the month of the year from which we start quarters.
 
     See Also
@@ -3600,15 +3600,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
 cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
-        int startingMonth
+        int starting_month
         int weekday
         str variation
 
     def __init__(
-        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
+        self, n=1, normalize=False, weekday=0, starting_month=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
-        self.startingMonth = startingMonth
+        self.starting_month = starting_month
         self.weekday = weekday
         self.variation = variation
 
@@ -3641,7 +3641,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     def get_rule_code_suffix(self) -> str:
         prefix = self._get_suffix_prefix()
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self.starting_month]
         weekday = int_to_weekday[self.weekday]
         return f"{prefix}-{month}-{weekday}"
 
@@ -3685,7 +3685,7 @@ cdef class FY5253(FY5253Mixin):
         - 5 is Saturday
         - 6 is Sunday.
 
-    startingMonth : int {1, 2, ... 12}, default 1
+    starting_month : int {1, 2, ... 12}, default 1
         The month in which the fiscal year ends.
 
     variation : str, default "nearest"
@@ -3708,23 +3708,23 @@ cdef class FY5253(FY5253Mixin):
     >>> ts + pd.offsets.FY5253()
     Timestamp('2022-01-31 00:00:00')
 
-    By the parameter ``startingMonth`` we can specify
+    By the parameter ``starting_month`` we can specify
     the month in which fiscal years end.
 
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.FY5253(startingMonth=3)
+    >>> ts + pd.offsets.FY5253(starting_month=3)
     Timestamp('2022-03-28 00:00:00')
 
     52-53 week fiscal year can be specified by
     ``weekday`` and ``variation`` parameters.
 
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.FY5253(weekday=5, startingMonth=12, variation="last")
+    >>> ts + pd.offsets.FY5253(weekday=5, starting_month=12, variation="last")
     Timestamp('2022-12-31 00:00:00')
     """
 
     _prefix = "RE"
-    _attributes = tuple(["n", "normalize", "weekday", "startingMonth", "variation"])
+    _attributes = tuple(["n", "normalize", "weekday", "starting_month", "variation"])
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -3743,9 +3743,9 @@ cdef class FY5253(FY5253Mixin):
         norm = Timestamp(other).normalize()
 
         n = self.n
-        prev_year = self.get_year_end(datetime(other.year - 1, self.startingMonth, 1))
-        cur_year = self.get_year_end(datetime(other.year, self.startingMonth, 1))
-        next_year = self.get_year_end(datetime(other.year + 1, self.startingMonth, 1))
+        prev_year = self.get_year_end(datetime(other.year - 1, self.starting_month, 1))
+        cur_year = self.get_year_end(datetime(other.year, self.starting_month, 1))
+        next_year = self.get_year_end(datetime(other.year + 1, self.starting_month, 1))
 
         prev_year = localize_pydatetime(prev_year, other.tzinfo)
         cur_year = localize_pydatetime(cur_year, other.tzinfo)
@@ -3781,7 +3781,7 @@ cdef class FY5253(FY5253Mixin):
             else:
                 assert False
 
-        shifted = datetime(other.year + n, self.startingMonth, 1)
+        shifted = datetime(other.year + n, self.starting_month, 1)
         result = self.get_year_end(shifted)
         result = datetime(
             result.year,
@@ -3797,8 +3797,8 @@ cdef class FY5253(FY5253Mixin):
     def get_year_end(self, dt: datetime) -> datetime:
         assert dt.tzinfo is None
 
-        dim = get_days_in_month(dt.year, self.startingMonth)
-        target_date = datetime(dt.year, self.startingMonth, dim)
+        dim = get_days_in_month(dt.year, self.starting_month)
+        target_date = datetime(dt.year, self.starting_month, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
             # year_end is the same for "last" and "nearest" cases
@@ -3821,7 +3821,7 @@ cdef class FY5253(FY5253Mixin):
                 return target_date + timedelta(days_forward - 7)
 
     @classmethod
-    def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
+    def _parse_suffix(cls, varion_code, starting_month_code, weekday_code):
         if varion_code == "N":
             variation = "nearest"
         elif varion_code == "L":
@@ -3829,12 +3829,12 @@ cdef class FY5253(FY5253Mixin):
         else:
             raise ValueError(f"Unable to parse varion_code: {varion_code}")
 
-        startingMonth = MONTH_TO_CAL_NUM[startingMonth_code]
+        starting_month = MONTH_TO_CAL_NUM[starting_month_code]
         weekday = weekday_to_int[weekday_code]
 
         return {
             "weekday": weekday,
-            "startingMonth": startingMonth,
+            "starting_month": starting_month,
             "variation": variation,
         }
 
@@ -3867,9 +3867,9 @@ cdef class FY5253Quarter(FY5253Mixin):
     X is a specific day of the week.
     Y is a certain month of the year
 
-    startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
-    startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
-    startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
+    starting_month = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
+    starting_month = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
+    starting_month = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
     Parameters
     ----------
@@ -3888,7 +3888,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         - 5 is Saturday
         - 6 is Sunday.
 
-    startingMonth : int {1, 2, ..., 12}, default 1
+    starting_month : int {1, 2, ..., 12}, default 1
         The month in which fiscal years end.
 
     qtr_with_extra_week : int {1, 2, 3, 4}, default 1
@@ -3915,18 +3915,18 @@ cdef class FY5253Quarter(FY5253Mixin):
     >>> ts + pd.offsets.FY5253Quarter()
     Timestamp('2022-01-31 00:00:00')
 
-    By the parameter ``startingMonth`` we can specify
+    By the parameter ``starting_month`` we can specify
     the month in which fiscal years end.
 
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.FY5253Quarter(startingMonth=3)
+    >>> ts + pd.offsets.FY5253Quarter(starting_month=3)
     Timestamp('2022-03-28 00:00:00')
 
     Business quarters for 52-53 week fiscal year can be specified by
     ``weekday`` and ``variation`` parameters.
 
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.FY5253Quarter(weekday=5, startingMonth=12, variation="last")
+    >>> ts + pd.offsets.FY5253Quarter(weekday=5, starting_month=12, variation="last")
     Timestamp('2022-04-02 00:00:00')
     """
 
@@ -3936,7 +3936,7 @@ cdef class FY5253Quarter(FY5253Mixin):
             "n",
             "normalize",
             "weekday",
-            "startingMonth",
+            "starting_month",
             "qtr_with_extra_week",
             "variation",
         ]
@@ -3950,12 +3950,12 @@ cdef class FY5253Quarter(FY5253Mixin):
         n=1,
         normalize=False,
         weekday=0,
-        startingMonth=1,
+        starting_month=1,
         qtr_with_extra_week=1,
         variation="nearest",
     ):
         FY5253Mixin.__init__(
-            self, n, normalize, weekday, startingMonth, variation
+            self, n, normalize, weekday, starting_month, variation
         )
         self.qtr_with_extra_week = qtr_with_extra_week
 
@@ -3966,7 +3966,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     @cache_readonly
     def _offset(self):
         return FY5253(
-            startingMonth=self.startingMonth,
+            starting_month=self.starting_month,
             weekday=self.weekday,
             variation=self.variation,
         )

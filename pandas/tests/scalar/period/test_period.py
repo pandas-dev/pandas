@@ -35,7 +35,7 @@ class TestPeriodDisallowedFreqs:
         [
             (offsets.BYearBegin(), "BYearBegin"),
             (offsets.YearBegin(2), "YearBegin"),
-            (offsets.QuarterBegin(startingMonth=12), "QuarterBegin"),
+            (offsets.QuarterBegin(starting_month=12), "QuarterBegin"),
             (offsets.BusinessMonthEnd(2), "BusinessMonthEnd"),
         ],
     )
@@ -259,10 +259,10 @@ class TestPeriodConstruction:
         assert Period("3/10/12", freq=offsets.Day()) == Period("3/10/12", freq="D")
 
         assert Period(
-            year=2005, quarter=1, freq=offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=1, freq=offsets.QuarterEnd(starting_month=12)
         ) == Period(year=2005, quarter=1, freq="Q")
         assert Period(
-            year=2005, quarter=2, freq=offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=2, freq=offsets.QuarterEnd(starting_month=12)
         ) == Period(year=2005, quarter=2, freq="Q")
 
         assert Period(year=2005, month=3, day=1, freq=offsets.Day()) == Period(

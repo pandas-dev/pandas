@@ -249,8 +249,8 @@ def get_start_end_field(
         is_business = freqstr[0] == "B"
 
         # YearBegin(), BYearBegin() use month = starting month of year.
-        # QuarterBegin(), BQuarterBegin() use startingMonth = starting
-        # month of year. Other offsets use month, startingMonth as ending
+        # QuarterBegin(), BQuarterBegin() use starting_month = starting
+        # month of year. Other offsets use month, starting_month as ending
         # month of year.
 
         if (freqstr[0:2] in ["MS", "QS", "YS"]) or (

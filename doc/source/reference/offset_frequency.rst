@@ -655,7 +655,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
-    BQuarterEnd.startingMonth
+    BQuarterEnd.starting_month
 
 Methods
 ~~~~~~~
@@ -690,7 +690,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
-    BQuarterBegin.startingMonth
+    BQuarterBegin.starting_month
 
 Methods
 ~~~~~~~
@@ -725,7 +725,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
-    QuarterEnd.startingMonth
+    QuarterEnd.starting_month
 
 Methods
 ~~~~~~~
@@ -760,7 +760,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
-    QuarterBegin.startingMonth
+    QuarterBegin.starting_month
 
 Methods
 ~~~~~~~
@@ -935,7 +935,7 @@ Properties
     FY5253.normalize
     FY5253.rule_code
     FY5253.n
-    FY5253.startingMonth
+    FY5253.starting_month
     FY5253.variation
     FY5253.weekday
 
@@ -975,7 +975,7 @@ Properties
     FY5253Quarter.rule_code
     FY5253Quarter.n
     FY5253Quarter.qtr_with_extra_week
-    FY5253Quarter.startingMonth
+    FY5253Quarter.starting_month
     FY5253Quarter.variation
     FY5253Quarter.weekday
 
