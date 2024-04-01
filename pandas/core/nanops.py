@@ -767,9 +767,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
             )
-            warnings.filterwarnings(
-                "ignore", "Mean of empty slice", RuntimeWarning
-            )
+            warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
             res = np.nanmedian(x[_mask])
         return res
 
