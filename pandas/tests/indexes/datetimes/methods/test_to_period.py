@@ -50,13 +50,13 @@ class TestToPeriod:
         result = stamps.to_period(freq)
         tm.assert_index_equal(rng, result)
 
-    @pytest.mark.parametrize("off", ["BQ", "QS", "BQS"])
+    @pytest.mark.parametrize("off", ["BQE", "QS", "BQS"])
     def test_to_period_quarterlyish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
         assert prng.freq == "QE-DEC"
 
-    @pytest.mark.parametrize("off", ["BY", "YS", "BYS"])
+    @pytest.mark.parametrize("off", ["BYE", "YS", "BYS"])
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
@@ -97,13 +97,12 @@ class TestToPeriod:
             ("2QE-SEP", "2Q-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+    def test_to_period_frequency_M_Q_Y_deprecated(self, freq, freq_depr):
         # GH#9586
-        msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         rng = date_range("01-Jan-2012", periods=8, freq=freq)
         prng = rng.to_period()
@@ -214,3 +213,11 @@ class TestToPeriod:
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"])
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
+
+    @pytest.mark.parametrize("freq", ["2BMS", "1SME-15"])
+    def test_to_period_offsets_not_supported(self, freq):
+        # GH#56243
+        msg = f"{freq[1:]} is not supported as period frequency"
+        ts = date_range("1/1/2012", periods=4, freq=freq)
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period()

@@ -34,6 +34,7 @@ from numpy cimport (
     PyArray_IterNew,
     flatiter,
     float64_t,
+    int64_t,
 )
 
 cnp.import_array()
@@ -44,14 +45,13 @@ from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -272,8 +272,11 @@ def py_parse_datetime_string(
     #  parse_datetime_string cpdef bc it has a pointer argument)
     cdef:
         NPY_DATETIMEUNIT out_bestunit
+        int64_t nanos
 
-    return parse_datetime_string(date_string, dayfirst, yearfirst, &out_bestunit)
+    return parse_datetime_string(
+        date_string, dayfirst, yearfirst, &out_bestunit, &nanos
+    )
 
 
 cdef datetime parse_datetime_string(
@@ -283,7 +286,8 @@ cdef datetime parse_datetime_string(
     str date_string,
     bint dayfirst,
     bint yearfirst,
-    NPY_DATETIMEUNIT* out_bestunit
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
 ):
     """
     Parse datetime string, only returns datetime.
@@ -311,7 +315,7 @@ cdef datetime parse_datetime_string(
         default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         dt = dateutil_parse(date_string, default=default,
                             dayfirst=dayfirst, yearfirst=yearfirst,
-                            ignoretz=False, out_bestunit=out_bestunit)
+                            ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
         return dt
 
     dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
@@ -330,7 +334,7 @@ cdef datetime parse_datetime_string(
 
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
-                        ignoretz=False, out_bestunit=out_bestunit)
+                        ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
     return dt
 
 
@@ -436,7 +440,7 @@ def parse_datetime_string_with_reso(
 
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,
-                            ignoretz=False, out_bestunit=&out_bestunit)
+                            ignoretz=False, out_bestunit=&out_bestunit, nanos=NULL)
     reso = npy_unit_to_attrname[out_bestunit]
     return parsed, reso
 
@@ -623,7 +627,7 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
         raise ValueError("Quarter must be 1 <= q <= 4")
 
     if freq is not None:
-        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        mnum = MONTH_TO_CAL_NUM[get_rule_month(freq)]
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
@@ -639,7 +643,8 @@ cdef datetime dateutil_parse(
     bint ignoretz,
     bint dayfirst,
     bint yearfirst,
-    NPY_DATETIMEUNIT* out_bestunit
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
 ):
     """ lifted from dateutil to get resolution"""
 
@@ -671,11 +676,8 @@ cdef datetime dateutil_parse(
     if reso is None:
         raise DateParseError(f"Unable to parse datetime string: {timestr}")
 
-    if reso == "microsecond":
-        if repl["microsecond"] == 0:
-            reso = "second"
-        elif repl["microsecond"] % 1000 == 0:
-            reso = "millisecond"
+    if reso == "microsecond" and repl["microsecond"] % 1000 == 0:
+        reso = _find_subsecond_reso(timestr, nanos=nanos)
 
     try:
         ret = default.replace(**repl)
@@ -700,17 +702,12 @@ cdef datetime dateutil_parse(
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
             if res.tzname != "UTC":
-                # If the system is localized in UTC (as many CI runs are)
-                #  we get tzlocal, once the deprecation is enforced will get
-                #  timezone.utc, not raise.
-                warnings.warn(
+                raise ValueError(
                     f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "is no longer supported. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level()
                 )
-            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
@@ -730,19 +727,46 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
     return ret
+
+
+cdef object _reso_pattern = re.compile(r"\d:\d{2}:\d{2}\.(?P<frac>\d+)")
+
+cdef _find_subsecond_reso(str timestr, int64_t* nanos):
+    # GH#55737
+    # Check for trailing zeros in a H:M:S.f pattern
+    match = _reso_pattern.search(timestr)
+    if not match:
+        reso = "second"
+    else:
+        frac = match.groupdict()["frac"]
+        if len(frac) <= 3:
+            reso = "millisecond"
+        elif len(frac) > 6:
+            if frac[6:] == "0" * len(frac[6:]):
+                # corner case where we haven't lost any data
+                reso = "nanosecond"
+            elif len(frac) <= 9:
+                reso = "nanosecond"
+                if nanos is not NULL:
+                    if len(frac) < 9:
+                        frac = frac + "0" * (9 - len(frac))
+                    nanos[0] = int(frac[6:])
+            else:
+                # TODO: should we warn/raise in higher-than-nano cases?
+                reso = "nanosecond"
+                if nanos is not NULL:
+                    nanos[0] = int(frac[6:9])
+        else:
+            reso = "microsecond"
+    return reso
 
 
 # ----------------------------------------------------------------------
@@ -885,8 +909,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
         (("hour", "minute", "second"), "%H%M%S", 0),
-        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
         (("month",), "%m", 2),
@@ -906,8 +930,10 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
-    # same default used by dateutil
-    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Use this instead of the dateutil default of
+    # `datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)`
+    # as that causes issues on the 29th of February.
+    default = datetime(1970, 1, 1)
     try:
         parsed_datetime = dateutil_parse(
             dt_str,
@@ -916,6 +942,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             yearfirst=False,
             ignoretz=False,
             out_bestunit=&out_bestunit,
+            nanos=NULL,
         )
     except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed

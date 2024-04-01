@@ -106,7 +106,7 @@ class TestSeriesRank:
         tm.assert_series_equal(iranks, exp)
 
         iseries = Series(np.repeat(np.nan, 100))
-        exp = iseries.copy()
+        exp = iseries
         iranks = iseries.rank(pct=True)
         tm.assert_series_equal(iranks, exp)
 
@@ -234,6 +234,16 @@ class TestSeriesRank:
         tm.assert_series_equal(na_ser.rank(na_option="bottom", pct=True), exp_bot)
         tm.assert_series_equal(na_ser.rank(na_option="keep", pct=True), exp_keep)
 
+    def test_rank_nullable_integer(self):
+        # GH 56976
+        exp = Series([np.nan, 2, np.nan, 3, 3, 2, 3, 1])
+        exp = exp.astype("Int64")
+        result = exp.rank(na_option="keep")
+
+        expected = Series([np.nan, 2.5, np.nan, 5.0, 5.0, 2.5, 5.0, 1.0])
+
+        tm.assert_series_equal(result, expected)
+
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method="average")
@@ -248,8 +258,6 @@ class TestSeriesRank:
         result = ser.rank(method=method)
         tm.assert_series_equal(result, Series(exp))
 
-    @pytest.mark.parametrize("ascending", [True, False])
-    @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
     @pytest.mark.parametrize(
         "dtype, na_value, pos_inf, neg_inf",
@@ -267,11 +275,11 @@ class TestSeriesRank:
         ],
     )
     def test_rank_tie_methods_on_infs_nans(
-        self, method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
+        self, rank_method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
     ):
         pytest.importorskip("scipy")
         if dtype == "float64[pyarrow]":
-            if method == "average":
+            if rank_method == "average":
                 exp_dtype = "float64[pyarrow]"
             else:
                 exp_dtype = "uint64[pyarrow]"
@@ -288,7 +296,7 @@ class TestSeriesRank:
             "first": ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
             "dense": ([1, 1, 1], [2, 2, 2], [3, 3, 3]),
         }
-        ranks = exp_ranks[method]
+        ranks = exp_ranks[rank_method]
         if na_option == "top":
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
@@ -297,7 +305,9 @@ class TestSeriesRank:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
         expected = order if ascending else order[::-1]
         expected = list(chain.from_iterable(expected))
-        result = iseries.rank(method=method, na_option=na_option, ascending=ascending)
+        result = iseries.rank(
+            method=rank_method, na_option=na_option, ascending=ascending
+        )
         tm.assert_series_equal(result, Series(expected, dtype=exp_dtype))
 
     def test_rank_desc_mix_nans_infs(self):
@@ -308,7 +318,6 @@ class TestSeriesRank:
         exp = Series([3, np.nan, 1, 4, 2], dtype="float64")
         tm.assert_series_equal(result, exp)
 
-    @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize(
         "op, value",
         [
@@ -317,7 +326,7 @@ class TestSeriesRank:
             [operator.mul, 1e-6],
         ],
     )
-    def test_rank_methods_series(self, method, op, value):
+    def test_rank_methods_series(self, rank_method, op, value):
         sp_stats = pytest.importorskip("scipy.stats")
 
         xs = np.random.default_rng(2).standard_normal(9)
@@ -327,8 +336,10 @@ class TestSeriesRank:
         index = [chr(ord("a") + i) for i in range(len(xs))]
         vals = op(xs, value)
         ts = Series(vals, index=index)
-        result = ts.rank(method=method)
-        sprank = sp_stats.rankdata(vals, method if method != "first" else "ordinal")
+        result = ts.rank(method=rank_method)
+        sprank = sp_stats.rankdata(
+            vals, rank_method if rank_method != "first" else "ordinal"
+        )
         expected = Series(sprank, index=index).astype("float64")
         tm.assert_series_equal(result, expected)
 

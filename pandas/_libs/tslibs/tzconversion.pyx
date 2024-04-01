@@ -416,8 +416,13 @@ timedelta-like}
 
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-
-                    delta_idx = delta_idx - delta_idx_offset
+                    # Logic similar to the precompute section. But check the current
+                    # delta in case we are moving between UTC+0 and non-zero timezone
+                    if (shift_forward or shift_delta > 0) and \
+                       info.deltas[delta_idx - 1] >= 0:
+                        delta_idx = delta_idx - 1
+                    else:
+                        delta_idx = delta_idx - delta_idx_offset
                     result[i] = new_local - info.deltas[delta_idx]
             elif fill_nonexist:
                 result[i] = NPY_NAT
@@ -602,7 +607,8 @@ cdef ndarray[int64_t] _get_dst_hours(
         ndarray[uint8_t, cast=True] mismatch
         ndarray[int64_t] delta, dst_hours
         ndarray[intp_t] switch_idxs, trans_idx, grp, a_idx, b_idx, one_diff
-        list trans_grp
+        # TODO: Can uncomment when numpy >=2 is the minimum
+        # tuple trans_grp
         intp_t switch_idx
         int64_t left, right
 

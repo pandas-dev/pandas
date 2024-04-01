@@ -3,6 +3,7 @@ Tests that the specified index column (a.k.a "index_col")
 is properly handled or inferred during parsing for all of
 the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("with_header", [True, False])
@@ -76,7 +78,7 @@ def test_index_col_is_true(all_parsers):
         parser.read_csv(StringIO(data), index_col=True)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_index_col(all_parsers):
     data = """A,B,C
 foo,1,2,3
@@ -94,7 +96,7 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -143,7 +145,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_index_col_false(all_parsers):
     # see gh-10413
     data = "x,y"
@@ -317,7 +319,7 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_infer_types_boolean_sum(all_parsers):
     # GH#44079
     parser = all_parsers

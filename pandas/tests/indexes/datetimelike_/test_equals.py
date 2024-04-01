@@ -1,6 +1,7 @@
 """
 Tests shared for DatetimeIndex/TimedeltaIndex/PeriodIndex
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -18,6 +19,7 @@ from pandas import (
     TimedeltaIndex,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
@@ -141,7 +143,7 @@ class TestDatetimeIndexEquals(EqualsTests):
 class TestTimedeltaIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
-        return tm.makeTimedeltaIndex(10)
+        return timedelta_range("1 day", periods=10)
 
     def test_equals2(self):
         # GH#13107

@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from io import StringIO
 
 import numpy as np
@@ -18,6 +19,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_int_conversion(all_parsers):
@@ -39,31 +41,29 @@ def test_int_conversion(all_parsers):
         (
             "A,B\nTrue,1\nFalse,2\nTrue,3",
             {},
-            DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
+            [[True, 1], [False, 2], [True, 3]],
         ),
         (
             "A,B\nYES,1\nno,2\nyes,3\nNo,3\nYes,3",
             {"true_values": ["yes", "Yes", "YES"], "false_values": ["no", "NO", "No"]},
-            DataFrame(
-                [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
-                columns=["A", "B"],
-            ),
+            [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
         ),
         (
             "A,B\nTRUE,1\nFALSE,2\nTRUE,3",
             {},
-            DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
+            [[True, 1], [False, 2], [True, 3]],
         ),
         (
             "A,B\nfoo,bar\nbar,foo",
             {"true_values": ["foo"], "false_values": ["bar"]},
-            DataFrame([[True, False], [False, True]], columns=["A", "B"]),
+            [[True, False], [False, True]],
         ),
     ],
 )
 def test_parse_bool(all_parsers, data, kwargs, expected):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), **kwargs)
+    expected = DataFrame(expected, columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -179,7 +179,7 @@ def test_int64_overflow(all_parsers, conv, request):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
@@ -193,7 +193,7 @@ def test_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
 )

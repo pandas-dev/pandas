@@ -1,6 +1,7 @@
 """
 Methods used by Block.replace and related methods.
 """
+
 from __future__ import annotations
 
 import operator
@@ -67,7 +68,7 @@ def compare_or_regex_search(
 
     def _check_comparison_types(
         result: ArrayLike | bool, a: ArrayLike, b: Scalar | Pattern
-    ):
+    ) -> None:
         """
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
@@ -78,7 +79,7 @@ def compare_or_regex_search(
             type_names[0] = f"ndarray(dtype={a.dtype})"
 
             raise TypeError(
-                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
+                f"Cannot compare types {type_names[0]!r} and {type_names[1]!r}"
             )
 
     if not regex or not should_use_regex(regex, b):
@@ -92,17 +93,18 @@ def compare_or_regex_search(
         )
 
     # GH#32621 use mask to avoid comparing to NAs
-    if isinstance(a, np.ndarray):
+    if isinstance(a, np.ndarray) and mask is not None:
         a = a[mask]
+        result = op(a)
 
-    result = op(a)
-
-    if isinstance(result, np.ndarray) and mask is not None:
-        # The shape of the mask can differ to that of the result
-        # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool_)
-        np.place(tmp, mask, result)
-        result = tmp
+        if isinstance(result, np.ndarray):
+            # The shape of the mask can differ to that of the result
+            # since we may compare only a subset of a's or b's elements
+            tmp = np.zeros(mask.shape, dtype=np.bool_)
+            np.place(tmp, mask, result)
+            result = tmp
+    else:
+        result = op(a)
 
     _check_comparison_types(result, a, b)
     return result

@@ -44,7 +44,9 @@ def test_first_last_nth(df):
     grouped["B"].last()
     grouped["B"].nth(0)
 
+    df = df.copy()
     df.loc[df["A"] == "foo", "B"] = np.nan
+    grouped = df.groupby("A")
     assert isna(grouped["B"].first()["foo"])
     assert isna(grouped["B"].last()["foo"])
     assert isna(grouped["B"].nth(0).iloc[0])
@@ -120,8 +122,15 @@ def test_first_last_with_None_expanded(method, df, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_last_nth_dtypes(df_mixed_floats):
-    df = df_mixed_floats.copy()
+def test_first_last_nth_dtypes():
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
+        }
+    )
     df["E"] = True
     df["F"] = 1
 
@@ -286,8 +295,10 @@ def test_nth5():
     tm.assert_frame_equal(gb.nth([3, 4]), df.loc[[]])
 
 
-def test_nth_bdays():
-    business_dates = pd.date_range(start="4/1/2014", end="6/30/2014", freq="B")
+def test_nth_bdays(unit):
+    business_dates = pd.date_range(
+        start="4/1/2014", end="6/30/2014", freq="B", unit=unit
+    )
     df = DataFrame(1, index=business_dates, columns=["a", "b"])
     # get the first, fourth and last two business days for each month
     key = [df.index.year, df.index.month]
@@ -307,7 +318,7 @@ def test_nth_bdays():
             "2014/6/27",
             "2014/6/30",
         ]
-    )
+    ).as_unit(unit)
     expected = DataFrame(1, columns=["a", "b"], index=expected_dates)
     tm.assert_frame_equal(result, expected)
 
@@ -401,14 +412,15 @@ def test_first_last_tz(data, expected_first, expected_last):
         ["last", Timestamp("2013-01-02", tz="US/Eastern"), "b"],
     ],
 )
-def test_first_last_tz_multi_column(method, ts, alpha):
+def test_first_last_tz_multi_column(method, ts, alpha, unit):
     # GH 21603
     category_string = Series(list("abc")).astype("category")
+    dti = pd.date_range("20130101", periods=3, tz="US/Eastern", unit=unit)
     df = DataFrame(
         {
             "group": [1, 1, 2],
             "category_string": category_string,
-            "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+            "datetimetz": dti,
         }
     )
     result = getattr(df.groupby("group"), method)()
@@ -421,6 +433,7 @@ def test_first_last_tz_multi_column(method, ts, alpha):
         },
         index=Index([1, 2], name="group"),
     )
+    expected["datetimetz"] = expected["datetimetz"].dt.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
 
@@ -516,7 +529,6 @@ def test_nth_multi_index_as_expected():
     ],
 )
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
-@pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A", as_index=as_index)
@@ -524,32 +536,6 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     if columns is not None:
         g = g[columns]
         expected = expected[columns]
-    result = getattr(g, op)(n)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "op, n, expected_cols",
-    [
-        ("head", -1, [0]),
-        ("head", 0, []),
-        ("head", 1, [0, 2]),
-        ("head", 7, [0, 1, 2]),
-        ("tail", -1, [1]),
-        ("tail", 0, []),
-        ("tail", 1, [1, 2]),
-        ("tail", 7, [0, 1, 2]),
-    ],
-)
-def test_groupby_head_tail_axis_1(op, n, expected_cols):
-    # GH 9772
-    df = DataFrame(
-        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        g = df.groupby([0, 0, 1], axis=1)
-    expected = df.iloc[:, expected_cols]
     result = getattr(g, op)(n)
     tm.assert_frame_equal(result, expected)
 
@@ -761,24 +747,6 @@ def test_np_ints(slice_test_df, slice_test_grouped):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_nth_with_column_axis():
-    # GH43926
-    df = DataFrame(
-        [
-            [4, 5, 6],
-            [8, 8, 7],
-        ],
-        index=["z", "y"],
-        columns=["C", "B", "A"],
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(df.iloc[1], axis=1)
-    result = gb.nth(0)
-    expected = df.iloc[:, [0, 2]]
-    tm.assert_frame_equal(result, expected)
-
-
 def test_groupby_nth_interval():
     # GH#24205
     idx_result = MultiIndex(
@@ -799,35 +767,6 @@ def test_groupby_nth_interval():
         [[0, 0, 1], [0, 1, 0]],
     )
     expected = DataFrame(val_expected, index=idx_expected, columns=["col"])
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "start, stop, expected_values, expected_columns",
-    [
-        (None, None, [0, 1, 2, 3, 4], list("ABCDE")),
-        (None, 1, [0, 3], list("AD")),
-        (None, 9, [0, 1, 2, 3, 4], list("ABCDE")),
-        (None, -1, [0, 1, 3], list("ABD")),
-        (1, None, [1, 2, 4], list("BCE")),
-        (1, -1, [1], list("B")),
-        (-1, None, [2, 4], list("CE")),
-        (-1, 2, [4], list("E")),
-    ],
-)
-@pytest.mark.parametrize("method", ["call", "index"])
-def test_nth_slices_with_column_axis(
-    start, stop, expected_values, expected_columns, method
-):
-    df = DataFrame([range(5)], columns=[list("ABCDE")])
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([5, 5, 5, 6, 6], axis=1)
-    result = {
-        "call": lambda start, stop: gb.nth(slice(start, stop)),
-        "index": lambda start, stop: gb.nth[start:stop],
-    }[method](start, stop)
-    expected = DataFrame([expected_values], columns=[expected_columns])
     tm.assert_frame_equal(result, expected)
 
 
@@ -885,3 +824,24 @@ def test_nth_after_selection(selection, dropna):
         locs = [0, 2]
     expected = df.loc[locs, selection]
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+def test_groupby_nth_int_like_precision(data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = grouped.nth(0)
+    expected = DataFrame({"a": 1, "b": [data[0]]})
+
+    tm.assert_frame_equal(result, expected)

@@ -797,8 +797,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     day_of_year,"The ordinal day of year"
-    weekofyear,"The week ordinal of the year"
-    week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
@@ -811,6 +809,10 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
+
+.. note::
+
+   You can use ``DatetimeIndex.isocalendar().week`` to access week of year date information.
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
@@ -882,16 +884,16 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
     :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBME'``, "custom business month end"
     :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
-    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SME'``, "15th (or other day_of_month) and calendar month end"
     :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
     :class:`~pandas.tseries.offsets.QuarterEnd`, ``'QE'``, "calendar quarter end"
     :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
-    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
+    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
-    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
+    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BYE'``, "business year end"
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
     :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
@@ -1241,7 +1243,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "D", "calendar day frequency"
     "W", "weekly frequency"
     "ME", "month end frequency"
-    "SM", "semi-month end frequency (15th and end of month)"
+    "SME", "semi-month end frequency (15th and end of month)"
     "BME", "business month end frequency"
     "CBME", "custom business month end frequency"
     "MS", "month start frequency"
@@ -1249,11 +1251,11 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
     "QE", "quarter end frequency"
-    "BQ", "business quarter end frequency"
+    "BQE", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "YE", "year end frequency"
-    "BY", "business year end frequency"
+    "BYE", "business year end frequency"
     "YS", "year start frequency"
     "BYS", "business year start frequency"
     "h", "hourly frequency"
@@ -1327,8 +1329,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``A``, ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``Y``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1466,11 +1468,16 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
+    "next_workday", "move Saturday and Sunday to Monday"
+    "previous_workday", "move Saturday and Sunday to Friday"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
+    "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
+    "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"
     "sunday_to_monday", "move Sunday to following Monday"
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
     "previous_friday", move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
+    "weekend_to_monday", "same as ``next_monday``"
 
 An example of how holidays and holiday calendars are defined:
 
@@ -1686,7 +1693,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
@@ -1770,7 +1777,8 @@ We can instead only resample those groups where we have points as follows:
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
-        return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
+        td = pd.Timedelta(freq)
+        return pd.Timestamp((t.value // td.value) * td.value)
 
     ts.groupby(partial(round, freq="3min")).sum()
 

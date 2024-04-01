@@ -269,7 +269,7 @@ using ``fillna`` if you wish).
 .. ipython:: python
 
    df2 = df.copy()
-   df2["three"]["a"] = 1.0
+   df2.loc["a", "three"] = 1.0
    df
    df2
    df + df2
@@ -299,8 +299,7 @@ Boolean reductions
 ~~~~~~~~~~~~~~~~~~
 
 You can apply the reductions: :attr:`~DataFrame.empty`, :meth:`~DataFrame.any`,
-:meth:`~DataFrame.all`, and :meth:`~DataFrame.bool` to provide a
-way to summarize a boolean result.
+:meth:`~DataFrame.all`.
 
 .. ipython:: python
 
@@ -1309,8 +1308,8 @@ filling method chosen from the following table:
     :header: "Method", "Action"
     :widths: 30, 50
 
-    pad / ffill, Fill values forward
-    bfill / backfill, Fill values backward
+    ffill, Fill values forward
+    bfill, Fill values backward
     nearest, Fill from the nearest index value
 
 We illustrate these fill methods on a simple Series:

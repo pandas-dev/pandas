@@ -1,4 +1,5 @@
 """Common IO api utilities"""
+
 from __future__ import annotations
 
 from abc import (
@@ -176,13 +177,11 @@ def is_url(url: object) -> bool:
 
 
 @overload
-def _expand_user(filepath_or_buffer: str) -> str:
-    ...
+def _expand_user(filepath_or_buffer: str) -> str: ...
 
 
 @overload
-def _expand_user(filepath_or_buffer: BaseBufferT) -> BaseBufferT:
-    ...
+def _expand_user(filepath_or_buffer: BaseBufferT) -> BaseBufferT: ...
 
 
 def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
@@ -234,15 +233,15 @@ def validate_header_arg(header: object) -> None:
 
 
 @overload
-def stringify_path(filepath_or_buffer: FilePath, convert_file_like: bool = ...) -> str:
-    ...
+def stringify_path(
+    filepath_or_buffer: FilePath, convert_file_like: bool = ...
+) -> str: ...
 
 
 @overload
 def stringify_path(
     filepath_or_buffer: BaseBufferT, convert_file_like: bool = ...
-) -> BaseBufferT:
-    ...
+) -> BaseBufferT: ...
 
 
 def stringify_path(
@@ -279,14 +278,14 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def urlopen(*args, **kwargs):
+def urlopen(*args: Any, **kwargs: Any) -> Any:
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
     the stdlib.
     """
     import urllib.request
 
-    return urllib.request.urlopen(*args, **kwargs)
+    return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
@@ -318,7 +317,7 @@ def _get_filepath_or_buffer(
 
     Parameters
     ----------
-    filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
+    filepath_or_buffer : a url, filepath (str or pathlib.Path),
                          or buffer
     {compression_options}
 
@@ -329,11 +328,8 @@ def _get_filepath_or_buffer(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
 
-    ..versionchange:: 1.2.0
-
-      Returns the dataclass IOArgs.
+    Returns the dataclass IOArgs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -362,6 +358,16 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
+            stacklevel=find_stack_level(),
+        )
+
+    if "a" in mode and compression_method in ["zip", "tar"]:
+        # GH56778
+        warnings.warn(
+            "zip and tar do not support mode 'a' properly. "
+            "This combination will result in multiple files with same name "
+            "being added to the archive.",
+            RuntimeWarning,
             stacklevel=find_stack_level(),
         )
 
@@ -630,8 +636,7 @@ def get_handle(
     is_text: Literal[False],
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[bytes]:
-    ...
+) -> IOHandles[bytes]: ...
 
 
 @overload
@@ -645,8 +650,7 @@ def get_handle(
     is_text: Literal[True] = ...,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[str]:
-    ...
+) -> IOHandles[str]: ...
 
 
 @overload
@@ -660,8 +664,7 @@ def get_handle(
     is_text: bool = ...,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
-) -> IOHandles[str] | IOHandles[bytes]:
-    ...
+) -> IOHandles[str] | IOHandles[bytes]: ...
 
 
 @doc(compression_options=_shared_docs["compression_options"] % "path_or_buf")
@@ -710,8 +713,6 @@ def get_handle(
         of options.
     storage_options: StorageOptions = None
         Passed to _get_filepath_or_buffer
-
-    .. versionchanged:: 1.2.0
 
     Returns the dataclass IOHandles
     """
@@ -797,7 +798,9 @@ def get_handle(
             # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
             # ReadBuffer[bytes], WriteBuffer[bytes]]"
             handle = _BytesZipFile(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,  # type: ignore[arg-type]
+                ioargs.mode,
+                **compression_args,
             )
             if handle.buffer.mode == "r":
                 handles.append(handle)
@@ -822,7 +825,8 @@ def get_handle(
                 # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
                 # WriteBuffer[bytes], None]"
                 handle = _BytesTarFile(
-                    fileobj=handle, **compression_args  # type: ignore[arg-type]
+                    fileobj=handle,  # type: ignore[arg-type]
+                    **compression_args,
                 )
             assert isinstance(handle, _BytesTarFile)
             if "r" in handle.buffer.mode:
@@ -846,7 +850,9 @@ def get_handle(
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
             # PathLike[bytes]], IO[bytes]], None]"
             handle = get_lzma_file()(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,  # type: ignore[arg-type]
+                ioargs.mode,
+                **compression_args,
             )
 
         # Zstd Compression
@@ -953,8 +959,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     buffer = BytesIO()
 
     @abstractmethod
-    def write_to_buffer(self) -> None:
-        ...
+    def write_to_buffer(self) -> None: ...
 
     def close(self) -> None:
         if self.closed:
@@ -977,7 +982,7 @@ class _BytesTarFile(_BufferedWriter):
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
         archive_name: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.archive_name = archive_name
@@ -1030,7 +1035,7 @@ class _BytesZipFile(_BufferedWriter):
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
         archive_name: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         mode = mode.replace("b", "")
@@ -1071,7 +1076,7 @@ class _IOWrapper:
     def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.buffer, name)
 
     def readable(self) -> bool:
@@ -1102,7 +1107,7 @@ class _BytesIOWrapper:
         # overflow to the front of the bytestring the next time reading is performed
         self.overflow = b""
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self.buffer, attr)
 
     def read(self, n: int | None = -1) -> bytes:
@@ -1142,7 +1147,9 @@ def _maybe_memory_map(
         # expected "BaseBuffer"
         wrapped = _IOWrapper(
             mmap.mmap(
-                handle.fileno(), 0, access=mmap.ACCESS_READ  # type: ignore[arg-type]
+                handle.fileno(),
+                0,
+                access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
     finally:
@@ -1226,12 +1233,14 @@ def is_potential_multi_index(
     bool : Whether or not columns could become a MultiIndex
     """
     if index_col is None or isinstance(index_col, bool):
-        index_col = []
+        index_columns = set()
+    else:
+        index_columns = set(index_col)
 
     return bool(
         len(columns)
         and not isinstance(columns, ABCMultiIndex)
-        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
+        and all(isinstance(c, tuple) for c in columns if c not in index_columns)
     )
 
 

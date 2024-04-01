@@ -10,10 +10,12 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
@@ -113,26 +115,26 @@ class BoxPlot(LinePlot):
         else:
             return ax, bp
 
-    def _validate_color_args(self):
-        if "color" in self.kwds:
-            if self.colormap is not None:
-                warnings.warn(
-                    "'color' and 'colormap' cannot be used "
-                    "simultaneously. Using 'color'",
-                    stacklevel=find_stack_level(),
-                )
-            self.color = self.kwds.pop("color")
+    def _validate_color_args(self, color, colormap):
+        if color is lib.no_default:
+            return None
 
-            if isinstance(self.color, dict):
-                valid_keys = ["boxes", "whiskers", "medians", "caps"]
-                for key in self.color:
-                    if key not in valid_keys:
-                        raise ValueError(
-                            f"color dict contains invalid key '{key}'. "
-                            f"The key must be either {valid_keys}"
-                        )
-        else:
-            self.color = None
+        if colormap is not None:
+            warnings.warn(
+                "'color' and 'colormap' cannot be used "
+                "simultaneously. Using 'color'",
+                stacklevel=find_stack_level(),
+            )
+
+        if isinstance(color, dict):
+            valid_keys = ["boxes", "whiskers", "medians", "caps"]
+            for key in color:
+                if key not in valid_keys:
+                    raise ValueError(
+                        f"color dict contains invalid key '{key}'. "
+                        f"The key must be either {valid_keys}"
+                    )
+        return color
 
     @cache_readonly
     def _color_attrs(self):
@@ -182,16 +184,8 @@ class BoxPlot(LinePlot):
             medians = self.color or self._medians_c
             caps = self.color or self._caps_c
 
-        # GH 30346, when users specifying those arguments explicitly, our defaults
-        # for these four kwargs should be overridden; if not, use Pandas settings
-        if not self.kwds.get("boxprops"):
-            setp(bp["boxes"], color=boxes, alpha=1)
-        if not self.kwds.get("whiskerprops"):
-            setp(bp["whiskers"], color=whiskers, alpha=1)
-        if not self.kwds.get("medianprops"):
-            setp(bp["medians"], color=medians, alpha=1)
-        if not self.kwds.get("capprops"):
-            setp(bp["caps"], color=caps, alpha=1)
+        color_tup = (boxes, whiskers, medians, caps)
+        maybe_color_bp(bp, color_tup=color_tup, **self.kwds)
 
     def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
@@ -276,6 +270,19 @@ class BoxPlot(LinePlot):
             return self._return_obj
 
 
+def maybe_color_bp(bp, color_tup, **kwds) -> None:
+    # GH#30346, when users specifying those arguments explicitly, our defaults
+    # for these four kwargs should be overridden; if not, use Pandas settings
+    if not kwds.get("boxprops"):
+        setp(bp["boxes"], color=color_tup[0], alpha=1)
+    if not kwds.get("whiskerprops"):
+        setp(bp["whiskers"], color=color_tup[1], alpha=1)
+    if not kwds.get("medianprops"):
+        setp(bp["medians"], color=color_tup[2], alpha=1)
+    if not kwds.get("capprops"):
+        setp(bp["caps"], color=color_tup[3], alpha=1)
+
+
 def _grouped_plot_by_column(
     plotf,
     data,
@@ -356,7 +363,7 @@ def boxplot(
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    if isinstance(data, pd.Series):
+    if isinstance(data, ABCSeries):
         data = data.to_frame("x")
         column = "x"
 
@@ -364,8 +371,8 @@ def boxplot(
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
         #  if colors not provided, use same defaults as DataFrame.plot.box
-        result = get_standard_colors(num_colors=3)
-        result = np.take(result, [0, 0, 2])
+        result_list = get_standard_colors(num_colors=3)
+        result = np.take(result_list, [0, 0, 2])
         result = np.append(result, "k")
 
         colors = kwds.pop("color", None)
@@ -389,18 +396,6 @@ def boxplot(
 
         return result
 
-    def maybe_color_bp(bp, **kwds) -> None:
-        # GH 30346, when users specifying those arguments explicitly, our defaults
-        # for these four kwargs should be overridden; if not, use Pandas settings
-        if not kwds.get("boxprops"):
-            setp(bp["boxes"], color=colors[0], alpha=1)
-        if not kwds.get("whiskerprops"):
-            setp(bp["whiskers"], color=colors[1], alpha=1)
-        if not kwds.get("medianprops"):
-            setp(bp["medians"], color=colors[2], alpha=1)
-        if not kwds.get("capprops"):
-            setp(bp["caps"], color=colors[3], alpha=1)
-
     def plot_group(keys, values, ax: Axes, **kwds):
         # GH 45465: xlabel/ylabel need to be popped out before plotting happens
         xlabel, ylabel = kwds.pop("xlabel", None), kwds.pop("ylabel", None)
@@ -419,7 +414,7 @@ def boxplot(
         _set_ticklabels(
             ax=ax, labels=keys, is_vertical=kwds.get("vert", True), rotation=rot
         )
-        maybe_color_bp(bp, **kwds)
+        maybe_color_bp(bp, color_tup=colors, **kwds)
 
         # Return axes in multiplot case, maybe revisit later # 985
         if return_type == "dict":
@@ -538,23 +533,18 @@ def boxplot_frame_groupby(
         )
         axes = flatten_axes(axes)
 
-        ret = pd.Series(dtype=object)
-
+        data = {}
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            ret.loc[key] = d
+            data[key] = d
+        ret = pd.Series(data)
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
-        if grouped.axis == 0:
-            df = pd.concat(frames, keys=keys, axis=1)
-        elif len(frames) > 1:
-            df = frames[0].join(frames[1::])
-        else:
-            df = frames[0]
+        df = pd.concat(frames, keys=keys, axis=1)
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,
