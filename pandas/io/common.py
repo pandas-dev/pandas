@@ -361,6 +361,16 @@ def _get_filepath_or_buffer(
             stacklevel=find_stack_level(),
         )
 
+    if "a" in mode and compression_method in ["zip", "tar"]:
+        # GH56778
+        warnings.warn(
+            "zip and tar do not support mode 'a' properly. "
+            "This combination will result in multiple files with same name "
+            "being added to the archive.",
+            RuntimeWarning,
+            stacklevel=find_stack_level(),
+        )
+
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
     # except when text mode is explicitly requested. The original mode is returned if
     # fsspec is not used.
