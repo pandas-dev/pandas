@@ -591,14 +591,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     :class:`pandas.io.html._HtmlFrameParser`.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        from bs4 import SoupStrainer
-
-        self._strainer = SoupStrainer("table")
-
     def _parse_tables(self, document, match, attrs):
-        element_name = self._strainer.name
+        element_name = "table"
         tables = document.find_all(element_name, attrs=attrs)
         if not tables:
             raise ValueError("No tables found")
