@@ -210,7 +210,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
@@ -218,7 +218,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax", axis=axis)
 
     def unique(self) -> Self:
@@ -295,13 +295,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
         result = self._from_backing_data(result)
         return result
-
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        # (for now) when self.ndim == 2, we assume axis=0
-        func = missing.get_fill_func(method, ndim=self.ndim)
-        func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
         self,

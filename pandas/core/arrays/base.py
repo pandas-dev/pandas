@@ -885,7 +885,7 @@ class ExtensionArray:
         # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
@@ -919,7 +919,7 @@ class ExtensionArray:
         # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax")
 
     def interpolate(
@@ -2110,25 +2110,6 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        """
-        Replace values in locations specified by 'mask' using pad or backfill.
-
-        See also
-        --------
-        ExtensionArray.fillna
-        """
-        func = missing.get_fill_func(method)
-        npvalues = self.astype(object)
-        # NB: if we don't copy mask here, it may be altered inplace, which
-        #  would mess up the `self[mask] = ...` below.
-        func(npvalues, limit=limit, mask=mask.copy())
-        new_values = self._from_sequence(npvalues, dtype=self.dtype)
-        self[mask] = new_values[mask]
 
     def _rank(
         self,
