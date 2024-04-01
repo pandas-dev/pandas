@@ -7162,7 +7162,7 @@ class DataFrame(NDFrame, OpsMixin):
         dropna: bool = True,
     ) -> Series:
         """
-        Return a Series containing the frequency of each distinct row in the DataFrame.
+        Return a Series containing the frequency of each distinct row in the Dataframe.
 
         Parameters
         ----------
@@ -7175,14 +7175,13 @@ class DataFrame(NDFrame, OpsMixin):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Do not include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
             .. versionadded:: 1.3.0
 
         Returns
         -------
         Series
-            Series containing the frequency of each distinct row in the DataFrame.
 
         See Also
         --------
@@ -7193,8 +7192,8 @@ class DataFrame(NDFrame, OpsMixin):
         The returned Series will have a MultiIndex with one level per input
         column but an Index (non-multi) for a single label. By default, rows
         that contain any NA values are omitted from the result. By default,
-        the resulting Series will be sorted by frequencies in descending order so that
-        the first element is the most frequently-occurring row.
+        the resulting Series will be in descending order so that the first
+        element is the most frequently-occurring row.
 
         Examples
         --------
@@ -9659,8 +9658,6 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or DataFrame
-            If index is a MultiIndex: DataFrame with pivoted index labels as new
-            inner-most level column labels, else Series.
 
         See Also
         --------
@@ -12479,7 +12476,9 @@ class DataFrame(NDFrame, OpsMixin):
         freq: Frequency | None = None,
         how: ToTimestampHow = "start",
         axis: Axis = 0,
-        copy: bool | lib.NoDefault = lib.no_default,
+        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+
+        This can be changed to the *end* of the period, by specifying `how="e"`.
     ) -> DataFrame:
         """
         Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
@@ -12509,8 +12508,13 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+        DataFrame with DatetimeIndex
+            DataFrame with the PeriodIndex cast to DatetimeIndex.
 
-            .. deprecated:: 3.0.0
+        See Also
+        --------
+        DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
+        Series.to_timestamp: Equivalent method for Series.
 
         Returns
         -------
@@ -12566,7 +12570,8 @@ class DataFrame(NDFrame, OpsMixin):
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def to_period(
+        frequency (inferred from index if not passed). Either index of columns can be
+        converted, depending on `axis` argument.
         self,
         freq: Frequency | None = None,
         axis: Axis = 0,
@@ -12594,7 +12599,12 @@ class DataFrame(NDFrame, OpsMixin):
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
                 `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
+            The DataFrame with the converted PeriodIndex.
+
+        See Also
+        --------
+        Series.to_period: Equivalent method for Series.
+        Series.dt.to_period: Convert DateTime column values.
                 future version of pandas.
 
                 You can already get the future behavior and improvements through
