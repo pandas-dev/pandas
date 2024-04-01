@@ -12514,11 +12514,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame
-            The DataFrame has a DatetimeIndex.
+        DataFrame with DatetimeIndex
+            DataFrame with the PeriodIndex cast to DatetimeIndex.
 
         See Also
-        -------
+        --------
         DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
         Series.to_timestamp: Equivalent method for Series.
 

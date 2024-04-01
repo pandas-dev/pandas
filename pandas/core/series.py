@@ -5644,6 +5644,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
 
+        This can be changed to the *end* of the period, by specifying `how="e"`.
+
         Parameters
         ----------
         freq : str, default frequency of PeriodIndex
@@ -5671,9 +5673,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series with DatetimeIndex
+            Series with the PeriodIndex cast to DatetimeIndex.
 
         See Also
-        -------
+        --------
         Series.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
         DataFrame.to_timestamp: Equivalent method for DataFrame.
 
