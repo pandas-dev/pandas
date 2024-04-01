@@ -97,7 +97,6 @@ from pandas.core import (
     algorithms,
     base,
     common as com,
-    missing,
     nanops,
     ops,
     roperator,
@@ -5115,40 +5114,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             verbose=verbose,
             show_counts=show_counts,
         )
-
-    @overload
-    def _replace_single(self, to_replace, inplace: Literal[False]) -> Self: ...
-
-    @overload
-    def _replace_single(self, to_replace, inplace: Literal[True]) -> None: ...
-
-    @overload
-    def _replace_single(self, to_replace, inplace: bool) -> Self | None: ...
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(self, to_replace, inplace: bool) -> Self | None:
-        """
-        Replaces values in a Series using the fill method specified when no
-        replacement value is given in the replace method
-        """
-        limit = None
-        method = "pad"
-
-        result = self if inplace else self.copy()
-
-        values = result._values
-        mask = missing.mask_missing(values, to_replace)
-
-        if isinstance(values, ExtensionArray):
-            # dispatch to the EA's _pad_mask_inplace method
-            values._fill_mask_inplace(method, limit, mask)
-        else:
-            fill_f = missing.get_fill_func(method)
-            fill_f(values, limit=limit, mask=mask)
-
-        if inplace:
-            return None
-        return result
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
