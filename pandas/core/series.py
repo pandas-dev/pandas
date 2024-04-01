@@ -5674,7 +5674,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         -------
-        Series.to_period: Inverse method the cast DatetimeIndex to PeriodIndex.
+        Series.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
         DataFrame.to_timestamp: Equivalent method for DataFrame.
 
         Examples

@@ -12519,7 +12519,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         -------
-        DataFrame.to_period: Inverse method the cast DatetimeIndex to PeriodIndex.
+        DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
         Series.to_timestamp: Equivalent method for Series.
 
         Examples
