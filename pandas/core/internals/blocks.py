@@ -1388,12 +1388,10 @@ class Block(PandasObject, libinternals.Block):
             # If there are no NAs, then interpolate is a no-op
             return [self.copy(deep=False)]
 
-        # TODO(3.0): this case will not be reachable once GH#53638 is enforced
         if self.dtype == _dtype_obj:
-            # only deal with floats
-            # bc we already checked that can_hold_na, we don't have int dtype here
-            # test_interp_basic checks that we make a copy here
-            return [self.copy(deep=False)]
+            # GH#53631
+            name = {1: "Series", 2: "DataFrame"}[self.ndim]
+            raise TypeError(f"{name} cannot interpolate with object dtype.")
 
         copy, refs = self._get_refs_and_copy(inplace)
 
