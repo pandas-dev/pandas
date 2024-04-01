@@ -9807,7 +9807,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or Database or None
+        Series or DataFrame or None
             When applied to a Series, the function will return a Series,
             and when applied to a DataFrame, it will return a DataFrame;
             if ``inplace=True``, it will return None.
