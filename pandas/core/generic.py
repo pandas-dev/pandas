@@ -10394,6 +10394,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         TypeError
             If the axis is tz-naive.
 
+        See Also
+        --------
+        DataFrame.tz_localize: Localize tz-naive index of DataFrame to target time zone.
+        Series.tz_localize: Localize tz-naive index of Series to target time zone.
+
         Examples
         --------
         Change to another time zone:
