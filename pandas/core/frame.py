@@ -11497,7 +11497,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("any", ndim=2))
+    @doc(make_doc("any", ndim=1))
     def any(
         self,
         *,
@@ -11543,7 +11543,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("all", ndim=2))
+    @doc(make_doc("all", ndim=1))
     def all(
         self,
         axis: Axis | None = 0,
