@@ -381,7 +381,7 @@ AttributeError: The index must only be an integer value.
 ...     {"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]}, index=[1, 2, 5, 8]
 ... )
 >>> df.index.int_accessor.even()
-[2,8]"""
+[2, 8]"""
 
 
 @doc(_register_accessor, klass="Index", examples=_register_index_examples)
