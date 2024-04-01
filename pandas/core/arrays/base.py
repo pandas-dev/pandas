@@ -885,7 +885,7 @@ class ExtensionArray:
         # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
@@ -919,7 +919,7 @@ class ExtensionArray:
         # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax")
 
     def interpolate(
