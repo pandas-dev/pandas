@@ -338,6 +338,7 @@ Bug fixes
 - Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
+- Fixed bug in :meth:`Timestamp.replace` which was not reflecting the resulting changes in :meth:`Timestamp.unit`. (:issue:`57749`)
 
 Categorical
 ^^^^^^^^^^^

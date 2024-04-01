@@ -59,7 +59,6 @@ from pandas._libs.tslibs.conversion cimport (
     maybe_localize_tso,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    abbrev_to_npy_unit,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
     periods_per_day,
@@ -2468,38 +2467,30 @@ default 'raise'
             return v
 
         if year is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_Y
             dts.year = validate("year", year)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_Y
         if month is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_M
             dts.month = validate("month", month)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_M
         if day is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_D
             dts.day = validate("day", day)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_D
         if hour is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_h
             dts.hour = validate("hour", hour)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_h
         if minute is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_m
             dts.min = validate("minute", minute)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_m
         if second is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_s
             dts.sec = validate("second", second)
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_s
         if microsecond is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_ms
             dts.us = validate("microsecond", microsecond)
             if microsecond > 999:
                 rep_reso = NPY_DATETIMEUNIT.NPY_FR_us
             else:
                 rep_reso = NPY_DATETIMEUNIT.NPY_FR_ms
         if nanosecond is not None:
-            rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
             dts.ps = validate("nanosecond", nanosecond) * 1000
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
         if tzinfo is not object:
