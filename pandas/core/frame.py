@@ -12476,9 +12476,7 @@ class DataFrame(NDFrame, OpsMixin):
         freq: Frequency | None = None,
         how: ToTimestampHow = "start",
         axis: Axis = 0,
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
-
-        This can be changed to the *end* of the period, by specifying `how="e"`.
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
@@ -12508,13 +12506,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
-        DataFrame with DatetimeIndex
-            DataFrame with the PeriodIndex cast to DatetimeIndex.
 
-        See Also
-        --------
-        DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
-        Series.to_timestamp: Equivalent method for Series.
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -12570,8 +12563,7 @@ class DataFrame(NDFrame, OpsMixin):
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-        frequency (inferred from index if not passed). Either index of columns can be
-        converted, depending on `axis` argument.
+    def to_period(
         self,
         freq: Frequency | None = None,
         axis: Axis = 0,
@@ -12599,12 +12591,7 @@ class DataFrame(NDFrame, OpsMixin):
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
                 `copy` keyword will use a lazy copy mechanism to defer the copy and
-            The DataFrame with the converted PeriodIndex.
-
-        See Also
-        --------
-        Series.to_period: Equivalent method for Series.
-        Series.dt.to_period: Convert DateTime column values.
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
                 future version of pandas.
 
                 You can already get the future behavior and improvements through
