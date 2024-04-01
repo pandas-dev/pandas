@@ -320,8 +320,7 @@ AttributeError: All columns must contain integer values only.
 >>> df.int_accessor.sum()
 0    4
 1    6
-dtype: int64
-"""
+dtype: int64"""
 
 
 @doc(_register_accessor, klass="DataFrame", examples=_register_df_examples)
@@ -356,8 +355,7 @@ Traceback (most recent call last):
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
 >>> df.int_accessor.sum
-6
-"""
+6"""
 
 
 @doc(_register_accessor, klass="Series", examples=_register_series_examples)
@@ -396,8 +394,7 @@ AttributeError: The index must only be an integer value.
 ...     {"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]}, index=[1, 2, 5, 8]
 ... )
 >>> df.index.my_accessor.even()
-[2,8]
-"""
+[2,8]"""
 
 
 @doc(_register_accessor, klass="Index", examples=_register_index_examples)
