@@ -835,7 +835,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -844,7 +844,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index

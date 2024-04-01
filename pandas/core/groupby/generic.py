@@ -574,7 +574,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if results:
             from pandas.core.reshape.concat import concat
 
-            concatenated = concat(results)
+            concatenated = concat(results, ignore_index=True)
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
@@ -1803,7 +1803,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied.append(res)
 
         concat_index = obj.columns
-        concatenated = concat(applied, axis=0, verify_integrity=False)
+        concatenated = concat(
+            applied, axis=0, verify_integrity=False, ignore_index=True
+        )
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
@@ -2797,7 +2799,7 @@ def _wrap_transform_general_frame(
         # other dimension; this will preserve dtypes
         # GH14457
         if res.index.is_(obj.index):
-            res_frame = concat([res] * len(group.columns), axis=1)
+            res_frame = concat([res] * len(group.columns), axis=1, ignore_index=True)
             res_frame.columns = group.columns
             res_frame.index = group.index
         else:
