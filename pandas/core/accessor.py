@@ -294,23 +294,19 @@ def _register_accessor(name: str, cls):
 
 
 _register_df_examples = """
-In your library code, an accessor that only accepts integers could
+An accessor that only accepts integers could
 have a class defined like this:
 
-.. code-block:: python
-
-    @pd.api.extensions.register_dataframe_accessor("int_accessor")
-    class IntAccessor:
-        def __init__(self, pandas_obj):
-            if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
-                raise AttributeError("All columns must contain integer values only")
-            self._obj = pandas_obj
-
-        def sum(self):
-            return self._obj.sum()
-
-Back in an interactive IPython session:
-
+>>> @pd.api.extensions.register_dataframe_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+...             raise AttributeError("All columns must contain integer values only")
+...         self._obj = pandas_obj
+...
+...     def sum(self):
+...         return self._obj.sum()
+...
 >>> df = pd.DataFrame([[1, 2], ['x', 'y']])
 >>> df.int_accessor
 Traceback (most recent call last):
@@ -331,23 +327,19 @@ def register_dataframe_accessor(name: str):
 
 
 _register_series_examples = """
-In your library code, an accessor that only accepts integers could
+An accessor that only accepts integers could
 have a class defined like this:
 
-.. code-block:: python
-
-    @pd.api.extensions.register_series_accessor("int_accessor")
-    class IntAccessor:
-        def __init__(self, pandas_obj):
-            if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
-                raise AttributeError("All columns must contain integer values only")
-            self._obj = pandas_obj
-
-        def sum(self):
-            return self._obj.sum()
-
-Back in an interactive IPython session:
-
+>>> @pd.api.extensions.register_series_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+...             raise AttributeError("All columns must contain integer values only")
+...         self._obj = pandas_obj
+...
+...     def sum(self):
+...         return self._obj.sum()
+...
 >>> df = pd.Series([1, 2, 'x'])
 >>> df.int_accessor
 Traceback (most recent call last):
@@ -366,23 +358,18 @@ def register_series_accessor(name: str):
 
 
 _register_index_examples = """
-In your library code, an accessor that only accepts integers could
+An accessor that only accepts integers could
 have a class defined like this:
 
-.. code-block:: python
-
-    @pd.api.extensions.register_index_accessor("int_accessor")
-    class IntAccessor:
-        def __init__(self, pandas_obj):
-            if not all(isinstance(x, int) for x in pandas_obj):
-                raise AttributeError("The index must only be an integer value")
-            self._obj = pandas_obj
-
-        def even(self):
-            return [x for x in self._obj if x % 2 == 0]
-
-Back in an interactive IPython session:
-
+>>> @pd.api.extensions.register_index_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not all(isinstance(x, int) for x in pandas_obj):
+...             raise AttributeError("The index must only be an integer value")
+...         self._obj = pandas_obj
+...
+...     def even(self):
+...         return [x for x in self._obj if x % 2 == 0]
 >>> df = pd.DataFrame.from_dict(
 ...     {"row1": {"1": 1, "2": "a"}, "row2": {"1": 2, "2": "b"}}, orient="index"
 ... )
