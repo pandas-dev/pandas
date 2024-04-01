@@ -19,7 +19,7 @@ ci:
     skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.1
+    rev: v0.3.4
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -39,7 +39,7 @@ repos:
     -   id: ruff-format
         exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.10'
+    rev: 'v2.11'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -93,11 +93,11 @@ repos:
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.15.2
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -116,7 +116,7 @@ repos:
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.6
+    rev: v18.1.2
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
