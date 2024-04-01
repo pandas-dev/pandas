@@ -333,8 +333,8 @@ have a class defined like this:
 >>> @pd.api.extensions.register_series_accessor("int_accessor")
 ... class IntAccessor:
 ...     def __init__(self, pandas_obj):
-...         if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
-...             raise AttributeError("All columns must contain integer values only")
+...         if not pandas_obj.dtype == 'int64':
+...             raise AttributeError("The series must contain integer data only")
 ...         self._obj = pandas_obj
 ...
 ...     def sum(self):
@@ -346,7 +346,7 @@ Traceback (most recent call last):
 ...
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
->>> df.int_accessor.sum
+>>> df.int_accessor.sum()
 6"""
 
 
