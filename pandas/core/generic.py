@@ -11718,7 +11718,7 @@ axis : {axis_descr}
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 numeric_only : bool, default False
-    Include only float, int, boolean columns. Not implemented for Series.
+    Include only float, int, boolean columns.
 
 {min_count}\
 **kwargs
