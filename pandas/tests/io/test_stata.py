@@ -513,7 +513,6 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
 
         expected = parsed_114.copy()
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
     @pytest.mark.parametrize(
@@ -576,7 +575,6 @@ class TestStata:
         written_and_read_again.columns = map(convert_col_name, columns)
 
         expected = original
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(expected, written_and_read_again)
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
@@ -594,7 +592,6 @@ class TestStata:
 
         written_and_read_again = written_and_read_again.set_index("index")
         expected = original
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(written_and_read_again, expected)
 
     def test_no_index(self):
@@ -617,7 +614,6 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
 
         expected = original
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
     def test_large_value_conversion(self):
@@ -637,7 +633,6 @@ class TestStata:
         modified["s1"] = Series(modified["s1"], dtype=np.int16)
         modified["s2"] = Series(modified["s2"], dtype=np.int32)
         modified["s3"] = Series(modified["s3"], dtype=np.float64)
-        modified.index = original.index.astype(np.int32)
         tm.assert_frame_equal(written_and_read_again.set_index("index"), modified)
 
     def test_dates_invalid_column(self):
@@ -713,7 +708,7 @@ class TestStata:
 
         expected = DataFrame(
             [["1"], [""]],
-            index=pd.Index([0, 1], dtype=np.int32, name="index"),
+            index=pd.RangeIndex(2, name="index"),
             columns=["foo"],
         )
 
@@ -746,7 +741,6 @@ class TestStata:
         written_and_read_again = written_and_read_again.set_index("index")
 
         expected = original
-        expected.index = expected.index.astype(np.int32)
         expected_types = (
             np.int8,
             np.int8,
@@ -1030,7 +1024,7 @@ class TestStata:
         res = written_and_read_again.set_index("index")
 
         expected = original
-        expected.index = expected.index.set_names("index").astype(np.int32)
+        expected.index = expected.index.set_names("index")
 
         expected["incompletely_labeled"] = expected["incompletely_labeled"].apply(str)
         expected["unlabeled"] = expected["unlabeled"].apply(str)
@@ -1094,7 +1088,6 @@ class TestStata:
             new_cats = cat.remove_unused_categories().categories
             cat = cat.set_categories(new_cats, ordered=True)
             expected[col] = cat
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("file", ["stata10_115", "stata10_117"])
@@ -1544,7 +1537,6 @@ The repeated labels are:\n-+\nwolof
 
         original["ColumnTooBig"] = original["ColumnTooBig"].astype(np.float64)
         expected = original
-        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(reread.set_index("index"), expected)
 
     @pytest.mark.parametrize("infval", [np.inf, -np.inf])
@@ -1669,7 +1661,6 @@ The repeated labels are:\n-+\nwolof
         original["int32"] = original["int32"].astype(np.int32)
         original["float32"] = Series(original["float32"], dtype=np.float32)
         original.index.name = "index"
-        original.index = original.index.astype(np.int32)
         copy = original.copy()
         with tm.ensure_clean() as path:
             original.to_stata(
@@ -1962,7 +1953,7 @@ the string values returned are correct."""
                 # stata stores with ms unit, so unit does not round-trip exactly
                 "e": pd.date_range("2020-12-31", periods=3, freq="D", unit="ms"),
             },
-            index=pd.Index([0, 1, 2], name="index", dtype=np.int32),
+            index=pd.RangeIndex(range(3), name="index"),
         )
 
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
@@ -2049,7 +2040,6 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
         reread = read_stata(fp, index_col="index")
 
     expected = df
-    expected.index = expected.index.astype(np.int32)
     tm.assert_frame_equal(reread, expected)
 
 
@@ -2075,7 +2065,6 @@ def test_compression_dict(method, file_ext):
         reread = read_stata(fp, index_col="index")
 
     expected = df
-    expected.index = expected.index.astype(np.int32)
     tm.assert_frame_equal(reread, expected)
 
 
@@ -2085,7 +2074,6 @@ def test_chunked_categorical(version):
     df.index.name = "index"
 
     expected = df.copy()
-    expected.index = expected.index.astype(np.int32)
 
     with tm.ensure_clean() as path:
         df.to_stata(path, version=version)
@@ -2094,7 +2082,9 @@ def test_chunked_categorical(version):
                 block = block.set_index("index")
                 assert "cats" in block
                 tm.assert_series_equal(
-                    block.cats, expected.cats.iloc[2 * i : 2 * (i + 1)]
+                    block.cats,
+                    expected.cats.iloc[2 * i : 2 * (i + 1)],
+                    check_index_type=len(block) > 1,
                 )
 
 
