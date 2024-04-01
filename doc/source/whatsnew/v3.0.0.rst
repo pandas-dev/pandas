@@ -208,6 +208,7 @@ Removal of prior version deprecations/changes
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Changed behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` to always treat integer keys as labels, never as positional, consistent with :class:`DataFrame` behavior (:issue:`50617`)
+- Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
 - Disallow non-standard (``np.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series`) to :func:`isin`, :func:`unique`, :func:`factorize` (:issue:`52986`)
 - Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
 - Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)
@@ -410,7 +411,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in  :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
 -
 
 Groupby/resample/rolling
