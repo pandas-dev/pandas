@@ -97,7 +97,6 @@ from pandas.core import (
     algorithms,
     base,
     common as com,
-    missing,
     nanops,
     ops,
     roperator,
@@ -576,14 +575,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is Series:
-            # we are pandas.Series (or a subclass that doesn't override _constructor)
-            ser = Series._from_mgr(mgr, axes=axes)
-            ser._name = None  # caller is responsible for setting real name
+        ser = Series._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is Series:
+            # This would also work `if self._constructor is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        else:
-            assert axes is mgr.axes
-            return self._constructor(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor(ser)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -595,18 +597,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return DataFrame
 
-    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        from pandas.core.frame import DataFrame
-
-        return DataFrame._from_mgr(mgr, axes=mgr.axes)
-
     def _constructor_expanddim_from_mgr(self, mgr, axes):
         from pandas.core.frame import DataFrame
 
-        if self._constructor_expanddim is DataFrame:
-            return self._expanddim_from_mgr(mgr, axes)
-        assert axes is mgr.axes
-        return self._constructor_expanddim(mgr)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+
+        if type(self) is Series:
+            # This would also work `if self._constructor_expanddim is DataFrame`,
+            #  but this check is slightly faster, benefiting the most-common case.
+            return df
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor_expanddim(df)
 
     # types
     @property
@@ -4089,7 +4092,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ),
     )
     def swaplevel(
-        self, i: Level = -2, j: Level = -1, copy: bool | None = None
+        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
     ) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
@@ -4109,6 +4112,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         {examples}
         """
+        self._check_copy_deprecation(copy)
         assert isinstance(self.index, MultiIndex)
         result = self.copy(deep=False)
         result.index = self.index.swaplevel(i, j)
@@ -4251,6 +4255,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         DataFrame
             Unstacked Series.
+
+        See Also
+        --------
+        DataFrame.unstack : Pivot the MultiIndex of a DataFrame.
 
         Notes
         -----
@@ -4607,7 +4615,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -4619,7 +4627,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: Literal[False] = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -4631,7 +4639,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: bool = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -4642,7 +4650,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -4667,7 +4675,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             attribute.
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
-        copy : bool, default True
+        copy : bool, default False
             Also copy underlying data.
 
             .. note::
@@ -4681,6 +4689,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -4724,6 +4734,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    3
         dtype: int64
         """
+        self._check_copy_deprecation(copy)
         if axis is not None:
             # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
@@ -4773,9 +4784,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
-        return super().set_axis(labels, axis=axis)
+        return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'
     @doc(
@@ -4812,7 +4823,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         index=...,
         axis: Axis = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: Literal[True],
     ) -> None: ...
 
@@ -4823,7 +4834,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         index=...,
         axis: Axis = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: Literal[False] = ...,
     ) -> Self: ...
 
@@ -4834,7 +4845,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         index=...,
         axis: Axis = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: bool = ...,
     ) -> Self | None: ...
 
@@ -4844,7 +4855,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         index=lib.no_default,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
     ) -> Self | None:
         """
@@ -4863,7 +4874,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             apply to that axis' values.
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default None
+        copy : bool, default False
             Also copy underlying data.
 
             .. note::
@@ -4913,6 +4924,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index=index,
             axis=axis,
             inplace=inplace,
+            copy=copy,
         )
 
     @overload
@@ -5102,46 +5114,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             verbose=verbose,
             show_counts=show_counts,
         )
-
-    @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: Literal[False], limit
-    ) -> Self: ...
-
-    @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: Literal[True], limit
-    ) -> None: ...
-
-    @overload
-    def _replace_single(
-        self, to_replace, method: str, inplace: bool, limit
-    ) -> Self | None: ...
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(
-        self, to_replace, method: str, inplace: bool, limit
-    ) -> Self | None:
-        """
-        Replaces values in a Series using the fill method specified when no
-        replacement value is given in the replace method
-        """
-
-        result = self if inplace else self.copy()
-
-        values = result._values
-        mask = missing.mask_missing(values, to_replace)
-
-        if isinstance(values, ExtensionArray):
-            # dispatch to the EA's _pad_mask_inplace method
-            values._fill_mask_inplace(method, limit, mask)
-        else:
-            fill_f = missing.get_fill_func(method)
-            fill_f(values, limit=limit, mask=mask)
-
-        if inplace:
-            return None
-        return result
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
@@ -5636,7 +5608,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         freq: Frequency | None = None,
         how: Literal["s", "e", "start", "end"] = "start",
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
@@ -5648,7 +5620,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         how : {'s', 'e', 'start', 'end'}
             Convention for converting period to timestamp; start of period
             vs. end.
-        copy : bool, default True
+        copy : bool, default False
             Whether or not to return a copy.
 
             .. note::
@@ -5662,6 +5634,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -5696,6 +5670,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-31    3
         Freq: YE-JAN, dtype: int64
         """
+        self._check_copy_deprecation(copy)
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
@@ -5704,7 +5679,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         setattr(new_obj, "index", new_index)
         return new_obj
 
-    def to_period(self, freq: str | None = None, copy: bool | None = None) -> Series:
+    def to_period(
+        self,
+        freq: str | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ) -> Series:
         """
         Convert Series from DatetimeIndex to PeriodIndex.
 
@@ -5712,7 +5691,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         freq : str, default None
             Frequency associated with the PeriodIndex.
-        copy : bool, default True
+        copy : bool, default False
             Whether or not to return a copy.
 
             .. note::
@@ -5726,6 +5705,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -5748,6 +5729,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
+        self._check_copy_deprecation(copy)
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 

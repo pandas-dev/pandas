@@ -409,19 +409,13 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
+        # GH#51363
         trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
-        # test 0th element
-        warn = None
-        if index.dtype == object and index.inferred_type == "boolean":
-            # GH#51363
-            warn = FutureWarning
-        msg = "The behavior of Index.insert with object-dtype is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = trimmed.insert(0, index[0])
+        result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
     @pytest.mark.skipif(
@@ -892,10 +886,10 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "Passing a type in .*Index.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx_view = idx.view(index_cls)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+        msg = "Cannot change data-type for object array"
+        with pytest.raises(TypeError, match=msg):
+            # GH#55709
+            idx.view(index_cls)
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

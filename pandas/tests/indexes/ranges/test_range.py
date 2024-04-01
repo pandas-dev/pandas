@@ -200,11 +200,6 @@ class TestRangeIndex:
         i_view = i.view("i8")
         tm.assert_numpy_array_equal(i.values, i_view)
 
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            i_view = i.view(RangeIndex)
-        tm.assert_index_equal(i, i_view)
-
     def test_dtype(self, simple_index):
         index = simple_index
         assert index.dtype == np.int64
@@ -380,8 +375,8 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Cannot change data-type for object array"
+        with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
     def test_prevent_casting(self, simple_index):
