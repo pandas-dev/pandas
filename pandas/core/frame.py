@@ -7193,7 +7193,7 @@ class DataFrame(NDFrame, OpsMixin):
         The returned Series will have a MultiIndex with one level per input
         column but an Index (non-multi) for a single label. By default, rows
         that contain any NA values are omitted from the result. By default,
-        the resulting Series will be sorted by frequencies in descending order so that 
+        the resulting Series will be sorted by frequencies in descending order so that
         the first element is the most frequently-occurring row.
 
         Examples
@@ -12576,7 +12576,7 @@ class DataFrame(NDFrame, OpsMixin):
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed). Either index of columns can be 
+        frequency (inferred from index if not passed). Either index of columns can be
         converted, depending on `axis` argument.
 
         Parameters
