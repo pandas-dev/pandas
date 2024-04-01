@@ -2495,7 +2495,7 @@ default 'raise'
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
         if tzinfo is not object:
             tzobj = tzinfo
-        
+
         if rep_reso < self._creso:
             rep_reso = self._creso
 

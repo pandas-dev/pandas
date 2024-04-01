@@ -191,7 +191,7 @@ class TestTimestampReplace:
         assert ts_replaced.fold == fold
 
     def test_replace_unit(self):
-        #GH#57749
+        # GH#57749
         ts = Timestamp("2023-07-15 23:08:12")
         ts1 = Timestamp("2023-07-15 23:08:12.134567")
         ts2 = Timestamp("2023-07-15 23:08:12.134567123")
