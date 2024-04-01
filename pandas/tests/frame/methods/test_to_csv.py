@@ -1405,3 +1405,20 @@ class TestDataFrameToCSV:
         expected_rows = [",a", '0,"[2020-01-01 00:00:00, 2020-01-02 00:00:00]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_to_csv_warn_when_zip_tar_and_append_mode(self):
+        # GH57875
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            "zip and tar do not support mode 'a' properly. This combination will "
+            "result in multiple files with same name being added to the archive"
+        )
+        with tm.assert_produces_warning(
+            RuntimeWarning, match=msg, raise_on_extra_warnings=False
+        ):
+            df.to_csv("test.zip", mode="a")
+
+        with tm.assert_produces_warning(
+            RuntimeWarning, match=msg, raise_on_extra_warnings=False
+        ):
+            df.to_csv("test.tar", mode="a")
