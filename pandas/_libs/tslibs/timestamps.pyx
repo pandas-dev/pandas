@@ -2439,10 +2439,12 @@ default 'raise'
             datetime ts_input
             tzinfo_type tzobj
             _TSObject ts
+            NPY_DATETIMEUNIT rep_reso
 
         # set to naive if needed
         tzobj = self.tzinfo
         value = self._value
+        rep_reso = self._creso
 
         # GH 37610. Preserve fold when replacing.
         if fold is None:
@@ -2466,22 +2468,36 @@ default 'raise'
 
         if year is not None:
             dts.year = validate("year", year)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_Y
         if month is not None:
             dts.month = validate("month", month)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_M
         if day is not None:
             dts.day = validate("day", day)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_D
         if hour is not None:
             dts.hour = validate("hour", hour)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_h
         if minute is not None:
             dts.min = validate("minute", minute)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_m
         if second is not None:
             dts.sec = validate("second", second)
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_s
         if microsecond is not None:
             dts.us = validate("microsecond", microsecond)
+            if microsecond > 999:
+                rep_reso = NPY_DATETIMEUNIT.NPY_FR_us
+            else:
+                rep_reso = NPY_DATETIMEUNIT.NPY_FR_ms
         if nanosecond is not None:
             dts.ps = validate("nanosecond", nanosecond) * 1000
+            rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
         if tzinfo is not object:
             tzobj = tzinfo
+
+        if rep_reso < self._creso:
+            rep_reso = self._creso
 
         # reconstruct & check bounds
         if tzobj is None:
@@ -2489,17 +2505,17 @@ default 'raise'
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
             try:
-                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+                ts.value = npy_datetimestruct_to_datetime(rep_reso, &dts)
             except OverflowError as err:
                 fmt = dts_to_iso_string(&dts)
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
             ts.dts = dts
-            ts.creso = self._creso
+            ts.creso = rep_reso
             ts.fold = fold
             return create_timestamp_from_ts(
-                ts.value, dts, tzobj, fold, reso=self._creso
+                ts.value, dts, tzobj, fold, reso=rep_reso
             )
 
         elif tzobj is not None and treat_tz_as_pytz(tzobj):
@@ -2518,10 +2534,10 @@ default 'raise'
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(
-            ts_input, tzobj, nanos=dts.ps // 1000, reso=self._creso
+            ts_input, tzobj, nanos=dts.ps // 1000, reso=rep_reso
         )
         return create_timestamp_from_ts(
-            ts.value, dts, tzobj, fold, reso=self._creso
+            ts.value, dts, tzobj, fold, reso=rep_reso
         )
 
     def to_julian_date(self) -> np.float64:
