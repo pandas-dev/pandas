@@ -10558,8 +10558,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        Series.dt.tz_localize: localize the values in a time zone naive Series.
-        Timestamp.tz_localize: localize the Timestamp to a timezone.
+        Series.dt.tz_localize: Localize the values in a time zone naive Series.
+        Timestamp.tz_localize: Localize the Timestamp to a timezone.
 
         Examples
         --------
