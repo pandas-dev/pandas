@@ -5672,6 +5672,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series with DatetimeIndex
 
+        See Also
+        -------
+        Series.to_period: Inverse method the cast DatetimeIndex to PeriodIndex.
+        DataFrame.to_timestamp: Equivalent method for DataFrame.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")

@@ -12482,7 +12482,9 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+
+        This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
@@ -12514,6 +12516,11 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
             The DataFrame has a DatetimeIndex.
+
+        See Also
+        -------
+        DataFrame.to_period: Inverse method the cast DatetimeIndex to PeriodIndex.
+        Series.to_timestamp: Equivalent method for Series.
 
         Examples
         --------
