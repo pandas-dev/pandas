@@ -213,7 +213,7 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
-        if simple_index.dtype in (object, "string"):
+        if simple_index.dtype in (object, "string", "datetime64[ns]"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         if idx.dtype.kind in "iufcbm":
@@ -222,11 +222,7 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, DatetimeIndex):
-                msg = "datetime64 type does not support operation: '(any|all)'"
-            else:
-                msg = "does not support reduction '(any|all)'"
+            msg = "does not support reduction '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
