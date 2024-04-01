@@ -745,6 +745,10 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     >>> s = pd.Series([1, np.nan, 2, 2])
     >>> nanops.nanmedian(s.values)
     2.0
+
+    >>> s = pd.Series([np.nan, np.nan, np.nan])
+    >>> nanops.nanmedian(s.values)
+    nan
     """
     # for floats without mask, the data already uses NaN as missing value
     # indicator, and `mask` will be calculated from that below -> in those
@@ -762,6 +766,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
+            )
+            warnings.filterwarnings(
+                "ignore", "Mean of empty slice", RuntimeWarning
             )
             res = np.nanmedian(x[_mask])
         return res
