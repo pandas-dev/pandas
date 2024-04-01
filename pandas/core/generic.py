@@ -10551,15 +10551,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Same type as the input, with time zone naive or aware index, depending on
             ``tz``.
 
-        See Also
-        --------
-        Series.dt.tz_localize: localize the values in a time zone naive Series.
-        Timestamp.tz_localize: localize the Timestamp to a timezone.
-
         Raises
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        See Also
+        --------
+        Series.dt.tz_localize: localize the values in a time zone naive Series.
+        Timestamp.tz_localize: localize the Timestamp to a timezone.
 
         Examples
         --------
