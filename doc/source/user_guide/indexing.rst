@@ -264,7 +264,7 @@ detailing the ``.iloc`` method. For now, we explain the semantics of slicing usi
 
     .. note::
         
-        When the :class:`Series` has float indices, slicing will select by position. 
+        When the :class:`Series` has float indices, slicing will select by position.
 
 With Series, the syntax works exactly as with an ndarray, returning a slice of
 the values and the corresponding labels:
