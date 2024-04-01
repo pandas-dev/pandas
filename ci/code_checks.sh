@@ -563,6 +563,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz SA01" \
         -i "pandas.Timestamp.tz_convert SA01" \
+        -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \
         -i "pandas.Timestamp.unit SA01" \
