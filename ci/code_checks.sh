@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.assign SA01" \
         -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.axes SA01" \
-        -i "pandas.DataFrame.backfill PR01,SA01" \
         -i "pandas.DataFrame.bfill SA01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
@@ -104,7 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.pad PR01,SA01" \
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.DataFrame.pop SA01" \
         -i "pandas.DataFrame.prod RT03" \
@@ -119,14 +117,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.sparse.to_dense SA01" \
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
         -i "pandas.DataFrame.sum RT03" \
-        -i "pandas.DataFrame.swapaxes PR01,SA01" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_feather SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
-        -i "pandas.DataFrame.tz_localize SA01" \
-        -i "pandas.DataFrame.unstack RT03" \
-        -i "pandas.DataFrame.value_counts RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DataFrame.where RT03" \
         -i "pandas.DatetimeIndex.ceil SA01" \
@@ -223,7 +217,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.to_list RT03" \
         -i "pandas.Index.union PR07,RT03,SA01" \
         -i "pandas.Index.unique RT03" \
-        -i "pandas.Index.value_counts RT03" \
         -i "pandas.Index.view GL08" \
         -i "pandas.Int16Dtype SA01" \
         -i "pandas.Int32Dtype SA01" \
@@ -476,10 +469,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
         -i "pandas.Series.truediv PR07" \
-        -i "pandas.Series.tz_localize SA01" \
-        -i "pandas.Series.unstack SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Series.value_counts RT03" \
         -i "pandas.Series.var PR01,RT03,SA01" \
         -i "pandas.Series.where RT03" \
         -i "pandas.SparseDtype SA01" \

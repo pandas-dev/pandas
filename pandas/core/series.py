@@ -4257,6 +4257,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame
             Unstacked Series.
 
+        See Also
+        --------
+        DataFrame.unstack : Pivot the MultiIndex of a DataFrame.
+
         Notes
         -----
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
