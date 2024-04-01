@@ -194,6 +194,12 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
+
+    When inferred from the file contents, headers are kept distinct from
+    each other by renaming duplicate names with a numeric suffix of the form
+    ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+    Empty headers are named ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+    in the case of MultiIndex columns.
 names : Sequence of Hashable, optional
     Sequence of column labels to apply. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
