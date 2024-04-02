@@ -2835,7 +2835,7 @@ NoDefault = Literal[_NoDefault.no_default]
 
 
 def map_infer_mask(
-        ndarray[object] arr,
+        ndarray arr,
         object f,
         const uint8_t[:] mask,
         *,
@@ -2883,8 +2883,8 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _map_infer_mask(
-        ndarray[uint8_int64_object_t] out,
-        ndarray[object] arr,
+        ndarray out,
+        ndarray arr,
         object f,
         const uint8_t[:] mask,
         object na_value=no_default,
