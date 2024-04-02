@@ -1683,6 +1683,8 @@ class Styler(StylerRenderer):
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
+            "_display_funcs_index_names",
+            "_display_funcs_column_names",
             "hidden_rows",
             "hidden_columns",
             "ctx",

@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     ensure_platform_int,
-    is_array_like,
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
@@ -227,12 +226,9 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
         # GH#52986
         if func_name != "isin-targets":
             # Make an exception for the comps argument in isin.
-            warnings.warn(
-                f"{func_name} with argument that is not not a Series, Index, "
-                "ExtensionArray, or np.ndarray is deprecated and will raise in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{func_name} requires a Series, Index, "
+                f"ExtensionArray, or np.ndarray, got {type(values).__name__}."
             )
 
         inferred = lib.infer_dtype(values, skipna=False)
@@ -892,26 +888,9 @@ def value_counts_internal(
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
-            # For backwards compatibility, we let Index do its normal type
-            #  inference, _except_ for if if infers from object to bool.
-            idx = Index(keys)
-            if idx.dtype == bool and keys.dtype == object:
-                idx = idx.astype(object)
-            elif (
-                idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
-                and idx.dtype != "string[pyarrow_numpy]"
-            ):
-                warnings.warn(
-                    # GH#56161
-                    "The behavior of value_counts with object-dtype is deprecated. "
-                    "In a future version, this will *not* perform dtype inference "
-                    "on the resulting index. To retain the old behavior, use "
-                    "`result.index = result.index.infer_objects()`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            idx.name = index_name
-
+            # Starting in 3.0, we no longer perform dtype inference on the
+            #  Index object we construct here, xref GH#56161
+            idx = Index(keys, dtype=keys.dtype, name=index_name)
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
@@ -1180,28 +1159,30 @@ def take(
     """
     if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
         # GH#52981
-        warnings.warn(
-            "pd.api.extensions.take accepting non-standard inputs is deprecated "
-            "and will raise in a future version. Pass either a numpy.ndarray, "
-            "ExtensionArray, Index, or Series instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise TypeError(
+            "pd.api.extensions.take requires a numpy.ndarray, "
+            f"ExtensionArray, Index, or Series, got {type(arr).__name__}."
         )
-
-    if not is_array_like(arr):
-        arr = np.asarray(arr)
 
     indices = ensure_platform_int(indices)
 
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
+        # error: Argument 1 to "take_nd" has incompatible type
+        # "ndarray[Any, Any] | ExtensionArray | Index | Series"; expected
+        # "ndarray[Any, Any]"
         result = take_nd(
-            arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
+            arr,  # type: ignore[arg-type]
+            indices,
+            axis=axis,
+            allow_fill=True,
+            fill_value=fill_value,
         )
     else:
         # NumPy style
-        result = arr.take(indices, axis=axis)
+        # error: Unexpected keyword argument "axis" for "take" of "ExtensionArray"
+        result = arr.take(indices, axis=axis)  # type: ignore[call-arg,assignment]
     return result
 
 
@@ -1606,16 +1587,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    with warnings.catch_warnings():
-        # filter warning from object dtype inference; we will end up discarding
-        # the index here, so the deprecation does not affect the end result here.
-        warnings.filterwarnings(
-            "ignore",
-            "The behavior of value_counts with object-dtype is deprecated",
-            category=FutureWarning,
-        )
-        l_count = value_counts_internal(lvals, dropna=False)
-        r_count = value_counts_internal(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
