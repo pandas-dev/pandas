@@ -3,8 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -587,14 +585,12 @@ def test_resample_no_columns():
     )
     expected = DataFrame(
         index=pd.MultiIndex(
-            levels=[np.array([0, 1], dtype=np.intp), index],
+            levels=[range(2), index],
             codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
             names=[None, "date"],
         )
     )
-
-    # GH#52710 - Index comes out as 32-bit on 64-bit Windows
-    tm.assert_frame_equal(result, expected, check_index_type=not is_platform_windows())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_resample_size_all_index_same():

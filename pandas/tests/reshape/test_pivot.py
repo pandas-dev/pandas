@@ -20,6 +20,7 @@ from pandas import (
     Grouper,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -424,12 +425,10 @@ class TestPivotTable:
         res = df.pivot_table(index=df.index.month, columns=df.index.day)
 
         exp_columns = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-        exp_columns = exp_columns.set_levels(
-            exp_columns.levels[1].astype(np.int32), level=1
-        )
+        exp_columns = exp_columns.set_levels(exp_columns.levels[1], level=1)
         exp = DataFrame(
             [[2.5, 4.0], [2.0, np.nan]],
-            index=Index([1, 2], dtype=np.int32),
+            index=range(1, 3),
             columns=exp_columns,
         )
         tm.assert_frame_equal(res, exp)
@@ -446,9 +445,7 @@ class TestPivotTable:
             [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]")],
             names=[None, "dt"],
         )
-        exp = DataFrame(
-            [3.25, 2.0], index=Index([1, 2], dtype=np.int32), columns=exp_columns
-        )
+        exp = DataFrame([3.25, 2.0], index=range(1, 3), columns=exp_columns)
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
@@ -1671,7 +1668,7 @@ class TestPivotTable:
         expected = DataFrame(
             {7: [0.0, 3.0], 8: [1.0, 4.0], 9: [2.0, 5.0]},
             index=exp_idx,
-            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
+            columns=RangeIndex(range(7, 10), name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1681,8 +1678,8 @@ class TestPivotTable:
 
         expected = DataFrame(
             {7: [0.0, 3.0], 8: [1.0, 4.0], 9: [2.0, 5.0]},
-            index=Index([1, 2], dtype=np.int32, name="dt2"),
-            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
+            index=RangeIndex(range(1, 3), name="dt2"),
+            columns=RangeIndex(range(7, 10), name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1693,11 +1690,12 @@ class TestPivotTable:
             values="value1",
         )
 
-        exp_col = MultiIndex.from_arrays(
-            [
-                np.array([7, 7, 8, 8, 9, 9], dtype=np.int32),
-                np.array([1, 2] * 3, dtype=np.int32),
-            ],
+        exp_col = MultiIndex(
+            levels=(
+                RangeIndex(start=7, stop=10, step=1, name="dt1"),
+                RangeIndex(start=1, stop=3, step=1, name="dt2"),
+            ),
+            codes=([0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]),
             names=["dt1", "dt2"],
         )
         expected = DataFrame(
@@ -1737,8 +1735,7 @@ class TestPivotTable:
         for y in ts.index.year.unique().values:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=doy[mask])
-        expected = DataFrame(expected, dtype=float).T
-        expected.index = expected.index.astype(np.int32)
+        expected = DataFrame(expected, dtype=float, index=range(1, 367)).T
         tm.assert_frame_equal(result, expected)
 
     def test_monthly(self):
@@ -1753,8 +1750,7 @@ class TestPivotTable:
         for y in ts.index.year.unique().values:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=month[mask])
-        expected = DataFrame(expected, dtype=float).T
-        expected.index = expected.index.astype(np.int32)
+        expected = DataFrame(expected, dtype=float, index=range(1, 13)).T
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_with_iterator_values(self, data):

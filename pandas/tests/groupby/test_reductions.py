@@ -258,9 +258,12 @@ def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
     )
     gb = df.groupby("a")
     result = getattr(gb, how)()
-    expected = DataFrame(
-        {"b": [1, 0]}, index=pd.Index([1, 2], name="a", dtype=any_real_numpy_dtype)
+    exp_idx = (
+        pd.Index([1, 2], name="a", dtype=any_real_numpy_dtype)
+        if "float" in any_real_numpy_dtype
+        else pd.RangeIndex(range(1, 3), name="a")
     )
+    expected = DataFrame({"b": [1, 0]}, index=exp_idx)
     tm.assert_frame_equal(result, expected)
 
 
