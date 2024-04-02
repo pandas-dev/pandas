@@ -416,6 +416,12 @@ You can also include the grouping columns if you want to operate on them.
 
    grouped[["A", "B"]].sum()
 
+.. note::
+
+   The ``groupby`` operation in Pandas drops the ``name`` field of the columns Index object
+   after the operation. This change ensures consistency in syntax between different
+   column selection methods within groupby operations.
+
 .. _groupby.iterating-label:
 
 Iterating through groups
