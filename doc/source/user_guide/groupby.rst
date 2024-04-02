@@ -418,6 +418,12 @@ You can also include the grouping columns if you want to operate on them.
 
 .. _groupby.iterating-label:
 
+.. note::
+
+   The ``groupby`` operation in Pandas drops the ``name`` field of the columns Index object
+   after the operation. This change ensures consistency in syntax between different
+   column selection methods within groupby operations.
+
 Iterating through groups
 ------------------------
 
