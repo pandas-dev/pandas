@@ -6,12 +6,9 @@ requires = [
     "meson==1.2.1",
     "wheel",
     "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Any NumPy version should be fine for compiling.  Users are unlikely
-    # to get a NumPy<1.25 so the result will be compatible with all relevant
-    # NumPy versions (if not it is presumably compatible with their version).
-    # Pin <2.0 for releases until tested against an RC.  But explicitly allow
-    # testing the `.dev0` nightlies (which require the extra index).
-    "numpy>1.22.4,<=2.0.0.dev0",
+    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # with both numpy 1 and 2
+    "numpy>=2.0.0rc1",
     "versioneer[toml]"
 ]
 
