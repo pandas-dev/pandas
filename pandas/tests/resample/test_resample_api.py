@@ -708,7 +708,9 @@ def test_selection_api_validation():
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    with pytest.raises(TypeError, match="datetime64 type does not support sum"):
+    with pytest.raises(
+        TypeError, match="datetime64 type does not support operation: 'sum'"
+    ):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)
     tm.assert_frame_equal(exp, result)

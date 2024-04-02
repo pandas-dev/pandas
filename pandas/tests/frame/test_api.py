@@ -356,9 +356,7 @@ class TestDataFrameMisc:
         assert obj.iloc[key] == 1
 
         # Now we do copy.
-        result = obj.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
+        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 
