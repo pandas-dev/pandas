@@ -964,6 +964,37 @@ class TestDatetimeArray(SharedTests):
         expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_strftime_small_years(self):
+        np_dts = np.array(
+            ["220-01-01", "10-01-01", "1-01-01", "0-01-01"], "datetime64[s]"
+        )
+        arr = DatetimeIndex(np_dts)._data
+
+        result = arr.strftime("%Y-%m-%d__%y")
+        # Note that either -20 or 20 could be considered correct for the first %y.
+        # We opt for 20 to preserve the "two digits" property of %y.
+        expected = np.array(
+            ["0220-01-01__20", "0010-01-01__10", "0001-01-01__01", "0000-01-01__00"],
+            dtype=object,
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_strftime_negative(self):
+        np_neg = np.array(
+            ["-2020-01-01", "-220-01-01", "-200-01-01", "-1-01-01"], "datetime64[s]"
+        )
+        arr = DatetimeIndex(np_neg)._data
+
+        result = arr.strftime("%Y-%m-%d__%y")
+        # Note that either -20 or 20 could be considered correct for the first %y.
+        # We opt for -20 to have the same property than %Y.
+        # Similarly note that we have -1 instead of -01
+        expected = np.array(
+            ["-2020-01-01__-20", "-220-01-01__-20", "-200-01-01__00", "-001-01-01__-1"],
+            dtype=object,
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     @given(
         datetimes=st.lists(
             st.datetimes(

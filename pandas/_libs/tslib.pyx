@@ -238,10 +238,14 @@ def format_array_from_datetime(
 
                 # Use string formatting for faster strftime
                 y = dts.year
+                shortyear = y % 100
+                if y < 0 and shortyear != 0:
+                    # Fix negative modulo to adopt C-style modulo
+                    shortyear -= 100
                 h = dts.hour
                 res = str_format % {
                     "year": y,
-                    "shortyear": y % 100,
+                    "shortyear": shortyear,
                     "month": dts.month,
                     "day": dts.day,
                     "hour": h,

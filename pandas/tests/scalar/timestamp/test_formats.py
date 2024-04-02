@@ -9,6 +9,7 @@ import pprint
 import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
+from pytz.exceptions import NonExistentTimeError
 
 from pandas import Timestamp
 import pandas._testing as tm
@@ -214,6 +215,35 @@ class TestTimestampRendering:
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
+
+    def test_timestamp_repr_strftime_small_year_date(self):
+        stamp = Timestamp("0020-01-01")
+        assert repr(stamp) == "Timestamp('20-01-01 00:00:00')"
+
+        str_tmp, loc_dt_s = convert_strftime_format("%Y-%y", target="datetime")
+        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0020-20"
+
+    def test_timestamp_repr_strftime_negative_date(self):
+        stamp = Timestamp("-0020-01-01")
+        assert repr(stamp) == "Timestamp('-20-01-01 00:00:00')"
+
+        with pytest.raises(
+            NotImplementedError,
+            match="strftime not yet supported on Timestamps which are outside the "
+            "range of Python's standard library.",
+        ):
+            stamp.strftime("%y")
+
+        str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
+        assert Timestamp("-0020-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-20"
+        assert Timestamp("-0002-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-2"
+
+        str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
+        assert Timestamp("-2020-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-2020"
+        assert Timestamp("-0200-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-200"
+
+        with pytest.raises(NonExistentTimeError):
+            Timestamp("-0020-01-01", tz="US/Eastern")
 
     @pytest.mark.parametrize(
         "locale_str",

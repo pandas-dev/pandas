@@ -37,7 +37,7 @@ _COMMON_UNSUPPORTED = (
 _COMMON_MAP = {
     "%d": ("day", "02d"),  # Day of the month as a zero-padded decimal number.
     "%m": ("month", "02d"),  # Month as a zero-padded decimal number.
-    "%Y": ("year", "d"),  # Year with century as a decimal number.
+    "%Y": ("year", "04d"),  # Year with century as a 0-padded decimal number.
     "%y": ("shortyear", "02d"),  # Year without century as 0-padded decimal nb.
     "%H": ("hour", "02d"),  # Hour (24-hour clock) as 0-padded decimal number.
     "%I": ("hour12", "02d"),  # Hour (12-hour clock) as a 0-padded decimal nb.

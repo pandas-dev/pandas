@@ -1490,10 +1490,14 @@ class Timestamp(_Timestamp):
         '2020-03-14T15:32:52'
         """
         y = self.year
+        shortyear = y % 100
+        if y < 0 and shortyear != 0:
+            # Fix negative modulo to adopt C-style modulo
+            shortyear -= 100
         h = self.hour
         return fmt_str % {
             "year": y,
-            "shortyear": y % 100,
+            "shortyear": shortyear,
             "month": self.month,
             "day": self.day,
             "hour": h,
