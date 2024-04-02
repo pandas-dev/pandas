@@ -922,6 +922,7 @@ class BaseGrouper:
         npvalues = lib.maybe_convert_objects(result, try_float=False)
 
         if isinstance(obj._values, ArrowExtensionArray):
+            # convert to pyarrow extension
             pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
             pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
             out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
