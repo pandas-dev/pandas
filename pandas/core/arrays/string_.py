@@ -852,6 +852,16 @@ class NumpyStringArray(BaseNumpyStringArray):
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
         return np.strings.rfind(self._ndarray, sub, start, end)
 
+    def _str_index(self, sub, start: int = 0, end=None):
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.index(self._ndarray, sub, start, end)
+        return IntegerArray(result, isna(self._ndarray))
+
+    def _str_rindex(self, sub, start: int = 0, end=None):
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.rindex(self._ndarray, sub, start, end)
+        return IntegerArray(result, isna(self._ndarray))
+
     def _str_isalnum(self) -> BooleanArray:
         return BooleanArray(np.strings.isalnum(self._ndarray), isna(self._ndarray))
 
