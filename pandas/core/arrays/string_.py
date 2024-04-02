@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.boolean import BooleanArray
 from pandas.core.arrays.floating import (
     FloatingArray,
     FloatingDtype,
@@ -842,3 +843,41 @@ class NumpyStringArray(BaseNumpyStringArray):
         if dtype is None and na_value is not lib.no_default:
             dtype = get_numpy_string_dtype_instance(na_object=na_value)
         return super().to_numpy(dtype, copy, na_value)
+
+    def _str_find(self, sub, start: int = 0, end=None):
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        return np.strings.find(self._ndarray, sub, start, end)
+
+    def _str_rfind(self, sub, start: int = 0, end=None):
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        return np.strings.rfind(self._ndarray, sub, start, end)
+
+    def _str_isalnum(self) -> BooleanArray:
+        return BooleanArray(np.strings.isalnum(self._ndarray), isna(self._ndarray))
+
+    def _str_isalpha(self) -> BooleanArray:
+        return BooleanArray(np.strings.isalpha(self._ndarray), isna(self._ndarray))
+
+    def _str_isdigit(self) -> BooleanArray:
+        return BooleanArray(np.strings.isdigit(self._ndarray), isna(self._ndarray))
+
+    def _str_isdecimal(self) -> BooleanArray:
+        return BooleanArray(np.strings.isdecimal(self._ndarray), isna(self._ndarray))
+
+    def _str_islower(self) -> BooleanArray:
+        return BooleanArray(np.strings.islower(self._ndarray), isna(self._ndarray))
+
+    def _str_isnumeric(self) -> BooleanArray:
+        return BooleanArray(np.strings.isnumeric(self._ndarray), isna(self._ndarray))
+
+    def _str_isspace(self) -> BooleanArray:
+        return BooleanArray(np.strings.isspace(self._ndarray), isna(self._ndarray))
+
+    def _str_istitle(self) -> BooleanArray:
+        return BooleanArray(np.strings.istitle(self._ndarray), isna(self._ndarray))
+
+    def _str_isupper(self) -> BooleanArray:
+        return BooleanArray(np.strings.isupper(self._ndarray), isna(self._ndarray))
+
+    def _str_len(self) -> IntegerArray:
+        return IntegerArray(np.strings.str_len(self._ndarray), isna(self._ndarray))
