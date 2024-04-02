@@ -18,6 +18,7 @@ from typing import (
 )
 
 import numpy as np
+import pyarrow as pa
 
 from pandas._libs import (
     NaT,
@@ -45,12 +46,15 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
 
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.construction import array as pd_array
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -917,17 +921,15 @@ class BaseGrouper:
         result = self._aggregate_series_pure_python(obj, func)
         npvalues = lib.maybe_convert_objects(result, try_float=False)
 
-        if not isinstance(obj._values, np.ndarray) and obj._values.dtype._is_boolean:
-            if npvalues.dtype == "bool":
-                preserve_dtype = True
-        elif not isinstance(obj._values, np.ndarray):
+        if isinstance(obj._values, ArrowExtensionArray):
+            pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
+            pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
+            out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
+        elif not isinstance(obj._values, np.ndarray) or preserve_dtype:
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
-            preserve_dtype = True
-
-        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
