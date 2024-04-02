@@ -11,7 +11,6 @@ from typing import (
     no_type_check,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -32,10 +31,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
+from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -1711,13 +1707,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        warnings.warn(
-            "Resampling a groupby with a PeriodIndex is deprecated. "
-            "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return PeriodIndexResamplerGroupby
+        raise TypeError("Resampling with a PeriodIndex is not supported.")
 
     def _get_binner_for_time(self):
         if self.kind == "timestamp":
@@ -2054,28 +2044,8 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            if isinstance(ax, PeriodIndex):
-                # GH#53481
-                warnings.warn(
-                    "Resampling with a PeriodIndex is deprecated. "
-                    "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "Resampling with kind='period' is deprecated.  "
-                    "Use datetime paths instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return PeriodIndexResampler(
-                obj,
-                timegrouper=self,
-                kind=kind,
-                group_keys=self.group_keys,
-                gpr_index=ax,
-            )
+            # GH#53481
+            raise TypeError("Resampling with a PeriodIndex is not supported.")
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
                 obj,
@@ -2086,7 +2056,7 @@ class TimeGrouper(Grouper):
 
         raise TypeError(
             "Only valid with DatetimeIndex, "
-            "TimedeltaIndex or PeriodIndex, "
+            "TimedeltaIndex, "
             f"but got an instance of '{type(ax).__name__}'"
         )
 
