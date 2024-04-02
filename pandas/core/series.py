@@ -539,8 +539,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
-
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
