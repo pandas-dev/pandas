@@ -8955,7 +8955,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq=rule,
             label=label,
             closed=closed,
-            kind=None,
             convention=convention,
             key=on,
             level=level,

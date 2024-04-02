@@ -1103,7 +1103,8 @@ def test_resample_anchored_intraday(unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("ME").mean()
-    expected = df.resample("ME").mean().to_timestamp(how="end")
+    expected = df.resample("ME").mean().to_period()
+    expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
@@ -1133,9 +1134,7 @@ def test_resample_anchored_intraday2(unit):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("QE", closed="left").mean()
-    expected = (
-        df.shift(1, freq="D").resample("QE", closed="left").mean()
-    )
+    expected = df.shift(1, freq="D").resample("QE", closed="left").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")

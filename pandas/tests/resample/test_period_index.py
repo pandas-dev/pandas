@@ -106,9 +106,8 @@ class TestPeriodIndex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
-    @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
-    def test_selection(self, freq, kind, kwargs):
+    def test_selection(self, freq, kwargs):
         # This is a bug, these should be implemented
         # GH 14008
         index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
@@ -122,10 +121,8 @@ class TestPeriodIndex:
             r"not currently supported, use \.set_index\(\.\.\.\) to "
             "explicitly set index"
         )
-        depr_msg = "The 'kind' keyword in DataFrame.resample is deprecated"
         with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                df.resample(freq, kind=kind, **kwargs)
+            df.resample(freq, **kwargs)
 
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
@@ -432,9 +429,7 @@ class TestPeriodIndex:
     def test_resample_to_timestamps(self, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ts.resample("Y-DEC", kind="timestamp").mean()
+        result = ts.resample("Y-DEC").mean().to_timestamp()
         expected = ts.to_timestamp(how="start").resample("YE-DEC").mean()
         tm.assert_series_equal(result, expected)
 
@@ -496,6 +491,7 @@ class TestPeriodIndex:
         expected = ts.to_timestamp().resample(freq).mean()
         if kind != "timestamp":
             expected = expected.to_period(freq)
+
         msg = "The 'kind' keyword in Series.resample is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ts.resample(freq, kind=kind).mean()
@@ -572,9 +568,9 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # for good measure
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.resample("D", kind="period").mean()
+        msg = "Converting to PeriodArray/Index representation will drop timezone "
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            result = s.resample("D").mean().to_period()
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)
         tm.assert_series_equal(result, expected)
