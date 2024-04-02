@@ -2955,3 +2955,12 @@ def test_groupby_dropna_with_nunique_unique():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_groups_returns_rangeindex():
+    df = DataFrame({"group": [1, 1, 2], "value": [1, 2, 3]})
+    result = df.groupby("group").max()
+    expected = DataFrame(
+        [2, 3], index=RangeIndex(1, 3, name="group"), columns=["value"]
+    )
+    tm.assert_frame_equal(result, expected, check_index_type=True)

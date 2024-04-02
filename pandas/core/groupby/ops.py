@@ -58,6 +58,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     ensure_index,
+    maybe_sequence_to_range,
 )
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -754,7 +755,10 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
-        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
+        levels = [
+            Index._with_infer(maybe_sequence_to_range(ping.uniques))
+            for ping in self.groupings
+        ]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]
