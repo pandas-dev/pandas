@@ -64,6 +64,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
     set_module,
 )
@@ -11543,6 +11544,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -11589,6 +11591,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11635,6 +11638,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -11650,6 +11654,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
@@ -11670,6 +11675,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
@@ -11721,6 +11727,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -11767,6 +11774,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -11816,6 +11824,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
@@ -11866,6 +11875,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=2))
     def var(
         self,
@@ -11916,6 +11926,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=2))
     def std(
         self,
@@ -11963,6 +11974,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=2))
     def skew(
         self,
@@ -12009,6 +12021,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=2))
     def kurt(
         self,
