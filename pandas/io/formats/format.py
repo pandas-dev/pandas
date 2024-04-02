@@ -1613,16 +1613,16 @@ def _format_datetime64_dateonly(
     nat_rep: str = "NaT",
     date_format: str | None = None,
     str_date_fmt: str | None = None,
-    loc_s: object | None = None,
+    locale_dt_strings: object | None = None,
 ) -> str:
-    """str_date_fmt, loc_s are for fast strftime"""
+    """str_date_fmt, locale_dt_strings are for fast strftime"""
     if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
         if str_date_fmt:
             # Faster, using string formatting
-            return x._fast_strftime(str_date_fmt, loc_s)
+            return x._fast_strftime(str_date_fmt, locale_dt_strings)
         else:
             # Slower
             return x.strftime(date_format)
@@ -1638,11 +1638,11 @@ def get_format_datetime64(
     a string as output"""
 
     if is_dates_only:
-        str_date_fmt = loc_s = None
+        str_date_fmt = locale_dt_strings = None
         if date_format is not None:
             try:
                 # Try to get the string formatting template for this format
-                str_date_fmt, loc_s = convert_strftime_format(
+                str_date_fmt, locale_dt_strings = convert_strftime_format(
                     date_format, target="datetime"
                 )
             except UnsupportedStrFmtDirective:
@@ -1653,7 +1653,7 @@ def get_format_datetime64(
             nat_rep=nat_rep,
             date_format=date_format,
             str_date_fmt=str_date_fmt,
-            loc_s=loc_s,
+            locale_dt_strings=locale_dt_strings,
         )
     else:
         # Relies on datetime.str, which is fast already

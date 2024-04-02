@@ -1473,10 +1473,10 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
-    def _fast_strftime(self, fmt_str: str, loc_s: object) -> str:
+    def _fast_strftime(self, fmt_str: str, locale_dt_strings: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` and `loc_s` should be created using
+        `fmt_str` and `locale_dt_strings` should be created using
         `convert_strftime_format(fmt, target="datetime")`.
 
         See also `self.strftime`, that relies on `datetime.strftime`.
@@ -1498,7 +1498,7 @@ class Timestamp(_Timestamp):
             "day": self.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": loc_s.pm if (h // 12) else loc_s.am,
+            "ampm": locale_dt_strings.pm if (h // 12) else locale_dt_strings.am,
             "min": self.minute,
             "sec": self.second,
             "us": self.microsecond,

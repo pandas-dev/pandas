@@ -2582,10 +2582,10 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def _fast_strftime(self, fmt_str: str, loc_s: object) -> str:
+    def _fast_strftime(self, fmt_str: str, locale_dt_strings: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` and `loc_s` should be created using
+        `fmt_str` and `locale_dt_strings` should be created using
         `convert_strftime_format(fmt, target="period")`.
 
         See also `self.strftime`, that relies on `period_format`.
@@ -2597,8 +2597,8 @@ cdef class _Period(PeriodMixin):
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
-        >>> fast_fmt, loc_s = convert_strftime_format('%F-Q%q', target="period")
-        >>> a._fast_strftime(fast_fmt, loc_s)
+        >>> fast_fmt, loc_dt_strs = convert_strftime_format('%F-Q%q', target="period")
+        >>> a._fast_strftime(fast_fmt, loc_dt_strs)
         '2006-Q1'
         """
         value = self.ordinal
@@ -2613,8 +2613,8 @@ cdef class _Period(PeriodMixin):
                 "dummy" if fmt_str is not None else None,
                 None,
                 fmt_str,
-                loc_s.am,
-                loc_s.pm
+                locale_dt_strings.am,
+                locale_dt_strings.pm
             )
 
     def strftime(self, fmt: str | None) -> str:

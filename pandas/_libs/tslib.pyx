@@ -154,7 +154,7 @@ def format_array_from_datetime(
         _Timestamp ts
         object res
         npy_datetimestruct dts
-        object str_format, loc_s
+        object str_format, locale_dt_strings
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -199,7 +199,9 @@ def format_array_from_datetime(
         else:
             try:
                 # Try to get the string formatting template for this format
-                str_format, loc_s = convert_strftime_format(format, target="datetime")
+                str_format, locale_dt_strings = convert_strftime_format(
+                    format, target="datetime"
+                )
             except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
                 fast_strftime = False
@@ -244,7 +246,7 @@ def format_array_from_datetime(
                     "day": dts.day,
                     "hour": h,
                     "hour12": 12 if h in (0, 12) else (h % 12),
-                    "ampm": loc_s.pm if (h // 12) else loc_s.am,
+                    "ampm": locale_dt_strings.pm if (h // 12) else locale_dt_strings.am,
                     "min": dts.min,
                     "sec": dts.sec,
                     "us": dts.us,
@@ -253,7 +255,7 @@ def format_array_from_datetime(
                 ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
 
                 # Use string formatting for faster strftime
-                res = ts._fast_strftime(str_format, loc_s)
+                res = ts._fast_strftime(str_format, locale_dt_strings)
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)

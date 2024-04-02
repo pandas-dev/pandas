@@ -183,10 +183,10 @@ def convert_strftime_format(
         `new_style_formatting`.
         For old-style, it may be used as `fmt_out % fmt_dct`.
         For new-style, it may be used as `fmt_out.format(**fmt_dct)`
-    loc_s : LocaleSpecificDtStrings
+    locale_dt_strings : LocaleSpecificDtStrings
         An object containing the locale-specific strings needed for some of the
-        directives. For example loc_s.am and loc_s.pm should be used to fill the "ampm"
-        part of the template, induced by directive %p.
+        directives. For example locale_dt_strings.am and locale_dt_strings.pm should be
+        used to fill the "ampm" part of the template, induced by directive %p.
 
     Raises
     ------
