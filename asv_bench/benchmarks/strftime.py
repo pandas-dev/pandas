@@ -81,11 +81,6 @@ class DatetimeStrftime:
         """Not optimized yet as %z is not supported by `convert_strftime_format`"""
         self.data["dt"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%S%z")
 
-    # def time_frame_datetime_formatting_iso8601_isoformat(self, nobs, tz_aware):
-    #     TODO this PR is probably a good opportunity to add this too, or maybe
-    #      another PR
-    #     self.data["dt"].dt.isoformat()
-
 
 class PeriodStrftime:
     timeout = 1500
@@ -123,11 +118,6 @@ class PeriodStrftime:
 
     def time_frame_period_formatting_custom(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
-
-    # def time_frame_period_formatting_iso8601_map(self, nobs, fq):
-    #     TODO this PR is probably a good opportunity to add this too, or maybe
-    #      another PR
-    #     self.data["p"].map(lambda p: p.isoformat())
 
     def time_frame_period_formatting_iso8601_strftime_Z(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%SZ")
