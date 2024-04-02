@@ -340,7 +340,7 @@ def groupy_test_df():
     return df.set_index("week_starting")
 
 
-def test_groupby_resample_interpolate(groupy_test_df):
+def test_groupby_resample_interpolate_raises(groupy_test_df):
     # GH 35325
 
     # Make a copy of the test data frame that has index.name=None
@@ -352,7 +352,28 @@ def test_groupby_resample_interpolate(groupy_test_df):
     for df in dfs:
         msg = "DataFrameGroupBy.resample operated on the grouping columns"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = df.groupby("volume").resample("1D").interpolate(method="linear")
+            with pytest.raises(
+                ValueError,
+                match="Direct interpolation of MultiIndex data frames is "
+                "not supported",
+            ):
+                df.groupby("volume").resample("1D").interpolate(method="linear")
+
+
+def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
+    # GH 35325
+
+    # Make a copy of the test data frame that has index.name=None
+    groupy_test_df_without_index_name = groupy_test_df.copy()
+    groupy_test_df_without_index_name.index.name = None
+
+    dfs = [groupy_test_df, groupy_test_df_without_index_name]
+
+    for df in dfs:
+        result = df.groupby("volume").apply(
+            lambda x: x.resample("1d").interpolate(method="linear"),
+            include_groups=False,
+        )
 
         volume = [50] * 15 + [60]
         week_starting = list(date_range("2018-01-07", "2018-01-21")) + [
@@ -382,25 +403,21 @@ def test_groupby_resample_interpolate(groupy_test_df):
                     9.071428571428571,
                     9.0,
                     11.0,
-                ],
-                "volume": [50.0] * 15 + [60],
+                ]
             },
             index=expected_ind,
         )
         tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_resample_interpolate_off_grid(groupy_test_df):
-    """Similar test as test_groupby_resample_interpolate but with resampling
-    that results in missing anchor points when interpolating. See GH#21351."""
+def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df):
+    """Similar test as test_groupby_resample_interpolate_with_apply_syntax but
+    with resampling that results in missing anchor points when interpolating.
+    See GH#21351."""
     # GH#21351
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = (
-            groupy_test_df.groupby("volume")
-            .resample("265h")
-            .interpolate(method="linear")
-        )
+    result = groupy_test_df.groupby("volume").apply(
+        lambda x: x.resample("265h").interpolate(method="linear"), include_groups=False
+    )
 
     volume = [50, 50, 60]
     week_starting = [
@@ -417,10 +434,9 @@ def test_groupby_resample_interpolate_off_grid(groupy_test_df):
         data={
             "price": [
                 10.0,
-                9.5,
+                9.21131,
                 11.0,
-            ],
-            "volume": np.array(volume).astype(float),
+            ]
         },
         index=expected_ind,
     )

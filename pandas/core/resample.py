@@ -927,25 +927,15 @@ class Resampler(BaseGroupBy, PandasObject):
         if not is_period_index:
             final_index = result.index
             if isinstance(final_index, MultiIndex):
-                # MultiIndex case: the `self._selected_obj` is the object before
-                # the groupby that led to this MultiIndex, so that the index
-                # is not directly available. We reconstruct it by obtaining the
-                # groupby columns from the final index, but assuming that the
-                # name of the datetime index is not included...
-                group_columns = list(
-                    set(final_index.names).difference({obj.index.name})
+                raise ValueError(
+                    "Direct interpolation of MultiIndex data frames is not "
+                    "supported. If you tried to resample and interpolate on a "
+                    "grouped data frame, please use:\n"
+                    "`df.groupby(...).apply(lambda x: x.resample(...)."
+                    "interpolate(...), include_groups=False)`"
+                    "\ninstead, as resampling and interpolation has to be "
+                    "performed for each group independently."
                 )
-
-                # ... To obtain a DataFrame with the groupby columns and the
-                # datetime index, we need to reset the index and groupby again,
-                # then apply the (cheap) first-aggregator.
-                index_name = obj.index.name or "index"
-                obj = obj.reset_index().groupby(group_columns + [index_name]).first()
-
-                # The value columns that became index levels have to be added
-                # back manually. This is not ideal performance-wise.
-                for column in group_columns:
-                    obj[column] = obj.index.get_level_values(column)
 
             missing_data_points_index = obj.index.difference(final_index)
             if len(missing_data_points_index) > 0:
@@ -964,13 +954,15 @@ class Resampler(BaseGroupBy, PandasObject):
             **kwargs,
         )
 
-        # We make sure that original data points which do not align with the
-        # resampled index are removed
+        # No further steps if the original data has a PeriodIndex
         if is_period_index:
             return result_interpolated
 
+        # Make sure that original data points which do not align with the
+        # resampled index are removed
         result_interpolated = result_interpolated.loc[final_index]
-        # We make sure frequency indexes are preserved
+
+        # Make sure frequency indexes are preserved
         result_interpolated.index = final_index
         return result_interpolated
 
