@@ -12566,7 +12566,8 @@ class DataFrame(NDFrame, OpsMixin):
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        frequency (inferred from index if not passed). Either index of columns can be
+        converted, depending on `axis` argument.
 
         Parameters
         ----------
@@ -12594,12 +12595,12 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-            The DataFrame has a PeriodIndex.
+            The DataFrame with the converted PeriodIndex.
 
         See Also
         --------
-        DatetimeIndex: Immutable ndarray-like of datetime64 data.
-        PeriodIndex: Immutable ndarray holding ordinal values.
+        Series.to_period: Equivalent method for Series.
+        Series.dt.to_period: Convert DateTime column values.
 
         Examples
         --------

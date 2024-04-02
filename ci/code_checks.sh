@@ -365,7 +365,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.strftime PR01,PR02" \
         -i "pandas.Series.dt.time SA01" \
         -i "pandas.Series.dt.timetz SA01" \
-        -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
+        -i "pandas.Series.dt.to_period PR01,PR02" \
         -i "pandas.Series.dt.total_seconds PR01" \
         -i "pandas.Series.dt.tz SA01" \
         -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
