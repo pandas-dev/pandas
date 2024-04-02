@@ -598,9 +598,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.unique RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.view SA01" \
         -i "pandas.api.extensions.register_extension_dtype SA01" \
-        -i "pandas.api.extensions.register_index_accessor" \
-        -i "pandas.api.extensions.register_series_accessor" \
-        -i "pandas.api.extensions.register_dataframe_accessor" \
         -i "pandas.api.indexers.BaseIndexer PR01,SA01" \
         -i "pandas.api.indexers.FixedForwardWindowIndexer PR01,SA01" \
         -i "pandas.api.indexers.VariableOffsetWindowIndexer PR01,SA01" \
