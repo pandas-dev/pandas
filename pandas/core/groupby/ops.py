@@ -918,20 +918,29 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
 
-        result = self._aggregate_series_pure_python(obj, func)
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-
-        if isinstance(obj._values, ArrowExtensionArray):
-            # convert to pyarrow extension
-            pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
-            pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
-            out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
-        elif not isinstance(obj._values, np.ndarray) or preserve_dtype:
+        if not isinstance(obj._values, np.ndarray) and not isinstance(
+            obj._values, ArrowExtensionArray
+        ):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
+            preserve_dtype = True
+
+        result = self._aggregate_series_pure_python(obj, func)
+
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        elif (
+            isinstance(obj._values, ArrowExtensionArray)
+            and npvalues.dtype != np.dtype("object")
+            and npvalues.dtype != np.dtype("complex128")
+        ):
+            pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
+            pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
+            out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
+
         else:
             out = npvalues
         return out

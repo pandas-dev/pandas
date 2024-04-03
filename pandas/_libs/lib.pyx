@@ -2546,7 +2546,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if not convert_non_numeric:
                 seen.object_ = True
                 break
-        elif util.is_nan(val):
+        elif util.is_nan(val) or is_matching_na(val, C_NA):
             seen.nan_ = True
             mask[i] = True
             if util.is_complex_object(val):
@@ -2555,6 +2555,8 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.complex_ = True
                 if not convert_numeric:
                     break
+            elif is_matching_na(val, C_NA):
+                floats[i] = complexes[i] = fnan
             else:
                 floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
