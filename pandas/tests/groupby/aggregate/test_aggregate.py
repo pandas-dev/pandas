@@ -19,6 +19,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     concat,
     to_datetime,
@@ -517,7 +518,7 @@ def test_callable_result_dtype_frame(
     df["c"] = df["c"].astype(input_dtype)
     op = getattr(df.groupby(keys)[["c"]], method)
     result = op(lambda x: x.astype(result_dtype).iloc[0])
-    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected_index = RangeIndex(0, 1) if method == "transform" else agg_index
     expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype
     )
@@ -541,7 +542,7 @@ def test_callable_result_dtype_series(keys, agg_index, input, dtype, method):
     df = DataFrame({"a": [1], "b": [2], "c": [input]})
     op = getattr(df.groupby(keys)["c"], method)
     result = op(lambda x: x.astype(dtype).iloc[0])
-    expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+    expected_index = RangeIndex(0, 1) if method == "transform" else agg_index
     expected = Series([df["c"].iloc[0]], index=expected_index, name="c").astype(dtype)
     tm.assert_series_equal(result, expected)
 
@@ -1663,3 +1664,12 @@ def test_groupby_aggregation_empty_group():
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
         df.groupby("A", observed=False).agg(func)
+
+
+def test_agg_groups_returns_rangeindex():
+    df = DataFrame({"group": [1, 1, 2], "value": [1, 2, 3]})
+    result = df.groupby("group").agg(max)
+    expected = DataFrame(
+        [2, 3], index=RangeIndex(1, 3, name="group"), columns=["value"]
+    )
+    tm.assert_frame_equal(result, expected, check_index_type=True)

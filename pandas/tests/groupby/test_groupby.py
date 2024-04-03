@@ -46,9 +46,7 @@ def test_groupby_nonobject_dtype(multiindex_dataframe_random_data):
     result = grouped.sum()
 
     expected = multiindex_dataframe_random_data.groupby(key.astype("O")).sum()
-    assert result.index.dtype == np.int8
-    assert expected.index.dtype == np.int64
-    tm.assert_frame_equal(result, expected, check_index_type=False)
+    tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
 def test_groupby_nonobject_dtype_mixed():
@@ -2955,3 +2953,12 @@ def test_groupby_dropna_with_nunique_unique():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_groups_returns_rangeindex():
+    df = DataFrame({"group": [1, 1, 2], "value": [1, 2, 3]})
+    result = df.groupby("group").max()
+    expected = DataFrame(
+        [2, 3], index=RangeIndex(1, 3, name="group"), columns=["value"]
+    )
+    tm.assert_frame_equal(result, expected, check_index_type=True)

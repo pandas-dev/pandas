@@ -13,6 +13,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     Timestamp,
     concat,
@@ -290,7 +291,7 @@ def test_transform_casting():
             ),
             "DATETIME": pd.to_datetime([f"2014-10-08 {time}" for time in times]),
         },
-        index=pd.RangeIndex(11, name="idx"),
+        index=RangeIndex(11, name="idx"),
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
@@ -1535,3 +1536,10 @@ def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
     result = df.groupby(series, as_index=False).transform("sum")
     expected = DataFrame({"X": [-93203.0, -93203.0, np.nan]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_transform_groups_returns_rangeindex():
+    df = DataFrame({"group": [1, 1, 2], "value": [1, 2, 3]})
+    result = df.groupby("group").transform(lambda x: x + 1)
+    expected = DataFrame([2, 3, 4], index=RangeIndex(0, 3), columns=["value"])
+    tm.assert_frame_equal(result, expected, check_index_type=True)
