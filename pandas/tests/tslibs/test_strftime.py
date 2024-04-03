@@ -62,8 +62,8 @@ class TestConvertStrftimeFormat:
             ("%p", "%(ampm)s", "{ampm:s}"),
             (
                 "%m-%d-%Y",
-                "%(month)02d-%(day)02d-%(year)d",
-                "{month:02d}-{day:02d}-{year:d}",
+                "%(month)02d-%(day)02d-%(year)04d",
+                "{month:02d}-{day:02d}-{year:04d}",
             ),
             (
                 "20%y-%m-%d__foo__%I:%M:%S%p",
