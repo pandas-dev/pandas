@@ -518,8 +518,11 @@ class _Concatenator:
                         # to have unique names
                         name = current_column
                         current_column += 1
-
-                obj = sample._constructor({name: obj}, copy=False)
+                    obj = sample._constructor(obj, copy=False)
+                    if isinstance(obj, ABCDataFrame):
+                        obj.columns = range(name, name + 1, 1)
+                else:
+                    obj = sample._constructor({name: obj}, copy=False)
 
             new_objs.append(obj)
 
