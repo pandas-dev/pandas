@@ -6245,7 +6245,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         This function assumes that the data is sorted, so use at your own peril
 
-
         Examples
         --------
         This is a method on all index types. For example you can do:
