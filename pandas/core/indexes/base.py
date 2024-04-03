@@ -6245,6 +6245,7 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         This function assumes that the data is sorted, so use at your own peril
 
+
         Examples
         --------
         This is a method on all index types. For example you can do:
@@ -6447,6 +6448,7 @@ class Index(IndexOpsMixin, PandasObject):
         Notes
         -----
         This method only works if the index is monotonic or unique.
+        If a non-existent label is provided. The return slice location will be where the label will be inserted to maintain the monotonic property.
 
         Examples
         --------
