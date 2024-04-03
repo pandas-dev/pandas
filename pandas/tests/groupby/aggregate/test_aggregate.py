@@ -1663,3 +1663,319 @@ def test_groupby_aggregation_empty_group():
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
         df.groupby("A", observed=False).agg(func)
+
+
+def test_agg_simple_lambda_numpy_to_same_data_type():
+    df = DataFrame(
+        {"A": [1, 3, 100, 3, 100, 100], "B": [False, False, False, False, False, True]}
+    )
+    df["B"] = df["B"].astype("bool")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.max())
+
+    expected = DataFrame({"A": [1, 3, 100], "B": [False, False, True]})
+    expected["B"] = expected["B"].astype("bool")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_simple_lambda_pyarrow_to_same_data_type():
+    df = DataFrame(
+        {"A": [1, 3, 100, 3, 100, 100], "B": [False, False, False, False, False, True]}
+    )
+    df["B"] = df["B"].astype("bool[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.max())
+
+    expected = DataFrame({"A": [1, 3, 100], "B": [False, False, True]})
+    expected["B"] = expected["B"].astype("bool[pyarrow]")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_simple_lambda_numpy_to_diff_data_type():
+    df = DataFrame(
+        {"A": [1, 3, 100, 3, 100, 100], "B": [False, True, True, False, False, True]}
+    )
+    df["B"] = df["B"].astype("bool")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.sum())
+
+    expected = DataFrame({"A": [1, 3, 100], "B": [0, 1, 2]})
+    expected["B"] = expected["B"].astype("int64")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_simple_lambda_pyarrow_to_diff_data_type():
+    df = DataFrame(
+        {"A": [1, 3, 100, 3, 100, 100], "B": [False, True, True, False, False, True]}
+    )
+    df["B"] = df["B"].astype("bool[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.sum())
+
+    expected = DataFrame({"A": [1, 3, 100], "B": [0, 1, 2]})
+    expected["B"] = expected["B"].astype("int64[pyarrow]")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_numpy_to_diff_data_type():
+    df = DataFrame(
+        {
+            "A": [
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat18",
+            ],
+            "B": [37, 4958, -4839, 85943, 5490, 1, 0, 945, -943049, -132, 3],
+        }
+    )
+    df["B"] = df["B"].astype("int32")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: (x.sum() / x.count()) + x.max() - 3 + 5)
+
+    expected = DataFrame(
+        {
+            "A": ["cat18", "cat21", "cat39403"],
+            "B": [8.0, -152216.83333333334, 109048.75],
+        }
+    )
+    expected["B"] = expected["B"].astype("float64")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_pyarrow_to_diff_data_type():
+    df = DataFrame(
+        {
+            "A": [
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat18",
+            ],
+            "B": [37, 4958, -4839, 85943, 5490, 1, 0, 945, -943049, -132, 3],
+        }
+    )
+    df["B"] = df["B"].astype("int32[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: (x.sum() / x.count()) + x.max() - 3 + 5)
+
+    expected = DataFrame(
+        {
+            "A": ["cat18", "cat21", "cat39403"],
+            "B": [8.0, -152216.83333333334, 109048.75],
+        }
+    )
+    expected["B"] = expected["B"].astype("double[pyarrow]")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_numpy_to_same_data_type():
+    df = DataFrame(
+        {
+            "A": [
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat18",
+            ],
+            "B": [
+                37.0,
+                4958.0,
+                -4839.0,
+                85943.0,
+                5490.0,
+                1.0,
+                0.0,
+                945.0,
+                -943049.0,
+                -132.0,
+                3.0,
+            ],
+        }
+    )
+    df["B"] = df["B"].astype("float64")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.std() / x.var() * 10 / 3 - 32 + 3)
+
+    expected = DataFrame(
+        {"A": ["cat18", "cat21", "cat39403"], "B": [np.nan, -28.999991, -28.999921]}
+    )
+    expected["B"] = expected["B"].astype("float64")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_pyarrow_to_same_data_type():
+    df = DataFrame(
+        {
+            "A": [
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat39403",
+                "cat21",
+                "cat21",
+                "cat18",
+            ],
+            "B": [
+                37.0,
+                4958.0,
+                -4839.0,
+                85943.0,
+                5490.0,
+                1.0,
+                0.0,
+                945.0,
+                -943049.0,
+                -132.0,
+                3.0,
+            ],
+        }
+    )
+    df["B"] = df["B"].astype("double[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.std() / x.var() * 10 / 3 - 32 + 3)
+
+    expected = DataFrame(
+        {"A": ["cat18", "cat21", "cat39403"], "B": [np.nan, -28.999991, -28.999921]}
+    )
+    expected["B"] = expected["B"].astype("double[pyarrow]")
+    expected.set_index("A", inplace=True)
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_pyarrow_to_data_type_conversion():
+    # test numpy datatype conversion back to pyarrow datatype
+    # complexes, floats, ints, uints, object
+    # float64
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("float64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x)
+
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    expected["B"] = expected["B"].astype("float64[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+    # complex128
+    df["B"] = df["B"].astype("int64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: complex(x.sum(), x.count()))
+
+    expected = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": [complex(100, 1), complex(200, 1), complex(255, 1)],
+        }
+    )
+    expected["B"] = expected["B"].astype("complex128")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+    # int64
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("int64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x)
+
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    expected["B"] = expected["B"].astype("int64[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+    # uint64
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("uint64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x)
+
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    expected["B"] = expected["B"].astype("int64[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    # uint64 casted
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("uint64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: np.uint64(x.sum()))
+
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    expected["B"] = expected["B"].astype("uint64[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+    # bool
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("bool[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x)
+
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    expected["B"] = expected["B"].astype("bool[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+    # object
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("int64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: {"number": 1})
+
+    expected = DataFrame(
+        {"A": ["c1", "c2", "c3"], "B": [{"number": 1}, {"number": 1}, {"number": 1}]}
+    )
+    expected["B"] = expected["B"].astype("object")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
