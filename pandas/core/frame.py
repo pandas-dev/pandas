@@ -656,26 +656,37 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame
 
-    def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is DataFrame:
-            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return DataFrame._from_mgr(mgr, axes=axes)
-        else:
-            assert axes is mgr.axes
+    def _constructor_from_mgr(self, mgr, axes) -> DataFrame:
+        df = DataFrame._from_mgr(mgr, axes=axes)
+
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor is DataFrame`, but
+            #  this check is slightly faster, benefiting the most-common case.
+            return df
+
+        elif type(self).__name__ == "GeoDataFrame":
+            # Shim until geopandas can override their _constructor_from_mgr
+            #  bc they have different behavior for Managers than for DataFrames
             return self._constructor(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.DataFrame object.
+        return self._constructor(df)
 
     _constructor_sliced: Callable[..., Series] = Series
 
-    def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return Series._from_mgr(mgr, axes)
+    def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
+        ser = Series._from_mgr(mgr, axes)
+        ser._name = None  # caller is responsible for setting real name
 
-    def _constructor_sliced_from_mgr(self, mgr, axes):
-        if self._constructor_sliced is Series:
-            ser = self._sliced_from_mgr(mgr, axes)
-            ser._name = None  # caller is responsible for setting real name
+        if type(self) is DataFrame:
+            # This would also work `if self._constructor_sliced is Series`, but
+            #  this check is slightly faster, benefiting the most-common case.
             return ser
-        assert axes is mgr.axes
-        return self._constructor_sliced(mgr)
+
+        # We assume that the subclass __init__ knows how to handle a
+        #  pd.Series object.
+        return self._constructor_sliced(ser)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1403,7 +1414,8 @@ class DataFrame(NDFrame, OpsMixin):
             na_rep=na_rep,
             quoting=quoting,
         )
-        return self._constructor_from_mgr(mgr, axes=mgr.axes)
+        # error: Incompatible return value type (got "DataFrame", expected "Self")
+        return self._constructor_from_mgr(mgr, axes=mgr.axes)  # type: ignore[return-value]
 
     # ----------------------------------------------------------------------
 
@@ -5077,7 +5089,8 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
+        # error: Incompatible return value type (got "DataFrame", expected "Self")
+        return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)  # type: ignore[return-value]
 
     def insert(
         self,
