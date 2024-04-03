@@ -132,6 +132,7 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     default_index,
     ensure_index,
+    maybe_sequence_to_range,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
@@ -538,8 +539,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
-
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -547,7 +546,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
 
-            keys = tuple(data.keys())
+            keys = maybe_sequence_to_range(tuple(data.keys()))
             values = list(data.values())  # Generating list of values- faster way
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
