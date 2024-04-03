@@ -11,6 +11,8 @@ import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 from pytz.exceptions import NonExistentTimeError
 
+from pandas.compat import is_platform_linux
+
 from pandas import Timestamp
 import pandas._testing as tm
 
@@ -216,14 +218,29 @@ class TestTimestampRendering:
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
+    @pytest.mark.xfail(
+        is_platform_linux(), reason="strftime on linux does not zero-pad %Y"
+    )
     def test_timestamp_repr_strftime_small_year_date(self):
         stamp = Timestamp("0002-01-01")
         assert repr(stamp) == "Timestamp('2-01-01 00:00:00')"
 
-        # Make sure we have zero-padding, consistent with python strftime
+        # Make sure we have zero-padding, consistent with python strftime doc
         assert stamp.strftime("%Y") == "0002", f"actual: {stamp.strftime('%Y')}"
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
         assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
+
+    # @pytest.mark.xfail(
+    #     is_platform_linux(), reason="strftime on linux does not zero-pad %y"
+    # )
+    def test_timestamp_repr_strftime_small_shortyear_date(self):
+        stamp = Timestamp("1902-01-01")
+        assert repr(stamp) == "Timestamp('1902-01-01 00:00:00')"
+
+        # Make sure we have zero-padding, consistent with python strftime doc
+        assert stamp.strftime("%y") == "02", f"actual: {stamp.strftime('%y')}"
+        str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
+        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "02"
 
     def test_timestamp_repr_strftime_negative_date(self):
         stamp = Timestamp("-0020-01-01")
