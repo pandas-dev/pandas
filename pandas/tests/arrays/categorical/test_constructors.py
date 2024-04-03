@@ -794,3 +794,8 @@ class TestCategoricalConstructors:
         result = Categorical(values=values, categories=categories).categories
         expected = RangeIndex(range(5))
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_categoricaldtype_numeric_object_to_rangeindex_categories(self):
+        result = CategoricalDtype(np.array([1, 2], dtype=object)).categories
+        expected = RangeIndex(1, 3)
+        tm.assert_index_equal(result, expected, exact=True)

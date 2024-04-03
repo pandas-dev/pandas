@@ -667,12 +667,25 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @classmethod
-    def _with_infer(cls, *args, **kwargs):
+    def _with_infer(
+        cls,
+        data=None,
+        dtype=None,
+        copy: bool = False,
+        name=None,
+        tupleize_cols: bool = True,
+    ):
         """
         Constructor that uses the 1.0.x behavior inferring numeric dtypes
         for ndarray[object] inputs.
         """
-        result = cls(*args, **kwargs)
+        result = cls(
+            data=maybe_sequence_to_range(data),
+            dtype=dtype,
+            copy=copy,
+            name=name,
+            tupleize_cols=tupleize_cols,
+        )
 
         if result.dtype == _dtype_obj and not result._is_multi:
             # error: Argument 1 to "maybe_convert_objects" has incompatible type
@@ -7136,7 +7149,9 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     """
     if isinstance(sequence, (range, ExtensionArray)):
         return sequence
-    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
+    elif isinstance(sequence, abc.Generator):
+        sequence = list(sequence)
+    if len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
         return sequence
     elif isinstance(sequence, (ABCSeries, Index)) and not (
         isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
