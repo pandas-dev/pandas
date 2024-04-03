@@ -7125,7 +7125,10 @@ def maybe_sequence_to_range(sequence) -> Any | range:
         return sequence
     if len(sequence) == 0:
         return range(0)
-    np_sequence = np.asarray(sequence, dtype=np.int64)
+    try:
+        np_sequence = np.asarray(sequence, dtype=np.int64)
+    except OverflowError:
+        return sequence
     diff = np_sequence[1] - np_sequence[0]
     if diff == 0:
         return sequence
