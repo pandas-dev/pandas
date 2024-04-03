@@ -1134,7 +1134,7 @@ def test_resample_anchored_intraday2(unit):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("QE", closed="left").mean()
-    expected = df.shift(1, freq="D").resample("QE", closed="left").mean()
+    expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
