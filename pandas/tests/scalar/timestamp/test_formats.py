@@ -230,9 +230,6 @@ class TestTimestampRendering:
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
         assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
 
-    # @pytest.mark.xfail(
-    #     is_platform_linux(), reason="strftime on linux does not zero-pad %y"
-    # )
     def test_timestamp_repr_strftime_small_shortyear_date(self):
         stamp = Timestamp("1902-01-01")
         assert repr(stamp) == "Timestamp('1902-01-01 00:00:00')"
