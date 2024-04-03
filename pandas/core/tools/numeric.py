@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -209,6 +210,7 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
+        old_values = values
         coerce_numeric = errors != "raise"
         values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
             values,
@@ -255,7 +257,16 @@ def to_numeric(
             for typecode in typecodes:
                 dtype = np.dtype(typecode)
                 if dtype.itemsize <= values.dtype.itemsize:
-                    values = maybe_downcast_numeric(values, dtype)
+                    try:
+                        if (len(old_values) != 0) and isinstance(
+                            old_values[0], Decimal
+                        ):
+                            if dtype.itemsize == values.dtype.itemsize:
+                                values = np.array(old_values, dtype=dtype)
+                        else:
+                            values = maybe_downcast_numeric(values, dtype)
+                    except NameError:
+                        values = maybe_downcast_numeric(values, dtype)
 
                     # successful conversion
                     if values.dtype == dtype:

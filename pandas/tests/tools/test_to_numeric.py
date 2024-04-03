@@ -904,3 +904,10 @@ def test_coerce_pyarrow_backend():
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
+
+
+def test_decimal_precision():
+    df = DataFrame({"column1": [decimal.Decimal("1" * 19)]})
+    result = to_numeric(df["column1"], downcast="integer")
+    expected = df["column1"].astype("int64")
+    tm.assert_series_equal(result, expected)
