@@ -6434,6 +6434,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        >>> idx = pd.Index(list("bcde"))
+        >>> idx.slice_locs(start="a", end="c")
+        (0, 2)
         """
         inc = step is None or step >= 0
 
