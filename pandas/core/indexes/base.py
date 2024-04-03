@@ -6447,14 +6447,16 @@ class Index(IndexOpsMixin, PandasObject):
         Notes
         -----
         This method only works if the index is monotonic or unique.
-        If a non-existent label is provided the return slice location will be
-        where the label would be inserted to maintain the monotonic property.
 
         Examples
         --------
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        >>> idx = pd.Index(list("bcde"))
+        >>> idx.slice_locs(start="a", end="c")
+        (0, 2)
         """
         inc = step is None or step >= 0
 
