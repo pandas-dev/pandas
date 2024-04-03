@@ -6448,7 +6448,8 @@ class Index(IndexOpsMixin, PandasObject):
         Notes
         -----
         This method only works if the index is monotonic or unique.
-        If a non-existent label is provided. The return slice location will be where the label will be inserted to maintain the monotonic property.
+        If a non-existent label is provided the return slice location will be 
+        where the label would be inserted to maintain the monotonic property.
 
         Examples
         --------
