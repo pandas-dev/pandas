@@ -170,7 +170,7 @@ class TestDataFrameSortValues:
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
             },
-            index=pd.Index([1, 0]),
+            index=range(1, -1, -1),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -360,7 +360,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         # NaT is not a "na" for int64 columns, so na_position must not
@@ -385,7 +385,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="first")
@@ -540,19 +540,19 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ignore_index, output_index",
         [
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, range(3)),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, range(2, -1, -1)),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 True,
-                [0, 1, 2],
+                range(3),
             ),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 False,
-                [2, 1, 0],
+                range(2, -1, -1),
             ),
         ],
     )
