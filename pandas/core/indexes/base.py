@@ -6453,6 +6453,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        >>> idx = pd.Index(list("bcde"))
+        >>> idx.slice_locs(start="a", end="c")
+        (0, 2)
         """
         inc = step is None or step >= 0
 
@@ -7144,7 +7148,10 @@ def maybe_sequence_to_range(sequence) -> Any | range:
         return sequence
     if len(sequence) == 0:
         return range(0)
-    np_sequence = np.asarray(sequence, dtype=np.int64)
+    try:
+        np_sequence = np.asarray(sequence, dtype=np.int64)
+    except OverflowError:
+        return sequence
     diff = np_sequence[1] - np_sequence[0]
     if diff == 0:
         return sequence
