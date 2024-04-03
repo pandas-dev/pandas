@@ -220,11 +220,10 @@ class TestTimestampRendering:
         stamp = Timestamp("0002-01-01")
         assert repr(stamp) == "Timestamp('2-01-01 00:00:00')"
 
-        # Make sure we agree with datetime.strftime
-        assert datetime(2, 1, 1).strftime("%Y") == "0002"
-        assert stamp.strftime("%Y") == "0002"
-        str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
-        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
+        # Make sure we have zero-padding consistent with python strftime
+        assert stamp.strftime("%Y-%y") == "0002-02"
+        str_tmp, loc_dt_s = convert_strftime_format("%Y-%y", target="datetime")
+        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002-02"
 
     def test_timestamp_repr_strftime_negative_date(self):
         stamp = Timestamp("-0020-01-01")
