@@ -348,6 +348,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+def test_pyarrow_list():
+    pytest.importorskip("fastparquet")
+    import pyarrow as pa
+
+    list_int = pa.list_(pa.int64())
+    s = pd.Series([[1, 1], [2, 2]], dtype=pd.ArrowDtype(list_int))
+
+    df = pd.DataFrame(s, columns=["col"])
+    df.to_parquet("ex.parquet")
+
+    result = read_parquet(path="ex.parquet", dtype_backend="pyarrow")
+    tm.assert_frame_equal(df, result)
+
+
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing

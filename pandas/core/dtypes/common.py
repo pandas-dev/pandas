@@ -1623,6 +1623,8 @@ def pandas_dtype(dtype) -> DtypeObj:
         return dtype.dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
+    elif "list" in str(dtype) and "pyarrow" in str(dtype):
+        return dtype
 
     # registered extension types
     result = registry.find(dtype)
