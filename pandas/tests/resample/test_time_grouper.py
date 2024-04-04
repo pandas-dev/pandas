@@ -353,7 +353,7 @@ def test_groupby_resample_interpolate_raises(groupy_test_df):
         msg = "DataFrameGroupBy.resample operated on the grouping columns"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             with pytest.raises(
-                ValueError,
+                NotImplementedError,
                 match="Direct interpolation of MultiIndex data frames is "
                 "not supported",
             ):
