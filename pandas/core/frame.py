@@ -4915,6 +4915,10 @@ class DataFrame(NDFrame, OpsMixin):
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
+        See Also
+        --------
+        DataFrame.assign : Assign new columns to a DataFrame.
+
         Notes
         -----
         Assigning multiple columns within the same ``assign`` is possible.
