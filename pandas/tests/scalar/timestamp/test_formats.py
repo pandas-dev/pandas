@@ -11,7 +11,10 @@ import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 from pytz.exceptions import NonExistentTimeError
 
-from pandas.compat import is_platform_linux
+from pandas.compat import (
+    ISMUSL,
+    is_platform_linux,
+)
 
 from pandas import Timestamp
 import pandas._testing as tm
@@ -224,7 +227,7 @@ class TestTimestampRendering:
 
         # Make sure we have zero-padding, consistent with python strftime doc
         # Note: current behaviour of strftime with %Y is OS-dependent
-        if is_platform_linux():
+        if is_platform_linux() and not ISMUSL:
             assert stamp.strftime("%Y") == "2", f"Actual: {stamp.strftime('%Y')}"
         else:
             assert stamp.strftime("%Y") == "0002", f"Actual: {stamp.strftime('%Y')}"
