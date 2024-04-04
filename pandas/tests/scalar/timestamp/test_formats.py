@@ -224,7 +224,11 @@ class TestTimestampRendering:
 
         # Make sure we have zero-padding, consistent with python strftime doc
         # Note: current behaviour of strftime with %Y is OS-dependent
-        assert stamp.strftime("%Y") == "2" if is_platform_linux() else "0002"
+        if is_platform_linux():
+            assert stamp.strftime("%Y") == "2", f"Actual: {stamp.strftime('%Y')}"
+        else:
+            assert stamp.strftime("%Y") == "0002", f"Actual: {stamp.strftime('%Y')}"
+
         # This is not OS-dependent
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
         assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
