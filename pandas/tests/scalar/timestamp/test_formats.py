@@ -218,15 +218,14 @@ class TestTimestampRendering:
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
-    @pytest.mark.xfail(
-        is_platform_linux(), reason="strftime on linux does not zero-pad %Y"
-    )
     def test_timestamp_repr_strftime_small_year_date(self):
         stamp = Timestamp("0002-01-01")
         assert repr(stamp) == "Timestamp('2-01-01 00:00:00')"
 
         # Make sure we have zero-padding, consistent with python strftime doc
-        assert stamp.strftime("%Y") == "0002", f"actual: {stamp.strftime('%Y')}"
+        # Note: current behaviour of strftime with %Y is OS-dependent
+        assert stamp.strftime("%Y") == "2" if is_platform_linux() else "0002"
+        # This is not OS-dependent
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
         assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
 
