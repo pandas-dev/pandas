@@ -25,9 +25,9 @@ from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
 
-@pytest.fixture(scope="module")
-def all_1d_no_arg_interpolation_methods():
-    return [
+@pytest.fixture(
+    scope="session",
+    params=[
         "linear",
         "time",
         "index",
@@ -43,7 +43,10 @@ def all_1d_no_arg_interpolation_methods():
         "piecewise_polynomial",
         "pchip",
         "akima",
-    ]
+    ],
+)
+def all_1d_no_arg_interpolation_methods(request):
+    return request.param
 
 
 @pytest.mark.parametrize("freq", ["2D", "1h"])
@@ -120,23 +123,21 @@ def test_resample_interpolate_regular_sampling_off_grid(
     index = date_range("2000-01-01 00:01:00", periods=5, freq="2h")
     ser = Series(np.arange(5.0), index)
 
-    for method in all_1d_no_arg_interpolation_methods:
-        # Resample to 1 hour sampling and interpolate with the given method
-        ser_resampled = ser.resample("1h").interpolate(method)
+    method = all_1d_no_arg_interpolation_methods
+    # Resample to 1 hour sampling and interpolate with the given method
+    ser_resampled = ser.resample("1h").interpolate(method)
 
-        # Check that none of the resampled values are NaN, except the first one
-        # which lies 1 minute before the first actual data point
-        assert np.isnan(ser_resampled.iloc[0])
-        assert not ser_resampled.iloc[1:].isna().any()
+    # Check that none of the resampled values are NaN, except the first one
+    # which lies 1 minute before the first actual data point
+    assert np.isnan(ser_resampled.iloc[0])
+    assert not ser_resampled.iloc[1:].isna().any()
 
-        if method not in ["nearest", "zero"]:
-            # Check that the resampled values are close to the expected values
-            # except for methods with known inaccuracies
-            assert np.all(
-                np.isclose(
-                    ser_resampled.values[1:], np.arange(0.5, 4.5, 0.5), rtol=1.0e-1
-                )
-            )
+    if method not in ["nearest", "zero"]:
+        # Check that the resampled values are close to the expected values
+        # except for methods with known inaccuracies
+        assert np.all(
+            np.isclose(ser_resampled.values[1:], np.arange(0.5, 4.5, 0.5), rtol=1.0e-1)
+        )
 
 
 def test_resample_interpolate_irregular_sampling(all_1d_no_arg_interpolation_methods):
@@ -155,14 +156,13 @@ def test_resample_interpolate_irregular_sampling(all_1d_no_arg_interpolation_met
         ),
     )
 
-    for method in all_1d_no_arg_interpolation_methods:
-        # Resample to 5 second sampling and interpolate with the given method
-        ser_resampled = ser.resample("5s").interpolate(method)
+    # Resample to 5 second sampling and interpolate with the given method
+    ser_resampled = ser.resample("5s").interpolate(all_1d_no_arg_interpolation_methods)
 
-        # Check that none of the resampled values are NaN, except the first one
-        # which lies 3 seconds before the first actual data point
-        assert np.isnan(ser_resampled.iloc[0])
-        assert not ser_resampled.iloc[1:].isna().any()
+    # Check that none of the resampled values are NaN, except the first one
+    # which lies 3 seconds before the first actual data point
+    assert np.isnan(ser_resampled.iloc[0])
+    assert not ser_resampled.iloc[1:].isna().any()
 
 
 def test_raises_on_non_datetimelike_index():
