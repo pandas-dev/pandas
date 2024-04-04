@@ -24,41 +24,23 @@ from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
-# a fixture value can be overridden by the test parameter value. Note that the
-# value of the fixture can be overridden this way even if the test doesn't use
-# it directly (doesn't mention it in the function prototype).
-# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa: E501
-# in this module we override the fixture values defined in conftest.py
-# tuples of '_index_factory,_series_name,_index_start,_index_end'
-DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
-PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))
-TIMEDELTA_RANGE = (timedelta_range, "tdi", "1 day", "10 day")
-
-all_ts = pytest.mark.parametrize(
-    "_index_factory,_series_name,_index_start,_index_end",
-    [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE],
-)
-
-all_1d_no_arg_interpolation_methods = pytest.mark.parametrize(
-    "method",
-    [
-        "linear",
-        "time",
-        "index",
-        "values",
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "krogh",
-        "from_derivatives",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-    ],
-)
+ALL_1D_NO_ARG_INTERPOLATION_METHODS = [
+    "linear",
+    "time",
+    "index",
+    "values",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "krogh",
+    "from_derivatives",
+    "piecewise_polynomial",
+    "pchip",
+    "akima",
+]
 
 
 @pytest.fixture
@@ -136,7 +118,9 @@ def test_resample_interpolate(index):
     tm.assert_frame_equal(result, expected)
 
 
-@all_1d_no_arg_interpolation_methods
+pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
+
+
 def test_resample_interpolate_regular_sampling_off_grid(method):
     pytest.importorskip("scipy")
     # GH#21351
@@ -159,7 +143,9 @@ def test_resample_interpolate_regular_sampling_off_grid(method):
         )
 
 
-@all_1d_no_arg_interpolation_methods
+pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
+
+
 def test_resample_interpolate_irregular_sampling(method):
     pytest.importorskip("scipy")
     # GH#21351
