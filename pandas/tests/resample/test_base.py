@@ -118,9 +118,7 @@ def test_resample_interpolate(index):
     tm.assert_frame_equal(result, expected)
 
 
-pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
-
-
+@pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
 def test_resample_interpolate_regular_sampling_off_grid(method):
     pytest.importorskip("scipy")
     # GH#21351
@@ -143,9 +141,7 @@ def test_resample_interpolate_regular_sampling_off_grid(method):
         )
 
 
-pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
-
-
+@pytest.mark.parametrize("method", ALL_1D_NO_ARG_INTERPOLATION_METHODS)
 def test_resample_interpolate_irregular_sampling(method):
     pytest.importorskip("scipy")
     # GH#21351
