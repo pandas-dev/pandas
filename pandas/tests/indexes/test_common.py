@@ -479,6 +479,15 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     tm.assert_index_equal(result, expected)
 
 
+def test_sort_values_natsort_key():
+    # GH#56081
+    natsort = pytest.importorskip("natsort")
+    idx = pd.Index(["0hr", "128hr", "72hr", "48hr", "96hr"])
+    expected = pd.Index(["0hr", "48hr", "72hr", "96hr", "128hr"])
+    result = idx.sort_values(key=natsort.natsort_key)
+    tm.assert_index_equal(result, expected)
+
+
 def test_ndarray_compat_properties(index):
     if isinstance(index, PeriodIndex) and not IS64:
         pytest.skip("Overflow")
