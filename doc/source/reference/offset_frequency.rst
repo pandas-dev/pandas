@@ -1042,7 +1042,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Tick.delta
     Tick.freqstr
     Tick.kwds
     Tick.name
@@ -1077,7 +1076,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Day.delta
     Day.freqstr
     Day.kwds
     Day.name
@@ -1112,7 +1110,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Hour.delta
     Hour.freqstr
     Hour.kwds
     Hour.name
@@ -1147,7 +1144,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Minute.delta
     Minute.freqstr
     Minute.kwds
     Minute.name
@@ -1182,7 +1178,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Second.delta
     Second.freqstr
     Second.kwds
     Second.name
@@ -1217,7 +1212,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Milli.delta
     Milli.freqstr
     Milli.kwds
     Milli.name
@@ -1252,7 +1246,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Micro.delta
     Micro.freqstr
     Micro.kwds
     Micro.name
@@ -1287,7 +1280,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Nano.delta
     Nano.freqstr
     Nano.kwds
     Nano.name

@@ -50,12 +50,12 @@ class TestConcatenate:
         df3 = DataFrame({5: "foo"}, index=range(4))
 
         # These are actual copies.
-        result = concat([df, df2, df3], axis=1, copy=True)
+        result = concat([df, df2, df3], axis=1)
         for arr in result._mgr.arrays:
             assert arr.base is not None
 
         # These are the same.
-        result = concat([df, df2, df3], axis=1, copy=False)
+        result = concat([df, df2, df3], axis=1)
 
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
@@ -67,7 +67,7 @@ class TestConcatenate:
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
-        result = concat([df, df2, df3, df4], axis=1, copy=False)
+        result = concat([df, df2, df3, df4], axis=1)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
                 # this is a view on some array in either df or df4
@@ -912,3 +912,11 @@ def test_concat_none_with_timezone_timestamp():
         result = concat([df1, df2], ignore_index=True)
     expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_with_series_and_frame_returns_rangeindex_columns():
+    ser = Series([0])
+    df = DataFrame([1, 2])
+    result = concat([ser, df])
+    expected = DataFrame([0, 1, 2], index=[0, 0, 1])
+    tm.assert_frame_equal(result, expected, check_column_type=True)
