@@ -323,7 +323,7 @@ def get_interp_index(method, index: Index) -> Index:
         elif not is_numeric_dtype(index.dtype):
             # We keep behavior consistent with prior versions of pandas for
             # non-numeric, non-datetime indexes
-            index = Index(np.arange(len(index)))
+            index = Index(range(len(index)))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (

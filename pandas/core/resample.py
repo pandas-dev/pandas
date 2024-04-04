@@ -927,7 +927,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if not is_period_index:
             final_index = result.index
             if isinstance(final_index, MultiIndex):
-                raise ValueError(
+                raise NotImplementedError(
                     "Direct interpolation of MultiIndex data frames is not "
                     "supported. If you tried to resample and interpolate on a "
                     "grouped data frame, please use:\n"
