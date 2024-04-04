@@ -1886,7 +1886,7 @@ class ExtensionArray:
 
         Raises
         ------
-        TypeError : subclass does not define reductions
+        TypeError : subclass does not define operations
 
         Examples
         --------
@@ -1897,7 +1897,7 @@ class ExtensionArray:
         if meth is None:
             raise TypeError(
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}'"
+                f"does not support operation '{name}'"
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:

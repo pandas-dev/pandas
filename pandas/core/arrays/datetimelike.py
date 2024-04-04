@@ -1662,7 +1662,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
             if how in ["any", "all", "sum", "prod", "cumsum", "cumprod", "var", "skew"]:
-                raise TypeError(f"datetime64 type does not support operation: '{how}'")
+                raise TypeError(f"datetime64 type does not support operation '{how}'")
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid

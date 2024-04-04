@@ -86,7 +86,7 @@ class BaseReduceTests:
             # TODO: the message being checked here isn't actually checking anything
             msg = (
                 "[Cc]annot perform|Categorical is not ordered for operation|"
-                "does not support reduction|"
+                "does not support operation|"
             )
 
             with pytest.raises(TypeError, match=msg):
@@ -105,7 +105,7 @@ class BaseReduceTests:
             # TODO: the message being checked here isn't actually checking anything
             msg = (
                 "[Cc]annot perform|Categorical is not ordered for operation|"
-                "does not support reduction|"
+                "does not support operation|"
             )
 
             with pytest.raises(TypeError, match=msg):

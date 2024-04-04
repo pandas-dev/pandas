@@ -247,7 +247,7 @@ class SharedTests:
         assert result == arr1d[0]
 
     def test_reduce_invalid(self, arr1d):
-        msg = "does not support reduction 'not a method'"
+        msg = "does not support operation 'not a method'"
         with pytest.raises(TypeError, match=msg):
             arr1d._reduce("not a method")
 

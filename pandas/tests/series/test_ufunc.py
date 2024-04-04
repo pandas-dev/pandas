@@ -289,7 +289,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'multiply' cannot use operands",
                 ]
@@ -319,7 +319,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'add' cannot use operands",
                 ]
