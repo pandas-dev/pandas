@@ -1209,7 +1209,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1309,7 +1309,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1317,7 +1317,7 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 
