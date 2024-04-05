@@ -7,6 +7,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -460,7 +462,7 @@ class TestTableOrient:
             "version, please use 'iso' date format instead."
         )
         with pytest.raises(ValueError, match=error_msg):
-            with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
                 df_table.to_json(orient="table", date_format="epoch")
 
         # others work

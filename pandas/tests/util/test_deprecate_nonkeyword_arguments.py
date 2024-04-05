@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 @deprecate_nonkeyword_arguments(
-    version="1.1", allowed_args=["a", "b"], name="f_add_inputs"
+    version="1.1", allowed_args=["a", "b"], name="f_add_inputs", klass=FutureWarning
 )
 def f(a, b=0, c=0, d=0):
     return a + b + c + d
@@ -59,7 +59,7 @@ def test_three_arguments_with_name_in_warning():
         assert f(6, 3, 3) == 12
 
 
-@deprecate_nonkeyword_arguments(version="1.1")
+@deprecate_nonkeyword_arguments(version="1.1", klass=FutureWarning)
 def g(a, b=0, c=0, d=0):
     with tm.assert_produces_warning(None):
         return a + b + c + d
@@ -88,7 +88,7 @@ def test_three_positional_argument_with_warning_message_analysis():
         assert g(6, 3, 3) == 12
 
 
-@deprecate_nonkeyword_arguments(version="1.1")
+@deprecate_nonkeyword_arguments(version="1.1", klass=FutureWarning)
 def h(a=0, b=0, c=0, d=0):
     return a + b + c + d
 
@@ -113,7 +113,7 @@ def test_one_positional_argument_with_warning_message_analysis():
         assert h(19) == 19
 
 
-@deprecate_nonkeyword_arguments(version="1.1")
+@deprecate_nonkeyword_arguments(version="1.1", klass=UserWarning)
 def i(a=0, /, b=0, *, c=0, d=0):
     return a + b + c + d
 
@@ -122,8 +122,15 @@ def test_i_signature():
     assert str(inspect.signature(i)) == "(*, a=0, b=0, c=0, d=0)"
 
 
+def test_i_warns_klass():
+    with tm.assert_produces_warning(UserWarning):
+        assert i(1, 2) == 3
+
+
 class Foo:
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "bar"], klass=FutureWarning
+    )
     def baz(self, bar=None, foobar=None): ...
 
 

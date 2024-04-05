@@ -5,7 +5,7 @@ from pandas.util._decorators import deprecate_kwarg
 import pandas._testing as tm
 
 
-@deprecate_kwarg("old", "new")
+@deprecate_kwarg("old", new_arg_name="new", klass=FutureWarning)
 def _f1(new=False):
     return new
 
@@ -13,7 +13,7 @@ def _f1(new=False):
 _f2_mappings = {"yes": True, "no": False}
 
 
-@deprecate_kwarg("old", "new", _f2_mappings)
+@deprecate_kwarg("old", new_arg_name="new", mapping=_f2_mappings, klass=FutureWarning)
 def _f2(new=False):
     return new
 
@@ -22,7 +22,7 @@ def _f3_mapping(x):
     return x + 1
 
 
-@deprecate_kwarg("old", "new", _f3_mapping)
+@deprecate_kwarg("old", new_arg_name="new", mapping=_f3_mapping, klass=FutureWarning)
 def _f3(new=0):
     return new
 
@@ -70,7 +70,7 @@ def test_bad_deprecate_kwarg():
             return new
 
 
-@deprecate_kwarg("old", None)
+@deprecate_kwarg("old", new_arg_name=None, klass=FutureWarning)
 def _f4(old=True, unchanged=True):
     return old, unchanged
 

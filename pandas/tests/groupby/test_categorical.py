@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1488,7 +1490,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
     args = get_groupby_method_args(reduction_func, df)
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1534,7 +1536,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         return
 
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1933,7 +1935,7 @@ def test_category_order_reducer(
             getattr(gb, reduction_func)(*args)
         return
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None

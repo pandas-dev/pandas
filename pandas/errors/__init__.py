@@ -91,6 +91,42 @@ class PerformanceWarning(Warning):
     """
 
 
+class PandasChangeWarning(Warning):
+    """
+    Warning raised for any pending deprecation.
+    """
+
+
+class Pandas4Warning(PandasChangeWarning, DeprecationWarning):
+    """
+    Warning raised for a pending deprecation that will be enforced in pandas 4.0.
+    """
+
+
+class Pandas5Warning(PandasChangeWarning, PendingDeprecationWarning):
+    """
+    Warning raised for a pending deprecation that will be enforced in pandas 5.0.
+    """
+
+
+class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWarning):
+    """
+    Warning raised for a pending deprecation that is a PendingDeprecationWarning.
+    """
+
+
+class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
+    """
+    Warning raised for a pending deprecation that is a DeprecationWarning.
+    """
+
+
+class PandasFutureWarning(PandasChangeWarning, FutureWarning):
+    """
+    Warning raised for a pending deprecation that is a FutureWarning.
+    """
+
+
 class UnsupportedFunctionCall(ValueError):
     """
     Exception raised when attempting to call a unsupported numpy function.

@@ -55,6 +55,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
@@ -11909,7 +11910,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="all"
+    )
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -11956,7 +11959,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="min"
+    )
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -12003,7 +12008,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="max"
+    )
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -12019,7 +12026,9 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="sum"
+    )
     def sum(
         self,
         axis: Axis | None = 0,
@@ -12120,7 +12129,9 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="prod"
+    )
     def prod(
         self,
         axis: Axis | None = 0,
@@ -12238,7 +12249,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="mean"
+    )
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -12285,7 +12298,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="median"
+    )
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -12335,7 +12350,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="sem"
+    )
     def sem(
         self,
         axis: Axis | None = 0,
@@ -12455,7 +12472,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="var"
+    )
     def var(
         self,
         axis: Axis | None = 0,
@@ -12574,7 +12593,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="std"
+    )
     def std(
         self,
         axis: Axis | None = 0,
@@ -12697,7 +12718,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="skew"
+    )
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12817,7 +12840,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(
+        version="4.0", klass=Pandas4Warning, allowed_args=["self"], name="kurt"
+    )
     def kurt(
         self,
         axis: Axis | None = 0,
