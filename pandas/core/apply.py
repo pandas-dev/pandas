@@ -303,13 +303,14 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_list_like(op_name="agg")
+        kwargs = self.kwargs
+        return self.agg_or_apply_list_like(op_name="agg", **kwargs)
 
     def compute_list_like(
         self,
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
-        kwargs: dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> tuple[list[Hashable] | Index, list[Any]]:
         """
         Compute agg/apply results for like-like input.
@@ -348,7 +349,6 @@ class Apply(metaclass=abc.ABCMeta):
                 )
                 new_res = getattr(colg, op_name)(a, *args, **kwargs)
                 results.append(new_res)
-
                 # make sure we find a good name
                 name = com.get_callable_name(a) or a
                 keys.append(name)
@@ -691,10 +691,9 @@ class NDFrameApply(Apply):
         return self.obj._get_agg_axis(self.axis)
 
     def agg_or_apply_list_like(
-        self, op_name: Literal["agg", "apply"]
+        self, op_name: Literal["agg", "apply"], numeric_only=False, **kwargs
     ) -> DataFrame | Series:
         obj = self.obj
-        kwargs = self.kwargs
 
         if op_name == "apply":
             if isinstance(self, FrameApply):
@@ -709,7 +708,7 @@ class NDFrameApply(Apply):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
-        keys, results = self.compute_list_like(op_name, obj, kwargs)
+        keys, results = self.compute_list_like(op_name, obj, **kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 
@@ -1485,28 +1484,27 @@ class GroupByApply(Apply):
         raise NotImplementedError
 
     def agg_or_apply_list_like(
-        self, op_name: Literal["agg", "apply"]
+        self, op_name: Literal["agg", "apply"], numeric_only=False, **kwargs
     ) -> DataFrame | Series:
         obj = self.obj
-        kwargs = self.kwargs
         if op_name == "apply":
             kwargs = {**kwargs, "by_row": False}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
-
         if obj._selected_obj.ndim == 1:
             # For SeriesGroupBy this matches _obj_with_exclusions
             selected_obj = obj._selected_obj
+        elif numeric_only:
+            selected_obj = obj._obj_numeric_only_with_exclusions
         else:
             selected_obj = obj._obj_with_exclusions
-
         # Only set as_index=True on groupby objects, not Window or Resample
         # that inherit from this class.
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")
         ):
-            keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
+            keys, results = self.compute_list_like(op_name, selected_obj, **kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 

@@ -1553,7 +1553,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             else:
                 # try to treat as if we are passing a list
-                gba = GroupByApply(self, [func], args=(), kwargs={})
+                gba = GroupByApply(self, [func], args=args, kwargs=kwargs)
                 try:
                     result = gba.agg()
 
@@ -1582,7 +1582,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     agg = aggregate
 
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(self, func, *args, numeric_only=False, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
         if self.ngroups == 0:
@@ -1590,7 +1590,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  result dtype in empty case.
             return self._python_apply_general(f, self._selected_obj, is_agg=True)
 
-        obj = self._obj_with_exclusions
+        if numeric_only:
+            obj = self._obj_numeric_only_with_exclusions
+        else:
+            obj = self._obj_with_exclusions
 
         if not len(obj.columns):
             # e.g. test_margins_no_values_no_cols
@@ -1605,19 +1608,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
 
-    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
+    def _aggregate_frame(self, func, *args, numeric_only=False, **kwargs) -> DataFrame:
         if self._grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
-        obj = self._obj_with_exclusions
-
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only)
+        data = self._wrap_agged_manager(mgr)
         result: dict[Hashable, NDFrame | np.ndarray] = {}
-        for name, grp_df in self._grouper.get_iterator(obj):
+        for name, grp_df in self._grouper.get_iterator(data):
             fres = func(grp_df, *args, **kwargs)
             result[name] = fres
 
         result_index = self._grouper.result_index
-        out = self.obj._constructor(result, index=obj.columns, columns=result_index)
+        out = self.obj._constructor(result, index=data.columns, columns=result_index)
         out = out.T
 
         return out

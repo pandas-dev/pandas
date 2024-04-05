@@ -1663,3 +1663,53 @@ def test_groupby_aggregation_empty_group():
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
         df.groupby("A", observed=False).agg(func)
+
+
+@pytest.mark.parametrize(
+    "aggfunc",
+    [
+        "mean",
+        np.mean,
+        ["sum", "mean"],
+        [np.sum, np.mean],
+        ["sum", np.mean],
+        lambda x: x.mean(),
+        {"A": "mean"},
+        {"A": "mean", "B": "sum"},
+        {"A": np.mean},
+    ],
+    ids=[
+        " string_mean ",
+        " numpy_mean ",
+        " list_of_str_and_str ",
+        " list_of_numpy_and_numpy ",
+        " list_of_str_and_numpy ",
+        " lambda ",
+        " dict_with_str ",
+        " dict with 2 vars ",
+        " dict with numpy",
+    ],
+)
+@pytest.mark.parametrize(
+    "groupers",
+    ["groupby1", "groupby2", ["groupby1", "groupby2"]],
+    ids=[" 1_grouper_str ", " 1_grouper_int ", " 2_groupers_str_and_int "],
+)
+@pytest.mark.parametrize(
+    "numeric_only", [True, None], ids=[" numeric_only True ", " no_numeric_only_arg "]
+)  # need to add other kwargs
+def test_different_combinations_of_groupby_agg(aggfunc, groupers, numeric_only):
+    df = DataFrame(
+        {
+            "A": [1, 2, 3, 4, 5],
+            "B": [10, 20, 30, 40, 50],
+            "groupby1": ["diamond", "diamond", "spade", "spade", "spade"],
+            "groupby2": [1, 1, 1, 2, 2],
+            "attr": ["a", "b", "c", "d", "e"],
+        }
+    )
+    if numeric_only or isinstance(aggfunc, dict):
+        df.groupby(by=groupers).agg(func=aggfunc, numeric_only=numeric_only)
+    else:
+        with pytest.raises(TypeError):
+            df.groupby(by=groupers).agg(func=aggfunc)

@@ -219,6 +219,25 @@ class SelectionMixin(Generic[NDFrameT]):
         else:
             return self.obj
 
+    @final
+    @cache_readonly
+    def _obj_numeric_only_with_exclusions(self):
+        if isinstance(self.obj, ABCSeries):
+            return self.obj.select_dtypes("number")
+
+        if self._selection is not None:
+            return self.obj[self._selection_list].select_dtypes("number")
+
+        if len(self.exclusions) > 0:
+            # equivalent to `self.obj.drop(self.exclusions, axis=1)
+            #  but this avoids consolidating and making a copy
+            # TODO: following GH#45287 can we now use .drop directly without
+            #  making a copy?
+            obj = self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
+            return obj.select_dtypes("number")
+        else:
+            return self.obj.select_dtypes("number")
+
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
