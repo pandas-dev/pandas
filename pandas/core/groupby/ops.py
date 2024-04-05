@@ -18,7 +18,6 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._libs import (
     NaT,
@@ -937,6 +936,8 @@ class BaseGrouper:
             and npvalues.dtype != np.dtype("object")
             and npvalues.dtype != np.dtype("complex128")
         ):
+            import pyarrow as pa
+
             pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
             pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
             out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
