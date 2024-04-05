@@ -1547,7 +1547,7 @@ the string values returned are correct."""
                 off = off[ii]
                 val = val[ii]
                 txt = self._path_or_buf.read(txtlen)
-                self._value_label_dict[labname]: dict[int, str] = {}
+                self._value_label_dict[labname] = {}
                 for i in range(n):
                     end = off[i + 1] if i < n - 1 else txtlen
                     self._value_label_dict[labname][val[i]] = self._decode(
@@ -1559,16 +1559,16 @@ the string values returned are correct."""
                 if not self._path_or_buf.read(2):
                     # end-of-file may have been reached, if so stop here
                     break
-                else:
-                    # otherwise back up and read again, taking byteorder into account
-                    self._path_or_buf.seek(-2, os.SEEK_CUR)
-                    n = self._read_uint16()
+
+                # otherwise back up and read again, taking byteorder into account
+                self._path_or_buf.seek(-2, os.SEEK_CUR)
+                n = self._read_uint16()
                 labname = self._decode(self._path_or_buf.read(9))
                 self._path_or_buf.read(1)  # padding
                 codes = np.frombuffer(
                     self._path_or_buf.read(2 * n), dtype=f"{self._byteorder}i2", count=n
                 )
-                self._value_label_dict[labname]: dict[int, str] = {}
+                self._value_label_dict[labname] = {}
                 for i in range(n):
                     self._value_label_dict[labname][codes[i]] = self._decode(
                         self._path_or_buf.read(8)
