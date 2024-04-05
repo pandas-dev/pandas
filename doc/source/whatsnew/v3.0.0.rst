@@ -297,6 +297,8 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - :attr:`Categorical.categories` returns a :class:`RangeIndex` columns instead of an :class:`Index` if the constructed ``values`` was a ``range``. (:issue:`57787`)
 - :class:`DataFrame` returns a :class:`RangeIndex` columns when possible when ``data`` is a ``dict`` (:issue:`57943`)
+- :class:`Series` returns a :class:`RangeIndex` index when possible when ``data`` is a ``dict`` (:issue:`58118`)
+- :func:`concat` returns a :class:`RangeIndex` column when possible when ``objs`` contains :class:`Series` and :class:`DataFrame` and ``axis=0`` (:issue:`58119`)
 - :func:`concat` returns a :class:`RangeIndex` level in the :class:`MultiIndex` result when ``keys`` is a ``range`` or :class:`RangeIndex` (:issue:`57542`)
 - :meth:`RangeIndex.append` returns a :class:`RangeIndex` instead of a :class:`Index` when appending values that could continue the :class:`RangeIndex` (:issue:`57467`)
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)

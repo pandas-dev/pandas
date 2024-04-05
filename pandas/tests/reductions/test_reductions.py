@@ -378,7 +378,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support reduction '{opname}'",
+                f"does not support operation '{opname}'",
             ]
         )
 
@@ -714,7 +714,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "does not support reduction 'var'",
+                    "does not support operation 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -1012,7 +1012,7 @@ class TestSeriesReductions:
         df = DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support operation: '(any|all)'"
+        msg = "datetime64 type does not support operation '(any|all)'"
         with pytest.raises(TypeError, match=msg):
             dta.all()
         with pytest.raises(TypeError, match=msg):
