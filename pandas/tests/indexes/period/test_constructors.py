@@ -196,11 +196,9 @@ class TestPeriodIndex:
             )
 
     def test_period_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = period_range("2007-01", periods=10.5, freq="M")
-        exp = period_range("2007-01", periods=10, freq="M")
-        tm.assert_index_equal(result, exp)
+        msg = "periods must be an integer, got 10.5"
+        with pytest.raises(TypeError, match=msg):
+            period_range("2007-01", periods=10.5, freq="M")
 
     def test_constructor_with_without_freq(self):
         # GH53687
