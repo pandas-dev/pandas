@@ -1582,8 +1582,6 @@ the string values returned are correct."""
         else:
             self._read_old_value_labels()
 
-        self._value_labels_read = True
-
     def _read_strls(self) -> None:
         self._path_or_buf.seek(self._seek_strls)
         # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
