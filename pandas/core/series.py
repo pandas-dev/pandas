@@ -50,7 +50,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import (
-    Pandas30DeprecationWarning,
+    Pandas40DeprecationWarning,
     find_stack_level,
 )
 from pandas.util._validators import (
@@ -1512,7 +1512,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         version="3.0.0",
         allowed_args=["self", "buf"],
         name="to_string",
-        klass=Pandas30DeprecationWarning,
+        klass=Pandas40DeprecationWarning,
     )
     def to_string(
         self,
@@ -1666,7 +1666,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         version="3.0.0",
         allowed_args=["self", "buf"],
         name="to_markdown",
-        klass=Pandas30DeprecationWarning,
+        klass=Pandas40DeprecationWarning,
     )
     def to_markdown(
         self,

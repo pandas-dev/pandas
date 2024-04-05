@@ -61,7 +61,7 @@ def test_copy_shallow():
 
 
 @pytest.mark.filterwarnings(
-    "ignore::pandas.util._exceptions.Pandas30DeprecationWarning"
+    "ignore::DeprecationWarning"
 )
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(
@@ -120,7 +120,7 @@ def test_methods_copy_keyword(request, method, copy):
 
 
 @pytest.mark.filterwarnings(
-    "ignore::pandas.util._exceptions.Pandas30DeprecationWarning"
+    "ignore::DeprecationWarning"
 )
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(

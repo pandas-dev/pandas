@@ -51,7 +51,7 @@ from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas.util._exceptions import (
-    Pandas30DeprecationWarning,
+    Pandas40DeprecationWarning,
     find_stack_level,
 )
 
@@ -1426,7 +1426,7 @@ class Timestamp(_Timestamp):
             #  GH#56680
             "Timestamp.utcnow is deprecated and will be removed in a future "
             "version. Use Timestamp.now('UTC') instead.",
-            Pandas30DeprecationWarning,
+            Pandas40DeprecationWarning,
             stacklevel=find_stack_level(),
         )
         return cls.now(UTC)
@@ -1454,7 +1454,7 @@ class Timestamp(_Timestamp):
             #  to match. GH#56680
             "Timestamp.utcfromtimestamp is deprecated and will be removed in a "
             "future version. Use Timestamp.fromtimestamp(ts, 'UTC') instead.",
-            Pandas30DeprecationWarning,
+            Pandas40DeprecationWarning,
             stacklevel=find_stack_level(),
         )
         return cls.fromtimestamp(ts, tz="UTC")
