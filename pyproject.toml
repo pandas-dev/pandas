@@ -236,6 +236,8 @@ select = [
   "FA",
   # unconventional-import-alias
   "ICN001",
+  # refurb
+  "FURB",
 ]
 
 ignore = [
