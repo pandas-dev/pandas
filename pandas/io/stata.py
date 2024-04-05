@@ -1527,7 +1527,7 @@ the string values returned are correct."""
                 slength = self._path_or_buf.read(4)
                 if not slength:
                     break  # end of value label table (format < 117)
-                if self._format_version <= 108:
+                if self._format_version == 108:
                     labname = self._decode(self._path_or_buf.read(9))
                 elif self._format_version <= 117:
                     labname = self._decode(self._path_or_buf.read(33))
