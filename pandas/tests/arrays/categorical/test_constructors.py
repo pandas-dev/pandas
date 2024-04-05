@@ -35,13 +35,6 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
-    def test_fastpath_deprecated(self):
-        codes = np.array([1, 2, 3])
-        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
-        msg = "The 'fastpath' keyword in Categorical is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            Categorical(codes, dtype=dtype, fastpath=True)
-
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
