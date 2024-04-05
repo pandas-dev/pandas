@@ -1516,7 +1516,7 @@ the string values returned are correct."""
             self._path_or_buf.seek(self._data_location + offset)
 
         self._value_labels_read = True
-        self._value_label_dict = {}
+        self._value_label_dict: dict[str, dict[int, str]] = {}
 
         while True:
             if self._format_version >= 117:
@@ -1547,7 +1547,7 @@ the string values returned are correct."""
                 off = off[ii]
                 val = val[ii]
                 txt = self._path_or_buf.read(txtlen)
-                self._value_label_dict[labname] = {}
+                self._value_label_dict[labname]: dict[int, str] = {}
                 for i in range(n):
                     end = off[i + 1] if i < n - 1 else txtlen
                     self._value_label_dict[labname][val[i]] = self._decode(
@@ -1568,7 +1568,7 @@ the string values returned are correct."""
                 codes = np.frombuffer(
                     self._path_or_buf.read(2 * n), dtype=f"{self._byteorder}i2", count=n
                 )
-                self._value_label_dict[labname] = {}
+                self._value_label_dict[labname]: dict[int, str] = {}
                 for i in range(n):
                     self._value_label_dict[labname][codes[i]] = self._decode(
                         self._path_or_buf.read(8)
