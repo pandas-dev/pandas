@@ -26,7 +26,7 @@ enhancement2
 
 New Deprecation Policy
 ^^^^^^^^^^^^^^^^^^^^^^
-pandas 3.0.0 introduces a new 3-stage deprecation policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release , and then removal of the deprecated functionalities in the major release.
+pandas 3.0.0 introduces a new 3-stage deprecation policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release.
 
 .. _whatsnew_300.enhancements.other:
 
