@@ -16,7 +16,10 @@ from pandas._typing import (
     F,
     T,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    Pandas40DeprecationWarning,
+    find_stack_level,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -50,14 +53,16 @@ def deprecate(
         Version of pandas in which the method has been deprecated.
     alt_name : str, optional
         Name to use in preference of alternative.__name__.
-    klass : Warning, default FutureWarning
+    klass : Warning, optional
+        The warning class to use. Defaults to FutureWarning in the
+        last minor version before a major release, otherwise DeprecationWarning.
     stacklevel : int, default 2
     msg : str
         The message to display in the warning.
         Default is '{name} is deprecated. Use {alt_name} instead.'
     """
     alt_name = alt_name or alternative.__name__
-    klass = klass or FutureWarning
+    klass = klass or Pandas40DeprecationWarning
     warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
@@ -118,7 +123,9 @@ def deprecate_kwarg(
         If mapping is present, use it to translate old arguments to
         new arguments. A callable must do its own value checking;
         values not found in a dict will be forwarded unchanged.
-    klass : Warning, default FutureWarning
+    klass : Warning, optional
+        The warning class to use. Defaults to FutureWarning in the
+        last minor version before a major release, otherwise DeprecationWarning.
     stacklevel : int, default 2
 
     Examples
@@ -168,7 +175,7 @@ def deprecate_kwarg(
         raise TypeError(
             "mapping from old to new argument values must be dict or callable!"
         )
-    klass = klass or FutureWarning
+    klass = klass or Pandas40DeprecationWarning
 
     def _deprecate_kwarg(func: F) -> F:
         @wraps(func)
@@ -292,9 +299,11 @@ def deprecate_nonkeyword_arguments(
         message. If None, then the Qualified name of the function
         is used.
 
-    klass : Warning, default FutureWarning
+    klass : Warning, optional
+        The warning class to use. Defaults to FutureWarning in the
+        last minor version before a major release, otherwise DeprecationWarning.
     """
-    klass = klass or FutureWarning
+    klass = klass or Pandas40DeprecationWarning
 
     def decorate(func):
         old_sig = inspect.signature(func)
