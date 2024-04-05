@@ -236,8 +236,10 @@ select = [
   "FA",
   # unconventional-import-alias
   "ICN001",
-  # refurb
-  "FURB",
+  # flake8-slots
+  "SLOT",
+  # flake8-raise
+  "RSE"
 ]
 
 ignore = [
