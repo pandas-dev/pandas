@@ -1868,7 +1868,7 @@ the string values returned are correct."""
     def _do_convert_categoricals(
         self,
         data: DataFrame,
-        value_label_dict: dict[str, dict[float, str]],
+        value_label_dict: dict[str, dict[int, str]],
         lbllist: Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
@@ -2006,7 +2006,7 @@ The repeated labels are:
         self._ensure_open()
         return dict(zip(self._varlist, self._variable_labels))
 
-    def value_labels(self) -> dict[str, dict[float, str]]:
+    def value_labels(self) -> dict[str, dict[int, str]]:
         """
         Return a nested dict associating each variable name to its value and label.
 
