@@ -1502,6 +1502,65 @@ the string values returned are correct."""
             )
             return s.decode("latin-1")
 
+    def _read_new_value_labels(self) -> None:
+        while True:
+            if self._format_version >= 117:
+                if self._path_or_buf.read(5) == b"</val":  # <lbl>
+                    break  # end of value label table
+
+            slength = self._path_or_buf.read(4)
+            if not slength:
+                break  # end of value label table (format < 117), or end-of-file
+            if self._format_version == 108:
+                labname = self._decode(self._path_or_buf.read(9))
+            elif self._format_version <= 117:
+                labname = self._decode(self._path_or_buf.read(33))
+            else:
+                labname = self._decode(self._path_or_buf.read(129))
+            self._path_or_buf.read(3)  # padding
+
+            n = self._read_uint32()
+            txtlen = self._read_uint32()
+            off = np.frombuffer(
+                self._path_or_buf.read(4 * n), dtype=f"{self._byteorder}i4", count=n
+            )
+            val = np.frombuffer(
+                self._path_or_buf.read(4 * n), dtype=f"{self._byteorder}i4", count=n
+            )
+            ii = np.argsort(off)
+            off = off[ii]
+            val = val[ii]
+            txt = self._path_or_buf.read(txtlen)
+            self._value_label_dict[labname] = {}
+            for i in range(n):
+                end = off[i + 1] if i < n - 1 else txtlen
+                self._value_label_dict[labname][val[i]] = self._decode(
+                    txt[off[i] : end]
+                )
+
+            if self._format_version >= 117:
+                self._path_or_buf.read(6)  # </lbl>
+
+    def _read_old_value_labels(self) -> None:
+        while True:
+            if not self._path_or_buf.read(2):
+                # end-of-file may have been reached, if so stop here
+                break
+
+            # otherwise back up and read again, taking byteorder into account
+            self._path_or_buf.seek(-2, os.SEEK_CUR)
+            n = self._read_uint16()
+            labname = self._decode(self._path_or_buf.read(9))
+            self._path_or_buf.read(1)  # padding
+            codes = np.frombuffer(
+                self._path_or_buf.read(2 * n), dtype=f"{self._byteorder}i2", count=n
+            )
+            self._value_label_dict[labname] = {}
+            for i in range(n):
+                self._value_label_dict[labname][codes[i]] = self._decode(
+                    self._path_or_buf.read(8)
+                )
+
     def _read_value_labels(self) -> None:
         self._ensure_open()
         if self._value_labels_read:
@@ -1518,61 +1577,10 @@ the string values returned are correct."""
         self._value_labels_read = True
         self._value_label_dict: dict[str, dict[int, str]] = {}
 
-        while True:
-            if self._format_version >= 117:
-                if self._path_or_buf.read(5) == b"</val":  # <lbl>
-                    break  # end of value label table
-
-            if self._format_version >= 108:
-                slength = self._path_or_buf.read(4)
-                if not slength:
-                    break  # end of value label table (format < 117)
-                if self._format_version == 108:
-                    labname = self._decode(self._path_or_buf.read(9))
-                elif self._format_version <= 117:
-                    labname = self._decode(self._path_or_buf.read(33))
-                else:
-                    labname = self._decode(self._path_or_buf.read(129))
-                self._path_or_buf.read(3)  # padding
-
-                n = self._read_uint32()
-                txtlen = self._read_uint32()
-                off = np.frombuffer(
-                    self._path_or_buf.read(4 * n), dtype=f"{self._byteorder}i4", count=n
-                )
-                val = np.frombuffer(
-                    self._path_or_buf.read(4 * n), dtype=f"{self._byteorder}i4", count=n
-                )
-                ii = np.argsort(off)
-                off = off[ii]
-                val = val[ii]
-                txt = self._path_or_buf.read(txtlen)
-                self._value_label_dict[labname] = {}
-                for i in range(n):
-                    end = off[i + 1] if i < n - 1 else txtlen
-                    self._value_label_dict[labname][val[i]] = self._decode(
-                        txt[off[i] : end]
-                    )
-                if self._format_version >= 117:
-                    self._path_or_buf.read(6)  # </lbl>
-            else:
-                if not self._path_or_buf.read(2):
-                    # end-of-file may have been reached, if so stop here
-                    break
-
-                # otherwise back up and read again, taking byteorder into account
-                self._path_or_buf.seek(-2, os.SEEK_CUR)
-                n = self._read_uint16()
-                labname = self._decode(self._path_or_buf.read(9))
-                self._path_or_buf.read(1)  # padding
-                codes = np.frombuffer(
-                    self._path_or_buf.read(2 * n), dtype=f"{self._byteorder}i2", count=n
-                )
-                self._value_label_dict[labname] = {}
-                for i in range(n):
-                    self._value_label_dict[labname][codes[i]] = self._decode(
-                        self._path_or_buf.read(8)
-                    )
+        if self._format_version >= 108:
+            self._read_new_value_labels()
+        else:
+            self._read_old_value_labels()
 
         self._value_labels_read = True
 
