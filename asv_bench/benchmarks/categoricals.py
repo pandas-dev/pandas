@@ -24,7 +24,7 @@ class Constructor:
         self.codes = np.tile(range(len(self.categories)), N)
 
         self.datetimes = pd.Series(
-            pd.date_range("1995-01-01 00:00:00", periods=N / 10, freq="s")
+            pd.date_range("1995-01-01 00:00:00", periods=N // 10, freq="s")
         )
         self.datetimes_with_nat = self.datetimes.copy()
         self.datetimes_with_nat.iloc[-1] = pd.NaT
