@@ -73,3 +73,6 @@ class TimeGetStartEndField:
 
     def time_get_start_end_field(self, size, side, period, freqstr, month_kw):
         get_start_end_field(self.i8data, self.attrname, freqstr, month_kw=month_kw)
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
