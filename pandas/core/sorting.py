@@ -577,7 +577,7 @@ def ensure_key_mapped(
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result)
+            result = Index(result, tupleize_cols=False)
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)
