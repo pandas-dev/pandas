@@ -75,4 +75,4 @@ class TimeGetStartEndField:
         get_start_end_field(self.i8data, self.attrname, freqstr, month_kw=month_kw)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip
