@@ -60,7 +60,9 @@ def test_copy_shallow():
     assert np.shares_memory(get_array(df_copy, "c"), get_array(df, "c"))
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings(
+    "ignore::pandas.util._exceptions.Pandas30DeprecationWarning"
+)
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(
     "method",
@@ -117,7 +119,9 @@ def test_methods_copy_keyword(request, method, copy):
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+@pytest.mark.filterwarnings(
+    "ignore::pandas.util._exceptions.Pandas30DeprecationWarning"
+)
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(
     "method",

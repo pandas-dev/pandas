@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from types import FrameType
 
+Pandas30DeprecationWarning = DeprecationWarning
+
 
 @contextlib.contextmanager
 def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:

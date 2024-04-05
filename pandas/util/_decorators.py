@@ -101,6 +101,7 @@ def deprecate_kwarg(
     old_arg_name: str,
     new_arg_name: str | None,
     mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
+    klass: type[Warning] | None = None,
     stacklevel: int = 2,
 ) -> Callable[[F], F]:
     """
@@ -109,7 +110,7 @@ def deprecate_kwarg(
     Parameters
     ----------
     old_arg_name : str
-        Name of argument in function to deprecate
+        Name of argument in function to deprecate.
     new_arg_name : str or None
         Name of preferred argument in function. Use None to raise warning that
         ``old_arg_name`` keyword is deprecated.
@@ -117,6 +118,8 @@ def deprecate_kwarg(
         If mapping is present, use it to translate old arguments to
         new arguments. A callable must do its own value checking;
         values not found in a dict will be forwarded unchanged.
+    klass : Warning, default FutureWarning
+    stacklevel : int, default 2
 
     Examples
     --------
@@ -151,20 +154,21 @@ def deprecate_kwarg(
     ...     print(cols)
     >>> f(cols="should raise warning")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
-    future version please takes steps to stop use of 'cols'
+    future version. Please take steps to stop the use of 'cols'
     should raise warning
     >>> f(another_param="should not raise warning")  # doctest: +SKIP
     should not raise warning
 
     >>> f(cols="should raise warning", another_param="")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
-    future version please takes steps to stop use of 'cols'
+    future version. Please take steps to stop the use of 'cols'
     should raise warning
     """
     if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
         raise TypeError(
             "mapping from old to new argument values must be dict or callable!"
         )
+    klass = klass or FutureWarning
 
     def _deprecate_kwarg(func: F) -> F:
         @wraps(func)
@@ -178,7 +182,7 @@ def deprecate_kwarg(
                         "will be removed in a future version. Please take "
                         f"steps to stop the use of {old_arg_name!r}"
                     )
-                    warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                    warnings.warn(msg, klass, stacklevel=stacklevel)
                     kwargs[old_arg_name] = old_arg_value
                     return func(*args, **kwargs)
 
@@ -199,7 +203,7 @@ def deprecate_kwarg(
                         f"use {new_arg_name!r} instead."
                     )
 
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                warnings.warn(msg, klass, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
                         f"Can only specify {old_arg_name!r} "
@@ -264,6 +268,7 @@ def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
     name: str | None = None,
+    klass: type[Warning] | None = None,
 ) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
@@ -286,7 +291,10 @@ def deprecate_nonkeyword_arguments(
         The specific name of the function to show in the warning
         message. If None, then the Qualified name of the function
         is used.
+
+    klass : Warning, default FutureWarning
     """
+    klass = klass or FutureWarning
 
     def decorate(func):
         old_sig = inspect.signature(func)
@@ -324,7 +332,7 @@ def deprecate_nonkeyword_arguments(
             if len(args) > num_allow_args:
                 warnings.warn(
                     msg.format(arguments=_format_argument_list(allow_args)),
-                    FutureWarning,
+                    klass,
                     stacklevel=find_stack_level(),
                 )
             return func(*args, **kwargs)

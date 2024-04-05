@@ -49,7 +49,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    Pandas30DeprecationWarning,
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -1506,7 +1509,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None: ...
 
     @deprecate_nonkeyword_arguments(
-        version="3.0.0", allowed_args=["self", "buf"], name="to_string"
+        version="3.0.0",
+        allowed_args=["self", "buf"],
+        name="to_string",
+        klass=Pandas30DeprecationWarning,
     )
     def to_string(
         self,
@@ -1657,7 +1663,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ),
     )
     @deprecate_nonkeyword_arguments(
-        version="3.0.0", allowed_args=["self", "buf"], name="to_markdown"
+        version="3.0.0",
+        allowed_args=["self", "buf"],
+        name="to_markdown",
+        klass=Pandas30DeprecationWarning,
     )
     def to_markdown(
         self,

@@ -24,6 +24,10 @@ enhancement1
 enhancement2
 ^^^^^^^^^^^^
 
+New Deprecation Policy
+^^^^^^^^^^^^^^^^^^^^^^
+pandas 3.0.0 introduces a new 3-stage deprecation policy: first raising ``DeprecationWarning`` when using deprecated functionality, then switching to ``FutureWarning`` in the next major version for broader visibility, and then removal of the deprecated functionalities in the version after.
+
 .. _whatsnew_300.enhancements.other:
 
 Other enhancements
@@ -158,6 +162,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
 
 Copy keyword
 ^^^^^^^^^^^^

@@ -20,6 +20,7 @@ import pytz
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
+from pandas.util._exceptions import Pandas30DeprecationWarning
 
 from pandas import (
     NA,
@@ -332,13 +333,13 @@ class TestTimestampClassMethodConstructors:
     def test_utcnow_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas30DeprecationWarning, match=msg):
             Timestamp.utcnow()
 
     def test_utcfromtimestamp_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas30DeprecationWarning, match=msg):
             Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
