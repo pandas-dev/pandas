@@ -17,7 +17,8 @@ class TimeGetTimedeltaField:
     param_names = ["size", "field"]
 
     def setup(self, size, field):
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        # 2 days in nanoseconds, scaled up to times e9 for runs with size=seconds
+        arr = np.random.randint(-2 * 86400 * 1_000_000_000, 0, size=size, dtype="i8")
         self.i8data = arr
 
     def time_get_timedelta_field(self, size, field):
