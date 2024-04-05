@@ -1738,6 +1738,7 @@ class TestPivotTable:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=doy[mask])
         expected = DataFrame(expected, dtype=float).T
+        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(result, expected)
 
     def test_monthly(self):
@@ -1753,6 +1754,7 @@ class TestPivotTable:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=month[mask])
         expected = DataFrame(expected, dtype=float).T
+        expected.index = expected.index.astype(np.int32)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_with_iterator_values(self, data):
@@ -2701,3 +2703,16 @@ class TestPivot:
             index=Index(["a", "b", "All"], name=0),
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("m", [1, 10])
+    def test_unstack_shares_memory(self, m):
+        # GH#56633
+        levels = np.arange(m)
+        index = MultiIndex.from_product([levels] * 2)
+        values = np.arange(m * m * 100).reshape(m * m, 100)
+        df = DataFrame(values, index, np.arange(100))
+        df_orig = df.copy()
+        result = df.unstack(sort=False)
+        assert np.shares_memory(df._values, result._values) is (m == 1)
+        result.iloc[0, 0] = -1
+        tm.assert_frame_equal(df, df_orig)

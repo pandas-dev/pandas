@@ -278,7 +278,7 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def urlopen(*args, **kwargs):
+def urlopen(*args: Any, **kwargs: Any) -> Any:
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
     the stdlib.
@@ -358,6 +358,16 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
+            stacklevel=find_stack_level(),
+        )
+
+    if "a" in mode and compression_method in ["zip", "tar"]:
+        # GH56778
+        warnings.warn(
+            "zip and tar do not support mode 'a' properly. "
+            "This combination will result in multiple files with same name "
+            "being added to the archive.",
+            RuntimeWarning,
             stacklevel=find_stack_level(),
         )
 
@@ -972,7 +982,7 @@ class _BytesTarFile(_BufferedWriter):
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
         archive_name: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.archive_name = archive_name
@@ -1025,7 +1035,7 @@ class _BytesZipFile(_BufferedWriter):
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
         archive_name: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         mode = mode.replace("b", "")
@@ -1223,12 +1233,14 @@ def is_potential_multi_index(
     bool : Whether or not columns could become a MultiIndex
     """
     if index_col is None or isinstance(index_col, bool):
-        index_col = []
+        index_columns = set()
+    else:
+        index_columns = set(index_col)
 
     return bool(
         len(columns)
         and not isinstance(columns, ABCMultiIndex)
-        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
+        and all(isinstance(c, tuple) for c in columns if c not in index_columns)
     )
 
 

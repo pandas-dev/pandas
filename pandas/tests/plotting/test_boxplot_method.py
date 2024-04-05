@@ -740,3 +740,17 @@ class TestDataFrameGroupByPlots:
         expected_xticklabel = ["(bar, one)", "(bar, two)"]
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel
+
+    @pytest.mark.parametrize("group", ["X", ["X", "Y"]])
+    def test_boxplot_multi_groupby_groups(self, group):
+        # GH 14701
+        rows = 20
+        df = DataFrame(
+            np.random.default_rng(12).normal(size=(rows, 2)), columns=["Col1", "Col2"]
+        )
+        df["X"] = Series(np.repeat(["A", "B"], int(rows / 2)))
+        df["Y"] = Series(np.tile(["C", "D"], int(rows / 2)))
+        grouped = df.groupby(group)
+        _check_plot_works(df.boxplot, by=group, default_axes=True)
+        _check_plot_works(df.plot.box, by=group, default_axes=True)
+        _check_plot_works(grouped.boxplot, default_axes=True)
