@@ -759,12 +759,12 @@ class TestPandasContainer:
         "dtype,expected",
         [
             (True, Series(["2000-01-01"], dtype="datetime64[ns]")),
-            (False, Series([946684800000])),
+            (False, Series(["2000-01-01T00:00:00.000"])),
         ],
     )
     def test_series_with_dtype_datetime(self, dtype, expected):
         s = Series(["2000-01-01"], dtype="datetime64[ns]")
-        data = StringIO(s.to_json())
+        data = StringIO(s.to_json(date_format="iso"))
         result = read_json(data, typ="series", dtype=dtype)
         tm.assert_series_equal(result, expected)
 
@@ -1069,23 +1069,28 @@ class TestPandasContainer:
         assert result[field].dtype == dtype
 
     def test_timedelta(self):
-        converter = lambda x: pd.to_timedelta(x, unit="ms")
+        converter = lambda x: pd.to_timedelta(x)
 
         ser = Series([timedelta(23), timedelta(seconds=5)])
         assert ser.dtype == "timedelta64[ns]"
 
-        result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
+        result = read_json(
+            StringIO(ser.to_json(date_format="iso")), typ="series"
+        ).apply(converter)
         tm.assert_series_equal(result, ser)
 
         ser = Series([timedelta(23), timedelta(seconds=5)], index=Index([0, 1]))
         assert ser.dtype == "timedelta64[ns]"
-        result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
+        result = read_json(
+            StringIO(ser.to_json(date_format="iso")), typ="series"
+        ).apply(converter)
         tm.assert_series_equal(result, ser)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         assert frame[0].dtype == "timedelta64[ns]"
         tm.assert_frame_equal(
-            frame, read_json(StringIO(frame.to_json())).apply(converter)
+            frame,
+            read_json(StringIO(frame.to_json(date_format="iso"))).apply(converter),
         )
 
     def test_timedelta2(self):
@@ -1152,8 +1157,8 @@ class TestPandasContainer:
         if as_object:
             ser = ser.astype(object)
 
-        result = ser.to_json()
-        expected = '{"42":42}'
+        result = ser.to_json(date_format="iso")
+        expected = '{"P0DT0H0M0.042S":"P0DT0H0M0.042S"}'
         assert result == expected
 
     def test_default_handler(self):
