@@ -137,16 +137,19 @@ class TestPandasContainer:
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         result = read_json(
-            StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
+            StringIO(df.to_json(orient=orient, date_format="iso")),
+            orient=orient,
+            convert_dates=["x"],
         )
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
-                # orient == "values" by default will write Timestamp objects out
-                # in milliseconds; these are internally stored in nanosecond,
-                # so divide to get where we need
-                # TODO: a to_epoch method would also solve; see GH 14772
-                expected.isetitem(0, expected.iloc[:, 0].astype(np.int64) // 1000000)
+                expected.isetitem(
+                    0,
+                    expected.iloc[:, 0].apply(
+                        lambda x: x.isoformat(timespec="milliseconds")
+                    ),
+                )
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
@@ -807,22 +810,24 @@ class TestPandasContainer:
         df = datetime_frame
         df["date"] = Timestamp("20130101").as_unit("ns")
 
-        json = StringIO(df.to_json())
+        json = StringIO(df.to_json(date_format="iso"))
         result = read_json(json)
         tm.assert_frame_equal(result, df)
 
         df["foo"] = 1.0
-        json = StringIO(df.to_json(date_unit="ns"))
+        json = StringIO(df.to_json(date_unit="ns", date_format="iso"))
 
         result = read_json(json, convert_dates=False)
         expected = df.copy()
-        expected["date"] = expected["date"].values.view("i8")
+        expected["date"] = expected["date"].apply(
+            lambda x: x.isoformat(timespec="nanoseconds")
+        )
         expected["foo"] = expected["foo"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
         # series
         ts = Series(Timestamp("20130101").as_unit("ns"), index=datetime_series.index)
-        json = StringIO(ts.to_json())
+        json = StringIO(ts.to_json(date_format="iso"))
         result = read_json(json, typ="series")
         tm.assert_series_equal(result, ts)
 
@@ -1091,9 +1096,9 @@ class TestPandasContainer:
                 "c": date_range(start="20130101", periods=2),
             }
         )
-        data = StringIO(frame.to_json(date_unit="ns"))
+        data = StringIO(frame.to_json(date_unit="ns", date_format="iso"))
         result = read_json(data)
-        result["a"] = pd.to_timedelta(result.a, unit="ns")
+        result["a"] = pd.to_timedelta(result.a)
         result["c"] = pd.to_datetime(result.c)
         tm.assert_frame_equal(frame, result)
 
@@ -1229,12 +1234,12 @@ class TestPandasContainer:
 
         df_naive = df.copy()
         df_naive["A"] = tz_naive
-        expected = df_naive.to_json()
-        assert expected == df.to_json()
+        expected = df_naive.to_json(date_format="iso")
+        assert expected == df.to_json(date_format="iso").replace("000Z", "000")
 
         stz = Series(tz_range)
         s_naive = Series(tz_naive)
-        assert stz.to_json() == s_naive.to_json()
+        assert stz.to_json(date_format="iso") == s_naive.to_json(date_format="iso")
 
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
@@ -1499,7 +1504,7 @@ class TestPandasContainer:
                 ),
             }
         )
-        dfjson = expected.to_json(orient=orient)
+        dfjson = expected.to_json(orient=orient, date_format="iso")
 
         result = read_json(
             StringIO(dfjson),
@@ -1931,7 +1936,7 @@ class TestPandasContainer:
             mark = pytest.mark.xfail(reason="not implemented")
             request.applymarker(mark)
 
-        result = DataFrame([[nulls_fixture]]).to_json()
+        result = DataFrame([[nulls_fixture]]).to_json(date_format="iso")
         assert result == '{"0":{"0":null}}'
 
     def test_readjson_bool_series(self):

@@ -2535,6 +2535,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             date_format = "iso"
         elif date_format is None:
             date_format = "epoch"
+            if "m8[ns]" in self.dtypes.values or "M8[ns]" in self.dtypes.values:
+                warnings.warn(
+                    "The default 'Epoch' date format is deprecated and will be removed "
+                    "in a future version, please use 'iso' date format instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         elif date_format == "epoch":
             # GH#57063
             warnings.warn(
