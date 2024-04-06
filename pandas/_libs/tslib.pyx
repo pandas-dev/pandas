@@ -50,7 +50,6 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime cimport (
     DatetimeParseState,
-    check_for_mixed_inputs,
     parse_today_now,
 )
 from pandas._libs.util cimport (
@@ -452,11 +451,9 @@ cpdef array_to_datetime(
         ndarray[int64_t] iresult
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
-        bint seen_datetime_offset = False
         bint is_raise = errors == "raise"
         bint is_coerce = errors == "coerce"
         _TSObject tsobj
-        set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
         NPY_DATETIMEUNIT item_reso
@@ -566,12 +563,12 @@ cpdef array_to_datetime(
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
-                    out_tzoffset_vals.add(nsecs)
-                    seen_datetime_offset = True
+                    state.out_tzoffset_vals.add(nsecs)
+                    state.found_aware_str = True
                 else:
                     # Add a marker for naive string, to track if we are
                     # parsing mixed naive and aware strings
-                    out_tzoffset_vals.add("naive")
+                    state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
 
             else:
@@ -586,9 +583,7 @@ cpdef array_to_datetime(
                 raise
             return values, None
 
-    tz_out = check_for_mixed_inputs(
-        tz_out, state, utc, seen_datetime_offset, out_tzoffset_vals
-    )
+    tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
     if infer_reso:
         if state.creso_ever_changed:
