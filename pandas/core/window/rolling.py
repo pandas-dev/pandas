@@ -2556,7 +2556,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q", klass=FutureWarning)
     def quantile(
         self,
         q: float,
