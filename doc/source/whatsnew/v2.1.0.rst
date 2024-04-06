@@ -276,6 +276,7 @@ Other enhancements
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`51722`)
 - PyArrow-backed integer dtypes now support bitwise operations (:issue:`54495`)
+- :meth:`DataFrame.cum*` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.api_breaking:
