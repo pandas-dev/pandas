@@ -24,3 +24,11 @@ cdef class DatetimeParseState:
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert)
     cdef bint update_creso(self, NPY_DATETIMEUNIT item_reso) noexcept
+
+cdef tzinfo check_for_mixed_inputs(
+    tzinfo tz_out,
+    DatetimeParseState state,
+    bint utc,
+    bint seen_datetime_offset,
+    set out_tzoffset_vals,
+)

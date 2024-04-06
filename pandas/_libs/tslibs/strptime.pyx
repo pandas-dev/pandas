@@ -322,7 +322,6 @@ def array_strptime(
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
         bint is_coerce = errors=="coerce"
-        bint is_same_offsets
         set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
         bint iso_format = format_is_iso(fmt)
@@ -499,35 +498,9 @@ def array_strptime(
                 raise
             return values, None
 
-    if seen_datetime_offset and not utc:
-        is_same_offsets = len(out_tzoffset_vals) == 1
-        if not is_same_offsets or (state.found_naive or state.found_other):
-            raise ValueError(
-                "Mixed timezones detected. Pass utc=True in to_datetime "
-                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-            )
-        elif tz_out is not None:
-            # GH#55693
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out2 = timezone(timedelta(seconds=tz_offset))
-            if not tz_compare(tz_out, tz_out2):
-                # e.g. test_to_datetime_mixed_offsets_with_utc_false_removed
-                raise ValueError(
-                    "Mixed timezones detected. Pass utc=True in to_datetime "
-                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-                )
-            # e.g. test_guess_datetime_format_with_parseable_formats
-        else:
-            # e.g. test_to_datetime_iso8601_with_timezone_valid
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out = timezone(timedelta(seconds=tz_offset))
-    elif not utc:
-        if tz_out and (state.found_other or state.found_naive_str):
-            # found_other indicates a tz-naive int, float, dt64, or date
-            raise ValueError(
-                "Mixed timezones detected. Pass utc=True in to_datetime "
-                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-            )
+    tz_out = check_for_mixed_inputs(
+        tz_out, state, utc, seen_datetime_offset, out_tzoffset_vals
+    )
 
     if infer_reso:
         if state.creso_ever_changed:
@@ -552,6 +525,60 @@ def array_strptime(
             abbrev = npy_unit_to_abbrev(state.creso)
             result = iresult.base.view(f"M8[{abbrev}]")
     return result, tz_out
+
+
+cdef tzinfo check_for_mixed_inputs(
+    tzinfo tz_out,
+    DatetimeParseState state,
+    bint utc,
+    bint seen_datetime_offset,
+    set out_tzoffset_vals
+):
+    cdef:
+        bint is_same_offsets
+        float tz_offset
+
+    if seen_datetime_offset and not utc:
+        # GH#17697, GH#57275
+        # 1) If all the offsets are equal, return one offset for
+        #    the parsed dates to (maybe) pass to DatetimeIndex
+        # 2) If the offsets are different, then do not force the parsing
+        #    and raise a ValueError: "cannot parse datetimes with
+        #    mixed time zones unless `utc=True`" instead
+        is_same_offsets = len(out_tzoffset_vals) == 1
+        if not is_same_offsets or (state.found_naive or state.found_other):
+            # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+            raise ValueError(
+                "Mixed timezones detected. Pass utc=True in to_datetime "
+                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+            )
+        elif tz_out is not None:
+            # GH#55693
+            tz_offset = out_tzoffset_vals.pop()
+            tz_out2 = timezone(timedelta(seconds=tz_offset))
+            if not tz_compare(tz_out, tz_out2):
+                # e.g. (array_strptime)
+                #  test_to_datetime_mixed_offsets_with_utc_false_removed
+                # e.g. test_to_datetime_mixed_tzs_mixed_types (array_to_datetime)
+                raise ValueError(
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+            # e.g. test_guess_datetime_format_with_parseable_formats (array_strptime)
+            # e.g. test_to_datetime_mixed_types_matching_tzs (array_to_datetime)
+        else:
+            # e.g. test_to_datetime_iso8601_with_timezone_valid (array_strptime)
+            tz_offset = out_tzoffset_vals.pop()
+            tz_out = timezone(timedelta(seconds=tz_offset))
+    elif not utc:
+        if tz_out and (state.found_other or state.found_naive_str):
+            # found_other indicates a tz-naive int, float, dt64, or date
+            # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+            raise ValueError(
+                "Mixed timezones detected. Pass utc=True in to_datetime "
+                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+            )
+    return tz_out
 
 
 cdef tzinfo _parse_with_format(
