@@ -1546,14 +1546,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self._grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
                 return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
+            elif (args or kwargs) and (len(self._obj_with_exclusions.columns) == 1):
                 # test_pass_args_kwargs gets here (with and without as_index)
                 # can't return early
                 result = self._aggregate_frame(func, *args, **kwargs)
 
             else:
                 # try to treat as if we are passing a list
-                gba = GroupByApply(self, [func], args=(), kwargs={})
+                gba = GroupByApply(self, [func], args=args, kwargs=kwargs)
                 try:
                     result = gba.agg()
 

@@ -1663,3 +1663,24 @@ def test_groupby_aggregation_empty_group():
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
         df.groupby("A", observed=False).agg(func)
+
+
+def test_aggregation_of_UDF_with_kwargs():
+    df = DataFrame(
+        {
+            "A": [1, 2, 3, 4, 5],
+            "B": [10, 20, 30, 40, 50],
+            "groupby1": ["diamond", "diamond", "spade", "spade", "spade"],
+        }
+    )
+
+    def user_defined_aggfunc(df, addition=0):
+        return np.mean(df) + addition
+
+    out_df = df.groupby(by="groupby1").agg(func=user_defined_aggfunc, addition=5)
+    expected_df = DataFrame(
+        {"A": [6.5, 9.0], "B": [20.0, 45.0]},
+        index=Index(["diamond", "spade"], name="groupby1"),
+    )
+
+    tm.assert_frame_equal(out_df, expected_df)
