@@ -1105,16 +1105,19 @@ class TestNankurtFixedValues:
         kurt = nanops.nankurt(samples, skipna=True)
         tm.assert_almost_equal(kurt, actual_kurt)
 
-    def test_small_arrays_with_low_variance(self):
+    def test_arrays_with_low_variance(self):
         # GH-57972
         # small sample arrays with low variance have a lower threshold for breakdown
         # of numerical stability and should be handled accordingly
-        low_var_samples = np.array(
-            [-2.05191341e-05] + [0.0e00] * 4 + [-4.10391103e-05] + [0.0e00] * 23
-        )
+        n = 10_000
+        n2 = 10
+        # scipy.kurt is nan at e-81,
+        # both kurtosis start diverging from each other around e-76
+        scale = 1e-72
+        low_var = np.array([-2.3 * scale] * n2 + [-4.1 * scale] * n2 + [0.0] * n)
         # calculated with scipy.status kurtosis(low_var_samples, bias=False)
-        scipy_kurt = 18.087646853025614
-        kurt = nanops.nankurt(low_var_samples)
+        scipy_kurt = 632.556235239126
+        kurt = nanops.nankurt(low_var)
         tm.assert_almost_equal(kurt, scipy_kurt)
 
     @property

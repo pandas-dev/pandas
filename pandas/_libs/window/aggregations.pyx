@@ -713,7 +713,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
             #         treat as zero, here we follow the original
             #         skew/kurt behaviour to check B <= 1e-14
             # #57972: for small arrays the cutoff can be lowered
-            if B <= 1e-14 and nobs > 100 or B <= 1e-16:
+            if B <= 1e-281:
                 result = NaN
             else:
                 K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
