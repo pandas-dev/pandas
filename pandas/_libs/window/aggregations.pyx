@@ -712,7 +712,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
             #         if the variance is less than 1e-14, it could be
             #         treat as zero, here we follow the original
             #         skew/kurt behaviour to check B <= 1e-14
-            # #57972: for small arrays the cutoff can be lowered
+            # #57972: for non-zero but low variance arrays the cutoff can be lowered
             if B <= 1e-281:
                 result = NaN
             else:

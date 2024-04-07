@@ -1107,7 +1107,7 @@ class TestNankurtFixedValues:
 
     def test_arrays_with_low_variance(self):
         # GH-57972
-        # small sample arrays with low variance have a lower threshold for breakdown
+        # sample arrays with low variance have a lower threshold for breakdown
         # of numerical stability and should be handled accordingly
         n = 10_000
         n2 = 10

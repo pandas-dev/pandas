@@ -1358,7 +1358,7 @@ def nankurt(
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
     # to fix the fperr to treat denom <1e-14 as zero (default cutoff)
-    # GH-57972 set cutoff lower for small arrays to prevent cutoff of otherwise
+    # GH-57972 set cutoff lower for low variance arrays to prevent cutoff of otherwise
     # numerically stable values. Scipy.kurtosis and this implementation start
     # diverging for examples with cutoffs below e-281
     cutoff = 1e-281
