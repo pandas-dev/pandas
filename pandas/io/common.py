@@ -361,6 +361,16 @@ def _get_filepath_or_buffer(
             stacklevel=find_stack_level(),
         )
 
+    if "a" in mode and compression_method in ["zip", "tar"]:
+        # GH56778
+        warnings.warn(
+            "zip and tar do not support mode 'a' properly. "
+            "This combination will result in multiple files with same name "
+            "being added to the archive.",
+            RuntimeWarning,
+            stacklevel=find_stack_level(),
+        )
+
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
     # except when text mode is explicitly requested. The original mode is returned if
     # fsspec is not used.
@@ -1223,12 +1233,14 @@ def is_potential_multi_index(
     bool : Whether or not columns could become a MultiIndex
     """
     if index_col is None or isinstance(index_col, bool):
-        index_col = []
+        index_columns = set()
+    else:
+        index_columns = set(index_col)
 
     return bool(
         len(columns)
         and not isinstance(columns, ABCMultiIndex)
-        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
+        and all(isinstance(c, tuple) for c in columns if c not in index_columns)
     )
 
 

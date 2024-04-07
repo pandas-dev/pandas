@@ -247,7 +247,7 @@ class SharedTests:
         assert result == arr1d[0]
 
     def test_reduce_invalid(self, arr1d):
-        msg = "does not support reduction 'not a method'"
+        msg = "does not support operation 'not a method'"
         with pytest.raises(TypeError, match=msg):
             arr1d._reduce("not a method")
 
@@ -1319,12 +1319,6 @@ def test_from_pandas_array(dtype):
     arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    depr_msg = f"{cls.__name__}.__init__ is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = cls(arr)
-        expected = cls(data)
-    tm.assert_extension_array_equal(result, expected)
 
     result = cls._from_sequence(arr, dtype=dtype)
     expected = cls._from_sequence(data, dtype=dtype)
