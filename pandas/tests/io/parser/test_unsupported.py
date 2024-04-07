@@ -155,12 +155,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = "warn"
 
             warn = None
-            depr_msg = None
+            depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
             if "delim_whitespace" in kwargs:
-                depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-                warn = FutureWarning
-            if "verbose" in kwargs:
-                depr_msg = "The 'verbose' keyword in pd.read_csv is deprecated"
                 warn = FutureWarning
 
             with pytest.raises(ValueError, match=msg):
