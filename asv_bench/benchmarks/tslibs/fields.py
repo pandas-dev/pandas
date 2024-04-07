@@ -17,12 +17,16 @@ class TimeGetTimedeltaField:
     param_names = ["size", "field"]
 
     def setup(self, size, field):
-        # 2 days in nanoseconds, scaled up to times e9 for runs with size=seconds
-        arr = np.random.randint(-2 * 86400 * 1_000_000_000, 0, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=size, dtype="i8")
         self.i8data = arr
+        arr = np.random.randint(-86400 * 1_000_000_000, 0, size=size, dtype="i8")
+        self.i8data_negative = arr
 
     def time_get_timedelta_field(self, size, field):
         get_timedelta_field(self.i8data, field)
+
+    def time_get_timedelta_field_negative_td(self, size, field):
+        get_timedelta_field(self.i8data_negative, field)
 
 
 class TimeGetDateField:
