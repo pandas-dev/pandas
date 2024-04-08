@@ -234,6 +234,12 @@ select = [
   "G",
   # flake8-future-annotations
   "FA",
+  # unconventional-import-alias
+  "ICN001",
+  # flake8-slots
+  "SLOT",
+  # flake8-raise
+  "RSE"
 ]
 
 ignore = [

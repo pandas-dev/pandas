@@ -41,7 +41,7 @@ class TestDataFrameSetItem:
     def test_setitem_str_subclass(self):
         # GH#37366
         class mystring(str):
-            pass
+            __slots__ = ()
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
