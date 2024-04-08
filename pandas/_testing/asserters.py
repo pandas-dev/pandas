@@ -902,7 +902,6 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
-    check_exact_index = check_exact
     if (
         check_exact is lib.no_default
         and rtol is lib.no_default
@@ -923,6 +922,8 @@ def assert_series_equal(
     elif check_exact is lib.no_default:
         check_exact = False
         check_exact_index = False
+    else:
+        check_exact_index = check_exact
 
     rtol = rtol if rtol is not lib.no_default else 1.0e-5
     atol = atol if atol is not lib.no_default else 1.0e-8
