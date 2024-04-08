@@ -195,7 +195,11 @@ class TestTimestampReplace:
         ts = Timestamp("2023-07-15 23:08:12")
         ts1 = Timestamp("2023-07-15 23:08:12.134567")
         ts2 = Timestamp("2023-07-15 23:08:12.134567123")
+        ts = ts.replace(microsecond=999)
+        assert ts.unit == "ms"
         ts = ts.replace(microsecond=ts1.microsecond)
+        assert ts.unit == "us"
         assert ts == ts1
         ts = ts.replace(nanosecond=ts2.nanosecond)
+        assert ts.unit == "ns"
         assert ts == ts2
