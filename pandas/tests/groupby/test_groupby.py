@@ -671,7 +671,7 @@ def test_raises_on_nuisance(df):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support operation: 'sum'"
+    msg = "datetime64 type does not support operation 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
@@ -1794,7 +1794,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             else:
                 msg = "category type does not support"
             if op == "skew":
-                msg = "|".join([msg, "does not support reduction 'skew'"])
+                msg = "|".join([msg, "does not support operation 'skew'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
