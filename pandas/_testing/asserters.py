@@ -902,7 +902,7 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
-    check_exact_index = False if check_exact is lib.no_default else check_exact
+    check_exact_index = check_exact
     if (
         check_exact is lib.no_default
         and rtol is lib.no_default
@@ -914,8 +914,15 @@ def assert_series_equal(
             or is_numeric_dtype(right.dtype)
             and not is_float_dtype(right.dtype)
         )
+        check_exact_index = (
+            is_numeric_dtype(left.index.dtype)
+            and not is_float_dtype(left.index.dtype)
+            or is_numeric_dtype(right.index.dtype)
+            and not is_float_dtype(right.index.dtype)
+        )
     elif check_exact is lib.no_default:
         check_exact = False
+        check_exact_index = False
 
     rtol = rtol if rtol is not lib.no_default else 1.0e-5
     atol = atol if atol is not lib.no_default else 1.0e-8
