@@ -222,12 +222,7 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
+            msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
@@ -409,19 +404,13 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
+        # GH#51363
         trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
-        # test 0th element
-        warn = None
-        if index.dtype == object and index.inferred_type == "boolean":
-            # GH#51363
-            warn = FutureWarning
-        msg = "The behavior of Index.insert with object-dtype is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = trimmed.insert(0, index[0])
+        result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
     @pytest.mark.skipif(

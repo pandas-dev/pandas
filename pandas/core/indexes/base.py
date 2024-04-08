@@ -20,10 +20,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_pyarrow_string_dtype,
-)
+from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
@@ -179,7 +176,6 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
-from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     ensure_key_mapped,
     get_group_index_sorter,
@@ -6456,6 +6452,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        >>> idx = pd.Index(list("bcde"))
+        >>> idx.slice_locs(start="a", end="c")
+        (0, 2)
         """
         inc = step is None or step >= 0
 
@@ -6610,23 +6610,8 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        out = Index._with_infer(new_values, name=self.name)
-        if (
-            using_pyarrow_string_dtype()
-            and is_string_dtype(out.dtype)
-            and new_values.dtype == object
-        ):
-            out = out.astype(new_values.dtype)
-        if self.dtype == object and out.dtype != object:
-            # GH#51363
-            warnings.warn(
-                "The behavior of Index.insert with object-dtype is deprecated, "
-                "in a future version this will return an object-dtype Index "
-                "instead of inferring a non-object dtype. To retain the old "
-                "behavior, do `idx.insert(loc, item).infer_objects(copy=False)`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        # GH#51363 stopped doing dtype inference here
+        out = Index(new_values, dtype=new_values.dtype, name=self.name)
         return out
 
     def drop(
@@ -6956,14 +6941,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise if this Index subclass does not support any or all.
         """
-        if (
-            isinstance(self, ABCMultiIndex)
-            # TODO(3.0): PeriodArray and DatetimeArray any/all will raise,
-            #  so checking needs_i8_conversion will be unnecessary
-            or (needs_i8_conversion(self.dtype) and self.dtype.kind != "m")
-        ):
-            # This call will raise
-            make_invalid_op(opname)(self)
+        if isinstance(self, ABCMultiIndex):
+            raise TypeError(f"cannot perform {opname} with {type(self).__name__}")
 
     @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
@@ -6971,11 +6950,11 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
+
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -6984,11 +6963,10 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
@@ -7153,17 +7131,25 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (ABCSeries, Index, range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)):
         return sequence
     elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
         return sequence
-    elif len(sequence) == 0:
+    elif isinstance(sequence, (ABCSeries, Index)) and not (
+        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    ):
+        return sequence
+    if len(sequence) == 0:
         return range(0)
-    diff = sequence[1] - sequence[0]
+    try:
+        np_sequence = np.asarray(sequence, dtype=np.int64)
+    except OverflowError:
+        return sequence
+    diff = np_sequence[1] - np_sequence[0]
     if diff == 0:
         return sequence
-    elif len(sequence) == 2 or lib.is_sequence_range(np.asarray(sequence), diff):
-        return range(sequence[0], sequence[-1] + diff, diff)
+    elif len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff):
+        return range(np_sequence[0], np_sequence[-1] + diff, diff)
     else:
         return sequence
 

@@ -97,7 +97,6 @@ from pandas.core import (
     algorithms,
     base,
     common as com,
-    missing,
     nanops,
     ops,
     roperator,
@@ -133,6 +132,7 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     default_index,
     ensure_index,
+    maybe_sequence_to_range,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
@@ -539,8 +539,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
-
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -548,7 +546,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
 
-            keys = tuple(data.keys())
+            keys = maybe_sequence_to_range(tuple(data.keys()))
             values = list(data.values())  # Generating list of values- faster way
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
@@ -4257,6 +4255,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame
             Unstacked Series.
 
+        See Also
+        --------
+        DataFrame.unstack : Pivot the MultiIndex of a DataFrame.
+
         Notes
         -----
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
@@ -5112,40 +5114,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             show_counts=show_counts,
         )
 
-    @overload
-    def _replace_single(self, to_replace, inplace: Literal[False]) -> Self: ...
-
-    @overload
-    def _replace_single(self, to_replace, inplace: Literal[True]) -> None: ...
-
-    @overload
-    def _replace_single(self, to_replace, inplace: bool) -> Self | None: ...
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _replace_single(self, to_replace, inplace: bool) -> Self | None:
-        """
-        Replaces values in a Series using the fill method specified when no
-        replacement value is given in the replace method
-        """
-        limit = None
-        method = "pad"
-
-        result = self if inplace else self.copy()
-
-        values = result._values
-        mask = missing.mask_missing(values, to_replace)
-
-        if isinstance(values, ExtensionArray):
-            # dispatch to the EA's _pad_mask_inplace method
-            values._fill_mask_inplace(method, limit, mask)
-        else:
-            fill_f = missing.get_fill_func(method)
-            fill_f(values, limit=limit, mask=mask)
-
-        if inplace:
-            return None
-        return result
-
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
         Return the memory usage of the Series.
@@ -5644,6 +5612,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
 
+        This can be changed to the *end* of the period, by specifying `how="e"`.
+
         Parameters
         ----------
         freq : str, default frequency of PeriodIndex
@@ -5671,6 +5641,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series with DatetimeIndex
+            Series with the PeriodIndex cast to DatetimeIndex.
+
+        See Also
+        --------
+        Series.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
+        DataFrame.to_timestamp: Equivalent method for DataFrame.
 
         Examples
         --------
@@ -5743,6 +5719,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
             Series with index converted to PeriodIndex.
+
+        See Also
+        --------
+        DataFrame.to_period: Equivalent method for DataFrame.
+        Series.dt.to_period: Convert DateTime column values.
 
         Examples
         --------
