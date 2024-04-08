@@ -74,7 +74,6 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timezones cimport tz_compare
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -452,13 +451,9 @@ cpdef array_to_datetime(
         ndarray[int64_t] iresult
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
-        bint seen_datetime_offset = False
         bint is_raise = errors == "raise"
         bint is_coerce = errors == "coerce"
-        bint is_same_offsets
         _TSObject tsobj
-        float tz_offset
-        set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
         NPY_DATETIMEUNIT item_reso
@@ -568,12 +563,12 @@ cpdef array_to_datetime(
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
-                    out_tzoffset_vals.add(nsecs)
-                    seen_datetime_offset = True
+                    state.out_tzoffset_vals.add(nsecs)
+                    state.found_aware_str = True
                 else:
                     # Add a marker for naive string, to track if we are
                     # parsing mixed naive and aware strings
-                    out_tzoffset_vals.add("naive")
+                    state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
 
             else:
@@ -588,41 +583,7 @@ cpdef array_to_datetime(
                 raise
             return values, None
 
-    if seen_datetime_offset and not utc_convert:
-        # GH#17697, GH#57275
-        # 1) If all the offsets are equal, return one offset for
-        #    the parsed dates to (maybe) pass to DatetimeIndex
-        # 2) If the offsets are different, then do not force the parsing
-        #    and raise a ValueError: "cannot parse datetimes with
-        #    mixed time zones unless `utc=True`" instead
-        is_same_offsets = len(out_tzoffset_vals) == 1
-        if not is_same_offsets:
-            raise ValueError(
-                "Mixed timezones detected. Pass utc=True in to_datetime "
-                "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-            )
-        elif state.found_naive or state.found_other:
-            # e.g. test_to_datetime_mixed_awareness_mixed_types
-            raise ValueError("Cannot mix tz-aware with tz-naive values")
-        elif tz_out is not None:
-            # GH#55693
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out2 = timezone(timedelta(seconds=tz_offset))
-            if not tz_compare(tz_out, tz_out2):
-                # e.g. test_to_datetime_mixed_tzs_mixed_types
-                raise ValueError(
-                    "Mixed timezones detected. Pass utc=True in to_datetime "
-                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
-                )
-            # e.g. test_to_datetime_mixed_types_matching_tzs
-        else:
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out = timezone(timedelta(seconds=tz_offset))
-    elif not utc_convert:
-        if tz_out and (state.found_other or state.found_naive_str):
-            # found_other indicates a tz-naive int, float, dt64, or date
-            # e.g. test_to_datetime_mixed_awareness_mixed_types
-            raise ValueError("Cannot mix tz-aware with tz-naive values")
+    tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
     if infer_reso:
         if state.creso_ever_changed:
