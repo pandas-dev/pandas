@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.4
@@ -67,25 +67,6 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.1
-    hooks:
-    -   id: pylint
-        stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name, --fail-on=I0021]
-    -   id: pylint
-        alias: redefined-outer-name
-        name: Redefining name from outer scope
-        files: ^pandas/
-        exclude: |
-            (?x)
-            ^pandas/tests  # keep excluded
-            |/_testing/  # keep excluded
-            |^pandas/util/_test_decorators\.py  # keep excluded
-            |^pandas/_version\.py  # keep excluded
-            |^pandas/conftest\.py  # keep excluded
-        args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
