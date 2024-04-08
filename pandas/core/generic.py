@@ -6729,7 +6729,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             if not self._mgr.is_single_block and inplace:
-                raise NotImplementedError()
+                raise NotImplementedError
             # e.g. test_align_fill_method
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area

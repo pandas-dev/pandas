@@ -1376,7 +1376,7 @@ class StataReader(StataParser, abc.Iterator):
         elif self._format_version > 104:
             return self._decode(self._path_or_buf.read(18))
         else:
-            raise ValueError()
+            raise ValueError
 
     def _get_seek_variable_labels(self) -> int:
         if self._format_version == 117:
@@ -1388,7 +1388,7 @@ class StataReader(StataParser, abc.Iterator):
         elif self._format_version >= 118:
             return self._read_int64() + 17
         else:
-            raise ValueError()
+            raise ValueError
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
