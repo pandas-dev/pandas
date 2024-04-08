@@ -320,8 +320,8 @@ def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
         Py_ssize_t k = len(lists)
         Py_ssize_t i, j, n
         list uniques = []
-        dict table = {}
-        object val, stub = 0
+        set table = set()
+        object val
 
     for i in range(k):
         buf = lists[i]
@@ -329,7 +329,7 @@ def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
         for j in range(n):
             val = buf[j]
             if val not in table:
-                table[val] = stub
+                table.add(val)
                 uniques.append(val)
     if sort:
         try:
@@ -361,15 +361,15 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
         list buf
         Py_ssize_t j, n
         list uniques = []
-        dict table = {}
-        object val, stub = 0
+        set table = set()
+        object val
 
     for buf in gen:
         n = len(buf)
         for j in range(n):
             val = buf[j]
             if val not in table:
-                table[val] = stub
+                table.add(val)
                 uniques.append(val)
     if sort:
         try:
