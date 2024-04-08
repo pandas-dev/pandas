@@ -188,6 +188,16 @@ class TestDataFrameEval:
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
+    def test_using_numpy(self, engine, parser):
+        # GH 58041
+        skip_if_no_pandas_parser(parser)
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("@np.floor(a)", engine=engine, parser=parser)
+        expected = np.floor(df["a"])
+        if engine == "numexpr":
+            expected.name = None  # See GH 58069
+        tm.assert_series_equal(expected, res)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
