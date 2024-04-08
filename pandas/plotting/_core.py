@@ -1187,7 +1187,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(  # pylint: disable=disallowed-name
+    def bar(
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,

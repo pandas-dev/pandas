@@ -85,7 +85,7 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing + pylint
+    - name: Typing
       uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files

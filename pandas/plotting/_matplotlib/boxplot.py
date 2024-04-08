@@ -82,7 +82,7 @@ class BoxPlot(LinePlot):
 
         self.return_type = return_type
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last

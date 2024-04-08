@@ -152,7 +152,6 @@ class TestReadHtml:
                 np.random.default_rng(2).random((4, 3)),
                 columns=pd.Index(list("abc"), dtype=object),
             )
-            # pylint: disable-next=consider-using-f-string
             .map("{:.3f}".format)
             .astype(float)
         )
@@ -1460,7 +1459,6 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            # GH 49036 pylint checks for presence of __next__ for iterators
             def __next__(self): ...
 
             def __iter__(self) -> Iterator:
