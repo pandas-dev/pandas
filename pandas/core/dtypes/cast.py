@@ -478,6 +478,42 @@ def maybe_cast_pointwise_result(
     return result
 
 
+def maybe_cast_to_pyarrow_dtype(
+    result: ArrayLike, converted_result: ArrayLike
+) -> ArrayLike:
+    """
+    Try casting result of a pointwise operation to its pyarrow dtype if
+    appropriate.
+
+    Parameters
+    ----------
+    result : array-like
+        Result to cast.
+
+    Returns
+    -------
+    result : array-like
+        result maybe casted to the dtype.
+    """
+    try:
+        import pyarrow as pa
+        from pyarrow import (
+            ArrowInvalid,
+            ArrowNotImplementedError,
+        )
+
+        from pandas.core.construction import array as pd_array
+
+        result[isna(result)] = np.nan
+        pyarrow_result = pa.array(result)
+        pandas_pyarrow_dtype = ArrowDtype(pyarrow_result.type)
+        result = pd_array(result, dtype=pandas_pyarrow_dtype)
+    except (ArrowNotImplementedError, ArrowInvalid):
+        return converted_result
+
+    return result
+
+
 def _maybe_cast_to_extension_array(
     cls: type[ExtensionArray], obj: ArrayLike, dtype: ExtensionDtype | None = None
 ) -> ArrayLike:

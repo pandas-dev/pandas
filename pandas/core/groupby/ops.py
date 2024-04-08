@@ -36,6 +36,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
+    maybe_cast_to_pyarrow_dtype,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -45,7 +46,6 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
-from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -53,7 +53,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-from pandas.core.construction import array as pd_array
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -927,21 +926,12 @@ class BaseGrouper:
             preserve_dtype = True
 
         result = self._aggregate_series_pure_python(obj, func)
-
         npvalues = lib.maybe_convert_objects(result, try_float=False)
+
         if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-        elif (
-            isinstance(obj._values, ArrowExtensionArray)
-            and npvalues.dtype != np.dtype("object")
-            and npvalues.dtype != np.dtype("complex128")
-        ):
-            import pyarrow as pa
-
-            pyarrow_dtype = pa.from_numpy_dtype(npvalues.dtype)
-            pandas_pyarrow_dtype = ArrowDtype(pyarrow_dtype)
-            out = pd_array(npvalues, dtype=pandas_pyarrow_dtype)
-
+        elif isinstance(obj._values, ArrowExtensionArray):
+            out = maybe_cast_to_pyarrow_dtype(result, npvalues)
         else:
             out = npvalues
         return out
