@@ -88,7 +88,7 @@ class TestDatetimeLike:
         result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx)
 
-        msg = "Cannot change data-type for object array"
+        msg = "Cannot change data-type for array of references."
         with pytest.raises(TypeError, match=msg):
             idx.view(type(simple_index))
 

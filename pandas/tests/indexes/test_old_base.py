@@ -880,7 +880,7 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "Cannot change data-type for object array"
+        msg = "Cannot change data-type for array of references."
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)
