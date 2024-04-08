@@ -709,7 +709,7 @@ def test_selection_api_validation():
 
     exp.index.name = "d"
     with pytest.raises(
-        TypeError, match="datetime64 type does not support operation: 'sum'"
+        TypeError, match="datetime64 type does not support operation 'sum'"
     ):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)

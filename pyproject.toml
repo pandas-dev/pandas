@@ -234,6 +234,12 @@ select = [
   "G",
   # flake8-future-annotations
   "FA",
+  # unconventional-import-alias
+  "ICN001",
+  # flake8-slots
+  "SLOT",
+  # flake8-raise
+  "RSE"
 ]
 
 ignore = [
@@ -339,104 +345,34 @@ ignore = [
   "PLR2044", # autofixable
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
-
-  # Output of pylint-to-ruff
-  # "PLC0103",  # invalid-name
-  # "PLC0114",  # missing-module-docstring
-  # "PLC0115",  # missing-class-docstring
-  # "PLC0116",  # missing-function-docstring
-  # "PLC0121",  # singleton-comparison
-  # "PLC0123",  # unidiomatic-typecheck
-  # "PLC0200",  # consider-using-enumerate
-  # "PLC0204",  # bad-mcs-classmethod-argument
-  # "PLC0302",  # too-many-lines
-  # "PLC0325",  # superfluous-parens
-  # "PLC0411",  # wrong-import-order
-  # "PLC0412",  # ungrouped-imports
-  # "PLC0413",  # wrong-import-position
-  "PLC0415",  # import-outside-toplevel
-  # "PLC1802",  # use-implicit-booleaness-not-len
-  # "PLC1803",  # use-implicit-booleaness-not-comparison
-  # "PLC1804",  # use-implicit-booleaness-not-comparison-to-string
-  # "PLC1805",  # use-implicit-booleaness-not-comparison-to-zero
-  "PLC2801",  # unnecessary-dunder-call
-  # "PLC3001",  # unnecessary-lambda-assignment
-  # "PLE0110",  # abstract-class-instantiated
-  # "PLE0401",  # import-error
-  # "PLE0601",  # used-before-assignment
-  # "PLE0602",  # undefined-variable
-  # "PLE0611",  # no-name-in-module
-  # "PLE0633",  # unpacking-non-sequence
-  # "PLE1101",  # no-member
-  # "PLE1120",  # no-value-for-parameter
-  # "PLE1121",  # too-many-function-args
-  # "PLE1123",  # unexpected-keyword-arg
-  # "PLE1124",  # redundant-keyword-arg
-  # "PLE1130",  # invalid-unary-operand-type
-  # "PLE1133",  # not-an-iterable
-  # "PLE1135",  # unsupported-membership-test
-  # "PLE1136",  # unsubscriptable-object
-  # "PLE1137",  # unsupported-assignment-operation
-  # "PLI0001",  # raw-checker-failed
-  # "PLI0010",  # bad-inline-option
-  # "PLI0011",  # locally-disabled
-  # "PLI0013",  # file-ignored
-  # "PLI0020",  # suppressed-message
-  # "PLI0021",  # useless-suppression
-  # "PLI0022",  # deprecated-pragma
-  # "PLI0023",  # use-symbolic-message-instead
-  # "PLI1101",  # c-extension-no-member
-  "PLR0124",  # comparison-with-itself
-  # "PLR0401",  # cyclic-import
-  # "PLR0801",  # duplicate-code
-  # "PLR0901",  # too-many-ancestors
-  # "PLR0902",  # too-many-instance-attributes
-  # "PLR0903",  # too-few-public-methods
-  "PLR0904",  # too-many-public-methods
-  "PLR0911",  # too-many-return-statements
-  "PLR0912",  # too-many-branches
-  "PLR0913",  # too-many-arguments
-  "PLR0914",  # too-many-locals
-  "PLR0915",  # too-many-statements
-  "PLR0916",  # too-many-boolean-expressions
-  "PLR1702",  # too-many-nested-blocks
-  "PLR1704",  # redefined-argument-from-local
-  # "PLR1705",  # no-else-return
-  # "PLR1710",  # inconsistent-return-statements
-  # "PLR1720",  # no-else-raise
-  # "PLR1724",  # no-else-continue
-  # "PLR1732",  # consider-using-with
-  # "PLR1735",  # use-dict-literal
-  # "PLW0102",  # dangerous-default-value
-  # "PLW0104",  # pointless-statement
-  # "PLW0106",  # expression-not-assigned
-  "PLW0108",  # unnecessary-lambda
-  # "PLW0123",  # eval-used
-  # "PLW0125",  # using-constant-test
-  # "PLW0143",  # comparison-with-callable
-  # "PLW0201",  # attribute-defined-outside-init
-  # "PLW0212",  # protected-access
-  # "PLW0221",  # arguments-differ
-  # "PLW0222",  # signature-differs
-  # "PLW0223",  # abstract-method
-  # "PLW0231",  # super-init-not-called
-  # "PLW0236",  # invalid-overridden-method
-  # "PLW0237",  # arguments-renamed
-  # "PLW0239",  # overridden-final-method
-  # "PLW0511",  # fixme
-  "PLW0603",  # global-statement
-  # "PLW0613",  # unused-argument
-  # "PLW0621",  # redefined-outer-name
-  # "PLW0622",  # redefined-builtin
-  # "PLW0641",  # possibly-unused-variable
-  # "PLW0642",  # self-cls-assignment
-  # "PLW0706",  # try-except-raise
-  # "PLW0707",  # raise-missing-from
-  # "PLW0718",  # broad-exception-caught
-  # "PLW0719",  # broad-exception-raised
-  # "PLW1113",  # keyword-arg-before-vararg
-  # "PLW1114",  # arguments-out-of-order
-  # "PLW4901",  # deprecated-module
+  # import-outside-toplevel
+  "PLC0415",
+  # unnecessary-dunder-call
+  "PLC2801",
+  # comparison-with-itself
+  "PLR0124",
+  # too-many-public-methods
+  "PLR0904",
+  # too-many-return-statements
+  "PLR0911",
+  # too-many-branches
+  "PLR0912",
+  # too-many-arguments
+  "PLR0913",
+  # too-many-locals
+  "PLR0914",
+  # too-many-statements
+  "PLR0915",
+  # too-many-boolean-expressions
+  "PLR0916",
+  # too-many-nested-blocks
+  "PLR1702",
+  # redefined-argument-from-local
+  "PLR1704",
+  # unnecessary-lambda
+  "PLW0108",
+  # global-statement
+  "PLW0603",
 ]
 
 exclude = [
@@ -484,110 +420,6 @@ mark-parentheses = false
 
 [tool.ruff.format]
 docstring-code-format = true
-
-[tool.pylint.messages_control]
-max-line-length = 88
-disable = [
- # intentionally turned off
-  "bad-mcs-classmethod-argument",
-  "broad-except",
-  "c-extension-no-member",
-  "comparison-with-itself",
-  "consider-using-enumerate",
-  "import-error",
-  "import-outside-toplevel",
-  "invalid-name",
-  "invalid-unary-operand-type",
-  "line-too-long",
-  "no-else-continue",
-  "no-else-raise",
-  "no-else-return",
-  "no-member",
-  "no-name-in-module",
-  "not-an-iterable",
-  "overridden-final-method",
-  "pointless-statement",
-  "redundant-keyword-arg",
-  "singleton-comparison",
-  "too-many-ancestors",
-  "too-many-arguments",
-  "too-many-boolean-expressions",
-  "too-many-branches",
-  "too-many-function-args",
-  "too-many-instance-attributes",
-  "too-many-locals",
-  "too-many-nested-blocks",
-  "too-many-public-methods",
-  "too-many-return-statements",
-  "too-many-statements",
-  "unexpected-keyword-arg",
-  "ungrouped-imports",
-  "unsubscriptable-object",
-  "unsupported-assignment-operation",
-  "unsupported-membership-test",
-  "unused-import",
-  "use-dict-literal",
-  "use-implicit-booleaness-not-comparison",
-  "use-implicit-booleaness-not-len",
-  "wrong-import-order",
-  "wrong-import-position",
-  "redefined-loop-name",
-
- # misc
-  "abstract-class-instantiated",
-  "no-value-for-parameter",
-  "undefined-variable",
-  "unpacking-non-sequence",
-  "used-before-assignment",
-
- # pylint type "C": convention, for programming standard violation
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "superfluous-parens",
-  "too-many-lines",
-  "unidiomatic-typecheck",
-  "unnecessary-dunder-call",
-  "unnecessary-lambda-assignment",
-
-  # pylint type "R": refactor, for bad code smell
-  "consider-using-with",
-  "cyclic-import",
-  "duplicate-code",
-  "inconsistent-return-statements",
-  "redefined-argument-from-local",
-  "too-few-public-methods",
-
-  # pylint type "W": warning, for python specific problems
-  "abstract-method",
-  "arguments-differ",
-  "arguments-out-of-order",
-  "arguments-renamed",
-  "attribute-defined-outside-init",
-  "broad-exception-raised",
-  "comparison-with-callable",
-  "dangerous-default-value",
-  "deprecated-module",
-  "eval-used",
-  "expression-not-assigned",
-  "fixme",
-  "global-statement",
-  "invalid-overridden-method",
-  "keyword-arg-before-vararg",
-  "possibly-unused-variable",
-  "protected-access",
-  "raise-missing-from",
-  "redefined-builtin",
-  "redefined-outer-name",
-  "self-cls-assignment",
-  "signature-differs",
-  "super-init-not-called",
-  "try-except-raise",
-  "unnecessary-lambda",
-  "unused-argument",
-  "unused-variable",
-  "using-constant-test"
-]
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
