@@ -5014,7 +5014,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             period = cast(int, period)
             if freq is not None:
                 f = lambda x: x.shift(
-                    period,  # pylint: disable=cell-var-from-loop
+                    period,
                     freq,
                     0,  # axis
                     fill_value,
