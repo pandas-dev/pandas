@@ -1975,6 +1975,8 @@ def test_agg_lambda_bool_pyarrow_dtype_conversion():
 
 
 def test_agg_lambda_object_pyarrow_dtype_conversion():
+    import pyarrow as pa
+
     df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
     df["B"] = df["B"].astype("int64[pyarrow]")
     gb = df.groupby("A")
@@ -1983,7 +1985,6 @@ def test_agg_lambda_object_pyarrow_dtype_conversion():
     expected = DataFrame(
         {"A": ["c1", "c2", "c3"], "B": [{"number": 1}, {"number": 1}, {"number": 1}]}
     )
-    import pyarrow as pa
 
     pyarrow_type = pa.struct({"number": pa.int64()})
     pandas_pyarrow_dtype = pd.ArrowDtype(pyarrow_type)
