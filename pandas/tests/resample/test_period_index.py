@@ -65,7 +65,7 @@ class TestPeriodIndex:
         obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
 
         expected = obj.to_timestamp().resample(freq).asfreq()
-        result = obj.resample(freq).to_timestamp().asfreq()
+        result = obj.to_timestamp().resample(freq).asfreq()
         tm.assert_almost_equal(result, expected)
 
         start = obj.index[0].to_timestamp(how="start")
@@ -90,7 +90,7 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
-        result = s.resample("1h").to_timestamp().asfreq(fill_value=4.0)
+        result = s.to_timestamp().resample("1h").asfreq(fill_value=4.0)
         tm.assert_series_equal(result, expected)
 
         frame = s.to_frame("value")
@@ -100,7 +100,7 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
-        result = frame.resample("1h").to_timestamp().asfreq(fill_value=3.0)
+        result = frame.to_timestamp().resample("1h").asfreq(fill_value=3.0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
@@ -426,7 +426,7 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
         result = ts.resample("Y-DEC").mean().to_timestamp()
-        expected = ts.to_timestamp(how="start").resample("YE-DEC").mean()
+        expected = ts.resample("Y-DEC").mean().to_timestamp(how="start")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)

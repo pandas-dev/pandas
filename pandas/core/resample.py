@@ -208,7 +208,6 @@ class Resampler(BaseGroupBy, PandasObject):
             return getattr(self._timegrouper, attr)
         if attr in self.obj:
             return self[attr]
-
         return object.__getattribute__(self, attr)
 
     @final
