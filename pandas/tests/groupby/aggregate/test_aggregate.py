@@ -1983,7 +1983,11 @@ def test_agg_lambda_object_pyarrow_dtype_conversion():
     expected = DataFrame(
         {"A": ["c1", "c2", "c3"], "B": [{"number": 1}, {"number": 1}, {"number": 1}]}
     )
-    expected["B"] = expected["B"].astype("object")
+    import pyarrow as pa
+
+    pyarrow_type = pa.struct({"number": pa.int64()})
+    pandas_pyarrow_dtype = pd.ArrowDtype(pyarrow_type)
+    expected["B"] = expected["B"].astype(pandas_pyarrow_dtype)
     expected.set_index("A", inplace=True)
 
     tm.assert_frame_equal(result, expected)
