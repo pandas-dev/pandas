@@ -265,7 +265,6 @@ class TestPeriodIndex:
         expected = Series([34.5, 79.5], index=index)
         result = s.to_period().resample("min").mean()
         tm.assert_series_equal(result, expected)
-        # with tm.assert_produces_warning(FutureWarning, match=msg):
         result2 = s.resample("min").mean().to_period()
         tm.assert_series_equal(result2, expected)
 
