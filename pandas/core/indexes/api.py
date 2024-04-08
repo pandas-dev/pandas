@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Literal,
     cast,
 )
 
@@ -273,9 +272,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
 
 
-def _sanitize_and_check(
-    indexes,
-) -> tuple[list[Index | list], Literal["list", "array", "special"]]:
+def _sanitize_and_check(indexes):
     """
     Verify the type of indexes and convert lists to Index.
 
