@@ -730,12 +730,11 @@ class TestHelpFunctionsWithNans:
 
 def test_ismember_tuple_with_nans():
     # GH-41836
-    values = [("a", float("nan")), ("b", 1)]
+    values = np.empty(2, dtype=object)
+    values[:] = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
 
-    msg = "isin with argument that is not not a Series"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = isin(values, comps)
+    result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 
