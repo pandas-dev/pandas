@@ -1122,6 +1122,7 @@ class StataReader(StataParser, abc.Iterator):
         # State variables for the file
         self._close_file: Callable[[], None] | None = None
         self._column_selector_set = False
+        self._value_label_dict: dict[str, dict[int, str]] = {}
         self._value_labels_read = False
         self._dtype: np.dtype | None = None
         self._lines_read = 0
@@ -1579,8 +1580,6 @@ the string values returned are correct."""
         if self._value_labels_read:
             # Don't read twice
             return
-
-        self._value_label_dict: dict[str, dict[int, str]] = {}
 
         if self._format_version >= 108:
             self._read_new_value_labels()
