@@ -225,11 +225,9 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize(
-        "file", ["stata4_111", "stata4_113", "stata4_114", "stata4_115", "stata4_117"]
-    )
-    def test_read_dta4(self, file, datapath):
-        file = datapath("io", "data", "stata", f"{file}.dta")
+    @pytest.mark.parametrize("version", [110, 111, 113, 114, 115, 117])
+    def test_read_dta4(self, version, datapath):
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
@@ -271,11 +269,11 @@ class TestStata:
         # stata doesn't save .category metadata
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("file", ["stata4_105", "stata4_108"])
-    def test_readold_dta4(self, file, datapath):
+    @pytest.mark.parametrize("version", [105, 108])
+    def test_readold_dta4(self, version, datapath):
         # This test is the same as test_read_dta4 above except that the columns
         # had to be renamed to match the restrictions in older file format
-        file = datapath("io", "data", "stata", f"{file}.dta")
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
