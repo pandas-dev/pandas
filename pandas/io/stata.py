@@ -1503,6 +1503,7 @@ the string values returned are correct."""
             return s.decode("latin-1")
 
     def _read_new_value_labels(self) -> None:
+        """Reads value labels with variable length strings (108 and later format)"""
         while True:
             if self._format_version >= 117:
                 if self._path_or_buf.read(5) == b"</val":  # <lbl>
@@ -1542,6 +1543,7 @@ the string values returned are correct."""
                 self._path_or_buf.read(6)  # </lbl>
 
     def _read_old_value_labels(self) -> None:
+        """Reads value labels with fixed-length strings (105 and earlier format)"""
         while True:
             if not self._path_or_buf.read(2):
                 # end-of-file may have been reached, if so stop here
