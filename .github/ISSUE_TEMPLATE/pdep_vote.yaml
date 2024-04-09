@@ -22,7 +22,7 @@ body:
     attributes:
       label: PDEP number and title
       placeholder: >
-        PDEP-1: Purpose and guidelines for pandas enhancement proposals
+        PDEP-1: Purpose and guidelines
     validations:
       required: true
   - type: input
@@ -52,7 +52,7 @@ body:
     id: PDEP-vote-end
     attributes:
       label: Voting will close in 15 days.
-      description: The voting period end date. ('Voting will close in 15 days' will be automatically written)
+      description: The voting period end date. ('Voting will close in 15 days.' will be automatically written)
       placeholder: >
         On January 15.
   - type: markdown
