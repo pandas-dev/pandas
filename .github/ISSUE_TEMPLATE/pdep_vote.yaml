@@ -54,8 +54,8 @@ body:
       label: Voting will close in 15 days.
       placeholder: >
         ex. On January 15.
-      validations:
-          required: true
+    validations:
+        required: true
   - type: markdown
     attributes:
       value: ---
