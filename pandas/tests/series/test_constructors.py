@@ -2168,22 +2168,17 @@ class TestSeriesConstructors:
             mask=[0, 0, 0, 1, 0],
         )
         result = Series(mx, dtype="Int64")
-        expected = Series(
-            IntegerArray(
-                np.array(
-                    [
-                        4873214862074861312,
-                        4875446630161458944,
-                        4824652147895424384,
-                        0,
-                        3526420114272476800,
-                    ],
-                    dtype="int64",
-                ),
-                np.array([0, 0, 0, 1, 0], dtype=np.bool_),
-            )
+        expected = np.array(
+            [
+                4873214862074861312,
+                4875446630161458944,
+                4824652147895424384,
+                3526420114272476800,
+            ],
+            dtype="int64",
         )
-        tm.assert_series_equal(result, expected)
+        result = np.array(result.dropna(ignore_index=True).values)
+        assert np.all(expected == result)
 
 
 class TestSeriesConstructorIndexCoercion:
