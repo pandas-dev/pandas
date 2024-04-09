@@ -466,7 +466,7 @@ class TestFillNA:
 
         # disable this for now
         with pytest.raises(NotImplementedError, match="column by column"):
-            df.fillna(df.max(1), axis=1)
+            df.fillna(df.max(axis=1), axis=1)
 
     def test_fillna_dataframe(self):
         # GH#8377

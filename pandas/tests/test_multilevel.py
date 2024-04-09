@@ -135,7 +135,7 @@ class TestMultiLevel:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
         )
-        df["Totals", ""] = df.sum(1)
+        df["Totals", ""] = df.sum(axis=1)
         df = df._consolidate()
 
     def test_level_with_tuples(self):

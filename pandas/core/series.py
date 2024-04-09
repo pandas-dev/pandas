@@ -6187,6 +6187,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
     @Appender(make_doc("all", ndim=1))
     def all(
         self,
@@ -6206,6 +6207,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=1))
     def min(
         self,
@@ -6218,6 +6220,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=1))
     def max(
         self,
@@ -6230,6 +6233,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=1))
     def sum(
         self,
@@ -6248,6 +6252,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=1))
     def prod(
         self,
@@ -6266,6 +6271,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=1))
     def mean(
         self,
@@ -6278,6 +6284,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=1))
     def median(
         self,
@@ -6290,6 +6297,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=1))
     def sem(
         self,
@@ -6308,6 +6316,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=1))
     def var(
         self,
@@ -6326,6 +6335,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=1))
     def std(
         self,
@@ -6344,6 +6354,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=1))
     def skew(
         self,
@@ -6356,6 +6367,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=1))
     def kurt(
         self,
