@@ -7,8 +7,8 @@ body:
   - type: markdown
     attributes:
       value: >
-        As per [PDEP-1](https://pandas.pydata.org/pdeps/0001-purpose-and-guidelines.html), the following issues template should be copied and updated when a
-        maintainer is ready to call for a vote on a PDEP discussion.
+        As per [PDEP-1](https://pandas.pydata.org/pdeps/0001-purpose-and-guidelines.html), the following issue template should be copied and updated when a
+        maintainer has opened a PDEP discussion and is ready to call for a vote.
   - type: checkboxes
     attributes:
       label: Locked issue
@@ -20,42 +20,41 @@ body:
   - type: input
     id: PDEP-name
     attributes:
-      label: Which PDEP ar you opening a vote for?
-      description: Please enter teh PDEP number and title
+      label: PDEP number and title
       placeholder: >
-        ex. PDEP-1:  Purpose and guidelines for pandas enhancement proposals
+        PDEP-1: Purpose and guidelines for pandas enhancement proposals
     validations:
       required: true
   - type: input
     id: PDEP-link
     attributes:
       label: Pull request with discussion
-      placeholder: ex. https://github.com/pandas-dev/pandas/pull/47444
+      description: e.g. https://github.com/pandas-dev/pandas/pull/47444
     validations:
       required: true
   - type: input
     id: PDEP-rendered-link
     attributes:
       label: Rendered PDEP for easy reading
-      placeholder: ex. https://github.com/pandas-dev/pandas/pull/47444/files?short_path=7c449e6#diff-7c449e698132205b235c501f7e47ebba38da4d2b7f9492c98f16745dba787041
+      description: e.g. https://github.com/pandas-dev/pandas/pull/47444/files?short_path=7c449e6#diff-7c449e698132205b235c501f7e47ebba38da4d2b7f9492c98f16745dba787041
     validations:
       required: true
   - type: input
     id: PDEP-number-of-discussion-participants
     attributes:
-      label: >
+      label: Discussion participants
+      description: >
         You may find it useful to list or total the number of participating members in the
         PDEP discussion PR. This would be the maximum possible disapprove votes.
       placeholder: >
-        ex. 14 voting members participated in the PR discussion thus far.
+        14 voting members participated in the PR discussion thus far.
   - type: input
     id: PDEP-vote-end
     attributes:
       label: Voting will close in 15 days.
+      description: The voting period end date. ('Voting will close in 15 days' will be automatically written)
       placeholder: >
-        ex. On January 15.
-    validations:
-        required: true
+        On January 15.
   - type: markdown
     attributes:
       value: ---
@@ -63,7 +62,7 @@ body:
     id: Vote
     attributes:
       label: Vote
-      placeholder: |
+      value: |
         Cast your vote in a comment below.
         * +1: approve.
         * 0: abstain.
