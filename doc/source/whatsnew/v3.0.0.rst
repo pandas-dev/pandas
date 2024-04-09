@@ -362,7 +362,6 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
-- Add a test for div and true div between ``Timedelta`` and ``pd.NA`` raising a TypeError (:issue:`54315`)
 -
 
 Timezones
