@@ -1223,7 +1223,6 @@ class TestDataFrameReshape:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "index",
         [

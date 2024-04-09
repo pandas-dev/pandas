@@ -415,6 +415,7 @@ class WrappedCythonOp:
                 "last",
                 "first",
                 "sum",
+                "median",
             ]:
                 func(
                     out=result,
@@ -427,7 +428,7 @@ class WrappedCythonOp:
                     is_datetimelike=is_datetimelike,
                     **kwargs,
                 )
-            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod"]:
                 if self.how in ["std", "sem"]:
                     kwargs["is_datetimelike"] = is_datetimelike
                 func(

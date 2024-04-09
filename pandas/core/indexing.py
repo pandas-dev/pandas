@@ -227,7 +227,7 @@ class IndexingMixin:
            a  b  c  d
         0  1  2  3  4
         >>> type(df.iloc[[0]])
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
 
         >>> df.iloc[[0, 1]]
              a    b    c    d
@@ -1145,7 +1145,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH#41369 Loop in reverse order ensures indexing along columns before rows
         # which selects only necessary blocks which avoids dtype conversion if possible
         axis = len(tup) - 1
-        for key in tup[::-1]:
+        for key in reversed(tup):
             if com.is_null_slice(key):
                 axis -= 1
                 continue
@@ -1191,13 +1191,13 @@ class _LocationIndexer(NDFrameIndexerBase):
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _getitem_tuple(self, tup: tuple):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         raise AbstractMethodError(self)
@@ -1896,15 +1896,7 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    with warnings.catch_warnings():
-                        # TODO: re-issue this with setitem-specific message?
-                        warnings.filterwarnings(
-                            "ignore",
-                            "The behavior of Index.insert with object-dtype "
-                            "is deprecated",
-                            category=FutureWarning,
-                        )
-                        labels = index.insert(len(index), key)
+                    labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -2222,14 +2214,7 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            with warnings.catch_warnings():
-                # TODO: re-issue this with setitem-specific message?
-                warnings.filterwarnings(
-                    "ignore",
-                    "The behavior of Index.insert with object-dtype is deprecated",
-                    category=FutureWarning,
-                )
-                new_index = index.insert(len(index), indexer)
+            new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so

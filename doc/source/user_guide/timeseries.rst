@@ -1468,11 +1468,16 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
+    "next_workday", "move Saturday and Sunday to Monday"
+    "previous_workday", "move Saturday and Sunday to Friday"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
+    "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
+    "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"
     "sunday_to_monday", "move Sunday to following Monday"
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
     "previous_friday", move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
+    "weekend_to_monday", "same as ``next_monday``"
 
 An example of how holidays and holiday calendars are defined:
 

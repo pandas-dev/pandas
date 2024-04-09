@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -334,13 +335,15 @@ def lexsort_indexer(
         raise ValueError(f"invalid na_position: {na_position}")
 
     if isinstance(orders, bool):
-        orders = [orders] * len(keys)
+        orders = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = [True] * len(keys)
+        orders = itertools.repeat(True, len(keys))
+    else:
+        orders = reversed(orders)
 
     labels = []
 
-    for k, order in zip(keys, orders):
+    for k, order in zip(reversed(keys), orders):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast(np.ndarray, k)
@@ -361,7 +364,7 @@ def lexsort_indexer(
 
         labels.append(codes)
 
-    return np.lexsort(labels[::-1])
+    return np.lexsort(labels)
 
 
 def nargsort(
@@ -574,7 +577,7 @@ def ensure_key_mapped(
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result)
+            result = Index(result, tupleize_cols=False)
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)

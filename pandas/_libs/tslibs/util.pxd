@@ -185,11 +185,11 @@ cdef inline const char* get_c_string(str py_string) except NULL:
     return get_c_string_buf_and_size(py_string, NULL)
 
 
-cdef inline bytes string_encode_locale(str py_string) noexcept:
+cdef inline bytes string_encode_locale(str py_string):
     """As opposed to PyUnicode_Encode, use current system locale to encode."""
     return PyUnicode_EncodeLocale(py_string, NULL)
 
 
-cdef inline object char_to_string_locale(const char* data) noexcept:
+cdef inline object char_to_string_locale(const char* data):
     """As opposed to PyUnicode_FromString, use current system locale to decode."""
     return PyUnicode_DecodeLocale(data, NULL)

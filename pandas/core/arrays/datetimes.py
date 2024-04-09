@@ -186,7 +186,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     Parameters
     ----------
-    values : Series, Index, DatetimeArray, ndarray
+    data : Series, Index, DatetimeArray, ndarray
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
@@ -287,7 +287,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-    _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
@@ -2777,7 +2776,12 @@ def _generate_range(
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
-        start = offset.rollforward(start)  # type: ignore[assignment]
+
+        # GH #56147 account for negative direction and range bounds
+        if offset.n >= 0:
+            start = offset.rollforward(start)  # type: ignore[assignment]
+        else:
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

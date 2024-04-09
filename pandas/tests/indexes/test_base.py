@@ -358,7 +358,10 @@ class TestIndex:
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
-            msg = "Cannot change data-type for object array"
+            msg = (
+                "Cannot change data-type for array of references.|"
+                "Cannot change data-type for object array.|"
+            )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -636,9 +639,7 @@ class TestIndex:
         left = Index([], name="foo")
         right = Index([1, 2, 3], name=name)
 
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = left.append(right)
+        result = left.append(right)
         assert result.name == expected
 
     @pytest.mark.parametrize(
@@ -1514,8 +1515,10 @@ class TestIndexUtils:
     @pytest.mark.parametrize(
         "data, names, expected",
         [
-            ([[1, 2, 3]], None, Index([1, 2, 3])),
-            ([[1, 2, 3]], ["name"], Index([1, 2, 3], name="name")),
+            ([[1, 2, 4]], None, Index([1, 2, 4])),
+            ([[1, 2, 4]], ["name"], Index([1, 2, 4], name="name")),
+            ([[1, 2, 3]], None, RangeIndex(1, 4)),
+            ([[1, 2, 3]], ["name"], RangeIndex(1, 4, name="name")),
             (
                 [["a", "a"], ["c", "d"]],
                 None,
@@ -1530,7 +1533,7 @@ class TestIndexUtils:
     )
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172

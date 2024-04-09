@@ -276,9 +276,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         provided).
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical.
-    fastpath : bool
-        The 'fastpath' keyword in Categorical is deprecated and will be
-        removed in a future version. Use Categorical.from_codes instead.
     copy : bool, default True
         Whether to copy if the codes are unchanged.
 
@@ -391,32 +388,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories=None,
         ordered=None,
         dtype: Dtype | None = None,
-        fastpath: bool | lib.NoDefault = lib.no_default,
         copy: bool = True,
     ) -> None:
-        if fastpath is not lib.no_default:
-            # GH#20110
-            warnings.warn(
-                "The 'fastpath' keyword in Categorical is deprecated and will "
-                "be removed in a future version. Use Categorical.from_codes instead",
-                DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            fastpath = False
-
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
         )
         # At this point, dtype is always a CategoricalDtype, but
         # we may have dtype.categories be None, and we need to
         # infer categories in a factorization step further below
-
-        if fastpath:
-            codes = coerce_indexer_dtype(values, dtype.categories)
-            dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
-            super().__init__(codes, dtype)
-            return
 
         if not is_list_like(values):
             # GH#38433
@@ -625,19 +604,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         return result
-
-    def to_list(self) -> list:
-        """
-        Alias for tolist.
-        """
-        # GH#51254
-        warnings.warn(
-            "Categorical.to_list is deprecated and will be removed in a future "
-            "version. Use obj.tolist() instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.tolist()
 
     @classmethod
     def _from_inferred_categories(
@@ -2516,7 +2482,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        # pylint: disable=useless-parent-delegation
         return super().unique()
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
@@ -2622,7 +2587,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
-        result = concat([counts, freqs], axis=1)
+        result = concat([counts, freqs], ignore_index=True, axis=1)
         result.columns = Index(["counts", "freqs"])
         result.index.name = "categories"
 
