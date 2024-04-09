@@ -1,7 +1,7 @@
 name: PDEP Vote
 description: Call for a vote on a PDEP
 title: "VOTE: "
-labels: [VOTE]
+labels: [Vote]
 
 body:
   - type: markdown
