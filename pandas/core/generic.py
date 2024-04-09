@@ -8954,7 +8954,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return get_resampler(
             cast("Series | DataFrame", self),
-            freq=rule,
+            freq=rule, 
             label=label,
             closed=closed,
             kind=kind,
