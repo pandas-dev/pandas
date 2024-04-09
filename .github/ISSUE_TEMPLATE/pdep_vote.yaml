@@ -1,0 +1,77 @@
+name: PDEP Vote
+description: Call for a vote on a PDEP
+title: "VOTE: "
+labels: [VOTE]
+
+body:
+  - type: markdown
+    attributes:
+      value: >
+        As per [PDEP-1](https://pandas.pydata.org/pdeps/0001-purpose-and-guidelines.html), the following issues template should be copied and updated when a
+        maintainer is ready to call for a vote on a PDEP discussion.
+  - type: checkboxes
+    attributes:
+      label: Locked issue
+      options:
+        - label: >
+            I locked this voting issue so that only voting members are able to cast their votes or
+            comment on this issue.
+          required: true
+  - type: input
+    id: PDEP-name
+    attributes:
+      label: Which PDEP ar you opening a vote for?
+      description: Please enter teh PDEP number and title
+      placeholder: >
+        ex. PDEP-1:  Purpose and guidelines for pandas enhancement proposals
+    validations:
+      required: true
+  - type: input
+    id: PDEP-link
+    attributes:
+      label: Pull request with discussion
+      placeholder: ex. https://github.com/pandas-dev/pandas/pull/47444
+    validations:
+      required: true
+  - type: input
+    id: PDEP-rendered-link
+    attributes:
+      label: Rendered PDEP for easy reading
+      placeholder: ex. https://github.com/pandas-dev/pandas/pull/47444/files?short_path=7c449e6#diff-7c449e698132205b235c501f7e47ebba38da4d2b7f9492c98f16745dba787041
+    validations:
+      required: true
+  - type: input
+    id: PDEP-number-of-discussion-participants
+    attributes:
+      label: >
+        You may find it useful to list or total the number of participating members in the
+        PDEP discussion PR. This would be the maximum possible disapprove votes.
+      placeholder: >
+        ex. 14 voting members participated in the PR discussion thus far.
+  - type: input
+    id: PDEP-vote-end
+    attributes:
+      label: Voting will close in 15 days.
+      placeholder: >
+        ex. On January 15.
+      validations:
+          required: true
+  - type: markdown
+    attributes:
+      value: ---
+  - type: textarea
+    id: Vote
+    attributes:
+      label: Vote
+      placeholder: |
+        Cast your vote in a comment below.
+        * +1: approve.
+        * 0: abstain.
+            * Reason: A one sentence reason is required.
+        * -1: disapprove
+            * Reason: A one sentence reason is required.
+        A disapprove vote requires prior participation in the linked discussion PR.
+
+        @pandas-dev/pandas-core
+    validations:
+      required: true
