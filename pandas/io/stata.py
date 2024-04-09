@@ -1580,13 +1580,13 @@ the string values returned are correct."""
             # Don't read twice
             return
 
-        self._value_labels_read = True
         self._value_label_dict: dict[str, dict[int, str]] = {}
 
         if self._format_version >= 108:
             self._read_new_value_labels()
         else:
             self._read_old_value_labels()
+        self._value_labels_read = True
 
     def _read_strls(self) -> None:
         self._path_or_buf.seek(self._seek_strls)
