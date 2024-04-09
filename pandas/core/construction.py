@@ -514,11 +514,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
         if not mask.all():
             idx = np.unravel_index(np.nanargmax(data, axis=None), data.shape)
             if not mask[idx] and int(data[idx]) != original[idx]:
-                if (
-                    is_integer_dtype(original_dtype)
-                    and is_float_dtype(data.dtype)
-                    and len(data) > 0
-                ):
+                if is_integer_dtype(original_dtype) and is_float_dtype(data.dtype):
                     data = ma.asarray(original, "object")
         data[mask] = fill_value
     else:
