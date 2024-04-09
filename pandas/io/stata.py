@@ -1408,7 +1408,7 @@ class StataReader(StataParser, abc.Iterator):
         self._time_stamp = self._get_time_stamp()
 
         # descriptors
-        if self._format_version > 110:
+        if self._format_version >= 111:
             typlist = [int(c) for c in self._path_or_buf.read(self._nvar)]
         else:
             buf = self._path_or_buf.read(self._nvar)
