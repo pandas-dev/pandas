@@ -1960,9 +1960,8 @@ def test_backward_compat(version, datapath):
 
 @pytest.mark.parametrize("version", [105, 108, 111, 113, 114, 118])
 def test_bigendian(version, datapath):
-    data_base = datapath("io", "data", "stata")
-    ref = os.path.join(data_base, f"stata-compat-{version}.dta")
-    big = os.path.join(data_base, f"stata-compat-be-{version}.dta")
+    ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
+    big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
     expected = read_stata(ref)
     big_dta = read_stata(big)
     tm.assert_frame_equal(big_dta, expected)
