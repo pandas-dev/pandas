@@ -91,6 +91,25 @@ class TestSeriesCumulativeOps:
         result = getattr(ser, method)(skipna=skipna)
         tm.assert_series_equal(expected, result)
 
+    def test_cumsum_datetimelike(self):
+        # GH#57956
+        df = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(hours=-6), pd.Timedelta(hours=12)],
+            ]
+        )
+        result = df.cumsum()
+        expected = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(days=1, hours=18), pd.Timedelta(days=1, hours=12)],
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "func, exp",
         [

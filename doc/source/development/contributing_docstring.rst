@@ -940,7 +940,7 @@ Finally, docstrings can also be appended to with the ``doc`` decorator.
 
 In this example, we'll create a parent docstring normally (this is like
 ``pandas.core.generic.NDFrame``). Then we'll have two children (like
-``pandas.core.series.Series`` and ``pandas.core.frame.DataFrame``). We'll
+``pandas.core.series.Series`` and ``pandas.DataFrame``). We'll
 substitute the class names in this docstring.
 
 .. code-block:: python
