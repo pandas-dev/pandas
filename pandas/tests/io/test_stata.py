@@ -1958,6 +1958,16 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+@pytest.mark.parametrize("version", [105, 108, 111, 113, 114, 118])
+def test_bigendian(version, datapath):
+    data_base = datapath("io", "data", "stata")
+    ref = os.path.join(data_base, f"stata-compat-{version}.dta")
+    big = os.path.join(data_base, f"stata-compat-be-{version}.dta")
+    expected = read_stata(ref)
+    big_dta = read_stata(big)
+    tm.assert_frame_equal(big_dta, expected)
+
+
 def test_direct_read(datapath, monkeypatch):
     file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
 
