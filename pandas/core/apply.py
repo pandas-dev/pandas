@@ -1710,7 +1710,7 @@ def normalize_keyword_aggregation(
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
     aggspec = defaultdict(list)
     order = []
-    columns = list(kwargs.keys())
+    columns = tuple(kwargs.keys())
 
     for column, aggfunc in kwargs.values():
         aggspec[column].append(aggfunc)
