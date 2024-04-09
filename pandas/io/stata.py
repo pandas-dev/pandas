@@ -1504,6 +1504,13 @@ the string values returned are correct."""
 
     def _read_new_value_labels(self) -> None:
         """Reads value labels with variable length strings (108 and later format)"""
+        if self._format_version >= 117:
+            self._path_or_buf.seek(self._seek_value_labels)
+        else:
+            assert self._dtype is not None
+            offset = self._nobs * self._dtype.itemsize
+            self._path_or_buf.seek(self._data_location + offset)
+
         while True:
             if self._format_version >= 117:
                 if self._path_or_buf.read(5) == b"</val":  # <lbl>
@@ -1544,6 +1551,10 @@ the string values returned are correct."""
 
     def _read_old_value_labels(self) -> None:
         """Reads value labels with fixed-length strings (105 and earlier format)"""
+        assert self._dtype is not None
+        offset = self._nobs * self._dtype.itemsize
+        self._path_or_buf.seek(self._data_location + offset)
+
         while True:
             if not self._path_or_buf.read(2):
                 # end-of-file may have been reached, if so stop here
@@ -1568,13 +1579,6 @@ the string values returned are correct."""
         if self._value_labels_read:
             # Don't read twice
             return
-
-        if self._format_version >= 117:
-            self._path_or_buf.seek(self._seek_value_labels)
-        else:
-            assert self._dtype is not None
-            offset = self._nobs * self._dtype.itemsize
-            self._path_or_buf.seek(self._data_location + offset)
 
         self._value_labels_read = True
         self._value_label_dict: dict[str, dict[int, str]] = {}
