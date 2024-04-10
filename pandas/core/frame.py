@@ -64,6 +64,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
     set_module,
 )
@@ -6167,12 +6168,13 @@ class DataFrame(NDFrame, OpsMixin):
             names = self.index._get_default_index_names(names, default)
 
             if isinstance(self.index, MultiIndex):
-                to_insert = zip(self.index.levels, self.index.codes)
+                to_insert = zip(reversed(self.index.levels), reversed(self.index.codes))
             else:
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
-            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
+            for j, (lev, lab) in enumerate(to_insert, start=1):
+                i = self.index.nlevels - j
                 if level is not None and i not in level:
                     continue
                 name = names[i]
@@ -7162,7 +7164,7 @@ class DataFrame(NDFrame, OpsMixin):
         dropna: bool = True,
     ) -> Series:
         """
-        Return a Series containing the frequency of each distinct row in the Dataframe.
+        Return a Series containing the frequency of each distinct row in the DataFrame.
 
         Parameters
         ----------
@@ -7175,13 +7177,14 @@ class DataFrame(NDFrame, OpsMixin):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don't include counts of rows that contain NA values.
+            Do not include counts of rows that contain NA values.
 
             .. versionadded:: 1.3.0
 
         Returns
         -------
         Series
+            Series containing the frequency of each distinct row in the DataFrame.
 
         See Also
         --------
@@ -7192,8 +7195,8 @@ class DataFrame(NDFrame, OpsMixin):
         The returned Series will have a MultiIndex with one level per input
         column but an Index (non-multi) for a single label. By default, rows
         that contain any NA values are omitted from the result. By default,
-        the resulting Series will be in descending order so that the first
-        element is the most frequently-occurring row.
+        the resulting Series will be sorted by frequencies in descending order so that
+        the first element is the most frequently-occurring row.
 
         Examples
         --------
@@ -9658,6 +9661,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or DataFrame
+            If index is a MultiIndex: DataFrame with pivoted index labels as new
+            inner-most level column labels, else Series.
 
         See Also
         --------
@@ -11494,7 +11499,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("any", ndim=2))
+    @doc(make_doc("any", ndim=1))
     def any(
         self,
         *,
@@ -11540,7 +11545,8 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("all", ndim=2))
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
+    @doc(make_doc("all", ndim=1))
     def all(
         self,
         axis: Axis | None = 0,
@@ -11586,6 +11592,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11632,6 +11639,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -11647,6 +11655,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
@@ -11667,6 +11676,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
@@ -11718,6 +11728,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -11764,6 +11775,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -11813,6 +11825,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
@@ -11863,6 +11876,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=2))
     def var(
         self,
@@ -11913,6 +11927,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=2))
     def std(
         self,
@@ -11960,6 +11975,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=2))
     def skew(
         self,
@@ -12006,6 +12022,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=2))
     def kurt(
         self,
@@ -12479,7 +12496,9 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+
+        This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
@@ -12509,8 +12528,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame
-            The DataFrame has a DatetimeIndex.
+        DataFrame with DatetimeIndex
+            DataFrame with the PeriodIndex cast to DatetimeIndex.
+
+        See Also
+        --------
+        DataFrame.to_period: Inverse method to cast DatetimeIndex to PeriodIndex.
+        Series.to_timestamp: Equivalent method for Series.
 
         Examples
         --------
@@ -12566,7 +12590,8 @@ class DataFrame(NDFrame, OpsMixin):
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        frequency (inferred from index if not passed). Either index of columns can be
+        converted, depending on `axis` argument.
 
         Parameters
         ----------
@@ -12594,7 +12619,12 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-            The DataFrame has a PeriodIndex.
+            The DataFrame with the converted PeriodIndex.
+
+        See Also
+        --------
+        Series.to_period: Equivalent method for Series.
+        Series.dt.to_period: Convert DateTime column values.
 
         Examples
         --------
