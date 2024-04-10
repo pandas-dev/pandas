@@ -1,6 +1,6 @@
 .. _whatsnew_222:
 
-What's new in 2.2.2 (April XX, 2024)
+What's new in 2.2.2 (April 10, 2024)
 ---------------------------------------
 
 These are the changes in pandas 2.2.2. See :ref:`release` for a full changelog
@@ -40,3 +40,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.2.1..v2.2.2|HEAD
