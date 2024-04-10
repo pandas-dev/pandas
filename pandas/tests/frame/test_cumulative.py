@@ -87,7 +87,6 @@ class TestDataFrameCumulativeOps:
     @pytest.mark.parametrize("method", ["cumsum", "cumprod", "cummin", "cummax"])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_numeric_only_flag(self, method, axis):
-        print(method, axis)
         df = DataFrame(
             {
                 "int": [1, 2, 3],
@@ -101,9 +100,8 @@ class TestDataFrameCumulativeOps:
                 ],
             }
         )
-        df_numeric_only = df.drop(["string", "datetime"], axis=axis)
+        df_numeric_only = df.drop(["string", "datetime"], axis=1)
 
-        for axis in [0, 1]:
-            result = getattr(df, method)(axis=axis, numeric_only=True)
-            expected = getattr(df_numeric_only, method)(axis)
-            tm.assert_frame_equal(result, expected)
+        result = getattr(df, method)(axis=axis, numeric_only=True)
+        expected = getattr(df_numeric_only, method)(axis)
+        tm.assert_frame_equal(result, expected)
