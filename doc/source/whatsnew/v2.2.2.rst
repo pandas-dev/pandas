@@ -33,7 +33,7 @@ Bug fixes
 
 Other
 ~~~~~
-- :meth:`DataFrame.cum*` methods now have a ``numeric_only`` parameter (:issue:`53072`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.contributors:
