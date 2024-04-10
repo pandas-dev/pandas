@@ -55,7 +55,7 @@ def create_dataframe_from_blocks(
     -------
     DataFrame
     """
-    blocks = [_make_block(*block) for block in blocks]
+    block_objs = [_make_block(*block) for block in blocks]
     axes = [columns, index]
-    mgr = _BlockManager(blocks, axes)
+    mgr = _BlockManager(block_objs, axes)
     return DataFrame._from_mgr(mgr, mgr.axes)
