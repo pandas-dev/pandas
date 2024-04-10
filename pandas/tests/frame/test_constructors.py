@@ -24,6 +24,7 @@ import pytz
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -3051,6 +3052,24 @@ class TestDataFrameConstructorWithDatetimeTZ:
         result = DataFrame({"a": pd.NaT}, columns=["a"], index=range(2))
         expected = DataFrame({"a": Series([pd.NaT, pd.NaT])})
         tm.assert_frame_equal(result, expected)
+
+    # TODO: make this not cast to object in pandas 3.0
+    @pytest.mark.skipif(
+        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
+    )
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": ["a", "b", "c"], "b": [1.0, 2.0, 3.0], "c": ["d", "e", "f"]},
+        ],
+    )
+    def test_np_string_array_object_cast(self, data):
+        from numpy.dtypes import StringDType
+
+        data["a"] = np.array(data["a"], dtype=StringDType())
+        res = DataFrame(data)
+        assert res["a"].dtype == np.object_
+        assert (res["a"] == data["a"]).all()
 
 
 def get1(obj):  # TODO: make a helper in tm?
