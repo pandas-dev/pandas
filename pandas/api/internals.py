@@ -1,9 +1,18 @@
-from pandas import DataFrame
+import numpy as np
+
+from pandas._typing import ArrayLike
+
+from pandas import (
+    DataFrame,
+    Index,
+)
 from pandas.core.internals.api import _make_block
 from pandas.core.internals.managers import BlockManager as _BlockManager
 
 
-def create_dataframe_from_blocks(blocks, index, columns):
+def create_dataframe_from_blocks(
+    blocks: list[tuple[ArrayLike, np.ndarray]], index: Index, columns: Index
+) -> DataFrame:
     """
     Low-level function to create a DataFrame from arrays as they are
     representing the block structure of the resulting DataFrame.
@@ -13,6 +22,8 @@ def create_dataframe_from_blocks(blocks, index, columns):
     If passing data that do not follow those assumptions, subsequent
     subsequent operations on the resulting DataFrame might lead to strange
     errors.
+    For almost all use cases, you should use the standard pd.DataFrame(..)
+    constructor instead.
 
     Assumptions:
 

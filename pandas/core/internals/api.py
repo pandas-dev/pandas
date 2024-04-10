@@ -24,7 +24,7 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas.core.arrays import (
     DatetimeArray,
-    ExtensionArray,
+    TimedeltaArray,
 )
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
@@ -36,12 +36,15 @@ from pandas.core.internals.blocks import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import Dtype
+    from pandas._typing import (
+        ArrayLike,
+        Dtype,
+    )
 
     from pandas.core.internals.blocks import Block
 
 
-def _make_block(values: ExtensionArray | np.ndarray, placement: np.ndarray) -> Block:
+def _make_block(values: ArrayLike, placement: np.ndarray) -> Block:
     """
     This is an analogue to blocks.new_block(_2d) that ensures:
     1) correct dimension for EAs that support 2D (`ensure_block_shape`), and
@@ -59,13 +62,15 @@ def _make_block(values: ExtensionArray | np.ndarray, placement: np.ndarray) -> B
     """
     dtype = values.dtype
     klass = get_block_type(dtype)
-    placement = BlockPlacement(placement)
+    placement_obj = BlockPlacement(placement)
 
-    if isinstance(dtype, ExtensionDtype) and dtype._supports_2d:
+    if (isinstance(dtype, ExtensionDtype) and dtype._supports_2d) or isinstance(
+        values, (DatetimeArray, TimedeltaArray)
+    ):
         values = ensure_block_shape(values, ndim=2)
 
     values = maybe_coerce_values(values)
-    return klass(values, ndim=2, placement=placement)
+    return klass(values, ndim=2, placement=placement_obj)
 
 
 def make_block(
