@@ -126,7 +126,13 @@ def test_unique_bad_unicode2(index_or_series):
     ]
 
     obj = index_or_series(data_list)
-    assert len(obj.unique()) == len(obj)
+    result = obj.unique()
+    if isinstance(obj, pd.Index):
+        expected = pd.Index(data_list, dtype=object)
+        tm.assert_index_equal(result, expected)
+    else:
+        expected = np.array(data_list, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("dropna", [True, False])
