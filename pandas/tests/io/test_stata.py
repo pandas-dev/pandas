@@ -225,7 +225,7 @@ class TestStata:
         tm.assert_frame_equal(parsed, expected)
 
     @pytest.mark.parametrize(
-        "file", ["stata4_113", "stata4_114", "stata4_115", "stata4_117"]
+        "file", ["stata4_111", "stata4_113", "stata4_114", "stata4_115", "stata4_117"]
     )
     def test_read_dta4(self, file, datapath):
         file = datapath("io", "data", "stata", f"{file}.dta")
@@ -259,6 +259,52 @@ class TestStata:
 
             categories = np.asarray(expected["fully_labeled"][orig.notna()])
             if col == "incompletely_labeled":
+                categories = orig
+
+            cat = orig.astype("category")._values
+            cat = cat.set_categories(categories, ordered=True)
+            cat.categories.rename(None, inplace=True)
+
+            expected[col] = cat
+
+        # stata doesn't save .category metadata
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize("file", ["stata4_105", "stata4_108"])
+    def test_readold_dta4(self, file, datapath):
+        # This test is the same as test_read_dta4 above except that the columns
+        # had to be renamed to match the restrictions in older file format
+        file = datapath("io", "data", "stata", f"{file}.dta")
+        parsed = self.read_dta(file)
+
+        expected = DataFrame.from_records(
+            [
+                ["one", "ten", "one", "one", "one"],
+                ["two", "nine", "two", "two", "two"],
+                ["three", "eight", "three", "three", "three"],
+                ["four", "seven", 4, "four", "four"],
+                ["five", "six", 5, np.nan, "five"],
+                ["six", "five", 6, np.nan, "six"],
+                ["seven", "four", 7, np.nan, "seven"],
+                ["eight", "three", 8, np.nan, "eight"],
+                ["nine", "two", 9, np.nan, "nine"],
+                ["ten", "one", "ten", np.nan, "ten"],
+            ],
+            columns=[
+                "fulllab",
+                "fulllab2",
+                "incmplab",
+                "misslab",
+                "floatlab",
+            ],
+        )
+
+        # these are all categoricals
+        for col in expected:
+            orig = expected[col].copy()
+
+            categories = np.asarray(expected["fulllab"][orig.notna()])
+            if col == "incmplab":
                 categories = orig
 
             cat = orig.astype("category")._values
@@ -1956,6 +2002,15 @@ def test_backward_compat(version, datapath):
     expected = read_stata(ref)
     old_dta = read_stata(old)
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("version", [105, 108, 111, 113, 114, 118])
+def test_bigendian(version, datapath):
+    ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
+    big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
+    expected = read_stata(ref)
+    big_dta = read_stata(big)
+    tm.assert_frame_equal(big_dta, expected)
 
 
 def test_direct_read(datapath, monkeypatch):
