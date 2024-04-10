@@ -1861,12 +1861,12 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
-def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
+def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
     tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
-    return tg._get_resampler(obj, kind=kind)
+    return tg._get_resampler(obj)
 
 
 get_resampler.__doc__ = Resampler.__doc__

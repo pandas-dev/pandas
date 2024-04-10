@@ -441,17 +441,6 @@ def test_resample_frame_basic_M_A(freq, unit):
     tm.assert_series_equal(result["A"], df["A"].resample(freq).mean())
 
 
-@pytest.mark.parametrize("freq", ["W-WED", "ME"])
-def test_resample_frame_basic_kind(freq, unit):
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=date_range("2000-01-01", periods=10, freq="B"),
-    )
-    df.index = df.index.as_unit(unit)
-    df.resample(freq).mean()
-
-
 def test_resample_upsample(unit):
     # from daily
     dti = date_range(
