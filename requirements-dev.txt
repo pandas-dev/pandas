@@ -17,6 +17,7 @@ python-dateutil
 numpy<2
 pytz
 beautifulsoup4>=4.11.2
+c-blosc2==2.13.2
 blosc
 bottleneck>=1.3.6
 fastparquet>=2023.10.0
