@@ -699,7 +699,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ----------
     unit : str, default "ns"
         The precision of the datetime data. Currently limited
-        to ``"ns"``.
+        to ``"s"``, ``"ms"``, ``"us"``, ``"ns"``.
     tz : str, int, or datetime.tzinfo
         The timezone.
 
