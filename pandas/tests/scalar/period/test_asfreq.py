@@ -1,6 +1,5 @@
 import pytest
 
-from pandas._libs.tslibs.dtypes import _period_code_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import OutOfBoundsDatetime
 
@@ -117,8 +116,8 @@ class TestFreqConversion:
             assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
-        msg = "'T' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Invalid frequency: T"
+        with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("T", "s") == ival_A_to_T_start
             assert ival_A.asfreq("T", "E") == ival_A_to_T_end
         msg = "'S' is deprecated and will be removed in a future version."
@@ -821,12 +820,9 @@ class TestFreqConversion:
 
         assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
 
-        msg = INVALID_FREQ_ERR_MSG
+        msg = "MS is not supported as period frequency"
         with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 
-        msg = "MonthBegin is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             Period("2013-01", "MS")
-
-        assert _period_code_map.get("MS") is None

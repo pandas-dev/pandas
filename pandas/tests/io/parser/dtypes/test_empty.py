@@ -2,6 +2,7 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -125,8 +126,7 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
     expected.index = expected.index.astype(object)
 
     with pytest.raises(ValueError, match="Duplicate names"):
-        data = ""
-        parser.read_csv(StringIO(data), names=["one", "one"], dtype={0: "u1", 1: "f"})
+        parser.read_csv(StringIO(""), names=["one", "one"], dtype={0: "u1", 1: "f"})
 
 
 @pytest.mark.parametrize(

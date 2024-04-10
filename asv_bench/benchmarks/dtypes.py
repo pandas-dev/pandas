@@ -3,7 +3,10 @@ import string
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 from pandas.api.types import (
     is_extension_array_dtype,
@@ -73,8 +76,8 @@ class SelectDtypes:
 
     def setup(self, dtype):
         N, K = 5000, 50
-        self.index = tm.makeStringIndex(N)
-        self.columns = tm.makeStringIndex(K)
+        self.index = Index([f"i-{i}" for i in range(N)], dtype=object)
+        self.columns = Index([f"i-{i}" for i in range(K)], dtype=object)
 
         def create_df(data):
             return DataFrame(data, index=self.index, columns=self.columns)

@@ -4,8 +4,6 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
-
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:
         hashing = import_module(imp)
@@ -47,9 +45,12 @@ class Factorize:
         elif dtype == "datetime64[ns, tz]":
             data = pd.date_range("2011-01-01", freq="h", periods=N, tz="Asia/Tokyo")
         elif dtype == "object_str":
-            data = tm.makeStringIndex(N)
+            data = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
         elif dtype == "string[pyarrow]":
-            data = pd.array(tm.makeStringIndex(N), dtype="string[pyarrow]")
+            data = pd.array(
+                pd.Index([f"i-{i}" for i in range(N)], dtype=object),
+                dtype="string[pyarrow]",
+            )
         else:
             raise NotImplementedError
 
@@ -88,7 +89,7 @@ class Duplicated:
         elif dtype == "float64":
             data = pd.Index(np.random.randn(N), dtype="float64")
         elif dtype == "string":
-            data = tm.makeStringIndex(N)
+            data = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
         elif dtype == "datetime64[ns]":
             data = pd.date_range("2011-01-01", freq="h", periods=N)
         elif dtype == "datetime64[ns, tz]":
@@ -136,7 +137,9 @@ class Hashing:
         df = pd.DataFrame(
             {
                 "strings": pd.Series(
-                    tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=N))
+                    pd.Index([f"i-{i}" for i in range(10000)], dtype=object).take(
+                        np.random.randint(0, 10000, size=N)
+                    )
                 ),
                 "floats": np.random.randn(N),
                 "ints": np.arange(N),

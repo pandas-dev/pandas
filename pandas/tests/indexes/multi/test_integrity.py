@@ -216,7 +216,9 @@ def test_can_hold_identifiers(idx):
 def test_metadata_immutable(idx):
     levels, codes = idx.levels, idx.codes
     # shouldn't be able to set at either the top level or base level
-    mutable_regex = re.compile("does not support mutable operations")
+    mutable_regex = re.compile(
+        "does not support mutable operations|does not support item assignment"
+    )
     with pytest.raises(TypeError, match=mutable_regex):
         levels[0] = levels[0]
     with pytest.raises(TypeError, match=mutable_regex):
@@ -245,7 +247,7 @@ def test_rangeindex_fallback_coercion_bug():
     df1 = pd.DataFrame(np.arange(100).reshape((10, 10)))
     df2 = pd.DataFrame(np.arange(100).reshape((10, 10)))
     df = pd.concat(
-        {"df1": df1.stack(future_stack=True), "df2": df2.stack(future_stack=True)},
+        {"df1": df1.stack(), "df2": df2.stack()},
         axis=1,
     )
     df.index.names = ["fizz", "buzz"]

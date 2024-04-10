@@ -6,6 +6,8 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
+    date_range,
     lreshape,
     melt,
     wide_to_long,
@@ -15,7 +17,11 @@ import pandas._testing as tm
 
 @pytest.fixture
 def df():
-    res = tm.makeTimeDataFrame()[:10]
+    res = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     res["id1"] = (res["A"] > 0).astype(np.int64)
     res["id2"] = (res["B"] > 0).astype(np.int64)
     return res
@@ -127,25 +133,21 @@ class TestMelt:
                 ["A"],
                 ["B"],
                 0,
-                DataFrame(
-                    {
-                        "A": {0: 1.067683, 1: -1.321405, 2: -0.807333},
-                        "CAP": {0: "B", 1: "B", 2: "B"},
-                        "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
-                    }
-                ),
+                {
+                    "A": {0: 1.067683, 1: -1.321405, 2: -0.807333},
+                    "CAP": {0: "B", 1: "B", 2: "B"},
+                    "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
+                },
             ),
             (
                 ["a"],
                 ["b"],
                 1,
-                DataFrame(
-                    {
-                        "a": {0: 1.067683, 1: -1.321405, 2: -0.807333},
-                        "low": {0: "b", 1: "b", 2: "b"},
-                        "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
-                    }
-                ),
+                {
+                    "a": {0: 1.067683, 1: -1.321405, 2: -0.807333},
+                    "low": {0: "b", 1: "b", 2: "b"},
+                    "value": {0: -1.110463, 1: 0.368915, 2: 0.08298},
+                },
             ),
         ],
     )
@@ -153,6 +155,7 @@ class TestMelt:
         self, id_vars, value_vars, col_level, expected, df1
     ):
         result = df1.melt(id_vars, value_vars, col_level=col_level)
+        expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -281,13 +284,14 @@ class TestMelt:
     @pytest.mark.parametrize(
         "col",
         [
-            pd.Series(pd.date_range("2010", periods=5, tz="US/Pacific")),
-            pd.Series(["a", "b", "c", "a", "d"], dtype="category"),
-            pd.Series([0, 1, 0, 0, 0]),
+            date_range("2010", periods=5, tz="US/Pacific"),
+            pd.Categorical(["a", "b", "c", "a", "d"]),
+            [0, 1, 0, 0, 0],
         ],
     )
     def test_pandas_dtypes(self, col):
         # GH 15785
+        col = pd.Series(col)
         df = DataFrame(
             {"klass": range(5), "col": col, "attr1": [1, 0, 0, 0, 0], "attr2": col}
         )
@@ -343,13 +347,12 @@ class TestMelt:
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
-        multi = df.copy()
-        multi.columns = [list("ABCD"), list("abcd")]
+        df.columns = [list("ABCD"), list("abcd")]
         with pytest.raises(KeyError, match=msg):
-            multi.melt([("E", "a")], [("B", "b")])
+            df.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
         with pytest.raises(KeyError, match=msg):
-            multi.melt(["A"], ["F"], col_level=0)
+            df.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):
         # GH 29718
@@ -396,11 +399,11 @@ class TestMelt:
 
     def test_ignore_index_name_and_type(self):
         # GH 17440
-        index = pd.Index(["foo", "bar"], dtype="category", name="baz")
+        index = Index(["foo", "bar"], dtype="category", name="baz")
         df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
         result = melt(df, ignore_index=False)
 
-        expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
+        expected_index = Index(["foo", "bar"] * 2, dtype="category", name="baz")
         expected = DataFrame(
             {"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]},
             index=expected_index,
@@ -1203,7 +1206,7 @@ class TestWideToLong:
             j="num",
             sep="-",
         )
-        index = pd.Index(
+        index = Index(
             [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
             name=("id", "num"),
         )
@@ -1214,3 +1217,33 @@ class TestWideToLong:
         new_level = expected.index.levels[0].astype(dtype)
         expected.index = expected.index.set_levels(new_level, level=0)
         tm.assert_frame_equal(result, expected)
+
+
+def test_wide_to_long_pyarrow_string_columns():
+    # GH 57066
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "ID": {0: 1},
+            "R_test1": {0: 1},
+            "R_test2": {0: 1},
+            "R_test3": {0: 2},
+            "D": {0: 1},
+        }
+    )
+    df.columns = df.columns.astype("string[pyarrow_numpy]")
+    result = wide_to_long(
+        df, stubnames="R", i="ID", j="UNPIVOTED", sep="_", suffix=".*"
+    )
+    expected = DataFrame(
+        [[1, 1], [1, 1], [1, 2]],
+        columns=Index(["D", "R"], dtype=object),
+        index=pd.MultiIndex.from_arrays(
+            [
+                [1, 1, 1],
+                Index(["test1", "test2", "test3"], dtype="string[pyarrow_numpy]"),
+            ],
+            names=["ID", "UNPIVOTED"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

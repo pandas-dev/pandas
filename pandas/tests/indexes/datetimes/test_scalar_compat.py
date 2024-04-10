@@ -106,7 +106,7 @@ class TestDatetimeIndexOps:
     )
     def test_dti_timestamp_fields(self, field):
         # extra fields from DatetimeIndex like quarter and week
-        idx = tm.makeDateIndex(100)
+        idx = date_range("2020-01-01", periods=10)
         expected = getattr(idx, field)[-1]
 
         result = getattr(Timestamp(idx[-1]), field)
@@ -135,7 +135,8 @@ class TestDatetimeIndexOps:
     # GH#12806
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
+        "time_locale",
+        [None] + tm.get_locales(),  # type: ignore[operator]
     )
     def test_day_name_month_name(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -304,11 +305,11 @@ class TestDatetimeIndexOps:
         exp = dti[[0, 90, 181, 273]]
         tm.assert_index_equal(res, exp)
         res = dti[dti.is_leap_year]
-        exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
+        exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name").as_unit("ns")
         tm.assert_index_equal(res, exp)
 
     def test_dti_is_year_quarter_start(self):
-        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+        dti = date_range(freq="BQE-FEB", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4

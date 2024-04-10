@@ -15,6 +15,6 @@ cpdef int32_t get_day_of_year(int year, int month, int day) noexcept nogil
 cpdef int get_lastbday(int year, int month) noexcept nogil
 cpdef int get_firstbday(int year, int month) noexcept nogil
 
-cdef dict c_MONTH_NUMBERS
+cdef dict c_MONTH_NUMBERS, MONTH_TO_CAL_NUM
 
 cdef int32_t* month_offset

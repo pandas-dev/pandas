@@ -20,8 +20,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
-    is_timedelta64_object,
     ndarray,
 )
 
@@ -253,7 +251,7 @@ cpdef int64_t delta_to_nanoseconds(
         n = delta._value
         in_reso = delta._creso
 
-    elif is_timedelta64_object(delta):
+    elif cnp.is_timedelta64_object(delta):
         in_reso = get_datetime64_unit(delta)
         if in_reso == NPY_DATETIMEUNIT.NPY_FR_Y or in_reso == NPY_DATETIMEUNIT.NPY_FR_M:
             raise ValueError(
@@ -347,7 +345,7 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = ts.as_unit("ns").asm8
         else:
             ts = np.timedelta64(ts._value, "ns")
-    elif is_timedelta64_object(ts):
+    elif cnp.is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -367,7 +365,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
     if PyDelta_Check(ts):
         ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
-    elif not is_timedelta64_object(ts):
+    elif not cnp.is_timedelta64_object(ts):
         raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
@@ -501,9 +499,9 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
 
     cdef:
-        unicode c
+        str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
-        object current_unit = None
+        str current_unit = None
         int64_t result = 0, m = 0, r
         list number = [], frac = [], unit = []
 
@@ -764,7 +762,7 @@ def _binary_op_method_timedeltalike(op, name):
         if other is NaT:
             return NaT
 
-        elif is_datetime64_object(other) or (
+        elif cnp.is_datetime64_object(other) or (
             PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)
         ):
             # this case is for a datetime object that is specifically
@@ -1040,6 +1038,25 @@ cdef class _Timedelta(timedelta):
 
     @property
     def value(self):
+        """
+        Return the value of Timedelta object in nanoseconds.
+
+        Return the total seconds, milliseconds and microseconds
+        of the timedelta as nanoseconds.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Timedelta.unit : Return the unit of Timedelta object.
+
+        Examples
+        --------
+        >>> pd.Timedelta(1, "us").value
+        1000
+        """
         try:
             return convert_reso(self._value, self._creso, NPY_FR_ns, False)
         except OverflowError:
@@ -1122,6 +1139,37 @@ cdef class _Timedelta(timedelta):
     def microseconds(self) -> int:  # TODO(cython3): make cdef property
         # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
         #  (or be incorrect)
+        """
+        Return the number of microseconds (n), where 0 <= n < 1 millisecond.
+
+        Timedelta.microseconds = milliseconds * 1000 + microseconds.
+
+        Returns
+        -------
+        int
+            Number of microseconds.
+
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+
+        >>> td.microseconds
+        3
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='us')
+        >>> td.microseconds
+        42
+        """
         self._ensure_components()
         return self._ms * 1000 + self._us
 
@@ -1143,6 +1191,26 @@ cdef class _Timedelta(timedelta):
 
     @property
     def unit(self) -> str:
+        """
+        Return the unit of Timedelta object.
+
+        The unit of Timedelta object is nanosecond, i.e., 'ns' by default.
+
+        Returns
+        -------
+        str
+
+        See Also
+        --------
+        Timedelta.value : Return the value of Timedelta object in nanoseconds.
+        Timedelta.as_unit : Convert the underlying int64 representation to
+            the given unit.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(42, unit='us')
+        'ns'
+        """
         return npy_unit_to_abbrev(self._creso)
 
     def __hash__(_Timedelta self):
@@ -1308,7 +1376,10 @@ cdef class _Timedelta(timedelta):
         datetime.timedelta(days=3)
         """
         if self._creso == NPY_FR_ns:
-            return timedelta(microseconds=int(self._value) / 1000)
+            us, remainder = divmod(self._value, 1000)
+            if remainder >= 500:
+                us += 1
+            return timedelta(microseconds=us)
 
         # TODO(@WillAyd): is this the right way to use components?
         self._ensure_components()
@@ -1853,7 +1924,7 @@ class Timedelta(_Timedelta):
             return cls._from_value_and_reso(
                 new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
             )
-        elif is_timedelta64_object(value):
+        elif cnp.is_timedelta64_object(value):
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
             new_value = cnp.get_timedelta64_value(value)
@@ -1904,7 +1975,7 @@ class Timedelta(_Timedelta):
                 f"float, timedelta or convertible, not {type(value).__name__}"
             )
 
-        if is_timedelta64_object(value):
+        if cnp.is_timedelta64_object(value):
             value = value.view("i8")
 
         # nat
@@ -2062,6 +2133,12 @@ class Timedelta(_Timedelta):
             # integers or floats
             if util.is_nan(other):
                 return NaT
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, cnp.integer):
+                other = int(other)
+            if isinstance(other, cnp.floating):
+                other = float(other)
             return Timedelta._from_value_and_reso(
                 <int64_t>(self._value/ other), self._creso
             )
@@ -2116,6 +2193,12 @@ class Timedelta(_Timedelta):
         elif is_integer_object(other) or is_float_object(other):
             if util.is_nan(other):
                 return NaT
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, cnp.integer):
+                other = int(other)
+            if isinstance(other, cnp.floating):
+                other = float(other)
             return type(self)._from_value_and_reso(self._value// other, self._creso)
 
         elif is_array(other):
@@ -2279,7 +2362,7 @@ cdef bint is_any_td_scalar(object obj):
     bool
     """
     return (
-        PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
+        PyDelta_Check(obj) or cnp.is_timedelta64_object(obj) or is_tick_object(obj)
     )
 
 

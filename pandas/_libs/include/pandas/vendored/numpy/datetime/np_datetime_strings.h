@@ -85,7 +85,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
-int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base);
 
 /*

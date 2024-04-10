@@ -35,38 +35,21 @@ class TestDataFrame:
             columns=MultiIndex.from_tuples([("C", x) for x in list("xyz")]),
         )
 
-        level_names = ["L1", "L2"]
+        level_names = ("L1", "L2")
 
         result = methodcaller(func, level_names)(df)
         assert result.index.names == level_names
-        assert result.columns.names == [None, None]
+        assert result.columns.names == (None, None)
 
         result = methodcaller(func, level_names, axis=1)(df)
-        assert result.columns.names == ["L1", "L2"]
-        assert result.index.names == [None, None]
+        assert result.columns.names == level_names
+        assert result.index.names == (None, None)
 
     def test_nonzero_single_element(self):
-        # allow single item via bool method
-        msg_warn = (
-            "DataFrame.bool is now deprecated and will be removed "
-            "in future version of pandas"
-        )
-        df = DataFrame([[True]])
-        df1 = DataFrame([[False]])
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert df.bool()
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert not df1.bool()
-
         df = DataFrame([[False, False]])
         msg_err = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg_err):
             bool(df)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                df.bool()
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby

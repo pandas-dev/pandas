@@ -32,8 +32,7 @@ def test_read_with_bad_header(all_parsers):
     msg = r"but only \d+ lines in file"
 
     with pytest.raises(ValueError, match=msg):
-        s = StringIO(",,")
-        parser.read_csv(s, header=[10])
+        parser.read_csv(StringIO(",,"), header=[10])
 
 
 def test_negative_header(all_parsers):
@@ -121,7 +120,6 @@ baz,12,13,14,15
 @xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index(all_parsers):
     parser = all_parsers
-    expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
 
     data = """\
 C0,,C_l0_g0,C_l0_g1,C_l0_g2
@@ -137,6 +135,23 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
     result = parser.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1])
+    data_gen_f = lambda r, c: f"R{r}C{c}"
+
+    data = [[data_gen_f(r, c) for c in range(3)] for r in range(5)]
+    index = MultiIndex.from_arrays(
+        [[f"R_l0_g{i}" for i in range(5)], [f"R_l1_g{i}" for i in range(5)]],
+        names=["R0", "R1"],
+    )
+    columns = MultiIndex.from_arrays(
+        [
+            [f"C_l0_g{i}" for i in range(3)],
+            [f"C_l1_g{i}" for i in range(3)],
+            [f"C_l2_g{i}" for i in range(3)],
+            [f"C_l3_g{i}" for i in range(3)],
+        ],
+        names=["C0", "C1", "C2", "C3"],
+    )
+    expected = DataFrame(data, columns=columns, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -147,7 +162,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
-                "row numbers when specifying "
+                "integers of column positions when specifying "
                 "a multi-index header"
             ),
         ),
@@ -411,7 +426,7 @@ def test_header_names_backward_compat(all_parsers, data, header, request):
     parser = all_parsers
 
     if parser.engine == "pyarrow" and header is not None:
-        mark = pytest.mark.xfail(reason="mismatched index")
+        mark = pytest.mark.xfail(reason="DataFrame.columns are different")
         request.applymarker(mark)
 
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
@@ -635,7 +650,7 @@ def test_header_none_and_implicit_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # regex mismatch "CSV parse error: Expected 2 columns, got "
+@skip_pyarrow  # regex mismatch "CSV parse error: Expected 2 columns, got "
 def test_header_none_and_implicit_index_in_second_row(all_parsers):
     # GH#22144
     parser = all_parsers
@@ -690,7 +705,11 @@ def test_header_delim_whitespace(all_parsers):
 3,4
     """
 
-    result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), delim_whitespace=True)
     expected = DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)
 

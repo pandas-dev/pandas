@@ -9,8 +9,6 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class Reindex:
     def setup(self):
@@ -23,8 +21,8 @@ class Reindex:
         )
         N = 5000
         K = 200
-        level1 = tm.makeStringIndex(N).values.repeat(K)
-        level2 = np.tile(tm.makeStringIndex(K).values, N)
+        level1 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
+        level2 = np.tile(Index([f"i-{i}" for i in range(K)], dtype=object).values, N)
         index = MultiIndex.from_arrays([level1, level2])
         self.s = Series(np.random.randn(N * K), index=index)
         self.s_subset = self.s[::2]
@@ -93,8 +91,8 @@ class DropDuplicates:
     def setup(self, inplace):
         N = 10000
         K = 10
-        key1 = tm.makeStringIndex(N).values.repeat(K)
-        key2 = tm.makeStringIndex(N).values.repeat(K)
+        key1 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
+        key2 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
         self.df = DataFrame(
             {"key1": key1, "key2": key2, "value": np.random.randn(N * K)}
         )
@@ -102,7 +100,9 @@ class DropDuplicates:
         self.df_nan.iloc[:10000, :] = np.nan
 
         self.s = Series(np.random.randint(0, 1000, size=10000))
-        self.s_str = Series(np.tile(tm.makeStringIndex(1000).values, 10))
+        self.s_str = Series(
+            np.tile(Index([f"i-{i}" for i in range(1000)], dtype=object).values, 10)
+        )
 
         N = 1000000
         K = 10000
@@ -133,7 +133,7 @@ class Align:
     # blog "pandas escaped the zoo"
     def setup(self):
         n = 50000
-        indices = tm.makeStringIndex(n)
+        indices = Index([f"i-{i}" for i in range(n)], dtype=object)
         subsample_size = 40000
         self.x = Series(np.random.randn(n), indices)
         self.y = Series(

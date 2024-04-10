@@ -1,7 +1,5 @@
-"""
-For cython types that cannot be represented precisely, closest-available
-python equivalents are used, and the precise types kept as adjacent comments.
-"""
+# For cython types that cannot be represented precisely, closest-available
+# python equivalents are used, and the precise types kept as adjacent comments.
 from datetime import tzinfo
 
 import numpy as np
@@ -31,7 +29,7 @@ def get_resolution(
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> Resolution: ...
 def ints_to_pydatetime(
-    arr: npt.NDArray[np.int64],
+    stamps: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,
     box: str = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT

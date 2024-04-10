@@ -11,6 +11,7 @@
 # one by one to the dist/ directory where they would be generated.
 
 VERSION=$1
+mkdir -p $(dirname -- $0)/../dist
 DIST_DIR="$(realpath $(dirname -- $0)/../dist)"
 
 if [ -z $VERSION ]; then
@@ -20,7 +21,7 @@ fi
 
 curl "https://anaconda.org/multibuild-wheels-staging/pandas/files?version=${VERSION}" | \
     grep "href=\"/multibuild-wheels-staging/pandas/${VERSION}" | \
-    sed -r 's/.*<a href="([^"]+\.whl)">.*/\1/g' | \
+    sed -r 's/.*<a href="([^"]+\.(whl|tar.gz))">.*/\1/g' | \
     awk '{print "https://anaconda.org" $0 }' | \
     xargs wget -P $DIST_DIR
 

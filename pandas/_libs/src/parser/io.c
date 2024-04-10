@@ -35,12 +35,10 @@ void *new_rd_source(PyObject *obj) {
 
  */
 
-int del_rd_source(void *rds) {
+void del_rd_source(void *rds) {
   Py_XDECREF(RDS(rds)->obj);
   Py_XDECREF(RDS(rds)->buffer);
   free(rds);
-
-  return 0;
 }
 
 /*
@@ -49,26 +47,20 @@ int del_rd_source(void *rds) {
 
  */
 
-void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
+char *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
                       int *status, const char *encoding_errors) {
-  PyGILState_STATE state;
-  PyObject *result, *func, *args, *tmp;
-
-  void *retval;
-
-  size_t length;
   rd_source *src = RDS(source);
-  state = PyGILState_Ensure();
+  PyGILState_STATE state = PyGILState_Ensure();
 
   /* delete old object */
   Py_XDECREF(src->buffer);
   src->buffer = NULL;
-  args = Py_BuildValue("(i)", nbytes);
+  PyObject *args = Py_BuildValue("(i)", nbytes);
 
-  func = PyObject_GetAttrString(src->obj, "read");
+  PyObject *func = PyObject_GetAttrString(src->obj, "read");
 
   /* Note: PyObject_CallObject requires the GIL */
-  result = PyObject_CallObject(func, args);
+  PyObject *result = PyObject_CallObject(func, args);
   Py_XDECREF(args);
   Py_XDECREF(func);
 
@@ -78,7 +70,7 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
     *status = CALLING_READ_FAILED;
     return NULL;
   } else if (!PyBytes_Check(result)) {
-    tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
+    PyObject *tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
     Py_DECREF(result);
     if (tmp == NULL) {
       PyGILState_Release(state);
@@ -87,7 +79,7 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
     result = tmp;
   }
 
-  length = PySequence_Length(result);
+  const size_t length = PySequence_Length(result);
 
   if (length == 0)
     *status = REACHED_EOF;
@@ -96,7 +88,7 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
 
   /* hang on to the Python object */
   src->buffer = result;
-  retval = (void *)PyBytes_AsString(result);
+  char *retval = PyBytes_AsString(result);
 
   PyGILState_Release(state);
 

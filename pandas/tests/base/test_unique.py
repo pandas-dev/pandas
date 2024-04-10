@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -97,6 +99,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
+@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="decoding fails")
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
     uval = "\ud83d"  # smiley emoji
@@ -112,7 +115,7 @@ def test_unique_bad_unicode(index_or_series):
         tm.assert_numpy_array_equal(result, expected)
 
 
-def test_unique_45929(index_or_series):
+def test_unique_bad_unicode2(index_or_series):
     # regression test for #45929
     data_list = [
         "1 \udcd6a NY",
@@ -123,11 +126,7 @@ def test_unique_45929(index_or_series):
     ]
 
     obj = index_or_series(data_list)
-    assert len(obj.unique()) == len(data_list)
-    assert len(obj.value_counts()) == len(data_list)
-    assert len(np.unique(data_list)) == len(data_list)
-    assert len(set(data_list)) == len(data_list)
-    assert obj.is_unique
+    assert len(obj.unique()) == len(obj)
 
 
 @pytest.mark.parametrize("dropna", [True, False])

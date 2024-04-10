@@ -5,15 +5,14 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("align_axis", [0, 1, "index", "columns"])
-def test_compare_axis(align_axis):
+def test_compare_axis(axis):
     # GH#30429
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
-    result = s1.compare(s2, align_axis=align_axis)
+    result = s1.compare(s2, align_axis=axis)
 
-    if align_axis in (1, "columns"):
+    if axis in (1, "columns"):
         indices = pd.Index([0, 2])
         columns = pd.Index(["self", "other"])
         expected = pd.DataFrame(
@@ -100,19 +99,19 @@ def test_compare_multi_index():
     tm.assert_series_equal(result, expected)
 
 
-def test_compare_unaligned_objects():
-    # test Series with different indices
+def test_compare_different_indices():
     msg = "Can only compare identically-labeled Series objects"
+    ser1 = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    ser2 = pd.Series([1, 2, 3], index=["a", "b", "d"])
     with pytest.raises(ValueError, match=msg):
-        ser1 = pd.Series([1, 2, 3], index=["a", "b", "c"])
-        ser2 = pd.Series([1, 2, 3], index=["a", "b", "d"])
         ser1.compare(ser2)
 
-    # test Series with different lengths
+
+def test_compare_different_lengths():
     msg = "Can only compare identically-labeled Series objects"
+    ser1 = pd.Series([1, 2, 3])
+    ser2 = pd.Series([1, 2, 3, 4])
     with pytest.raises(ValueError, match=msg):
-        ser1 = pd.Series([1, 2, 3])
-        ser2 = pd.Series([1, 2, 3, 4])
         ser1.compare(ser2)
 
 

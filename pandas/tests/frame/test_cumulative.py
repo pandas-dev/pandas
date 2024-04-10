@@ -7,7 +7,6 @@ tests.series.test_cumulative
 """
 
 import numpy as np
-import pytest
 
 from pandas import (
     DataFrame,
@@ -46,20 +45,23 @@ class TestDataFrameCumulativeOps:
         df.cumprod(0)
         df.cumprod(1)
 
-    @pytest.mark.parametrize("method", ["cumsum", "cumprod", "cummin", "cummax"])
-    def test_cumulative_ops_match_series_apply(self, datetime_frame, method):
+    def test_cumulative_ops_match_series_apply(
+        self, datetime_frame, all_numeric_accumulations
+    ):
         datetime_frame.iloc[5:10, 0] = np.nan
         datetime_frame.iloc[10:15, 1] = np.nan
         datetime_frame.iloc[15:, 2] = np.nan
 
         # axis = 0
-        result = getattr(datetime_frame, method)()
-        expected = datetime_frame.apply(getattr(Series, method))
+        result = getattr(datetime_frame, all_numeric_accumulations)()
+        expected = datetime_frame.apply(getattr(Series, all_numeric_accumulations))
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
-        result = getattr(datetime_frame, method)(axis=1)
-        expected = datetime_frame.apply(getattr(Series, method), axis=1)
+        result = getattr(datetime_frame, all_numeric_accumulations)(axis=1)
+        expected = datetime_frame.apply(
+            getattr(Series, all_numeric_accumulations), axis=1
+        )
         tm.assert_frame_equal(result, expected)
 
         # fix issue TODO: GH ref?

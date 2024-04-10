@@ -26,15 +26,16 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage):
+def test_config(string_storage, request, using_infer_string):
+    if using_infer_string and string_storage != "pyarrow_numpy":
+        request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    expected = (
-        StringDtype(string_storage).construct_array_type()._from_sequence(["a", "b"])
-    )
+    dtype = StringDtype(string_storage)
+    expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
 
@@ -60,7 +61,7 @@ def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
-            "ArrowStringArray requires a PyArrow (chunked) array of string type"
+            "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
         )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
@@ -75,17 +76,20 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         arr = pa.chunked_array(arr)
 
     msg = re.escape(
-        "ArrowStringArray requires a PyArrow (chunked) array of string type"
+        "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
     )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
 
 
+@pytest.mark.xfail(
+    reason="dict conversion does not seem to be implemented for large string in arrow"
+)
 @pytest.mark.parametrize("chunked", [True, False])
 def test_constructor_valid_string_type_value_dictionary(chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.utf8()))
+    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
@@ -101,7 +105,7 @@ def test_constructor_from_list():
     assert result.dtype.storage == "pyarrow"
 
 
-def test_from_sequence_wrong_dtype_raises():
+def test_from_sequence_wrong_dtype_raises(using_infer_string):
     pytest.importorskip("pyarrow")
     with pd.option_context("string_storage", "python"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype="string")
@@ -114,15 +118,19 @@ def test_from_sequence_wrong_dtype_raises():
 
     ArrowStringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
 
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "python"):
-            ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            with pd.option_context("string_storage", "python"):
+                ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     with pd.option_context("string_storage", "pyarrow"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
-    with pytest.raises(AssertionError, match=None):
-        ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            ArrowStringArray._from_sequence(
+                ["a", None, "c"], dtype=StringDtype("python")
+            )
 
     ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("pyarrow"))
 
@@ -137,12 +145,14 @@ def test_from_sequence_wrong_dtype_raises():
     with pytest.raises(AssertionError, match=None):
         StringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
 
-    with pd.option_context("string_storage", "python"):
-        StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
-
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "pyarrow"):
+    if not using_infer_string:
+        with pd.option_context("string_storage", "python"):
             StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            with pd.option_context("string_storage", "pyarrow"):
+                StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
 
@@ -210,22 +220,22 @@ def test_setitem_invalid_indexer_raises():
 
     arr = ArrowStringArray(pa.array(list("abcde")))
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[5] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[-6] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, 5]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, -6]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[True, True, False]] = "foo"
 
-    with pytest.raises(ValueError, match=None):
+    with tm.external_error_raised(ValueError):
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 

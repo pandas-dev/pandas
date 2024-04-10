@@ -346,7 +346,7 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
         pytest.param(
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-            marks=td.skip_if_no_scipy,
+            marks=td.skip_if_no("scipy"),
         ),
     ],
 )
@@ -471,20 +471,19 @@ def test_rolling_median_memory_error():
     ).median()
 
 
-@pytest.mark.parametrize(
-    "data_type",
-    [np.dtype(f"f{width}") for width in [4, 8]]
-    + [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"],
-)
-def test_rolling_min_max_numeric_types(data_type):
+def test_rolling_min_max_numeric_types(any_real_numpy_dtype):
     # GH12373
 
     # Just testing that these don't throw exceptions and that
     # the return type is float64. Other tests will cover quantitative
     # correctness
-    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()
+    result = (
+        DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).max()
+    )
     assert result.dtypes[0] == np.dtype("f8")
-    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
+    result = (
+        DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).min()
+    )
     assert result.dtypes[0] == np.dtype("f8")
 
 
@@ -508,7 +507,7 @@ def test_rolling_min_max_numeric_types(data_type):
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
         pytest.param(
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-            marks=td.skip_if_no_scipy,
+            marks=td.skip_if_no("scipy"),
         ),
     ],
 )

@@ -1,18 +1,17 @@
 """
 Utility functions related to concat.
 """
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
     cast,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -41,7 +40,7 @@ if TYPE_CHECKING:
     )
 
 
-def _is_nonempty(x, axis) -> bool:
+def _is_nonempty(x: ArrayLike, axis: AxisInt) -> bool:
     # filter empty arrays
     # 1-d dtypes always are included here
     if x.ndim <= axis:
@@ -100,27 +99,9 @@ def concat_compat(
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
-    orig = to_concat
     non_empties = [x for x in to_concat if _is_nonempty(x, axis)]
-    if non_empties and axis == 0 and not ea_compat_axis:
-        # ea_compat_axis see GH#39574
-        to_concat = non_empties
 
     any_ea, kinds, target_dtype = _get_result_dtype(to_concat, non_empties)
-
-    if len(to_concat) < len(orig):
-        _, _, alt_dtype = _get_result_dtype(orig, non_empties)
-        if alt_dtype != target_dtype:
-            # GH#39122
-            warnings.warn(
-                "The behavior of array concatenation with empty entries is "
-                "deprecated. In a future version, this will no longer exclude "
-                "empty items when determining the result dtype. "
-                "To retain the old behavior, exclude the empty entries before "
-                "the concat operation.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
     if target_dtype is not None:
         to_concat = [astype_array(arr, target_dtype, copy=False) for arr in to_concat]
@@ -278,8 +259,8 @@ def union_categoricals(
     containing categorical data, but note that the resulting array will
     always be a plain `Categorical`
 
-    >>> a = pd.Series(["b", "c"], dtype='category')
-    >>> b = pd.Series(["a", "b"], dtype='category')
+    >>> a = pd.Series(["b", "c"], dtype="category")
+    >>> b = pd.Series(["a", "b"], dtype="category")
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']

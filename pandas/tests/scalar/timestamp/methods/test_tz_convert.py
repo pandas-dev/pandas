@@ -6,12 +6,6 @@ import pandas.util._test_decorators as td
 
 from pandas import Timestamp
 
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    # Cannot assign to a type
-    ZoneInfo = None  # type: ignore[misc, assignment]
-
 
 class TestTimestampTZConvert:
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])

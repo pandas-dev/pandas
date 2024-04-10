@@ -2,6 +2,7 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import pytest
@@ -19,8 +20,12 @@ pytestmark = pytest.mark.filterwarnings(
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
+_msg_pyarrow_requires_names = (
+    "The pyarrow engine does not allow 'usecols' to be integer column "
+    "positions. Pass a list of string column names instead."
+)
 
-@xfail_pyarrow  # TypeError: expected bytes, int found
+
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])
 def test_usecols_with_parse_dates(all_parsers, usecols):
     # see gh-9755
@@ -30,12 +35,30 @@ def test_usecols_with_parse_dates(all_parsers, usecols):
     parser = all_parsers
     parse_dates = [[1, 2]]
 
+    depr_msg = (
+        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
+    )
+
     cols = {
         "a": [0, 0],
         "c_d": [Timestamp("2014-01-01 09:00:00"), Timestamp("2014-01-02 10:00:00")],
     }
     expected = DataFrame(cols, columns=["c_d", "a"])
-    result = parser.read_csv(StringIO(data), usecols=usecols, parse_dates=parse_dates)
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(
+                    StringIO(data), usecols=usecols, parse_dates=parse_dates
+                )
+        return
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data), usecols=usecols, parse_dates=parse_dates
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -119,11 +142,17 @@ def test_usecols_with_parse_dates4(all_parsers):
     }
     expected = DataFrame(cols, columns=["a_b"] + list("cdefghij"))
 
-    result = parser.read_csv(
-        StringIO(data),
-        usecols=usecols,
-        parse_dates=parse_dates,
+    depr_msg = (
+        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
+    with tm.assert_produces_warning(
+        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data),
+            usecols=usecols,
+            parse_dates=parse_dates,
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -154,7 +183,13 @@ def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names, request
     }
     expected = DataFrame(cols, columns=["c_d", "a"])
 
-    result = parser.read_csv(
-        StringIO(s), names=names, parse_dates=parse_dates, usecols=usecols
+    depr_msg = (
+        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
+    with tm.assert_produces_warning(
+        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(s), names=names, parse_dates=parse_dates, usecols=usecols
+        )
     tm.assert_frame_equal(result, expected)

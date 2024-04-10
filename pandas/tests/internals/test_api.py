@@ -3,6 +3,8 @@ Tests for the pseudo-public API implemented in internals/api.py and exposed
 in core.internals
 """
 
+import pytest
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import internals
@@ -21,27 +23,33 @@ def test_namespace():
         "concat",
         "managers",
         "construction",
-        "array_manager",
-        "base",
         "api",
         "ops",
     ]
     expected = [
-        "Block",
-        "DatetimeTZBlock",
-        "ExtensionBlock",
         "make_block",
-        "DataManager",
-        "ArrayManager",
         "BlockManager",
-        "SingleDataManager",
         "SingleBlockManager",
-        "SingleArrayManager",
         "concatenate_managers",
     ]
 
     result = [x for x in dir(internals) if not x.startswith("__")]
     assert set(result) == set(expected + modules)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Block",
+        "ExtensionBlock",
+        "DatetimeTZBlock",
+    ],
+)
+def test_deprecations(name):
+    # GH#55139
+    msg = f"{name} is deprecated.* Use public APIs instead"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        getattr(internals, name)
 
 
 def test_make_block_2d_with_dti():

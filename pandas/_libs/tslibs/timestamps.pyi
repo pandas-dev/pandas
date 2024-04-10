@@ -10,7 +10,6 @@ from typing import (
     ClassVar,
     Literal,
     TypeAlias,
-    TypeVar,
     overload,
 )
 
@@ -28,7 +27,6 @@ from pandas._typing import (
     TimestampNonexistent,
 )
 
-_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 _TimeZones: TypeAlias = str | _tzinfo | None | int
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
@@ -42,7 +40,7 @@ class Timestamp(datetime):
     _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
-        cls: type[_DatetimeT],
+        cls: type[Self],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         year: int | None = ...,
         month: int | None = ...,
@@ -57,7 +55,7 @@ class Timestamp(datetime):
         tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> _DatetimeT | NaTType: ...
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones
@@ -183,7 +181,7 @@ class Timestamp(datetime):
     def is_year_end(self) -> bool: ...
     def to_pydatetime(self, warn: bool = ...) -> datetime: ...
     def to_datetime64(self) -> np.datetime64: ...
-    def to_period(self, freq: BaseOffset | str = ...) -> Period: ...
+    def to_period(self, freq: BaseOffset | str | None = None) -> Period: ...
     def to_julian_date(self) -> np.float64: ...
     @property
     def asm8(self) -> np.datetime64: ...

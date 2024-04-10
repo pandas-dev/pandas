@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas._libs.index as _index
-from pandas.errors import PerformanceWarning
+import pandas._libs.index as libindex
 
 import pandas as pd
 from pandas import (
@@ -17,7 +16,7 @@ from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
-    def test_multiindex_perf_warn(self):
+    def test_multiindex_perf_warn(self, performance_warning):
         df = DataFrame(
             {
                 "jim": [0, 0, 1, 1],
@@ -26,27 +25,26 @@ class TestMultiIndexBasic:
             }
         ).set_index(["jim", "joe"])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             df.loc[(1, "z")]
 
         df = df.iloc[[2, 1, 3, 0]]
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             df.loc[(0,)]
 
-    def test_indexing_over_hashtable_size_cutoff(self):
-        n = 10000
+    @pytest.mark.parametrize("offset", [-5, 5])
+    def test_indexing_over_hashtable_size_cutoff(self, monkeypatch, offset):
+        size_cutoff = 20
+        n = size_cutoff + offset
 
-        old_cutoff = _index._SIZE_CUTOFF
-        _index._SIZE_CUTOFF = 20000
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
 
-        s = Series(np.arange(n), MultiIndex.from_arrays((["a"] * n, np.arange(n))))
-
-        # hai it works!
-        assert s[("a", 5)] == 5
-        assert s[("a", 6)] == 6
-        assert s[("a", 7)] == 7
-
-        _index._SIZE_CUTOFF = old_cutoff
+            # hai it works!
+            assert s[("a", 5)] == 5
+            assert s[("a", 6)] == 6
+            assert s[("a", 7)] == 7
 
     def test_multi_nan_indexing(self):
         # GH 3588

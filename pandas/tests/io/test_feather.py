@@ -1,4 +1,5 @@
-""" test feather-format compat """
+"""test feather-format compat"""
+
 import numpy as np
 import pytest
 
@@ -15,7 +16,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-pyarrow = pytest.importorskip("pyarrow")
+pa = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu
@@ -36,7 +37,9 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
+    def check_round_trip(self, df, expected=None, write_kwargs=None, **read_kwargs):
+        if write_kwargs is None:
+            write_kwargs = {}
         if expected is None:
             expected = df.copy()
 
@@ -132,17 +135,20 @@ class TestFeather:
         self.check_round_trip(df, use_threads=False)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    def test_path_localpath(self):
-        df = tm.makeDataFrame().reset_index()
-        result = tm.round_trip_localpath(df.to_feather, read_feather)
-        tm.assert_frame_equal(df, result)
-
     def test_passthrough_keywords(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
@@ -157,7 +163,6 @@ class TestFeather:
 
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
-        pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, np.nan, 3], dtype="Int64"),
@@ -174,6 +179,12 @@ class TestFeather:
         if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        elif dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
 
         else:
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))

@@ -20,7 +20,7 @@ dependencies:
   - hypothesis>=6.46.1
 
   # required
-  - numpy<2
+  - numpy
   - python-dateutil
   - pytz
   - pip:

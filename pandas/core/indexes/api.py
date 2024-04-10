@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import textwrap
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -23,6 +22,7 @@ from pandas.core.indexes.base import (
     ensure_index,
     ensure_index_from_sequences,
     get_unanimous_names,
+    maybe_sequence_to_range,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -34,16 +34,6 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
     from pandas._typing import Axis
-_sort_msg = textwrap.dedent(
-    """\
-Sorting because non-concatenation axis is not aligned. A future version
-of pandas will change to not sort by default.
-
-To accept the future behavior, pass 'sort=False'.
-
-To retain the current behavior and silence the warning, pass 'sort=True'.
-"""
-)
 
 
 __all__ = [
@@ -66,6 +56,7 @@ __all__ = [
     "all_indexes_same",
     "default_index",
     "safe_sort_index",
+    "maybe_sequence_to_range",
 ]
 
 
@@ -74,7 +65,6 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool = True,
-    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -92,15 +82,13 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -121,7 +109,6 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
-    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -135,8 +122,6 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
-    copy : bool, default False
-        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -158,10 +143,6 @@ def _get_combined_index(
 
     if sort:
         index = safe_sort_index(index)
-    # GH 29879
-    if copy:
-        index = index.copy()
-
     return index
 
 
@@ -295,6 +276,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
         if len(dtis) == len(indexes):
+            sort = True
             result = indexes[0]
 
         elif len(dtis) > 1:

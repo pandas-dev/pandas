@@ -20,6 +20,7 @@ from pandas.core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
 class TestToIterable:
@@ -215,7 +216,9 @@ class TestToIterable:
         ),
     ],
 )
-def test_values_consistent(arr, expected_type, dtype):
+def test_values_consistent(arr, expected_type, dtype, using_infer_string):
+    if using_infer_string and dtype == "object":
+        expected_type = ArrowStringArrayNumpySemantics
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
@@ -251,10 +254,13 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
-        (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_ndarray"),
+        (
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            "_ndarray",
+        ),
         # tz-aware Datetime
         (
-            DatetimeArray(
+            DatetimeArray._from_sequence(
                 np.array(
                     ["2000-01-01T12:00:00", "2000-01-02T12:00:00"], dtype="M8[ns]"
                 ),
@@ -292,7 +298,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, np.nan])),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -300,17 +306,16 @@ def test_array_multiindex_raises():
         (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
-            DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array(["2000", "2001"], dtype="M8[ns]")),
             np.array(["2000", "2001"], dtype="M8[ns]"),
         ),
         # tz-aware stays tz`-aware
         (
-            DatetimeArray(
-                np.array(
-                    ["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]"
-                ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
-            ),
+            DatetimeArray._from_sequence(
+                np.array(["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]")
+            )
+            .tz_localize("UTC")
+            .tz_convert("US/Central"),
             np.array(
                 [
                     Timestamp("2000-01-01", tz="US/Central"),
@@ -320,8 +325,8 @@ def test_array_multiindex_raises():
         ),
         # Timedelta
         (
-            TimedeltaArray(
-                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"), freq="h"
+            TimedeltaArray._from_sequence(
+                np.array([0, 3600000000000], dtype="i8").view("m8[ns]")
             ),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
@@ -343,10 +348,6 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
     with tm.assert_produces_warning(None):
         thing = box(arr)
 
-    if arr.dtype.name == "int64" and box is pd.array:
-        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.applymarker(mark)
-
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)
 
@@ -358,17 +359,23 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), np.array(["a", "b", "c"], dtype=object)]
 )
-def test_to_numpy_copy(arr, as_series):
+def test_to_numpy_copy(arr, as_series, using_infer_string):
     obj = pd.Index(arr, copy=False)
     if as_series:
         obj = Series(obj.values, copy=False)
 
     # no copy by default
     result = obj.to_numpy()
-    assert np.shares_memory(arr, result) is True
+    if using_infer_string and arr.dtype == object:
+        assert np.shares_memory(arr, result) is False
+    else:
+        assert np.shares_memory(arr, result) is True
 
     result = obj.to_numpy(copy=False)
-    assert np.shares_memory(arr, result) is True
+    if using_infer_string and arr.dtype == object:
+        assert np.shares_memory(arr, result) is False
+    else:
+        assert np.shares_memory(arr, result) is True
 
     # copy=True
     result = obj.to_numpy(copy=True)
@@ -492,22 +499,23 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data, expected_data",
     [
         (
             {"a": pd.array([1, 2, None])},
-            np.array([[1.0], [2.0], [np.nan]], dtype=float),
+            [[1.0], [2.0], [np.nan]],
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
-            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
+            [[1, 1], [2, 2], [3, 3]],
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, expected):
+def test_to_numpy_dataframe_single_block(data, expected_data):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
     result = df.to_numpy(dtype=float, na_value=np.nan)
+    expected = np.array(expected_data, dtype=float)
     tm.assert_numpy_array_equal(result, expected)
 
 

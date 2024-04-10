@@ -44,8 +44,9 @@ and consult the ``Linux`` instructions below.
 **macOS**
 
 To use the :ref:`mamba <contributing.mamba>`-based compilers, you will need to install the
-Developer Tools using ``xcode-select --install``. Otherwise
-information about compiler installation can be found here:
+Developer Tools using ``xcode-select --install``.
+
+If you prefer to use a different compiler, general information can be found here:
 https://devguide.python.org/setup/#macos
 
 **Linux**
@@ -86,12 +87,12 @@ Before we begin, please:
 Option 1: using mamba (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Install `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
+* Install miniforge to get `mamba <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
 * Make sure your mamba is up to date (``mamba update mamba``)
+* Create and activate the ``pandas-dev`` mamba environment using the following commands:
 
 .. code-block:: none
 
-   # Create and activate the build environment
    mamba env create --file environment.yml
    mamba activate pandas-dev
 
@@ -273,12 +274,20 @@ uses to import the extension from the build folder, which may cause errors such 
    You will need to repeat this step each time the C extensions change, for example
    if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
+**Checking the build**
+
 At this point you should be able to import pandas from your locally built version::
 
    $ python
    >>> import pandas
    >>> print(pandas.__version__)  # note: the exact output may differ
    2.0.0.dev0+880.g2b9e661fbb.dirty
+
+
+At this point you may want to try
+`running the test suite <https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#running-the-test-suite>`_.
+
+**Keeping up to date with the latest build**
 
 When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified.
 By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's

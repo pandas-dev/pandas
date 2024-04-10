@@ -39,6 +39,7 @@
 .mesonpy-native-file.ini
 MANIFEST
 compile_commands.json
+debug
 .debug
 
 # Python files #
@@ -104,10 +105,11 @@ scikits
 # Generated Sources #
 #####################
 !skts.c
-!np_datetime.c
-!np_datetime_strings.c
 *.c
 *.cpp
+!pandas/_libs/src/**/*.c
+!pandas/_libs/src/**/*.h
+!pandas/_libs/include/**/*.h
 
 # Unit / Performance Testing #
 ##############################

@@ -33,9 +33,10 @@ def test_index_unique(rand_series_with_duplicate_datetimeindex):
             datetime(2000, 1, 3),
             datetime(2000, 1, 4),
             datetime(2000, 1, 5),
-        ]
+        ],
+        dtype=index.dtype,
     )
-    assert uniques.dtype == "M8[ns]"  # sanity
+    assert uniques.dtype == index.dtype  # sanity
     tm.assert_index_equal(uniques, expected)
     assert index.nunique() == 4
 

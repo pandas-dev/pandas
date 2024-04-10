@@ -55,6 +55,6 @@ if pip show pandas 1>/dev/null; then
 fi
 
 echo "Install pandas"
-python -m pip install --no-build-isolation -ve .
+python -m pip install --no-build-isolation -ve . --config-settings=setup-args="--werror"
 
 echo "done"

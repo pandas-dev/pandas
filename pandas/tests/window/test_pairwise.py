@@ -62,9 +62,13 @@ def test_rolling_corr(series):
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
+
+def test_rolling_corr_bias_correction():
     # test for correct bias correction
-    a = tm.makeTimeSeries()
-    b = tm.makeTimeSeries()
+    a = Series(
+        np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+    )
+    b = a.copy()
     a[:5] = np.nan
     b[:10] = np.nan
 
@@ -92,11 +96,10 @@ def test_flex_binary_frame(method, frame):
     tm.assert_frame_equal(res, exp)
     tm.assert_frame_equal(res2, exp)
 
-    frame2 = frame.copy()
     frame2 = DataFrame(
-        np.random.default_rng(2).standard_normal(frame2.shape),
-        index=frame2.index,
-        columns=frame2.columns,
+        np.random.default_rng(2).standard_normal(frame.shape),
+        index=frame.index,
+        columns=frame.columns,
     )
 
     res3 = getattr(frame.rolling(window=10), method)(frame2)

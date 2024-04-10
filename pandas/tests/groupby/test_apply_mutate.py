@@ -14,12 +14,12 @@ def test_group_by_copy():
     ).set_index("name")
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         grp_by_same_value = df.groupby(["age"], group_keys=False).apply(
             lambda group: group
         )
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         grp_by_copy = df.groupby(["age"], group_keys=False).apply(
             lambda group: group.copy()
         )
@@ -54,9 +54,9 @@ def test_mutate_groups():
         return x.groupby("cat2")["rank"].min()
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         grpby_copy = df.groupby("cat1").apply(f_copy)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
     tm.assert_series_equal(grpby_copy, grpby_no_copy)
 
@@ -68,9 +68,9 @@ def test_no_mutate_but_looks_like():
     df = pd.DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
     tm.assert_series_equal(result1, result2)
 
@@ -86,7 +86,7 @@ def test_apply_function_with_indexing():
         return x.col2
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby(["col1"], as_index=False).apply(fn)
     expected = pd.Series(
         [1, 2, 0, 4, 5, 0],
@@ -96,66 +96,3 @@ def test_apply_function_with_indexing():
         name="col2",
     )
     tm.assert_series_equal(result, expected)
-
-
-def test_apply_mutate_columns_multiindex():
-    # GH 12652
-    df = pd.DataFrame(
-        {
-            ("C", "julian"): [1, 2, 3],
-            ("B", "geoffrey"): [1, 2, 3],
-            ("A", "julian"): [1, 2, 3],
-            ("B", "julian"): [1, 2, 3],
-            ("A", "geoffrey"): [1, 2, 3],
-            ("C", "geoffrey"): [1, 2, 3],
-        },
-        columns=pd.MultiIndex.from_tuples(
-            [
-                ("A", "julian"),
-                ("A", "geoffrey"),
-                ("B", "julian"),
-                ("B", "geoffrey"),
-                ("C", "julian"),
-                ("C", "geoffrey"),
-            ]
-        ),
-    )
-
-    def add_column(grouped):
-        name = grouped.columns[0][1]
-        grouped["sum", name] = grouped.sum(axis=1)
-        return grouped
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=1, axis=1)
-    result = gb.apply(add_column)
-    expected = pd.DataFrame(
-        [
-            [1, 1, 1, 3, 1, 1, 1, 3],
-            [2, 2, 2, 6, 2, 2, 2, 6],
-            [
-                3,
-                3,
-                3,
-                9,
-                3,
-                3,
-                3,
-                9,
-            ],
-        ],
-        columns=pd.MultiIndex.from_tuples(
-            [
-                ("geoffrey", "A", "geoffrey"),
-                ("geoffrey", "B", "geoffrey"),
-                ("geoffrey", "C", "geoffrey"),
-                ("geoffrey", "sum", "geoffrey"),
-                ("julian", "A", "julian"),
-                ("julian", "B", "julian"),
-                ("julian", "C", "julian"),
-                ("julian", "sum", "julian"),
-            ]
-        ),
-    )
-    tm.assert_frame_equal(result, expected)

@@ -290,7 +290,7 @@ def test_count():
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
         tm.assert_frame_equal(left, right)
 

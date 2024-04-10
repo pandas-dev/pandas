@@ -91,11 +91,30 @@ class TestSeriesCumulativeOps:
         result = getattr(ser, method)(skipna=skipna)
         tm.assert_series_equal(expected, result)
 
+    def test_cumsum_datetimelike(self):
+        # GH#57956
+        df = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(hours=-6), pd.Timedelta(hours=12)],
+            ]
+        )
+        result = df.cumsum()
+        expected = pd.DataFrame(
+            [
+                [pd.Timedelta(0), pd.Timedelta(days=1)],
+                [pd.Timedelta(days=2), pd.NaT],
+                [pd.Timedelta(days=1, hours=18), pd.Timedelta(days=1, hours=12)],
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "func, exp",
         [
-            ("cummin", pd.Period("2012-1-1", freq="D")),
-            ("cummax", pd.Period("2012-1-2", freq="D")),
+            ("cummin", "2012-1-1"),
+            ("cummax", "2012-1-2"),
         ],
     )
     def test_cummin_cummax_period(self, func, exp):
@@ -108,6 +127,7 @@ class TestSeriesCumulativeOps:
         tm.assert_series_equal(result, expected)
 
         result = getattr(ser, func)(skipna=True)
+        exp = pd.Period(exp, freq="D")
         expected = pd.Series([pd.Period("2012-1-1", freq="D"), pd.NaT, exp])
         tm.assert_series_equal(result, expected)
 

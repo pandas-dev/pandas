@@ -142,9 +142,10 @@ class TestPeriodIndex:
 
         # not in order
         result = _permute(index[:-5]).union(_permute(index[10:]), sort=sort)
-        if sort is None:
+        if sort is False:
+            tm.assert_index_equal(result.sort_values(), index)
+        else:
             tm.assert_index_equal(result, index)
-        assert tm.equalContents(result, index)
 
         # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
@@ -163,9 +164,10 @@ class TestPeriodIndex:
         left = _permute(index[:-5])
         right = _permute(index[10:])
         result = left.intersection(right, sort=sort)
-        if sort is None:
+        if sort is False:
+            tm.assert_index_equal(result.sort_values(), index[10:-5])
+        else:
             tm.assert_index_equal(result, index[10:-5])
-        assert tm.equalContents(result, index[10:-5])
 
         # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")

@@ -11,6 +11,6 @@ runs:
       with:
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
-        condarc-file: ci/condarc.yml
+        condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true

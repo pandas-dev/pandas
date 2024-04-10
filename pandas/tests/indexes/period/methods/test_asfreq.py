@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from pandas import (
@@ -6,6 +8,8 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+
+from pandas.tseries import offsets
 
 
 class TestPeriodIndex:
@@ -136,3 +140,40 @@ class TestPeriodIndex:
 
         excepted = Series([1, 2], index=PeriodIndex(["2020-02", "2020-04"], freq="M"))
         tm.assert_series_equal(result, excepted)
+
+    @pytest.mark.parametrize(
+        "freq, is_str",
+        [
+            ("2BMS", True),
+            ("2YS-MAR", True),
+            ("2bh", True),
+            (offsets.MonthBegin(2), False),
+            (offsets.BusinessMonthEnd(2), False),
+        ],
+    )
+    def test_pi_asfreq_not_supported_frequency(self, freq, is_str):
+        # GH#55785, GH#56945
+        if is_str:
+            msg = f"{freq[1:]} is not supported as period frequency"
+        else:
+            msg = re.escape(f"{freq} is not supported as period frequency")
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            "2BME",
+            "2YE-MAR",
+            "2QE",
+        ],
+    )
+    def test_pi_asfreq_invalid_frequency(self, freq):
+        # GH#55785
+        msg = f"Invalid frequency: {freq}"
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)

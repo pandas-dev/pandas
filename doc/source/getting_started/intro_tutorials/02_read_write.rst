@@ -97,11 +97,11 @@ in this ``DataFrame`` are integers (``int64``), floats (``float64``) and
 strings (``object``).
 
 .. note::
-    When asking for the ``dtypes``, no brackets are used!
+    When asking for the ``dtypes``, no parentheses ``()`` are used!
     ``dtypes`` is an attribute of a ``DataFrame`` and ``Series``. Attributes
-    of a ``DataFrame`` or ``Series`` do not need brackets. Attributes
+    of a ``DataFrame`` or ``Series`` do not need ``()``. Attributes
     represent a characteristic of a ``DataFrame``/``Series``, whereas
-    methods (which require brackets) *do* something with the
+    methods (which require parentheses ``()``) *do* something with the
     ``DataFrame``/``Series`` as introduced in the :ref:`first tutorial <10min_tut_01_tableoriented>`.
 
 .. raw:: html

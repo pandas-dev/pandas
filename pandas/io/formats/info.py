@@ -72,7 +72,7 @@ frame_examples_sub = dedent(
     Prints information of all columns:
 
     >>> df.info(verbose=True)
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Data columns (total 3 columns):
      #   Column     Non-Null Count  Dtype
@@ -87,7 +87,7 @@ frame_examples_sub = dedent(
     information:
 
     >>> df.info(verbose=False)
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Columns: 3 entries, int_col to float_col
     dtypes: float64(1), int64(1), object(1)
@@ -115,7 +115,7 @@ frame_examples_sub = dedent(
     ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
     ... })
     >>> df.info()
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 1000000 entries, 0 to 999999
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
@@ -127,7 +127,7 @@ frame_examples_sub = dedent(
     memory usage: 22.9+ MB
 
     >>> df.info(memory_usage='deep')
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     RangeIndex: 1000000 entries, 0 to 999999
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
@@ -334,10 +334,10 @@ def _sizeof_fmt(num: float, size_qualifier: str) -> str:
 
     Examples
     --------
-    >>> _sizeof_fmt(23028, '')
+    >>> _sizeof_fmt(23028, "")
     '22.5 KB'
 
-    >>> _sizeof_fmt(23028, '+')
+    >>> _sizeof_fmt(23028, "+")
     '22.5+ KB'
     """
     for x in ["bytes", "KB", "MB", "GB", "TB"]:
@@ -392,7 +392,7 @@ class _BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int] | Series:
         """Sequence of non-null counts for all columns or column (if series)."""
 
     @property
@@ -486,7 +486,7 @@ class DataFrameInfo(_BaseInfo):
         return len(self.ids)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> Series:
         """Sequence of non-null counts for all columns or column (if series)."""
         return self.data.count()
 
@@ -546,7 +546,7 @@ class SeriesInfo(_BaseInfo):
         printer.to_buffer(buf)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int]:
         return [self.data.count()]
 
     @property
@@ -622,7 +622,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
     @property
     def max_rows(self) -> int:
         """Maximum info rows to be displayed."""
-        return get_option("display.max_info_rows", len(self.data) + 1)
+        return get_option("display.max_info_rows")
 
     @property
     def exceeds_info_cols(self) -> bool:
@@ -641,7 +641,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
 
     def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
-            return get_option("display.max_info_columns", self.col_count + 1)
+            return get_option("display.max_info_columns")
         return max_cols
 
     def _initialize_show_counts(self, show_counts: bool | None) -> bool:
@@ -750,7 +750,7 @@ class _TableBuilderAbstract(ABC):
         return self.info.memory_usage_string
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> list[int] | Series:
         return self.info.non_null_counts
 
     def add_object_type_line(self) -> None:

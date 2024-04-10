@@ -23,7 +23,7 @@ def test_insert(idx):
 
     exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
-    assert new_index.names == ["first", "second"]
+    assert new_index.names == ("first", "second")
 
     exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)

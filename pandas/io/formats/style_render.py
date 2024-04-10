@@ -140,8 +140,14 @@ class StylerRenderer:
         self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
+            int, Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
+            int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render(
@@ -314,9 +320,9 @@ class StylerRenderer:
             max_cols,
         )
 
-        self.cellstyle_map_columns: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_columns: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
@@ -329,9 +335,9 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        self.cellstyle_map_index: DefaultDict[
-            tuple[CSSPair, ...], list[str]
-        ] = defaultdict(list)
+        self.cellstyle_map_index: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+            defaultdict(list)
+        )
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
@@ -460,6 +466,12 @@ class StylerRenderer:
         ] * (self.index.nlevels - sum(self.hide_index_) - 1)
 
         name = self.data.columns.names[r]
+
+        is_display = name is not None and not self.hide_column_names
+        value = name if is_display else self.css["blank_value"]
+        display_value = (
+            self._display_funcs_column_names[r](value) if is_display else None
+        )
         column_name = [
             _element(
                 "th",
@@ -468,10 +480,9 @@ class StylerRenderer:
                     if name is None
                     else f"{self.css['index_name']} {self.css['level']}{r}"
                 ),
-                name
-                if (name is not None and not self.hide_column_names)
-                else self.css["blank_value"],
+                value,
                 not all(self.hide_index_),
+                display_value=display_value,
             )
         ]
 
@@ -553,6 +564,9 @@ class StylerRenderer:
                 f"{self.css['index_name']} {self.css['level']}{c}",
                 self.css["blank_value"] if name is None else name,
                 not self.hide_index_[c],
+                display_value=(
+                    None if name is None else self._display_funcs_index_names[c](name)
+                ),
             )
             for c, name in enumerate(self.data.index.names)
         ]
@@ -776,9 +790,9 @@ class StylerRenderer:
             )
 
             if self.cell_ids:
-                header_element[
-                    "id"
-                ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                header_element["id"] = (
+                    f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+                )
             if (
                 header_element_visible
                 and (r, c) in self.ctx_index
@@ -1005,6 +1019,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1063,15 +1078,15 @@ class StylerRenderer:
 
         Using a ``formatter`` specification on consistent column dtypes
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0, 1])  # doctest: +SKIP
                 0      1          2
         0    MISS   1.00          A
         1    2.00   MISS   3.000000
 
         Using the default ``formatter`` for unspecified columns
 
-        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
-        ...  # doctest: +SKIP
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'},
+        ...                 na_rep='MISS', precision=1)  # doctest: +SKIP
                  0      1     2
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
@@ -1079,8 +1094,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0]).format(
+        ...     na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -1088,8 +1103,8 @@ class StylerRenderer:
         Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
-        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
-        ...  # doctest: +SKIP
+        >>> df.style.format({0: '{:.1f}', 2: func},
+        ...                 precision=4, na_rep='MISS')  # doctest: +SKIP
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
@@ -1098,8 +1113,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
         >>> s = df.style.format(
-        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
-        ...     )
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA")
         >>> s.to_html()  # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
@@ -1110,8 +1124,8 @@ class StylerRenderer:
         Using a ``formatter`` with ``escape`` in 'latex' mode.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
-        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
-        ...  # doctest: +SKIP
+        >>> df.style.format("\\textbf{{{}}}",
+        ...                 escape="latex").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbf{123} \\
@@ -1122,10 +1136,10 @@ class StylerRenderer:
         Applying ``escape`` in 'latex-math' mode. In the example below
         we enter math mode using the character ``$``.
 
-        >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
-        ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df = pd.DataFrame([
+        ...     [r"$\sum_{i=1}^{10} a_i$ a~b $\alpha = \frac{\beta}{\zeta^2}$"],
+        ...     [r"%#^ $ \$x^2 $"]])
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
@@ -1135,10 +1149,10 @@ class StylerRenderer:
         We can use the character ``\(`` to enter math mode and the character ``\)``
         to close math mode.
 
-        >>> df = pd.DataFrame([[r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha \
-        ...     = \frac{\beta}{\zeta^2}\)"], ["%#^ \( \$x^2 \)"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df = pd.DataFrame([
+        ...     [r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha = \frac{\beta}{\zeta^2}\)"],
+        ...     [r"%#^ \( \$x^2 \)"]])
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \(\sum_{i=1}^{10} a_i\) a\textasciitilde b \(\alpha
@@ -1149,10 +1163,10 @@ class StylerRenderer:
         If we have in one DataFrame cell a combination of both shorthands
         for math formulas, the shorthand with the sign ``$`` will be applied.
 
-        >>> df = pd.DataFrame([[r"\( x^2 \)  $x^2$"], \
+        >>> df = pd.DataFrame([
+        ...     [r"\( x^2 \)  $x^2$"],
         ...     [r"$\frac{\beta}{\zeta}$ \(\frac{\beta}{\zeta}\)"]])
-        >>> df.style.format(escape="latex-math").to_latex()
-        ...  # doctest: +SKIP
+        >>> df.style.format(escape="latex-math").to_latex()  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbackslash ( x\textasciicircum 2 \textbackslash )  $x^2$ \\
@@ -1169,7 +1183,7 @@ class StylerRenderer:
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
         >>> filename = "formatted_file.xlsx"
-        >>> df.style.map(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
+        >>> df.style.map(lambda v: pseudo_css).to_excel(filename)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1262,6 +1276,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1318,9 +1333,10 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified levels
 
         >>> df = pd.DataFrame([[1, 2, 3]],
-        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        ...                   columns=pd.MultiIndex.from_arrays(
+        ...                   [["a", "a", "b"], [2, np.nan, 4]]))
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                        A       B
               2.0    nan     4.0
         0       1      2       3
@@ -1329,7 +1345,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format_index(func, axis=1, na_rep='MISS')
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                   STRING  STRING
             FLOAT   MISS   FLOAT
         0       1      2       3
@@ -1338,7 +1354,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1348,7 +1364,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
         >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         \begin{tabular}{lrrr}
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\
@@ -1425,6 +1441,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1449,10 +1466,10 @@ class StylerRenderer:
 
             # relabel first, then hide
             df = pd.DataFrame({"col": ["a", "b", "c"]})
-            df.style.relabel_index(["A", "B", "C"]).hide([0,1])
+            df.style.relabel_index(["A", "B", "C"]).hide([0, 1])
             # hide first, then relabel
             df = pd.DataFrame({"col": ["a", "b", "c"]})
-            df.style.hide([0,1]).relabel_index(["C"])
+            df.style.hide([0, 1]).relabel_index(["C"])
 
         This method should be used, rather than :meth:`Styler.format_index`, in one of
         the following cases (see examples):
@@ -1475,7 +1492,7 @@ class StylerRenderer:
 
         Chaining with pre-hidden elements
 
-        >>> df.style.hide([0,1]).relabel_index(["C"])  # doctest: +SKIP
+        >>> df.style.hide([0, 1]).relabel_index(["C"])  # doctest: +SKIP
              col
         C      c
 
@@ -1493,9 +1510,11 @@ class StylerRenderer:
               1     5
            1  0     6
               1     7
-        >>> styler.hide((midx.get_level_values(0)==0)|(midx.get_level_values(1)==0))
-        ...  # doctest: +SKIP
-        >>> styler.hide(level=[0,1])  # doctest: +SKIP
+        >>> styler.hide(
+        ...     (midx.get_level_values(0) == 0) | (midx.get_level_values(1) == 0)
+        ... )
+        ... # doctest: +SKIP
+        >>> styler.hide(level=[0, 1])  # doctest: +SKIP
         >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
                   col
         binary6     6
@@ -1503,9 +1522,9 @@ class StylerRenderer:
 
         We can also achieve the above by indexing first and then re-labeling
 
-        >>> styler = df.loc[[(1,1,0), (1,1,1)]].style
-        >>> styler.hide(level=[0,1]).relabel_index(["binary6", "binary7"])
-        ...  # doctest: +SKIP
+        >>> styler = df.loc[[(1, 1, 0), (1, 1, 1)]].style
+        >>> styler.hide(level=[0, 1]).relabel_index(["binary6", "binary7"])
+        ... # doctest: +SKIP
                   col
         binary6     6
         binary7     7
@@ -1516,9 +1535,9 @@ class StylerRenderer:
         brackets if the string if pre-formatted),
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
-        >>> styler = df.loc[np.random.randint(0,10,3)].style
+        >>> styler = df.loc[np.random.randint(0, 10, 3)].style
         >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811
         sample2 (0)     0.495941
@@ -1558,6 +1577,140 @@ class StylerRenderer:
 
         return self
 
+    def format_index_names(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: Axis = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+        hyperlinks: str | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Format the text display value of index names or column names.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : {0, "index", 1, "columns"}
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers.
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers.
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
+
+        Returns
+        -------
+        Styler
+            Returns itself for chaining.
+
+        Raises
+        ------
+        ValueError
+            If the `formatter` is a string and the dtypes are incompatible.
+
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index labels
+            or column headers.
+
+        Notes
+        -----
+        This method has a similar signature to :meth:`Styler.format_index`. Since
+        `names` are generally label based, and often not numeric, the typical features
+        expected to be more frequently used here are ``escape`` and ``hyperlinks``.
+
+        .. warning::
+            `Styler.format_index_names` is ignored when using the output format
+            `Styler.to_excel`, since Excel and Python have inherrently different
+            formatting structures.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [3, 4]],
+        ...     index=pd.Index(["a", "b"], name="idx"),
+        ... )
+        >>> df  # doctest: +SKIP
+             0  1
+        idx
+        a    1  2
+        b    3  4
+        >>> df.style.format_index_names(lambda x: x.upper(), axis=0)  # doctest: +SKIP
+             0  1
+        IDX
+        a    1  2
+        b    3  4
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index_names, self.index
+        else:
+            display_funcs_, obj = self._display_funcs_column_names, self.columns
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                level is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+                hyperlinks is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for lvl in levels_:
+            format_func = _maybe_wrap_formatter(
+                formatter.get(lvl),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+                hyperlinks=hyperlinks,
+            )
+            display_funcs_[lvl] = format_func
+
+        return self
+
 
 def _element(
     html_element: str,
@@ -1569,7 +1722,7 @@ def _element(
     """
     Template to return container with information for a <td></td> or <th></th> element.
     """
-    if "display_value" not in kwargs:
+    if "display_value" not in kwargs or kwargs["display_value"] is None:
         kwargs["display_value"] = value
     return {
         "type": html_element,
@@ -1921,11 +2074,11 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 for x in s
                 if x.strip() != ""
             ]
-        except IndexError:
+        except IndexError as err:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            )
+            ) from err
     return style
 
 
@@ -1977,6 +2130,11 @@ class Tooltips:
     tooltips: DataFrame, default empty
         DataFrame of strings aligned with underlying Styler data for tooltip
         display.
+    as_title_attribute: bool, default False
+        Flag to use title attribute based tooltips (True) or <span> based
+        tooltips (False).
+        Add the tooltip text as title attribute to resultant <td> element. If
+        True, no CSS is generated and styling effects do not apply.
 
     Notes
     -----
@@ -1995,7 +2153,7 @@ class Tooltips:
 
     def __init__(
         self,
-        css_props: CSSProperties = [
+        css_props: CSSProperties = [  # noqa: B006
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
@@ -2005,11 +2163,13 @@ class Tooltips:
         ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
+        as_title_attribute: bool = False,
     ) -> None:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips
         self.table_styles: CSSStyles = []
+        self.as_title_attribute = as_title_attribute
 
     @property
     def _class_styles(self):
@@ -2029,7 +2189,9 @@ class Tooltips:
             }
         ]
 
-    def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
+    def _pseudo_css(
+        self, uuid: str, name: str, row: int, col: int, text: str
+    ) -> list[CSSDict]:
         """
         For every table data-cell that has a valid tooltip (not None, NaN or
         empty string) must create two pseudo CSS entries for the specific
@@ -2097,35 +2259,53 @@ class Tooltips:
         if self.tt_data.empty:
             return d
 
-        name = self.class_name
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
-        self.table_styles = [
-            style
-            for sublist in [
-                self._pseudo_css(styler.uuid, name, i, j, str(self.tt_data.iloc[i, j]))
-                for i in range(len(self.tt_data.index))
-                for j in range(len(self.tt_data.columns))
-                if not (
-                    mask.iloc[i, j]
-                    or i in styler.hidden_rows
-                    or j in styler.hidden_columns
-                )
+        # this conditional adds tooltips via pseudo css and <span> elements.
+        if not self.as_title_attribute:
+            name = self.class_name
+            self.table_styles = [
+                style
+                for sublist in [
+                    self._pseudo_css(
+                        styler.uuid, name, i, j, str(self.tt_data.iloc[i, j])
+                    )
+                    for i in range(len(self.tt_data.index))
+                    for j in range(len(self.tt_data.columns))
+                    if not (
+                        mask.iloc[i, j]
+                        or i in styler.hidden_rows
+                        or j in styler.hidden_columns
+                    )
+                ]
+                for style in sublist
             ]
-            for style in sublist
-        ]
 
-        if self.table_styles:
-            # add span class to every cell only if at least 1 non-empty tooltip
-            for row in d["body"]:
-                for item in row:
-                    if item["type"] == "td":
-                        item["display_value"] = (
-                            str(item["display_value"])
-                            + f'<span class="{self.class_name}"></span>'
-                        )
-            d["table_styles"].extend(self._class_styles)
-            d["table_styles"].extend(self.table_styles)
-
+            # add span class to every cell since there is at least 1 non-empty tooltip
+            if self.table_styles:
+                for row in d["body"]:
+                    for item in row:
+                        if item["type"] == "td":
+                            item["display_value"] = (
+                                str(item["display_value"])
+                                + f'<span class="{self.class_name}"></span>'
+                            )
+                d["table_styles"].extend(self._class_styles)
+                d["table_styles"].extend(self.table_styles)
+        # this conditional adds tooltips as extra "title" attribute on a <td> element
+        else:
+            index_offset = self.tt_data.index.nlevels
+            body = d["body"]
+            for i in range(len(self.tt_data.index)):
+                for j in range(len(self.tt_data.columns)):
+                    if (
+                        not mask.iloc[i, j]
+                        or i in styler.hidden_rows
+                        or j in styler.hidden_columns
+                    ):
+                        row = body[i]
+                        item = row[j + index_offset]
+                        value = self.tt_data.iloc[i, j]
+                        item["attributes"] += f' title="{value}"'
         return d
 
 
@@ -2151,10 +2331,12 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
 
     Examples
     --------
-    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
-    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
-    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
-    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    >>> table_styles = [
+    ...     {"selector": "foo", "props": [("attr", "value")]},
+    ...     {"selector": "bar", "props": [("attr", "overwritten")]},
+    ...     {"selector": "bar", "props": [("a1", "baz"), ("a2", "ignore")]},
+    ... ]
+    >>> _parse_latex_table_styles(table_styles, selector="bar")
     'baz'
 
     Notes
@@ -2238,8 +2420,8 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
-    >>> _parse_latex_header_span(cell, 't', 'c')
+    >>> cell = {"cellstyle": "", "display_value": "text", "attributes": 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, "t", "c")
     '\\multicolumn{3}{c}{text}'
     """
     display_val = _parse_latex_cell_styles(
@@ -2288,12 +2470,12 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
     """
 
-    def font_weight(value, arg):
+    def font_weight(value, arg) -> tuple[str, str] | None:
         if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
-    def font_style(value, arg):
+    def font_style(value, arg) -> tuple[str, str] | None:
         if value == "italic":
             return "itshape", f"{arg}"
         if value == "oblique":

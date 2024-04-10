@@ -9,7 +9,6 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("tz", [None, "Asia/Shanghai", "Europe/Berlin"])
 @pytest.mark.parametrize("name", [None, "my_dti"])
-@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
 def test_dti_snap(name, tz, unit):
     dti = DatetimeIndex(
         [

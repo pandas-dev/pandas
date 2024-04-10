@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas import (
     NA,
@@ -22,6 +22,9 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
+)
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
@@ -132,15 +135,13 @@ def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
-    expected = Series([1, 1, 3, 3], index=new_index)
+    expected = Series([1, 1, 3, 3.0], index=new_index)
 
     # this changes dtype because the ffill happens after
     result = s.reindex(new_index).ffill()
-    tm.assert_series_equal(result, expected.astype("float64"))
+    tm.assert_series_equal(result, expected)
 
-    msg = "The 'downcast' keyword in ffill is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.reindex(new_index).ffill(downcast="infer")
+    result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
@@ -152,20 +153,16 @@ def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
-    msg = "Downcasting object dtype arrays on"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.reindex(list(new_index)).ffill()
-    expected = Series([True, True, False], index=list(new_index))
+    result = s.reindex(list(new_index)).ffill()
+    expected = Series([True, True, False], index=list(new_index), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(5))
-    msg = "Downcasting object dtype arrays on"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.shift(1).bfill()
-    expected = Series(False, index=range(5))
+    result = s.shift(1).bfill()
+    expected = Series(False, index=range(5), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -310,10 +307,9 @@ def test_reindex_fill_value():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
-def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
     # https://github.com/pandas-dev/pandas/issues/42921
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test

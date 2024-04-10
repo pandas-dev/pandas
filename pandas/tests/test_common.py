@@ -171,10 +171,10 @@ def test_version_tag():
     version = Version(pd.__version__)
     try:
         version > Version("0.0.1")
-    except TypeError:
+    except TypeError as err:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
-        )
+        ) from err
 
 
 @pytest.mark.parametrize(
@@ -204,18 +204,6 @@ class TestIsBoolIndexer:
 
         val = MyList([True])
         assert com.is_bool_indexer(val)
-
-    def test_frozenlist(self):
-        # GH#42461
-        data = {"col1": [1, 2], "col2": [3, 4]}
-        df = pd.DataFrame(data=data)
-
-        frozen = df.index.names[1:]
-        assert not com.is_bool_indexer(frozen)
-
-        result = df[frozen]
-        expected = df[[]]
-        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("with_exception", [True, False])

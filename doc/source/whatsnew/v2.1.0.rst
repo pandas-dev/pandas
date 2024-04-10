@@ -67,7 +67,7 @@ DataFrame reductions preserve extension dtypes
 
 In previous versions of pandas, the results of DataFrame reductions
 (:meth:`DataFrame.sum` :meth:`DataFrame.mean` etc.) had NumPy dtypes, even when the DataFrames
-were of extension dtypes. Pandas can now keep the dtypes when doing reductions over DataFrame
+were of extension dtypes. pandas can now keep the dtypes when doing reductions over DataFrame
 columns with a common dtype (:issue:`52788`).
 
 *Old Behavior*
@@ -432,7 +432,7 @@ In a future version, these will raise an error and you should cast to a common d
 
   In [3]: ser[0] = 'not an int64'
   FutureWarning:
-    Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas.
+    Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas.
     Value 'not an int64' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
 
   In [4]: ser

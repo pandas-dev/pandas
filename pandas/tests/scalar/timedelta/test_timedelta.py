@@ -1,4 +1,5 @@
-""" test the scalar Timedelta """
+"""test the scalar Timedelta"""
+
 from datetime import timedelta
 import sys
 
@@ -551,6 +552,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
+    @pytest.mark.skip_ubsan
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
     )
@@ -662,4 +664,11 @@ def test_timedelta_attribute_precision():
     result *= 1000
     result += td.nanoseconds
     expected = td._value
+    assert result == expected
+
+
+def test_to_pytimedelta_large_values():
+    td = Timedelta(1152921504609987375, unit="ns")
+    result = td.to_pytimedelta()
+    expected = timedelta(days=13343, seconds=86304, microseconds=609987)
     assert result == expected

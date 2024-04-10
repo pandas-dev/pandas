@@ -10,8 +10,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SeriesConstructor:
     def setup(self):
@@ -253,7 +251,7 @@ class ModeObjectDropNAFalse:
 
 class Dir:
     def setup(self):
-        self.s = Series(index=tm.makeStringIndex(10000))
+        self.s = Series(index=Index([f"i-{i}" for i in range(10000)], dtype=object))
 
     def time_dir_strings(self):
         dir(self.s)

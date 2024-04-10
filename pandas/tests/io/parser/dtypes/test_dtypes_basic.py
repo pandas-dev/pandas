@@ -2,6 +2,7 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
+
 from collections import defaultdict
 from io import StringIO
 
@@ -132,15 +133,12 @@ def test_dtype_with_converters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-)
-def test_numeric_dtype(all_parsers, dtype):
+def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
     data = "0\n1"
     parser = all_parsers
-    expected = DataFrame([0, 1], dtype=dtype)
+    expected = DataFrame([0, 1], dtype=any_real_numpy_dtype)
 
-    result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
+    result = parser.read_csv(StringIO(data), header=None, dtype=any_real_numpy_dtype)
     tm.assert_frame_equal(expected, result)
 
 
@@ -531,6 +529,9 @@ def test_dtype_backend_pyarrow(all_parsers, request):
     tm.assert_frame_equal(result, expected)
 
 
+# pyarrow engine failing:
+# https://github.com/pandas-dev/pandas/issues/56136
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_ea_int_avoid_overflow(all_parsers):
     # GH#32134
     parser = all_parsers
@@ -567,6 +568,41 @@ y,2
     expected = DataFrame(
         {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
         columns=pd.Index(["a", "b"], dtype=dtype),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
+def test_string_inference_object_dtype(all_parsers, dtype):
+    # GH#56047
+    pytest.importorskip("pyarrow")
+
+    data = """a,b
+x,a
+y,a
+z,a"""
+    parser = all_parsers
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype=object),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
 

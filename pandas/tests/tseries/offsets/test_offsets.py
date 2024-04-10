@@ -1,6 +1,7 @@
 """
 Tests of pandas.tseries.offsets
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -25,7 +26,6 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import PerformanceWarning
 
 from pandas import (
     DataFrame,
@@ -100,6 +100,33 @@ def _create_offset(klass, value=1, normalize=False):
     else:
         klass = klass(value, normalize=normalize)
     return klass
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if issubclass(getattr(offsets, o), liboffsets.MonthOffset)
+        and o != "MonthOffset"
+    ]
+)
+def month_classes(request):
+    """
+    Fixture for month based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+    ]
+)
+def offset_types(request):
+    """
+    Fixture for all the datetime offsets available for a time series.
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -229,18 +256,9 @@ class TestCommon:
         assert result == expected
 
         # see gh-14101
-        exp_warning = None
         ts = Timestamp(dt) + Nano(5)
-
-        if (
-            type(offset_s).__name__ == "DateOffset"
-            and (funcname in ["apply", "_apply"] or normalize)
-            and ts.nanosecond > 0
-        ):
-            exp_warning = UserWarning
-
         # test nanosecond is preserved
-        with tm.assert_produces_warning(exp_warning):
+        with tm.assert_produces_warning(None):
             result = func(ts)
 
         assert isinstance(result, Timestamp)
@@ -274,18 +292,9 @@ class TestCommon:
             assert result == expected_localize
 
             # see gh-14101
-            exp_warning = None
             ts = Timestamp(dt, tz=tz) + Nano(5)
-
-            if (
-                type(offset_s).__name__ == "DateOffset"
-                and (funcname in ["apply", "_apply"] or normalize)
-                and ts.nanosecond > 0
-            ):
-                exp_warning = UserWarning
-
             # test nanosecond is preserved
-            with tm.assert_produces_warning(exp_warning):
+            with tm.assert_produces_warning(None):
                 result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
@@ -491,14 +500,15 @@ class TestCommon:
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
+    def test_add_empty_datetimeindex(
+        self, performance_warning, offset_types, tz_naive_fixture
+    ):
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture)
+        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
-        warn = None
-        if isinstance(
+        if not isinstance(
             offset_s,
             (
                 Easter,
@@ -514,23 +524,31 @@ class TestCommon:
             ),
         ):
             # We don't have an optimized apply_index
-            warn = PerformanceWarning
+            performance_warning = False
 
         # stacklevel checking is slow, and we have ~800 of variants of this
         #  test, so let's only check the stacklevel in a subset of them
         check_stacklevel = tz_naive_fixture is None
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=check_stacklevel
+        ):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
@@ -614,10 +632,6 @@ class TestDateOffset:
 
     def test_default_constructor(self, dt):
         assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
-
-    def test_is_anchored(self):
-        assert not DateOffset(2).is_anchored()
-        assert DateOffset(1).is_anchored()
 
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
@@ -786,10 +800,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = _get_offset(name)
-        assert offset == expected, (
-            f"Expected {repr(name)} to yield {repr(expected)} "
-            f"(actual: {repr(offset)})"
-        )
+        assert (
+            offset == expected
+        ), f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
 
 
 def test_get_offset_legacy():
@@ -838,7 +851,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["YE", "YS", "BY", "BYS", "QE", "QS", "BQ", "BQS"]
+        base_lst = ["YE", "YS", "BYE", "BYS", "QE", "QS", "BQE", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -857,7 +870,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["YE", "YS", "BY", "BYS", "QE", "BQ", "BQS", "QS"]
+        month_prefixes = ["YE", "YS", "BYE", "BYS", "QE", "BQE", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -1010,6 +1023,14 @@ def test_dateoffset_add_sub_timestamp_with_nano():
     result = offset + ts
     assert result == expected
 
+    offset2 = DateOffset(minutes=2, nanoseconds=9, hour=1)
+    assert offset2._use_relativedelta
+    with tm.assert_produces_warning(None):
+        # no warning about Discarding nonzero nanoseconds
+        result2 = ts + offset2
+    expected2 = Timestamp("1970-01-01 01:02:00.000000013")
+    assert result2 == expected2
+
 
 @pytest.mark.parametrize(
     "attribute",
@@ -1099,7 +1120,7 @@ def test_offset_multiplication(
     tm.assert_series_equal(resultarray, expectedarray)
 
 
-def test_dateoffset_operations_on_dataframes():
+def test_dateoffset_operations_on_dataframes(performance_warning):
     # GH 47953
     df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
     frameresult1 = df["T"] + 26 * df["D"]
@@ -1110,7 +1131,7 @@ def test_dateoffset_operations_on_dataframes():
         }
     )
     expecteddate = Timestamp("2021-06-30")
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         frameresult2 = df2["T"] + 26 * df2["D"]
 
     assert frameresult1[0] == expecteddate
@@ -1122,7 +1143,7 @@ def test_is_yqm_start_end():
     bm = to_offset("BME")
     qfeb = to_offset("QE-FEB")
     qsfeb = to_offset("QS-FEB")
-    bq = to_offset("BQ")
+    bq = to_offset("BQE")
     bqs_apr = to_offset("BQS-APR")
     as_nov = to_offset("YS-NOV")
 

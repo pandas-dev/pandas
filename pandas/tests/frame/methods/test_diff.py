@@ -89,7 +89,7 @@ class TestDataFrameDiff:
         # diff on NaT values should give NaT, not timedelta64(0)
         dti = date_range("2016-01-01", periods=4, tz=tz)
         ser = Series(dti)
-        df = ser.to_frame()
+        df = ser.to_frame().copy()
 
         df[1] = ser.copy()
 
