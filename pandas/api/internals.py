@@ -23,7 +23,8 @@ def create_dataframe_from_blocks(
     subsequent operations on the resulting DataFrame might lead to strange
     errors.
     For almost all use cases, you should use the standard pd.DataFrame(..)
-    constructor instead.
+    constructor instead. If you are planning to use this function, let us
+    know by opening an issue at https://github.com/pandas-dev/pandas/issues.
 
     Assumptions:
 
