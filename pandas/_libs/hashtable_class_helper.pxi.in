@@ -1179,7 +1179,8 @@ cdef class StringHashTable(HashTable):
         use_na_value = na_value is not None
 
         # assign pointers and pre-filter out missing (if ignore_na)
-        keep_rval_refs = []
+        # https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html#caveats-when-using-a-python-string-in-a-c-context
+        keep_bad_unicode_refs = []
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
@@ -1199,7 +1200,7 @@ cdef class StringHashTable(HashTable):
                     v = get_c_string(<str>val)
                 except UnicodeEncodeError:
                     rval = <str>repr(val)
-                    keep_rval_refs.append(rval)
+                    keep_bad_unicode_refs.append(rval)
                     v = get_c_string(rval)
                 vecs[i] = v
 
@@ -1226,6 +1227,8 @@ cdef class StringHashTable(HashTable):
                     idx = self.table.vals[k]
                     labels[i] = idx
 
+        keep_bad_unicode_refs.clear()
+        del keep_bad_unicode_refs
         free(vecs)
 
         # uniques
