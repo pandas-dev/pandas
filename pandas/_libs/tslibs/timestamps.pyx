@@ -1793,11 +1793,6 @@ class Timestamp(_Timestamp):
             if tz is not None:
                 raise ValueError("Can provide at most one of tz, tzinfo")
 
-            if explicit_tz_none:
-                raise ValueError(
-                    "Passed data is timezone-aware, incompatible with 'tz=None'."
-                )
-
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
@@ -1876,14 +1871,9 @@ class Timestamp(_Timestamp):
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
 
-        if getattr(ts_input, "tzinfo", None) is not None:
-            if tz is not None:
-                raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
-                                 "the tz parameter. Use tz_convert instead.")
-            if explicit_tz_none:
-                raise ValueError(
-                    "Passed data is timezone-aware, incompatible with 'tz=None'."
-                )
+        if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
+            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
+                             "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
 

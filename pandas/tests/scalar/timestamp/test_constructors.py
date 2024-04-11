@@ -621,7 +621,6 @@ class TestTimestampConstructors:
         ]
 
         timezones = [
-            (None, 0),
             ("UTC", 0),
             (pytz.utc, 0),
             ("Asia/Tokyo", 9),
