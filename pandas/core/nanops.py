@@ -745,6 +745,10 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     >>> s = pd.Series([1, np.nan, 2, 2])
     >>> nanops.nanmedian(s.values)
     2.0
+
+    >>> s = pd.Series([np.nan, np.nan, np.nan])
+    >>> nanops.nanmedian(s.values)
+    nan
     """
     # for floats without mask, the data already uses NaN as missing value
     # indicator, and `mask` will be calculated from that below -> in those
@@ -763,6 +767,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
             )
+            warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
             res = np.nanmedian(x[_mask])
         return res
 
@@ -1428,20 +1433,15 @@ def _maybe_arg_null_out(
         return result
 
     if axis is None or not getattr(result, "ndim", False):
-        if skipna:
-            if mask.all():
-                raise ValueError("Encountered all NA values")
-        else:
-            if mask.any():
-                raise ValueError("Encountered an NA value with skipna=False")
-    else:
-        na_mask = mask.all(axis)
-        if na_mask.any():
+        if skipna and mask.all():
             raise ValueError("Encountered all NA values")
-        elif not skipna:
-            na_mask = mask.any(axis)
-            if na_mask.any():
-                raise ValueError("Encountered an NA value with skipna=False")
+        elif not skipna and mask.any():
+            raise ValueError("Encountered an NA value with skipna=False")
+    else:
+        if skipna and mask.all(axis).any():
+            raise ValueError("Encountered all NA values")
+        elif not skipna and mask.any(axis).any():
+            raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

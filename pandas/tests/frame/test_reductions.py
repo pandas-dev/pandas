@@ -1066,7 +1066,7 @@ class TestDataFrameAnalytics:
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
             if (not skipna or axis == 1) and df is not int_frame:
-                if axis == 1:
+                if skipna:
                     msg = "Encountered all NA values"
                 else:
                     msg = "Encountered an NA value"
@@ -1116,7 +1116,7 @@ class TestDataFrameAnalytics:
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
             if (skipna is False or axis == 1) and df is frame:
-                if axis == 1:
+                if skipna:
                     msg = "Encountered all NA values"
                 else:
                     msg = "Encountered an NA value"
