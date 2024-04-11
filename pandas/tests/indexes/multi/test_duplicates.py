@@ -112,7 +112,7 @@ def test_duplicate_multiindex_codes():
         mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
 
 
-@pytest.mark.parametrize("names", [("a", "b", "a"), (1, 1, 2), (1, "a", 1)])
+@pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
 def test_duplicate_level_names(names):
     # GH18872, GH19029
     mi = MultiIndex.from_product([[0, 1]] * 3, names=names)

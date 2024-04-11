@@ -135,7 +135,7 @@ class TestCrosstab:
         result = crosstab(a, [b, c], rownames=["a"], colnames=("b", "c"), margins=True)
 
         assert result.index.names == ("a",)
-        assert result.columns.names == ("b", "c")
+        assert result.columns.names == ["b", "c"]
 
         all_cols = result["All", ""]
         exp_cols = df.groupby(["a"]).size().astype("i8")
@@ -173,7 +173,7 @@ class TestCrosstab:
         )
 
         assert result.index.names == ("a",)
-        assert result.columns.names == ("b", "c")
+        assert result.columns.names == ["b", "c"]
 
         all_cols = result["TOTAL", ""]
         exp_cols = df.groupby(["a"]).size().astype("i8")
