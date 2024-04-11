@@ -995,6 +995,11 @@ class DataFrame(NDFrame, OpsMixin):
         It has the row axis labels and column axis labels as the only members.
         They are returned in that order.
 
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.columns: The column labels of the DataFrame.
+
         Examples
         --------
         >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
