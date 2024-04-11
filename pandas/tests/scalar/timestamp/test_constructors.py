@@ -1013,6 +1013,15 @@ class TestTimestampConstructors:
         assert result.hour == expected.hour
         assert result == expected
 
+    def test_explicit_tz_none(self):
+        # GH#48688
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(datetime(2022, 1, 1, tzinfo=timezone.utc), tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2022-01-01 00:00:00", tzinfo=timezone.utc, tz=None)
+
 
 def test_constructor_ambiguous_dst():
     # GH 24329
