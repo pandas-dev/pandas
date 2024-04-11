@@ -1,9 +1,5 @@
 
 from cpython.object cimport PyTypeObject
-from cpython.unicode cimport (
-    PyUnicode_AsUTF8,
-    PyUnicode_AsUTF8AndSize,
-)
 
 
 cdef extern from "Python.h":
