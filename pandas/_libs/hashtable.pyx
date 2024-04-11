@@ -1,7 +1,12 @@
 cimport cython
+from cpython.bytes cimport PyBytes_AsString
 from cpython.ref cimport (
     Py_INCREF,
     PyObject,
+)
+from cpython.unicode cimport (
+    PyUnicode_AsEncodedString,
+    PyUnicode_AsUTF8,
 )
 from libc.stdlib cimport (
     free,

@@ -1172,6 +1172,7 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            list keep_bad_unicode_refs
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
@@ -1179,11 +1180,11 @@ cdef class StringHashTable(HashTable):
         use_na_value = na_value is not None
 
         # assign pointers and pre-filter out missing (if ignore_na)
-        # https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html#caveats-when-using-a-python-string-in-a-c-context
-        keep_bad_unicode_refs = []
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
+        # https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html#caveats-when-using-a-python-string-in-a-c-context
+        keep_bad_unicode_refs = []
         for i in range(n):
             val = values[i]
 
@@ -1197,11 +1198,11 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
-                    v = get_c_string(<str>val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    rval = <str>repr(val)
-                    keep_bad_unicode_refs.append(rval)
-                    v = get_c_string(rval)
+                    obj = PyUnicode_AsEncodedString(<str>val, "utf-8", "surrogatepass")
+                    keep_bad_unicode_refs.append(obj)
+                    v = PyBytes_AsString(obj)
                 vecs[i] = v
 
         # compute
