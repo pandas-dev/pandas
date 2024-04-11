@@ -158,10 +158,6 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string(str py_string) except NULL:
-    return PyUnicode_AsUTF8(py_string)
-
-
 cdef inline bytes string_encode_locale(str py_string):
     """As opposed to PyUnicode_Encode, use current system locale to encode."""
     return PyUnicode_EncodeLocale(py_string, NULL)
