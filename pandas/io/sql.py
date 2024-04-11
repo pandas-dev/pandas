@@ -473,8 +473,9 @@ def read_sql_query(
     --------
     >>> from sqlalchemy import create_engine  # doctest: +SKIP
     >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> sql_query = "SELECT int_column FROM test_data"  # doctest: +SKIP
     >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
-    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
+    ...     data = pd.read_sql_query(sql_query, conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
