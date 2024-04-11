@@ -1022,6 +1022,9 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError, match=msg):
             Timestamp("2022-01-01 00:00:00", tzinfo=timezone.utc, tz=None)
 
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2022-01-01 00:00:00-0400", tz=None)
+
 
 def test_constructor_ambiguous_dst():
     # GH 24329

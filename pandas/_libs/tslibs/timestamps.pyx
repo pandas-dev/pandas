@@ -1897,6 +1897,11 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
+        if ts.tzinfo is not None and explicit_tz_none:
+            raise ValueError(
+                "Passed data is timezone-aware, incompatible with 'tz=None'."
+            )
+
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
     def _round(self, freq, mode, ambiguous="raise", nonexistent="raise"):
