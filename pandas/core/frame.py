@@ -11168,7 +11168,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(other, Series):
             return this.apply(
-                lambda x: other.corr(x, method=method, min_period=min_periods),
+                lambda x: other.corr(x, method=method, min_periods=min_periods),
                 axis=axis,
             )
 
