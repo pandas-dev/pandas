@@ -75,7 +75,7 @@ repos:
     rev: v3.15.2
     hooks:
     -   id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
