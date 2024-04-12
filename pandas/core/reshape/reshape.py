@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.indexes.frozen import FrozenList
 
 
 class _Unstacker:
@@ -349,15 +350,21 @@ class _Unstacker:
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
 
-        new_levels: tuple[Index, ...]
+        new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)
+            # error: Cannot determine type of "__add__"  [has-type]
+            new_levels = value_columns.levels + (  # type: ignore[has-type]
+                self.removed_level_full,
+            )
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            new_levels = (value_columns, self.removed_level_full)
+            new_levels = [
+                value_columns,
+                self.removed_level_full,
+            ]
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
@@ -987,26 +994,27 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
+    index_levels: list | FrozenList
     if isinstance(frame.index, MultiIndex):
         index_levels = frame.index.levels
-        index_codes = tuple(np.tile(frame.index.codes, (1, ratio)))
+        index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
         codes, uniques = factorize(frame.index, use_na_sentinel=False)
-        # Incompatible types in assignment (expression has type
-        # "tuple[ndarray[Any, Any] | Index]", variable has type "tuple[Index, ...]")
-        index_levels = (uniques,)  # type: ignore[assignment]
-        index_codes = tuple(np.tile(codes, (1, ratio)))
+        index_levels = [uniques]
+        index_codes = list(np.tile(codes, (1, ratio)))
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = (ordered_stack_cols.unique(),)
-        column_codes = (factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0],)
-    column_codes = tuple(np.repeat(codes, len(frame)) for codes in column_codes)
+        column_levels = [ordered_stack_cols.unique()]
+        column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
+    # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
+    # dtype[Any]]]", variable has type "FrozenList")
+    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]  # type: ignore[assignment]
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,
-        names=frame.index.names + ordered_stack_cols.names,
+        names=frame.index.names + list(ordered_stack_cols.names),
         verify_integrity=False,
     )
 

@@ -83,7 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.__iter__ SA01" \
         -i "pandas.DataFrame.assign SA01" \
         -i "pandas.DataFrame.at_time PR01" \
-        -i "pandas.DataFrame.axes SA01" \
         -i "pandas.DataFrame.bfill SA01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
