@@ -1887,7 +1887,7 @@ def get_resampler_for_grouping(
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
-    resampler = tg._get_resampler(groupby.obj, kind=kind)
+    resampler = tg._get_resampler(groupby.obj)
     return resampler._get_resampler_for_grouping(
         groupby=groupby, include_groups=include_groups, key=tg.key
     )
@@ -2024,15 +2024,13 @@ class TimeGrouper(Grouper):
 
         super().__init__(freq=freq, key=key, **kwargs)
 
-    def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
+    def _get_resampler(self, obj: NDFrame) -> Resampler:
         """
         Return my resampler or raise if we have an invalid axis.
 
         Parameters
         ----------
         obj : Series or DataFrame
-        kind : string, optional
-            'period','timestamp','timedelta' are valid
 
         Returns
         -------
@@ -2048,11 +2046,10 @@ class TimeGrouper(Grouper):
             return DatetimeIndexResampler(
                 obj,
                 timegrouper=self,
-                kind=kind,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )
-        elif isinstance(ax, PeriodIndex) or kind == "period":
+        elif isinstance(ax, PeriodIndex):
             if isinstance(ax, PeriodIndex):
                 # GH#53481
                 warnings.warn(
@@ -2071,7 +2068,6 @@ class TimeGrouper(Grouper):
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,
-                kind=kind,
                 group_keys=self.group_keys,
                 gpr_index=ax,
             )

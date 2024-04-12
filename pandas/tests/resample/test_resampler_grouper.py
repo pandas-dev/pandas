@@ -688,7 +688,7 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
         rs[["val_not_in_dataframe"]]
 
 
-@pytest.mark.parametrize("kind", ["datetime", "period"])
+@pytest.mark.parametrize("kind", ["datetime"])
 def test_groupby_resample_kind(kind):
     # GH 24103
     df = DataFrame(
