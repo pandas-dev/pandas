@@ -4839,7 +4839,7 @@ cpdef to_offset(freq, bint is_period=False):
                             f"use \'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' "
                             f"instead."
                         )
-                    # below we raise for lowrecase monthly and bigger frequencies
+                    # below we raise for lowercase monthly and bigger frequencies
                     if (name.upper() != name and
                             name.lower() not in {"h", "min", "s", "ms", "us", "ns"} and
                             name.upper() not in c_PERIOD_TO_OFFSET_FREQSTR and
@@ -4848,7 +4848,9 @@ cpdef to_offset(freq, bint is_period=False):
                 if is_period:
                     if name in c_PERIOD_TO_OFFSET_FREQSTR:
                         name = c_PERIOD_TO_OFFSET_FREQSTR[name]
-                    elif name in {"d", "b"}:
+                    # we will remove the check below after deprecating lowercase
+                    # frequencies for "d", "b", "w", "weekday", "w-sun”, and so on.
+                    elif name in {"b", "d"}:
                         name = name.upper()
                     elif (name.upper() not in {"B", "D"} and
                             not name.upper().startswith("W")):
