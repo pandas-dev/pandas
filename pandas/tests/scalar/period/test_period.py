@@ -47,7 +47,7 @@ class TestPeriodDisallowedFreqs:
 
     def test_custom_business_day_freq_raises(self):
         # GH#52534
-        msg = "C is not supported as period frequency"
+        msg = "Invalid frequency: C"
         with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq="C")
         msg = f"{offsets.CustomBusinessDay().base} is not supported as period frequency"
@@ -60,7 +60,7 @@ class TestPeriodDisallowedFreqs:
             Period("2012-01-02", freq="WOM-1MON")
 
     def test_invalid_frequency_period_error_message(self):
-        msg = "ME is not supported as period frequency"
+        msg = "Invalid frequency: ME"
         with pytest.raises(ValueError, match=msg):
             Period("2012-01-02", freq="ME")
 
@@ -108,9 +108,11 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("1982", freq="min")
-        msg = "'MIN' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            i2 = Period("1982", freq="MIN")
+        msg = "Invalid frequency: MIN"
+
+        with pytest.raises(ValueError, match=msg):
+            Period("1982", freq="MIN")
+        i2 = Period("1982", freq="min")
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")

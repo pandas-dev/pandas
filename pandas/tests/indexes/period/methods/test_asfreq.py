@@ -154,7 +154,7 @@ class TestPeriodIndex:
     def test_pi_asfreq_not_supported_frequency(self, freq, is_str):
         # GH#55785, GH#56945
         if is_str:
-            msg = f"{freq[1:]} is not supported as period frequency"
+            msg = f"Invalid frequency: {freq}"
         else:
             msg = re.escape(f"{freq} is not supported as period frequency")
 

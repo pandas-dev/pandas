@@ -204,16 +204,11 @@ class TestToPeriod:
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
 
-    @pytest.mark.parametrize(
-        "freq, msg",
-        [
-            ("2BME", "Invalid frequency: 2BME"),
-            ("1SME-15", "SME-15 is not supported as period frequency"),
-            ("2BMS", "BMS is not supported as period frequency"),
-        ],
-    )
-    def test_to_period_offsets_not_supported(self, freq, msg):
+    @pytest.mark.parametrize("freq", ["2BME", "SME-15", "2BMS"])
+    def test_to_period_offsets_not_supported(self, freq):
         # GH#56243
+        msg = f"Invalid frequency: {freq}"
+
         ts = date_range("1/1/2012", periods=4, freq=freq)
         with pytest.raises(ValueError, match=msg):
             ts.to_period()

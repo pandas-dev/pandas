@@ -181,10 +181,8 @@ class TestPeriodRange:
 
     def test_mismatched_start_end_freq_raises(self):
         depr_msg = "Period with BDay freq is deprecated"
-        msg = "'w' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            end_w = Period("2006-12-31", "1w")
 
+        end_w = Period("2006-12-31", "1W")
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             start_b = Period("02-Apr-2005", "B")
             end_b = Period("2005-05-01", "B")
@@ -208,33 +206,31 @@ class TestPeriodRangeDisallowedFreqs:
     @pytest.mark.parametrize("freq_depr", ["2H", "2MIN", "2S", "2US", "2NS"])
     def test_uppercase_freq_deprecated_from_time_series(self, freq_depr):
         # GH#52536, GH#54939
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq_depr.lower()[1:]}' instead."
+        msg = f"Invalid frequency: {freq_depr}"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
 
-    @pytest.mark.parametrize(
-        "freq, removed",
-        [("2m", True), ("2q-sep", True), ("2y", True), ("2w", False)],
-    )
-    def test_lowercase_freq_from_time_series_raises(self, freq, removed):
+    @pytest.mark.parametrize("freq", ["2m", "2q-sep", "2y"])
+    def test_lowercase_freq_from_time_series_raises(self, freq):
         # GH#52536, GH#54939
         msg = f"Invalid frequency: {freq}"
-        if not removed:
-            msg = f"'{freq[1:]}' is deprecated and will be removed in a "
-            f"future version. Please use '{freq.upper()[1:]}' instead."
 
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                period_range(freq=freq, start="1/1/2001", end="12/1/2009")
-
-        else:
-            with pytest.raises(ValueError, match=msg):
-                period_range(freq=freq, start="1/1/2001", end="12/1/2009")
+        with pytest.raises(ValueError, match=msg):
+            period_range(freq=freq, start="1/1/2001", end="12/1/2009")
 
     @pytest.mark.parametrize("freq", ["2A", "2a", "2A-AUG", "2A-aug"])
     def test_A_raises_from_time_series(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
+            period_range(freq=freq, start="1/1/2001", end="12/1/2009")
+
+    @pytest.mark.parametrize("freq", ["2w"])
+    def test_lowercase_freq_from_time_series_deprecated(self, freq):
+        # GH#52536, GH#54939
+        msg = f"'{freq[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq.upper()[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             period_range(freq=freq, start="1/1/2001", end="12/1/2009")

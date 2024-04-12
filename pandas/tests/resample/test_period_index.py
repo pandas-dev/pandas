@@ -1065,18 +1065,11 @@ def test_corner_cases_period(simple_period_range_series):
     assert len(result) == 0
 
 
-@pytest.mark.parametrize(
-    "freq,msg",
-    [
-        ("2BME", "Invalid frequency: BME"),
-        ("2CBME", "CBME is not supported as period frequency"),
-        ("2SME", "SME is not supported as period frequency"),
-        ("2BQE-FEB", "Invalid frequency: BQE-FEB"),
-        ("2BYE-MAR", "Invalid frequency: BYE-MAR"),
-    ],
-)
-def test_resample_frequency_invalid_freq(frame_or_series, freq, msg):
+@pytest.mark.parametrize("freq", ["2BME", "2CBME", "2SME", "2BQE-FEB", "2BYE-MAR"])
+def test_resample_frequency_invalid_freq(frame_or_series, freq):
     # GH#9586
+    msg = f"Invalid frequency: {freq}"
+
     obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq)

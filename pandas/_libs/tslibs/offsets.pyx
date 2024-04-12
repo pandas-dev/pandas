@@ -59,6 +59,7 @@ from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_REMOVED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
+    c_PERIOD_TO_OFFSET_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4847,37 +4848,29 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if not is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
-                    raise ValueError(
-                        f"\'{name}\' is no longer supported for offsets. Please use "
-                        f"\'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' instead."
-                    )
-                if (not is_period and
-                        name != name.upper() and
-                        name.lower() not in {"s", "ms", "us", "ns"} and
-                        name.upper().split("-")[0].endswith(("S", "E"))):
-                    if name.upper() in c_OFFSET_TO_PERIOD_FREQSTR:
+                if not is_period:
+                    if name.upper() in c_OFFSET_REMOVED_FREQSTR:
                         raise ValueError(
                             f"\'{name}\' is no longer supported for offsets. Please "
-                            f"use \'{name.upper()}\' instead."
+                            f"use \'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' "
+                            f"instead."
                         )
-                    else:
+                    # below we raise for lowrecase monthly and bigger frequencies
+                    if (name.upper() != name and
+                            name.lower() not in {"h", "min", "s", "ms", "us", "ns"} and
+                            name.upper() not in c_PERIOD_TO_OFFSET_FREQSTR and
+                            name.upper() in c_OFFSET_TO_PERIOD_FREQSTR):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                if (is_period and
-                        name.upper().split("-")[0].endswith(("E")) and
-                        name.upper() in c_OFFSET_TO_PERIOD_FREQSTR):
-                    if name.upper().startswith("B"):
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    else:
+                if is_period:
+                    if name in c_PERIOD_TO_OFFSET_FREQSTR:
+                        name = c_PERIOD_TO_OFFSET_FREQSTR[name]
+                    elif name in {"d", "b"}:
+                        name = name.upper()
+                    elif (name.upper() not in {"B", "D"} and
+                            not name.upper().startswith("W")):
                         raise ValueError(
-                            f"{name} is not supported as period frequency"
+                            f"\'{name}\' is not supported as period frequency."
                         )
-
-                elif is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
-                    if name.upper() != name:
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    name = c_OFFSET_REMOVED_FREQSTR.get(name.upper())
-
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name

@@ -12,6 +12,7 @@ cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
 cdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
 
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR
 cdef dict c_OFFSET_REMOVED_FREQSTR
 cdef dict c_DEPR_ABBREVS
 cdef dict attrname_to_abbrevs

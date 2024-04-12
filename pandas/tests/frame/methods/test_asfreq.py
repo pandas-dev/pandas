@@ -259,7 +259,7 @@ class TestAsFreq:
         [
             (
                 "2MS",
-                "MS is not supported as period frequency",
+                "Invalid frequency: 2MS",
             ),
             (
                 offsets.MonthBegin(),
