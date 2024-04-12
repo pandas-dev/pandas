@@ -7,7 +7,6 @@ import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import uuid
 import zipfile
@@ -22,6 +21,8 @@ import pandas as pd
 from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         FilePath,
         ReadPickleBuffer,

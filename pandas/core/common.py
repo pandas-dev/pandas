@@ -12,6 +12,7 @@ from collections import (
     defaultdict,
 )
 from collections.abc import (
+    Callable,
     Collection,
     Generator,
     Hashable,
@@ -24,7 +25,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     TypeVar,
     cast,
     overload,

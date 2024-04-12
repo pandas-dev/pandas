@@ -55,7 +55,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NamedTuple,
     cast,
 )
@@ -66,6 +65,7 @@ from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Sequence,
     )

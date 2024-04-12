@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -44,6 +43,8 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,

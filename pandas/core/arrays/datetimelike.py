@@ -9,7 +9,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     Union,
     cast,
@@ -148,6 +147,7 @@ from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )

@@ -4,7 +4,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -14,6 +13,8 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.util.numba_ import jit_user_function
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import Scalar
 
 

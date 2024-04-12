@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     overload,
@@ -46,6 +45,7 @@ from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Mapping,

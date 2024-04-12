@@ -5,6 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -16,7 +17,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings

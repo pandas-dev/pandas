@@ -8,13 +8,16 @@ that can be mixed into or pinned onto other pandas classes.
 from __future__ import annotations
 
 from typing import (
-    Callable,
+    TYPE_CHECKING,
     final,
 )
 import warnings
 
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class DirNamesMixin:

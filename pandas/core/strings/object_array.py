@@ -5,7 +5,6 @@ import re
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
 )
@@ -22,7 +21,10 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         NpDtype,

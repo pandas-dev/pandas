@@ -14,6 +14,7 @@ from __future__ import annotations
 import collections
 from collections import abc
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Iterator,
@@ -30,7 +31,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
