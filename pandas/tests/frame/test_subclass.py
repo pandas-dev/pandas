@@ -742,18 +742,6 @@ class TestDataFrameSubclassing:
         assert df1.equals(df2)
         assert df2.equals(df1)
 
-    def test_replace_list_method(self):
-        # https://github.com/pandas-dev/pandas/pull/46018
-        df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, raise_on_extra_warnings=False
-        ):
-            result = df.replace([1, 2], method="ffill")
-        expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
-        assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
-
 
 class MySubclassWithMetadata(DataFrame):
     _metadata = ["my_metadata"]

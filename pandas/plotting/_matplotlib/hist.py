@@ -78,7 +78,7 @@ class HistPlot(LinePlot):
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
         self.bins = self._adjust_bins(bins)
 
@@ -236,7 +236,7 @@ class KdePlot(HistPlot):
         self, data, bw_method=None, ind=None, *, weights=None, **kwargs
     ) -> None:
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
         self.bw_method = bw_method
         self.ind = ind
         self.weights = weights

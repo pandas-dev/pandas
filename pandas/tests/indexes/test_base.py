@@ -358,7 +358,10 @@ class TestIndex:
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
-            msg = "Cannot change data-type for object array"
+            msg = (
+                "Cannot change data-type for array of references.|"
+                "Cannot change data-type for object array.|"
+            )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -636,9 +639,7 @@ class TestIndex:
         left = Index([], name="foo")
         right = Index([1, 2, 3], name=name)
 
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = left.append(right)
+        result = left.append(right)
         assert result.name == expected
 
     @pytest.mark.parametrize(
@@ -907,7 +908,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(("foo", "bar") + index.names[2:])
+            index = index.rename(["foo", "bar"] + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")

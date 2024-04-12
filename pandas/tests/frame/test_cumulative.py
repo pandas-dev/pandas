@@ -7,10 +7,12 @@ tests.series.test_cumulative
 """
 
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 
@@ -80,4 +82,26 @@ class TestDataFrameCumulativeOps:
                 "C": df["C"].cumsum(),
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["cumsum", "cumprod", "cummin", "cummax"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_numeric_only_flag(self, method, axis):
+        df = DataFrame(
+            {
+                "int": [1, 2, 3],
+                "bool": [True, False, False],
+                "string": ["a", "b", "c"],
+                "float": [1.0, 3.5, 4.0],
+                "datetime": [
+                    Timestamp(2018, 1, 1),
+                    Timestamp(2019, 1, 1),
+                    Timestamp(2020, 1, 1),
+                ],
+            }
+        )
+        df_numeric_only = df.drop(["string", "datetime"], axis=1)
+
+        result = getattr(df, method)(axis=axis, numeric_only=True)
+        expected = getattr(df_numeric_only, method)(axis)
         tm.assert_frame_equal(result, expected)
