@@ -979,6 +979,12 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         .. versionadded:: 1.3.0
 
+    See Also
+    --------
+    read_excel : Read an Excel sheet values (xlsx) file into DataFrame.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
     Notes
     -----
     For compatibility with CSV writers, ExcelWriter serializes lists
