@@ -256,6 +256,7 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
