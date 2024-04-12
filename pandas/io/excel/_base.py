@@ -1472,18 +1472,27 @@ class ExcelFile:
            - Otherwise if ``path_or_buffer`` is in xlsb format,
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-           .. versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
-           .. warning::
+        .. warning::
 
-            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
-            This is not supported, switch to using ``openpyxl`` instead.
+           Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
+           This is not supported, switch to using ``openpyxl`` instead.
+    storage_options : StorageOptions
+        Passed to _get_filepath_or_buffer.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    See Also
+    --------
+    DataFrame.to_excel : Write DataFrame to an Excel file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
     Examples
     --------
