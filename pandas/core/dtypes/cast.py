@@ -478,9 +478,7 @@ def maybe_cast_pointwise_result(
     return result
 
 
-def maybe_cast_to_pyarrow_dtype(
-    result: ArrayLike, converted_result: ArrayLike
-) -> ArrayLike:
+def maybe_cast_to_pyarrow_dtype(result: ArrayLike) -> ArrayLike:
     """
     Try casting result of a pointwise operation to its pyarrow dtype if
     appropriate.
@@ -499,6 +497,7 @@ def maybe_cast_to_pyarrow_dtype(
         import pyarrow as pa
         from pyarrow import (
             ArrowInvalid,
+            ArrowMemoryError,
             ArrowNotImplementedError,
         )
 
@@ -508,8 +507,14 @@ def maybe_cast_to_pyarrow_dtype(
         pyarrow_result = pa.array(result)
         pandas_pyarrow_dtype = ArrowDtype(pyarrow_result.type)
         result = pd_array(result, dtype=pandas_pyarrow_dtype)
-    except (ArrowNotImplementedError, ArrowInvalid):
-        return converted_result
+    except (
+        ArrowNotImplementedError,
+        ArrowInvalid,
+        ArrowMemoryError,
+        TypeError,
+        ValueError,
+    ):
+        result = lib.maybe_convert_objects(result, try_float=False)
 
     return result
 

@@ -916,6 +916,11 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
 
+        result = self._aggregate_series_pure_python(obj, func)
+        if isinstance(obj._values, ArrowExtensionArray):
+            out = maybe_cast_to_pyarrow_dtype(result)
+            return out
+
         if not isinstance(obj._values, np.ndarray) and not isinstance(
             obj._values, ArrowExtensionArray
         ):
@@ -925,15 +930,12 @@ class BaseGrouper:
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        result = self._aggregate_series_pure_python(obj, func)
         npvalues = lib.maybe_convert_objects(result, try_float=False)
-
         if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-        elif isinstance(obj._values, ArrowExtensionArray):
-            out = maybe_cast_to_pyarrow_dtype(result, npvalues)
         else:
             out = npvalues
+
         return out
 
     @final
