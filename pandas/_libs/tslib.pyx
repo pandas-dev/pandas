@@ -70,7 +70,6 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -344,39 +343,6 @@ def array_with_unit_to_datetime(
                 iresult[i] = NPY_NAT
 
     return result, tz
-
-
-cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str unit):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] oresult
-        tzinfo tz = None
-
-    # TODO: fix subtle differences between this and no-unit code
-    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
-    for i in range(n):
-        val = values[i]
-
-        if checknull_with_nat_and_na(val):
-            oresult[i] = <object>NaT
-        elif is_integer_object(val) or is_float_object(val):
-
-            if val != val or val == NPY_NAT:
-                oresult[i] = <object>NaT
-            else:
-                try:
-                    oresult[i] = Timestamp(val, unit=unit)
-                except OutOfBoundsDatetime:
-                    oresult[i] = val
-
-        elif isinstance(val, str):
-            if len(val) == 0 or val in nat_strings:
-                oresult[i] = <object>NaT
-
-            else:
-                oresult[i] = val
-
-    return oresult, tz
 
 
 @cython.wraparound(False)
