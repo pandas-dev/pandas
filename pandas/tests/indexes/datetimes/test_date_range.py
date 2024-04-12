@@ -135,16 +135,14 @@ class TestDateRanges:
         assert idx.name == "TEST"
 
     def test_date_range_invalid_periods(self):
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
     def test_date_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rng = date_range("1/1/2000", periods=10.5)
-        exp = date_range("1/1/2000", periods=10)
-        tm.assert_index_equal(rng, exp)
+        msg = "periods must be an integer"
+        with pytest.raises(TypeError, match=msg):
+            date_range("1/1/2000", periods=10.5)
 
     @pytest.mark.parametrize("freq", ["2M", "1m", "2SM", "2BQ", "1bq", "2BY"])
     def test_date_range_frequency_M_SM_BQ_BY_raises(self, freq):
@@ -1009,7 +1007,7 @@ class TestBusinessDateRange:
         bdate_range(START, periods=20, freq=BDay())
         bdate_range(end=START, periods=20, freq=BDay())
 
-        msg = "periods must be a number, got B"
+        msg = "periods must be an integer, got B"
         with pytest.raises(TypeError, match=msg):
             date_range("2011-1-1", "2012-1-1", "B")
 
@@ -1087,7 +1085,7 @@ class TestCustomDateRange:
         bdate_range(START, periods=20, freq=CDay())
         bdate_range(end=START, periods=20, freq=CDay())
 
-        msg = "periods must be a number, got C"
+        msg = "periods must be an integer, got C"
         with pytest.raises(TypeError, match=msg):
             date_range("2011-1-1", "2012-1-1", "C")
 

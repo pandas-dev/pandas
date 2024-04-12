@@ -1762,24 +1762,18 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
         else:
             dummy = np.empty(0, dtype=self.subtype)
             dummy = ensure_wrapped_if_datetimelike(dummy)
 
             if not can_hold_element(dummy, val):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
 
     @property
