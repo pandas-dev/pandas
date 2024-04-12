@@ -117,6 +117,11 @@ Backwards incompatible API changes
 
 .. _whatsnew_300.api_breaking.deps:
 
+Increased minimum version for Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas 3.0.0 supports Python 3.10 and higher.
+
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Some minimum supported versions of dependencies were updated.

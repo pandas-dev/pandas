@@ -25,7 +25,7 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.9'
+requires-python = '>=3.10'
 dependencies = [
   "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
@@ -43,7 +43,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
