@@ -19,6 +19,7 @@ from cpython.datetime cimport (
 from datetime import timezone
 
 from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
 
@@ -74,10 +75,7 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas._libs.tslibs.util cimport (
-    get_c_string_buf_and_size,
-    is_array,
-)
+from pandas._libs.tslibs.util cimport is_array
 
 
 cdef extern from "pandas/portable.h":
@@ -175,7 +173,7 @@ cdef datetime _parse_delimited_date(
         int day = 1, month = 1, year
         bint can_swap = 0
 
-    buf = get_c_string_buf_and_size(date_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(date_string, &length)
     if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
         month = _parse_2digit(buf)
@@ -251,7 +249,7 @@ cdef bint _does_string_look_like_time(str parse_string):
         Py_ssize_t length
         int hour = -1, minute = -1
 
-    buf = get_c_string_buf_and_size(parse_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(parse_string, &length)
     if length >= 4:
         if buf[1] == b":":
             # h:MM format
@@ -467,7 +465,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         char first
         int error = 0
 
-    buf = get_c_string_buf_and_size(py_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(py_string, &length)
     if length >= 1:
         first = buf[0]
         if first == b"0":
@@ -521,7 +519,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             pass
 
     if 4 <= date_len <= 7:
-        buf = get_c_string_buf_and_size(date_string, &date_len)
+        buf = PyUnicode_AsUTF8AndSize(date_string, &date_len)
         try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
