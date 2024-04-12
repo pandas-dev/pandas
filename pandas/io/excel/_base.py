@@ -1673,15 +1673,16 @@ class ExcelFile:
             * ``bool``. If True -> try parsing the index.
             * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
               each as a separate date column.
-            * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
-              a single date column.
+            * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
+              parse as a single date column.
             * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
               result 'foo'
 
             If a column or index contains an unparsable date, the entire column or
-            index will be returned unaltered as an object data type. If you don`t want to
-            parse some cells as date just change their type in Excel to "Text".
-            For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+            index will be returned unaltered as an object data type. If you
+            don`t want to parse some cells as date just change their type
+            in Excel to "Text".For non-standard datetime parsing, use
+            ``pd.to_datetime`` after ``pd.read_excel``.
 
             Note: A fast-path exists for iso8601-formatted dates.
         date_parser : function, optional
@@ -1699,8 +1700,8 @@ class ExcelFile:
                Use ``date_format`` instead, or read in as ``object`` and then apply
                :func:`to_datetime` as-needed.
         date_format : str or dict of column -> format, default ``None``
-           If used in conjunction with ``parse_dates``, will parse dates according to this
-           format. For anything more complex,
+           If used in conjunction with ``parse_dates``, will parse dates
+           according to this format. For anything more complex,
            please read in as ``object`` and then apply :func:`to_datetime` as-needed.
         thousands : str, default None
             Thousands separator for parsing string columns to numeric.  Note that
