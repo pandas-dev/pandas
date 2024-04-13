@@ -1440,6 +1440,7 @@ def inspect_excel_format(
         return "zip"
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelFile:
     """
     Class for parsing tabular Excel sheets into DataFrame objects.
@@ -1488,8 +1489,7 @@ class ExcelFile:
 
            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
            This is not supported, switch to using ``openpyxl`` instead.
-    storage_options : StorageOptions
-        Passed to _get_filepath_or_buffer.
+    {storage_options}
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
 
