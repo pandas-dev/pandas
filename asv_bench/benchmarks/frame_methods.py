@@ -865,15 +865,15 @@ class FindValidIndex:
 class Update:
     def setup(self):
         rng = np.random.default_rng()
-        self.df = DataFrame(rng.uniform(size=(10_000, 10)))
+        self.df = DataFrame(rng.uniform(size=(100_000, 10)))
 
-        idx = rng.choice(range(10_000), size=10_000, replace=False)
+        idx = rng.choice(range(100_000), size=100_000, replace=False)
         self.df_random = DataFrame(self.df, index=idx)
 
-        idx = rng.choice(range(10_000), size=1_000, replace=False)
+        idx = rng.choice(range(100_000), size=10_000, replace=False)
         cols = rng.choice(range(10), size=2, replace=False)
         self.df_sample = DataFrame(
-            rng.uniform(size=(1_000, 2)), index=idx, columns=cols
+            rng.uniform(size=(10_000, 2)), index=idx, columns=cols
         )
 
     def time_to_update_big_frame_small_arg(self):
