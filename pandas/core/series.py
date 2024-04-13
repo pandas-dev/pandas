@@ -5859,17 +5859,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         object,
                         np.bool_,
                     ):
-                        warnings.warn(
-                            "Operation between non boolean Series with different "
-                            "indexes will no longer return a boolean result in "
-                            "a future version. Cast both Series to object type "
-                            "to maintain the prior behavior.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    # to keep original value's dtype for bool ops
-                    left = left.astype(object)
-                    right = right.astype(object)
+                        pass
+                        # GH#52538 no longer cast in these cases
+                    else:
+                        # to keep original value's dtype for bool ops
+                        left = left.astype(object)
+                        right = right.astype(object)
 
                 left, right = left.align(right)
 
