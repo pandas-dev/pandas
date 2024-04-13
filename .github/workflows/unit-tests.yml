@@ -146,6 +146,8 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
+      if: ${{ matrix.name != 'Pypy' }}
       with:
         meson_args: ${{ matrix.meson_args }}
         cflags_adds: ${{ matrix.cflags_adds }}
