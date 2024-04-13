@@ -125,7 +125,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ("group_key", None)
+        assert result.columns.names == ["group_key", None]
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -912,3 +912,11 @@ def test_concat_none_with_timezone_timestamp():
         result = concat([df1, df2], ignore_index=True)
     expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_with_series_and_frame_returns_rangeindex_columns():
+    ser = Series([0])
+    df = DataFrame([1, 2])
+    result = concat([ser, df])
+    expected = DataFrame([0, 1, 2], index=[0, 0, 1])
+    tm.assert_frame_equal(result, expected, check_column_type=True)

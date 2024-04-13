@@ -174,9 +174,9 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
-from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     ensure_key_mapped,
     get_group_index_sorter,
@@ -1727,8 +1727,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return names
 
-    def _get_names(self) -> tuple[Hashable | None, ...]:
-        return (self.name,)
+    def _get_names(self) -> FrozenList:
+        return FrozenList((self.name,))
 
     def _set_names(self, values, *, level=None) -> None:
         """
@@ -1822,7 +1822,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('species', 'year'))
+                   names=['species', 'year'])
 
         When renaming levels with a dict, levels can not be passed.
 
@@ -1831,7 +1831,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('snake', 'year'))
+                   names=['snake', 'year'])
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1916,13 +1916,13 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('kind', 'year'))
+                   names=['kind', 'year'])
         >>> idx.rename(["species", "year"])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('species', 'year'))
+                   names=['species', 'year'])
         >>> idx.rename("species")
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
@@ -2086,22 +2086,22 @@ class Index(IndexOpsMixin, PandasObject):
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=('x', 'y', 'z'))
+                   names=['x', 'y', 'z'])
 
         >>> mi.droplevel()
         MultiIndex([(3, 5),
                     (4, 6)],
-                   names=('y', 'z'))
+                   names=['y', 'z'])
 
         >>> mi.droplevel(2)
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=('x', 'y'))
+                   names=['x', 'y'])
 
         >>> mi.droplevel("z")
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=('x', 'y'))
+                   names=['x', 'y'])
 
         >>> mi.droplevel(["x", "y"])
         Index([5, 6], dtype='int64', name='z')
@@ -4438,9 +4438,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(
-            labels: tuple[np.ndarray, ...] | list[np.ndarray],
-        ) -> npt.NDArray[np.intp]:
+        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
@@ -6185,13 +6183,13 @@ class Index(IndexOpsMixin, PandasObject):
         array([ True, False, False])
 
         >>> midx = pd.MultiIndex.from_arrays(
-        ...     [[1, 2, 3], ["red", "blue", "green"]], names=("number", "color")
+        ...     [[1, 2, 3], ["red", "blue", "green"]], names=["number", "color"]
         ... )
         >>> midx
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
-                   names=('number', 'color'))
+                   names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
@@ -6453,6 +6451,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        >>> idx = pd.Index(list("bcde"))
+        >>> idx.slice_locs(start="a", end="c")
+        (0, 2)
         """
         inc = step is None or step >= 0
 
@@ -6938,14 +6940,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise if this Index subclass does not support any or all.
         """
-        if (
-            isinstance(self, ABCMultiIndex)
-            # TODO(3.0): PeriodArray and DatetimeArray any/all will raise,
-            #  so checking needs_i8_conversion will be unnecessary
-            or (needs_i8_conversion(self.dtype) and self.dtype.kind != "m")
-        ):
-            # This call will raise
-            make_invalid_op(opname)(self)
+        if isinstance(self, ABCMultiIndex):
+            raise TypeError(f"cannot perform {opname} with {type(self).__name__}")
 
     @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
@@ -6953,11 +6949,11 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
+
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -6966,11 +6962,10 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not self._is_multi and self.hasnans:
-            # Take advantage of cache
-            if self._isnan.all():
-                raise ValueError("Encountered all NA values")
-            elif not skipna:
+            if not skipna:
                 raise ValueError("Encountered an NA value with skipna=False")
+            elif self._isnan.all():
+                raise ValueError("Encountered all NA values")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
@@ -7135,17 +7130,25 @@ def maybe_sequence_to_range(sequence) -> Any | range:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (ABCSeries, Index, range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)):
         return sequence
     elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
         return sequence
-    elif len(sequence) == 0:
+    elif isinstance(sequence, (ABCSeries, Index)) and not (
+        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    ):
+        return sequence
+    if len(sequence) == 0:
         return range(0)
-    diff = sequence[1] - sequence[0]
+    try:
+        np_sequence = np.asarray(sequence, dtype=np.int64)
+    except OverflowError:
+        return sequence
+    diff = np_sequence[1] - np_sequence[0]
     if diff == 0:
         return sequence
-    elif len(sequence) == 2 or lib.is_sequence_range(np.asarray(sequence), diff):
-        return range(sequence[0], sequence[-1] + diff, diff)
+    elif len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff):
+        return range(np_sequence[0], np_sequence[-1] + diff, diff)
     else:
         return sequence
 
@@ -7174,7 +7177,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               names=('L1', 'L2'))
+               names=['L1', 'L2'])
 
     See Also
     --------
