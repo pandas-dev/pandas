@@ -6830,6 +6830,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         For non-object dtype, ``value=None`` will use the NA value of the dtype.
+        See more details in the :ref:`Filling missing data<missing_data.fillna>`
+        section.
 
         Examples
         --------
