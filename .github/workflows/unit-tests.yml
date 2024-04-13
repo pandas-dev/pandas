@@ -58,7 +58,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
           - name: "Pypy"
-            env_file: actions-pypy-310.yaml
+            env_file: actions-pypy-39.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
           - name: "Numpy Dev"
