@@ -227,7 +227,7 @@ class IndexingMixin:
            a  b  c  d
         0  1  2  3  4
         >>> type(df.iloc[[0]])
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
 
         >>> df.iloc[[0, 1]]
              a    b    c    d
@@ -1145,7 +1145,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH#41369 Loop in reverse order ensures indexing along columns before rows
         # which selects only necessary blocks which avoids dtype conversion if possible
         axis = len(tup) - 1
-        for key in tup[::-1]:
+        for key in reversed(tup):
             if com.is_null_slice(key):
                 axis -= 1
                 continue

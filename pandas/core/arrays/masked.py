@@ -38,7 +38,6 @@ from pandas.compat import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -175,12 +174,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
@@ -239,32 +236,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        value, method = validate_fillna_kwargs(value, method)
-
+    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
 
         value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._data.T
-                new_mask = mask.T
-                if copy:
-                    npvalues = npvalues.copy()
-                    new_mask = new_mask.copy()
-                func(npvalues, limit=limit, mask=new_mask)
-                return self._simple_new(npvalues.T, new_mask.T)
+            # fill with value
+            if copy:
+                new_values = self.copy()
             else:
-                # fill with value
-                if copy:
-                    new_values = self.copy()
-                else:
-                    new_values = self[:]
-                new_values[mask] = value
+                new_values = self[:]
+            new_values[mask] = value
         else:
             if copy:
                 new_values = self.copy()
@@ -535,16 +518,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
@@ -594,7 +574,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
@@ -1340,14 +1322,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def any(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def any(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1435,14 +1415,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def all(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def all(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def all(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs

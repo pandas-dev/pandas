@@ -1,6 +1,7 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
+
 from __future__ import annotations
 
 import re
@@ -35,7 +36,9 @@ def _side_expander(prop_fmt: str) -> Callable:
         function: Return to call when a 'border(-{side}): {value}' string is encountered
     """
 
-    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+    def expand(
+        self: CSSResolver, prop: str, value: str
+    ) -> Generator[tuple[str, str], None, None]:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
 
@@ -80,7 +83,9 @@ def _border_expander(side: str = "") -> Callable:
     if side != "":
         side = f"-{side}"
 
-    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+    def expand(
+        self: CSSResolver, prop: str, value: str
+    ) -> Generator[tuple[str, str], None, None]:
         """
         Expand border into color, style, and width tuples
 
@@ -342,7 +347,9 @@ class CSSResolver:
                     )
         return props
 
-    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
+    def size_to_pt(
+        self, in_val: str, em_pt: float | None = None, conversions: dict = UNIT_RATIOS
+    ) -> str:
         def _error() -> str:
             warnings.warn(
                 f"Unhandled size: {in_val!r}",

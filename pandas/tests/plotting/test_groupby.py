@@ -1,5 +1,4 @@
-""" Test cases for GroupBy.plot """
-
+"""Test cases for GroupBy.plot"""
 
 import numpy as np
 import pytest

@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 import pandas._libs.reshape as libreshape
 from pandas.errors import PerformanceWarning
@@ -146,7 +146,7 @@ class _Unstacker:
         num_cells = num_rows * num_columns
 
         # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if _get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
+        if get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
             warnings.warn(
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
@@ -490,15 +490,13 @@ def _unstack_multiple(
 
 
 @overload
-def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame:
-    ...
+def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame: ...
 
 
 @overload
 def unstack(
     obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
-) -> Series | DataFrame:
-    ...
+) -> Series | DataFrame: ...
 
 
 def unstack(
@@ -912,9 +910,10 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         raise ValueError("Columns with duplicate values are not supported in stack")
 
     # If we need to drop `level` from columns, it needs to be in descending order
+    set_levels = set(level)
     drop_levnums = sorted(level, reverse=True)
     stack_cols = frame.columns._drop_level_numbers(
-        [k for k in range(frame.columns.nlevels) if k not in level][::-1]
+        [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
     )
     if len(level) > 1:
         # Arrange columns in the order we want to take them, e.g. level=[2, 0, 1]
@@ -938,7 +937,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
                 idx = (idx,)
             gen = iter(idx)
             column_indexer = tuple(
-                next(gen) if k in level else slice(None)
+                next(gen) if k in set_levels else slice(None)
                 for k in range(frame.columns.nlevels)
             )
             data = frame.loc[:, column_indexer]
@@ -954,7 +953,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     result: Series | DataFrame
     if len(buf) > 0 and not frame.empty:
-        result = concat(buf)
+        result = concat(buf, ignore_index=True)
         ratio = len(result) // len(frame)
     else:
         # input is empty

@@ -2,6 +2,7 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+
 from __future__ import annotations
 
 from contextlib import suppress
@@ -21,7 +22,6 @@ from typing import (
     Final,
     Literal,
     cast,
-    overload,
 )
 import warnings
 
@@ -32,7 +32,6 @@ from pandas._config import (
     get_option,
     using_pyarrow_string_dtype,
 )
-from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -85,6 +84,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
 )
+from pandas.core.arrays.datetimes import tz_to_dtype
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
     PyTablesExpr,
@@ -779,6 +779,7 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object to retrieve from file. Raises KeyError if not found.
 
         Returns
         -------
@@ -1110,7 +1111,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to store in file.
         value : {Series, DataFrame}
+            Value of object to store in file.
         format : 'fixed(f)|table(t)', default is 'fixed'
             Format to use when storing object in HDFStore. Value can be one of:
 
@@ -1248,7 +1251,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to append.
         value : {Series, DataFrame}
+            Value of object to append.
         format : 'table' is the default
             Format to use when storing object in HDFStore.  Value can be one of:
 
@@ -1265,11 +1270,16 @@ class HDFStore:
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        min_itemsize : dict of columns that specify minimum str sizes
-        nan_rep : str to use as str nan representation
-        chunksize : size to chunk the writing
-        expectedrows : expected TOTAL row size of this table
-        encoding : default None, provide an encoding for str
+        min_itemsize : int, dict, or None
+            Dict of columns that specify minimum str sizes.
+        nan_rep : str
+            Str to use as str nan representation.
+        chunksize : int or None
+            Size to chunk the writing.
+        expectedrows : int
+            Expected TOTAL row size of this table.
+        encoding : default None
+            Provide an encoding for str.
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
@@ -2170,7 +2180,12 @@ class IndexCol:
             if "freq" in kwargs:
                 kwargs["freq"] = None
             new_pd_index = factory(values, **kwargs)
-        final_pd_index = _set_tz(new_pd_index, self.tz)
+
+        final_pd_index: Index
+        if self.tz is not None and isinstance(new_pd_index, DatetimeIndex):
+            final_pd_index = new_pd_index.tz_localize("UTC").tz_convert(self.tz)
+        else:
+            final_pd_index = new_pd_index
         return final_pd_index, final_pd_index
 
     def take_data(self):
@@ -2567,7 +2582,7 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
-            converted = _set_tz(converted, tz, coerce=True)
+            converted = _set_tz(converted, tz)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -2948,7 +2963,7 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                ret = _set_tz(ret, tz, coerce=True)
+                ret = _set_tz(ret, tz)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -3144,7 +3159,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif _get_option("performance_warnings"):
+            elif get_option("performance_warnings"):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -4038,7 +4053,7 @@ class Table(Fixed):
             if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
-                metadata = np.array(data_converted.categories, copy=False).ravel()
+                metadata = np.asarray(data_converted.categories).ravel()
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
@@ -4298,7 +4313,8 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(col_values[1], a.tz), name=column, copy=False)
+                cvs = col_values[1]
+                return Series(cvs, name=column, copy=False)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4637,7 +4653,7 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            if isinstance(values, np.ndarray):
+            if isinstance(values, (np.ndarray, DatetimeArray)):
                 df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
@@ -4873,54 +4889,21 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
-@overload
-def _set_tz(
-    values: np.ndarray | Index, tz: str | tzinfo, coerce: bool = False
-) -> DatetimeIndex:
-    ...
-
-
-@overload
-def _set_tz(values: np.ndarray | Index, tz: None, coerce: bool = False) -> np.ndarray:
-    ...
-
-
-def _set_tz(
-    values: np.ndarray | Index, tz: str | tzinfo | None, coerce: bool = False
-) -> np.ndarray | DatetimeIndex:
+def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeArray:
     """
-    coerce the values to a DatetimeIndex if tz is set
-    preserve the input shape if possible
+    Coerce the values to a DatetimeArray with appropriate tz.
 
     Parameters
     ----------
-    values : ndarray or Index
-    tz : str or tzinfo
-    coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
+    values : ndarray[int64]
+    tz : str, tzinfo, or None
     """
-    if isinstance(values, DatetimeIndex):
-        # If values is tzaware, the tz gets dropped in the values.ravel()
-        #  call below (which returns an ndarray).  So we are only non-lossy
-        #  if `tz` matches `values.tz`.
-        assert values.tz is None or values.tz == tz
-        if values.tz is not None:
-            return values
-
-    if tz is not None:
-        if isinstance(values, DatetimeIndex):
-            name = values.name
-        else:
-            name = None
-            values = values.ravel()
-
-        values = DatetimeIndex(values, name=name)
-        values = values.tz_localize("UTC").tz_convert(tz)
-    elif coerce:
-        values = np.asarray(values, dtype="M8[ns]")
-
-    # error: Incompatible return value type (got "Union[ndarray, Index]",
-    # expected "Union[ndarray, DatetimeIndex]")
-    return values  # type: ignore[return-value]
+    assert values.dtype == "i8", values.dtype
+    # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
+    # expected "tzinfo"
+    dtype = tz_to_dtype(tz=tz, unit="ns")  # type: ignore[arg-type]
+    dta = DatetimeArray._from_sequence(values, dtype=dtype)
+    return dta
 
 
 def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:

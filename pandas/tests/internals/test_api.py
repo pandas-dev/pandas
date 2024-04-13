@@ -40,8 +40,6 @@ def test_namespace():
 @pytest.mark.parametrize(
     "name",
     [
-        "NumericBlock",
-        "ObjectBlock",
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
@@ -52,11 +50,6 @@ def test_deprecations(name):
     msg = f"{name} is deprecated.* Use public APIs instead"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         getattr(internals, name)
-
-    if name not in ["NumericBlock", "ObjectBlock"]:
-        # NumericBlock and ObjectBlock are not in the internals.api namespace
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            getattr(api, name)
 
 
 def test_make_block_2d_with_dti():

@@ -1,4 +1,4 @@
-""" Test cases for .boxplot method """
+"""Test cases for .boxplot method"""
 
 import itertools
 import string

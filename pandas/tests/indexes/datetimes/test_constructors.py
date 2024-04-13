@@ -35,18 +35,6 @@ from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
-    def test_closed_deprecated(self):
-        # GH#52628
-        msg = "The 'closed' keyword"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            DatetimeIndex([], closed=True)
-
-    def test_normalize_deprecated(self):
-        # GH#52628
-        msg = "The 'normalize' keyword"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            DatetimeIndex([], normalize=True)
-
     def test_from_dt64_unsupported_unit(self):
         # GH#49292
         val = np.datetime64(1, "D")
@@ -296,7 +284,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
 
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 

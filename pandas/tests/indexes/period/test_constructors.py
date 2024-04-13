@@ -60,6 +60,16 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             rng.to_period()
 
+    @pytest.mark.parametrize("freq_depr", ["2T", "1l", "2U", "n"])
+    def test_period_index_T_L_U_N_raises(self, freq_depr):
+        # GH#9586
+        msg = f"Invalid frequency: {freq_depr}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq_depr)
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
+
 
 class TestPeriodIndex:
     def test_from_ordinals(self):

@@ -19,7 +19,7 @@ ci:
     skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
+    rev: v0.3.1
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -30,6 +30,12 @@ repos:
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff
+        name: ruff-use-pd_array-in-core
+        alias: ruff-use-pd_array-in-core
+        files: ^pandas/core/
+        exclude: ^pandas/core/api\.py$
+        args: [--select, "ICN001", --exit-non-zero-on-fix]
     -   id: ruff-format
         exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
@@ -72,7 +78,7 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
+        args: [--load-plugins=pylint.extensions.redefined_loop_name, --fail-on=I0021]
     -   id: pylint
         alias: redefined-outer-name
         name: Redefining name from outer scope
@@ -271,13 +277,6 @@ repos:
         name: Check that `pandas._libs.lib.NoDefault` is used only for typing
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
-        types: [python]
-    -   id: use-pd_array-in-core
-        name: Import pandas.array as pd_array in core
-        language: python
-        entry: python scripts/use_pd_array_in_core.py
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
         types: [python]
     -   id: no-return-exception
         name: Use raise instead of return for exceptions

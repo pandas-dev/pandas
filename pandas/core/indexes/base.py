@@ -912,7 +912,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return len(self._data)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """
         The array interface, return my values.
         """
@@ -1767,16 +1767,13 @@ class Index(IndexOpsMixin, PandasObject):
     names = property(fset=_set_names, fget=_get_names)
 
     @overload
-    def set_names(self, names, *, level=..., inplace: Literal[False] = ...) -> Self:
-        ...
+    def set_names(self, names, *, level=..., inplace: Literal[False] = ...) -> Self: ...
 
     @overload
-    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
-        ...
+    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None: ...
 
     @overload
-    def set_names(self, names, *, level=..., inplace: bool = ...) -> Self | None:
-        ...
+    def set_names(self, names, *, level=..., inplace: bool = ...) -> Self | None: ...
 
     def set_names(self, names, *, level=None, inplace: bool = False) -> Self | None:
         """
@@ -1883,12 +1880,10 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @overload
-    def rename(self, name, *, inplace: Literal[False] = ...) -> Self:
-        ...
+    def rename(self, name, *, inplace: Literal[False] = ...) -> Self: ...
 
     @overload
-    def rename(self, name, *, inplace: Literal[True]) -> None:
-        ...
+    def rename(self, name, *, inplace: Literal[True]) -> None: ...
 
     def rename(self, name, *, inplace: bool = False) -> Self | None:
         """
@@ -2121,7 +2116,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(level, (tuple, list)):
             level = [level]
 
-        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+        levnums = sorted((self._get_level_number(lev) for lev in level), reverse=True)
 
         return self._drop_level_numbers(levnums)
 
@@ -4110,8 +4105,7 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: Literal[True],
         sort: bool = ...,
-    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]: ...
 
     @overload
     def join(
@@ -4122,8 +4116,7 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: Literal[False] = ...,
         sort: bool = ...,
-    ) -> Index:
-        ...
+    ) -> Index: ...
 
     @overload
     def join(
@@ -4134,8 +4127,9 @@ class Index(IndexOpsMixin, PandasObject):
         level: Level = ...,
         return_indexers: bool = ...,
         sort: bool = ...,
-    ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+    ) -> (
+        Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]
+    ): ...
 
     @final
     @_maybe_return_indexers
@@ -4241,7 +4235,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._join_via_get_indexer(other, how, sort)
 
-    @final
     def _join_empty(
         self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -4588,7 +4581,6 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return join_index, left_indexer, right_indexer
 
-    @final
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -5453,8 +5445,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_values(
@@ -5464,8 +5455,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> tuple[Self, np.ndarray]:
-        ...
+    ) -> tuple[Self, np.ndarray]: ...
 
     @overload
     def sort_values(
@@ -5475,8 +5465,7 @@ class Index(IndexOpsMixin, PandasObject):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self | tuple[Self, np.ndarray]:
-        ...
+    ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
         self,
@@ -5873,20 +5862,17 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[True] = ...
-    ) -> npt.NDArray[np.intp]:
-        ...
+    ) -> npt.NDArray[np.intp]: ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[False]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: bool = True
-    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        ...
+    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
     @final
     def _get_indexer_non_comparable(
@@ -6751,7 +6737,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return Index(self.to_series().diff(periods))
 
-    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.
@@ -6991,16 +6976,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
@@ -7010,16 +6989,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
-            mask = self._isnan
-            if not skipna or mask.all():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
+            if self._isnan.all():
+                raise ValueError("Encountered all NA values")
+            elif not skipna:
+                raise ValueError("Encountered an NA value with skipna=False")
         return super().argmax(skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
@@ -7169,6 +7142,36 @@ class Index(IndexOpsMixin, PandasObject):
         return (len(self),)
 
 
+def maybe_sequence_to_range(sequence) -> Any | range:
+    """
+    Convert a 1D, non-pandas sequence to a range if possible.
+
+    Returns the input if not possible.
+
+    Parameters
+    ----------
+    sequence : 1D sequence
+    names : sequence of str
+
+    Returns
+    -------
+    Any : input or range
+    """
+    if isinstance(sequence, (ABCSeries, Index, range, ExtensionArray)):
+        return sequence
+    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
+        return sequence
+    elif len(sequence) == 0:
+        return range(0)
+    diff = sequence[1] - sequence[0]
+    if diff == 0:
+        return sequence
+    elif len(sequence) == 2 or lib.is_sequence_range(np.asarray(sequence), diff):
+        return range(sequence[0], sequence[-1] + diff, diff)
+    else:
+        return sequence
+
+
 def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
     Construct an index from sequences of data.
@@ -7187,8 +7190,8 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
 
     Examples
     --------
-    >>> ensure_index_from_sequences([[1, 2, 3]], names=["name"])
-    Index([1, 2, 3], dtype='int64', name='name')
+    >>> ensure_index_from_sequences([[1, 2, 4]], names=["name"])
+    Index([1, 2, 4], dtype='int64', name='name')
 
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
@@ -7204,8 +7207,9 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index(maybe_sequence_to_range(sequences[0]), name=names)
     else:
+        # TODO: Apply maybe_sequence_to_range to sequences?
         return MultiIndex.from_arrays(sequences, names=names)
 
 

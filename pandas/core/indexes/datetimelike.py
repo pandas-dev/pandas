@@ -1,6 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -28,7 +29,6 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -45,7 +45,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PeriodDtype,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -139,15 +142,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            freq = PeriodDtype(self._data.freq)._freqstr
             return freq
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
-    def _resolution_obj(self) -> Resolution:
-        ...
+    def _resolution_obj(self) -> Resolution: ...
 
     @cache_readonly
     @doc(DatetimeLikeArrayMixin.resolution)

@@ -48,7 +48,6 @@ from pandas.core.computation.expressions import (
 )
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
-    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,
@@ -266,7 +265,7 @@ class TestEval:
                 tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "arith1", sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
+        "arith1", sorted(set(ARITH_OPS_SYMS).difference({"**", "//", "%"}))
     )
     def test_binary_arith_ops(self, arith1, lhs, rhs, engine, parser):
         ex = f"lhs {arith1} rhs"

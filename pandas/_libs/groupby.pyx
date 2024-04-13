@@ -81,6 +81,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
         for i in range(n):
@@ -118,6 +120,8 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
         for i in range(n):

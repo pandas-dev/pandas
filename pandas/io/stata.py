@@ -9,6 +9,7 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -160,7 +161,8 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or pandas.api.typing.StataReader
+DataFrame, pandas.api.typing.StataReader
+    If iterator or chunksize, returns StataReader, else DataFrame.
 
 See Also
 --------
@@ -1119,11 +1121,8 @@ class StataReader(StataParser, abc.Iterator):
 
         # State variables for the file
         self._close_file: Callable[[], None] | None = None
-        self._missing_values = False
-        self._can_read_value_labels = False
         self._column_selector_set = False
         self._value_labels_read = False
-        self._data_read = False
         self._dtype: np.dtype | None = None
         self._lines_read = 0
 
@@ -1648,8 +1647,6 @@ the string values returned are correct."""
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
         if (self._nobs == 0) and nrows == 0:
-            self._can_read_value_labels = True
-            self._data_read = True
             data = DataFrame(columns=self._varlist)
             # Apply dtypes correctly
             for i, col in enumerate(data.columns):
@@ -1662,7 +1659,6 @@ the string values returned are correct."""
             return data
 
         if (self._format_version >= 117) and (not self._value_labels_read):
-            self._can_read_value_labels = True
             self._read_strls()
 
         # Read data
@@ -1685,9 +1681,7 @@ the string values returned are correct."""
         )
 
         self._lines_read += read_lines
-        if self._lines_read == self._nobs:
-            self._can_read_value_labels = True
-            self._data_read = True
+
         # if necessary, swap the byte order to native here
         if self._byteorder != self._native_byteorder:
             raw_data = raw_data.byteswap().view(raw_data.dtype.newbyteorder())
@@ -1834,7 +1828,7 @@ the string values returned are correct."""
             fmtlist = []
             lbllist = []
             for col in columns:
-                i = data.columns.get_loc(col)
+                i = data.columns.get_loc(col)  # type: ignore[no-untyped-call]
                 dtyplist.append(self._dtyplist[i])
                 typlist.append(self._typlist[i])
                 fmtlist.append(self._fmtlist[i])
@@ -2154,7 +2148,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
 
 
 def _dtype_to_default_stata_fmt(
-    dtype, column: Series, dta_version: int = 114, force_strl: bool = False
+    dtype: np.dtype, column: Series, dta_version: int = 114, force_strl: bool = False
 ) -> str:
     """
     Map numpy dtype to stata's default format for this type. Not terribly
@@ -3466,7 +3460,7 @@ class StataWriter117(StataWriter):
         self._update_map("characteristics")
         self._write_bytes(self._tag(b"", "characteristics"))
 
-    def _write_data(self, records) -> None:
+    def _write_data(self, records: np.rec.recarray) -> None:
         self._update_map("data")
         self._write_bytes(b"<data>")
         self._write_bytes(records.tobytes())

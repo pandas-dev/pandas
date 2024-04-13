@@ -2,6 +2,7 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -59,6 +60,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
+    maybe_sequence_to_range,
     union_indexes,
 )
 from pandas.core.internals.blocks import (
@@ -250,10 +252,12 @@ def ndarray_to_mgr(
 
     elif isinstance(values, (np.ndarray, ExtensionArray)):
         # drop subclass info
-        _copy = (
-            copy if (dtype is None or astype_is_view(values.dtype, dtype)) else False
-        )
-        values = np.array(values, copy=_copy)
+        if copy and (dtype is None or astype_is_view(values.dtype, dtype)):
+            # only force a copy now if copy=True was requested
+            # and a subsequent `astype` will not already result in a copy
+            values = np.array(values, copy=True, order="F")
+        else:
+            values = np.array(values, copy=False)
         values = _ensure_2d(values)
 
     else:
@@ -400,7 +404,7 @@ def dict_to_mgr(
                 arrays[i] = arr
 
     else:
-        keys = list(data.keys())
+        keys = maybe_sequence_to_range(list(data.keys()))
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
 

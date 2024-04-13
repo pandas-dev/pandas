@@ -123,9 +123,11 @@ class TestConfig:
         msg = r"No such keys\(s\): 'no_such_option'"
         with pytest.raises(OptionError, match=msg):
             cf.get_option("no_such_option")
-        cf.deprecate_option("KanBan")
 
-        assert cf._is_deprecated("kAnBaN")
+        cf.deprecate_option("KanBan")
+        msg = "'kanban' is deprecated, please refrain from using it."
+        with pytest.raises(FutureWarning, match=msg):
+            cf.get_option("kAnBaN")
 
     def test_get_option(self):
         cf.register_option("a", 1, "doc")
@@ -268,7 +270,6 @@ class TestConfig:
         # we can deprecate non-existent options
         cf.deprecate_option("foo")
 
-        assert cf._is_deprecated("foo")
         with tm.assert_produces_warning(FutureWarning, match="deprecated"):
             with pytest.raises(KeyError, match="No such keys.s.: 'foo'"):
                 cf.get_option("foo")
@@ -395,7 +396,7 @@ class TestConfig:
         assert cf.get_option("a") == 500
 
         cf.reset_option("a")
-        assert options.a == cf.get_option("a", 0)
+        assert options.a == cf.get_option("a")
 
         msg = "You can only set the value of existing options"
         with pytest.raises(OptionError, match=msg):

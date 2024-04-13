@@ -242,8 +242,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -257,8 +256,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql_table(
@@ -374,8 +372,7 @@ def read_sql_query(
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -389,8 +386,7 @@ def read_sql_query(
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql_query(
@@ -460,6 +456,8 @@ def read_sql_query(
     Returns
     -------
     DataFrame or Iterator[DataFrame]
+        Returns a DataFrame object that contains the result set of the
+        executed SQL query, in relation to the specified database connection.
 
     See Also
     --------
@@ -509,8 +507,7 @@ def read_sql(
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -525,8 +522,7 @@ def read_sql(
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql(
