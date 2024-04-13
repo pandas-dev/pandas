@@ -25,6 +25,14 @@ class TestSeriesArgsort:
         expected = np.argsort(np.array(ser))
         tm.assert_numpy_array_equal(res, expected)
 
+        # with missing values
+        ts = ser.copy()
+        ts[::2] = np.nan
+        result = np.argsort(ts)[1::2]
+        expected = np.argsort(np.array(ts.dropna()))
+
+        tm.assert_numpy_array_equal(result.values, expected)
+
     def test_argsort(self, datetime_series):
         argsorted = datetime_series.argsort()
         assert issubclass(argsorted.dtype.type, np.integer)
@@ -43,9 +51,9 @@ class TestSeriesArgsort:
         expected = Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
-        msg = "The behavior of Series.argsort in the presence of NA values"
-        with pytest.raises(TypeError, match=msg):
-            shifted.argsort()
+        result = shifted.argsort()
+        expected = Series(list(range(4)) + [-1], dtype=np.intp)
+        tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
         ser = Series(np.random.default_rng(2).integers(0, 100, size=10000))

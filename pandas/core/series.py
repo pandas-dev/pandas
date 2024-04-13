@@ -3783,10 +3783,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
-            raise TypeError(
-                "The behavior of Series.argsort in the presence of NA values "
-                "is not supported"
-            )
+            result = np.full(len(self), -1, dtype=np.intp)
+            notmask = ~mask
+            result[notmask] = np.argsort(values[notmask], kind=kind)
         else:
             result = np.argsort(values, kind=kind)
 
