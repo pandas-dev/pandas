@@ -11126,6 +11126,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
 
         Returns
         -------
