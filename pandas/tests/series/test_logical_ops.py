@@ -233,26 +233,22 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s_tft & s_0123
+        result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
-        # GH 52538: Deprecate casting to object type when reindex is needed;
+        # GH#52538: no longer to object type when reindex is needed;
         # matches DataFrame behavior
-        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        with tm.assert_produces_warning(FutureWarning):
-            result = s_0123 & s_tft
-        tm.assert_series_equal(result, expected)
+        msg = r"unsupported operand type\(s\) for &: 'float' and 'bool'"
+        with pytest.raises(TypeError, match=msg):
+            s_0123 & s_tft
 
         s_a0b1c0 = Series([1], list("b"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = s_tft & s_a0b1c0
+        res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = s_tft | s_a0b1c0
+        res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
@@ -405,27 +401,24 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        with tm.assert_produces_warning(FutureWarning):
-            result = a & Series([1], ["z"])
+        result = a & Series([1], ["z"])
         expected = Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = a | Series([1], ["z"])
+        result = a | Series([1], ["z"])
         expected = Series([True, True, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        with tm.assert_produces_warning(FutureWarning):
-            for e in [
-                empty.copy(),
-                Series([1], ["z"]),
-                Series(np.nan, b.index),
-                Series(np.nan, a.index),
-            ]:
-                result = a[a | e]
-                tm.assert_series_equal(result, a[a])
+        for e in [
+            empty.copy(),
+            Series([1], ["z"]),
+            Series(np.nan, b.index),
+            Series(np.nan, a.index),
+        ]:
+            result = a[a | e]
+            tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
             warn = FutureWarning if using_infer_string else None
@@ -519,7 +512,6 @@ class TestSeriesLogicalOps:
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
-    @pytest.mark.xfail(reason="Will pass once #52839 deprecation is enforced")
     def test_int_dtype_different_index_not_bool(self):
         # GH 52500
         ser1 = Series([1, 2, 3], index=[10, 11, 23], name="a")
