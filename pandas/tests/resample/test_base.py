@@ -26,7 +26,6 @@ from pandas.core.resample import _asfreq_compat
 
 
 @pytest.fixture(
-    scope="session",
     params=[
         "linear",
         "time",
