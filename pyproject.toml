@@ -520,7 +520,6 @@ module = [
   "pandas._libs.*",
   "pandas._testing.*", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat.compressors", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.putmask", # TODO
