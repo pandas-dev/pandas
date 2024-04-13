@@ -147,7 +147,10 @@ class TestSeriesClip:
         dtype = "M8[us]"
         ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = (
+            r"Incompatible \(high-resolution\) value for dtype='datetime64\[us\]'. "
+            "Explicitly cast before operating"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             ser.clip(lower=Timestamp.min, upper=Timestamp.max)
 
