@@ -399,7 +399,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Fixed bug in :meth:`DataFrame.fillna` and :meth:`Series.fillna` that would ignore the ``limit`` argument on :class:`.ExtensionArray` dtypes (:issue:`58001`)
 -
 
 MultiIndex
@@ -444,7 +444,6 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
--
 
 Styler
 ^^^^^^

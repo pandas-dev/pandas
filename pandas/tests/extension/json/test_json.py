@@ -149,6 +149,16 @@ class TestJSONArray(base.ExtensionTests):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_frame()
 
+    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        super().test_fillna_limit_frame(data_missing)
+
+    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        super().test_fillna_limit_frame(data_missing)
+
     @pytest.mark.parametrize(
         "limit_area, input_ilocs, expected_ilocs",
         [
