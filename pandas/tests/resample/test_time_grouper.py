@@ -335,9 +335,7 @@ def test_upsample_sum(method, method_args, expected_values):
 
 @pytest.fixture
 def groupy_test_df():
-    df = DataFrame({"price": [10, 11, 9], "volume": [50, 60, 50]})
-    df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
-    return df.set_index("week_starting")
+    return DataFrame({"price": [10, 11, 9], "volume": [50, 60, 50]}, index=date_range("01/01/2018", periods=3, freq="W"))
 
 
 def test_groupby_resample_interpolate_raises(groupy_test_df):
