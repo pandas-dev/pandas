@@ -127,6 +127,10 @@ def _astype_nansafe(
 
     if copy or arr.dtype == object or dtype == object:
         # Explicit copy, or required since NumPy can't view from / to object.
+        if dtype == 'bytes':
+            # If conversion to bytes is not fully supported or may lead to data loss
+            raise ValueError("Conversion to bytes is not fully supported or may lead to data loss.")
+
         return arr.astype(dtype, copy=True)
 
     return arr.astype(dtype, copy=copy)
