@@ -174,6 +174,7 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import (
@@ -1726,8 +1727,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return names
 
-    def _get_names(self) -> tuple[Hashable | None, ...]:
-        return (self.name,)
+    def _get_names(self) -> FrozenList:
+        return FrozenList((self.name,))
 
     def _set_names(self, values, *, level=None) -> None:
         """
@@ -1821,7 +1822,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('species', 'year'))
+                   names=['species', 'year'])
 
         When renaming levels with a dict, levels can not be passed.
 
@@ -1830,7 +1831,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('snake', 'year'))
+                   names=['snake', 'year'])
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1915,13 +1916,13 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('kind', 'year'))
+                   names=['kind', 'year'])
         >>> idx.rename(["species", "year"])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=('species', 'year'))
+                   names=['species', 'year'])
         >>> idx.rename("species")
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
@@ -2085,22 +2086,22 @@ class Index(IndexOpsMixin, PandasObject):
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=('x', 'y', 'z'))
+                   names=['x', 'y', 'z'])
 
         >>> mi.droplevel()
         MultiIndex([(3, 5),
                     (4, 6)],
-                   names=('y', 'z'))
+                   names=['y', 'z'])
 
         >>> mi.droplevel(2)
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=('x', 'y'))
+                   names=['x', 'y'])
 
         >>> mi.droplevel("z")
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=('x', 'y'))
+                   names=['x', 'y'])
 
         >>> mi.droplevel(["x", "y"])
         Index([5, 6], dtype='int64', name='z')
@@ -4437,9 +4438,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(
-            labels: tuple[np.ndarray, ...] | list[np.ndarray],
-        ) -> npt.NDArray[np.intp]:
+        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
@@ -6184,13 +6183,13 @@ class Index(IndexOpsMixin, PandasObject):
         array([ True, False, False])
 
         >>> midx = pd.MultiIndex.from_arrays(
-        ...     [[1, 2, 3], ["red", "blue", "green"]], names=("number", "color")
+        ...     [[1, 2, 3], ["red", "blue", "green"]], names=["number", "color"]
         ... )
         >>> midx
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
-                   names=('number', 'color'))
+                   names=['number', 'color'])
 
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
@@ -7178,7 +7177,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               names=('L1', 'L2'))
+               names=['L1', 'L2'])
 
     See Also
     --------

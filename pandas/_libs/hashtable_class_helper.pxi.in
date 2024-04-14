@@ -3,7 +3,7 @@ Template for each `dtype` helper function for hashtable
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
-
+from cpython.unicode cimport PyUnicode_AsUTF8
 
 {{py:
 
@@ -98,7 +98,6 @@ from pandas._libs.khash cimport (
 # VectorData
 # ----------------------------------------------------------------------
 
-from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
 
@@ -998,7 +997,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             const char *v
-        v = get_c_string(val)
+        v = PyUnicode_AsUTF8(val)
 
         k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
@@ -1012,7 +1011,7 @@ cdef class StringHashTable(HashTable):
             int ret = 0
             const char *v
 
-        v = get_c_string(key)
+        v = PyUnicode_AsUTF8(key)
 
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
@@ -1037,7 +1036,7 @@ cdef class StringHashTable(HashTable):
             raise MemoryError()
         for i in range(n):
             val = values[i]
-            v = get_c_string(val)
+            v = PyUnicode_AsUTF8(val)
             vecs[i] = v
 
         with nogil:
@@ -1071,11 +1070,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1109,11 +1108,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1195,9 +1194,9 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
-                    v = get_c_string(<str>val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    v = get_c_string(<str>repr(val))
+                    v = PyUnicode_AsUTF8(<str>repr(val))
                 vecs[i] = v
 
         # compute
