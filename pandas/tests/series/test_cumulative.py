@@ -170,6 +170,38 @@ class TestSeriesCumulativeOps:
         result = getattr(ser, method)()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method, order",
+        [
+            ["cummax", "abc"],
+            ["cummin", "cab"],
+        ],
+    )
+    def test_cummax_cummin_on_ordered_categorical(self, method, order):
+        ser = pd.Series(
+            list("ababcab"), dtype=pd.CategoricalDtype(list(order), ordered=True)
+        )
+        result = getattr(ser, method)()
+        tm.assert_series_equal(result, pd.Series(list("abbbccc")))
+
+    @pytest.mark.parametrize(
+        "method, order",
+        [
+            ["cummax", "abc"],
+            ["cummin", "cab"],
+        ],
+    )
+    def test_cummax_cummin_ordered_categorical_nan(self, method, order):
+        ser = pd.Series(
+            ["a", np.nan, "b", "a", "c"],
+            dtype=pd.CategoricalDtype(list(order), ordered=True),
+        )
+        result = getattr(ser, method)(skipna=True)
+        tm.assert_series_equal(result, pd.Series(["a", "NaN", "b", "b", "c"]))
+
+        result = getattr(ser, method)(skipna=False)
+        tm.assert_series_equal(result, pd.Series(["a", "NaN", "NaN", "NaN", "NaN"]))
+
     def test_cumprod_timedelta(self):
         # GH#48111
         ser = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=3)])
