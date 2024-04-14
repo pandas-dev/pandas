@@ -284,12 +284,18 @@ class TestTimedeltas:
         expected = pd.Timedelta("0 days 00:19:59.999999998")
         assert result == expected
 
-    @pytest.mark.parametrize("dtype", [np.int32, np.uint32])
-    def test_to_timedelta_scalar_integer(self, dtype):
+    @pytest.mark.parametrize(
+        ("dtype", "value", "expected"),
+        [
+            (np.int32, 1, "1 days 00:00:00"),
+            (np.uint32, 1, "1 days 00:00:00"),
+            (np.float32, 1.1, "1 days 02:24:00.002059940"),
+        ],
+    )
+    def test_to_timedelta_following_nep_50(self, dtype, value, expected):
         # GH 56996
-        result = to_timedelta(dtype(1), "D")
-        expected = pd.Timedelta("1 days 00:00:00")
-        assert result == expected
+        result = to_timedelta(dtype(value), "D")
+        assert result == pd.Timedelta(expected)
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
