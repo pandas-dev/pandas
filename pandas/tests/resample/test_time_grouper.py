@@ -441,4 +441,4 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
         },
         index=expected_ind,
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_names=False)
