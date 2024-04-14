@@ -807,9 +807,6 @@ class TestNamePreservation:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        warn = None
-        if box in [list, tuple] and is_logical:
-            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -818,9 +815,12 @@ class TestNamePreservation:
                 return
             result = getattr(left, name)(right)
         else:
-            # GH#37374 logical ops behaving as set ops deprecated
-            with tm.assert_produces_warning(warn, match=msg):
-                result = op(left, right)
+            if is_logical and box in [list, tuple]:
+                with pytest.raises(TypeError, match=msg):
+                    # GH#52264 logical ops with dtype-less sequences deprecated
+                    op(left, right)
+                return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
