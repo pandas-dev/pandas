@@ -343,7 +343,8 @@ class BooleanArray(BaseMaskedArray):
             elif s in false_values_union:
                 return False
             else:
-                raise ValueError(f"{s} cannot be cast to bool")
+                print(f"{s} cannot be cast to bool")
+                return None
 
         scalars = np.array(strings, dtype=object)
         mask = isna(scalars)
