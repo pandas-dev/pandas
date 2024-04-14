@@ -262,6 +262,10 @@ The most robust and consistent way of slicing ranges along arbitrary axes is
 described in the :ref:`Selection by Position <indexing.integer>` section
 detailing the ``.iloc`` method. For now, we explain the semantics of slicing using the ``[]`` operator.
 
+    .. note::
+
+        When the :class:`Series` has float indices, slicing will select by position.
+
 With Series, the syntax works exactly as with an ndarray, returning a slice of
 the values and the corresponding labels:
 
@@ -948,7 +952,7 @@ To select a row where each column meets its own criterion:
 
   values = {'ids': ['a', 'b'], 'ids2': ['a', 'c'], 'vals': [1, 3]}
 
-  row_mask = df.isin(values).all(1)
+  row_mask = df.isin(values).all(axis=1)
 
   df[row_mask]
 

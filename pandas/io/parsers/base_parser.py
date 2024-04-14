@@ -174,7 +174,7 @@ class ParserBase:
                     and all(map(is_integer, self.index_col))
                 ):
                     raise ValueError(
-                        "index_col must only contain row numbers "
+                        "index_col must only contain integers of column positions "
                         "when specifying a multi-index header"
                     )
                 else:
@@ -487,6 +487,8 @@ class ParserBase:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
+                else:
+                    col_na_values, col_na_fvalues = set(), set()
 
             clean_dtypes = self._clean_mapping(self.dtype)
 
