@@ -152,7 +152,9 @@ class CleanCommand(Command):
                     ".orig",
                 ):
                     self._clean_me.append(filepath)
-            self._clean_trees.append(pjoin(root, d) for d in dirs if d == "__pycache__")
+
+            # Extend self._clean_trees with list comprehension (convert generator to list)        
+            self._clean_trees.extend([os.path.join(root, dir) for dir in dirs if dir == "__pycache__"])
 
         # clean the generated pxi files
         for pxifile in _pxifiles:
