@@ -666,3 +666,20 @@ def test_groupby_agg_err_catching(err_cls):
 
     result = df["decimals"].groupby(df["id1"]).agg(weird_func)
     tm.assert_series_equal(result, expected, check_names=False)
+
+def test_groupby_agg_boolean_dype():
+    # GH Issue #58031
+    # Ensure return type of aggregate dtype has consistent behavior for 'bool' and 'boolean'
+    # because boolean not covered under numpy
+    
+    df_boolean = pd.DataFrame({0: [1, 2, 2], 1: [True, True, None]})
+    df_boolean[1] = df_boolean[1].astype("boolean")
+    
+    df_bool = pd.DataFrame({0: [1, 2, 2], 1: [True, True, None]})
+    df_bool[1] = df_bool[1].astype("bool")
+    
+    boolean_return_type = df_boolean.groupby(by=0).aggregate(lambda s: s.fillna(False).mean()).dtypes.values[0]
+    bool_return_type =   df_bool.groupby(by=0).aggregate(lambda s: s.fillna(False).mean()).dtypes.values[0]
+    
+    assert boolean_return_type == bool_return_type
+
