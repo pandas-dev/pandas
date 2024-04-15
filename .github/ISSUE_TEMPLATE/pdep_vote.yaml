@@ -53,8 +53,6 @@ body:
     attributes:
       label: Voting will close in 15 days.
       description: The voting period end date. ('Voting will close in 15 days.' will be automatically written)
-      placeholder: >
-        On January 15.
   - type: markdown
     attributes:
       value: ---
