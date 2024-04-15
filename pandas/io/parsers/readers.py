@@ -194,6 +194,12 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
+
+    When inferred from the file contents, headers are kept distinct from
+    each other by renaming duplicate names with a numeric suffix of the form
+    ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+    Empty headers are named ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+    in the case of MultiIndex columns.
 names : Sequence of Hashable, optional
     Sequence of column labels to apply. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
@@ -1310,6 +1316,16 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 "The 'python' engine cannot iterate through this file buffer."
             )
+        if hasattr(f, "encoding"):
+            file_encoding = f.encoding
+            orig_reader_enc = self.orig_options.get("encoding", None)
+            any_none = file_encoding is None or orig_reader_enc is None
+            if file_encoding != orig_reader_enc and not any_none:
+                file_path = getattr(f, "name", None)
+                raise ValueError(
+                    f"The specified reader encoding {orig_reader_enc} is different "
+                    f"from the encoding {file_encoding} of file {file_path}."
+                )
 
     def _clean_options(
         self, options: dict[str, Any], engine: CSVEngine
@@ -1485,6 +1501,7 @@ class TextFileReader(abc.Iterator):
             "pyarrow": ArrowParserWrapper,
             "python-fwf": FixedWidthFieldParser,
         }
+
         if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
