@@ -351,7 +351,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, xi, yi, N, K
         int64_t minpv
         float64_t[:, ::1] result
-        ndarray[uint8_t, ndim=2] mask
+        uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
