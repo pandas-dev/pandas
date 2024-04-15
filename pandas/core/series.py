@@ -3779,15 +3779,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
-        values = self._values
-        mask = isna(values)
-
-        if mask.any():
-            result = np.full(len(self), -1, dtype=np.intp)
-            notmask = ~mask
-            result[notmask] = np.argsort(values[notmask], kind=kind)
-        else:
-            result = np.argsort(values, kind=kind)
+        result = self.array.argsort(kind=kind)
 
         res = self._constructor(
             result, index=self.index, name=self.name, dtype=np.intp, copy=False

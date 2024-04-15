@@ -19,19 +19,10 @@ class TestSeriesArgsort:
             ser.argsort(axis=2)
 
     def test_argsort_numpy(self, datetime_series):
-        ser = datetime_series
-
+        ser =  datetime_series
         res = np.argsort(ser).values
         expected = np.argsort(np.array(ser))
         tm.assert_numpy_array_equal(res, expected)
-
-        # with missing values
-        ts = ser.copy()
-        ts[::2] = np.nan
-        result = np.argsort(ts)[1::2]
-        expected = np.argsort(np.array(ts.dropna()))
-
-        tm.assert_numpy_array_equal(result.values, expected)
 
     def test_argsort(self, datetime_series):
         argsorted = datetime_series.argsort()
@@ -52,7 +43,7 @@ class TestSeriesArgsort:
         tm.assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(list(range(4)) + [-1], dtype=np.intp)
+        expected = Series(list(range(4)) + [4], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
