@@ -171,12 +171,10 @@ class CleanCommand(Command):
             except OSError:
                 pass
         for clean_tree in self._clean_trees:
-            for path in clean_tree:
-                try:
-                    # Remove the directory tree at the specified path
-                    shutil.rmtree(path)
-                except OSError:
-                    pass
+            try:
+                shutil.rmtree(clean_tree)
+            except OSError:
+                pass
 
 
 # we need to inherit from the versioneer
