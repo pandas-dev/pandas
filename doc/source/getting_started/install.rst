@@ -269,6 +269,8 @@ SciPy                     1.10.0             computation     Miscellaneous stati
 xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
+.. _install.excel_dependencies:
+
 Excel files
 ^^^^^^^^^^^
 
