@@ -41,7 +41,6 @@ Bug fixes
 - :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the column's type was nullable boolean (:issue:`55332`)
 - :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
 - :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
-- :meth:`DataFrame.__getitem__` was returning modified columns when called with ``slice`` on Python 3.12 (:issue:`57500`)
 - :meth:`DataFrame.to_sql` was failing to find the right table when using the schema argument (:issue:`57539`)
 
 .. ---------------------------------------------------------------------------

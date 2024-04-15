@@ -340,6 +340,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 - Fixed bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
+- Fixed bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` on Python 3.12 (:issue:`57500`)
 - Fixed bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Fixed bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
@@ -351,6 +352,7 @@ Bug fixes
 - Fixed bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Fixed bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
+
 
 Categorical
 ^^^^^^^^^^^
