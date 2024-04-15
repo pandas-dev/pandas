@@ -1273,11 +1273,10 @@ class TestDataFrameConstructors:
 
     def test_nested_pandasarray_matches_nested_ndarray(self):
         # GH#43986
-        ser = Series([1, 2])
 
         arr = np.array([None, None], dtype=object)
-        arr[0] = ser
-        arr[1] = ser * 2
+        arr[0] = [1, 2]
+        arr[1] = [2, 4]
 
         df = DataFrame(arr)
         expected = DataFrame(pd.array(arr))
