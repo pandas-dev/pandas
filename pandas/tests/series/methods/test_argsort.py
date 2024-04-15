@@ -19,7 +19,7 @@ class TestSeriesArgsort:
             ser.argsort(axis=2)
 
     def test_argsort_numpy(self, datetime_series):
-        ser =  datetime_series
+        ser = datetime_series
         res = np.argsort(ser).values
         expected = np.argsort(np.array(ser))
         tm.assert_numpy_array_equal(res, expected)
