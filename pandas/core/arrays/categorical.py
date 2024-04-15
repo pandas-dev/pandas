@@ -2680,15 +2680,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         NDArrayBacked.__init__(cat, new_codes, new_dtype)
 
         if new_dtype != orig_dtype:
-            warnings.warn(
-                # GH#55147
+            raise TypeError(
                 "The behavior of Series.replace (and DataFrame.replace) with "
-                "CategoricalDtype is deprecated. In a future version, replace "
-                "will only be used for cases that preserve the categories. "
-                "To change the categories, use ser.cat.rename_categories "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+                "CategoricalDtype is not supported."
             )
         if not inplace:
             return cat
