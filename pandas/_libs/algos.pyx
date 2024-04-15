@@ -1089,8 +1089,7 @@ cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
-    # TODO(cython3): make const (https://github.com/cython/cython/issues/3222)
-    numeric_object_t[:] masked_vals,
+    const numeric_object_t[:] masked_vals,
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
@@ -1378,7 +1377,7 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    ndarray[diff_t, ndim=2] arr,  # TODO(cython3) update to "const diff_t[:, :] arr"
+    const diff_t[:, :] arr,
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
@@ -1386,8 +1385,7 @@ def diff_2d(
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython3) once arr is memoryview
+        bint f_contig = arr.is_f_contig()
         diff_t left, right
 
     # Disable for unsupported dtype combinations,

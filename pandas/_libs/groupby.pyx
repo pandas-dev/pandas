@@ -1435,14 +1435,12 @@ cdef inline void _check_below_mincount(
                         out[i, j] = 0
 
 
-# TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last(
     numeric_object_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_object_t, ndim=2] values,
+    const numeric_object_t[:, :] values,
     const intp_t[::1] labels,
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,
@@ -1502,14 +1500,12 @@ def group_last(
     )
 
 
-# TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(
     numeric_object_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_object_t, ndim=2] values,
+    const numeric_object_t[:, :] values,
     const intp_t[::1] labels,
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,
