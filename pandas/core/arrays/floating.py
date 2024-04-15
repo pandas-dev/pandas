@@ -135,6 +135,12 @@ Methods
 -------
 None
 
+See Also
+--------
+CategoricalDtype : Type for categorical data with the categories and orderedness.
+IntegerDtype : An ExtensionDtype to hold a single size & kind of integer dtype.
+StringDtype : An ExtensionDtype for string data.
+
 Examples
 --------
 For Float32Dtype:
