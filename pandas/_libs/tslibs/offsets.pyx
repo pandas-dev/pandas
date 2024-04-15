@@ -418,7 +418,7 @@ cdef class BaseOffset:
 
         if "holidays" in all_paras and not all_paras["holidays"]:
             all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
+        exclude = {"kwds", "name", "calendar"}
         attrs = {(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != "_")}
         params = tuple([str(type(self))] + sorted(attrs))
