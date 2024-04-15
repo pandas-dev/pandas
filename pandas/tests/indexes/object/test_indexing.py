@@ -7,7 +7,6 @@ from pandas._libs.missing import (
     NA,
     is_matching_na,
 )
-from pandas.compat import pa_version_under16p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -201,16 +200,7 @@ class TestSliceLocs:
             (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
         ],
     )
-    def test_slice_locs_negative_step(self, in_slice, expected, dtype, request):
-        if (
-            not pa_version_under16p0
-            and dtype == "string[pyarrow_numpy]"
-            and in_slice == slice("a", "a", -1)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(reason="https://github.com/apache/arrow/issues/40642")
-            )
-
+    def test_slice_locs_negative_step(self, in_slice, expected, dtype):
         index = Index(list("bcdxy"), dtype=dtype)
 
         s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
