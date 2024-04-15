@@ -914,8 +914,7 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
 
-
-        #if objtype is not in np.dtypes, type is preserved but thats bad seems readable 
+        # if objtype is not in np.dtypes, type is preserved
         if not isinstance(obj._values, np.ndarray) and obj.dtype != "boolean":
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
