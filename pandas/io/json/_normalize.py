@@ -53,8 +53,7 @@ def nested_to_record(
     sep: str = ...,
     level: int = ...,
     max_level: int | None = ...,
-) -> dict[str, Any]:
-    ...
+) -> dict[str, Any]: ...
 
 
 @overload
@@ -64,8 +63,7 @@ def nested_to_record(
     sep: str = ...,
     level: int = ...,
     max_level: int | None = ...,
-) -> list[dict[str, Any]]:
-    ...
+) -> list[dict[str, Any]]: ...
 
 
 def nested_to_record(
@@ -291,10 +289,10 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If True, prefix records with dotted (?) path, e.g. foo.bar.field if
+        If True, prefix records with dotted path, e.g. foo.bar.field if
         meta is ['foo', 'bar'].
     record_prefix : str, default None
-        If True, prefix records with dotted (?) path, e.g. foo.bar.field if
+        If True, prefix records with dotted path, e.g. foo.bar.field if
         path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.

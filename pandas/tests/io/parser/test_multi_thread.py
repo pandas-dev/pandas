@@ -2,6 +2,7 @@
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
+
 from contextlib import ExitStack
 from io import BytesIO
 from multiprocessing.pool import ThreadPool

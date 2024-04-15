@@ -3,6 +3,7 @@ test_insert is specifically for the DataFrame.insert method; not to be
 confused with tests with "insert" in their names that are really testing
 __setitem__.
 """
+
 import numpy as np
 import pytest
 

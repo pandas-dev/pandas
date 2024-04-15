@@ -29,7 +29,6 @@ from pandas.compat import (
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -852,12 +851,10 @@ class ArrowExtensionArray(
         return self._pa_array.is_null().to_numpy()
 
     @overload
-    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def any(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def any(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -918,12 +915,10 @@ class ArrowExtensionArray(
         return self._reduce("any", skipna=skipna, **kwargs)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
-        ...
+    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool, **kwargs) -> bool | NAType:
-        ...
+    def all(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
         """
@@ -1072,6 +1067,7 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
+        # TODO: Why do we no longer need the above cases?
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
         return super()._pad_or_backfill(
@@ -1081,22 +1077,16 @@ class ArrowExtensionArray(
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
-        value: object | ArrayLike | None = None,
-        method: FillnaOptions | None = None,
+        value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
-        value, method = validate_fillna_kwargs(value, method)
-
         if not self._hasna:
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
         if limit is not None:
-            return super().fillna(value=value, method=method, limit=limit, copy=copy)
-
-        if method is not None:
-            return super().fillna(method=method, limit=limit, copy=copy)
+            return super().fillna(value=value, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -1122,7 +1112,7 @@ class ArrowExtensionArray(
             #   a kernel for duration types.
             pass
 
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
+        return super().fillna(value=value, limit=limit, copy=copy)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
@@ -1707,7 +1697,7 @@ class ArrowExtensionArray(
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}' with pyarrow "
+                f"does not support operation '{name}' with pyarrow "
                 f"version {pa.__version__}. '{name}' may be supported by "
                 f"upgrading pyarrow."
             )

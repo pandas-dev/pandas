@@ -1,6 +1,7 @@
 """
 Tests for the Index constructor conducting inference.
 """
+
 from datetime import (
     datetime,
     timedelta,

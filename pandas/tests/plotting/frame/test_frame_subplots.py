@@ -1,4 +1,4 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
 
 import string
 
@@ -187,9 +187,9 @@ class TestDataFramePlotsSubplots:
         data = {
             "numeric": np.array([1, 2, 5]),
             "period": [
-                pd.Period("2017-08-01 00:00:00", freq="H"),
-                pd.Period("2017-08-01 02:00", freq="H"),
-                pd.Period("2017-08-02 00:00:00", freq="H"),
+                pd.Period("2017-08-01 00:00:00", freq="h"),
+                pd.Period("2017-08-01 02:00", freq="h"),
+                pd.Period("2017-08-02 00:00:00", freq="h"),
             ],
             "categorical": pd.Categorical(
                 ["c", "b", "a"], categories=["a", "b", "c"], ordered=False

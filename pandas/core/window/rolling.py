@@ -2,6 +2,7 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
+
 from __future__ import annotations
 
 import copy
@@ -819,12 +820,12 @@ class BaseWindowGroupby(BaseWindow):
         else:
             idx_codes, idx_levels = factorize(result.index)
             result_codes = [idx_codes]
-            result_levels = [idx_levels]  # type: ignore[list-item]
+            result_levels = [idx_levels]
             result_names = [result.index.name]
 
-        # 3) Create the resulting index by combining 1) + 2)
+            # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
-        result_levels = groupby_levels + result_levels  # type: ignore[assignment]
+        result_levels = groupby_levels + result_levels
         result_names = self._grouper.names + result_names
 
         result_index = MultiIndex(
@@ -924,12 +925,11 @@ class Window(BaseWindow):
         Default ``None`` (``'right'``).
 
     step : int, default None
-
-        .. versionadded:: 1.5.0
-
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
         than None or 1 will produce a result with a different shape than the input.
+
+        .. versionadded:: 1.5.0
 
     method : str {'single', 'table'}, default 'single'
 

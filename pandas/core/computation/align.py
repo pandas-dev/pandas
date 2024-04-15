@@ -1,6 +1,7 @@
 """
 Core eval alignment algorithms.
 """
+
 from __future__ import annotations
 
 from functools import (
@@ -15,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -127,7 +128,7 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if (
-                    _get_option("performance_warnings")
+                    get_option("performance_warnings")
                     and ordm >= 1
                     and reindexer_size >= 10000
                 ):

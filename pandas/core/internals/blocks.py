@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import wraps
 import inspect
 import re
 from typing import (
@@ -31,7 +30,6 @@ from pandas._typing import (
     AxisInt,
     DtypeBackend,
     DtypeObj,
-    F,
     FillnaOptions,
     IgnoreRaise,
     InterpolateOptions,
@@ -129,23 +127,6 @@ if TYPE_CHECKING:
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
-
-
-def maybe_split(meth: F) -> F:
-    """
-    If we have a multi-column block, split and operate block-wise.  Otherwise
-    use the original method.
-    """
-
-    @wraps(meth)
-    def newfunc(self, *args, **kwargs) -> list[Block]:
-        if self.ndim == 1 or self.shape[0] == 1:
-            return meth(self, *args, **kwargs)
-        else:
-            # Split and operate column-by-column
-            return self.split_and_operate(meth, *args, **kwargs)
-
-    return cast(F, newfunc)
 
 
 class Block(PandasObject, libinternals.Block):
@@ -1362,7 +1343,6 @@ class Block(PandasObject, libinternals.Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1376,16 +1356,12 @@ class Block(PandasObject, libinternals.Block):
         # Dispatch to the NumpyExtensionArray method.
         # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
         vals = cast(NumpyExtensionArray, self.array_values)
-        if axis == 1:
-            vals = vals.T
-        new_values = vals._pad_or_backfill(
+        new_values = vals.T._pad_or_backfill(
             method=method,
             limit=limit,
             limit_area=limit_area,
             copy=copy,
-        )
-        if axis == 1:
-            new_values = new_values.T
+        ).T
 
         data = extract_array(new_values, extract_numpy=True)
         return [self.make_block_same_class(data, refs=refs)]
@@ -1412,12 +1388,10 @@ class Block(PandasObject, libinternals.Block):
             # If there are no NAs, then interpolate is a no-op
             return [self.copy(deep=False)]
 
-        # TODO(3.0): this case will not be reachable once GH#53638 is enforced
         if self.dtype == _dtype_obj:
-            # only deal with floats
-            # bc we already checked that can_hold_na, we don't have int dtype here
-            # test_interp_basic checks that we make a copy here
-            return [self.copy(deep=False)]
+            # GH#53631
+            name = {1: "Series", 2: "DataFrame"}[self.ndim]
+            raise TypeError(f"{name} cannot interpolate with object dtype.")
 
         copy, refs = self._get_refs_and_copy(inplace)
 
@@ -1833,7 +1807,6 @@ class EABackedBlock(Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1846,11 +1819,11 @@ class EABackedBlock(Block):
         elif limit_area is not None:
             raise NotImplementedError(
                 f"{type(values).__name__} does not implement limit_area "
-                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "(added in pandas 2.2). 3rd-party ExtensionArray authors "
                 "need to add this argument to _pad_or_backfill."
             )
 
-        if values.ndim == 2 and axis == 1:
+        if values.ndim == 2:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
             new_values = values.T._pad_or_backfill(**kwargs).T
         else:
@@ -1892,13 +1865,11 @@ class ExtensionBlock(EABackedBlock):
             copy, refs = self._get_refs_and_copy(inplace)
 
             try:
-                new_values = self.values.fillna(
-                    value=value, method=None, limit=limit, copy=copy
-                )
+                new_values = self.values.fillna(value=value, limit=limit, copy=copy)
             except TypeError:
                 # 3rd party EA that has not implemented copy keyword yet
                 refs = None
-                new_values = self.values.fillna(value=value, method=None, limit=limit)
+                new_values = self.values.fillna(value=value, limit=limit)
                 # issue the warning *after* retrying, in case the TypeError
                 #  was caused by an invalid fill_value
                 warnings.warn(
@@ -2146,18 +2117,6 @@ class NumpyBlock(Block):
         kind = dtype.kind
 
         return kind in "fciub"
-
-
-class NumericBlock(NumpyBlock):
-    # this Block type is kept for backwards-compatibility
-    # TODO(3.0): delete and remove deprecation in __init__.py.
-    __slots__ = ()
-
-
-class ObjectBlock(NumpyBlock):
-    # this Block type is kept for backwards-compatibility
-    # TODO(3.0): delete and remove deprecation in __init__.py.
-    __slots__ = ()
 
 
 class NDArrayBackedExtensionBlock(EABackedBlock):

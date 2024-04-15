@@ -5,6 +5,7 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+
 from __future__ import annotations
 
 import collections
@@ -414,6 +415,7 @@ class WrappedCythonOp:
                 "last",
                 "first",
                 "sum",
+                "median",
             ]:
                 func(
                     out=result,
@@ -426,7 +428,7 @@ class WrappedCythonOp:
                     is_datetimelike=is_datetimelike,
                     **kwargs,
                 )
-            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod"]:
                 if self.how in ["std", "sem"]:
                     kwargs["is_datetimelike"] = is_datetimelike
                 func(
@@ -704,7 +706,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        categories = Categorical(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]

@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -14,7 +15,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -34,7 +34,6 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -372,13 +371,10 @@ def array(
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     elif lib.is_np_dtype(dtype, "mM"):
-        warnings.warn(
+        raise ValueError(
+            # GH#53817
             r"datetime64 and timedelta64 dtype resolutions other than "
-            r"'s', 'ms', 'us', and 'ns' are deprecated. "
-            r"In future releases passing unsupported resolutions will "
-            r"raise an exception.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+            r"'s', 'ms', 'us', and 'ns' are no longer supported."
         )
 
     return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
@@ -402,15 +398,13 @@ _typs = frozenset(
 @overload
 def extract_array(
     obj: Series | Index, extract_numpy: bool = ..., extract_range: bool = ...
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 @overload
 def extract_array(
     obj: T, extract_numpy: bool = ..., extract_range: bool = ...
-) -> T | ArrayLike:
-    ...
+) -> T | ArrayLike: ...
 
 
 def extract_array(

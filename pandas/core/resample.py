@@ -257,8 +257,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -266,8 +265,7 @@ class Resampler(BaseGroupBy, PandasObject):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @final
     @Substitution(
@@ -1683,9 +1681,8 @@ class DatetimeIndexResampler(Resampler):
         if self.kind == "period" and not isinstance(result.index, PeriodIndex):
             if isinstance(result.index, MultiIndex):
                 # GH 24103 - e.g. groupby resample
-                new_level = result.index.levels[-1]
-                if not isinstance(new_level, PeriodIndex):
-                    new_level = new_level.to_period(self.freq)  # type: ignore[attr-defined]
+                if not isinstance(result.index.levels[-1], PeriodIndex):
+                    new_level = result.index.levels[-1].to_period(self.freq)
                     result.index = result.index.set_levels(new_level, level=-1)
             else:
                 result.index = result.index.to_period(self.freq)
@@ -2355,15 +2352,13 @@ class TimeGrouper(Grouper):
 @overload
 def _take_new_index(
     obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
 def _take_new_index(
     obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
-) -> Series:
-    ...
+) -> Series: ...
 
 
 def _take_new_index(

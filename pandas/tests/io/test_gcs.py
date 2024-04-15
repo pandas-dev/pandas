@@ -115,15 +115,17 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
     """
     if compression == "zip":
         # Only compare the CRC checksum of the file contents
-        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
-            BytesIO(expected)
-        ) as res:
+        with (
+            zipfile.ZipFile(BytesIO(result)) as exp,
+            zipfile.ZipFile(BytesIO(expected)) as res,
+        ):
             for res_info, exp_info in zip(res.infolist(), exp.infolist()):
                 assert res_info.CRC == exp_info.CRC
     elif compression == "tar":
-        with tarfile.open(fileobj=BytesIO(result)) as tar_exp, tarfile.open(
-            fileobj=BytesIO(expected)
-        ) as tar_res:
+        with (
+            tarfile.open(fileobj=BytesIO(result)) as tar_exp,
+            tarfile.open(fileobj=BytesIO(expected)) as tar_res,
+        ):
             for tar_res_info, tar_exp_info in zip(
                 tar_res.getmembers(), tar_exp.getmembers()
             ):

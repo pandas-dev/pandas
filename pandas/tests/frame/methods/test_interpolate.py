@@ -76,29 +76,14 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        expected = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0],
-                "B": [1.0, 4.0, 9.0, 9.0],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
-        msg = "DataFrame.interpolate with object dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate()
-        tm.assert_frame_equal(result, expected)
+        msg = "DataFrame cannot interpolate with object dtype"
+        with pytest.raises(TypeError, match=msg):
+            df.interpolate()
 
-        # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        assert np.shares_memory(cvalues, result["C"]._values)
-        assert np.shares_memory(dvalues, result["D"]._values)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.interpolate(inplace=True)
-        assert res is None
-        tm.assert_frame_equal(df, expected)
+        with pytest.raises(TypeError, match=msg):
+            df.interpolate(inplace=True)
 
         # check we DID operate inplace
         assert np.shares_memory(df["C"]._values, cvalues)
@@ -117,14 +102,16 @@ class TestDataFrameInterpolate:
             }
         )
 
-        msg = "DataFrame.interpolate with object dtype"
-        warning = FutureWarning if not using_infer_string else None
-        with tm.assert_produces_warning(warning, match=msg):
+        msg = "DataFrame cannot interpolate with object dtype"
+        if not using_infer_string:
+            with pytest.raises(TypeError, match=msg):
+                df.set_index("C").interpolate()
+        else:
             result = df.set_index("C").interpolate()
-        expected = df.set_index("C")
-        expected.loc[3, "A"] = 3
-        expected.loc[5, "B"] = 9
-        tm.assert_frame_equal(result, expected)
+            expected = df.set_index("C")
+            expected.loc[3, "A"] = 3
+            expected.loc[5, "B"] = 9
+            tm.assert_frame_equal(result, expected)
 
     def test_interp_empty(self):
         # https://github.com/pandas-dev/pandas/issues/35598
@@ -142,13 +129,7 @@ class TestDataFrameInterpolate:
                 "C": [1, 2, 3, 5],
             }
         )
-        msg = (
-            r"method must be one of \['linear', 'time', 'index', 'values', "
-            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
-            r"'barycentric', 'krogh', 'spline', 'polynomial', "
-            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
-            r"'cubicspline'\]. Got 'not_a_method' instead."
-        )
+        msg = "Can not interpolate with method=not_a_method"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
@@ -315,22 +296,14 @@ class TestDataFrameInterpolate:
                 "E": [1, 2, 3, 4],
             }
         )
-        msg = (
-            "Cannot interpolate with all object-dtype columns "
-            "in the DataFrame. Try setting at least one "
-            "column to a numeric dtype."
-        )
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.astype("object").interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype="object")
-        msg = (
-            "Cannot interpolate with all object-dtype columns "
-            "in the DataFrame. Try setting at least one "
-            "column to a numeric dtype."
-        )
+        msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
@@ -419,12 +392,9 @@ class TestDataFrameInterpolate:
             df["D"] = np.nan
             df["E"] = 1.0
 
-        method2 = method if method != "pad" else "ffill"
-        expected = getattr(df, method2)(axis=axis)
-        msg = f"DataFrame.interpolate with method={method} is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method=method, axis=axis)
-        tm.assert_frame_equal(result, expected)
+        msg = f"Can not interpolate with method={method}"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(method=method, axis=axis)
 
     def test_interpolate_empty_df(self):
         # GH#53199

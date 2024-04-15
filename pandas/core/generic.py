@@ -99,7 +99,6 @@ from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
-    validate_fillna_kwargs,
     validate_inclusive,
 )
 
@@ -288,6 +287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
+    @final
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
         """
@@ -398,7 +398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def set_flags(
         self,
         *,
-        copy: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
         allows_duplicate_labels: bool | None = None,
     ) -> Self:
         """
@@ -420,6 +420,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
@@ -454,6 +456,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.flags.allows_duplicate_labels
         False
         """
+        self._check_copy_deprecation(copy)
         df = self.copy(deep=False)
         if allows_duplicate_labels is not None:
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
@@ -583,7 +586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
         """
-        Return the special character free column resolvers of a dataframe.
+        Return the special character free column resolvers of a DataFrame.
 
         Column names with special characters are 'cleaned up' so that they can
         be referred to by backtick quoting.
@@ -679,7 +682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Self:
         """
         Assign desired index to given axis.
@@ -696,7 +699,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The axis to update. The value 0 identifies the rows. For `Series`
             this parameter is unused and defaults to 0.
 
-        copy : bool, default True
+        copy : bool, default False
             Whether to make a copy of the underlying data.
 
             .. note::
@@ -711,6 +714,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
 
+            .. deprecated:: 3.0.0
+
         Returns
         -------
         %(klass)s
@@ -720,19 +725,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        self._check_copy_deprecation(copy)
         return self._set_axis_nocheck(labels, axis, inplace=False)
 
     @overload
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: Literal[False]) -> Self:
-        ...
+    def _set_axis_nocheck(
+        self, labels, axis: Axis, inplace: Literal[False]
+    ) -> Self: ...
 
     @overload
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: Literal[True]) -> None:
-        ...
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: Literal[True]) -> None: ...
 
     @overload
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool) -> Self | None:
-        ...
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool) -> Self | None: ...
 
     @final
     def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool) -> Self | None:
@@ -949,12 +954,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: Literal[False] = ...,
         level: Level | None = ...,
         errors: str = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def _rename(
@@ -964,12 +967,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: Literal[True],
         level: Level | None = ...,
         errors: str = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def _rename(
@@ -979,12 +980,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool | None = ...,
         inplace: bool,
         level: Level | None = ...,
         errors: str = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     def _rename(
@@ -994,7 +993,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: str = "ignore",
@@ -1065,10 +1063,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[False] = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def rename_axis(
@@ -1078,10 +1075,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: Literal[True],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def rename_axis(
@@ -1091,10 +1087,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=...,
         columns=...,
         axis: Axis = ...,
-        copy: bool | None = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     def rename_axis(
         self,
@@ -1103,7 +1098,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=lib.no_default,
         columns=lib.no_default,
         axis: Axis = 0,
-        copy: bool | None = None,
+        copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
     ) -> Self | None:
         """
@@ -1125,7 +1120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             apply to that axis' values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename.
-        copy : bool, default None
+        copy : bool, default False
             Also copy underlying data.
 
             .. note::
@@ -1139,6 +1134,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 You can already get the future behavior and improvements through
                 enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
@@ -1226,6 +1223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
+        self._check_copy_deprecation(copy)
         axes = {"index": index, "columns": columns}
 
         if axis is not None:
@@ -1266,16 +1264,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def _set_axis_name(
         self, name, axis: Axis = ..., *, inplace: Literal[False] = ...
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
-    def _set_axis_name(self, name, axis: Axis = ..., *, inplace: Literal[True]) -> None:
-        ...
+    def _set_axis_name(
+        self, name, axis: Axis = ..., *, inplace: Literal[True]
+    ) -> None: ...
 
     @overload
-    def _set_axis_name(self, name, axis: Axis = ..., *, inplace: bool) -> Self | None:
-        ...
+    def _set_axis_name(
+        self, name, axis: Axis = ..., *, inplace: bool
+    ) -> Self | None: ...
 
     @final
     def _set_axis_name(
@@ -2652,6 +2651,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             See the errors argument for :func:`open` for a full list
             of options.
         encoding : str, default "UTF-8"
+            Set character encoding.
 
         See Also
         --------
@@ -3200,8 +3200,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption: str | tuple[str, str] | None = ...,
         label: str | None = ...,
         position: str | None = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def to_latex(
@@ -3228,8 +3227,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption: str | tuple[str, str] | None = ...,
         label: str | None = ...,
         position: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @final
     def to_latex(
@@ -3610,8 +3608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @overload
     def to_csv(
@@ -3638,8 +3635,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @final
     @doc(
@@ -4193,15 +4189,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Get item from object for given key (ex: DataFrame column).
 
-        Returns default value if not found.
+        Returns ``default`` value if not found.
 
         Parameters
         ----------
         key : object
+            Key for which item should be returned.
+        default : object, default None
+            Default value to return if key is not found.
 
         Returns
         -------
         same type as items contained in object
+            Item for given key or ``default`` value, if key is not found.
 
         Examples
         --------
@@ -4246,12 +4246,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self[key]
         except (KeyError, ValueError, IndexError):
             return default
-
-    @final
-    @property
-    def _is_view(self) -> bool:
-        """Return boolean indicating if self is view of another array"""
-        return self._mgr.is_view
 
     @staticmethod
     def _check_copy_deprecation(copy):
@@ -4403,8 +4397,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def drop(
@@ -4417,8 +4410,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def drop(
@@ -4431,8 +4423,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     def drop(
         self,
@@ -4726,8 +4717,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_values(
@@ -4740,8 +4730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def sort_values(
@@ -4754,8 +4743,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     def sort_values(
         self,
@@ -4925,8 +4913,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def sort_index(
@@ -4941,8 +4928,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def sort_index(
@@ -4957,8 +4943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     def sort_index(
         self,
@@ -5092,7 +5077,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} with changed index.
+        {klass}
+            {klass} with changed index.
 
         See Also
         --------
@@ -5110,7 +5096,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
-        Create a dataframe with some fictional data.
+        Create a DataFrame with some fictional data.
 
         >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
         >>> columns = ["http_status", "response_time"]
@@ -5127,9 +5113,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         IE10               404           0.08
         Konqueror          301           1.00
 
-        Create a new index and reindex the dataframe. By default
+        Create a new index and reindex the DataFrame. By default
         values in the new index that do not have corresponding
-        records in the dataframe are assigned ``NaN``.
+        records in the DataFrame are assigned ``NaN``.
 
         >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
         >>> df.reindex(new_index)
@@ -5182,7 +5168,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Konqueror          301         NaN
 
         To further illustrate the filling functionality in
-        ``reindex``, we will create a dataframe with a
+        ``reindex``, we will create a DataFrame with a
         monotonically increasing index (for example, a sequence
         of dates).
 
@@ -5199,7 +5185,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2010-01-05    89.0
         2010-01-06    88.0
 
-        Suppose we decide to expand the dataframe to cover a wider
+        Suppose we decide to expand the DataFrame to cover a wider
         date range.
 
         >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
@@ -5237,12 +5223,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2010-01-06    88.0
         2010-01-07     NaN
 
-        Please note that the ``NaN`` value present in the original dataframe
+        Please note that the ``NaN`` value present in the original DataFrame
         (at index value 2010-01-03) will not be filled by any of the
         value propagation schemes. This is because filling while reindexing
-        does not look at dataframe values, but only compares the original and
+        does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
-        in the original dataframe, use the ``fillna()`` method.
+        in the original DataFrame, use the ``fillna()`` method.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """
@@ -5381,10 +5367,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
     ) -> Self:
         """
-        Subset the dataframe rows or columns according to the specified index labels.
+        Subset the DataFrame or Series according to the specified index labels.
 
-        Note that this routine does not filter a dataframe on its
-        contents. The filter is applied to the labels of the index.
+        For DataFrame, filter rows or columns depending on ``axis`` argument.
+        Note that this routine does not filter based on content.
+        The filter is applied to the labels of the index.
 
         Parameters
         ----------
@@ -5397,11 +5384,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
-            DataFrame. For `Series` this parameter is unused and defaults to `None`.
+            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
+            ``None``.
 
         Returns
         -------
-        same type as input object
+        Same type as caller
+            The filtered subset of the DataFrame or Series.
 
         See Also
         --------
@@ -5822,8 +5811,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -5831,8 +5819,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -5860,7 +5847,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        the return type of ``func``.
+        The return type of ``func``.
+            The result of applying ``func`` to the Series or DataFrame.
 
         See Also
         --------
@@ -5876,7 +5864,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Constructing a income DataFrame from a dictionary.
+        Constructing an income DataFrame from a dictionary.
 
         >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
         >>> df = pd.DataFrame(data, columns=["Salary", "Others"])
@@ -6344,7 +6332,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
-        result = concat(results, axis=1, copy=False)
+        result = concat(results, axis=1)
         # GH#40810 retain subclass
         # error: Incompatible types in assignment
         # (expression has type "Self", variable has type "DataFrame")
@@ -6739,12 +6727,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         method = clean_fill_method(method)
 
-        if not self._mgr.is_single_block and axis == 1:
+        if axis == 1:
+            if not self._mgr.is_single_block and inplace:
+                raise NotImplementedError
             # e.g. test_align_fill_method
-            # TODO(3.0): once downcast is removed, we can do the .T
-            #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
-            if inplace:
-                raise NotImplementedError()
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
@@ -6753,7 +6739,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_mgr = self._mgr.pad_or_backfill(
             method=method,
-            axis=self._get_block_manager_axis(axis),
             limit=limit,
             limit_area=limit_area,
             inplace=inplace,
@@ -6767,38 +6752,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         limit: int | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[True],
         limit: int | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
-        method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
         limit: int | None = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -6807,15 +6786,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame | None = None,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
-        method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
         limit: int | None = None,
     ) -> Self | None:
         """
-        Fill NA/NaN values using the specified method.
+        Fill NA/NaN values with `value`.
 
         Parameters
         ----------
@@ -6825,15 +6803,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             each index (for a Series) or column (for a DataFrame).  Values not
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
-        method : {{'backfill', 'bfill', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series:
-
-            * ffill: propagate last valid observation forward to next valid.
-            * backfill / bfill: use next valid observation to fill gap.
-
-            .. deprecated:: 2.1.0
-                Use ffill or bfill instead.
-
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
@@ -6842,12 +6811,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            This is the maximum number of entries along the entire axis
+            where NaNs will be filled. Must be greater than 0 if not None.
 
         Returns
         -------
@@ -6861,6 +6826,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         interpolate : Fill NaN values using interpolation.
         reindex : Conform object to new index.
         asfreq : Convert TimeSeries to specified frequency.
+
+        Notes
+        -----
+        For non-object dtype, ``value=None`` will use the NA value of the dtype.
+        See more details in the :ref:`Filling missing data<missing_data.fillna>`
+        section.
 
         Examples
         --------
@@ -6932,14 +6903,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        value, method = validate_fillna_kwargs(value, method)
-        if method is not None:
-            warnings.warn(
-                f"{type(self).__name__}.fillna with 'method' is deprecated and "
-                "will raise in a future version. Use obj.ffill() or obj.bfill() "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+        if isinstance(value, (list, tuple)):
+            raise TypeError(
+                '"value" parameter must be a scalar or dict, but '
+                f'you passed a "{type(value).__name__}"'
             )
 
         # set the default here, so functions examining the signaure
@@ -6948,109 +6915,92 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        if value is None:
-            return self._pad_or_backfill(
-                # error: Argument 1 to "_pad_or_backfill" of "NDFrame" has
-                # incompatible type "Optional[Literal['backfill', 'bfill', 'ffill',
-                # 'pad']]"; expected "Literal['ffill', 'bfill', 'pad', 'backfill']"
-                method,  # type: ignore[arg-type]
-                axis=axis,
-                limit=limit,
-                inplace=inplace,
-            )
-        else:
-            if self.ndim == 1:
-                if isinstance(value, (dict, ABCSeries)):
-                    if not len(value):
-                        # test_fillna_nonscalar
-                        if inplace:
-                            return None
-                        return self.copy(deep=False)
-                    from pandas import Series
+        if self.ndim == 1:
+            if isinstance(value, (dict, ABCSeries)):
+                if not len(value):
+                    # test_fillna_nonscalar
+                    if inplace:
+                        return None
+                    return self.copy(deep=False)
+                from pandas import Series
 
-                    value = Series(value)
-                    value = value.reindex(self.index)
-                    value = value._values
-                elif not is_list_like(value):
-                    pass
-                else:
-                    raise TypeError(
-                        '"value" parameter must be a scalar, dict '
-                        "or Series, but you passed a "
-                        f'"{type(value).__name__}"'
-                    )
-
-                new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
-
-            elif isinstance(value, (dict, ABCSeries)):
-                if axis == 1:
-                    raise NotImplementedError(
-                        "Currently only can fill "
-                        "with dict/Series column "
-                        "by column"
-                    )
-                result = self if inplace else self.copy(deep=False)
-                for k, v in value.items():
-                    if k not in result:
-                        continue
-
-                    res_k = result[k].fillna(v, limit=limit)
-
-                    if not inplace:
-                        result[k] = res_k
-                    else:
-                        # We can write into our existing column(s) iff dtype
-                        #  was preserved.
-                        if isinstance(res_k, ABCSeries):
-                            # i.e. 'k' only shows up once in self.columns
-                            if res_k.dtype == result[k].dtype:
-                                result.loc[:, k] = res_k
-                            else:
-                                # Different dtype -> no way to do inplace.
-                                result[k] = res_k
-                        else:
-                            # see test_fillna_dict_inplace_nonunique_columns
-                            locs = result.columns.get_loc(k)
-                            if isinstance(locs, slice):
-                                locs = np.arange(self.shape[1])[locs]
-                            elif (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
-                            ):
-                                locs = locs.nonzero()[0]
-                            elif not (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                            ):
-                                # Should never be reached, but let's cover our bases
-                                raise NotImplementedError(
-                                    "Unexpected get_loc result, please report a bug at "
-                                    "https://github.com/pandas-dev/pandas"
-                                )
-
-                            for i, loc in enumerate(locs):
-                                res_loc = res_k.iloc[:, i]
-                                target = self.iloc[:, loc]
-
-                                if res_loc.dtype == target.dtype:
-                                    result.iloc[:, loc] = res_loc
-                                else:
-                                    result.isetitem(loc, res_loc)
-                if inplace:
-                    return self._update_inplace(result)
-                else:
-                    return result
-
+                value = Series(value)
+                value = value.reindex(self.index)
+                value = value._values
             elif not is_list_like(value):
-                if axis == 1:
-                    result = self.T.fillna(value=value, limit=limit).T
-                    new_data = result._mgr
-                else:
-                    new_data = self._mgr.fillna(
-                        value=value, limit=limit, inplace=inplace
-                    )
-            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-                new_data = self.where(self.notna(), value)._mgr
+                pass
             else:
-                raise ValueError(f"invalid fill value with a {type(value)}")
+                raise TypeError(
+                    '"value" parameter must be a scalar, dict '
+                    "or Series, but you passed a "
+                    f'"{type(value).__name__}"'
+                )
+
+            new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
+
+        elif isinstance(value, (dict, ABCSeries)):
+            if axis == 1:
+                raise NotImplementedError(
+                    "Currently only can fill with dict/Series column by column"
+                )
+            result = self if inplace else self.copy(deep=False)
+            for k, v in value.items():
+                if k not in result:
+                    continue
+
+                res_k = result[k].fillna(v, limit=limit)
+
+                if not inplace:
+                    result[k] = res_k
+                else:
+                    # We can write into our existing column(s) iff dtype
+                    #  was preserved.
+                    if isinstance(res_k, ABCSeries):
+                        # i.e. 'k' only shows up once in self.columns
+                        if res_k.dtype == result[k].dtype:
+                            result.loc[:, k] = res_k
+                        else:
+                            # Different dtype -> no way to do inplace.
+                            result[k] = res_k
+                    else:
+                        # see test_fillna_dict_inplace_nonunique_columns
+                        locs = result.columns.get_loc(k)
+                        if isinstance(locs, slice):
+                            locs = np.arange(self.shape[1])[locs]
+                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
+                            locs = locs.nonzero()[0]
+                        elif not (
+                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                        ):
+                            # Should never be reached, but let's cover our bases
+                            raise NotImplementedError(
+                                "Unexpected get_loc result, please report a bug at "
+                                "https://github.com/pandas-dev/pandas"
+                            )
+
+                        for i, loc in enumerate(locs):
+                            res_loc = res_k.iloc[:, i]
+                            target = self.iloc[:, loc]
+
+                            if res_loc.dtype == target.dtype:
+                                result.iloc[:, loc] = res_loc
+                            else:
+                                result.isetitem(loc, res_loc)
+            if inplace:
+                return self._update_inplace(result)
+            else:
+                return result
+
+        elif not is_list_like(value):
+            if axis == 1:
+                result = self.T.fillna(value=value, limit=limit).T
+                new_data = result._mgr
+            else:
+                new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
+        elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+            new_data = self.where(self.notna(), value)._mgr
+        else:
+            raise ValueError(f"invalid fill value with a {type(value)}")
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
@@ -7066,8 +7016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         limit: None | int = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def ffill(
@@ -7077,8 +7026,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         limit: None | int = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def ffill(
@@ -7088,8 +7036,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = ...,
         limit: None | int = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -7198,8 +7145,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         limit: None | int = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def bfill(
@@ -7208,8 +7154,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def bfill(
@@ -7219,8 +7164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = ...,
         limit: None | int = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -7335,11 +7279,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         value=...,
         *,
         inplace: Literal[False] = ...,
-        limit: int | None = ...,
         regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def replace(
@@ -7348,11 +7289,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         value=...,
         *,
         inplace: Literal[True],
-        limit: int | None = ...,
         regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def replace(
@@ -7361,11 +7299,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         value=...,
         *,
         inplace: bool = ...,
-        limit: int | None = ...,
         regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -7379,42 +7314,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         value=lib.no_default,
         *,
         inplace: bool = False,
-        limit: int | None = None,
         regex: bool = False,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ) -> Self | None:
-        if method is not lib.no_default:
-            warnings.warn(
-                # GH#33302
-                f"The 'method' keyword in {type(self).__name__}.replace is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        elif limit is not None:
-            warnings.warn(
-                # GH#33302
-                f"The 'limit' keyword in {type(self).__name__}.replace is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if (
-            value is lib.no_default
-            and method is lib.no_default
-            and not is_dict_like(to_replace)
-            and regex is False
-        ):
-            # case that goes through _replace_single and defaults to method="pad"
-            warnings.warn(
-                # GH#33302
-                f"{type(self).__name__}.replace without 'value' and with "
-                "non-dict-like 'to_replace' is deprecated "
-                "and will raise in a future version. "
-                "Explicitly specify the new values instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        if not is_bool(regex) and to_replace is not None:
+            raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         if not (
             is_scalar(to_replace)
@@ -7427,6 +7330,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"{type(to_replace).__name__!r}"
             )
 
+        if value is lib.no_default and not (
+            is_dict_like(to_replace) or is_dict_like(regex)
+        ):
+            raise ValueError(
+                # GH#33302
+                f"{type(self).__name__}.replace must specify either 'value', "
+                "a dict-like 'to_replace', or dict-like 'regex'."
+            )
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not PYPY:
@@ -7437,44 +7349,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        if not is_bool(regex) and to_replace is not None:
-            raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
-
-        if value is lib.no_default or method is not lib.no_default:
-            # GH#36984 if the user explicitly passes value=None we want to
-            #  respect that. We have the corner case where the user explicitly
-            #  passes value=None *and* a method, which we interpret as meaning
-            #  they want the (documented) default behavior.
-            if method is lib.no_default:
-                # TODO: get this to show up as the default in the docs?
-                method = "pad"
-
-            # passing a single value that is scalar like
-            # when value is None (GH5319), for compat
-            if not is_dict_like(to_replace) and not is_dict_like(regex):
-                to_replace = [to_replace]
-
-            if isinstance(to_replace, (tuple, list)):
-                # TODO: Consider copy-on-write for non-replaced columns's here
-                if isinstance(self, ABCDataFrame):
-                    from pandas import Series
-
-                    result = self.apply(
-                        Series._replace_single,
-                        args=(to_replace, method, inplace, limit),
-                    )
-                    if inplace:
-                        return None
-                    return result
-                return self._replace_single(to_replace, method, inplace, limit)
-
+        if value is lib.no_default:
             if not is_dict_like(to_replace):
-                if not is_dict_like(regex):
-                    raise TypeError(
-                        'If "to_replace" and "value" are both None '
-                        'and "to_replace" is not a list, then '
-                        "regex must be a mapping"
-                    )
+                # In this case we have checked above that
+                #  1) regex is dict-like and 2) to_replace is None
                 to_replace = regex
                 regex = True
 
@@ -7511,9 +7389,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 to_replace, value = keys, values
 
-            return self.replace(
-                to_replace, value, inplace=inplace, limit=limit, regex=regex
-            )
+            return self.replace(to_replace, value, inplace=inplace, regex=regex)
         else:
             # need a non-zero len on all axes
             if not self.size:
@@ -7577,9 +7453,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"or a list or dict of strings or regular expressions, "
                         f"you passed a {type(regex).__name__!r}"
                     )
-                return self.replace(
-                    regex, value, inplace=inplace, limit=limit, regex=True
-                )
+                return self.replace(regex, value, inplace=inplace, regex=True)
             else:
                 # dest iterable dict-like
                 if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
@@ -7626,8 +7500,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit_direction: Literal["forward", "backward", "both"] | None = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
         **kwargs,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def interpolate(
@@ -7640,8 +7513,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit_direction: Literal["forward", "backward", "both"] | None = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
         **kwargs,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def interpolate(
@@ -7654,8 +7526,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit_direction: Literal["forward", "backward", "both"] | None = ...,
         limit_area: Literal["inside", "outside"] | None = ...,
         **kwargs,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     def interpolate(
@@ -7685,7 +7556,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'time': Works on daily and higher resolution data to interpolate
               given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
@@ -7709,22 +7579,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {{'forward', 'backward', 'both'}}, Optional
+        limit_direction : {{'forward', 'backward', 'both'}}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
-
-            If limit is specified:
-                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-                  'backwards'.
-
-            If 'limit' is not specified:
-                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
-                * else the default is 'forward'
-
-            raises ValueError if `limit_direction` is 'forward' or 'both' and
-                method is 'backfill' or 'bfill'.
-            raises ValueError if `limit_direction` is 'backward' or 'both' and
-                method is 'pad' or 'ffill'.
 
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
@@ -7858,37 +7714,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
 
-        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-        if method.lower() in fillna_methods:
-            # GH#53581
-            warnings.warn(
-                f"{type(self).__name__}.interpolate with method={method} is "
-                "deprecated and will raise in a future version. "
-                "Use obj.ffill() or obj.bfill() instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            obj, should_transpose = self, False
-        else:
-            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
-            if np.any(obj.dtypes == object):
-                # GH#53631
-                if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
-                    # don't warn in cases that already raise
-                    warnings.warn(
-                        f"{type(self).__name__}.interpolate with object dtype is "
-                        "deprecated and will raise in a future version. Call "
-                        "obj.infer_objects(copy=False) before interpolating instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-
-        if method in fillna_methods and "fill_value" in kwargs:
-            raise ValueError(
-                "'fill_value' is not a valid keyword for "
-                f"{type(self).__name__}.interpolate with method from "
-                f"{fillna_methods}"
-            )
+        obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
 
         if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
@@ -7897,41 +7723,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
 
-        if obj.ndim == 2 and np.all(obj.dtypes == object):
-            raise TypeError(
-                "Cannot interpolate with all object-dtype columns "
-                "in the DataFrame. Try setting at least one "
-                "column to a numeric dtype."
-            )
-
-        if method.lower() in fillna_methods:
-            # TODO(3.0): remove this case
-            # TODO: warn/raise on limit_direction or kwargs which are ignored?
-            #  as of 2023-06-26 no tests get here with either
-            if not self._mgr.is_single_block and axis == 1:
-                # GH#53898
-                if inplace:
-                    raise NotImplementedError()
-                obj, axis, should_transpose = self.T, 1 - axis, True
-
-            new_data = obj._mgr.pad_or_backfill(
-                method=method,
-                axis=self._get_block_manager_axis(axis),
-                limit=limit,
-                limit_area=limit_area,
-                inplace=inplace,
-            )
-        else:
-            index = missing.get_interp_index(method, obj.index)
-            new_data = obj._mgr.interpolate(
-                method=method,
-                index=index,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                inplace=inplace,
-                **kwargs,
-            )
+        index = missing.get_interp_index(method, obj.index)
+        new_data = obj._mgr.interpolate(
+            method=method,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            inplace=inplace,
+            **kwargs,
+        )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if should_transpose:
@@ -8332,8 +8133,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
         **kwargs,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def clip(
@@ -8344,8 +8144,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         inplace: Literal[True],
         **kwargs,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def clip(
@@ -8356,8 +8155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         inplace: bool = ...,
         **kwargs,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     def clip(
@@ -8404,7 +8202,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         Series.clip : Trim values at input threshold in series.
-        DataFrame.clip : Trim values at input threshold in dataframe.
+        DataFrame.clip : Trim values at input threshold in DataFrame.
         numpy.clip : Clip (limit) the values in an array.
 
         Examples
@@ -9707,7 +9505,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fill
         fill_na = notna(fill_value)
         if fill_na:
-            fill_value, _ = validate_fillna_kwargs(fill_value, None)
             left = left.fillna(fill_value)
             right = right.fillna(fill_value)
 
@@ -9722,8 +9519,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level=...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def _where(
@@ -9734,8 +9530,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         axis: Axis | None = ...,
         level=...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def _where(
@@ -9746,8 +9541,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool,
         axis: Axis | None = ...,
         level=...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     def _where(
@@ -9788,13 +9582,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "Downcasting object dtype arrays",
-                category=FutureWarning,
-            )
-            cond = cond.fillna(fill_value)
+        cond = cond.fillna(fill_value)
         cond = cond.infer_objects()
 
         msg = "Boolean array expected for the condition, not {dtype}"
@@ -9909,8 +9697,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def where(
@@ -9921,8 +9708,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def where(
@@ -9933,8 +9719,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -9983,8 +9768,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame unless ``inplace=True`` in which case
-        returns None.
+        Series or DataFrame or None
+            When applied to a Series, the function will return a Series,
+            and when applied to a DataFrame, it will return a DataFrame;
+            if ``inplace=True``, it will return None.
 
         See Also
         --------
@@ -10115,8 +9902,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @overload
     def mask(
@@ -10127,8 +9913,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def mask(
@@ -10139,8 +9924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-    ) -> Self | None:
-        ...
+    ) -> Self | None: ...
 
     @final
     @doc(
@@ -10602,6 +10386,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         TypeError
             If the axis is tz-naive.
 
+        See Also
+        --------
+        DataFrame.tz_localize: Localize tz-naive index of DataFrame to target time zone.
+        Series.tz_localize: Localize tz-naive index of Series to target time zone.
+
         Examples
         --------
         Change to another time zone:
@@ -10664,10 +10453,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
-        Localize tz-naive index of a Series or DataFrame to target time zone.
+        Localize time zone naive index of a Series or DataFrame to target time zone.
 
         This operation localizes the Index. To localize the values in a
-        timezone-naive Series, use :meth:`Series.dt.tz_localize`.
+        time zone naive Series, use :meth:`Series.dt.tz_localize`.
 
         Parameters
         ----------
@@ -10727,12 +10516,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         {klass}
-            Same type as the input.
+            Same type as the input, with time zone naive or aware index, depending on
+            ``tz``.
 
         Raises
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        See Also
+        --------
+        Series.dt.tz_localize: Localize the values in a time zone naive Series.
+        Timestamp.tz_localize: Localize the Timestamp to a timezone.
 
         Examples
         --------
@@ -10949,7 +10744,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         among those with the highest count.
 
         For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the dataframe consists
+        return only an analysis of numeric columns. If the DataFrame consists
         only of object and categorical data without any numeric columns, the
         default is to return an analysis of both the object and categorical
         columns. If ``include='all'`` is provided as an option, the result
@@ -11122,8 +10917,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_method: None = None,
         freq=None,
         **kwargs,
     ) -> Self:
@@ -11145,16 +10939,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         periods : int, default 1
             Periods to shift for forming percent change.
-        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            How to handle NAs **before** computing percent changes.
+        fill_method : None
+            Must be None. This argument will be removed in a future version of pandas.
 
             .. deprecated:: 2.1
                 All options of `fill_method` are deprecated except `fill_method=None`.
-
-        limit : int, default None
-            The number of consecutive NAs to fill before stopping.
-
-            .. deprecated:: 2.1
 
         freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'ME' or BDay()).
@@ -11262,52 +11051,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         APPL -0.252395 -0.011860   NaN
         """
         # GH#53491
-        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
-            warnings.warn(
-                "The 'fill_method' keyword being not None and the 'limit' keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                "in a future version. Either fill in any non-leading NA values prior "
-                "to calling pct_change or specify 'fill_method=None' to not fill NA "
-                "values.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if fill_method is lib.no_default:
-            if limit is lib.no_default:
-                cols = self.items() if self.ndim == 2 else [(None, self)]
-                for _, col in cols:
-                    if len(col) > 0:
-                        mask = col.isna().values
-                        mask = mask[np.argmax(~mask) :]
-                        if mask.any():
-                            warnings.warn(
-                                "The default fill_method='pad' in "
-                                f"{type(self).__name__}.pct_change is deprecated and "
-                                "will be removed in a future version. Either fill in "
-                                "any non-leading NA values prior to calling pct_change "
-                                "or specify 'fill_method=None' to not fill NA values.",
-                                FutureWarning,
-                                stacklevel=find_stack_level(),
-                            )
-                            break
-            fill_method = "pad"
-        if limit is lib.no_default:
-            limit = None
+        if fill_method is not None:
+            raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
         axis = self._get_axis_number(kwargs.pop("axis", "index"))
-        if fill_method is None:
-            data = self
-        else:
-            data = self._pad_or_backfill(fill_method, axis=axis, limit=limit)
-
-        shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
+        shifted = self.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")
-        rs = data / shifted - 1  # type: ignore[operator]
+        rs = self / shifted - 1  # type: ignore[operator]
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
             rs = rs.loc[~rs.index.duplicated()]
-            rs = rs.reindex_like(data)
+            rs = rs.reindex_like(self)
         return rs.__finalize__(self, method="pct_change")
 
     @final
@@ -11832,11 +11587,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-NA value or None, if no non-NA value is found.
+        Return index for {position} non-missing value or None, if no value is found.
+
+        See the :ref:`User Guide <missing_data>` for more information
+        on which values are considered missing.
 
         Returns
         -------
         type of index
+            Index of {position} non-missing value.
 
         Examples
         --------
@@ -11927,7 +11686,7 @@ axis : {axis_descr}
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 numeric_only : bool, default False
-    Include only float, int, boolean columns. Not implemented for Series.
+    Include only float, int, boolean columns.
 
 {min_count}\
 **kwargs
@@ -12096,9 +11855,9 @@ skipna : bool, default True
 
 Returns
 -------
-{name1} or {name2}
-    If level is specified, then, {name2} is returned; otherwise, {name1}
-    is returned.
+{name2} or {name1}
+    If axis=None, then a scalar boolean is returned.
+    Otherwise a Series is returned with index matching the index argument.
 
 {see_also}
 {examples}"""
@@ -12128,7 +11887,7 @@ True
 
 **DataFrames**
 
-Create a dataframe from a dictionary.
+Create a DataFrame from a dictionary.
 
 >>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
 >>> df
@@ -12163,7 +11922,45 @@ Series.all : Return True if all elements are True.
 DataFrame.any : Return True if one (or more) elements are True.
 """
 
-_cnum_doc = """
+_cnum_pd_doc = """
+Return cumulative {desc} over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+{desc}.
+
+Parameters
+----------
+axis : {{0 or 'index', 1 or 'columns'}}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
+skipna : bool, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA.
+numeric_only : bool, default False
+    Include only float, int, boolean columns.
+*args, **kwargs
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
+
+Returns
+-------
+{name1} or {name2}
+    Return cumulative {desc} of {name1} or {name2}.
+
+See Also
+--------
+core.window.expanding.Expanding.{accum_func_name} : Similar functionality
+    but ignores ``NaN`` values.
+{name2}.{accum_func_name} : Return the {desc} over
+    {name2} axis.
+{name2}.cummax : Return cumulative maximum over {name2} axis.
+{name2}.cummin : Return cumulative minimum over {name2} axis.
+{name2}.cumsum : Return cumulative sum over {name2} axis.
+{name2}.cumprod : Return cumulative product over {name2} axis.
+
+{examples}"""
+
+_cnum_series_doc = """
 Return cumulative {desc} over a DataFrame or Series axis.
 
 Returns a DataFrame or Series of the same size containing the cumulative
@@ -12954,28 +12751,44 @@ def make_doc(name: str, ndim: int) -> str:
         kwargs = {"min_count": ""}
 
     elif name == "cumsum":
-        base_doc = _cnum_doc
+        if ndim == 1:
+            base_doc = _cnum_series_doc
+        else:
+            base_doc = _cnum_pd_doc
+
         desc = "sum"
         see_also = ""
         examples = _cumsum_examples
         kwargs = {"accum_func_name": "sum"}
 
     elif name == "cumprod":
-        base_doc = _cnum_doc
+        if ndim == 1:
+            base_doc = _cnum_series_doc
+        else:
+            base_doc = _cnum_pd_doc
+
         desc = "product"
         see_also = ""
         examples = _cumprod_examples
         kwargs = {"accum_func_name": "prod"}
 
     elif name == "cummin":
-        base_doc = _cnum_doc
+        if ndim == 1:
+            base_doc = _cnum_series_doc
+        else:
+            base_doc = _cnum_pd_doc
+
         desc = "minimum"
         see_also = ""
         examples = _cummin_examples
         kwargs = {"accum_func_name": "min"}
 
     elif name == "cummax":
-        base_doc = _cnum_doc
+        if ndim == 1:
+            base_doc = _cnum_series_doc
+        else:
+            base_doc = _cnum_pd_doc
+
         desc = "maximum"
         see_also = ""
         examples = _cummax_examples

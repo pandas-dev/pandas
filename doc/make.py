@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+
 import argparse
 import csv
 import importlib

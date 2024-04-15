@@ -622,8 +622,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp:
-    ...
+) -> Timestamp: ...
 
 
 @overload
@@ -638,8 +637,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -654,8 +652,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeIndex:
-    ...
+) -> DatetimeIndex: ...
 
 
 def to_datetime(
@@ -996,7 +993,6 @@ def to_datetime(
         errors=errors,
         exact=exact,
     )
-    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):

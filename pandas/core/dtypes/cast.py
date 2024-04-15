@@ -247,13 +247,15 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
 
 
 @overload
-def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
-    ...
+def maybe_downcast_to_dtype(
+    result: np.ndarray, dtype: str | np.dtype
+) -> np.ndarray: ...
 
 
 @overload
-def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
-    ...
+def maybe_downcast_to_dtype(
+    result: ExtensionArray, dtype: str | np.dtype
+) -> ArrayLike: ...
 
 
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
@@ -317,15 +319,13 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 @overload
 def maybe_downcast_numeric(
     result: np.ndarray, dtype: np.dtype, do_round: bool = False
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
 def maybe_downcast_numeric(
     result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 def maybe_downcast_numeric(
@@ -513,13 +513,11 @@ def _maybe_cast_to_extension_array(
 
 
 @overload
-def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype:
-    ...
+def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype: ...
 
 
 @overload
-def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype:
-    ...
+def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype: ...
 
 
 def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
@@ -1418,18 +1416,15 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
 
 
 @overload
-def find_common_type(types: list[np.dtype]) -> np.dtype:
-    ...
+def find_common_type(types: list[np.dtype]) -> np.dtype: ...
 
 
 @overload
-def find_common_type(types: list[ExtensionDtype]) -> DtypeObj:
-    ...
+def find_common_type(types: list[ExtensionDtype]) -> DtypeObj: ...
 
 
 @overload
-def find_common_type(types: list[DtypeObj]) -> DtypeObj:
-    ...
+def find_common_type(types: list[DtypeObj]) -> DtypeObj: ...
 
 
 def find_common_type(types):

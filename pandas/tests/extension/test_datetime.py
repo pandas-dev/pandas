@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import numpy as np
 import pytest
 
@@ -103,10 +104,8 @@ class TestDatetimeArray(base.ExtensionTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         meth = all_boolean_reductions
-        msg = f"'{meth}' with datetime64 dtypes is deprecated and will raise in"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        msg = f"datetime64 type does not support operation '{meth}'"
+        with pytest.raises(TypeError, match=msg):
             super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def test_series_constructor(self, data):

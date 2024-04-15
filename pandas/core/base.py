@@ -14,7 +14,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -35,7 +34,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -87,12 +85,6 @@ if TYPE_CHECKING:
 
 
 _shared_docs: dict[str, str] = {}
-_indexops_doc_kwargs = {
-    "klass": "IndexOpsMixin",
-    "inplace": "",
-    "unique": "IndexOpsMixin",
-    "duplicated": "IndexOpsMixin",
-}
 
 
 class PandasObject(DirNamesMixin):
@@ -135,7 +127,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)  # pylint: disable=not-callable
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -692,7 +684,8 @@ class IndexOpsMixin(OpsMixin):
         axis : {{None}}
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values when showing the result.
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
 
@@ -743,27 +736,9 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
-            else:
-                return delegate.argmax()
+            return delegate.argmax(skipna=skipna)
         else:
             result = nanops.nanargmax(delegate, skipna=skipna)
-            if result == -1:
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
             return result  # type: ignore[return-value]
@@ -774,30 +749,12 @@ class IndexOpsMixin(OpsMixin):
     ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return -1
-            else:
-                return delegate.argmin()
+            return delegate.argmin(skipna=skipna)
         else:
             result = nanops.nanargmin(delegate, skipna=skipna)
-            if result == -1:
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.argmax/argmin "
-                    "with skipna=False and NAs, or with all-NAs is deprecated. "
-                    "In a future version this will raise ValueError.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
             return result  # type: ignore[return-value]
@@ -957,6 +914,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         Series
+            Series containing counts of unique values.
 
         See Also
         --------
@@ -1071,7 +1029,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_unique(self) -> bool:
         """
-        Return boolean if values in the object are unique.
+        Return True if values in the object are unique.
 
         Returns
         -------
@@ -1092,7 +1050,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically increasing.
+        Return True if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1115,7 +1073,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are monotonically decreasing.
+        Return True if values in the object are monotonically decreasing.
 
         Returns
         -------
@@ -1319,8 +1277,7 @@ class IndexOpsMixin(OpsMixin):
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
-    ) -> np.intp:
-        ...
+    ) -> np.intp: ...
 
     @overload
     def searchsorted(
@@ -1328,8 +1285,7 @@ class IndexOpsMixin(OpsMixin):
         value: npt.ArrayLike | ExtensionArray,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
-    ) -> npt.NDArray[np.intp]:
-        ...
+    ) -> npt.NDArray[np.intp]: ...
 
     @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(

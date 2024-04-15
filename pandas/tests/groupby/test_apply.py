@@ -838,7 +838,8 @@ def test_groupby_apply_all_none():
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = test_df.groupby("groups").apply(test_func)
-    expected = DataFrame()
+    expected = DataFrame(columns=test_df.columns)
+    expected = expected.astype(test_df.dtypes)
     tm.assert_frame_equal(result, expected)
 
 
@@ -986,7 +987,7 @@ def test_apply_multi_level_name(category):
     ).set_index(["A", "B"])
     result = df.groupby("B", observed=False).apply(lambda x: x.sum())
     tm.assert_frame_equal(result, expected)
-    assert df.index.names == ("A", "B")
+    assert df.index.names == ["A", "B"]
 
 
 def test_groupby_apply_datetime_result_dtypes(using_infer_string):

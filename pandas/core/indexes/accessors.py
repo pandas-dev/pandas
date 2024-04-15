@@ -1,6 +1,7 @@
 """
 datetimelike delegation
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -571,6 +572,44 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
+    """
+    Accessor object for Series values' datetime-like, timedelta and period properties.
+
+    See Also
+    --------
+    DatetimeIndex : Index of datetime64 data.
+
+    Examples
+    --------
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns, UTC]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+    """
+
     def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
