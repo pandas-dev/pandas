@@ -79,6 +79,23 @@ class TestSeriesConstructors:
         expected = Index(vals, dtype=object)
         tm.assert_index_equal(idx, expected)
 
+    @pytest.mark.parametrize("dtype", ["M8[s]", "M8[ms]", "M8[us]", "M8[ns]"])
+    def test_constructor_str_object_dtypes_dt64_array(self, dtype):
+        # GH 57512
+        dt_arr = np.array(
+            [
+                "2024-01-03T00:00:00.000000000",
+                "2024-01-01T00:00:00.000000000",
+            ],
+            dtype=dtype,
+        )
+        result = Series(Series(dt_arr, dtype=str), dtype=dtype)
+        expected = Series(dt_arr, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(Series(dt_arr, dtype=object), dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     def test_unparsable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
@@ -613,23 +630,6 @@ class TestSeriesConstructors:
             index=index,
             dtype="M8[ns]",
         )
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["M8[s]", "M8[ms]", "M8[us]", "M8[ns]"])
-    def test_constructor_str_object_datetime_array(self, dtype):
-        # GH 57512
-        dt_arr = np.array(
-            [
-                "2024-01-03T00:00:00.000000000",
-                "2024-01-01T00:00:00.000000000",
-            ],
-            dtype=dtype,
-        )
-        result = Series(Series(dt_arr, dtype=str), dtype=dtype)
-        expected = Series(dt_arr, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-        result = Series(Series(dt_arr, dtype=object), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     def test_constructor_maskedarray_hardened(self):
