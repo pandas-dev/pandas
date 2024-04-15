@@ -862,4 +862,28 @@ class FindValidIndex:
         self.df.last_valid_index()
 
 
+class Update:
+    def setup(self):
+        rng = np.random.default_rng()
+        self.df = DataFrame(rng.uniform(size=(1_000_000, 10)))
+
+        idx = rng.choice(range(1_000_000), size=1_000_000, replace=False)
+        self.df_random = DataFrame(self.df, index=idx)
+
+        idx = rng.choice(range(1_000_000), size=100_000, replace=False)
+        cols = rng.choice(range(10), size=2, replace=False)
+        self.df_sample = DataFrame(
+            rng.uniform(size=(100_000, 2)), index=idx, columns=cols
+        )
+
+    def time_to_update_big_frame_small_arg(self):
+        self.df.update(self.df_sample)
+
+    def time_to_update_random_indices(self):
+        self.df_random.update(self.df_sample)
+
+    def time_to_update_small_frame_big_arg(self):
+        self.df_sample.update(self.df)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
