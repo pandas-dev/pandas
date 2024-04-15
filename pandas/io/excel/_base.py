@@ -979,6 +979,12 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         .. versionadded:: 1.3.0
 
+    See Also
+    --------
+    read_excel : Read an Excel sheet values (xlsx) file into DataFrame.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
     Notes
     -----
     For compatibility with CSV writers, ExcelWriter serializes lists
@@ -1434,6 +1440,7 @@ def inspect_excel_format(
         return "zip"
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelFile:
     """
     Class for parsing tabular Excel sheets into DataFrame objects.
@@ -1472,18 +1479,26 @@ class ExcelFile:
            - Otherwise if ``path_or_buffer`` is in xlsb format,
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-           .. versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
-           .. warning::
+        .. warning::
 
-            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
-            This is not supported, switch to using ``openpyxl`` instead.
+           Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
+           This is not supported, switch to using ``openpyxl`` instead.
+    {storage_options}
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    See Also
+    --------
+    DataFrame.to_excel : Write DataFrame to an Excel file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
     Examples
     --------
@@ -1595,10 +1610,133 @@ class ExcelFile:
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
 
+        Parameters
+        ----------
+        sheet_name : str, int, list, or None, default 0
+            Strings are used for sheet names. Integers are used in zero-indexed
+            sheet positions (chart sheets do not count as a sheet position).
+            Lists of strings/integers are used to request multiple sheets.
+            Specify ``None`` to get all worksheets.
+        header : int, list of int, default 0
+            Row (0-indexed) to use for the column labels of the parsed
+            DataFrame. If a list of integers is passed those row positions will
+            be combined into a ``MultiIndex``. Use None if there is no header.
+        names : array-like, default None
+            List of column names to use. If file contains no header row,
+            then you should explicitly pass header=None.
+        index_col : int, str, list of int, default None
+            Column (0-indexed) to use as the row labels of the DataFrame.
+            Pass None if there is no such column.  If a list is passed,
+            those columns will be combined into a ``MultiIndex``.  If a
+            subset of data is selected with ``usecols``, index_col
+            is based on the subset.
+
+            Missing values will be forward filled to allow roundtripping with
+            ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
+            missing values use ``set_index`` after reading the data instead of
+            ``index_col``.
+        usecols : str, list-like, or callable, default None
+            * If None, then parse all columns.
+            * If str, then indicates comma separated list of Excel column letters
+              and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
+              both sides.
+            * If list of int, then indicates list of column numbers to be parsed
+              (0-indexed).
+            * If list of string, then indicates list of column names to be parsed.
+            * If callable, then evaluate each column name against it and parse the
+              column if the callable returns ``True``.
+
+            Returns a subset of the columns according to behavior above.
+        converters : dict, default None
+            Dict of functions for converting values in certain columns. Keys can
+            either be integers or column labels, values are functions that take one
+            input argument, the Excel cell content, and return the transformed
+            content.
+        true_values : list, default None
+            Values to consider as True.
+        false_values : list, default None
+            Values to consider as False.
+        skiprows : list-like, int, or callable, optional
+            Line numbers to skip (0-indexed) or number of lines to skip (int) at the
+            start of the file. If callable, the callable function will be evaluated
+            against the row indices, returning True if the row should be skipped and
+            False otherwise. An example of a valid callable argument would be ``lambda
+            x: x in [0, 2]``.
+        nrows : int, default None
+            Number of rows to parse.
+        na_values : scalar, str, list-like, or dict, default None
+            Additional strings to recognize as NA/NaN. If dict passed, specific
+            per-column NA values.
+        parse_dates : bool, list-like, or dict, default False
+            The behavior is as follows:
+
+            * ``bool``. If True -> try parsing the index.
+            * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+              each as a separate date column.
+            * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
+              parse as a single date column.
+            * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+              result 'foo'
+
+            If a column or index contains an unparsable date, the entire column or
+            index will be returned unaltered as an object data type. If you
+            don`t want to parse some cells as date just change their type
+            in Excel to "Text".For non-standard datetime parsing, use
+            ``pd.to_datetime`` after ``pd.read_excel``.
+
+            Note: A fast-path exists for iso8601-formatted dates.
+        date_parser : function, optional
+            Function to use for converting a sequence of string columns to an array of
+            datetime instances. The default uses ``dateutil.parser.parser`` to do the
+            conversion. Pandas will try to call `date_parser` in three different ways,
+            advancing to the next if an exception occurs: 1) Pass one or more arrays
+            (as defined by `parse_dates`) as arguments; 2) concatenate (row-wise) the
+            string values from the columns defined by `parse_dates` into a single array
+            and pass that; and 3) call `date_parser` once for each row using one or
+            more strings (corresponding to the columns defined by `parse_dates`) as
+            arguments.
+
+            .. deprecated:: 2.0.0
+               Use ``date_format`` instead, or read in as ``object`` and then apply
+               :func:`to_datetime` as-needed.
+        date_format : str or dict of column -> format, default ``None``
+           If used in conjunction with ``parse_dates``, will parse dates
+           according to this format. For anything more complex,
+           please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+        thousands : str, default None
+            Thousands separator for parsing string columns to numeric.  Note that
+            this parameter is only necessary for columns stored as TEXT in Excel,
+            any numeric columns will automatically be parsed, regardless of display
+            format.
+        comment : str, default None
+            Comments out remainder of line. Pass a character or characters to this
+            argument to indicate comments in the input file. Any data between the
+            comment string and the end of the current line is ignored.
+        skipfooter : int, default 0
+            Rows at the end to skip (0-indexed).
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
+
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
+
+            .. versionadded:: 2.0
+        **kwds : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+
         Returns
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        See Also
+        --------
+        read_excel : Read an Excel sheet values (xlsx) file into DataFrame.
+        read_csv : Read a comma-separated values (csv) file into DataFrame.
+        read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
         Examples
         --------
