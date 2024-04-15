@@ -786,7 +786,7 @@ def backfill_2d_inplace(numeric_object_t[:, :] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
+def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     """
     Returns
     -------
