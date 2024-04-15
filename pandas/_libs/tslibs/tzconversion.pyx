@@ -55,6 +55,11 @@ class AmbiguousTimeError(Exception):
     """
     Raised when a datetime is localized on a local time that occurs twice.
 
+    See Also
+    --------
+    DataFrame.tz_localize: Localize tz-naive index of DataFrame to target time zone.
+    Series.tz_localize: Localize tz-naive index of Series to target time zone.
+
     Examples
     --------
     >>> pd.Timestamp(2024, 11, 3, 1, 30).tz_localize("US/Pacific")
@@ -68,6 +73,11 @@ class AmbiguousTimeError(Exception):
 class NonExistentTimeError(Exception):
     """
     Raised when a datetime is localized on a local time that doesn't exist.
+
+    See Also
+    --------
+    DataFrame.tz_localize: Localize tz-naive index of DataFrame to target time zone.
+    Series.tz_localize: Localize tz-naive index of Series to target time zone.
 
     Examples
     --------
