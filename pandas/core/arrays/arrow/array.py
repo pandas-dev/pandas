@@ -1079,7 +1079,7 @@ class ArrowExtensionArray(
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
-        value: object | ArrayLike | None = None,
+        value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
