@@ -6752,7 +6752,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
@@ -6762,7 +6762,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: Literal[True],
@@ -6772,7 +6772,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = ...,
         inplace: bool = ...,
@@ -6786,7 +6786,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame | None = None,
+        value: Hashable | Mapping | Series | DataFrame,
         *,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -6826,6 +6826,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         interpolate : Fill NaN values using interpolation.
         reindex : Conform object to new index.
         asfreq : Convert TimeSeries to specified frequency.
+
+        Notes
+        -----
+        For non-object dtype, ``value=None`` will use the NA value of the dtype.
+        See more details in the :ref:`Filling missing data<missing_data.fillna>`
+        section.
 
         Examples
         --------
@@ -6909,101 +6915,92 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
-        if value is None:
-            raise ValueError("Must specify a fill 'value'.")
-        else:
-            if self.ndim == 1:
-                if isinstance(value, (dict, ABCSeries)):
-                    if not len(value):
-                        # test_fillna_nonscalar
-                        if inplace:
-                            return None
-                        return self.copy(deep=False)
-                    from pandas import Series
+        if self.ndim == 1:
+            if isinstance(value, (dict, ABCSeries)):
+                if not len(value):
+                    # test_fillna_nonscalar
+                    if inplace:
+                        return None
+                    return self.copy(deep=False)
+                from pandas import Series
 
-                    value = Series(value)
-                    value = value.reindex(self.index)
-                    value = value._values
-                elif not is_list_like(value):
-                    pass
-                else:
-                    raise TypeError(
-                        '"value" parameter must be a scalar, dict '
-                        "or Series, but you passed a "
-                        f'"{type(value).__name__}"'
-                    )
-
-                new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
-
-            elif isinstance(value, (dict, ABCSeries)):
-                if axis == 1:
-                    raise NotImplementedError(
-                        "Currently only can fill "
-                        "with dict/Series column "
-                        "by column"
-                    )
-                result = self if inplace else self.copy(deep=False)
-                for k, v in value.items():
-                    if k not in result:
-                        continue
-
-                    res_k = result[k].fillna(v, limit=limit)
-
-                    if not inplace:
-                        result[k] = res_k
-                    else:
-                        # We can write into our existing column(s) iff dtype
-                        #  was preserved.
-                        if isinstance(res_k, ABCSeries):
-                            # i.e. 'k' only shows up once in self.columns
-                            if res_k.dtype == result[k].dtype:
-                                result.loc[:, k] = res_k
-                            else:
-                                # Different dtype -> no way to do inplace.
-                                result[k] = res_k
-                        else:
-                            # see test_fillna_dict_inplace_nonunique_columns
-                            locs = result.columns.get_loc(k)
-                            if isinstance(locs, slice):
-                                locs = np.arange(self.shape[1])[locs]
-                            elif (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
-                            ):
-                                locs = locs.nonzero()[0]
-                            elif not (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                            ):
-                                # Should never be reached, but let's cover our bases
-                                raise NotImplementedError(
-                                    "Unexpected get_loc result, please report a bug at "
-                                    "https://github.com/pandas-dev/pandas"
-                                )
-
-                            for i, loc in enumerate(locs):
-                                res_loc = res_k.iloc[:, i]
-                                target = self.iloc[:, loc]
-
-                                if res_loc.dtype == target.dtype:
-                                    result.iloc[:, loc] = res_loc
-                                else:
-                                    result.isetitem(loc, res_loc)
-                if inplace:
-                    return self._update_inplace(result)
-                else:
-                    return result
-
+                value = Series(value)
+                value = value.reindex(self.index)
+                value = value._values
             elif not is_list_like(value):
-                if axis == 1:
-                    result = self.T.fillna(value=value, limit=limit).T
-                    new_data = result._mgr
-                else:
-                    new_data = self._mgr.fillna(
-                        value=value, limit=limit, inplace=inplace
-                    )
-            elif isinstance(value, ABCDataFrame) and self.ndim == 2:
-                new_data = self.where(self.notna(), value)._mgr
+                pass
             else:
-                raise ValueError(f"invalid fill value with a {type(value)}")
+                raise TypeError(
+                    '"value" parameter must be a scalar, dict '
+                    "or Series, but you passed a "
+                    f'"{type(value).__name__}"'
+                )
+
+            new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
+
+        elif isinstance(value, (dict, ABCSeries)):
+            if axis == 1:
+                raise NotImplementedError(
+                    "Currently only can fill with dict/Series column by column"
+                )
+            result = self if inplace else self.copy(deep=False)
+            for k, v in value.items():
+                if k not in result:
+                    continue
+
+                res_k = result[k].fillna(v, limit=limit)
+
+                if not inplace:
+                    result[k] = res_k
+                else:
+                    # We can write into our existing column(s) iff dtype
+                    #  was preserved.
+                    if isinstance(res_k, ABCSeries):
+                        # i.e. 'k' only shows up once in self.columns
+                        if res_k.dtype == result[k].dtype:
+                            result.loc[:, k] = res_k
+                        else:
+                            # Different dtype -> no way to do inplace.
+                            result[k] = res_k
+                    else:
+                        # see test_fillna_dict_inplace_nonunique_columns
+                        locs = result.columns.get_loc(k)
+                        if isinstance(locs, slice):
+                            locs = np.arange(self.shape[1])[locs]
+                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
+                            locs = locs.nonzero()[0]
+                        elif not (
+                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                        ):
+                            # Should never be reached, but let's cover our bases
+                            raise NotImplementedError(
+                                "Unexpected get_loc result, please report a bug at "
+                                "https://github.com/pandas-dev/pandas"
+                            )
+
+                        for i, loc in enumerate(locs):
+                            res_loc = res_k.iloc[:, i]
+                            target = self.iloc[:, loc]
+
+                            if res_loc.dtype == target.dtype:
+                                result.iloc[:, loc] = res_loc
+                            else:
+                                result.isetitem(loc, res_loc)
+            if inplace:
+                return self._update_inplace(result)
+            else:
+                return result
+
+        elif not is_list_like(value):
+            if axis == 1:
+                result = self.T.fillna(value=value, limit=limit).T
+                new_data = result._mgr
+            else:
+                new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
+        elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+            new_data = self.where(self.notna(), value)._mgr
+        else:
+            raise ValueError(f"invalid fill value with a {type(value)}")
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:

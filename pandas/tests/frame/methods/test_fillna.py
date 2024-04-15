@@ -64,8 +64,8 @@ class TestFillNA:
             padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
         ).all()
 
-        msg = "Must specify a fill 'value'"
-        with pytest.raises(ValueError, match=msg):
+        msg = r"missing 1 required positional argument: 'value'"
+        with pytest.raises(TypeError, match=msg):
             datetime_frame.fillna()
 
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
@@ -779,3 +779,17 @@ def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
     expected = DataFrame(expected_data)
     result = getattr(df, method)(**kwargs)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_frame", [True, False])
+@pytest.mark.parametrize("dtype", ["float", "object"])
+def test_fillna_with_none_object(test_frame, dtype):
+    # GH#57723
+    obj = Series([1, np.nan, 3], dtype=dtype)
+    if test_frame:
+        obj = obj.to_frame()
+    result = obj.fillna(value=None)
+    expected = Series([1, None, 3], dtype=dtype)
+    if test_frame:
+        expected = expected.to_frame()
+    tm.assert_equal(result, expected)
