@@ -126,8 +126,7 @@ class Foo:
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "bar"], klass=FutureWarning
     )
-    def baz(self, bar=None, foobar=None):  # pylint: disable=disallowed-name
-        ...
+    def baz(self, bar=None, foobar=None): ...
 
 
 def test_foo_signature():
