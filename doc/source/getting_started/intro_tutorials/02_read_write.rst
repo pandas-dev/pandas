@@ -113,7 +113,7 @@ My colleague requested the Titanic data as a spreadsheet.
 
 .. note::
     If you want to use :func:`~pandas.to_excel` and :func:`~pandas.read_excel`, 
-    you need to install an Excel reader as outlined in the 
+    you need to install an Excel reader as outlined in the
     :ref:`recommended dependencies <install.excel_dependencies>` section of the 
     installation documentation.
 
