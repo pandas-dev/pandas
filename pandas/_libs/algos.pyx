@@ -566,8 +566,8 @@ def get_fill_indexer(const uint8_t[:] mask, limit=None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
@@ -691,8 +691,8 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:  # -> ndarray[intp_t, ndim=1]
     """
