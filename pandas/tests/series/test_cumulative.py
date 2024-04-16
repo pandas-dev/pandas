@@ -178,6 +178,7 @@ class TestSeriesCumulativeOps:
         ],
     )
     def test_cummax_cummin_on_ordered_categorical(self, method, order):
+        # GH#52335
         ser = pd.Series(
             list("ababcab"), dtype=pd.CategoricalDtype(list(order), ordered=True)
         )
@@ -192,6 +193,7 @@ class TestSeriesCumulativeOps:
         ],
     )
     def test_cummax_cummin_ordered_categorical_nan(self, method, order):
+        # GH#52335
         ser = pd.Series(
             ["a", np.nan, "b", "a", "c"],
             dtype=pd.CategoricalDtype(list(order), ordered=True),
