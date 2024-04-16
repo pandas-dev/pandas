@@ -123,7 +123,6 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     @pytest.mark.parametrize("orient", ["split", "values"])
     @pytest.mark.parametrize(
         "data",
@@ -137,9 +136,18 @@ class TestPandasContainer:
     def test_frame_non_unique_columns(self, orient, data):
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
-        result = read_json(
-            StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
+        expected_warning = None
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
         )
+        if df.iloc[:, 0].dtype == "datetime64[ns]":
+            expected_warning = FutureWarning
+
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = read_json(
+                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
+            )
         if orient == "values":
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[ns]":
@@ -2001,14 +2009,22 @@ class TestPandasContainer:
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615
         if isinstance(nulls_fixture, Decimal):
             mark = pytest.mark.xfail(reason="not implemented")
             request.applymarker(mark)
 
-        result = DataFrame([[nulls_fixture]]).to_json()
+        expected_warning = None
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        if nulls_fixture is pd.NaT:
+            expected_warning = FutureWarning
+
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
 
     def test_readjson_bool_series(self):

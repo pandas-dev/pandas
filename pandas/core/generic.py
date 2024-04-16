@@ -2536,9 +2536,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif date_format is None:
             date_format = "epoch"
             dtypes = (
-                self.dtypes.values
+                self.dtypes
                 if self.ndim == 2
-                else np.array([self.dtype], dtype=object)
+                else [self.dtype]
             )
             if any(lib.is_np_dtype(dtype, "mM") for dtype in dtypes):
                 warnings.warn(
