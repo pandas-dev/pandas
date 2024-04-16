@@ -137,20 +137,15 @@ class TestSeriesReplace:
         # API change from 0.12?
         # GH 5319
         ser = pd.Series([0, np.nan, 2, 3, 4])
-        expected = ser.ffill()
         msg = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
+            "Series.replace must specify either 'value', "
+            "a dict-like 'to_replace', or dict-like 'regex'"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.replace([np.nan])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            ser.replace([np.nan])
 
-        ser = pd.Series([0, np.nan, 2, 3, 4])
-        expected = ser.ffill()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.replace(np.nan)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            ser.replace(np.nan)
 
     def test_replace_datetime64(self):
         # GH 5797
@@ -182,19 +177,16 @@ class TestSeriesReplace:
 
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
-        msg2 = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
+        msg = (
+            "Series.replace must specify either 'value', "
+            "a dict-like 'to_replace', or dict-like 'regex'"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = ser.replace([1, 2, 3])
-        tm.assert_series_equal(result, pd.Series([0, 0, 0, 0, 4]))
+        with pytest.raises(ValueError, match=msg):
+            ser.replace([1, 2, 3])
 
         s = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            return_value = s.replace([1, 2, 3], inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(s, pd.Series([0, 0, 0, 0, 4]))
+        with pytest.raises(ValueError, match=msg):
+            s.replace([1, 2, 3], inplace=True)
 
     def test_replace_mixed_types(self):
         ser = pd.Series(np.arange(5), dtype="int64")
@@ -483,13 +475,8 @@ class TestSeriesReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
-        msg2 = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
-        )
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                series.replace(lambda x: x.strip())
+            series.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):

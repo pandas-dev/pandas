@@ -171,9 +171,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
@@ -189,9 +189,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
@@ -378,7 +378,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support reduction '{opname}'",
+                f"does not support operation '{opname}'",
             ]
         )
 
@@ -714,7 +714,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "does not support reduction 'var'",
+                    "does not support operation 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -856,7 +856,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmin()
 
         # datetime64[ns]
@@ -888,7 +889,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmax()
 
         s = Series(date_range("20130102", periods=6))
@@ -1010,7 +1012,7 @@ class TestSeriesReductions:
         df = DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support operation: '(any|all)'"
+        msg = "datetime64 type does not support operation '(any|all)'"
         with pytest.raises(TypeError, match=msg):
             dta.all()
         with pytest.raises(TypeError, match=msg):
@@ -1155,12 +1157,12 @@ class TestSeriesReductions:
             msg = "'>' not supported between instances of 'float' and 'str'"
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmax()
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmax(skipna=False)
             msg = "'<' not supported between instances of 'float' and 'str'"
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin()
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):

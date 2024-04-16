@@ -222,12 +222,7 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
+            msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
