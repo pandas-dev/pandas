@@ -292,14 +292,14 @@ def to_hdf(
             dropna=dropna,
         )
 
-    path_or_buf = stringify_path(path_or_buf)
-    if isinstance(path_or_buf, str):
+    if isinstance(path_or_buf, HDFStore):
+        f(path_or_buf)
+    else:
+        path_or_buf = stringify_path(path_or_buf)
         with HDFStore(
             path_or_buf, mode=mode, complevel=complevel, complib=complib
         ) as store:
             f(store)
-    else:
-        f(path_or_buf)
 
 
 def read_hdf(
