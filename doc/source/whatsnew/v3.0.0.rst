@@ -395,7 +395,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Fixed bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` on Python 3.12 (:issue:`57500`)
+- Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 -
 
 Missing
