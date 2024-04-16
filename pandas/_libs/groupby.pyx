@@ -511,7 +511,7 @@ def group_shift_indexer(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_fillna_indexer(
-    intp_t[::1] out,
+    Py_ssize_t[::1] out,
     const intp_t[::1] labels,
     const uint8_t[:] mask,
     int64_t limit,
