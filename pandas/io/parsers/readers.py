@@ -783,7 +783,6 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
@@ -833,17 +832,6 @@ def read_csv(
             stacklevel=find_stack_level(),
         )
 
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -852,12 +840,11 @@ def read_csv(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
         names,
-        defaults={"delimiter": ","},
+        defaults={"delimiter": ",", "delim_whitespace": False},
         dtype_backend=dtype_backend,
     )
     kwds.update(kwds_defaults)
@@ -974,7 +961,6 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
@@ -1015,17 +1001,6 @@ def read_table(
             stacklevel=find_stack_level(),
         )
 
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1034,12 +1009,11 @@ def read_table(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
         names,
-        defaults={"delimiter": "\t"},
+        defaults={"delimiter": "\t", "delim_whitespace": False},
         dtype_backend=dtype_backend,
     )
     kwds.update(kwds_defaults)
