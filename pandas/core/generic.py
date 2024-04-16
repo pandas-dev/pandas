@@ -2542,7 +2542,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             if any(lib.is_np_dtype(dtype, "mM") for dtype in dtypes):
                 warnings.warn(
-                    "The default 'Epoch' date format is deprecated and will be removed "
+                    "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
@@ -2550,7 +2550,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif date_format == "epoch":
             # GH#57063
             warnings.warn(
-                "'Epoch' date format is deprecated and will be removed in a future "
+                "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),

@@ -763,7 +763,7 @@ class TestPandasContainer:
     def test_series_with_dtype_datetime(self, dtype, expected):
         s = Series(["2000-01-01"], dtype="datetime64[ns]")
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -814,7 +814,7 @@ class TestPandasContainer:
         df["date"] = Timestamp("20130101").as_unit("ns")
 
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -859,7 +859,7 @@ class TestPandasContainer:
             )
 
         msg = (
-            "'Epoch' date format is deprecated and will be removed in a future "
+            "'epoch' date format is deprecated and will be removed in a future "
             "version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(expected_warning, match=msg):
@@ -962,7 +962,7 @@ class TestPandasContainer:
         df.iloc[4, dl] = pd.NaT
 
         msg = (
-            "'Epoch' date format is deprecated and will be removed in a future "
+            "'epoch' date format is deprecated and will be removed in a future "
             "version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -998,7 +998,7 @@ class TestPandasContainer:
     def test_default_epoch_date_format_deprecated(self, df, warn):
         # GH 57063
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(warn, match=msg):
@@ -1074,7 +1074,7 @@ class TestPandasContainer:
         dfj2.index = date_range("20130101", periods=5)
 
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1116,7 +1116,7 @@ class TestPandasContainer:
         assert ser.dtype == "timedelta64[ns]"
 
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1145,7 +1145,7 @@ class TestPandasContainer:
             }
         )
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1190,7 +1190,7 @@ class TestPandasContainer:
             expected = expected.replace("}", ',"a":"a"}')
 
         msg = (
-            "'Epoch' date format is deprecated and will be removed in a future "
+            "'epoch' date format is deprecated and will be removed in a future "
             "version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(expected_warning, match=msg):
@@ -1208,7 +1208,7 @@ class TestPandasContainer:
             warn = None
 
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(warn, match=msg):
@@ -1295,7 +1295,7 @@ class TestPandasContainer:
         df_naive = df.copy()
         df_naive["A"] = tz_naive
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1571,7 +1571,7 @@ class TestPandasContainer:
             }
         )
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1771,7 +1771,7 @@ class TestPandasContainer:
             expected_warning = FutureWarning
 
         msg = (
-            "'Epoch' date format is deprecated and will be removed in a future "
+            "'epoch' date format is deprecated and will be removed in a future "
             "version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(expected_warning, match=msg):

@@ -456,7 +456,7 @@ class TestTableOrient:
             "Schema requires dates to be formatted with `date_format='iso'`"
         )
         warning_msg = (
-            "'Epoch' date format is deprecated and will be removed in a future "
+            "'epoch' date format is deprecated and will be removed in a future "
             "version, please use 'iso' date format instead."
         )
         with pytest.raises(ValueError, match=error_msg):

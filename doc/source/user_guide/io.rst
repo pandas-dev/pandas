@@ -1952,14 +1952,13 @@ Writing in ISO date format, with microseconds:
 Writing to a file, with a date index and a date column:
 
 .. ipython:: python
-   :okwarning:
 
    dfj2 = dfj.copy()
    dfj2["date"] = pd.Timestamp("20130101")
    dfj2["ints"] = list(range(5))
    dfj2["bools"] = True
    dfj2.index = pd.date_range("20130101", periods=5)
-   dfj2.to_json("test.json")
+   dfj2.to_json("test.json", date_format="iso")
 
    with open("test.json") as fh:
        print(fh.read())
@@ -2132,10 +2131,9 @@ Preserve string indices:
 Dates written in nanoseconds need to be read back in nanoseconds:
 
 .. ipython:: python
-   :okwarning:
 
    from io import StringIO
-   json = dfj2.to_json(date_unit="ns")
+   json = dfj2.to_json(date_format="iso", date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(StringIO(json), date_unit="ms")
@@ -2270,7 +2268,6 @@ other attributes. You can use the orient ``table`` to build
 a JSON string with two fields, ``schema`` and ``data``.
 
 .. ipython:: python
-   :okwarning:
 
    df = pd.DataFrame(
        {
@@ -2380,7 +2377,6 @@ the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
 
 .. ipython:: python
-   :okwarning:
 
    df = pd.DataFrame(
        {

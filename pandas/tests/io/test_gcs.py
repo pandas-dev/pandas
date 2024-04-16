@@ -79,7 +79,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
         msg = (
-            "The default 'Epoch' date format is deprecated and will be removed "
+            "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
