@@ -118,6 +118,7 @@ from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Iterable,
         Sequence,
     )
@@ -385,20 +386,18 @@ class Block(PandasObject, libinternals.Block):
         return [nb]
 
     @final
-    def _split(self) -> list[Block]:
+    def _split(self) -> Generator[Block, None, None]:
         """
-        Split a block into a list of single-column blocks.
+        Split a block into each single-column block.
         """
         assert self.ndim == 2
 
-        new_blocks = []
         for i, ref_loc in enumerate(self._mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
             bp = BlockPlacement(ref_loc)
             nb = type(self)(vals, placement=bp, ndim=2, refs=self.refs)
-            new_blocks.append(nb)
-        return new_blocks
+            yield nb
 
     @final
     def split_and_operate(self, func, *args, **kwargs) -> list[Block]:

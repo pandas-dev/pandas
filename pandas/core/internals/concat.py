@@ -49,7 +49,10 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Generator,
+        Sequence,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -118,12 +121,10 @@ def concatenate_managers(
         out.axes = axes
         return out
 
-    concat_plan = _get_combined_plan(mgrs)
-
     blocks = []
     values: ArrayLike
 
-    for placement, join_units in concat_plan:
+    for placement, join_units in _get_combined_plan(mgrs):
         unit = join_units[0]
         blk = unit.block
 
@@ -258,14 +259,12 @@ def _concat_homogeneous_fastpath(
 
 def _get_combined_plan(
     mgrs: list[BlockManager],
-) -> list[tuple[BlockPlacement, list[JoinUnit]]]:
-    plan = []
-
+) -> Generator[tuple[BlockPlacement, list[JoinUnit]], None, None]:
     max_len = mgrs[0].shape[0]
 
     blknos_list = [mgr.blknos for mgr in mgrs]
     pairs = libinternals.get_concat_blkno_indexers(blknos_list)
-    for ind, (blknos, bp) in enumerate(pairs):
+    for blknos, bp in pairs:
         # assert bp.is_slice_like
         # assert len(bp) > 0
 
@@ -277,9 +276,7 @@ def _get_combined_plan(
             unit = JoinUnit(nb)
             units_for_bp.append(unit)
 
-        plan.append((bp, units_for_bp))
-
-    return plan
+        yield bp, units_for_bp
 
 
 def _get_block_for_concat_plan(
