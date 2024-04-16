@@ -72,13 +72,53 @@ class Grouper:
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
 
+        key : str, defaults to None
+            Groupby key, which selects the grouping column of the target.
+        level : name/number, defaults to None
+            The level for the target index.
+        freq : str / frequency object, defaults to None
+            This will groupby the specified frequency if the target selection
+            (via key or level) is a datetime-like object. For full specification
+            of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
+        sort : bool, default to False
+            Whether to sort the resulting labels.
+        closed : {'left' or 'right'}
+            Closed end of interval. Only when `freq` parameter is passed.
+        label : {'left' or 'right'}
+            Interval boundary to use for labeling.
+            Only when `freq` parameter is passed.
+        convention : {'start', 'end', 'e', 's'}
+            If grouper is PeriodIndex and `freq` parameter is passed.
+
+        origin : Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. The timezone of origin must
+            match the timezone of the index.
+            If string, must be one of the following:
+
+            - 'epoch': `origin` is 1970-01-01
+            - 'start': `origin` is the first value of the timeseries
+            - 'start_day': `origin` is the first day at midnight of the timeseries
+
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.3.0
+
+        offset : Timedelta or str, default is None
+            An offset timedelta added to the origin.
+
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together with
+            row/column will be dropped. If False, NA values will also be treated as
+            the key in groups.
+
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
 
-    See ALso
+    See Also
     ----------
     GroupBy : For grouping and aggregating relational data.
     GroupByPlot : Class implementing the .plot attribute for groupby objects.
