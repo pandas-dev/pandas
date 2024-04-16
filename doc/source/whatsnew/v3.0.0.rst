@@ -164,7 +164,6 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-
 Copy keyword
 ^^^^^^^^^^^^
 

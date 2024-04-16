@@ -113,13 +113,18 @@ def test_one_positional_argument_with_warning_message_analysis():
         assert h(19) == 19
 
 
-@deprecate_nonkeyword_arguments(version="1.1", klass=FutureWarning)
+@deprecate_nonkeyword_arguments(version="1.1", klass=UserWarning)
 def i(a=0, /, b=0, *, c=0, d=0):
     return a + b + c + d
 
 
 def test_i_signature():
     assert str(inspect.signature(i)) == "(*, a=0, b=0, c=0, d=0)"
+
+
+def test_i_warns_klass():
+    with tm.assert_produces_warning(UserWarning):
+        assert i(1, 2) == 3
 
 
 class Foo:

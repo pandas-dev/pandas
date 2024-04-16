@@ -54,8 +54,7 @@ def deprecate(
     alt_name : str, optional
         Name to use in preference of alternative.__name__.
     klass : Warning, optional
-        The warning class to use. Defaults to FutureWarning in the
-        last minor version before a major release, otherwise DeprecationWarning.
+        The warning class to use.
     stacklevel : int, default 2
     msg : str
         The message to display in the warning.
@@ -124,8 +123,7 @@ def deprecate_kwarg(
         new arguments. A callable must do its own value checking;
         values not found in a dict will be forwarded unchanged.
     klass : Warning, optional
-        The warning class to use. Defaults to FutureWarning in the
-        last minor version before a major release, otherwise DeprecationWarning.
+        The warning class to use.
     stacklevel : int, default 2
 
     Examples
@@ -300,8 +298,7 @@ def deprecate_nonkeyword_arguments(
         is used.
 
     klass : Warning, optional
-        The warning class to use. Defaults to FutureWarning in the
-        last minor version before a major release, otherwise DeprecationWarning.
+        The warning class to use.
     """
     klass = klass or Pandas40DeprecationWarning
 
