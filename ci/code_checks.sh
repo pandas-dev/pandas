@@ -153,8 +153,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
-        -i "pandas.Float32Dtype SA01" \
-        -i "pandas.Float64Dtype SA01" \
         -i "pandas.Grouper PR02,SA01" \
         -i "pandas.HDFStore.append PR01,SA01" \
         -i "pandas.HDFStore.get SA01" \
