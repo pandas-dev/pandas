@@ -3705,7 +3705,7 @@ class DataFrame(NDFrame, OpsMixin):
         nv.validate_transpose(args, {})
         # construct the args
 
-        first_dtype = next(iter(self.dtypes), None)
+        first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
