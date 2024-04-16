@@ -1388,7 +1388,7 @@ cdef inline void _check_below_mincount(
     uint8_t[:, ::1] result_mask,
     Py_ssize_t ncounts,
     Py_ssize_t K,
-    int64_t[:, ::1] nobs,
+    const int64_t[:, ::1] nobs,
     int64_t min_count,
     mincount_t[:, ::1] resx,
 ) noexcept:
