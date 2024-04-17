@@ -130,8 +130,6 @@ class Resampler(BaseGroupBy, PandasObject):
     ----------
     obj : Series or DataFrame
     groupby : TimeGrouper
-    kind : str or None
-        'period', 'timestamp' to override default index treatment
 
     Returns
     -------
@@ -154,7 +152,6 @@ class Resampler(BaseGroupBy, PandasObject):
         "closed",
         "label",
         "convention",
-        "kind",
         "origin",
         "offset",
     ]
@@ -163,7 +160,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: NDFrame,
         timegrouper: TimeGrouper,
-        kind=None,
         *,
         gpr_index: Index,
         group_keys: bool = False,
@@ -173,7 +169,6 @@ class Resampler(BaseGroupBy, PandasObject):
         self._timegrouper = timegrouper
         self.keys = None
         self.sort = True
-        self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
         self.include_groups = include_groups
@@ -1580,7 +1575,7 @@ class DatetimeIndexResampler(Resampler):
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
-        if self.kind == "period":
+        if isinstance(self.ax, PeriodIndex):
             return self._timegrouper._get_time_period_bins(self.ax)
         return self._timegrouper._get_time_bins(self.ax)
 
@@ -1678,7 +1673,9 @@ class DatetimeIndexResampler(Resampler):
 
         # we may have a different kind that we were asked originally
         # convert if needed
-        if self.kind == "period" and not isinstance(result.index, PeriodIndex):
+        if isinstance(self.ax, PeriodIndex) and not isinstance(
+            result.index, PeriodIndex
+        ):
             if isinstance(result.index, MultiIndex):
                 # GH 24103 - e.g. groupby resample
                 if not isinstance(result.index.levels[-1], PeriodIndex):
@@ -1719,7 +1716,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._get_binner_for_time()
         return self._timegrouper._get_period_bins(self.ax)
 
@@ -1736,7 +1733,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             raise NotImplementedError(msg)
 
         # convert to timestamp
-        if self.kind == "timestamp":
+        if isinstance(obj, DatetimeIndex):
             obj = obj.to_timestamp(how=self.convention)
 
         return obj
@@ -1751,7 +1748,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         **kwargs : kw args passed to how function
         """
         # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._downsample(how, **kwargs)
 
         ax = self.ax
@@ -1788,7 +1785,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             Value to use for missing values.
         """
         # we may need to actually resample as if we are timestamps
-        if self.kind == "timestamp":
+        if isinstance(self.ax, DatetimeIndex):
             return super()._upsample(method, limit=limit, fill_value=fill_value)
 
         ax = self.ax
@@ -2055,13 +2052,6 @@ class TimeGrouper(Grouper):
                 warnings.warn(
                     "Resampling with a PeriodIndex is deprecated. "
                     "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "Resampling with kind='period' is deprecated.  "
-                    "Use datetime paths instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
