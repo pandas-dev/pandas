@@ -6129,7 +6129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        Series.dtype : Return the dtype object of the underlying data.
+        Series.dtypes : Return the dtype object of the underlying data.
 
         Examples
         --------
