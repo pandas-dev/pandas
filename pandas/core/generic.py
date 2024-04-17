@@ -9999,7 +9999,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = common.apply_if_callable(cond, self)
         other = common.apply_if_callable(other, self)
 
-        if isinstance(cond, ABCDataFrame | ABCSeries):
+        if isinstance(cond, (ABCDataFrame, ABCSeries)):
             cond = cond.fillna(False)
 
         # see gh-21891
