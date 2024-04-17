@@ -857,7 +857,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
-            # unless axis is already specified!
+            # unless axis is already specified, then go with that
             if axis is None:
                 axis = column_axis
             key = key[axis]
