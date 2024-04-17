@@ -6122,6 +6122,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         pandas.Series
             The data type of each column.
 
+        See Also
+        --------
+        Series.dtype : Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> df = pd.DataFrame(

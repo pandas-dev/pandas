@@ -87,7 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
-        -i "pandas.DataFrame.dtypes SA01" \
         -i "pandas.DataFrame.ffill SA01" \
         -i "pandas.DataFrame.first_valid_index SA01" \
         -i "pandas.DataFrame.get SA01" \
@@ -358,7 +357,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.dt.year SA01" \
         -i "pandas.Series.dtype SA01" \
-        -i "pandas.Series.dtypes SA01" \
         -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
         -i "pandas.Series.ffill SA01" \
