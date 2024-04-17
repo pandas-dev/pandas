@@ -865,7 +865,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             yield result_index
         else:
-            for level in range(result_index.nlevels, -1, -1):
+            for level in range(result_index.nlevels - 1, -1, -1):
                 yield result_index.get_level_values(level)
 
     # ------------------------------------------------------------
