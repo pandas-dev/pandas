@@ -11,35 +11,28 @@ import pandas._testing as tm
 
 class TestAccumulator:
     @pytest.mark.parametrize(
-        "method, order",
+        "method, input, output",
         [
-            ["cummax", "abc"],
-            ["cummin", "cab"],
+            ["cummin", [1, 2, 1, 2, 3, 3, 2, 1], [1, 2, 2, 2, 3, 3, 3, 3]],
+            ["commin", [3, 2, 3, 2, 1, 1, 2, 3], [3, 2, 2, 2, 1, 1, 1, 1]],
         ],
     )
-    def test_cummax_cummin_on_ordered_categorical(self, method, order):
+    def test_cummax_cummin_on_ordered_categorical(self, method, input, output):
         # GH#52335
-        arr = pd.array(
-            list("ababcab"), dtype=pd.CategoricalDtype(list(order), ordered=True)
-        )
-        result = getattr(arr, method)()
-        tm.assert_series_equal(result, pd.Series(list("abbbccc")))
+        result = pd.Categorical(input, ordered=True)._accumulate(method)
+        tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=True))
 
     @pytest.mark.parametrize(
-        "method, order",
+        "method, input, output",
         [
-            ["cummax", "abc"],
-            ["cummin", "cab"],
+            ["cummax", [1, np.nan, 2, 1, 3], [1, np.nan, 2, 2, 3]],
+            ["commin", [3, np.nan, 2, 3, 1], [3, np.nan, 2, 2, 1]],
         ],
     )
-    def test_cummax_cummin_ordered_categorical_nan(self, method, order):
+    def test_cummax_cummin_ordered_categorical_nan(self, method, input, output):
         # GH#52335
-        arr = pd.array(
-            ["a", np.nan, "b", "a", "c"],
-            dtype=pd.CategoricalDtype(list(order), ordered=True),
-        )
-        result = getattr(arr, method)(skipna=True)
-        tm.assert_series_equal(result, pd.array(["a", "NaN", "b", "b", "c"]))
-
-        result = getattr(arr, method)(skipna=False)
-        tm.assert_series_equal(result, pd.array(["a", "NaN", "NaN", "NaN", "NaN"]))
+        result = pd.Categorical(input, ordered=True)._accumulate(method)
+        tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=True))
+        result = pd.Categorical(input, ordered=True)._accumulate(method)
+        output[2:] = np.nan
+        tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=False))
