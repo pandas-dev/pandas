@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.get SA01" \
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
-        -i "pandas.DataFrame.keys SA01" \
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
         -i "pandas.DataFrame.last_valid_index SA01" \
@@ -369,7 +368,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
         -i "pandas.Series.item SA01" \
-        -i "pandas.Series.keys SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
         -i "pandas.Series.last_valid_index SA01" \

@@ -1742,6 +1742,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index
             Index of the Series.
 
+        See Also
+        --------
+        DataFrame.keys : This is index for Series, columns for DataFrame.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3], index=[0, 1, 2])

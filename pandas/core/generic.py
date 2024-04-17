@@ -1884,6 +1884,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Index
             Info axis.
 
+        See Also
+        --------
+        Series.keys : Return alias for index.
+
         Examples
         --------
         >>> d = pd.DataFrame(
