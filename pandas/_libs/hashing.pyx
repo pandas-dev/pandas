@@ -11,7 +11,6 @@ import numpy as np
 
 from numpy cimport (
     import_array,
-    ndarray,
     uint8_t,
     uint64_t,
 )
@@ -23,7 +22,7 @@ from pandas._libs.util cimport is_nan
 
 @cython.boundscheck(False)
 def hash_object_array(
-    ndarray[object] arr, str key, str encoding="utf8"
+    object[:] arr, str key, str encoding="utf8"
 ) -> np.ndarray[np.uint64]:
     """
     Parameters
