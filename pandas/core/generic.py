@@ -11602,6 +11602,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         type of index
             Index of {position} non-missing value.
 
+        See Also
+        --------
+        DataFrame.first_valid_index : Return index for {position} non-missing value
+            or None, if no value is found.
+        Series.first_valid_index : Return index for {position} non-missing value or
+            None, if no value is found.
+
         Examples
         --------
         For Series:
