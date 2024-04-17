@@ -504,8 +504,8 @@ def test_trailing_spaces(all_parsers, kwargs, expected):
     if parser.engine == "pyarrow":
         parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
 
-    # result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
-    # tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_raise_on_sep_with_delim_whitespace(all_parsers):

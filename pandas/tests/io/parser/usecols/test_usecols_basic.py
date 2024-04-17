@@ -261,7 +261,6 @@ def test_usecols_with_whitespace(all_parsers):
 
     result = parser.read_csv(StringIO(data), sep=r"\s+", usecols=("a", "b"))
     expected = DataFrame({"a": ["apple", "orange"], "b": ["bat", "cow"]}, index=[4, 8])
-    print(result)
     tm.assert_frame_equal(result, expected)
 
 

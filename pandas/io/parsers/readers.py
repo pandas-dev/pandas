@@ -1826,12 +1826,6 @@ def _refine_defaults_read(
     if delimiter is None:
         delimiter = sep
 
-    # if delim_whitespace and (delimiter is not lib.no_default):
-    #     raise ValueError(
-    #         "Specified a delimiter with both sep and "
-    #         "delim_whitespace=True; you can only specify one."
-    #     )
-
     if delimiter == "\n":
         raise ValueError(
             r"Specified \n as separator or delimiter. This forces the python engine "
