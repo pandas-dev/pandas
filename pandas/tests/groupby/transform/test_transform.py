@@ -1232,9 +1232,9 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_frame_equal(result, expected_explicit)
 
     # Series case
-    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
-        "sum"
-    )
+    gb = df_with_categorical.groupby(["A", "C"], observed=observed)
+    gbp = gb["B"]
+    result = gbp.transform("sum")
     expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
     expected_explicit = Series([4, 2, 4], name="B")
@@ -1535,3 +1535,151 @@ def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
     result = df.groupby(series, as_index=False).transform("sum")
     expected = DataFrame({"X": [-93203.0, -93203.0, np.nan]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_min_one_unobserved_category_no_type_coercion():
+    df = DataFrame({"A": Categorical([1, 1, 2], categories=[1, 2, 3]), "B": [3, 4, 5]})
+    df["B"] = df["B"].astype("int32")
+    gb = df.groupby("A", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"B": [3, 3, 5]}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+    assert df["B"].dtype == result["B"].dtype
+
+
+def test_min_multiple_unobserved_categories_no_type_coercion():
+    df = DataFrame(
+        {
+            "X": Categorical(
+                ["432945", "randomcat", -4325466, "randomcat", -4325466, -4325466],
+                categories=[
+                    1,
+                    "randomcat",
+                    100,
+                    333,
+                    "cat43543",
+                    -4325466,
+                    54665,
+                    -546767,
+                    "432945",
+                    767076,
+                ],
+            ),
+            "Y": [0, 940645, np.iinfo(np.int64).min, 9449, 100044444, 40],
+        }
+    )
+    df["Y"] = df["Y"].astype("int64")
+
+    gb = df.groupby("X", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame(
+        {
+            "Y": [
+                0,
+                9449,
+                np.iinfo(np.int64).min,
+                9449,
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).min,
+            ]
+        },
+        dtype="int64",
+    )
+    tm.assert_frame_equal(expected, result)
+    assert df["Y"].dtype == result["Y"].dtype
+
+
+def test_min_float32_multiple_unobserved_categories_no_type_coercion():
+    df = DataFrame(
+        {
+            "X": Categorical(
+                ["cat43543", -4325466, 54665, "cat43543", -4325466, 54665],
+                categories=[
+                    1,
+                    "randomcat",
+                    100,
+                    333,
+                    "cat43543",
+                    -4325466,
+                    54665,
+                    -546767,
+                    "432945",
+                    767076,
+                ],
+            ),
+            "Y": [
+                0.3940429,
+                940645.49,
+                np.finfo(np.float32).min,
+                9449.03333,
+                100044444.403294,
+                40.3020909,
+            ],
+        }
+    )
+    df["Y"] = df["Y"].astype("float32")
+
+    gb = df.groupby("X", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame(
+        {
+            "Y": [
+                0.3940429,
+                940645.49,
+                np.finfo(np.float32).min,
+                0.3940429,
+                940645.49,
+                np.finfo(np.float32).min,
+            ]
+        },
+        dtype="float32",
+    )
+    tm.assert_frame_equal(expected, result)
+    assert df["Y"].dtype == result["Y"].dtype
+
+
+def test_min_all_empty_data_no_type_coercion():
+    df = DataFrame(
+        {
+            "X": Categorical(
+                [],
+                categories=[
+                    1,
+                    "randomcat",
+                    100,
+                    333,
+                    "cat43543",
+                    -4325466,
+                    54665,
+                    -546767,
+                    "432945",
+                    767076,
+                ],
+            ),
+            "Y": [],
+        }
+    )
+    df["Y"] = df["Y"].astype("int32")
+
+    gb = df.groupby("X", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": []}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+    assert df["Y"].dtype == result["Y"].dtype
+
+
+def test_min_one_dim_no_type_coercion():
+    df = DataFrame({"Y": [9435, -5465765, 5055, 0, 954960]})
+    df["Y"] = df["Y"].astype("int32")
+    categories = Categorical([1, 2, 2, 5, 1], categories=[1, 2, 3, 4, 5])
+
+    gb = df.groupby(categories, observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": [9435, -5465765, -5465765, 0, 9435]}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+    assert df["Y"].dtype == result["Y"].dtype
