@@ -89,7 +89,7 @@ dependencies:
   - numpydoc
   - pydata-sphinx-theme=0.14
   - pytest-cython  # doctest
-  - sphinx
+  - sphinx < 7.3  # https://github.com/sphinx-doc/sphinx/issues/12302
   - sphinx-design
   - sphinx-copybutton
   - types-python-dateutil
