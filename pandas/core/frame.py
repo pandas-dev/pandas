@@ -4924,6 +4924,11 @@ class DataFrame(NDFrame, OpsMixin):
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+
         Notes
         -----
         Assigning multiple columns within the same ``assign`` is possible.
