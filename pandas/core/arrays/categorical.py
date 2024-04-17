@@ -2483,7 +2483,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        # pylint: disable=useless-parent-delegation
         return super().unique()
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
