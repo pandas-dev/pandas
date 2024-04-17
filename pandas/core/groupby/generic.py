@@ -2044,8 +2044,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif ndim == 1:
             if subset is None:
                 subset = self.obj[key]
+
+            orig_obj = self.orig_obj if not self.observed else None
             return SeriesGroupBy(
                 subset,
+                orig_obj,
                 self.keys,
                 level=self.level,
                 grouper=self._grouper,
