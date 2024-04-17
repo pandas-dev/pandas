@@ -665,7 +665,7 @@ class TestSeriesReductions:
 
             # GH#844 (changed in GH#9422)
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
-            assert (getattr(df, method)(1) == unit).all()
+            assert (getattr(df, method)(axis=1) == unit).all()
 
             s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)

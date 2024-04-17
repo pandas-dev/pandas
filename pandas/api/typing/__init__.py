@@ -9,6 +9,7 @@ from pandas.core.groupby import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.resample import (
     DatetimeIndexResamplerGroupby,
     PeriodIndexResamplerGroupby,
@@ -38,6 +39,7 @@ __all__ = [
     "ExpandingGroupby",
     "ExponentialMovingWindow",
     "ExponentialMovingWindowGroupby",
+    "FrozenList",
     "JsonReader",
     "NaTType",
     "NAType",

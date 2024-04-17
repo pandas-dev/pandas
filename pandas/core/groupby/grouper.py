@@ -263,7 +263,6 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self._grouper_deprecated = None
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self.binner = None
         self._grouper = None
@@ -292,10 +291,6 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
-        # Without setting this, subsequent lookups to .groups raise
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
