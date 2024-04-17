@@ -1537,6 +1537,7 @@ def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
     tm.assert_frame_equal(result, expected)
 
 
+# GH#58084
 def test_min_one_unobserved_category_no_type_coercion():
     df = DataFrame({"A": Categorical([1, 1, 2], categories=[1, 2, 3]), "B": [3, 4, 5]})
     df["B"] = df["B"].astype("int32")
@@ -1545,9 +1546,9 @@ def test_min_one_unobserved_category_no_type_coercion():
 
     expected = DataFrame({"B": [3, 3, 5]}, dtype="int32")
     tm.assert_frame_equal(expected, result)
-    assert df["B"].dtype == result["B"].dtype
 
 
+# GH#58084
 def test_min_multiple_unobserved_categories_no_type_coercion():
     df = DataFrame(
         {
@@ -1588,9 +1589,9 @@ def test_min_multiple_unobserved_categories_no_type_coercion():
         dtype="int64",
     )
     tm.assert_frame_equal(expected, result)
-    assert df["Y"].dtype == result["Y"].dtype
 
 
+# GH#58084
 def test_min_float32_multiple_unobserved_categories_no_type_coercion():
     df = DataFrame(
         {
@@ -1638,9 +1639,9 @@ def test_min_float32_multiple_unobserved_categories_no_type_coercion():
         dtype="float32",
     )
     tm.assert_frame_equal(expected, result)
-    assert df["Y"].dtype == result["Y"].dtype
 
 
+# GH#58084
 def test_min_all_empty_data_no_type_coercion():
     df = DataFrame(
         {
@@ -1669,9 +1670,9 @@ def test_min_all_empty_data_no_type_coercion():
 
     expected = DataFrame({"Y": []}, dtype="int32")
     tm.assert_frame_equal(expected, result)
-    assert df["Y"].dtype == result["Y"].dtype
 
 
+# GH#58084
 def test_min_one_dim_no_type_coercion():
     df = DataFrame({"Y": [9435, -5465765, 5055, 0, 954960]})
     df["Y"] = df["Y"].astype("int32")
@@ -1682,4 +1683,3 @@ def test_min_one_dim_no_type_coercion():
 
     expected = DataFrame({"Y": [9435, -5465765, -5465765, 0, 9435]}, dtype="int32")
     tm.assert_frame_equal(expected, result)
-    assert df["Y"].dtype == result["Y"].dtype
