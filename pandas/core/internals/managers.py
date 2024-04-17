@@ -645,8 +645,7 @@ class BaseBlockManager(PandasObject):
                 new_blocks.append(blk)
 
             elif blk.is_object:
-                nbs = blk._split()
-                new_blocks.extend(nb for nb in nbs if nb.is_bool)
+                new_blocks.extend(nb for nb in blk._split() if nb.is_bool)
 
         return self._combine(new_blocks)
 
