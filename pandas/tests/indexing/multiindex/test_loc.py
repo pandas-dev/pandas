@@ -385,14 +385,21 @@ class TestMultiIndexLoc:
         # GH#58116
         dates = pd.date_range("2001-01-01", freq="D", periods=2)
         ids = ["i1", "i2", "i3"]
-        index = pd.MultiIndex.from_product([dates, ids], names=["date", "identifier"])
-        df = pd.DataFrame(0.0, index=index, columns=["A", "B"])
+        index = MultiIndex.from_product([dates, ids], names=["date", "identifier"])
+        df = DataFrame(0.0, index=index, columns=["A", "B"])
         df.loc(axis=0)["2001-01-01", ["i1", "i3"]] = None
 
-        expected = pd.DataFrame(
-            [[None, None], [0.0, 0.0], [None, None], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
-            index = index,
-            columns = ["A", "B"],
+        expected = DataFrame(
+            [
+                [None, None],
+                [0.0, 0.0],
+                [None, None],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+            ],
+            index=index,
+            columns=["A", "B"],
         )
 
         tm.assert_frame_equal(df, expected)
