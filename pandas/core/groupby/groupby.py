@@ -586,6 +586,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "keys",
         "level",
         "obj",
+        "orig_obj",
         "observed",
         "sort",
     }
