@@ -93,7 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.infer_objects RT03" \
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
-        -i "pandas.DataFrame.last_valid_index SA01" \
         -i "pandas.DataFrame.max RT03" \
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
@@ -370,7 +369,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.item SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
-        -i "pandas.Series.last_valid_index SA01" \
         -i "pandas.Series.le PR07,SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \

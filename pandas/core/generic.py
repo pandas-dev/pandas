@@ -11612,6 +11612,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or None, if no value is found.
         Series.first_valid_index : Return index for {position} non-missing value or
             None, if no value is found.
+        DataFrame.last_valid_index : Return index for last non-NA value or None, if
+            no non-NA value is found.
+        Series.last_valid_index : Return index for last non-NA value or None, if no
+            non-NA value is found.
 
         Examples
         --------
