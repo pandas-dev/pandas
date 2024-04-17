@@ -2301,8 +2301,8 @@ class DataFrame(NDFrame, OpsMixin):
                     exclude.update(index)
 
         if any(exclude):
-            arr_exclude = [x for x in exclude if x in arr_columns]
-            to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
+            arr_exclude = (x for x in exclude if x in arr_columns)
+            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -3705,7 +3705,7 @@ class DataFrame(NDFrame, OpsMixin):
         nv.validate_transpose(args, {})
         # construct the args
 
-        dtypes = list(self.dtypes)
+        first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
@@ -3723,11 +3723,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif (
             self._is_homogeneous_type
-            and dtypes
-            and isinstance(dtypes[0], ExtensionDtype)
+            and first_dtype is not None
+            and isinstance(first_dtype, ExtensionDtype)
         ):
             new_values: list
-            if isinstance(dtypes[0], BaseMaskedDtype):
+            if isinstance(first_dtype, BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
                 from pandas.core.arrays.masked import (
                     transpose_homogeneous_masked_arrays,
@@ -3736,7 +3736,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_values = transpose_homogeneous_masked_arrays(
                     cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
                 )
-            elif isinstance(dtypes[0], ArrowDtype):
+            elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
                     ArrowExtensionArray,
@@ -3748,10 +3748,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
-                dtyp = dtypes[0]
-                arr_typ = dtyp.construct_array_type()
+                arr_typ = first_dtype.construct_array_type()
                 values = self.values
-                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+                new_values = [
+                    arr_typ._from_sequence(row, dtype=first_dtype) for row in values
+                ]
 
             result = type(self)._from_arrays(
                 new_values,
@@ -3855,8 +3856,10 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key):
+        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
+            # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
+
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
             # GH#45316 Return view if key is not duplicated
@@ -5880,7 +5883,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 arrays.append(self.index)
 
-        to_remove: list[Hashable] = []
+        to_remove: set[Hashable] = set()
         for col in keys:
             if isinstance(col, MultiIndex):
                 arrays.extend(col._get_level_values(n) for n in range(col.nlevels))
@@ -5907,7 +5910,7 @@ class DataFrame(NDFrame, OpsMixin):
                 arrays.append(frame[col])
                 names.append(col)
                 if drop:
-                    to_remove.append(col)
+                    to_remove.add(col)
 
             if len(arrays[-1]) != len(self):
                 # check newest element against length of calling frame, since
@@ -5924,7 +5927,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"Index has duplicate keys: {duplicates}")
 
         # use set to handle duplicate column names gracefully in case of drop
-        for c in set(to_remove):
+        for c in to_remove:
             del frame[c]
 
         # clear up memory usage
