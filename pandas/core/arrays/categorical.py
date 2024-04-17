@@ -71,6 +71,7 @@ from pandas.core.algorithms import (
     factorize,
     take_nd,
 )
+from pandas.core.array_algos import categorical_accumulations
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
     ravel_compat,
@@ -2508,6 +2509,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             other = self._encode_with_my_categories(other)
             return np.array_equal(self._codes, other._codes)
         return False
+
+    def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:
+        if name not in {"cummin", "cummax"}:
+            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+
+        self.check_for_ordered(name)
+
+        codes = self.codes.copy()
+
+        op = getattr(categorical_accumulations, name)
+        codes = op(codes, skipna=skipna, **kwargs)
+
+        return self._simple_new(codes, dtype=self._dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
