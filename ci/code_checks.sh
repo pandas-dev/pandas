@@ -85,7 +85,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.bfill SA01" \
         -i "pandas.DataFrame.columns SA01" \
-        -i "pandas.DataFrame.copy SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
         -i "pandas.DataFrame.dtypes SA01" \
         -i "pandas.DataFrame.ffill SA01" \
@@ -316,7 +315,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.cat.rename_categories PR01,PR02" \
         -i "pandas.Series.cat.reorder_categories PR01,PR02" \
         -i "pandas.Series.cat.set_categories PR01,PR02" \
-        -i "pandas.Series.copy SA01" \
         -i "pandas.Series.div PR07" \
         -i "pandas.Series.droplevel SA01" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \

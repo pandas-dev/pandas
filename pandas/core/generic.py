@@ -6383,6 +6383,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Series or DataFrame
             Object type matches caller.
 
+        See Also
+        --------
+        DataFrame.copy : Make a copy of this object's indices and data.
+        Series.copy : Make a copy of this object's indices and data.
+
         Notes
         -----
         When ``deep=True``, data is copied but actual Python objects
