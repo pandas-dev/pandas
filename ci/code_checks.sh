@@ -89,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.droplevel SA01" \
         -i "pandas.DataFrame.ffill SA01" \
         -i "pandas.DataFrame.first_valid_index SA01" \
-        -i "pandas.DataFrame.get SA01" \
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
         -i "pandas.DataFrame.keys SA01" \
@@ -363,7 +362,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.first_valid_index SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
-        -i "pandas.Series.get SA01" \
         -i "pandas.Series.gt PR07,SA01" \
         -i "pandas.Series.hasnans SA01" \
         -i "pandas.Series.infer_objects RT03" \
