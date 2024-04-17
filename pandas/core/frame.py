@@ -4926,7 +4926,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.assign : Assign new columns to a DataFrame.
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
 
         Notes
         -----
