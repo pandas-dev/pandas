@@ -174,7 +174,7 @@ class TestSeriesCumulativeOps:
         "method, order",
         [
             ["cummax", "abc"],
-            ["cummin", "cab"],
+            ["cummin", "cba"],
         ],
     )
     def test_cummax_cummin_on_ordered_categorical(self, method, order):
@@ -190,7 +190,7 @@ class TestSeriesCumulativeOps:
         "method, order",
         [
             ["cummax", "abc"],
-            ["cummin", "cab"],
+            ["cummin", "cba"],
         ],
     )
     def test_cummax_cummin_ordered_categorical_nan(self, method, order):

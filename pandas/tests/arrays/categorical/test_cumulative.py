@@ -13,7 +13,7 @@ class TestAccumulator:
     @pytest.mark.parametrize(
         "method, input, output",
         [
-            ["cummin", [1, 2, 1, 2, 3, 3, 2, 1], [1, 2, 2, 2, 3, 3, 3, 3]],
+            ["cummax", [1, 2, 1, 2, 3, 3, 2, 1], [1, 2, 2, 2, 3, 3, 3, 3]],
             ["cummin", [3, 2, 3, 2, 1, 1, 2, 3], [3, 2, 2, 2, 1, 1, 1, 1]],
         ],
     )
@@ -23,16 +23,25 @@ class TestAccumulator:
         tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=True))
 
     @pytest.mark.parametrize(
-        "method, input, output",
+        "method, skip, input, output",
         [
-            ["cummax", [1, np.nan, 2, 1, 3], [1, np.nan, 2, 2, 3]],
-            ["cummin", [3, np.nan, 2, 3, 1], [3, np.nan, 2, 2, 1]],
+            ["cummax", True, [1, np.nan, 2, 1, 3], [1, np.nan, 2, 2, 3]],
+            [
+                "cummax",
+                False,
+                [1, np.nan, 2, 1, 3],
+                [1, np.nan, np.nan, np.nan, np.nan],
+            ],
+            ["cummin", True, [3, np.nan, 2, 3, 1], [3, np.nan, 2, 2, 1]],
+            [
+                "cummin",
+                False,
+                [3, np.nan, 2, 3, 1],
+                [3, np.nan, np.nan, np.nan, np.nan],
+            ],
         ],
     )
-    def test_cummax_cummin_ordered_categorical_nan(self, method, input, output):
+    def test_cummax_cummin_ordered_categorical_nan(self, skip, method, input, output):
         # GH#52335
-        result = pd.Categorical(input, ordered=True)._accumulate(method)
+        result = pd.Categorical(input, ordered=True)._accumulate(method, skipna=skip)
         tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=True))
-        result = pd.Categorical(input, ordered=True)._accumulate(method)
-        output[2:] = np.nan
-        tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=False))
