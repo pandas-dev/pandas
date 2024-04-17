@@ -195,19 +195,26 @@ class TestSeriesCumulativeOps:
     )
     def test_cummax_cummin_ordered_categorical_nan(self, method, order):
         # GH#52335
-        cat = pd.CategoricalDtype(list(order), ordered=True)
         ser = pd.Series(
             ["a", np.nan, "b", "a", "c"],
-            dtype=cat,
+            dtype=pd.CategoricalDtype(list(order), ordered=True),
         )
         result = getattr(ser, method)(skipna=True)
         tm.assert_series_equal(
-            result, pd.Series(["a", np.nan, "b", "b", "c"], dtype=cat)
+            result,
+            pd.Series(
+                ["a", np.nan, "b", "b", "c"],
+                dtype=pd.CategoricalDtype(list(order), ordered=True),
+            ),
         )
 
         result = getattr(ser, method)(skipna=False)
         tm.assert_series_equal(
-            result, pd.Series(["a", np.nan, np.nan, np.nan, np.nan], dtype=cat)
+            result,
+            pd.Series(
+                ["a", np.nan, np.nan, np.nan, np.nan],
+                dtype=pd.CategoricalDtype(list(order), ordered=True),
+            ),
         )
 
     def test_cumprod_timedelta(self):
