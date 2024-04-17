@@ -82,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.__dataframe__ SA01" \
         -i "pandas.DataFrame.__iter__ SA01" \
         -i "pandas.DataFrame.at_time PR01" \
-        -i "pandas.DataFrame.axes SA01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
