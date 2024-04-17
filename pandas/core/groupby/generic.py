@@ -2048,7 +2048,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             orig_obj = self.orig_obj if not self.observed else None
             return SeriesGroupBy(
                 subset,
-                orig_obj,
                 self.keys,
                 level=self.level,
                 grouper=self._grouper,
@@ -2059,6 +2058,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 group_keys=self.group_keys,
                 observed=self.observed,
                 dropna=self.dropna,
+                orig_obj=orig_obj,
             )
 
         raise AssertionError("invalid ndim for _gotitem")

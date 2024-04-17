@@ -1097,7 +1097,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def __init__(
         self,
         obj: NDFrameT,
-        orig_obj: NDFrameT | None = None,
         keys: _KeysArgType | None = None,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
@@ -1108,6 +1107,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
+        orig_obj: NDFrameT | None = None,
     ) -> None:
         self._selection = selection
 
