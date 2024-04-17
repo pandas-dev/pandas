@@ -1406,19 +1406,21 @@ class TestDataFrameToCSV:
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
-    def test_to_csv_warn_when_zip_tar_and_append_mode(self):
+    def test_to_csv_warn_when_zip_tar_and_append_mode(self, tmp_path):
         # GH57875
         df = DataFrame({"a": [1, 2, 3]})
         msg = (
             "zip and tar do not support mode 'a' properly. This combination will "
             "result in multiple files with same name being added to the archive"
         )
+        zip_path = tmp_path / "test.zip"
+        tar_path = tmp_path / "test.tar"
         with tm.assert_produces_warning(
             RuntimeWarning, match=msg, raise_on_extra_warnings=False
         ):
-            df.to_csv("test.zip", mode="a")
+            df.to_csv(zip_path, mode="a")
 
         with tm.assert_produces_warning(
             RuntimeWarning, match=msg, raise_on_extra_warnings=False
         ):
-            df.to_csv("test.tar", mode="a")
+            df.to_csv(tar_path, mode="a")
