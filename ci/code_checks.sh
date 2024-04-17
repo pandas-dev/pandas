@@ -306,7 +306,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.at_time PR01" \
         -i "pandas.Series.backfill PR01,SA01" \
-        -i "pandas.Series.bfill SA01" \
         -i "pandas.Series.case_when RT03" \
         -i "pandas.Series.cat PR07,SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
@@ -364,7 +363,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dtypes SA01" \
         -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
-        -i "pandas.Series.ffill SA01" \
         -i "pandas.Series.first_valid_index SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
