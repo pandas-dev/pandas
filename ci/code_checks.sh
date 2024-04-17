@@ -81,13 +81,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.CategoricalIndex.ordered SA01" \
         -i "pandas.DataFrame.__dataframe__ SA01" \
         -i "pandas.DataFrame.__iter__ SA01" \
-        -i "pandas.DataFrame.assign SA01" \
         -i "pandas.DataFrame.at_time PR01" \
-        -i "pandas.DataFrame.bfill SA01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.copy SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
-        -i "pandas.DataFrame.ffill SA01" \
         -i "pandas.DataFrame.first_valid_index SA01" \
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
@@ -301,7 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.at_time PR01" \
         -i "pandas.Series.backfill PR01,SA01" \
-        -i "pandas.Series.bfill SA01" \
         -i "pandas.Series.case_when RT03" \
         -i "pandas.Series.cat PR07,SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
@@ -358,7 +354,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dtype SA01" \
         -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
-        -i "pandas.Series.ffill SA01" \
         -i "pandas.Series.first_valid_index SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
