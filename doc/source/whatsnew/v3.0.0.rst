@@ -397,7 +397,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :func:`_LocationIndexer.__setitem__` where columns were added when they shouldn't be when using :func:`DataFrame.loc` with a multi index and specified axis (:issue:`58116`) 
 -
 
 I/O
