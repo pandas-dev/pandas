@@ -243,6 +243,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    See Also
+    --------
+    DataFrame.sparse.density : Ratio of non-sparse points to total (dense) data points.
+
     Examples
     --------
     >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
