@@ -4203,6 +4203,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         same type as items contained in object
             Item for given key or ``default`` value, if key is not found.
 
+        See Also
+        --------
+        DataFrame.get : Get item from object for given key (ex: DataFrame column).
+        Series.get : Get item from object for given key (ex: DataFrame column).
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -6121,6 +6126,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         pandas.Series
             The data type of each column.
+
+        See Also
+        --------
+        Series.dtypes : Return the dtype object of the underlying data.
 
         Examples
         --------
