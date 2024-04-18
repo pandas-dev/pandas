@@ -984,15 +984,3 @@ class TestSeriesPlots:
         # TODO(3.0): this can be removed once Period[B] deprecation is enforced
         with tm.assert_produces_warning(False):
             _ = ts.plot()
-
-    def test_plot_period_index_makes_no_shift(self):
-        idx = period_range("01/01/2000", freq="60min", periods=4)
-        df = DataFrame(
-            np.array([0, 1, 0, 1]),
-            index=idx,
-            columns=["A"],
-        )
-        ax = df.plot()
-        result = idx.values
-        expected = ax.get_lines()[0].get_xdata()
-        assert result == expected

@@ -415,6 +415,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in  :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
+- Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
 -
 
 Groupby/resample/rolling
