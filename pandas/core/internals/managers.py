@@ -2385,7 +2385,7 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
     ]
 
 
-def _stack_arrays(tuples, dtype: np.dtype) -> tuple[np.ndarray, int]:
+def _stack_arrays(tuples, dtype: np.dtype):
     placement, arrays = zip(*tuples)
 
     first = arrays[0]
