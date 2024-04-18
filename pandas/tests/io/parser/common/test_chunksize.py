@@ -253,7 +253,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     else:
         df = parser.read_csv_check_warnings(
             warning_type,
-            r"Columns \(0\) have mixed types. "
+            r"Columns \(0: a\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )

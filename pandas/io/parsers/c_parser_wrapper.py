@@ -235,7 +235,7 @@ class CParserWrapper(ParserBase):
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
-                data = _concatenate_chunks(chunks)
+                data = _concatenate_chunks(chunks, self.names)  # type: ignore[has-type]
 
             else:
                 data = self._reader.read(nrows)
@@ -358,7 +358,9 @@ class CParserWrapper(ParserBase):
         return values
 
 
-def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
+def _concatenate_chunks(
+    chunks: list[dict[int, ArrayLike]], column_names: list[str]
+) -> dict:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -381,10 +383,12 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(str(name))
+                warning_columns.append(column_names[name])
 
     if warning_columns:
-        warning_names = ",".join(warning_columns)
+        warning_names = ", ".join(
+            [f"{index}: {name}" for index, name in enumerate(warning_columns)]
+        )
         warning_message = " ".join(
             [
                 f"Columns ({warning_names}) have mixed types. "
