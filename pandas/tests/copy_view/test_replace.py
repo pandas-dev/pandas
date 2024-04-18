@@ -133,7 +133,7 @@ def test_replace_list_categorical():
     msg = "with CategoricalDtype is not supported"
     with pytest.raises(TypeError, match=msg):
         df.replace(["c"], value="a", inplace=True)
-    df.apply(lambda x: x.cat.rename_categories({"c": "a"}))
+    df.apply(lambda x: x.cat.rename_categories({"c": "d"}))
     assert np.shares_memory(arr.codes, get_array(df, "a").codes)
     assert df._mgr._has_no_reference(0)
 
@@ -197,60 +197,20 @@ def test_replace_inplace_reference_no_op(to_replace):
 @pytest.mark.parametrize("val", [1, 1.5])
 def test_replace_categorical_inplace_reference(val, to_replace):
     df = DataFrame({"a": Categorical([1, 2, 3])})
-    df_orig = df.copy()
-    arr_a = get_array(df, "a")
-    view = df[:]
-    if val == 1.5:
-        msg = "with CategoricalDtype is not supported"
-        with pytest.raises(TypeError, match=msg):
-            df.replace(to_replace=to_replace, value=val, inplace=True)
-    else:
+    msg = "with CategoricalDtype is not supported"
+    with pytest.raises(TypeError, match=msg):
         df.replace(to_replace=to_replace, value=val, inplace=True)
 
-        assert not np.shares_memory(get_array(df, "a").codes, arr_a.codes)
-        assert df._mgr._has_no_reference(0)
-        assert view._mgr._has_no_reference(0)
-        tm.assert_frame_equal(view, df_orig)
 
-
-@pytest.mark.parametrize("val", [1, 1.5])
-def test_replace_categorical_inplace(val):
+@pytest.mark.parametrize("val", [1])
+def test_replace_categorical_raises(val):
     df = DataFrame({"a": Categorical([1, 2, 3])})
-    arr_a = get_array(df, "a")
+    msg = "with CategoricalDtype is not supported"
+    with pytest.raises(TypeError, match=msg):
+        df.replace(to_replace=1, value=val)
 
-    if val == 1.5:
-        msg = "with CategoricalDtype is not supported"
-        with pytest.raises(TypeError, match=msg):
-            df.replace(to_replace=1, value=val, inplace=True)
-    else:
+    with pytest.raises(TypeError, match=msg):
         df.replace(to_replace=1, value=val, inplace=True)
-
-    assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
-    assert df._mgr._has_no_reference(0)
-
-    expected = DataFrame({"a": Categorical([val, 2, 3])})
-    tm.assert_frame_equal(df, expected)
-
-
-@pytest.mark.parametrize("val", [1, 1.5])
-def test_replace_categorical(val):
-    df = DataFrame({"a": Categorical([1, 2, 3])})
-    df_orig = df.copy()
-    if val == 1.5:
-        msg = "with CategoricalDtype is not supported"
-        with pytest.raises(TypeError, match=msg):
-            df.replace(to_replace=1, value=val)
-    else:
-        df2 = df.replace(to_replace=1, value=val)
-
-        assert df._mgr._has_no_reference(0)
-        assert df2._mgr._has_no_reference(0)
-        assert not np.shares_memory(get_array(df, "a").codes, get_array(df2, "a").codes)
-        tm.assert_frame_equal(df, df_orig)
-
-        arr_a = get_array(df2, "a").codes
-        df2.iloc[0, 0] = 2.0
-        assert np.shares_memory(get_array(df2, "a").codes, arr_a)
 
 
 @pytest.mark.parametrize("method", ["where", "mask"])

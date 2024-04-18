@@ -683,12 +683,10 @@ class Block(PandasObject, libinternals.Block):
         values = self.values
 
         if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=to_replace, value=value, inplace=True)
-            return [blk]
+            raise TypeError(
+                "The behavior of Series.replace (and DataFrame.replace) with "
+                "CategoricalDtype is not supported."
+            )
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
@@ -790,12 +788,10 @@ class Block(PandasObject, libinternals.Block):
         values = self.values
 
         if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=src_list, value=dest_list, inplace=True)
-            return [blk]
+            raise TypeError(
+                "The behavior of Series.replace (and DataFrame.replace) with "
+                "CategoricalDtype is not supported."
+            )
 
         # Exclude anything that we know we won't contain
         pairs = [
