@@ -4919,7 +4919,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError
         return value
 
-    @property
+    @cache_readonly
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
