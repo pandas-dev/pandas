@@ -1874,7 +1874,6 @@ def get_resampler_for_grouping(
     how=None,
     fill_method=None,
     limit: int | None = None,
-    kind=None,
     on=None,
     include_groups: bool = True,
     **kwargs,
@@ -1907,7 +1906,6 @@ class TimeGrouper(Grouper):
         "closed",
         "label",
         "how",
-        "kind",
         "convention",
         "origin",
         "offset",
@@ -1925,7 +1923,6 @@ class TimeGrouper(Grouper):
         how: str = "mean",
         fill_method=None,
         limit: int | None = None,
-        kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
@@ -1983,7 +1980,6 @@ class TimeGrouper(Grouper):
 
         self.closed = closed
         self.label = label
-        self.kind = kind
         self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
