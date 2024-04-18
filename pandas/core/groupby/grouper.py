@@ -117,6 +117,11 @@ class Grouper:
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
 
+    See Also
+    --------
+    Series.groupby : Apply a function groupby to a Series.
+    DataFrame.groupby : Apply a function groupby.
+
     Examples
     --------
     ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``

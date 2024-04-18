@@ -1787,7 +1787,7 @@ _round_doc = """
     ----------
     freq : str or Offset
         The frequency level to {op} the index to. Must be a fixed
-        frequency like 'S' (second) not 'ME' (month end). See
+        frequency like 's' (second) not 'ME' (month end). See
         :ref:`frequency aliases <timeseries.offset_aliases>` for
         a list of possible `freq` values.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
