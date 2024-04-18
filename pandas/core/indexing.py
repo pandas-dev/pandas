@@ -757,7 +757,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         if self.name == "loc":
             # always holds here bc iloc overrides _get_setitem_indexer
-            self._ensure_listlike_indexer(key)
+            self._ensure_listlike_indexer(key, axis=self.axis)
 
         if isinstance(key, tuple):
             for x in key:
@@ -857,8 +857,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
-            key = key[column_axis]
-            axis = column_axis
+            # unless axis is already specified, then go with that
+            if axis is None:
+                axis = column_axis
+            key = key[axis]
 
         if (
             axis == column_axis

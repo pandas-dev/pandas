@@ -381,6 +381,29 @@ class TestMultiIndexLoc:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_multiindex_setitem_axis_set(self):
+        # GH#58116
+        dates = pd.date_range("2001-01-01", freq="D", periods=2)
+        ids = ["i1", "i2", "i3"]
+        index = MultiIndex.from_product([dates, ids], names=["date", "identifier"])
+        df = DataFrame(0.0, index=index, columns=["A", "B"])
+        df.loc(axis=0)["2001-01-01", ["i1", "i3"]] = None
+
+        expected = DataFrame(
+            [
+                [None, None],
+                [0.0, 0.0],
+                [None, None],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+            ],
+            index=index,
+            columns=["A", "B"],
+        )
+
+        tm.assert_frame_equal(df, expected)
+
     def test_sorted_multiindex_after_union(self):
         # GH#44752
         midx = MultiIndex.from_product(

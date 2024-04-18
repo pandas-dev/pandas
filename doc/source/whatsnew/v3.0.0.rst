@@ -397,7 +397,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- :func:`DataFrame.loc` with ``axis=0``  and :class:`MultiIndex` when setting a value adds extra columns (:issue:`58116`)
 -
 
 I/O
