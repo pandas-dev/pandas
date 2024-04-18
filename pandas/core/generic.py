@@ -6399,8 +6399,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        copy.copy : Return a shallow copy of x.
-        copy.deepcopy : Return a deep copy of x.
+        copy.copy : Return a shallow copy of an object.
+        copy.deepcopy : Return a deep copy of an object.
 
         Notes
         -----
