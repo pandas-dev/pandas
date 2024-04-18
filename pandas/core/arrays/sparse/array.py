@@ -40,7 +40,6 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
-    construct_1d_arraylike_from_scalar,
     find_common_type,
     maybe_box_datetimelike,
 )
@@ -399,19 +398,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             dtype = dtype.subtype
 
         if is_scalar(data):
-            warnings.warn(
-                f"Constructing {type(self).__name__} with scalar data is deprecated "
-                "and will raise in a future version. Pass a sequence instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"Cannot construct {type(self).__name__} from scalar data. "
+                "Pass a sequence instead."
             )
-            if sparse_index is None:
-                npoints = 1
-            else:
-                npoints = sparse_index.length
-
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
-            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -716,7 +706,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def fillna(
         self,
-        value=None,
+        value,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -746,8 +736,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if value is None:
-            raise ValueError("Must specify 'value'.")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
@@ -1623,13 +1611,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def argmax(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmax")
 
     def argmin(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------

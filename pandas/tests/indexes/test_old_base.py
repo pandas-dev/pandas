@@ -222,12 +222,7 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
+            msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
@@ -885,7 +880,10 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "Cannot change data-type for object array"
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)

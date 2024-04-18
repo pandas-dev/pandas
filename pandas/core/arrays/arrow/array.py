@@ -1077,7 +1077,7 @@ class ArrowExtensionArray(
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
-        value: object | ArrayLike | None = None,
+        value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -1697,7 +1697,7 @@ class ArrowExtensionArray(
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}' with pyarrow "
+                f"does not support operation '{name}' with pyarrow "
                 f"version {pa.__version__}. '{name}' may be supported by "
                 f"upgrading pyarrow."
             )

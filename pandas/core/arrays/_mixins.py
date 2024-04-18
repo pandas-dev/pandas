@@ -210,7 +210,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
@@ -218,7 +218,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax", axis=axis)
 
     def unique(self) -> Self:
@@ -296,13 +296,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         result = self._from_backing_data(result)
         return result
 
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        # (for now) when self.ndim == 2, we assume axis=0
-        func = missing.get_fill_func(method, ndim=self.ndim)
-        func(self._ndarray.T, limit=limit, mask=mask.T)
-
     def _pad_or_backfill(
         self,
         *,
@@ -335,7 +328,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self.isna()
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -354,8 +347,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
             new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
-            if value is not None:
-                self._validate_setitem_value(value)
+            self._validate_setitem_value(value)
 
             if not copy:
                 new_values = self[:]
