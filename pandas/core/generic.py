@@ -1884,6 +1884,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Index
             Info axis.
 
+        See Also
+        --------
+        DataFrame.index : The index (row labels) of the DataFrame.
+        DataFrame.columns: The column labels of the DataFrame.
+
         Examples
         --------
         >>> d = pd.DataFrame(
@@ -6391,6 +6396,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         Series or DataFrame
             Object type matches caller.
+
+        See Also
+        --------
+        copy.copy : Return a shallow copy of an object.
+        copy.deepcopy : Return a deep copy of an object.
 
         Notes
         -----
@@ -11615,6 +11625,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         type of index
             Index of {position} non-missing value.
+
+        See Also
+        --------
+        DataFrame.last_valid_index : Return index for last non-NA value or None, if
+            no non-NA value is found.
+        Series.last_valid_index : Return index for last non-NA value or None, if no
+            non-NA value is found.
+        DataFrame.isna : Detect missing values.
 
         Examples
         --------
