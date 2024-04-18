@@ -1281,10 +1281,6 @@ class HDFStore:
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
             Dict of columns that specify minimum str sizes.
-        nan_rep : str
-            Str to use as str nan representation.
-        chunksize : int or None
-            Size to chunk the writing.
         expectedrows : int
             Expected TOTAL row size of this table.
         dropna : bool, default False, optional
