@@ -146,7 +146,7 @@ def test_usecols_with_parse_dates4(all_parsers):
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(data),
@@ -187,7 +187,7 @@ def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names, request
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(s), names=names, parse_dates=parse_dates, usecols=usecols
