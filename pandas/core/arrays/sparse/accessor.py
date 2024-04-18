@@ -392,6 +392,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Ratio of non-sparse points to total (dense) data points.
 
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+        scipy sparse matrix.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
