@@ -4203,6 +4203,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         same type as items contained in object
             Item for given key or ``default`` value, if key is not found.
 
+        See Also
+        --------
+        DataFrame.get : Get item from object for given key (ex: DataFrame column).
+        Series.get : Get item from object for given key (ex: DataFrame column).
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -6122,6 +6127,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         pandas.Series
             The data type of each column.
 
+        See Also
+        --------
+        Series.dtypes : Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -7086,6 +7095,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
 
+        See Also
+        --------
+        DataFrame.bfill : Fill NA/NaN values by using the next valid observation
+            to fill the gap.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -7213,6 +7227,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.ffill : Fill NA/NaN values by propagating the last valid
+            observation to next valid.
 
         Examples
         --------

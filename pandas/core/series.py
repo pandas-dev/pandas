@@ -634,6 +634,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        DataFrame.dtypes :  Return the dtypes in the DataFrame.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
