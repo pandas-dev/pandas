@@ -1748,7 +1748,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
-        DataFrame.keys : This is index for Series, columns for DataFrame.
+        Series.index : The index (axis labels) of the Series.
 
         Examples
         --------
