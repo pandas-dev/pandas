@@ -1277,28 +1277,6 @@ class HDFStore:
             a ValueError.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
-        columns : default None
-            This parameter is currently not accepted, try data_columns.
-        min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
-        expectedrows : int
-            Expected TOTAL row size of this table.
-        dropna : bool, default False, optional
-            Do not write an ALL nan row to the store settable
-            by the option 'io.hdf.dropna_table'.
-        data_columns : list of columns, or True, default None
-            List of columns to create as indexed data columns for on-disk
-            queries, or True to use all columns. By default, only the axes
-            of the object are indexed. See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        encoding : default None
-            Provide an encoding for str.
-        errors : str, default 'strict'
-            The error handling scheme to use for encoding errors.
-            The default is 'strict' meaning that encoding errors raise a
-            UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
-            'xmlcharrefreplace' as well as any other name registered with
-            codecs.register_error that can handle UnicodeEncodeErrors.
 
         See Also
         --------
