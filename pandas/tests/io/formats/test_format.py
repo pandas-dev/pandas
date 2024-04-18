@@ -1321,6 +1321,50 @@ class TestDataFrameFormatting:
         result = formatter.max_rows_fitted
         assert result == expected
 
+    def test_display_settings_with_emojis(self):
+        # Define the data for DataFrame
+        example = {
+            "normal_col": [1, 2, 3],
+            "text_col": ["hello world"] * 3,
+            "emoji_col_A": ["🟩 hello world"] * 3,
+            "emoji_col_B": ["🟥 hello world"] * 3,
+        }
+        # Create DataFrame
+        df = DataFrame(example)
+        output = repr(df)
+        expected_output = """   normal_col     text_col    emoji_col_A    emoji_col_B
+0           1  hello world  🟩 hello world  🟥 hello world
+1           2  hello world  🟩 hello world  🟥 hello world
+2           3  hello world  🟩 hello world  🟥 hello world"""
+
+        assert output == expected_output
+
+        # Reset options to defaults
+        reset_option("display.max_rows")
+        reset_option("display.max_columns")
+        reset_option("display.width")
+
+        example2 = {
+            "normal_col": [1, 2, 3],
+            "text_col": ["hello world"] * 3,
+            "emoji_col_A": ["🙏🙏 hello world"] * 3,
+        }
+        # Create DataFrame
+        df = DataFrame(example2)
+        output = repr(df)
+        expected_output2 = """   normal_col     text_col       emoji_col_A
+0           1  hello world  🙏🙏 hello world
+1           2  hello world  🙏🙏 hello world
+2           3  hello world  🙏🙏 hello world"""
+        # Check if the actual output matches expected output
+        assert output == expected_output2
+
+        # Reset options to defaults
+        reset_option("display.max_rows")
+        reset_option("display.max_columns")
+        reset_option("display.width")
+        reset_option("display.unicode.east_asian_width")
+
 
 def gen_series_formatting():
     s1 = Series(["a"] * 100)

@@ -1713,6 +1713,16 @@ def _make_fixed_width(
     if len(strings) == 0 or justify == "all":
         return strings
 
+    # regex to identify emojis
+    emoji_pattern = re.compile(
+        r"[\U0001F600-\U0001F64F]|[\U0001F300-\U0001F5FF]|[\U0001F680-\U0001F6FF]|[\U0001F780-\U0001F7FF]",
+        flags=re.UNICODE,
+    )
+
+    emoji_count = sum(len(emoji_pattern.findall(s)) for s in strings)
+    if emoji_count > 0:
+        set_option("display.unicode.east_asian_width", True)
+
     if adj is None:
         adjustment = printing.get_adjustment()
     else:
