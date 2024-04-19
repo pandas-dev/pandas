@@ -1843,9 +1843,7 @@ class StringMethods(NoNewAttributesMixin):
         if not is_integer(width):
             msg = f"width must be of integer type, not {type(width).__name__}"
             raise TypeError(msg)
-        f = lambda x: x.zfill(width)
-        result = self._data.array._str_map(f)
-        return self._wrap_result(result)
+        return self._wrap_result(self._data.array._str_zfill(width))
 
     def slice(self, start=None, stop=None, step=None):
         """

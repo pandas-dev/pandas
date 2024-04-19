@@ -844,50 +844,112 @@ class NumpyStringArray(BaseNumpyStringArray):
             dtype = get_numpy_string_dtype_instance(na_object=na_value)
         return super().to_numpy(dtype, copy, na_value)
 
-    def _str_find(self, sub, start: int = 0, end=None):
-        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        return np.strings.find(self._ndarray, sub, start, end)
+    def _str_pad(self, width, side="left", fillchar=' '):
+        if side == 'left':
+            return np.strings.ljust(self._ndarray, width, fillchar)
+        elif side == 'right':
+            return np.strings.rjust(self._ndarray, width, fillchar)
+        elif side == 'both':
+            return np.strings.center(self._ndarray, width, fillchar)
+        raise ValueError("Invalid side")
 
-    def _str_rfind(self, sub, start: int = 0, end=None):
-        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        return np.strings.rfind(self._ndarray, sub, start, end)
+    def _str_endswith(self, pat, na=None) -> BooleanArray:
+        pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.endswith(self._ndarray, pat)
+        return BooleanArray(result, isna(self._ndarray))
 
-    def _str_index(self, sub, start: int = 0, end=None):
+    def _str_find(self, sub, start: int = 0, end=None) -> IntegerArray:
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.find(self._ndarray, sub, start, end)
+        return IntegerArray(result, isna(self._ndarray))
+
+    def _str_rfind(self, sub, start: int = 0, end=None) -> IntegerArray:
+        sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.rfind(self._ndarray, sub, start, end)
+        return IntegerArray(result, isna(self._ndarray))
+
+    def _str_index(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
         result = np.strings.index(self._ndarray, sub, start, end)
         return IntegerArray(result, isna(self._ndarray))
 
-    def _str_rindex(self, sub, start: int = 0, end=None):
+    def _str_rindex(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
         result = np.strings.rindex(self._ndarray, sub, start, end)
         return IntegerArray(result, isna(self._ndarray))
 
     def _str_isalnum(self) -> BooleanArray:
-        return BooleanArray(np.strings.isalnum(self._ndarray), isna(self._ndarray))
+        result = np.strings.isalnum(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isalpha(self) -> BooleanArray:
-        return BooleanArray(np.strings.isalpha(self._ndarray), isna(self._ndarray))
+        result = np.strings.isalpha(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isdigit(self) -> BooleanArray:
-        return BooleanArray(np.strings.isdigit(self._ndarray), isna(self._ndarray))
+        result = np.strings.isdigit(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isdecimal(self) -> BooleanArray:
-        return BooleanArray(np.strings.isdecimal(self._ndarray), isna(self._ndarray))
+        result = np.strings.isdecimal(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_islower(self) -> BooleanArray:
-        return BooleanArray(np.strings.islower(self._ndarray), isna(self._ndarray))
+        result = np.strings.islower(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isnumeric(self) -> BooleanArray:
-        return BooleanArray(np.strings.isnumeric(self._ndarray), isna(self._ndarray))
+        result = np.strings.isnumeric(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isspace(self) -> BooleanArray:
-        return BooleanArray(np.strings.isspace(self._ndarray), isna(self._ndarray))
+        result = np.strings.isspace(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_istitle(self) -> BooleanArray:
-        return BooleanArray(np.strings.istitle(self._ndarray), isna(self._ndarray))
+        result = np.strings.istitle(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_isupper(self) -> BooleanArray:
-        return BooleanArray(np.strings.isupper(self._ndarray), isna(self._ndarray))
+        result = np.strings.isupper(self._ndarray)
+        return BooleanArray(result, isna(self._ndarray))
 
     def _str_len(self) -> IntegerArray:
-        return IntegerArray(np.strings.str_len(self._ndarray), isna(self._ndarray))
+        result = np.strings.str_len(self._ndarray)
+        return IntegerArray(result, isna(self._ndarray))
+
+    def _str_lstrip(self, to_strip=None):
+        if to_strip is not None:
+            to_strip = np.asarray(to_strip, dtype=get_numpy_string_dtype_instance())
+        return np.strings.lstrip(self._ndarray, to_strip)
+
+    def _str_partition(self, sep=' ', expand=True):
+        return np.column_stack(np.strings.partition(self._ndarray, sep))
+
+    def _str_rpartition(self, sep=' ', expand=True):
+        return np.column_stack(np.strings.rpartition(self._ndarray, sep))
+
+    def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=False):
+        if regex:
+            super()._str_replace(pat, repl, n, case, flags, regex)
+        pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
+        repl = np.asarray(repl, dtype=get_numpy_string_dtype_instance())
+        return np.strings.replace(self._ndarray, pat, repl, n)
+
+    def _str_rstrip(self, to_strip=None):
+        if to_strip is not None:
+            to_strip = np.asarray(to_strip, dtype=get_numpy_string_dtype_instance())
+        return np.strings.rstrip(self._ndarray, to_strip)
+
+    def _str_strip(self, to_strip=None):
+        if to_strip is not None:
+            to_strip = np.asarray(to_strip, dtype=get_numpy_string_dtype_instance())
+        return np.strings.strip(self._ndarray, to_strip)
+
+    def _str_startswith(self, pat, na=None) -> BooleanArray:
+        pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
+        result = np.strings.startswith(self._ndarray, pat)
+        return BooleanArray(result, isna(self._ndarray))
+
+    def _str_zfill(self, width):
+        return np.strings.zfill(self._ndarray, width)
