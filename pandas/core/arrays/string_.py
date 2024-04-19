@@ -572,12 +572,6 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
 
             other = np.asarray(other)
             other = other[valid].astype(self._ndarray.dtype)
-        else:
-            try:
-                other = np.asarray(other, dtype=self._ndarray.dtype)
-            except ValueError:
-                raise TypeError(f"operation {op.__name__} not supported for "
-                                "the input types")
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray)
