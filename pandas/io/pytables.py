@@ -1261,7 +1261,7 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        axes : default None
+        axes : int, default None
             This parameter is currently not accepted.
         index : bool, default True
             Write DataFrame index as a column.
