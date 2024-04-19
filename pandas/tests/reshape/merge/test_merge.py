@@ -1832,6 +1832,13 @@ class TestMergeDtypes:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_int64_uint64_lossy(self):
+        left = DataFrame({"key": Series([2**53], dtype="int64"), "value": [1]})
+        right = DataFrame({"key": Series([2**53 + 1], dtype="uint64"), "value": [2]})
+        assert not left.key.equals(right.key)
+        result = left.merge(right, on="key", how="inner")
+        assert result.size == 0
+
 
 @pytest.fixture
 def left():

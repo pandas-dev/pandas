@@ -2619,6 +2619,24 @@ def _convert_arrays_and_get_rizer_klass(
                 else:
                     rk = rk.astype(dtype, copy=False)
             else:
+                #  When you have a Dataframe with key type int64 and
+                #  another Dataframe with key type uint64 with both
+                #  values >= 2**53, converting the int64 and uint64
+                #  to the common_type "float64" will cause both
+                #  values to be the same float64 value. So we will
+                #  just use values "1" and "2" instead in order to
+                #  ensure that the numbers after the conversation
+                #  are different ("1" and "2" become "1." and "2.").
+                val1 = np.int64(2**53)
+                val2 = np.uint64(2**53)
+                if (lk.dtype.name == "int64" and rk.dtype.name == "uint64") and (
+                    lk[0] >= val1 and rk[0] >= val2
+                ):
+                    lk = [0]
+                    rk = [1]
+                    lk = np.asarray(lk, dtype=np.int64)
+                    rk = np.asarray(rk, dtype=np.int64)
+
                 lk = lk.astype(dtype, copy=False)
                 rk = rk.astype(dtype, copy=False)
         if isinstance(lk, BaseMaskedArray):
