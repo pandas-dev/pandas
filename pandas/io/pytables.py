@@ -1261,12 +1261,22 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        axes : int, default None
+        axes : default None
             This parameter is currently not accepted.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Specifies the compression library to be used.
+            These additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
 
         See Also
         --------
