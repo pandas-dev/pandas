@@ -126,7 +126,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.is_leap_year SA01" \
         -i "pandas.DatetimeIndex.microsecond SA01" \
         -i "pandas.DatetimeIndex.minute SA01" \
-        -i "pandas.DatetimeIndex.month SA01" \
         -i "pandas.DatetimeIndex.month_name SA01" \
         -i "pandas.DatetimeIndex.nanosecond SA01" \
         -i "pandas.DatetimeIndex.quarter SA01" \
@@ -140,7 +139,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
         -i "pandas.DatetimeIndex.tz SA01" \
         -i "pandas.DatetimeIndex.tz_convert RT03" \
-        -i "pandas.DatetimeIndex.year SA01" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \

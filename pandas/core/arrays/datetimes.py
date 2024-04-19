@@ -1533,6 +1533,11 @@ default 'raise'
         """
         The year of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.day: The day of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1555,6 +1560,11 @@ default 'raise'
         "M",
         """
         The month as January=1, December=12.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.day: The day of the datetime.
 
         Examples
         --------
