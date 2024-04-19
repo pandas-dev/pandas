@@ -59,22 +59,24 @@ def simple_period_range_series():
 
 class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
-    @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
-    def test_asfreq(self, frame_or_series, freq, kind):
+    def test_asfreq(self, frame_or_series, freq):
         # GH 12884, 15944
-        # make sure .asfreq() returns PeriodIndex (except kind='timestamp')
 
         obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))
-        if kind == "timestamp":
-            expected = obj.to_timestamp().resample(freq).asfreq()
-        else:
-            start = obj.index[0].to_timestamp(how="start")
-            end = (obj.index[-1] + obj.index.freq).to_timestamp(how="start")
-            new_index = date_range(start=start, end=end, freq=freq, inclusive="left")
-            expected = obj.to_timestamp().reindex(new_index).to_period(freq)
-        msg = "The 'kind' keyword in (Series|DataFrame).resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = obj.resample(freq, kind=kind).asfreq()
+
+        expected = obj.to_timestamp().resample(freq).asfreq()
+        result = obj.to_timestamp().resample(freq).asfreq()
+        tm.assert_almost_equal(result, expected)
+
+        start = obj.index[0].to_timestamp(how="start")
+        end = (obj.index[-1] + obj.index.freq).to_timestamp(how="start")
+        new_index = date_range(start=start, end=end, freq=freq, inclusive="left")
+        expected = obj.to_timestamp().reindex(new_index).to_period(freq)
+
+        result = obj.resample(freq).asfreq()
+        tm.assert_almost_equal(result, expected)
+
+        result = obj.resample(freq).asfreq().to_timestamp().to_period()
         tm.assert_almost_equal(result, expected)
 
     def test_asfreq_fill_value(self):
@@ -88,9 +90,7 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.resample("1h", kind="timestamp").asfreq(fill_value=4.0)
+        result = s.to_timestamp().resample("1h").asfreq(fill_value=4.0)
         tm.assert_series_equal(result, expected)
 
         frame = s.to_frame("value")
@@ -100,15 +100,12 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
-        msg = "The 'kind' keyword in DataFrame.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = frame.resample("1h", kind="timestamp").asfreq(fill_value=3.0)
+        result = frame.to_timestamp().resample("1h").asfreq(fill_value=3.0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
-    @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
-    def test_selection(self, freq, kind, kwargs):
+    def test_selection(self, freq, kwargs):
         # This is a bug, these should be implemented
         # GH 14008
         index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
@@ -122,10 +119,8 @@ class TestPeriodIndex:
             r"not currently supported, use \.set_index\(\.\.\.\) to "
             "explicitly set index"
         )
-        depr_msg = "The 'kind' keyword in DataFrame.resample is deprecated"
         with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                df.resample(freq, kind=kind, **kwargs)
+            df.resample(freq, **kwargs)
 
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
@@ -268,12 +263,9 @@ class TestPeriodIndex:
             name="idx",
         )
         expected = Series([34.5, 79.5], index=index)
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.to_period().resample("min", kind="period").mean()
+        result = s.to_period().resample("min").mean()
         tm.assert_series_equal(result, expected)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result2 = s.resample("min", kind="period").mean()
+        result2 = s.resample("min").mean().to_period()
         tm.assert_series_equal(result2, expected)
 
     @pytest.mark.parametrize(
@@ -328,9 +320,9 @@ class TestPeriodIndex:
 
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = series.resample("D", kind="period").mean()
+        msg = "Converting to PeriodArray/Index representation will drop timezone"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            result = series.resample("D").mean().to_period()
 
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
@@ -432,10 +424,8 @@ class TestPeriodIndex:
     def test_resample_to_timestamps(self, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ts.resample("Y-DEC", kind="timestamp").mean()
-        expected = ts.to_timestamp(how="start").resample("YE-DEC").mean()
+        result = ts.resample("Y-DEC").mean().to_timestamp()
+        expected = ts.resample("Y-DEC").mean().to_timestamp(how="start")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)
@@ -488,17 +478,17 @@ class TestPeriodIndex:
         with pytest.raises(InvalidIndexError, match=msg):
             s.resample("Y").ffill()
 
-    @pytest.mark.parametrize("freq", ["5min"])
-    @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
-    def test_resample_5minute(self, freq, kind):
+    def test_resample_5minute(self):
         rng = period_range("1/1/2000", "1/5/2000", freq="min")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        expected = ts.to_timestamp().resample(freq).mean()
-        if kind != "timestamp":
-            expected = expected.to_period(freq)
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ts.resample(freq, kind=kind).mean()
+        expected = ts.to_timestamp().resample("5min").mean()
+        result = ts.resample("5min").mean().to_timestamp()
+        tm.assert_series_equal(result, expected)
+
+        expected = expected.to_period("5min")
+        result = ts.resample("5min").mean()
+        tm.assert_series_equal(result, expected)
+        result = ts.resample("5min").mean().to_timestamp().to_period()
         tm.assert_series_equal(result, expected)
 
     def test_upsample_daily_business_daily(self, simple_period_range_series):
@@ -572,9 +562,9 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # for good measure
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.resample("D", kind="period").mean()
+        msg = "Converting to PeriodArray/Index representation will drop timezone "
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            result = s.resample("D").mean().to_period()
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)
         tm.assert_series_equal(result, expected)
@@ -808,8 +798,7 @@ class TestPeriodIndex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq, period_mult", [("h", 24), ("12h", 2)])
-    @pytest.mark.parametrize("kind", [None, "period"])
-    def test_upsampling_ohlc(self, freq, period_mult, kind):
+    def test_upsampling_ohlc(self, freq, period_mult):
         # GH 13083
         pi = period_range(start="2000", freq="D", periods=10)
         s = Series(range(len(pi)), index=pi)
@@ -819,9 +808,10 @@ class TestPeriodIndex:
         # of the last original period, so extend accordingly:
         new_index = period_range(start="2000", freq=freq, periods=period_mult * len(pi))
         expected = expected.reindex(new_index)
-        msg = "The 'kind' keyword in Series.resample is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.resample(freq, kind=kind).ohlc()
+        result = s.resample(freq).ohlc()
+        tm.assert_frame_equal(result, expected)
+
+        result = s.resample(freq).ohlc().to_timestamp().to_period()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
