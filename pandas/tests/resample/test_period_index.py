@@ -982,22 +982,20 @@ class TestPeriodIndex:
 
     def test_resample_t_l_deprecated(self):
         # GH#52536
-        msg_t = "'T' is deprecated and will be removed in a future version."
-        msg_l = "'L' is deprecated and will be removed in a future version."
+        msg_t = "Invalid frequency: T"
+        msg_l = "Invalid frequency: L"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg_l):
-            rng_l = period_range(
+        with pytest.raises(ValueError, match=msg_l):
+            period_range(
                 "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="L"
             )
+        rng_l = period_range(
+            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="ms"
+        )
         ser = Series(np.arange(len(rng_l)), index=rng_l)
 
-        rng = period_range(
-            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="min"
-        )
-        expected = Series([29999.5, 60000.0], index=rng)
-        with tm.assert_produces_warning(FutureWarning, match=msg_t):
-            result = ser.resample("T").mean()
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg_t):
+            ser.resample("T").mean()
 
     @pytest.mark.parametrize(
         "freq, freq_depr, freq_res, freq_depr_res, data",

@@ -1036,11 +1036,7 @@ class TestPandasJSONTests:
         )
 
     def test_encode_big_set(self):
-        s = set()
-
-        for x in range(100000):
-            s.add(x)
-
+        s = set(range(100000))
         # Make sure no Exception is raised.
         ujson.ujson_dumps(s)
 

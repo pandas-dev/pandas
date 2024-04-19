@@ -95,11 +95,6 @@ pc_precision_doc = """
     to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
-pc_colspace_doc = """
-: int
-    Default space for DataFrame columns.
-"""
-
 pc_max_rows_doc = """
 : int
     If max_rows is exceeded, switch to truncate view. Depending on
@@ -205,11 +200,6 @@ pc_east_asian_width_doc = """
     Enabling this may affect to the performance (default: False)
 """
 
-pc_ambiguous_as_wide_doc = """
-: boolean
-    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
-    (default: False)
-"""
 
 pc_table_schema_doc = """
 : boolean

@@ -263,7 +263,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
-        returns_bool: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -3613,7 +3612,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ("match",))
+    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

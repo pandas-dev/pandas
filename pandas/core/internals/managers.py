@@ -267,12 +267,6 @@ class BaseBlockManager(PandasObject):
     # Python3 compat
     __bool__ = __nonzero__
 
-    def _normalize_axis(self, axis: AxisInt) -> int:
-        # switch axis to follow BlockManager logic
-        if self.ndim == 2:
-            axis = 1 if axis == 0 else 0
-        return axis
-
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
@@ -445,14 +439,6 @@ class BaseBlockManager(PandasObject):
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
-
-    def apply_with_block(
-        self,
-        f,
-        align_keys: list[str] | None = None,
-        **kwargs,
-    ) -> Self:
-        raise AbstractMethodError(self)
 
     @final
     def isna(self, func) -> Self:
@@ -1494,14 +1480,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value : np.ndarray or ExtensionArray
         refs : The reference tracking object of the value to set.
         """
-        with warnings.catch_warnings():
-            # TODO: re-issue this with setitem-specific message?
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of Index.insert with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            new_axis = self.items.insert(loc, item)
+        new_axis = self.items.insert(loc, item)
 
         if value.ndim == 2:
             value = value.T
@@ -1563,9 +1542,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
         elif loc == 0:
-            # np.append is a lot faster, let's use it if we can.
-            self._blklocs = np.append(self._blklocs[::-1], 0)[::-1]
-            self._blknos = np.append(self._blknos[::-1], len(self.blocks))[::-1]
+            # As of numpy 1.26.4, np.concatenate faster than np.append
+            self._blklocs = np.concatenate([[0], self._blklocs])
+            self._blknos = np.concatenate([[len(self.blocks)], self._blknos])
         else:
             new_blklocs, new_blknos = libinternals.update_blklocs_and_blknos(
                 self.blklocs, self.blknos, loc, len(self.blocks)

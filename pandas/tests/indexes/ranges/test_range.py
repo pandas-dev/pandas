@@ -9,6 +9,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+from pandas.core.indexes.range import min_fitting_element
 
 
 class TestRangeIndex:
@@ -199,11 +200,6 @@ class TestRangeIndex:
         i_view = i.view("i8")
         tm.assert_numpy_array_equal(i.values, i_view)
 
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            i_view = i.view(RangeIndex)
-        tm.assert_index_equal(i, i_view)
-
     def test_dtype(self, simple_index):
         index = simple_index
         assert index.dtype == np.int64
@@ -379,8 +375,11 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
+        with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
     def test_prevent_casting(self, simple_index):
@@ -419,21 +418,21 @@ class TestRangeIndex:
         assert 2 == result[0]
 
     def test_min_fitting_element(self):
-        result = RangeIndex(0, 20, 2)._min_fitting_element(1)
+        result = min_fitting_element(0, 2, 1)
         assert 2 == result
 
-        result = RangeIndex(1, 6)._min_fitting_element(1)
+        result = min_fitting_element(1, 1, 1)
         assert 1 == result
 
-        result = RangeIndex(18, -2, -2)._min_fitting_element(1)
+        result = min_fitting_element(18, -2, 1)
         assert 2 == result
 
-        result = RangeIndex(5, 0, -1)._min_fitting_element(1)
+        result = min_fitting_element(5, -1, 1)
         assert 1 == result
 
         big_num = 500000000000000000000000
 
-        result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
+        result = min_fitting_element(5, 1, big_num)
         assert big_num == result
 
     def test_slice_specialised(self, simple_index):
@@ -659,6 +658,13 @@ def test_reindex_empty_returns_rangeindex():
     tm.assert_numpy_array_equal(result_indexer, expected_indexer)
 
 
+def test_insert_empty_0_loc():
+    ri = RangeIndex(0, step=10, name="foo")
+    result = ri.insert(0, 5)
+    expected = RangeIndex(5, 15, 10, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
 def test_append_non_rangeindex_return_rangeindex():
     ri = RangeIndex(1)
     result = ri.append(Index([1]))
@@ -761,6 +767,67 @@ def test_getitem_boolmask_wrong_length():
     ri = RangeIndex(4, name="foo")
     with pytest.raises(IndexError, match="Boolean index has wrong length"):
         ri[[True]]
+
+
+def test_pos_returns_rangeindex():
+    ri = RangeIndex(2, name="foo")
+    expected = ri.copy()
+    result = +ri
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_neg_returns_rangeindex():
+    ri = RangeIndex(2, name="foo")
+    result = -ri
+    expected = RangeIndex(0, -2, -1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+    ri = RangeIndex(-2, 2, name="foo")
+    result = -ri
+    expected = RangeIndex(2, -2, -1, name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng, exp_rng",
+    [
+        [range(0), range(0)],
+        [range(10), range(10)],
+        [range(-2, 1, 1), range(2, -1, -1)],
+        [range(0, -10, -1), range(0, 10, 1)],
+    ],
+)
+def test_abs_returns_rangeindex(rng, exp_rng):
+    ri = RangeIndex(rng, name="foo")
+    expected = RangeIndex(exp_rng, name="foo")
+    result = abs(ri)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_abs_returns_index():
+    ri = RangeIndex(-2, 2, name="foo")
+    result = abs(ri)
+    expected = Index([2, 1, 0, 1], name="foo")
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(0),
+        range(5),
+        range(0, -5, -1),
+        range(-2, 2, 1),
+        range(2, -2, -2),
+        range(0, 5, 2),
+    ],
+)
+def test_invert_returns_rangeindex(rng):
+    ri = RangeIndex(rng, name="foo")
+    result = ~ri
+    assert isinstance(result, RangeIndex)
+    expected = ~Index(list(rng), name="foo")
+    tm.assert_index_equal(result, expected, exact=False)
 
 
 @pytest.mark.parametrize(
