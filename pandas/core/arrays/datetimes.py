@@ -1620,6 +1620,12 @@ default 'raise'
         """
         The hours of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.day: The day of the datetime.
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1643,6 +1649,11 @@ default 'raise'
         """
         The minutes of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.hour: The hours of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1665,6 +1676,12 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
 
         Examples
         --------
