@@ -83,15 +83,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.__iter__ SA01" \
         -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.columns SA01" \
-        -i "pandas.DataFrame.copy SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
-        -i "pandas.DataFrame.first_valid_index SA01" \
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
-        -i "pandas.DataFrame.keys SA01" \
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
-        -i "pandas.DataFrame.last_valid_index SA01" \
         -i "pandas.DataFrame.max RT03" \
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
@@ -118,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day SA01" \
-        -i "pandas.DatetimeIndex.day_name SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
         -i "pandas.DatetimeIndex.floor SA01" \
@@ -130,8 +125,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.is_leap_year SA01" \
         -i "pandas.DatetimeIndex.microsecond SA01" \
         -i "pandas.DatetimeIndex.minute SA01" \
-        -i "pandas.DatetimeIndex.month SA01" \
-        -i "pandas.DatetimeIndex.month_name SA01" \
         -i "pandas.DatetimeIndex.nanosecond SA01" \
         -i "pandas.DatetimeIndex.quarter SA01" \
         -i "pandas.DatetimeIndex.round SA01" \
@@ -144,7 +137,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
         -i "pandas.DatetimeIndex.tz SA01" \
         -i "pandas.DatetimeIndex.tz_convert RT03" \
-        -i "pandas.DatetimeIndex.year SA01" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
@@ -310,7 +302,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.cat.rename_categories PR01,PR02" \
         -i "pandas.Series.cat.reorder_categories PR01,PR02" \
         -i "pandas.Series.cat.set_categories PR01,PR02" \
-        -i "pandas.Series.copy SA01" \
         -i "pandas.Series.div PR07" \
         -i "pandas.Series.droplevel SA01" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \
@@ -318,7 +309,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.date SA01" \
         -i "pandas.Series.dt.day SA01" \
-        -i "pandas.Series.dt.day_name PR01,PR02,SA01" \
+        -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.day_of_year SA01" \
         -i "pandas.Series.dt.dayofyear SA01" \
         -i "pandas.Series.dt.days SA01" \
@@ -331,8 +322,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.microsecond SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.minute SA01" \
-        -i "pandas.Series.dt.month SA01" \
-        -i "pandas.Series.dt.month_name PR01,PR02,SA01" \
+        -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
@@ -350,11 +340,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.dt.year SA01" \
         -i "pandas.Series.dtype SA01" \
         -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
-        -i "pandas.Series.first_valid_index SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
         -i "pandas.Series.gt PR07,SA01" \
@@ -364,10 +352,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
         -i "pandas.Series.item SA01" \
-        -i "pandas.Series.keys SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
-        -i "pandas.Series.last_valid_index SA01" \
         -i "pandas.Series.le PR07,SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
