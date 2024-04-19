@@ -114,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day SA01" \
-        -i "pandas.DatetimeIndex.day_name SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
         -i "pandas.DatetimeIndex.floor SA01" \
@@ -126,7 +125,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.is_leap_year SA01" \
         -i "pandas.DatetimeIndex.microsecond SA01" \
         -i "pandas.DatetimeIndex.minute SA01" \
-        -i "pandas.DatetimeIndex.month_name SA01" \
         -i "pandas.DatetimeIndex.nanosecond SA01" \
         -i "pandas.DatetimeIndex.quarter SA01" \
         -i "pandas.DatetimeIndex.round SA01" \
@@ -311,7 +309,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.date SA01" \
         -i "pandas.Series.dt.day SA01" \
-        -i "pandas.Series.dt.day_name PR01,PR02,SA01" \
+        -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.day_of_year SA01" \
         -i "pandas.Series.dt.dayofyear SA01" \
         -i "pandas.Series.dt.days SA01" \
@@ -324,7 +322,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.microsecond SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.minute SA01" \
-        -i "pandas.Series.dt.month_name PR01,PR02,SA01" \
+        -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
