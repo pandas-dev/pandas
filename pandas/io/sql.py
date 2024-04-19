@@ -177,7 +177,7 @@ def _convert_arrays_to_dataframe(
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
-        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df = DataFrame(dict(zip(range(len(columns)), arrays)))
         df.columns = columns
         return df
     else:
