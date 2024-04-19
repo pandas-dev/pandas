@@ -2578,6 +2578,21 @@ class TestDataFramePlots:
             _ = df.plot()
             _ = df.T.plot()
 
+    @pytest.mark.parametrize("freq", ["h", "7h", "60min", "120min", "3M"])
+    def test_plot_period_index_makes_no_right_shift(self, freq):
+        # GH#57587
+        idx = pd.period_range("01/01/2000", freq=freq, periods=4)
+        df = DataFrame(
+            np.array([0, 1, 0, 1]),
+            index=idx,
+            columns=["A"],
+        )
+        expected = idx.values
+
+        ax = df.plot()
+        result = ax.get_lines()[0].get_xdata()
+        assert all(str(result[i]) == str(expected[i]) for i in range(4))
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
