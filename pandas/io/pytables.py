@@ -1267,7 +1267,7 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : default None
+        complib : str
             Specifies the compression library to be used.
         #     These additional compressors for Blosc are supported
         #     (default if no compressor specified: 'blosc:blosclz'):
