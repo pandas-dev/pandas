@@ -478,18 +478,17 @@ class TestPeriodIndex:
         with pytest.raises(InvalidIndexError, match=msg):
             s.resample("Y").ffill()
 
-    @pytest.mark.parametrize("freq", ["5min"])
-    def test_resample_5minute(self, freq):
+    def test_resample_5minute(self):
         rng = period_range("1/1/2000", "1/5/2000", freq="min")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        expected = ts.to_timestamp().resample(freq).mean()
-        result = ts.resample(freq).mean().to_timestamp()
+        expected = ts.to_timestamp().resample("5min").mean()
+        result = ts.resample("5min").mean().to_timestamp()
         tm.assert_series_equal(result, expected)
 
-        expected = expected.to_period(freq)
-        result = ts.resample(freq).mean()
+        expected = expected.to_period("5min")
+        result = ts.resample("5min").mean()
         tm.assert_series_equal(result, expected)
-        result = ts.resample(freq).mean().to_timestamp().to_period()
+        result = ts.resample("5min").mean().to_timestamp().to_period()
         tm.assert_series_equal(result, expected)
 
     def test_upsample_daily_business_daily(self, simple_period_range_series):
