@@ -440,7 +440,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
     """
     if lib.dtypes_all_equal([ju.block.dtype for ju in join_units]):
         empty_dtype = join_units[0].block.dtype
-        return empty_dtype, empty_dtype
+        return empty_dtype
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
