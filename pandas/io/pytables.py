@@ -1267,14 +1267,6 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
-            Specifies the compression library to be used.
-            These additional compressors for Blosc are supported
-            (default if no compressor specified: 'blosc:blosclz'):
-            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-             'blosc:zlib', 'blosc:zstd'}.
-            Specifying a compression library which is not available issues
-            a ValueError.
 
         See Also
         --------
