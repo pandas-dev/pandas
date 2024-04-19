@@ -1275,8 +1275,6 @@ class HDFStore:
              'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
-        complevel : int, 0-9, default None
-            Specifies a compression level for data.
 
         See Also
         --------
