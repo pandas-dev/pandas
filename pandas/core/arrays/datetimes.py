@@ -1279,6 +1279,10 @@ default 'raise'
         Series or Index
             Series or Index of month names.
 
+        See Also
+        --------
+        DatetimeIndex.day_name : Return the day names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01", freq="ME", periods=3))
@@ -1335,6 +1339,10 @@ default 'raise'
         -------
         Series or Index
             Series or Index of day names.
+
+        See Also
+        --------
+        DatetimeIndex.month_name : Return the month names with specified locale.
 
         Examples
         --------
