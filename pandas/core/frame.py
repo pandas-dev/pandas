@@ -2877,9 +2877,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        This function requires either the `fastparquet
-        <https://pypi.org/project/fastparquet>`_ or `pyarrow
-        <https://arrow.apache.org/docs/python/>`_ library.
+        * This function requires either the `fastparquet
+          <https://pypi.org/project/fastparquet>`_ or `pyarrow
+          <https://arrow.apache.org/docs/python/>`_ library.
+        * When saving a DataFrame with categorical columns to parquet,
+          the file size may increase due to the inclusion of all possible
+          categories, not just those present in the data. This behavior
+          is expected and consistent with pandas' handling of categorical data.
+          To manage file size and ensure a more predictable roundtrip process,
+          consider using :meth:`Categorical.remove_unused_categories` on the
+          DataFrame before saving.
 
         Examples
         --------
