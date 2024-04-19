@@ -314,11 +314,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.daysinmonth SA01" \
         -i "pandas.Series.dt.floor PR01,PR02,SA01" \
         -i "pandas.Series.dt.freq GL08" \
-        -i "pandas.Series.dt.hour SA01" \
         -i "pandas.Series.dt.is_leap_year SA01" \
         -i "pandas.Series.dt.microsecond SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
-        -i "pandas.Series.dt.minute SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
@@ -326,7 +324,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.quarter SA01" \
         -i "pandas.Series.dt.qyear GL08" \
         -i "pandas.Series.dt.round PR01,PR02,SA01" \
-        -i "pandas.Series.dt.second SA01" \
         -i "pandas.Series.dt.seconds SA01" \
         -i "pandas.Series.dt.strftime PR01,PR02" \
         -i "pandas.Series.dt.time SA01" \
