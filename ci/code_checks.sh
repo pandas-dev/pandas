@@ -324,7 +324,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.microsecond SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.minute SA01" \
-        -i "pandas.Series.dt.month SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02,SA01" \
         -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
@@ -343,7 +342,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.dt.year SA01" \
         -i "pandas.Series.dtype SA01" \
         -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
