@@ -2649,6 +2649,20 @@ class TestGuessDatetimeFormat:
         )
         assert format_for_string_of_nans is None
 
+    @pytest.mark.parametrize(
+        "test_list, expected_format",
+        [
+            (["1 May 2023", "1 Apr 2023", "1 Sep 2023"], "%d %b %Y"),
+            (["1 May 2023", "1 April 2023", "1 September 2023"], "%d %B %Y"),
+            (["1 May 2023", "2 May 2023", "3 May 2023"], "%d %B %Y"),
+        ],
+    )
+    def test_guess_datetime_format_for_array_first_element_month_may(
+        self, test_list, expected_format
+    ):  # GH 58328
+        test_array = np.array(test_list, dtype=object)
+        assert tools._guess_datetime_format_for_array(test_array) == expected_format
+
 
 class TestToDatetimeInferFormat:
     @pytest.mark.parametrize(

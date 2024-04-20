@@ -128,6 +128,17 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
     if (first_non_null := tslib.first_non_null(arr)) != -1:
         if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
             # GH#32264 np.str_ object
+            if "may" in first_non_nan_element.lower():
+                # GH 58328
+                first_non_nan_element = next(
+                    (
+                        x
+                        for x in arr[first_non_null + 1 :]
+                        if isinstance(x, str) and "may" not in x.lower()
+                    ),
+                    first_non_nan_element,
+                )
+
             guessed_format = guess_datetime_format(
                 first_non_nan_element, dayfirst=dayfirst
             )
