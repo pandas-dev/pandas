@@ -823,6 +823,15 @@ class BaseGrouper:
 
         return result_index, ids
 
+    @cache_readonly
+    def observed_grouper(self) -> BaseGrouper:
+        if all(ping._observed for ping in self.groupings):
+            return self
+
+        groupings = [ping.observed_grouping for ping in self.groupings]
+        grouper = BaseGrouper(self.axis, groupings, sort=self._sort, dropna=self.dropna)
+        return grouper
+
     def _ob_index_and_ids(
         self,
         levels: list[Index],
@@ -1153,6 +1162,10 @@ class BinGrouper(BaseGrouper):
             labels, labels, in_axis=False, level=None, uniques=lev._values
         )
         return [ping]
+
+    @cache_readonly
+    def observed_grouper(self) -> BinGrouper:
+        return self
 
 
 def _is_indexed_like(obj, axes) -> bool:
