@@ -328,6 +328,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame
             A DataFrame with the same values stored as dense arrays.
 
+        See Also
+        --------
+        DataFrame.sparse.density : Ratio of non-sparse points to total
+            (dense) data points.
+
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
