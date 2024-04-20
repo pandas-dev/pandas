@@ -1269,12 +1269,6 @@ class HDFStore:
             Append the input data to the existing.
         complib : str
             Specifies the compression library to be used.
-        #     These additional compressors for Blosc are supported
-        #     (default if no compressor specified: 'blosc:blosclz'):
-        #     {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-        #      'blosc:zlib', 'blosc:zstd'}.
-        #     Specifying a compression library which is not available issues
-        #     a ValueError.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
