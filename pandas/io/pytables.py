@@ -786,6 +786,11 @@ class HDFStore:
         object
             Same type as object stored in file.
 
+        See Also
+        --------
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
