@@ -239,6 +239,7 @@ T = TypeVar("T")
 # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
+TypeT = TypeVar("TypeT", bound=type)
 
 # types of vectorized key functions for DataFrame::sort_values and
 # DataFrame::sort_index, among others
