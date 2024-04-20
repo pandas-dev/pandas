@@ -333,7 +333,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame.sparse.density : Ratio of non-sparse points to total
             (dense) data points.
 
-
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
