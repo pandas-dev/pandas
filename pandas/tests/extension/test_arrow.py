@@ -226,6 +226,25 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
+def expected_inferred_result_dtype(dtype):
+    """
+    When the data pass through aggregate,
+    the inferred data type that it will become
+
+    """
+
+    pa_dtype = dtype.pyarrow_dtype
+    if pa.types.is_date(pa_dtype):
+        return "date32[day][pyarrow]"
+    elif pa.types.is_time(pa_dtype):
+        return "time64[us][pyarrow]"
+    elif pa.types.is_decimal(pa_dtype):
+        return ArrowDtype(pa.decimal128(4, 3))
+    else:
+        return dtype
+
+
+@pytest.fixture
 def data_for_sorting(data_for_grouping):
     """
     Length-3 array with a known sort order.
