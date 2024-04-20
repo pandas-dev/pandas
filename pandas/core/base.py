@@ -357,10 +357,10 @@ class IndexOpsMixin(OpsMixin):
 
         See Also
         --------
-        Index.size: Return the number of elements in the underlying data.
-        Index.shape: Return a tuple of the shape of the underlying data.
-        Index.dtype: Return the dtype object of the underlying data.
-        Index.values: Return an array representing the data in the Index.
+        Series.size: Return the number of elements in the underlying data.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
@@ -449,10 +449,10 @@ class IndexOpsMixin(OpsMixin):
 
         See Also
         --------
-        Index.ndim: Number of dimensions of the underlying data, by definition 1.
-        Index.shape: Return a tuple of the shape of the underlying data.
-        Index.dtype: Return the dtype object of the underlying data.
-        Index.values: Return an array representing the data in the Index.
+        Series.ndim: Number of dimensions of the underlying data, by definition 1.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
