@@ -357,6 +357,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
+        See Also
+        --------
+        DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
+
         Notes
         -----
         The dtype will be the lowest-common-denominator type (implicit
@@ -366,10 +370,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
-
-        See Also
-        --------
-        DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
 
         Examples
         --------
