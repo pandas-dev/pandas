@@ -358,7 +358,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.mul PR07" \
         -i "pandas.Series.nbytes SA01" \
-        -i "pandas.Series.ndim SA01" \
         -i "pandas.Series.ne PR07,SA01" \
         -i "pandas.Series.nunique RT03" \
         -i "pandas.Series.pad PR01,SA01" \
@@ -378,7 +377,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
         -i "pandas.Series.shape SA01" \
-        -i "pandas.Series.size SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
