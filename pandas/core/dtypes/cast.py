@@ -503,11 +503,11 @@ def maybe_cast_to_pyarrow_dtype(result: ArrayLike, obj_dtype: Dtype) -> ArrayLik
 
         from pandas.core.construction import array as pd_array
 
-        result[isna(result)] = np.nan
-        if result.size == 0 or all(isna(result)):
+        stripped_result = result[~isna(result)]
+        if result.size == 0 or all(isna(stripped_result)):
             pandas_pyarrow_dtype = obj_dtype
         else:
-            pyarrow_result = pa.array(result)
+            pyarrow_result = pa.array(stripped_result)
             pandas_pyarrow_dtype = ArrowDtype(pyarrow_result.type)
 
         result = pd_array(result, dtype=pandas_pyarrow_dtype)
