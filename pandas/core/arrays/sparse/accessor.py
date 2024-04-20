@@ -395,7 +395,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         See Also
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
-        scipy sparse matrix.
+            scipy sparse matrix.
 
         Examples
         --------
