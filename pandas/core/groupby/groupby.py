@@ -589,7 +589,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "observed",
         "sort",
         "observed_grouper",
-        "observed_exclusions",
     }
 
     _grouper: ops.BaseGrouper
@@ -1109,7 +1108,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         observed: bool = False,
         dropna: bool = True,
         observed_grouper: ops.BaseGrouper | None = None,
-        observed_exclusions: frozenset[Hashable] | None = None,
     ) -> None:
         self._selection = selection
 
@@ -1123,7 +1121,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.dropna = dropna
 
         if not observed and grouper is None:
-            observed_grouper, observed_exclusions, _ = get_grouper(
+            observed_grouper, _, _ = get_grouper(
                 obj,
                 self.keys,
                 level=self.level,
@@ -1133,9 +1131,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         self.observed_grouper = observed_grouper
-        self.observed_exclusions = (
-            frozenset(observed_exclusions) if observed_exclusions else frozenset()
-        )
 
         if grouper is None:
             grouper, exclusions, obj = get_grouper(
@@ -1905,7 +1900,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with (
                 com.temp_setattr(self, "observed", True),
                 com.temp_setattr(self, "_grouper", self.observed_grouper),
-                com.temp_setattr(self, "exclusions", self.observed_exclusions),
             ):
                 return self._reduction_kernel_transform(
                     func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
