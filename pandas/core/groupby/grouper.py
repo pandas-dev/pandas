@@ -669,7 +669,7 @@ class Grouping:
         return self._index.groupby(cats)
 
     @cache_readonly
-    def observed_grouping(self) -> Grouper:
+    def observed_grouping(self) -> Grouping:
         if self._observed:
             return self
 
