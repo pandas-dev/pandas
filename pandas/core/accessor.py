@@ -8,6 +8,7 @@ that can be mixed into or pinned onto other pandas classes.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Callable,
     final,
 )
@@ -15,6 +16,12 @@ import warnings
 
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from pandas._typing import TypeT
+
+    from pandas import Index
+    from pandas.core.generic import NDFrame
 
 
 class DirNamesMixin:
@@ -232,7 +239,9 @@ class CachedAccessor:
 
 
 @doc(klass="", examples="", others="")
-def _register_accessor(name: str, cls):
+def _register_accessor(
+    name: str, cls: type[NDFrame | Index]
+) -> Callable[[TypeT], TypeT]:
     """
     Register a custom accessor on {klass} objects.
 
@@ -277,7 +286,7 @@ def _register_accessor(name: str, cls):
     {examples}
     """
 
-    def decorator(accessor):
+    def decorator(accessor: TypeT) -> TypeT:
         if hasattr(cls, name):
             warnings.warn(
                 f"registration of accessor {accessor!r} under name "
@@ -320,7 +329,7 @@ dtype: int64"""
 
 
 @doc(_register_accessor, klass="DataFrame", examples=_register_df_examples)
-def register_dataframe_accessor(name: str):
+def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
@@ -351,7 +360,7 @@ AttributeError: The series must contain integer data only.
 
 
 @doc(_register_accessor, klass="Series", examples=_register_series_examples)
-def register_series_accessor(name: str):
+def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Series
 
     return _register_accessor(name, Series)
@@ -385,7 +394,7 @@ AttributeError: The index must only be an integer value.
 
 
 @doc(_register_accessor, klass="Index", examples=_register_index_examples)
-def register_index_accessor(name: str):
+def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Index
 
     return _register_accessor(name, Index)

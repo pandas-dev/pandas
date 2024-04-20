@@ -54,7 +54,7 @@ moto
 flask
 asv>=0.6.1
 flake8==6.1.0
-mypy==1.8.0
+mypy==1.9.0
 tokenize-rt
 pre-commit>=3.6.0
 gitpython
