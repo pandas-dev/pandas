@@ -278,6 +278,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             Each column of the DataFrame is stored as a
             :class:`arrays.SparseArray`.
 
+        See Also
+        --------
+        DataFrame.sparse.to_coo : Return the contents of the frame as a
+            sparse SciPy COO matrix.
+
         Examples
         --------
         >>> import scipy.sparse
