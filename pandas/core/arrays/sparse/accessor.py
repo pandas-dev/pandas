@@ -367,6 +367,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
 
+        See Also
+        --------
+        DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
