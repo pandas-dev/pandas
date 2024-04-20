@@ -1267,8 +1267,10 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : str
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
             Specifies the compression library to be used.
+            Specifying a compression library which is not available issues
+            a ValueError.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
