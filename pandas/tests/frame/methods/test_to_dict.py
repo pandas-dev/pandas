@@ -513,6 +513,18 @@ class TestDataFrameToDict:
         result = df.to_dict(orient="records")
         assert isinstance(result[0]["a"], int)
 
+    def test_to_dict_tight_no_warning_with_duplicate_column(self):
+        # GH#58281
+        df = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+            }
+        )
+        df.columns = ["A", "A"]
+        with tm.assert_produces_warning(None):
+            df.to_dict(orient="tight")
+
 
 @pytest.mark.parametrize(
     "val", [Timestamp(2020, 1, 1), Timedelta(1), Period("2020"), Interval(1, 2)]
