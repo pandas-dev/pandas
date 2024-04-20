@@ -918,7 +918,7 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
         if isinstance(obj._values, ArrowExtensionArray):
-            out = maybe_cast_to_pyarrow_dtype(result)
+            out = maybe_cast_to_pyarrow_dtype(result, obj.dtype)
             return out
 
         if not isinstance(obj._values, np.ndarray) and not isinstance(

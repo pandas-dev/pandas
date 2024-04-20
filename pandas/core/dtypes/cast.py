@@ -478,7 +478,7 @@ def maybe_cast_pointwise_result(
     return result
 
 
-def maybe_cast_to_pyarrow_dtype(result: ArrayLike) -> ArrayLike:
+def maybe_cast_to_pyarrow_dtype(result: ArrayLike, obj_dtype: Dtype) -> ArrayLike:
     """
     Try casting result of a pointwise operation to its pyarrow dtype if
     appropriate.
@@ -504,8 +504,12 @@ def maybe_cast_to_pyarrow_dtype(result: ArrayLike) -> ArrayLike:
         from pandas.core.construction import array as pd_array
 
         result[isna(result)] = np.nan
-        pyarrow_result = pa.array(result)
-        pandas_pyarrow_dtype = ArrowDtype(pyarrow_result.type)
+        if result.size == 0 or all(isna(result)):
+            pandas_pyarrow_dtype = obj_dtype
+        else:
+            pyarrow_result = pa.array(result)
+            pandas_pyarrow_dtype = ArrowDtype(pyarrow_result.type)
+
         result = pd_array(result, dtype=pandas_pyarrow_dtype)
     except (
         ArrowNotImplementedError,
