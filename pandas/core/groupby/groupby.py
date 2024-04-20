@@ -1122,7 +1122,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.group_keys = group_keys
         self.dropna = dropna
 
-        orig_obj = obj
+        if not observed and grouper is None:
+            observed_grouper, observed_exclusions, _ = get_grouper(
+                obj,
+                self.keys,
+                level=self.level,
+                sort=self.sort,
+                observed=True,
+                dropna=self.dropna,
+            )
+
+        self.observed_grouper = observed_grouper
+        self.observed_exclusions = (
+            frozenset(observed_exclusions) if observed_exclusions else frozenset()
+        )
+
         if grouper is None:
             grouper, exclusions, obj = get_grouper(
                 obj,
@@ -1137,21 +1151,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.obj = obj
         self._grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
-
-        if not observed and observed_grouper is None:
-            observed_grouper, observed_exclusions, _ = get_grouper(
-                orig_obj,
-                self.keys,
-                level=self.level,
-                sort=self.sort,
-                observed=True,
-                dropna=self.dropna,
-            )
-
-        self.observed_grouper = observed_grouper
-        self.observed_exclusions = (
-            frozenset(observed_exclusions) if observed_exclusions else frozenset()
-        )
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
