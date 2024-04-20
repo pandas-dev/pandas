@@ -355,6 +355,13 @@ class IndexOpsMixin(OpsMixin):
         """
         Number of dimensions of the underlying data, by definition 1.
 
+        See Also
+        --------
+        Series.size: Return the number of elements in the underlying data.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
+
         Examples
         --------
         >>> s = pd.Series(["Ant", "Bear", "Cow"])
@@ -439,6 +446,13 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        See Also
+        --------
+        Series.ndim: Number of dimensions of the underlying data, by definition 1.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
