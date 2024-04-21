@@ -5535,6 +5535,14 @@ class DataFrame(NDFrame, OpsMixin):
         Series
             Series representing the item that is dropped.
 
+        See Also
+        --------
+        DataFrame.tail : Return the last n rows. This function returns last n rows
+            from the object based on position. It is useful for quickly verifying data,
+            for example, after sorting or appending rows.
+
+
+
         Examples
         --------
         >>> df = pd.DataFrame(
