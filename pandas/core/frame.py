@@ -5541,8 +5541,6 @@ class DataFrame(NDFrame, OpsMixin):
             from the object based on position. It is useful for quickly verifying data,
             for example, after sorting or appending rows.
 
-
-
         Examples
         --------
         >>> df = pd.DataFrame(
