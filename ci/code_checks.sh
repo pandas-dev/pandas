@@ -82,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.__dataframe__ SA01" \
         -i "pandas.DataFrame.__iter__ SA01" \
         -i "pandas.DataFrame.at_time PR01" \
-        -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
         -i "pandas.DataFrame.hist RT03" \
         -i "pandas.DataFrame.infer_objects RT03" \
@@ -93,7 +92,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02,SA01" \
-        -i "pandas.DataFrame.pop SA01" \
         -i "pandas.DataFrame.prod RT03" \
         -i "pandas.DataFrame.product RT03" \
         -i "pandas.DataFrame.reorder_levels SA01" \
