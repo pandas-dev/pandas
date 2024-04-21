@@ -1058,9 +1058,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.dtype: Return the dtype object of the underlying data.
-        Series.dtypes: Return the dtype object of the underlying data.
-        Series.convert_dtypes: Convert columns to the best possible dtypes.
+        Index.dtype: Return the dtype object of the underlying data.
+        Index.dtypes: Return the dtype object of the underlying data.
+        Index.convert_dtypes: Convert columns to the best possible dtypes.
 
         Examples
         --------
