@@ -30,6 +30,7 @@ from pandas.core.window import (
 # TODO: Can't import Styler without importing jinja2
 # from pandas.io.formats.style import Styler
 from pandas.io.json._json import JsonReader
+from pandas.io.sas.sasreader import SASReader
 from pandas.io.stata import StataReader
 
 __all__ = [
@@ -49,6 +50,7 @@ __all__ = [
     "RollingGroupby",
     "SeriesGroupBy",
     "StataReader",
+    "SASReader",
     # See TODO above
     # "Styler",
     "TimedeltaIndexResamplerGroupby",
