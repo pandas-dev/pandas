@@ -7104,6 +7104,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a tuple of the shape of the underlying data.
 
+        See Also
+        --------
+        Index.size: Return the number of elements in the underlying data.
+        Index.ndim: Number of dimensions of the underlying data, by definition 1.
+        Index.dtype: Return the dtype object of the underlying data.
+        Index.values: Return an array representing the data in the Index.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
