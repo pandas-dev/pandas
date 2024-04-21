@@ -786,6 +786,11 @@ class HDFStore:
         object
             Same type as object stored in file.
 
+        See Also
+        --------
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1261,15 +1266,19 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
+        axes : default None
+            This parameter is currently not accepted.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        data_columns : list of columns, or True, default None
-            List of columns to create as indexed data columns for on-disk
-            queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+        complib : default None
+            This parameter is currently not accepted.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        columns : default None
+            This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
             Dict of columns that specify minimum str sizes.
         nan_rep : str
@@ -1278,11 +1287,26 @@ class HDFStore:
             Size to chunk the writing.
         expectedrows : int
             Expected TOTAL row size of this table.
-        encoding : default None
-            Provide an encoding for str.
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
+        data_columns : list of columns, or True, default None
+            List of columns to create as indexed data columns for on-disk
+            queries, or True to use all columns. By default only the axes
+            of the object are indexed. See `here
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+        encoding : default None
+            Provide an encoding for str.
+        errors : str, default 'strict'
+            The error handling scheme to use for encoding errors.
+            The default is 'strict' meaning that encoding errors raise a
+            UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
+            'xmlcharrefreplace' as well as any other name registered with
+            codecs.register_error that can handle UnicodeEncodeErrors.
+
+        See Also
+        --------
+        HDFStore.append_to_multiple : Append to multiple tables.
 
         Notes
         -----
