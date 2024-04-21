@@ -1832,6 +1832,11 @@ _round_doc = """
     near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
     control the re-localization behavior.
 
+    See Also
+    --------
+    DatetimeIndex.floor : Perform floor operation on the data to the specified `freq`.
+    DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+
     Examples
     --------
     **DatetimeIndex**
