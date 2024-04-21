@@ -5183,7 +5183,7 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             True if "other" is an Index and it has the same elements and order
             as the calling index; False otherwise.
-        
+
         See Also
         --------
         Index.identical: Checks that object attributes and types are also equal.
