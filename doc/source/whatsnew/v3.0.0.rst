@@ -142,6 +142,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
 +------------------------+---------------------+
+| mypy (dev)             | 1.9.0               |
++------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 

@@ -99,11 +99,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.reorder_levels SA01" \
         -i "pandas.DataFrame.sem PR01,RT03,SA01" \
         -i "pandas.DataFrame.skew RT03,SA01" \
-        -i "pandas.DataFrame.sparse PR01,SA01" \
-        -i "pandas.DataFrame.sparse.density SA01" \
-        -i "pandas.DataFrame.sparse.from_spmatrix SA01" \
-        -i "pandas.DataFrame.sparse.to_coo SA01" \
-        -i "pandas.DataFrame.sparse.to_dense SA01" \
+        -i "pandas.DataFrame.sparse PR01" \
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
         -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swaplevel SA01" \
@@ -138,8 +134,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.HDFStore.append PR01,SA01" \
-        -i "pandas.HDFStore.get SA01" \
         -i "pandas.HDFStore.groups SA01" \
         -i "pandas.HDFStore.info RT03,SA01" \
         -i "pandas.HDFStore.keys SA01" \
@@ -178,13 +172,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.name SA01" \
         -i "pandas.Index.names GL08" \
         -i "pandas.Index.nbytes SA01" \
-        -i "pandas.Index.ndim SA01" \
         -i "pandas.Index.nunique RT03" \
         -i "pandas.Index.putmask PR01,RT03" \
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.reindex PR07" \
-        -i "pandas.Index.shape SA01" \
-        -i "pandas.Index.size SA01" \
         -i "pandas.Index.slice_indexer PR07,RT03,SA01" \
         -i "pandas.Index.slice_locs RT03" \
         -i "pandas.Index.str PR01,SA01" \
@@ -361,7 +352,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.mul PR07" \
         -i "pandas.Series.nbytes SA01" \
-        -i "pandas.Series.ndim SA01" \
         -i "pandas.Series.ne PR07,SA01" \
         -i "pandas.Series.nunique RT03" \
         -i "pandas.Series.pad PR01,SA01" \
@@ -381,7 +371,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
         -i "pandas.Series.shape SA01" \
-        -i "pandas.Series.size SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
