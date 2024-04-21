@@ -2425,10 +2425,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.isna : Return a boolean same-sized object indicating if the values
+        Index.isna : Return a boolean same-sized object indicating if the values
             are NA.
-        Series.dropna : Return a new Series with missing values removed.
-        Series.fillna : Fill NA/NaN values using the specified method.
+        Index.dropna : Return a new Series with missing values removed.
+        Index.fillna : Fill NA/NaN values using the specified method.
 
         Examples
         --------
