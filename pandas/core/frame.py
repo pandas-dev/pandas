@@ -5535,6 +5535,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series
             Series representing the item that is dropped.
 
+        See Also
+        --------
+        DataFrame.drop : Remove rows or columns by specifying label names and 
+            corresponding axis, or by directly specifying index or column names.
+
         Examples
         --------
         >>> df = pd.DataFrame(
