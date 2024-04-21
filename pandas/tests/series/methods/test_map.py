@@ -257,6 +257,13 @@ def test_map_int():
     assert not isna(merged["c"])
 
 
+def test_map_int_with_pd_na():
+    s = Series([pd.NA, 42], dtype="Int64")
+    result = s.map(lambda x: 1 if x is pd.NA else 2)
+    expected = Series([1, 2])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_type_inference():
     s = Series(range(3))
     s2 = s.map(lambda x: np.where(x == 0, 0, 1))
