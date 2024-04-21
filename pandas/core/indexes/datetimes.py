@@ -462,10 +462,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex.floor : Perform floor operation on the data to the
             specified `freq`.
 
-        Returns
-        -------
-        DatetimeIndex
-
         Examples
         --------
         >>> idx = pd.DatetimeIndex(
