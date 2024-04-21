@@ -783,6 +783,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {klass}
             {klass} with requested index / column level(s) removed.
 
+        See Also
+        --------
+        DataFrame.replace : Replace values given in `to_replace` with `value`.
+        DataFrame.pivot : Return reshaped DataFrame organized by given
+            index / column values.
+
         Examples
         --------
         >>> df = (
