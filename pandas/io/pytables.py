@@ -1504,6 +1504,10 @@ class HDFStore:
         list
             List of objects.
 
+        See Also
+        --------
+        HDFStore.get_node : Returns the node with the key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
