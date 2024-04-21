@@ -807,8 +807,8 @@ def test_datetime_cut_notna():
     result = pd.cut(datetime_array, bins=bins)
 
     expected_intervals = IntervalIndex.from_arrays(
-        [pd.Timestamp("2023-09-16"), pd.Timestamp("2023-09-26")],
-        [pd.Timestamp("2023-09-26"), pd.Timestamp("2023-10-06")],
+        [Timestamp("2023-09-16"), Timestamp("2023-09-26")],
+        [Timestamp("2023-09-26"), Timestamp("2023-10-06")],
         closed="right",
     )
 
