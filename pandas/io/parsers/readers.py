@@ -716,6 +716,19 @@ def read_csv(
 ) -> DataFrame | TextFileReader: ...
 
 
+# a helper function for the read_csv(...) below).
+# ensures that all keys in dtype are of type str.
+# this allows for compatibility with the csv library
+def parse_dtype(dtype) -> DtypeArg:
+    temp = {}
+    for key in dtype:
+        if isinstance(key, str):
+            temp[f"{key}"] = dtype[key]
+        else:
+            temp[key] = dtype[key]
+    return temp
+
+
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -790,6 +803,9 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    # ensures that all keys in dtype are a string for compatibility with csv
+    dtype = parse_dtype(dtype)
+
     if keep_date_col is not lib.no_default:
         # GH#55569
         warnings.warn(
