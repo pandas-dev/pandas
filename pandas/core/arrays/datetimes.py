@@ -1440,6 +1440,7 @@ default 'raise'
         --------
         DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
             The time part of the Timestamps.
+        DatetimeIndex.tz : Return the timezone.
 
         Examples
         --------
