@@ -320,7 +320,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
-        -i "pandas.Series.dt.quarter SA01" \
         -i "pandas.Series.dt.qyear GL08" \
         -i "pandas.Series.dt.round PR01,PR02,SA01" \
         -i "pandas.Series.dt.seconds SA01" \
