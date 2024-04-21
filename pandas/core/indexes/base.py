@@ -1056,6 +1056,12 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
 
+        See Also
+        -------
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.dtypes: Return the dtype object of the underlying data.
+        Series.convert_dtypes: Convert columns to the best possible dtypes
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
