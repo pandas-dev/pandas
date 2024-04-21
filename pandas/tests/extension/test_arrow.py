@@ -225,7 +225,6 @@ def data_for_grouping(dtype):
     return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
 
 
-@pytest.fixture
 def expected_inferred_result_dtype(dtype):
     """
     When the data pass through aggregate,
@@ -1143,6 +1142,27 @@ class TestArrowArray(base.ExtensionTests):
             exp = [True, True, None]
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_agg_extension(self, data_for_grouping):
+        # GH#38980 groupby agg on extension type fails for non-numeric types
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+
+        expected_df = pd.DataFrame(
+            {"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping}
+        )
+        expected = expected_df.iloc[[0, 2, 4, 7]]
+        expected = expected.set_index("A")
+        expected_dtype = expected_inferred_result_dtype(expected["B"].dtype)
+        expected["B"] = expected["B"].astype(expected_dtype)
+
+        result = df.groupby("A").agg({"B": "first"})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").agg("first")
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby("A").first()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestLogicalOps:

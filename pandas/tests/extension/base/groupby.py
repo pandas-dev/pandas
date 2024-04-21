@@ -58,18 +58,12 @@ class BaseGroupbyTests:
             expected = pd.DataFrame({"B": uniques, "A": exp_vals})
             tm.assert_frame_equal(result, expected)
 
-    def test_groupby_agg_extension(
-        self, data_for_grouping, expected_inferred_result_dtype
-    ):
+    def test_groupby_agg_extension(self, data_for_grouping):
         # GH#38980 groupby agg on extension type fails for non-numeric types
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 
-        expected_df = pd.DataFrame(
-            {"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping}
-        )
-        expected = expected_df.iloc[[0, 2, 4, 7]]
+        expected = df.iloc[[0, 2, 4, 7]]
         expected = expected.set_index("A")
-        expected["B"] = expected["B"].astype(expected_inferred_result_dtype)
 
         result = df.groupby("A").agg({"B": "first"})
         tm.assert_frame_equal(result, expected)
