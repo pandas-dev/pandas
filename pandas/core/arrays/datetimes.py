@@ -1436,6 +1436,11 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+
         Examples
         --------
         For Series:
