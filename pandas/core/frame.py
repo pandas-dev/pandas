@@ -11136,8 +11136,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-            
-        min_periods : int, optional 
+
+        min_periods : int, optional
             Minimum number of observations needed to have a valid result.
 
             .. versionadded:: 1.5.0
