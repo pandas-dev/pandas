@@ -6076,8 +6076,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.apply : Invoke function on values of Series.
-        Series.replace : Replace values given in to_replace with value.
+        Index.apply : Invoke function on values of Series.
+        Index.replace : Replace values given in to_replace with value.
 
         Examples
         --------
