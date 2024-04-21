@@ -2170,10 +2170,8 @@ class SingleBlockManager(BaseBlockManager):
             # Note: checking for ndarray instead of np.dtype means we exclude
             #  dt64/td64, which do their own validation.
             value = np_can_hold_element(arr.dtype, value)
-        
-        # check if the dtype of the block is object
-        implicit_convert = arr.dtype != 'object'
-        if isinstance(value, np.ndarray) and value.ndim == 1 and len(value) == 1 and implicit_convert:
+
+        if isinstance(value, np.ndarray) and value.ndim == 1 and len(value) == 1:
             # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
             value = value[0, ...]
 
