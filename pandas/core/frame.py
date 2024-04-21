@@ -21,6 +21,7 @@ from collections.abc import (
     Sequence,
 )
 import functools
+import pandas as pd
 from inspect import signature
 from io import StringIO
 import itertools
@@ -2865,7 +2866,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
+        bytes or None
+            If no `path` argument is provided, returns the bytes representation of the DataFrame written in the Parquet format. If a `path` argument is provided, returns None.
 
         See Also
         --------
@@ -8984,6 +8986,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+
+        if not as_index and isinstance(by, pd.Series) and by.name in self.columns:
+            raise ValueError(f"cannot insert {by.name}, already exists")
 
         return DataFrameGroupBy(
             obj=self,
