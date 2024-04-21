@@ -80,7 +80,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.CategoricalIndex.codes SA01" \
         -i "pandas.CategoricalIndex.ordered SA01" \
         -i "pandas.DataFrame.__dataframe__ SA01" \
-        -i "pandas.DataFrame.__iter__ SA01" \
         -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.columns SA01" \
         -i "pandas.DataFrame.droplevel SA01" \
