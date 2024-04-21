@@ -1473,7 +1473,7 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
-    def strftime(self, format):
+    def strftime(self, format, errors = 'raise'):
         """
         Return a formatted string of the Timestamp.
 
@@ -1502,7 +1502,7 @@ class Timestamp(_Timestamp):
                 "and `.month`) and construct your string from there."
             ) from err
         return _dt.strftime(format)
-
+    
     def ctime(self):
         """
         Return ctime() style string.

@@ -120,6 +120,7 @@ def format_array_from_datetime(
     str format=None,
     na_rep: str | float = "NaT",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
+    str errors=None,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -211,6 +212,23 @@ def format_array_from_datetime(
             if format is None:
                 # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
+            elif (errors == 'ignore')or(errors=='warn'):
+                try:
+                    # Note: dispatches to pydatetime
+                    res = ts.strftime(format)
+                except:
+                    res = None
+                    if (errors=='warn'):
+                        mesg="The following timestamps could be converted to string: ["
+                        mesg+=str(ts)+"] Set errors='raise' to see the details"
+                        #warnings.warn(mesg,StrfimeErrorWarning,
+                                    #stacklevel=find_stack_level())
+            else:
+                # Do not catch errors, allow them to raise up through
+                res = ts.strftime(format)
+
+
+            '''
             else:
 
                 # invalid format string
@@ -221,6 +239,7 @@ def format_array_from_datetime(
                 except ValueError:
                     # Use datetime.str, that returns ts.isoformat(sep=' ')
                     res = str(ts)
+            '''
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
         #  like we do for the other functions because result is known C-contiguous

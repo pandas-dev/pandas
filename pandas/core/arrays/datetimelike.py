@@ -1732,7 +1732,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         URL="https://docs.python.org/3/library/datetime.html"
         "#strftime-and-strptime-behavior"
     )
-    def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
+    def strftime(self, date_format: str, errors = 'raise') -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
 
@@ -1776,7 +1776,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        result = self._format_native_types(date_format=date_format, na_rep=np.nan, errors=errors)
         return result.astype(object, copy=False)
 
 

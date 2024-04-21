@@ -10,6 +10,7 @@ def format_array_from_datetime(
     format: str | None = ...,
     na_rep: str | float = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT
+    errors: str | None = ...,
 ) -> npt.NDArray[np.object_]: ...
 def array_with_unit_to_datetime(
     values: npt.NDArray[np.object_],
