@@ -150,10 +150,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.drop_duplicates RT03" \
         -i "pandas.Index.droplevel RT03,SA01" \
         -i "pandas.Index.dropna RT03,SA01" \
-        -i "pandas.Index.dtype SA01" \
         -i "pandas.Index.duplicated RT03" \
         -i "pandas.Index.empty GL08" \
-        -i "pandas.Index.equals SA01" \
         -i "pandas.Index.fillna RT03" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
@@ -169,7 +167,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.map SA01" \
         -i "pandas.Index.memory_usage RT03" \
-        -i "pandas.Index.name SA01" \
         -i "pandas.Index.names GL08" \
         -i "pandas.Index.nbytes SA01" \
         -i "pandas.Index.nunique RT03" \
