@@ -790,6 +790,11 @@ class PlotAccessor(PandasObject):
         If the backend is not the default matplotlib one, the return value
         will be the object returned by the backend.
 
+    See Also
+    --------
+    DataFrame.plot.area : Draw a stacked area plot. An area plot displays quantitative
+        data visually. This function wraps the matplotlib area function.
+
     Notes
     -----
     - See matplotlib documentation online for more on this subject

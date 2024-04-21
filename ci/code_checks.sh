@@ -92,7 +92,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.mean RT03" \
         -i "pandas.DataFrame.median RT03" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.plot PR02,SA01" \
+        -i "pandas.DataFrame.plot PR02" \
         -i "pandas.DataFrame.pop SA01" \
         -i "pandas.DataFrame.prod RT03" \
         -i "pandas.DataFrame.product RT03" \
