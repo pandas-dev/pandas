@@ -789,3 +789,31 @@ def test_cut_with_nullable_int64():
     result = cut(series, bins=bins)
 
     tm.assert_series_equal(result, expected)
+
+def test_datetime_cut_notna():
+    """
+    Ensure pd.cut can handle DatetimeArray without raising an AttributeError
+    related to missing 'notna' method.
+
+    GH 55431: Tests for AttributeError when using pd.cut on datetime data.
+    """
+    data = to_datetime(["2023-09-17", "2023-10-06"])
+    datetime_array = data.array
+
+    bins = pd.date_range(start="2023-09-16", periods=3, freq='10D')
+
+    # Use pd.cut to categorize datetime data and capture the result
+    result = pd.cut(datetime_array, bins=bins)
+
+    expected_intervals = IntervalIndex.from_arrays(
+        [pd.Timestamp('2023-09-16'), pd.Timestamp('2023-09-26')],
+        [pd.Timestamp('2023-09-26'), pd.Timestamp('2023-10-06')],
+        closed='right'
+    )
+
+    expected = Series(expected_intervals).astype(CategoricalDtype(ordered=True))
+
+    tm.assert_categorical_equal(result.categories, expected.values)
+
+    assert not hasattr(result, 'notna'), "AttributeError related to 'notna' should not be present"
+    assert len(result.categories) == 2, "There should be exactly 2 bins"
