@@ -2543,7 +2543,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     notnull = notna
 
-    def fillna(self, value=None):
+    def fillna(self, value):
         """
         Fill NA/NaN values with the specified value.
 
@@ -4919,6 +4919,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError
         return value
 
+    @cache_readonly
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
@@ -7102,6 +7103,13 @@ class Index(IndexOpsMixin, PandasObject):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        See Also
+        --------
+        Index.size: Return the number of elements in the underlying data.
+        Index.ndim: Number of dimensions of the underlying data, by definition 1.
+        Index.dtype: Return the dtype object of the underlying data.
+        Index.values: Return an array representing the data in the Index.
 
         Examples
         --------
