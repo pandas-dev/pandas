@@ -1820,6 +1820,12 @@ default 'raise'
         """
         The quarter of the date.
 
+        See Also
+        --------
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+        DatetimeIndex.time : Returns numpy array of datetime.time objects.
+            The time part of the Timestamps.
+
         Examples
         --------
         For Series:
