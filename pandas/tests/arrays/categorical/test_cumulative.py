@@ -44,4 +44,6 @@ class TestAccumulator:
     def test_cummax_cummin_ordered_categorical_nan(self, skip, method, input, output):
         # GH#52335
         result = pd.Categorical(input, ordered=True)._accumulate(method, skipna=skip)
-        tm.assert_extension_array_equal(result, pd.Categorical(output, ordered=True))
+        tm.assert_extension_array_equal(
+            result, pd.Categorical(output, categories=[1, 2, 3], ordered=True)
+        )
