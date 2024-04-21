@@ -126,7 +126,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.nanosecond SA01" \
         -i "pandas.DatetimeIndex.quarter SA01" \
         -i "pandas.DatetimeIndex.round SA01" \
-        -i "pandas.DatetimeIndex.snap PR01,RT03" \
+        -i "pandas.DatetimeIndex.snap PR01" \
         -i "pandas.DatetimeIndex.std PR01,RT03" \
         -i "pandas.DatetimeIndex.time SA01" \
         -i "pandas.DatetimeIndex.timetz SA01" \
