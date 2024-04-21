@@ -1391,6 +1391,14 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
+            objects with timezones. The time part of the Timestamps.
+        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
+            objects. Namely, the date part of Timestamps without time and timezone
+            information.
+
         Examples
         --------
         For Series:
