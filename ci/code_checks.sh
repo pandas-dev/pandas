@@ -109,7 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
-        -i "pandas.DatetimeIndex.day SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
         -i "pandas.DatetimeIndex.floor SA01" \
@@ -118,8 +117,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.indexer_between_time RT03" \
         -i "pandas.DatetimeIndex.inferred_freq SA01" \
         -i "pandas.DatetimeIndex.is_leap_year SA01" \
-        -i "pandas.DatetimeIndex.microsecond SA01" \
-        -i "pandas.DatetimeIndex.nanosecond SA01" \
         -i "pandas.DatetimeIndex.quarter SA01" \
         -i "pandas.DatetimeIndex.round SA01" \
         -i "pandas.DatetimeIndex.snap PR01,RT03,SA01" \
@@ -134,7 +131,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.HDFStore.groups SA01" \
         -i "pandas.HDFStore.info RT03,SA01" \
         -i "pandas.HDFStore.keys SA01" \
         -i "pandas.HDFStore.put PR01,SA01" \
@@ -296,7 +292,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.ceil PR01,PR02,SA01" \
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.date SA01" \
-        -i "pandas.Series.dt.day SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.day_of_year SA01" \
         -i "pandas.Series.dt.dayofyear SA01" \
@@ -306,10 +301,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.floor PR01,PR02,SA01" \
         -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.is_leap_year SA01" \
-        -i "pandas.Series.dt.microsecond SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
-        -i "pandas.Series.dt.nanosecond SA01" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
         -i "pandas.Series.dt.quarter SA01" \
