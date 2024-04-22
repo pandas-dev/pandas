@@ -789,3 +789,33 @@ def test_cut_with_nullable_int64():
     result = cut(series, bins=bins)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_datetime_cut_notna():
+    # Create a Series with datetime data
+    data = to_datetime(["2023-09-17", "2023-10-06"])
+    # Convert the Series to a DatetimeArray
+    datetime_array = data.array
+
+    # Define bins for categorization
+    bins = date_range(start="2023-09-16", periods=3, freq="10D")
+
+    # Use pd.cut to categorize datetime data and capture the result
+    result = cut(datetime_array, bins=bins)
+
+    # Define expected result as an IntervalIndex with specified intervals
+    expected_intervals = IntervalIndex.from_tuples(
+        [
+            (Timestamp("2023-09-16"), Timestamp("2023-09-26")),
+            (Timestamp("2023-09-26"), Timestamp("2023-10-06")),
+        ]
+    )
+
+    expected = pd.Series(expected_intervals).astype(CategoricalDtype(ordered=True))
+
+    # Assert that result matches expected using pandas testing tools
+    tm.assert_series_equal(pd.Series(result), expected)
+
+    assert not hasattr(
+        result, "notna"
+    ), "AttributeError related to 'notna' should not be present"
