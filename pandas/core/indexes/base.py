@@ -2423,6 +2423,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         bool
 
+        See Also
+        --------
+        Index.isna : Detect missing values.
+        Index.dropna : Return Index without NA/NaN values.
+        Index.fillna : Fill NA/NaN values with the specified value.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3], index=["a", "b", None])
@@ -6066,6 +6072,10 @@ class Index(IndexOpsMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
+
+        See Also
+        --------
+        Index.where : Replace values where the condition is False.
 
         Examples
         --------
