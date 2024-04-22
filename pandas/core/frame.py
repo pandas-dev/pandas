@@ -5535,6 +5535,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series
             Series representing the item that is dropped.
 
+        See Also
+        --------
+        DataFrame.drop: Drop specified labels from rows or columns.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -12896,6 +12901,7 @@ class DataFrame(NDFrame, OpsMixin):
                 See Also
                 --------
                 DataFrame.index: The index (row labels) of the DataFrame.
+                DataFrame.axes: Return a list representing the axes of the DataFrame.
 
                 Examples
                 --------

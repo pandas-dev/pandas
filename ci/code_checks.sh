@@ -90,7 +90,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02,SA01" \
-        -i "pandas.DataFrame.pop SA01" \
         -i "pandas.DataFrame.prod RT03" \
         -i "pandas.DataFrame.product RT03" \
         -i "pandas.DataFrame.reorder_levels SA01" \
@@ -122,9 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.HDFStore.keys SA01" \
         -i "pandas.HDFStore.put PR01,SA01" \
-        -i "pandas.HDFStore.select SA01" \
         -i "pandas.HDFStore.walk SA01" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.T SA01" \
