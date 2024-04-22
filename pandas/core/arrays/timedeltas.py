@@ -41,13 +41,13 @@ from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
+    is_bool_dtype,
     is_float_dtype,
     is_integer_dtype,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_numeric_dtype,
-    is_bool_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -493,12 +493,13 @@ class TimedeltaArray(dtl.TimelikeOps):
             result = [arr[n] * other[n] for n in range(len(self))]
             result = np.array(result)
             return type(self)._simple_new(result, dtype=result.dtype)
-        
+
         if is_bool_dtype(other.dtype) or is_numeric_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
-            #  are any of the pandas nullable dtypes ('Int8', 'Int16', 'Int32', 'Int64', 
-            #  'UInt8', 'UInt16', 'UInt32', 'UInt64', 'Float32', 'Float64', or 'boolean'),
-            #  so we will end up with timedelta64[ns]-dtyped result
+            #  are any of the pandas nullable dtypes ('Int8', 'Int16', 'Int32',
+            # 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64', 'Float32',
+            # 'Float64', or 'boolean'), so we will end up with
+            #  timedelta64[ns]-dtyped result
             result = [self._ndarray[n] * other[n] for n in range(len(self))]
             result = np.array(result)
             return type(self)(result)
