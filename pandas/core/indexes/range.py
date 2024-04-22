@@ -1364,17 +1364,6 @@ class RangeIndex(Index):
 
         return self._shallow_copy(taken, name=self.name)
 
-    def to_numpy(
-        self,
-        dtype: npt.DTypeLike | None = None,
-        copy: bool = False,
-        na_value: object = lib.no_default,
-        **kwargs,
-    ) -> np.ndarray:
-        return np.arange(
-            start=self.start, stop=self.stop, step=self.step, dtype=dtype or self.dtype
-        )
-
     def value_counts(
         self,
         normalize: bool = False,

@@ -876,25 +876,6 @@ def test_getitem_integers_return_index():
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("copy", [True, False])
-@pytest.mark.parametrize(
-    "rng",
-    [
-        range(3),
-        range(0),
-        range(0, 3, 2),
-        range(3, -3, -2),
-    ],
-)
-def test_to_numpy(copy, rng, any_int_numpy_dtype):
-    ri = RangeIndex(rng)
-    result = ri.to_numpy(dtype=any_int_numpy_dtype, copy=copy)
-    expected = np.arange(
-        start=rng.start, stop=rng.stop, step=rng.step, dtype=any_int_numpy_dtype
-    )
-    tm.assert_numpy_array_equal(result, expected)
-
-
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "rng",
