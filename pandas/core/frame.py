@@ -12925,12 +12925,12 @@ class DataFrame(NDFrame, OpsMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY - only works for BlockManager
+        Internal ONLY.
         """
         mgr = self._mgr
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v in mgr.to_dict().items()
+            for k, v in mgr.to_iter_dict()
         }
 
     @property
