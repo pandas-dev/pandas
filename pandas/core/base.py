@@ -528,7 +528,6 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -880,7 +879,6 @@ class IndexOpsMixin(OpsMixin):
 
         return algorithms.map_array(arr, mapper, na_action=na_action)
 
-    @final
     def value_counts(
         self,
         normalize: bool = False,

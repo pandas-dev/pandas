@@ -57,9 +57,13 @@ if TYPE_CHECKING:
         Dtype,
         JoinHow,
         NaPosition,
+        NumpySorter,
         Self,
         npt,
     )
+
+    from pandas import Series
+
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
@@ -1359,3 +1363,62 @@ class RangeIndex(Index):
                 taken += self.start
 
         return self._shallow_copy(taken, name=self.name)
+
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+        **kwargs,
+    ) -> np.ndarray:
+        return np.arange(
+            start=self.start, stop=self.stop, step=self.step, dtype=dtype or self.dtype
+        )
+
+    def value_counts(
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
+    ) -> Series:
+        from pandas import Series
+
+        if bins is not None:
+            return super().value_counts(
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                bins=bins,
+                dropna=dropna,
+            )
+        data = np.ones(len(self), dtype=np.int64)
+        if normalize:
+            data /= len(self)
+        return Series(data, index=self.copy())
+
+    def searchsorted(
+        self,
+        value,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if (
+            side not in {"left", "right"}
+            or sorter is not None
+            or not is_float(value)
+            or not is_integer(value)
+        ):
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+        if flip := (self.step < 0):
+            rng = self._range[::-1]
+            shift = int(side == "right")
+        else:
+            rng = self._range
+            shift = int(side == "left")
+
+        offset = (value - rng.start - shift) // rng.step + 1
+        if flip:
+            offset = len(self) - offset
+        return np.intp(max(min(len(self), offset), 0))
