@@ -2866,8 +2866,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes or None
-            If no `path` argument is provided, returns the bytes representation of the DataFrame written in the Parquet format. If a `path` argument is provided, returns None.
+        bytes if no path argument is provided else None
 
         See Also
         --------
