@@ -347,7 +347,7 @@ class TestBlock:
         # GH#37799
         values = np.random.default_rng(2).standard_normal((3, 4))
         blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
-        result = blk._split()
+        result = list(blk._split())
 
         # check that we get views, not copies
         values[:] = -9999
