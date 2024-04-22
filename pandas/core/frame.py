@@ -2865,7 +2865,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-
+        bytes if no path argument is provided else None
+        
         See Also
         --------
         read_parquet : Read a parquet file.
