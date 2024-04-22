@@ -976,6 +976,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        Index.inferred_type: Return a string of the type inferred from the values.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -1637,6 +1641,11 @@ class Index(IndexOpsMixin, PandasObject):
     def name(self) -> Hashable:
         """
         Return Index or MultiIndex name.
+
+        See Also
+        --------
+        Index.set_names: Able to set new names partially and by level.
+        Index.rename: Able to set new names partially and by level.
 
         Examples
         --------
@@ -5180,6 +5189,12 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             True if "other" is an Index and it has the same elements and order
             as the calling index; False otherwise.
+
+        See Also
+        --------
+        Index.identical: Checks that object attributes and types are also equal.
+        Index.has_duplicates: Check if the Index has duplicate values.
+        Index.is_unique: Return if the index has unique values.
 
         Examples
         --------
