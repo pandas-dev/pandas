@@ -102,7 +102,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_feather SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
-        -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
