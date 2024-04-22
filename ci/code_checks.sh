@@ -269,7 +269,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.as_unit PR01,PR02" \
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
-        -i "pandas.Series.dt.date SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.day_of_year SA01" \
         -i "pandas.Series.dt.dayofyear SA01" \
@@ -289,7 +288,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.strftime PR01,PR02" \
         -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
         -i "pandas.Series.dt.total_seconds PR01" \
-        -i "pandas.Series.dt.tz SA01" \
         -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
