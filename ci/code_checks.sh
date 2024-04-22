@@ -107,22 +107,16 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DatetimeIndex.ceil SA01" \
         -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
-        -i "pandas.DatetimeIndex.floor SA01" \
         -i "pandas.DatetimeIndex.freqstr SA01" \
         -i "pandas.DatetimeIndex.indexer_at_time PR01,RT03" \
         -i "pandas.DatetimeIndex.indexer_between_time RT03" \
         -i "pandas.DatetimeIndex.inferred_freq SA01" \
         -i "pandas.DatetimeIndex.is_leap_year SA01" \
-        -i "pandas.DatetimeIndex.quarter SA01" \
-        -i "pandas.DatetimeIndex.round SA01" \
-        -i "pandas.DatetimeIndex.snap PR01,RT03,SA01" \
+        -i "pandas.DatetimeIndex.snap PR01,RT03" \
         -i "pandas.DatetimeIndex.std PR01,RT03" \
-        -i "pandas.DatetimeIndex.time SA01" \
-        -i "pandas.DatetimeIndex.timetz SA01" \
         -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
         -i "pandas.DatetimeIndex.tz SA01" \
@@ -286,7 +280,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.div PR07" \
         -i "pandas.Series.droplevel SA01" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \
-        -i "pandas.Series.dt.ceil PR01,PR02,SA01" \
+        -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.date SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
@@ -295,20 +289,17 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.days SA01" \
         -i "pandas.Series.dt.days_in_month SA01" \
         -i "pandas.Series.dt.daysinmonth SA01" \
-        -i "pandas.Series.dt.floor PR01,PR02,SA01" \
+        -i "pandas.Series.dt.floor PR01,PR02" \
         -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.is_leap_year SA01" \
         -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
-        -i "pandas.Series.dt.quarter SA01" \
         -i "pandas.Series.dt.qyear GL08" \
-        -i "pandas.Series.dt.round PR01,PR02,SA01" \
+        -i "pandas.Series.dt.round PR01,PR02" \
         -i "pandas.Series.dt.seconds SA01" \
         -i "pandas.Series.dt.strftime PR01,PR02" \
-        -i "pandas.Series.dt.time SA01" \
-        -i "pandas.Series.dt.timetz SA01" \
         -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
         -i "pandas.Series.dt.total_seconds PR01" \
         -i "pandas.Series.dt.tz SA01" \
@@ -428,14 +419,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.total_seconds SA01" \
         -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
-        -i "pandas.TimedeltaIndex.ceil SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
         -i "pandas.TimedeltaIndex.days SA01" \
-        -i "pandas.TimedeltaIndex.floor SA01" \
         -i "pandas.TimedeltaIndex.inferred_freq SA01" \
         -i "pandas.TimedeltaIndex.microseconds SA01" \
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
-        -i "pandas.TimedeltaIndex.round SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
         -i "pandas.Timestamp PR07,SA01" \

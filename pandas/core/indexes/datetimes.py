@@ -455,6 +455,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         DatetimeIndex
 
+        See Also
+        --------
+        DatetimeIndex.round : Perform round operation on the data to the
+            specified `freq`.
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+
         Examples
         --------
         >>> idx = pd.DatetimeIndex(

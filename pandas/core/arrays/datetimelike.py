@@ -1825,6 +1825,11 @@ _round_doc = """
     ------
     ValueError if the `freq` cannot be converted.
 
+    See Also
+    --------
+    DatetimeIndex.floor : Perform floor operation on the data to the specified `freq`.
+    DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+
     Notes
     -----
     If the timestamps have a timezone, {op}ing will take place relative to the
