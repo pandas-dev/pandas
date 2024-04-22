@@ -103,7 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
         -i "pandas.DatetimeIndex.freqstr SA01" \
@@ -115,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.std PR01,RT03" \
         -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
-        -i "pandas.DatetimeIndex.tz SA01" \
         -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
