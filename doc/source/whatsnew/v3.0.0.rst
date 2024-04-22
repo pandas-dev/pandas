@@ -365,6 +365,7 @@ Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
+- Bug in :meth:`TimedeltaArray._simple_new` which was raising ``AssertionError`` When multiplying a Series with a timedelta64 dtype with another Series that uses any of the pandas nullable dtypes ``('Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64', 'Float32', 'Float64', or 'boolean')`` (:issue:`58054`)
 
 Timezones
 ^^^^^^^^^
