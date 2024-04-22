@@ -5,6 +5,7 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
+
 from __future__ import annotations
 
 import collections
@@ -69,6 +70,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterator,
         Sequence,
@@ -414,6 +416,7 @@ class WrappedCythonOp:
                 "last",
                 "first",
                 "sum",
+                "median",
             ]:
                 func(
                     out=result,
@@ -426,7 +429,7 @@ class WrappedCythonOp:
                     is_datetimelike=is_datetimelike,
                     **kwargs,
                 )
-            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod"]:
                 if self.how in ["std", "sem"]:
                     kwargs["is_datetimelike"] = is_datetimelike
                 func(
@@ -704,7 +707,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        categories = Categorical(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
@@ -716,7 +719,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.group_info[0]).is_monotonic_increasing
+        return Index(self.ids).is_monotonic_increasing
 
     @final
     @cache_readonly
@@ -735,8 +738,7 @@ class BaseGrouper:
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _ = self.group_info
-        return ids
+        return self.ids
 
     @final
     @cache_readonly
@@ -856,16 +858,15 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> Generator[Index, None, None]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
         if len(self.groupings) == 1:
-            return [result_index]
-        return [
-            result_index.get_level_values(level)
-            for level in range(result_index.nlevels)
-        ]
+            yield result_index
+        else:
+            for level in range(result_index.nlevels - 1, -1, -1):
+                yield result_index.get_level_values(level)
 
     # ------------------------------------------------------------
     # Aggregation functions
@@ -933,9 +934,7 @@ class BaseGrouper:
     def _aggregate_series_pure_python(
         self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
-        _, ngroups = self.group_info
-
-        result = np.empty(ngroups, dtype="O")
+        result = np.empty(self.ngroups, dtype="O")
         initialized = False
 
         splitter = self._get_splitter(obj)
@@ -1073,7 +1072,7 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
-        ids, _ = self.group_info
+        ids = self.ids
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
@@ -1113,31 +1112,29 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
-        ngroups = self.ngroups
+        return self.ids, self.ngroups
+
+    @cache_readonly
+    def codes(self) -> list[npt.NDArray[np.intp]]:
+        return [self.ids]
+
+    @cache_readonly
+    def result_index_and_ids(self):
+        result_index = self.binlabels
+        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
+            result_index = result_index[1:]
+
+        ngroups = len(result_index)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
         if ngroups == len(self.bins):
-            comp_ids = np.repeat(np.arange(ngroups), rep)
+            ids = np.repeat(np.arange(ngroups), rep)
         else:
-            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
+            ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
+        ids = ensure_platform_int(ids)
 
-        return (ensure_platform_int(comp_ids), ngroups)
-
-    @cache_readonly
-    def result_index(self) -> Index:
-        if len(self.binlabels) != 0 and isna(self.binlabels[0]):
-            return self.binlabels[1:]
-
-        return self.binlabels
-
-    @cache_readonly
-    def codes(self) -> list[npt.NDArray[np.intp]]:
-        return [self.group_info[0]]
-
-    @cache_readonly
-    def result_index_and_ids(self):
-        return self.result_index, self.group_info[0]
+        return result_index, ids
 
     @property
     def levels(self) -> list[Index]:
@@ -1150,7 +1147,7 @@ class BinGrouper(BaseGrouper):
     @property
     def groupings(self) -> list[grouper.Grouping]:
         lev = self.binlabels
-        codes = self.group_info[0]
+        codes = self.ids
         labels = lev.take(codes)
         ping = grouper.Grouping(
             labels, labels, in_axis=False, level=None, uniques=lev._values

@@ -1,6 +1,7 @@
-""""
+""" "
 Test module for testing ``pandas._testing.assert_produces_warning``.
 """
+
 import warnings
 
 import pytest
@@ -41,7 +42,6 @@ def f():
     warnings.warn("f2", RuntimeWarning)
 
 
-@pytest.mark.filterwarnings("ignore:f1:FutureWarning")
 def test_assert_produces_warning_honors_filter():
     # Raise by default.
     msg = r"Caused unexpected warning\(s\)"
@@ -177,6 +177,44 @@ def test_match_multiple_warnings():
     with tm.assert_produces_warning(category, match=r"^Match this"):
         warnings.warn("Match this", FutureWarning)
         warnings.warn("Match this too", UserWarning)
+
+
+def test_must_match_multiple_warnings():
+    # https://github.com/pandas-dev/pandas/issues/56555
+    category = (FutureWarning, UserWarning)
+    msg = "Did not see expected warning of class 'UserWarning'"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(category, match=r"^Match this"):
+            warnings.warn("Match this", FutureWarning)
+
+
+def test_must_match_multiple_warnings_messages():
+    # https://github.com/pandas-dev/pandas/issues/56555
+    category = (FutureWarning, UserWarning)
+    msg = r"The emitted warning messages are \[UserWarning\('Not this'\)\]"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(category, match=r"^Match this"):
+            warnings.warn("Match this", FutureWarning)
+            warnings.warn("Not this", UserWarning)
+
+
+def test_allow_partial_match_for_multiple_warnings():
+    # https://github.com/pandas-dev/pandas/issues/56555
+    category = (FutureWarning, UserWarning)
+    with tm.assert_produces_warning(
+        category, match=r"^Match this", must_find_all_warnings=False
+    ):
+        warnings.warn("Match this", FutureWarning)
+
+
+def test_allow_partial_match_for_multiple_warnings_messages():
+    # https://github.com/pandas-dev/pandas/issues/56555
+    category = (FutureWarning, UserWarning)
+    with tm.assert_produces_warning(
+        category, match=r"^Match this", must_find_all_warnings=False
+    ):
+        warnings.warn("Match this", FutureWarning)
+        warnings.warn("Not this", UserWarning)
 
 
 def test_right_category_wrong_match_raises(pair_different_warnings):

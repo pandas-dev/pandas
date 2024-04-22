@@ -192,7 +192,7 @@ def test_put_compression_blosc(setup_path):
         tm.assert_frame_equal(store["c"], df)
 
 
-def test_put_mixed_type(setup_path):
+def test_put_mixed_type(setup_path, performance_warning):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
@@ -215,7 +215,7 @@ def test_put_mixed_type(setup_path):
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
 
-        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             store.put("df", df)
 
         expected = store.get("df")

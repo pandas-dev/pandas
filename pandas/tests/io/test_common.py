@@ -1,6 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
+
 import codecs
 import errno
 from functools import partial

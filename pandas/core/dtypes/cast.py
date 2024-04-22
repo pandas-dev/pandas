@@ -247,13 +247,15 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
 
 
 @overload
-def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
-    ...
+def maybe_downcast_to_dtype(
+    result: np.ndarray, dtype: str | np.dtype
+) -> np.ndarray: ...
 
 
 @overload
-def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
-    ...
+def maybe_downcast_to_dtype(
+    result: ExtensionArray, dtype: str | np.dtype
+) -> ArrayLike: ...
 
 
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
@@ -317,15 +319,13 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 @overload
 def maybe_downcast_numeric(
     result: np.ndarray, dtype: np.dtype, do_round: bool = False
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
 def maybe_downcast_numeric(
     result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
-) -> ArrayLike:
-    ...
+) -> ArrayLike: ...
 
 
 def maybe_downcast_numeric(
@@ -513,13 +513,11 @@ def _maybe_cast_to_extension_array(
 
 
 @overload
-def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype:
-    ...
+def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype: ...
 
 
 @overload
-def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype:
-    ...
+def ensure_dtype_can_hold_na(dtype: ExtensionDtype) -> ExtensionDtype: ...
 
 
 def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
@@ -1418,18 +1416,15 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
 
 
 @overload
-def find_common_type(types: list[np.dtype]) -> np.dtype:
-    ...
+def find_common_type(types: list[np.dtype]) -> np.dtype: ...
 
 
 @overload
-def find_common_type(types: list[ExtensionDtype]) -> DtypeObj:
-    ...
+def find_common_type(types: list[ExtensionDtype]) -> DtypeObj: ...
 
 
 @overload
-def find_common_type(types: list[DtypeObj]) -> DtypeObj:
-    ...
+def find_common_type(types: list[DtypeObj]) -> DtypeObj: ...
 
 
 def find_common_type(types):
@@ -1503,7 +1498,10 @@ def construct_2d_arraylike_from_scalar(
 
     # Attempt to coerce to a numpy array
     try:
-        arr = np.array(value, dtype=dtype, copy=copy)
+        if not copy:
+            arr = np.asarray(value, dtype=dtype)
+        else:
+            arr = np.array(value, dtype=dtype, copy=copy)
     except (ValueError, TypeError) as err:
         raise TypeError(
             f"DataFrame constructor called with incompatible data and dtype: {err}"
@@ -1652,7 +1650,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                         "out-of-bound Python int",
                         DeprecationWarning,
                     )
-                casted = np.array(arr, dtype=dtype, copy=False)
+                casted = np.asarray(arr, dtype=dtype)
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)

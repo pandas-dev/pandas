@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -806,7 +805,7 @@ class TestDataFrameReshape:
                 [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
-        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ("i2", "i1")
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
 
     def test_unstack_multi_level_rows_and_cols(self):
         # PH 28306: Unstack df with multi level cols and rows
@@ -1224,7 +1223,6 @@ class TestDataFrameReshape:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "index",
         [
@@ -1850,7 +1848,7 @@ class TestStackUnstackMultiLevel:
 
         unstacked = frame.unstack()
         assert unstacked.index.name == "first"
-        assert unstacked.columns.names == ("exp", "second")
+        assert unstacked.columns.names == ["exp", "second"]
 
         restacked = unstacked.stack(future_stack=future_stack)
         assert restacked.index.names == frame.index.names
@@ -2186,7 +2184,9 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(self, monkeypatch):
+    def test_unstack_number_of_levels_larger_than_int32(
+        self, performance_warning, monkeypatch
+    ):
         # GH#20601
         # GH 26314: Change ValueError to PerformanceWarning
 
@@ -2203,7 +2203,7 @@ class TestStackUnstackMultiLevel:
                 index=[np.arange(2**16), np.arange(2**16)],
             )
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.unstack()
 

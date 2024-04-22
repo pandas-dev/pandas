@@ -1,4 +1,5 @@
-""" support numpy compatibility across versions """
+"""support numpy compatibility across versions"""
+
 import warnings
 
 import numpy as np

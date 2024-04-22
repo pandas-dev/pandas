@@ -1,4 +1,5 @@
 """Common utilities for Numba operations"""
+
 from __future__ import annotations
 
 import types

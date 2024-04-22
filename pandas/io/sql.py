@@ -177,7 +177,7 @@ def _convert_arrays_to_dataframe(
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
-        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df = DataFrame(dict(zip(range(len(columns)), arrays)))
         df.columns = columns
         return df
     else:
@@ -242,8 +242,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -257,8 +256,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql_table(
@@ -374,8 +372,7 @@ def read_sql_query(
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -389,8 +386,7 @@ def read_sql_query(
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql_query(
@@ -460,6 +456,8 @@ def read_sql_query(
     Returns
     -------
     DataFrame or Iterator[DataFrame]
+        Returns a DataFrame object that contains the result set of the
+        executed SQL query, in relation to the specified database connection.
 
     See Also
     --------
@@ -475,8 +473,9 @@ def read_sql_query(
     --------
     >>> from sqlalchemy import create_engine  # doctest: +SKIP
     >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> sql_query = "SELECT int_column FROM test_data"  # doctest: +SKIP
     >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
-    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
+    ...     data = pd.read_sql_query(sql_query, conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -509,8 +508,7 @@ def read_sql(
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @overload
@@ -525,8 +523,7 @@ def read_sql(
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
-) -> Iterator[DataFrame]:
-    ...
+) -> Iterator[DataFrame]: ...
 
 
 def read_sql(
@@ -608,6 +605,9 @@ def read_sql(
     Returns
     -------
     DataFrame or Iterator[DataFrame]
+        Returns a DataFrame object that contains the result set of the
+        executed SQL query or an SQL Table based on the provided input,
+        in relation to the specified database connection.
 
     See Also
     --------
@@ -1311,12 +1311,12 @@ class SQLTable(PandasObject):
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
-                    self.frame[col_name] = df_col.astype(col_type, copy=False)
+                    self.frame[col_name] = df_col.astype(col_type)
 
                 elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
-                        self.frame[col_name] = df_col.astype(col_type, copy=False)
+                        self.frame[col_name] = df_col.astype(col_type)
             except KeyError:
                 pass  # this column not in results
 
@@ -2381,7 +2381,9 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
+            total_inserted = cur.adbc_ingest(
+                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+            )
 
         self.con.commit()
         return total_inserted

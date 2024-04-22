@@ -3,6 +3,7 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
+
 import collections
 from collections import namedtuple
 from collections.abc import Iterator
@@ -111,8 +112,8 @@ class MockNumpyLikeArray:
     def __len__(self) -> int:
         return len(self._values)
 
-    def __array__(self, t=None):
-        return np.asarray(self._values, dtype=t)
+    def __array__(self, dtype=None, copy=None):
+        return np.asarray(self._values, dtype=dtype)
 
     @property
     def ndim(self):
@@ -239,8 +240,7 @@ def test_is_list_like_generic():
     # is_list_like was yielding false positives for Generic classes in python 3.11
     T = TypeVar("T")
 
-    class MyDataFrame(DataFrame, Generic[T]):
-        ...
+    class MyDataFrame(DataFrame, Generic[T]): ...
 
     tstc = MyDataFrame[int]
     tst = MyDataFrame[int]({"x": [1, 2, 3]})

@@ -12,7 +12,6 @@ from typing import (
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -30,7 +29,6 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -175,10 +173,7 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation, or None if agg cannot be performed by
         this method.
         """
-        obj = self.obj
         func = self.func
-        args = self.args
-        kwargs = self.kwargs
 
         if isinstance(func, str):
             return self.apply_str()
@@ -188,12 +183,6 @@ class Apply(metaclass=abc.ABCMeta):
         elif is_list_like(func):
             # we require a list, but not a 'str'
             return self.agg_list_like()
-
-        if callable(func):
-            f = com.get_cython_func(func)
-            if f and not args and not kwargs:
-                warn_alias_replacement(obj, func, f)
-                return getattr(obj, f)()
 
         # caller can react
         return None
@@ -299,12 +288,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         if isinstance(func, str):
             return self._apply_str(obj, func, *args, **kwargs)
-
-        if not args and not kwargs:
-            f = com.get_cython_func(func)
-            if f:
-                warn_alias_replacement(obj, func, f)
-                return getattr(obj, f)()
 
         # Two possible ways to use a UDF - apply or call directly
         try:
@@ -581,22 +564,10 @@ class Apply(metaclass=abc.ABCMeta):
                 "axis" not in arg_names or func in ("corrwith", "skew")
             ):
                 raise ValueError(f"Operation {func} does not support axis=1")
-            if "axis" in arg_names:
-                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
-                    # Try to avoid FutureWarning for deprecated axis keyword;
-                    # If self.axis matches the axis we would get by not passing
-                    #  axis, we safely exclude the keyword.
-
-                    default_axis = 0
-                    if func in ["idxmax", "idxmin"]:
-                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
-                        # whereas other axis keywords default to 0
-                        default_axis = self.obj.axis
-
-                    if default_axis != self.axis:
-                        self.kwargs["axis"] = self.axis
-                else:
-                    self.kwargs["axis"] = self.axis
+            if "axis" in arg_names and not isinstance(
+                obj, (SeriesGroupBy, DataFrameGroupBy)
+            ):
+                self.kwargs["axis"] = self.axis
         return self._apply_str(obj, func, *self.args, **self.kwargs)
 
     def apply_list_or_dict_like(self) -> DataFrame | Series:
@@ -1315,9 +1286,10 @@ class FrameColumnApply(FrameApply):
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
-        with set_numba_data(self.obj.index) as index, set_numba_data(
-            self.columns
-        ) as columns:
+        with (
+            set_numba_data(self.obj.index) as index,
+            set_numba_data(self.columns) as columns,
+        ):
             res = dict(nb_func(self.values, columns, index))
 
         return res
@@ -1738,9 +1710,9 @@ def normalize_keyword_aggregation(
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
     aggspec = defaultdict(list)
     order = []
-    columns, pairs = list(zip(*kwargs.items()))
+    columns = tuple(kwargs.keys())
 
-    for column, aggfunc in pairs:
+    for column, aggfunc in kwargs.values():
         aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
@@ -2005,24 +1977,4 @@ def validate_func_kwargs(
 def include_axis(op_name: Literal["agg", "apply"], colg: Series | DataFrame) -> bool:
     return isinstance(colg, ABCDataFrame) or (
         isinstance(colg, ABCSeries) and op_name == "agg"
-    )
-
-
-def warn_alias_replacement(
-    obj: AggObjType,
-    func: Callable,
-    alias: str,
-) -> None:
-    if alias.startswith("np."):
-        full_alias = alias
-    else:
-        full_alias = f"{type(obj).__name__}.{alias}"
-        alias = f'"{alias}"'
-    warnings.warn(
-        f"The provided callable {func} is currently using "
-        f"{full_alias}. In a future version of pandas, "
-        f"the provided callable will be used directly. To keep current "
-        f"behavior pass the string {alias} instead.",
-        category=FutureWarning,
-        stacklevel=find_stack_level(),
     )

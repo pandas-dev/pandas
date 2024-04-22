@@ -1,6 +1,7 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -178,6 +179,7 @@ class Styler(StylerRenderer):
     escape : str, optional
         Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
         in cell display string with HTML-safe sequences.
+
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
         LaTeX-safe sequences. Use 'latex-math' to replace the characters
@@ -209,6 +211,13 @@ class Styler(StylerRenderer):
 
     Notes
     -----
+    .. warning::
+
+       ``Styler`` is primarily intended for use on safe input that you control.
+       When using ``Styler`` on untrusted, user-provided input to serve HTML,
+       you should set ``escape="html"`` to prevent security vulnerabilities.
+       See the Jinja2 documentation on escaping HTML for more.
+
     Most styling will be done by passing style functions into
     ``Styler.apply`` or ``Styler.map``. Style functions should
     return values with strings containing CSS ``'attr: value'`` that will
@@ -610,8 +619,7 @@ class Styler(StylerRenderer):
         environment: str | None = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_latex(
@@ -633,8 +641,7 @@ class Styler(StylerRenderer):
         environment: str | None = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     def to_latex(
         self,
@@ -1226,8 +1233,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = ...,
         exclude_styles: bool = ...,
         **kwargs,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_html(
@@ -1246,8 +1252,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = ...,
         exclude_styles: bool = ...,
         **kwargs,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @Substitution(buf=buffering_args, encoding=encoding_args)
     def to_html(
@@ -1406,8 +1411,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = ...,
         max_columns: int | None = ...,
         delimiter: str = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def to_string(
@@ -1420,8 +1424,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = ...,
         max_columns: int | None = ...,
         delimiter: str = ...,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @Substitution(buf=buffering_args, encoding=encoding_args)
     def to_string(
@@ -1680,6 +1683,8 @@ class Styler(StylerRenderer):
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
+            "_display_funcs_index_names",
+            "_display_funcs_column_names",
             "hidden_rows",
             "hidden_columns",
             "ctx",
@@ -3033,7 +3038,7 @@ class Styler(StylerRenderer):
         return self.map(lambda x: values, subset=subset)
 
     @Substitution(subset=subset_args)
-    def bar(  # pylint: disable=disallowed-name
+    def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -3621,8 +3626,7 @@ class Styler(StylerRenderer):
         func: Callable[Concatenate[Self, P], T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @overload
     def pipe(
@@ -3630,8 +3634,7 @@ class Styler(StylerRenderer):
         func: tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     def pipe(
         self,

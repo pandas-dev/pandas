@@ -59,8 +59,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> MutableMappingT:
-    ...
+) -> MutableMappingT: ...
 
 
 @overload
@@ -70,8 +69,7 @@ def to_dict(
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
-) -> list[MutableMappingT]:
-    ...
+) -> list[MutableMappingT]: ...
 
 
 @overload
@@ -81,8 +79,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> dict:
-    ...
+) -> dict: ...
 
 
 @overload
@@ -92,8 +89,7 @@ def to_dict(
     *,
     into: type[dict] = ...,
     index: bool = ...,
-) -> list[dict]:
-    ...
+) -> list[dict]: ...
 
 
 # error: Incompatible default for argument "into" (default has type "type[dict
@@ -159,7 +155,8 @@ def to_dict(
             stacklevel=find_stack_level(),
         )
     # GH16122
-    into_c = com.standardize_mapping(into)
+    # error: Call to untyped function "standardize_mapping" in typed context
+    into_c = com.standardize_mapping(into)  # type: ignore[no-untyped-call]
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',

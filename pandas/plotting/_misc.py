@@ -637,8 +637,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated: bool = False) -> None:
-        self._deprecated = deprecated
+    def __init__(self) -> None:
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
@@ -672,7 +671,7 @@ class _Options(dict):
         # error: Cannot access "__init__" directly
         self.__init__()  # type: ignore[misc]
 
-    def _get_canonical_key(self, key):
+    def _get_canonical_key(self, key: str) -> str:
         return self._ALIASES.get(key, key)
 
     @contextmanager

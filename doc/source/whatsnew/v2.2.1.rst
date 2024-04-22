@@ -1,6 +1,6 @@
 .. _whatsnew_221:
 
-What's new in 2.2.1 (February XX, 2024)
+What's new in 2.2.1 (February 22, 2024)
 ---------------------------------------
 
 These are the changes in pandas 2.2.1. See :ref:`release` for a full changelog
@@ -9,15 +9,23 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_221.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added ``pyarrow`` pip extra so users can install pandas and pyarrow with pip with ``pip install pandas[pyarrow]`` (:issue:`54466`)
+
 .. _whatsnew_221.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed memory leak in :func:`read_csv` (:issue:`57039`)
 - Fixed performance regression in :meth:`Series.combine_first` (:issue:`55845`)
+- Fixed regression causing overflow for near-minimum timestamps (:issue:`57150`)
 - Fixed regression in :func:`concat` changing long-standing behavior that always sorted the non-concatenation axis when the axis was a :class:`DatetimeIndex` (:issue:`57006`)
 - Fixed regression in :func:`merge_ordered` raising ``TypeError`` for ``fill_method="ffill"`` and ``how="left"`` (:issue:`57010`)
 - Fixed regression in :func:`pandas.testing.assert_series_equal` defaulting to ``check_exact=True`` when checking the :class:`Index` (:issue:`57067`)
+- Fixed regression in :func:`read_json` where an :class:`Index` would be returned instead of a :class:`RangeIndex` (:issue:`57429`)
 - Fixed regression in :func:`wide_to_long` raising an ``AttributeError`` for string columns (:issue:`57066`)
 - Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` ignoring the ``skipna`` argument (:issue:`57040`)
 - Fixed regression in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmax` where values containing the minimum or maximum value for the dtype could produce incorrect results (:issue:`57040`)
@@ -42,6 +50,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.astype` introducing decimals when converting from integer with missing values to string dtype (:issue:`57418`)
 - Fixed regression in :meth:`Series.pct_change` raising a ``ValueError`` for an empty :class:`Series` (:issue:`57056`)
 - Fixed regression in :meth:`Series.to_numpy` when dtype is given as float and the data contains NaNs (:issue:`57121`)
+- Fixed regression in addition or subtraction of :class:`DateOffset` objects with millisecond components to ``datetime64`` :class:`Index`, :class:`Series`, or :class:`DataFrame` (:issue:`57529`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_221.bug_fixes:
@@ -59,6 +68,16 @@ Bug fixes
 
 Other
 ~~~~~
+
+.. note::
+
+    The ``DeprecationWarning`` that was raised when pandas was imported without PyArrow being
+    installed has been removed. This decision was made because the warning was too noisy for too
+    many users and a lot of feedback was collected about the decision to make PyArrow a required
+    dependency. Pandas is currently considering the decision whether or not PyArrow should be added
+    as a hard dependency in 3.0. Interested users can follow the discussion
+    `here <https://github.com/pandas-dev/pandas/issues/57073>`_.
+
 - Added the argument ``skipna`` to :meth:`DataFrameGroupBy.first`, :meth:`DataFrameGroupBy.last`, :meth:`SeriesGroupBy.first`, and :meth:`SeriesGroupBy.last`; achieving ``skipna=False`` used to be available via :meth:`DataFrameGroupBy.nth`, but the behavior was changed in pandas 2.0.0 (:issue:`57019`)
 - Added the argument ``skipna`` to :meth:`Resampler.first`, :meth:`Resampler.last` (:issue:`57019`)
 
@@ -67,3 +86,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.2.0..v2.2.1

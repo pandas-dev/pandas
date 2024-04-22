@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -35,6 +36,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
 )
+import uuid
 
 from dateutil.tz import (
     tzlocal,
@@ -123,7 +125,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     item : pytest.Item
         pytest test item.
     path : str
-        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        Module path to Python object, e.g. "pandas.DataFrame.append". A
         warning will be filtered when item.name ends with in given path. So it is
         sufficient to specify e.g. "DataFrame.append".
     message : str
@@ -148,7 +150,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
-        ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
@@ -170,10 +171,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         (
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
-        ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrame.fillna with 'method' is deprecated",
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
@@ -271,7 +268,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -1233,10 +1230,6 @@ def tz_aware_fixture(request):
     return request.param
 
 
-# Generate cartesian product of tz_aware_fixture:
-tz_aware_fixture2 = tz_aware_fixture
-
-
 _UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
 if zoneinfo is not None:
     _UTCS.append(zoneinfo.ZoneInfo("UTC"))
@@ -1983,6 +1976,16 @@ def indexer_ial(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
+    """
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
+    """
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
+
+
 @pytest.fixture
 def using_infer_string() -> bool:
     """
@@ -2010,3 +2013,14 @@ def arrow_string_storage():
     Fixture that lists possible PyArrow values for StringDtype storage field.
     """
     return ("pyarrow", "pyarrow_numpy")
+
+
+@pytest.fixture
+def temp_file(tmp_path):
+    """
+    Generate a unique file for testing use. See link for removal policy.
+    https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
+    """
+    file_path = tmp_path / str(uuid.uuid4())
+    file_path.touch()
+    return file_path

@@ -1,4 +1,4 @@
-""" test to_datetime """
+"""test to_datetime"""
 
 import calendar
 from collections import deque
@@ -463,7 +463,7 @@ class TestTimeConversionFormats:
         self, fmt, dates, expected_dates
     ):
         # GH#13486, GH#50887, GH#57275
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(dates, format=fmt)
 
@@ -646,7 +646,7 @@ class TestToDatetime:
         args = ["2000-01-01 01:00:00", "2000-01-01 02:00:00+00:00"]
         ts1 = constructor(args[0])
         ts2 = args[1]
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
 
         with pytest.raises(ValueError, match=msg):
             to_datetime([ts1, ts2], format=fmt, utc=False)
@@ -679,7 +679,7 @@ class TestToDatetime:
     ):
         # https://github.com/pandas-dev/pandas/issues/50071
         # GH#57275
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
 
         with pytest.raises(ValueError, match=msg):
             to_datetime(
@@ -1152,7 +1152,7 @@ class TestToDatetime:
         ts_string_1 = "March 1, 2018 12:00:00+0400"
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         arr = [ts_string_1] * 5 + [ts_string_2] * 5
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(arr, cache=cache)
 
@@ -1509,7 +1509,7 @@ class TestToDatetime:
             "March 1, 2018 12:00:00+0500",
             "20100240",
         ]
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(ts_strings, errors="coerce")
 
@@ -1581,7 +1581,7 @@ class TestToDatetime:
     def test_iso_8601_strings_with_different_offsets_removed(self):
         # GH#17697, GH#11736, GH#50887, GH#57275
         ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(ts_strings)
 
@@ -1608,7 +1608,7 @@ class TestToDatetime:
         ser = Series(vals)
         assert all(ser[i] is vals[i] for i in range(len(vals)))  # GH#40111
 
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser)
 
@@ -1673,7 +1673,7 @@ class TestToDatetime:
     )
     def test_to_datetime_mixed_offsets_with_utc_false_removed(self, date):
         # GH#50887, GH#57275
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
         with pytest.raises(ValueError, match=msg):
             to_datetime(date, utc=False)
 
@@ -1734,6 +1734,14 @@ class TestToDatetimeUnit:
         msg = "cannot specify both format and unit"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
+
+    def test_unit_str(self, cache):
+        # GH 57051
+        # Test that strs aren't dropping precision to 32-bit accidentally.
+        with tm.assert_produces_warning(FutureWarning):
+            res = to_datetime(["1704660000"], unit="s", origin="unix")
+        expected = to_datetime([1704660000], unit="s", origin="unix")
+        tm.assert_index_equal(res, expected)
 
     def test_unit_array_mixed_nans(self, cache):
         values = [11111111111111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
@@ -3463,7 +3471,7 @@ def test_to_datetime_with_empty_str_utc_false_format_mixed():
 
 def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
     # GH#50887, GH#57275
-    msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+    msg = "Mixed timezones detected. Pass utc=True in to_datetime"
 
     with pytest.raises(ValueError, match=msg):
         to_datetime(
@@ -3479,7 +3487,7 @@ def test_to_datetime_mixed_tzs_mixed_types():
     arr = [ts, dtstr]
 
     msg = (
-        "Mixed timezones detected. pass utc=True in to_datetime or tz='UTC' "
+        "Mixed timezones detected. Pass utc=True in to_datetime or tz='UTC' "
         "in DatetimeIndex to convert to a common timezone"
     )
     with pytest.raises(ValueError, match=msg):
@@ -3537,19 +3545,27 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
     #  issued in _array_to_datetime_object
     both_strs = isinstance(aware_val, str) and isinstance(naive_val, str)
     has_numeric = isinstance(naive_val, (int, float))
+    both_datetime = isinstance(naive_val, datetime) and isinstance(aware_val, datetime)
+
+    mixed_msg = (
+        "Mixed timezones detected. Pass utc=True in to_datetime or tz='UTC' "
+        "in DatetimeIndex to convert to a common timezone"
+    )
 
     first_non_null = next(x for x in vec if x != "")
     # if first_non_null is a not a string, _guess_datetime_format_for_array
     #  doesn't guess a format so we don't go through array_strptime
     if not isinstance(first_non_null, str):
         # that case goes through array_strptime which has different behavior
-        msg = "Cannot mix tz-aware with tz-naive values"
+        msg = mixed_msg
         if naive_first and isinstance(aware_val, Timestamp):
             if isinstance(naive_val, Timestamp):
                 msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec)
         else:
+            if not naive_first and both_datetime:
+                msg = "Cannot mix tz-aware with tz-naive values"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec)
 
@@ -3578,7 +3594,7 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
             to_datetime(vec, utc=True)
 
     else:
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = mixed_msg
         with pytest.raises(ValueError, match=msg):
             to_datetime(vec)
 
@@ -3586,13 +3602,13 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
         to_datetime(vec, utc=True)
 
     if both_strs:
-        msg = "cannot parse datetimes with mixed time zones unless `utc=True`"
+        msg = mixed_msg
         with pytest.raises(ValueError, match=msg):
             to_datetime(vec, format="mixed")
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(vec)
     else:
-        msg = "Cannot mix tz-aware with tz-naive values"
+        msg = mixed_msg
         if naive_first and isinstance(aware_val, Timestamp):
             if isinstance(naive_val, Timestamp):
                 msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
@@ -3601,6 +3617,8 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
             with pytest.raises(ValueError, match=msg):
                 DatetimeIndex(vec)
         else:
+            if not naive_first and both_datetime:
+                msg = "Cannot mix tz-aware with tz-naive values"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec, format="mixed")
             with pytest.raises(ValueError, match=msg):

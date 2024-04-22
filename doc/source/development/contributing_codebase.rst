@@ -596,14 +596,15 @@ with the specific exception subclass (i.e. never use :py:class:`Exception`) and 
 Testing involving files
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``tm.ensure_clean`` context manager creates a temporary file for testing,
-with a generated filename (or your filename if provided), that is automatically
-deleted when the context block is exited.
+The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` object for testing:
 
 .. code-block:: python
 
-    with tm.ensure_clean('my_file_path') as path:
-        # do something with the path
+    def test_something(temp_file):
+        pd.DataFrame([1]).to_csv(str(temp_file))
+
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+for the file retension policy.
 
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -259,7 +259,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
-        returns_bool: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -321,10 +320,8 @@ class StringMethods(NoNewAttributesMixin):
                             new_values.append(row)
                         pa_type = result._pa_array.type
                         result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
-                if name is not None:
-                    labels = name
-                else:
-                    labels = range(max_len)
+                if name is None:
+                    name = range(max_len)
                 result = (
                     pa.compute.list_flatten(result._pa_array)
                     .to_numpy()
@@ -332,7 +329,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, result.T)
+                    for label, res in zip(name, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -3557,7 +3554,7 @@ def _get_single_group_name(regex: re.Pattern) -> Hashable:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable]:
+def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 
@@ -3571,8 +3568,15 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     -------
     list of column labels
     """
+    rng = range(regex.groups)
     names = {v: k for k, v in regex.groupindex.items()}
-    return [names.get(1 + i, i) for i in range(regex.groups)]
+    if not names:
+        return rng
+    result: list[Hashable] = [names.get(1 + i, i) for i in rng]
+    arr = np.array(result)
+    if arr.dtype.kind == "i" and lib.is_range_indexer(arr, len(arr)):
+        return rng
+    return result
 
 
 def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
@@ -3604,7 +3608,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ("match",))
+    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

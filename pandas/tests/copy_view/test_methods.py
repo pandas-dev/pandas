@@ -60,6 +60,7 @@ def test_copy_shallow():
     assert np.shares_memory(get_array(df_copy, "c"), get_array(df, "c"))
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(
     "method",
@@ -116,6 +117,7 @@ def test_methods_copy_keyword(request, method, copy):
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("copy", [True, None, False])
 @pytest.mark.parametrize(
     "method",
@@ -172,13 +174,6 @@ def test_methods_series_copy_keyword(request, method, copy):
     ser = Series([1, 2, 3], index=index)
     ser2 = method(ser, copy=copy)
     assert np.shares_memory(get_array(ser2), get_array(ser))
-
-
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_transpose_copy_keyword(copy):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.transpose(copy=copy)
-    assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
 # -----------------------------------------------------------------------------
@@ -499,7 +494,7 @@ def test_align_series():
 def test_align_copy_false():
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
-    df2, df3 = df.align(df, copy=False)
+    df2, df3 = df.align(df)
 
     assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -516,7 +511,7 @@ def test_align_with_series_copy_false():
     ser = Series([1, 2, 3], name="x")
     ser_orig = ser.copy()
     df_orig = df.copy()
-    df2, ser2 = df.align(ser, copy=False, axis=0)
+    df2, ser2 = df.align(ser, axis=0)
 
     assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -1413,11 +1408,10 @@ def test_inplace_arithmetic_series_with_reference():
     tm.assert_series_equal(ser_orig, view)
 
 
-@pytest.mark.parametrize("copy", [True, False])
-def test_transpose(copy):
+def test_transpose():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
-    result = df.transpose(copy=copy)
+    result = df.transpose()
     assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
     result.iloc[0, 0] = 100

@@ -174,7 +174,7 @@ class ParserBase:
                     and all(map(is_integer, self.index_col))
                 ):
                     raise ValueError(
-                        "index_col must only contain row numbers "
+                        "index_col must only contain integers of column positions "
                         "when specifying a multi-index header"
                     )
                 else:
@@ -487,6 +487,8 @@ class ParserBase:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
+                else:
+                    col_na_values, col_na_fvalues = set(), set()
 
             clean_dtypes = self._clean_mapping(self.dtype)
 
@@ -519,7 +521,6 @@ class ParserBase:
         dct: Mapping,
         na_values,
         na_fvalues,
-        verbose: bool = False,
         converters=None,
         dtypes=None,
     ) -> dict[Any, np.ndarray]:
@@ -596,8 +597,6 @@ class ParserBase:
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
-            if verbose and na_count:
-                print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
     @final
@@ -859,16 +858,14 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
-        ...
+    ) -> tuple[Sequence[Hashable] | Index, DataFrame]: ...
 
     @overload
     def _do_date_conversions(
         self,
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
-        ...
+    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]: ...
 
     @final
     def _do_date_conversions(
@@ -927,14 +924,12 @@ class ParserBase:
         self,
         usecols: Callable[[Hashable], object],
         names: Iterable[Hashable],
-    ) -> set[int]:
-        ...
+    ) -> set[int]: ...
 
     @overload
     def _evaluate_usecols(
         self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT:
-        ...
+    ) -> SequenceT: ...
 
     @final
     def _evaluate_usecols(
@@ -1240,7 +1235,6 @@ parser_defaults = {
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
-    "verbose": False,
     "encoding": None,
     "compression": None,
     "skip_blank_lines": True,

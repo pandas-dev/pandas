@@ -10,10 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
 
@@ -526,6 +523,16 @@ class TestDataFrameIndexing:
         result = df.copy()
         result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
+
+    def test_getitem_slice_empty(self):
+        df = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+        result = df[:]
+
+        expected = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+
+        tm.assert_frame_equal(result, expected)
+        # Ensure df[:] returns a view of df, not the same object
+        assert result is not df
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
@@ -1491,7 +1498,7 @@ class TestDataFrameIndexing:
 
     @pytest.mark.parametrize("indexer", [True, (True,)])
     @pytest.mark.parametrize("dtype", [bool, "boolean"])
-    def test_loc_bool_multiindex(self, dtype, indexer):
+    def test_loc_bool_multiindex(self, performance_warning, dtype, indexer):
         # GH#47687
         midx = MultiIndex.from_arrays(
             [
@@ -1501,7 +1508,7 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+        with tm.maybe_produces_warning(performance_warning, isinstance(indexer, tuple)):
             result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)

@@ -1,6 +1,7 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
+
 from datetime import (
     date,
     datetime,

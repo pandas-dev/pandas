@@ -16,10 +16,10 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
+    rev: v0.3.4
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -33,7 +33,7 @@ repos:
     -   id: ruff-format
         exclude: ^scripts
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.10'
+    rev: 'v2.11'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -53,13 +53,11 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-    -   id: check-ast
     -   id: check-case-conflict
     -   id: check-toml
     -   id: check-xml
     -   id: check-yaml
         exclude: ^ci/meta.yaml$
-    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: mixed-line-ending
@@ -69,31 +67,12 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.1
-    hooks:
-    -   id: pylint
-        stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
-    -   id: pylint
-        alias: redefined-outer-name
-        name: Redefining name from outer scope
-        files: ^pandas/
-        exclude: |
-            (?x)
-            ^pandas/tests  # keep excluded
-            |/_testing/  # keep excluded
-            |^pandas/util/_test_decorators\.py  # keep excluded
-            |^pandas/_version\.py  # keep excluded
-            |^pandas/conftest\.py  # keep excluded
-        args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.15.2
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -112,7 +91,7 @@ repos:
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.6
+    rev: v18.1.2
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -129,7 +108,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.350
+        - pyright@1.1.352
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -273,13 +252,6 @@ repos:
         name: Check that `pandas._libs.lib.NoDefault` is used only for typing
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
-        types: [python]
-    -   id: use-pd_array-in-core
-        name: Import pandas.array as pd_array in core
-        language: python
-        entry: python scripts/use_pd_array_in_core.py
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
         types: [python]
     -   id: no-return-exception
         name: Use raise instead of return for exceptions

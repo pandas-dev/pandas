@@ -80,7 +80,6 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "corr",
         "corrwith",
         "cov",
-        "dtypes",
         "ndim",
         "diff",
         "idxmax",
@@ -184,10 +183,9 @@ def test_frame_consistency(groupby_func):
     elif groupby_func in ("bfill", "ffill"):
         exclude_expected = {"inplace", "axis", "limit_area"}
     elif groupby_func in ("cummax", "cummin"):
-        exclude_expected = {"skipna", "args"}
-        exclude_result = {"numeric_only"}
+        exclude_expected = {"axis", "skipna", "args"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"skipna"}
+        exclude_expected = {"axis", "skipna", "numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
     elif groupby_func in ("rank",):

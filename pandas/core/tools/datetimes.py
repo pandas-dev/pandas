@@ -622,8 +622,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp:
-    ...
+) -> Timestamp: ...
 
 
 @overload
@@ -638,8 +637,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -654,8 +652,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeIndex:
-    ...
+) -> DatetimeIndex: ...
 
 
 def to_datetime(
@@ -932,7 +929,8 @@ def to_datetime(
     >>> pd.to_datetime(
     ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
     ... )  # doctest: +SKIP
-    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     - To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
       :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
@@ -951,7 +949,8 @@ def to_datetime(
     >>> pd.to_datetime(
     ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
     ... )  # doctest: +SKIP
-    ValueError: cannot parse datetimes with mixed time zones unless `utc=True`
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     |
 
@@ -994,7 +993,6 @@ def to_datetime(
         errors=errors,
         exact=exact,
     )
-    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
@@ -1126,18 +1124,18 @@ def _assemble_from_unit_mappings(
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(set(required) - set(unit_rev.keys()))
+    req = set(required) - set(unit_rev.keys())
     if len(req):
-        _required = ",".join(req)
+        _required = ",".join(sorted(req))
         raise ValueError(
             "to assemble mappings requires at least that "
             f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
-    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
+    excess = set(unit_rev.keys()) - set(_unit_map.values())
     if len(excess):
-        _excess = ",".join(excess)
+        _excess = ",".join(sorted(excess))
         raise ValueError(
             f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
@@ -1148,7 +1146,7 @@ def _assemble_from_unit_mappings(
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values.dtype):
-            values = values.astype("int64", copy=False)
+            values = values.astype("int64")
         return values
 
     values = (

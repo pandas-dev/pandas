@@ -219,8 +219,7 @@ cdef _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64D(dt) for dt in holidays]
-    holidays = tuple(sorted(holidays))
+    holidays = tuple(sorted(_to_dt64D(dt) for dt in holidays))
 
     kwargs = {"weekmask": weekmask}
     if holidays:
@@ -419,11 +418,10 @@ cdef class BaseOffset:
 
         if "holidays" in all_paras and not all_paras["holidays"]:
             all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != "_")]
-        attrs = sorted(set(attrs))
-        params = tuple([str(type(self))] + attrs)
+        exclude = {"kwds", "name", "calendar"}
+        attrs = {(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != "_")}
+        params = tuple([str(type(self))] + sorted(attrs))
         return params
 
     @property
@@ -761,6 +759,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month start.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_end : Return boolean whether a timestamp occurs on the month end.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -773,6 +780,15 @@ cdef class BaseOffset:
     def is_month_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the month end.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_month_start : Return boolean whether a timestamp occurs on the month start.
 
         Examples
         --------
@@ -787,6 +803,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter start.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_end : Return boolean whether a timestamp occurs on the quarter end.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -799,6 +824,16 @@ cdef class BaseOffset:
     def is_quarter_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the quarter end.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_quarter_start : Return boolean whether a timestamp
+            occurs on the quarter start.
 
         Examples
         --------
@@ -813,6 +848,15 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_end : Return boolean whether a timestamp occurs on the year end.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
@@ -825,6 +869,15 @@ cdef class BaseOffset:
     def is_year_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the year end.
+
+        Parameters
+        ----------
+        ts : Timestamp
+            The timestamp to check.
+
+        See Also
+        --------
+        is_year_start : Return boolean whether a timestamp occurs on the year start.
 
         Examples
         --------
@@ -901,22 +954,6 @@ cdef class Tick(SingleConstructorOffset):
     @cache_readonly
     def _as_pd_timedelta(self):
         return Timedelta(self)
-
-    @property
-    def delta(self):
-        warnings.warn(
-            # GH#55498
-            f"{type(self).__name__}.delta is deprecated and will be removed in "
-            "a future version. Use pd.Timedelta(obj) instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        try:
-            return self.n * Timedelta(self._nanos_inc)
-        except OverflowError as err:
-            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
-            Timedelta(self).as_unit("ns")
-            raise AssertionError("This should not be reached.")
 
     @property
     def nanos(self) -> int64_t:
@@ -1410,13 +1447,22 @@ cdef class RelativeDeltaOffset(BaseOffset):
             "minutes",
             "seconds",
             "microseconds",
+            "milliseconds",
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+            td_args = {
+                "days",
+                "hours",
+                "minutes",
+                "seconds",
+                "microseconds",
+                "milliseconds"
+            }
             td_kwds = {
                 key: val
                 for key, val in kwds.items()
-                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
+                if key in td_args
             }
             if "weeks" in kwds:
                 days = td_kwds.get("days", 0)
@@ -1426,6 +1472,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(**td_kwds)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             else:
@@ -1443,6 +1491,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta(self._offset * self.n)
                 if "microseconds" in kwds:
                     delta = delta.as_unit("us")
+                elif "milliseconds" in kwds:
+                    delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
             return delta
@@ -4630,7 +4680,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = _dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4817,14 +4867,6 @@ cpdef to_offset(freq, bint is_period=False):
                             f"instead of \'{name}\'"
                         )
                 elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name.upper().startswith("A"):
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use "
-                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
                     if name.upper() != name:
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in "

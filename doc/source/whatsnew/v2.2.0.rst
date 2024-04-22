@@ -948,4 +948,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.1.4..v2.2.0|HEAD
+.. contributors:: v2.1.4..v2.2.0

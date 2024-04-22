@@ -5,10 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
 
 import pandas as pd
 from pandas import (
@@ -749,7 +746,7 @@ class TestGetLoc:
 
         assert index.get_loc("D") == slice(0, 3)
 
-    def test_get_loc_past_lexsort_depth(self):
+    def test_get_loc_past_lexsort_depth(self, performance_warning):
         # GH#30053
         idx = MultiIndex(
             levels=[["a"], [0, 7], [1]],
@@ -759,7 +756,7 @@ class TestGetLoc:
         )
         key = ("a", 7)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             # PerformanceWarning: indexing past lexsort depth may impact performance
             result = idx.get_loc(key)
 
