@@ -267,6 +267,7 @@ class TestApi(Base):
         "RollingGroupby",
         "SeriesGroupBy",
         "StataReader",
+        "SASReader",
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
