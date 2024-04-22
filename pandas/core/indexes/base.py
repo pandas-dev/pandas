@@ -832,8 +832,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _cleanup(self) -> None:
-        if "_engine" in self._cache:
-            self._engine.clear_mapping()
+        self._engine.clear_mapping()
 
     @cache_readonly
     def _engine(
