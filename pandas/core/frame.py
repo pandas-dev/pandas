@@ -21,7 +21,6 @@ from collections.abc import (
     Sequence,
 )
 import functools
-import pandas as pd
 from inspect import signature
 from io import StringIO
 import itertools
@@ -2866,7 +2865,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        bytes if no path argument is provided else None
 
         See Also
         --------
