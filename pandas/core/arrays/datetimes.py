@@ -1391,6 +1391,14 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
+            objects with timezones. The time part of the Timestamps.
+        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
+            objects. Namely, the date part of Timestamps without time and timezone
+            information.
+
         Examples
         --------
         For Series:
@@ -1427,6 +1435,12 @@ default 'raise'
         Returns numpy array of :class:`datetime.time` objects with timezones.
 
         The time part of the Timestamps.
+
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.tz : Return the timezone.
 
         Examples
         --------
@@ -1835,6 +1849,12 @@ default 'raise'
         "q",
         """
         The quarter of the date.
+
+        See Also
+        --------
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+        DatetimeIndex.time : Returns numpy array of datetime.time objects.
+            The time part of the Timestamps.
 
         Examples
         --------
