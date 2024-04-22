@@ -811,7 +811,7 @@ def test_datetime_cut_notna():
         ]
     )
 
-    expected = pd.Series(expected_intervals).astype(CategoricalDtype(ordered=True))
+    expected = Series(expected_intervals).astype(CategoricalDtype(ordered=True))
 
     # Assert that result matches expected using pandas testing tools
     tm.assert_series_equal(pd.Series(result), expected)
