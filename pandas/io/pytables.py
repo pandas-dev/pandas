@@ -859,6 +859,12 @@ class HDFStore:
         object
             Retrieved object from file.
 
+        See Also
+        --------
+        HDFStore.select_as_coordinates : Returns the selection as an index.
+        HDFStore.select_column : Returns a single column from the table.
+        HDFStore.select_as_multiple : Retrieves pandas objects from multiple tables.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
