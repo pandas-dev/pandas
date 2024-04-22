@@ -419,6 +419,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Return the number of bytes in the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+
         Examples
         --------
         For Series:
