@@ -12893,6 +12893,10 @@ class DataFrame(NDFrame, OpsMixin):
             """
                 The column labels of the DataFrame.
 
+                See Also
+                --------
+                DataFrame.index: The index (row labels) of the DataFrame.
+
                 Examples
                 --------
                 >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
