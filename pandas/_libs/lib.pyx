@@ -477,7 +477,7 @@ def has_infs(const floating[:] arr) -> bool:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def has_only_ints_or_nan(floating[:] arr) -> bool:
+def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
@@ -631,7 +631,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
+def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -652,7 +652,7 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool:
+def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     Check if sequence is equivalent to a range with the specified step.
     """

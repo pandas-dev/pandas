@@ -19,7 +19,7 @@ from pandas._libs.lib cimport c_is_list_like
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack(numeric_object_t[:, :] values, const uint8_t[:] mask,
+def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
             numeric_object_t[:, :] new_values, uint8_t[:, :] new_mask) -> None:
     """
@@ -80,7 +80,7 @@ def unstack(numeric_object_t[:, :] values, const uint8_t[:] mask,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def explode(ndarray[object] values):
+def explode(object[:] values):
     """
     transform array list-likes to long form
     preserve non-list entries
