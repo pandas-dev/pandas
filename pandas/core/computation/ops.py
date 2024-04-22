@@ -45,6 +45,7 @@ REDUCTIONS = ("sum", "prod", "min", "max")
 _unary_math_ops = (
     "sin",
     "cos",
+    "tan",
     "exp",
     "log",
     "expm1",
