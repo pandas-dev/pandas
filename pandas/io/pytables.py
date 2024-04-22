@@ -656,6 +656,12 @@ class HDFStore:
         ------
         raises ValueError if kind has an illegal value
 
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
