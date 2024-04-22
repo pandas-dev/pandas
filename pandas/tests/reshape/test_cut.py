@@ -801,10 +801,10 @@ def test_datetime_cut_notna():
     data = to_datetime(["2023-09-17", "2023-10-06"])
     datetime_array = data.array
 
-    bins = pd.date_range(start="2023-09-16", periods=3, freq="10D")
+    bins = date_range(start="2023-09-16", periods=3, freq="10D")
 
     # Use pd.cut to categorize datetime data and capture the result
-    result = pd.cut(datetime_array, bins=bins)
+    result = cut(datetime_array, bins=bins)
 
     expected_intervals = IntervalIndex.from_arrays(
         [Timestamp("2023-09-16"), Timestamp("2023-09-26")],
