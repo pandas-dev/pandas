@@ -658,7 +658,7 @@ class HDFStore:
 
         See Also
         --------
-        HDFStore.info : Print detailed information on the store.
+        HDFStore.info : Prints detailed information on the store.
         HDFStore.get_node : Returns the node with the key.
         HDFStore.get_storer : Returns the storer object for a key.
 
