@@ -1383,12 +1383,14 @@ class RangeIndex(Index):
                 dropna=dropna,
             )
         name = "proportion" if normalize else "count"
-        data = np.ones(len(self), dtype=np.int64)
+        data: npt.NDArray[np.floating] | npt.NDArray[np.signedinteger] = np.ones(
+            len(self), dtype=np.int64
+        )
         if normalize:
             data = data / len(self)
         return Series(data, index=self.copy(), name=name)
 
-    def searchsorted(
+    def searchsorted(  # type: ignore[override]
         self,
         value,
         side: Literal["left", "right"] = "left",
