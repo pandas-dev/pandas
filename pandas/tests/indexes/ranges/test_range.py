@@ -874,3 +874,55 @@ def test_getitem_integers_return_index():
     result = RangeIndex(0, 10, 2, name="foo")[[0, 1, -1]]
     expected = Index([0, 2, 8], dtype="int64", name="foo")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("copy", [True, False])
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(3),
+        range(0),
+        range(0, 3, 2),
+        range(3, -3, -2),
+    ],
+)
+def test_to_numpy(copy, rng, any_int_numpy_dtype):
+    ri = RangeIndex(rng)
+    result = ri.to_numpy(dtype=any_int_numpy_dtype, copy=copy)
+    expected = np.arange(
+        start=rng.start, stop=rng.stop, step=rng.step, dtype=any_int_numpy_dtype
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(3),
+        range(0),
+        range(0, 3, 2),
+        range(3, -3, -2),
+    ],
+)
+def test_value_counts(sort, dropna, ascending, normalize, rng):
+    ri = RangeIndex(rng, name="A")
+    result = ri.value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    expected = Index(list(rng), name="A").value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    tm.assert_series_equal(result, expected, check_index_type=False)
+
+
+@pytest.mark.parametrize("side", ["left", "right"])
+@pytest.mark.parametrize("value", [0, -5, 5, -3, np.array([-5, -3, 0, 5])])
+def test_searchsorted(side, value):
+    ri = RangeIndex(-3, 3, 2)
+    result = ri.searchsorted(value=value, side=side)
+    expected = Index(list(ri)).searchsorted(value=value, side=side)
+    if isinstance(value, int):
+        assert result == expected
+    else:
+        tm.assert_numpy_array_equal(result, expected)

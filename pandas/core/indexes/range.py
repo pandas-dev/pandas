@@ -1393,10 +1393,11 @@ class RangeIndex(Index):
                 bins=bins,
                 dropna=dropna,
             )
+        name = "proportion" if normalize else "count"
         data = np.ones(len(self), dtype=np.int64)
         if normalize:
-            data /= len(self)
-        return Series(data, index=self.copy())
+            data = data / len(self)
+        return Series(data, index=self.copy(), name=name)
 
     def searchsorted(
         self,
@@ -1404,21 +1405,31 @@ class RangeIndex(Index):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        if (
-            side not in {"left", "right"}
-            or sorter is not None
-            or not is_float(value)
-            or not is_integer(value)
-        ):
+        if side not in {"left", "right"} or sorter is not None:
             return super().searchsorted(value=value, side=side, sorter=sorter)
+
+        was_scalar = False
+        if is_scalar(value):
+            was_scalar = True
+            array_value = np.array([value])
+        else:
+            array_value = np.asarray(value)
+        if array_value.dtype.kind not in "iu":
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+
         if flip := (self.step < 0):
             rng = self._range[::-1]
-            shift = int(side == "right")
+            start = rng.start
+            step = rng.step
+            shift = side == "right"
         else:
-            rng = self._range
-            shift = int(side == "left")
-
-        offset = (value - rng.start - shift) // rng.step + 1
+            start = self.start
+            step = self.step
+            shift = side == "left"
+        result = (array_value - start - int(shift)) // step + 1
         if flip:
-            offset = len(self) - offset
-        return np.intp(max(min(len(self), offset), 0))
+            result = len(self) - result
+        result = np.maximum(np.minimum(result, len(self)), 0)
+        if was_scalar:
+            return np.intp(result.item())
+        return result.astype(np.intp, copy=False)
