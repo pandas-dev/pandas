@@ -8986,6 +8986,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+        
+        if not as_index and isinstance(by, Series) and by.name in self.columns:
+            raise ValueError(f"cannot insert {by.name}, already exists")
+
 
         return DataFrameGroupBy(
             obj=self,
