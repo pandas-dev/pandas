@@ -1688,6 +1688,12 @@ class HDFStore:
         Returns
         -------
         str
+            A String containing the python pandas class name, filepath to the HDF5 file and
+            all the object keys along with their respective dataframe shapes.
+
+        See Also
+        --------
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
