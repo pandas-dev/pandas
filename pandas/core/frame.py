@@ -4012,7 +4012,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4023,7 +4022,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
