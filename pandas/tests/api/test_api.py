@@ -248,6 +248,7 @@ class TestApi(Base):
         "indexers",
         "interchange",
         "typing",
+        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
@@ -256,6 +257,7 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
@@ -265,6 +267,7 @@ class TestApi(Base):
         "RollingGroupby",
         "SeriesGroupBy",
         "StataReader",
+        "SASReader",
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",

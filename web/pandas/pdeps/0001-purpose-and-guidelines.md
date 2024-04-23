@@ -79,8 +79,8 @@ Next is described the workflow that PDEPs can follow.
 
 #### Submitting a PDEP
 
-Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
-The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
+Proposing a PDEP is done by creating a PR adding a new file to `web/pandas/pdeps/`.
+The file is a markdown file, you can use `web/pandas/pdeps/0001-purpose-and-guidelines.md` as a reference
 for the expected format.
 
 The initial status of a PDEP will be `Status: Draft`. This will be changed to
