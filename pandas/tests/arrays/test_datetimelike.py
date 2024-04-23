@@ -661,7 +661,8 @@ class TestDatetimeArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]")
-        assert result is not expected
+        if not np_version_gt2:
+            assert result is not expected
         tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
@@ -976,7 +977,8 @@ class TestTimedeltaArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]")
-        assert result is not expected
+        if not np_version_gt2:
+            assert result is not expected
         tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
