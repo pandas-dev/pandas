@@ -539,7 +539,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
