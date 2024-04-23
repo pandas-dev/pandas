@@ -893,6 +893,19 @@ class TestDatetimeArray(SharedTests):
         expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+        #additional tests for error parameter below
+        result = arr.strftime("%Y %b", 'ignore')
+        expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.strftime("%Y %b", 'warn')
+        expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.strftime("%Y %b", 'raise')
+        expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_strftime_nat(self):
         # GH 29578
         arr = DatetimeIndex(["2019-01-01", NaT])._data

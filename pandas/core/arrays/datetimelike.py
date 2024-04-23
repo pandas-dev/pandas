@@ -334,7 +334,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None
+        self, *, na_rep: str | float = "NaT", date_format=None, errors = 'raise'
     ) -> npt.NDArray[np.object_]:
         """
         Helper method for astype when converting to strings.
