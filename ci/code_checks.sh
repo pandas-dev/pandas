@@ -103,7 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DatetimeIndex.date SA01" \
         -i "pandas.DatetimeIndex.day_of_year SA01" \
         -i "pandas.DatetimeIndex.dayofyear SA01" \
         -i "pandas.DatetimeIndex.freqstr SA01" \
@@ -115,14 +114,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.std PR01,RT03" \
         -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
-        -i "pandas.DatetimeIndex.tz SA01" \
         -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.HDFStore.put PR01,SA01" \
-        -i "pandas.HDFStore.select SA01" \
         -i "pandas.HDFStore.walk SA01" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.T SA01" \
@@ -271,7 +268,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.as_unit PR01,PR02" \
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
-        -i "pandas.Series.dt.date SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.day_of_year SA01" \
         -i "pandas.Series.dt.dayofyear SA01" \
@@ -291,7 +287,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.strftime PR01,PR02" \
         -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
         -i "pandas.Series.dt.total_seconds PR01" \
-        -i "pandas.Series.dt.tz SA01" \
         -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
