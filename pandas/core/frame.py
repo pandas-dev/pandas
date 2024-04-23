@@ -2685,6 +2685,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
