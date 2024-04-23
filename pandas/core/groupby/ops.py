@@ -36,7 +36,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
-    maybe_cast_to_pyarrow_dtype,
+    maybe_cast_to_pyarrow_result,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -917,9 +917,9 @@ class BaseGrouper:
         """
 
         result = self._aggregate_series_pure_python(obj, func)
+
         if isinstance(obj._values, ArrowExtensionArray):
-            out = maybe_cast_to_pyarrow_dtype(result, obj.dtype)
-            return out
+            return maybe_cast_to_pyarrow_result(result)
 
         if not isinstance(obj._values, np.ndarray) and not isinstance(
             obj._values, ArrowExtensionArray
