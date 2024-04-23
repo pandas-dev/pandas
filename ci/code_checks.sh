@@ -116,7 +116,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
-        -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.T SA01" \
