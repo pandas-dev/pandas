@@ -500,8 +500,12 @@ def test_assert_series_equal_int_tol():
             marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
         ),
         pytest.param(
-            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000001]]),
-            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000002]]),
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
             marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
         ),
     ],
