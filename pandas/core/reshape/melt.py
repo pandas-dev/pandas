@@ -237,13 +237,13 @@ def melt(
         else:
             mdata[col] = np.tile(id_data._values, num_cols_adjusted)
 
-    mcolumns = id_vars + list(var_name) + [value_name]
+    mcolumns = id_vars + var_name + [value_name]
 
     if frame.shape[1] > 0 and not any(
         not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
     ):
         mdata[value_name] = concat(
-            [frame.iloc[:, i] for i in range(frame.shape[1])]
+            [frame.iloc[:, i] for i in range(frame.shape[1])], ignore_index=True
         ).values
     else:
         mdata[value_name] = frame._values.ravel("F")

@@ -314,34 +314,6 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
-    cdef:
-        list buf
-        Py_ssize_t k = len(lists)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i in range(k):
-        buf = lists[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
-    if sort:
-        try:
-            uniques.sort()
-        except TypeError:
-            pass
-
-    return uniques
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
     """
     Generate a list of unique values from a generator of lists.
@@ -361,15 +333,15 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
         list buf
         Py_ssize_t j, n
         list uniques = []
-        dict table = {}
-        object val, stub = 0
+        set table = set()
+        object val
 
     for buf in gen:
         n = len(buf)
         for j in range(n):
             val = buf[j]
             if val not in table:
-                table[val] = stub
+                table.add(val)
                 uniques.append(val)
     if sort:
         try:
@@ -505,7 +477,7 @@ def has_infs(const floating[:] arr) -> bool:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def has_only_ints_or_nan(floating[:] arr) -> bool:
+def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
@@ -659,7 +631,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
+def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -675,6 +647,28 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
         if left[i] != i:
             return False
 
+    return True
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
+    """
+    Check if sequence is equivalent to a range with the specified step.
+    """
+    cdef:
+        Py_ssize_t i, n = len(sequence)
+        int6432_t first_element
+
+    if step == 0:
+        return False
+    if n == 0:
+        return True
+
+    first_element = sequence[0]
+    for i in range(1, n):
+        if sequence[i] != first_element + i * step:
+            return False
     return True
 
 

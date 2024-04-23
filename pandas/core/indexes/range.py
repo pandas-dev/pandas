@@ -29,7 +29,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes import missing
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -63,6 +62,12 @@ if TYPE_CHECKING:
     )
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
+
+
+def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
+    """Returns the smallest element greater than or equal to the limit"""
+    no_steps = -(-(lower_limit - start) // abs(step))
+    return start + abs(step) * no_steps
 
 
 class RangeIndex(Index):
@@ -475,28 +480,13 @@ class RangeIndex(Index):
         if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
-            if len(values) == 0:
-                return type(self)._simple_new(_empty_range, name=name)
-            elif len(values) == 1:
+            if len(values) == 1:
                 start = values[0]
                 new_range = range(start, start + self.step, self.step)
                 return type(self)._simple_new(new_range, name=name)
-            diff = values[1] - values[0]
-            if not missing.isna(diff) and diff != 0:
-                if len(values) == 2:
-                    # Can skip is_range_indexer check
-                    new_range = range(values[0], values[-1] + diff, diff)
-                    return type(self)._simple_new(new_range, name=name)
-                else:
-                    maybe_range_indexer, remainder = np.divmod(values - values[0], diff)
-                    if (
-                        lib.is_range_indexer(
-                            maybe_range_indexer, len(maybe_range_indexer)
-                        )
-                        and not remainder.any()
-                    ):
-                        new_range = range(values[0], values[-1] + diff, diff)
-                        return type(self)._simple_new(new_range, name=name)
+            maybe_range = ibase.maybe_sequence_to_range(values)
+            if isinstance(maybe_range, range):
+                return type(self)._simple_new(maybe_range, name=name)
         return self._constructor._simple_new(values, name=name)
 
     def _view(self) -> Self:
@@ -586,25 +576,30 @@ class RangeIndex(Index):
         kwargs.pop("kind", None)  # e.g. "mergesort" is irrelevant
         nv.validate_argsort(args, kwargs)
 
+        start, stop, step = None, None, None
         if self._range.step > 0:
-            result = np.arange(len(self), dtype=np.intp)
+            if ascending:
+                start = len(self)
+            else:
+                start, stop, step = len(self) - 1, -1, -1
+        elif ascending:
+            start, stop, step = len(self) - 1, -1, -1
         else:
-            result = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+            start = len(self)
 
-        if not ascending:
-            result = result[::-1]
-        return result
+        return np.arange(start, stop, step, dtype=np.intp)
 
     def factorize(
         self,
         sort: bool = False,
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
-        codes = np.arange(len(self), dtype=np.intp)
-        uniques = self
         if sort and self.step < 0:
-            codes = codes[::-1]
-            uniques = uniques[::-1]
+            codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+            uniques = self[::-1]
+        else:
+            codes = np.arange(len(self), dtype=np.intp)
+            uniques = self
         return codes, uniques
 
     def equals(self, other: object) -> bool:
@@ -715,26 +710,15 @@ class RangeIndex(Index):
         # intersection disregarding the lower bounds
         tmp_start = first.start + (second.start - first.start) * first.step // gcd * s
         new_step = first.step * second.step // gcd
-        new_range = range(tmp_start, int_high, new_step)
-        new_index = self._simple_new(new_range)
 
         # adjust index to limiting interval
-        new_start = new_index._min_fitting_element(int_low)
-        new_range = range(new_start, new_index.stop, new_index.step)
-        new_index = self._simple_new(new_range)
+        new_start = min_fitting_element(tmp_start, new_step, int_low)
+        new_range = range(new_start, int_high, new_step)
 
-        if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
-            new_index = new_index[::-1]
+        if (self.step < 0 and other.step < 0) is not (new_range.step < 0):
+            new_range = new_range[::-1]
 
-        if sort is None:
-            new_index = new_index.sort_values()
-
-        return new_index
-
-    def _min_fitting_element(self, lower_limit: int) -> int:
-        """Returns the smallest element greater than or equal to the limit"""
-        no_steps = -(-(lower_limit - self.start) // abs(self.step))
-        return self.start + abs(self.step) * no_steps
+        return self._simple_new(new_range)
 
     def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
@@ -920,9 +904,9 @@ class RangeIndex(Index):
                 # e.g. range(10) and range(0, 10, 3)
                 return super()._difference(other, sort=sort)
 
-        new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
-            new_index = new_index[::-1]
+            new_rng = new_rng[::-1]
+        new_index = type(self)._simple_new(new_rng, name=res_name)
 
         return new_index
 

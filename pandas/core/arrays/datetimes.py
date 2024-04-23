@@ -186,7 +186,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     Parameters
     ----------
-    values : Series, Index, DatetimeArray, ndarray
+    data : Series, Index, DatetimeArray, ndarray
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
@@ -287,7 +287,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-    _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
@@ -540,7 +539,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -593,6 +592,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
+
+        See Also
+        --------
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+            one time zone to another.
 
         Examples
         --------
@@ -1280,6 +1286,10 @@ default 'raise'
         Series or Index
             Series or Index of month names.
 
+        See Also
+        --------
+        DatetimeIndex.day_name : Return the day names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01", freq="ME", periods=3))
@@ -1337,6 +1347,10 @@ default 'raise'
         Series or Index
             Series or Index of day names.
 
+        See Also
+        --------
+        DatetimeIndex.month_name : Return the month names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01-01", freq="D", periods=3))
@@ -1384,6 +1398,14 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
+            objects with timezones. The time part of the Timestamps.
+        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
+            objects. Namely, the date part of Timestamps without time and timezone
+            information.
+
         Examples
         --------
         For Series:
@@ -1421,6 +1443,12 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.tz : Return the timezone.
+
         Examples
         --------
         For Series:
@@ -1454,6 +1482,14 @@ default 'raise'
 
         Namely, the date part of Timestamps without time and
         timezone information.
+
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.year : The year of the datetime.
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.day : The day of the datetime.
 
         Examples
         --------
@@ -1534,6 +1570,11 @@ default 'raise'
         """
         The year of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.day: The day of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1556,6 +1597,11 @@ default 'raise'
         "M",
         """
         The month as January=1, December=12.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.day: The day of the datetime.
 
         Examples
         --------
@@ -1580,6 +1626,12 @@ default 'raise'
         """
         The day of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.hour: The hours of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1602,6 +1654,12 @@ default 'raise'
         "h",
         """
         The hours of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.day: The day of the datetime.
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
 
         Examples
         --------
@@ -1626,6 +1684,11 @@ default 'raise'
         """
         The minutes of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.hour: The hours of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1648,6 +1711,12 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
 
         Examples
         --------
@@ -1672,6 +1741,11 @@ default 'raise'
         """
         The microseconds of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1694,6 +1768,11 @@ default 'raise'
         "ns",
         """
         The nanoseconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
 
         Examples
         --------
@@ -1785,6 +1864,12 @@ default 'raise'
         "q",
         """
         The quarter of the date.
+
+        See Also
+        --------
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+        DatetimeIndex.time : Returns numpy array of datetime.time objects.
+            The time part of the Timestamps.
 
         Examples
         --------
@@ -2777,7 +2862,12 @@ def _generate_range(
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
-        start = offset.rollforward(start)  # type: ignore[assignment]
+
+        # GH #56147 account for negative direction and range bounds
+        if offset.n >= 0:
+            start = offset.rollforward(start)  # type: ignore[assignment]
+        else:
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

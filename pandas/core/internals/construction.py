@@ -60,6 +60,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
+    maybe_sequence_to_range,
     union_indexes,
 )
 from pandas.core.internals.blocks import (
@@ -403,7 +404,7 @@ def dict_to_mgr(
                 arrays[i] = arr
 
     else:
-        keys = list(data.keys())
+        keys = maybe_sequence_to_range(list(data.keys()))
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
 
@@ -566,7 +567,7 @@ def _extract_index(data) -> Index:
     if len(data) == 0:
         return default_index(0)
 
-    raw_lengths = []
+    raw_lengths = set()
     indexes: list[list[Hashable] | Index] = []
 
     have_raw_arrays = False
@@ -582,7 +583,7 @@ def _extract_index(data) -> Index:
             indexes.append(list(val.keys()))
         elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
             have_raw_arrays = True
-            raw_lengths.append(len(val))
+            raw_lengths.add(len(val))
         elif isinstance(val, np.ndarray) and val.ndim > 1:
             raise ValueError("Per-column arrays must each be 1-dimensional")
 
@@ -595,24 +596,23 @@ def _extract_index(data) -> Index:
         index = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
-        lengths = list(set(raw_lengths))
-        if len(lengths) > 1:
+        if len(raw_lengths) > 1:
             raise ValueError("All arrays must be of the same length")
 
         if have_dicts:
             raise ValueError(
                 "Mixing dicts with non-Series may lead to ambiguous ordering."
             )
-
+        raw_length = raw_lengths.pop()
         if have_series:
-            if lengths[0] != len(index):
+            if raw_length != len(index):
                 msg = (
-                    f"array length {lengths[0]} does not match index "
+                    f"array length {raw_length} does not match index "
                     f"length {len(index)}"
                 )
                 raise ValueError(msg)
         else:
-            index = default_index(lengths[0])
+            index = default_index(raw_length)
 
     return ensure_index(index)
 
