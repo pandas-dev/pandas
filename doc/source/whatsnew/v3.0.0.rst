@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
+- :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
 - :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
@@ -40,6 +41,7 @@ Other enhancements
 - :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
 - :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
+- :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -142,6 +144,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
 +------------------------+---------------------+
+| mypy (dev)             | 1.9.0               |
++------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -196,6 +200,7 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
+- Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 -
 
@@ -357,6 +362,7 @@ Datetimelike
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
+- Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
 Timedelta
 ^^^^^^^^^
@@ -455,6 +461,7 @@ Other
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
+- Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
 - Bug in :meth:`DataFrame.transform` that was returning the wrong order unless the index was monotonically increasing. (:issue:`57069`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
