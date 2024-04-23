@@ -515,6 +515,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
+        start = start.as_unit(self.unit)
+        end = end.as_unit(self.unit)
 
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
