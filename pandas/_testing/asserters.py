@@ -861,12 +861,19 @@ def assert_series_equal(
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. This also applies when checking
+        Index equivalence.
 
         .. versionchanged:: 2.2.0
 
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
+
+        .. versionchanged:: 3.0.0
+
+            When checking Index equivalence, the default value for check_exact
+            is based off the Index dtype, instead of the Series dtype.
+
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
@@ -913,11 +920,17 @@ def assert_series_equal(
             or is_numeric_dtype(right.dtype)
             and not is_float_dtype(right.dtype)
         )
+        left_index_dtypes = (
+            [left.index.dtype] if left.index.nlevels == 1 else left.index.dtypes
+        )
+        right_index_dtypes = (
+            [right.index.dtype] if right.index.nlevels == 1 else right.index.dtypes
+        )
         check_exact_index = (
-            is_numeric_dtype(left.index.dtype)
-            and not is_float_dtype(left.index.dtype)
-            or is_numeric_dtype(right.index.dtype)
-            and not is_float_dtype(right.index.dtype)
+            all(is_numeric_dtype(dtype) for dtype in left_index_dtypes)
+            and not any(is_float_dtype(dtype) for dtype in left_index_dtypes)
+            or all(is_numeric_dtype(dtype) for dtype in right_index_dtypes)
+            and not any(is_float_dtype(dtype) for dtype in right_index_dtypes)
         )
     elif check_exact is lib.no_default:
         check_exact = False
