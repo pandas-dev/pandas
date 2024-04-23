@@ -122,3 +122,14 @@ def test_values_loses_freq_of_underlying_index():
     midx.values
     assert idx.freq is not None
     tm.assert_index_equal(idx, expected)
+
+
+def test_get_level_values_gets_frequency_correctly():
+    # GH#57949 GH#58327
+    datetime_index = pd.date_range(start=pd.to_datetime("1/1/2018"), 
+                                   periods = 4, 
+                                   freq = 'YS')
+    other_index = ["A"]
+    multi_index = pd.MultiIndex.from_product([datetime_index, other_index])
+
+    assert  multi_index.get_level_values(0).freq is datetime_index.freq

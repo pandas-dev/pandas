@@ -19,7 +19,6 @@ import warnings
 
 import numpy as np
 
-from pandas.core.algorithms import take
 from pandas._config.config import get_option
 
 from pandas._libs import (
@@ -66,9 +65,9 @@ from pandas._typing import (
     ScalarIndexer,
     Self,
     SequenceIndexer,
+    TakeIndexer,
     TimeAmbiguous,
     TimeNonexistent,
-    TakeIndexer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -118,6 +117,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     isin,
     map_array,
+    take,
     unique1d,
 )
 from pandas.core.array_algos import datetimelike_accumulations
@@ -2357,6 +2357,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             axis=axis,
         )    
         result = self._from_backing_data(new_data)
+        
         indices = np.asarray(indices, dtype=np.intp)
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         
