@@ -656,6 +656,12 @@ class HDFStore:
         ------
         raises ValueError if kind has an illegal value
 
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -852,6 +858,12 @@ class HDFStore:
         -------
         object
             Retrieved object from file.
+
+        See Also
+        --------
+        HDFStore.select_as_coordinates : Returns the selection as an index.
+        HDFStore.select_column : Returns a single column from the table.
+        HDFStore.select_as_multiple : Retrieves pandas objects from multiple tables.
 
         Examples
         --------
@@ -1688,17 +1700,26 @@ class HDFStore:
         Returns
         -------
         str
+            A String containing the python pandas class name, filepath to the HDF5
+            file and all the object keys along with their respective dataframe shapes.
+
+        See Also
+        --------
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["C", "D"])
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
-        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.put("data1", df1)  # doctest: +SKIP
+        >>> store.put("data2", df2)  # doctest: +SKIP
         >>> print(store.info())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         <class 'pandas.io.pytables.HDFStore'>
         File path: store.h5
-        /data    frame    (shape->[2,2])
+        /data1            frame        (shape->[2,2])
+        /data2            frame        (shape->[2,2])
         """
         path = pprint_thing(self._path)
         output = f"{type(self)}\nFile path: {path}\n"
