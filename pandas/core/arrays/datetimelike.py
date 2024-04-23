@@ -19,6 +19,7 @@ import warnings
 
 import numpy as np
 
+from pandas.core.algorithms import take
 from pandas._config.config import get_option
 
 from pandas._libs import (
@@ -67,6 +68,7 @@ from pandas._typing import (
     SequenceIndexer,
     TimeAmbiguous,
     TimeNonexistent,
+    TakeIndexer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -1768,7 +1770,7 @@ _round_doc = """
     ----------
     freq : str or Offset
         The frequency level to {op} the index to. Must be a fixed
-        frequency like 's' (second) not 'ME' (month end). See
+        frequency like 'S' (second) not 'ME' (month end). See
         :ref:`frequency aliases <timeseries.offset_aliases>` for
         a list of possible `freq` values.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1805,11 +1807,6 @@ _round_doc = """
     Raises
     ------
     ValueError if the `freq` cannot be converted.
-
-    See Also
-    --------
-    DatetimeIndex.floor : Perform floor operation on the data to the specified `freq`.
-    DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
     Notes
     -----
@@ -2339,6 +2336,35 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+    
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        
+        if allow_fill:
+            fill_value = self._validate_scalar(fill_value)
+
+        new_data = take(
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
+        )    
+        result = self._from_backing_data(new_data)
+        indices = np.asarray(indices, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        
+        if isinstance(maybe_slice, slice):
+            freq = self._get_getitem_freq(maybe_slice)
+            result.freq = freq
+        
+        return result 
 
     # --------------------------------------------------------------
     # Unsorted
