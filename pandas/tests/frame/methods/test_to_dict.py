@@ -516,8 +516,13 @@ class TestDataFrameToDict:
     def test_to_dict_tight_no_warning_with_duplicate_column(self):
         # GH#58281
         df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "A"])
-        with tm.assert_produces_warning(None):
-            df.to_dict(orient="tight")
+        assert df.to_dict(orient="tight") == {
+            "index": [0, 1, 2],
+            "columns": ["A", "A"],
+            "data": [[1, 2], [3, 4], [5, 6]],
+            "index_names": [None],
+            "column_names": [None],
+        }
 
 
 @pytest.mark.parametrize(
