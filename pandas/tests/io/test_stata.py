@@ -1962,7 +1962,7 @@ the string values returned are correct."""
         "dtype_backend",
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
-    def test_read_write_ea_dtypes(self, dtype_backend, temp_file):
+    def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
         df = DataFrame(
             {
                 "a": [1, 2, None],
@@ -1974,7 +1974,8 @@ the string values returned are correct."""
             index=pd.Index([0, 1, 2], name="index"),
         )
         df = df.convert_dtypes(dtype_backend=dtype_backend)
-        df.to_stata("test_stata.dta", version=118)
+        stata_path = tmp_path / "test_stata.dta"
+        df.to_stata(stata_path, version=118)
 
         df.to_stata(temp_file)
         written_and_read_again = self.read_dta(temp_file)
