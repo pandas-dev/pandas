@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+
 import argparse
 import csv
 import importlib
@@ -233,7 +234,7 @@ class DocBuilder:
         ret_code = self._sphinx_build("html")
         zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
-            os.remove(zip_fname)
+            os.remove(zip_fname)  # noqa: TID251
 
         if ret_code == 0:
             if self.single_doc_html is not None:
@@ -285,7 +286,7 @@ class DocBuilder:
         """
         zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
-            os.remove(zip_fname)
+            os.remove(zip_fname)  # noqa: TID251
         dirname = os.path.join(BUILD_PATH, "html")
         fnames = os.listdir(dirname)
         os.chdir(dirname)

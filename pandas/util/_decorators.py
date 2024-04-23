@@ -368,7 +368,7 @@ def doc(*docstrings: None | str | Callable, **params: object) -> Callable[[F], F
                 continue
             if hasattr(docstring, "_docstring_components"):
                 docstring_components.extend(
-                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues]
+                    docstring._docstring_components  # pyright: ignore[reportAttributeAccessIssue]
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
@@ -503,3 +503,24 @@ __all__ = [
     "future_version_msg",
     "Substitution",
 ]
+
+
+def set_module(module):
+    """Private decorator for overriding __module__ on a function or class.
+
+    Example usage::
+
+        @set_module("pandas")
+        def example():
+            pass
+
+
+        assert example.__module__ == "pandas"
+    """
+
+    def decorator(func):
+        if module is not None:
+            func.__module__ = module
+        return func
+
+    return decorator

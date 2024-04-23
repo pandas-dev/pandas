@@ -114,10 +114,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_localize("US/Eastern")
@@ -153,10 +151,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_convert("CET")
@@ -196,7 +192,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, ser.index)
 
-            result = ser.dt.to_pytimedelta()
+            msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 

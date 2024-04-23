@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -132,6 +133,8 @@ def test_append_series(setup_path):
 
         # select on the index and values
         expected = ns[(ns > 70) & (ns.index < 90)]
+        # Reading/writing RangeIndex info is not supported yet
+        expected.index = Index(expected.index._data)
         result = store.select("ns", "foo>70 and index<90")
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -141,7 +144,7 @@ def test_append_series(setup_path):
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
         mi.set_index(["C", "B"], inplace=True)
-        s = mi.stack(future_stack=True)
+        s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
         tm.assert_series_equal(store["mi"], s, check_index_type=True)
@@ -281,7 +284,7 @@ def test_append_all_nans(setup_path):
             tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
 
-def test_append_frame_column_oriented(setup_path):
+def test_append_frame_column_oriented(setup_path, request):
     with ensure_clean_store(setup_path) as store:
         # column oriented
         df = DataFrame(
@@ -301,6 +304,13 @@ def test_append_frame_column_oriented(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # selection on the non-indexable
+        request.applymarker(
+            pytest.mark.xfail(
+                PY312,
+                reason="AST change in PY312",
+                raises=ValueError,
+            )
+        )
         result = store.select("df1", ("columns=A", "index=df.index[0:4]"))
         expected = df.reindex(columns=["A"], index=df.index[0:4])
         tm.assert_frame_equal(expected, result)
@@ -938,8 +948,9 @@ def test_append_to_multiple_dropna_false(setup_path):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    with ensure_clean_store(setup_path) as store, pd.option_context(
-        "io.hdf.dropna_table", True
+    with (
+        ensure_clean_store(setup_path) as store,
+        pd.option_context("io.hdf.dropna_table", True),
     ):
         # dropna=False shouldn't synchronize row indexes
         store.append_to_multiple(
@@ -965,6 +976,8 @@ def test_append_to_multiple_min_itemsize(setup_path):
         }
     )
     expected = df.iloc[[0]]
+    # Reading/writing RangeIndex info is not supported yet
+    expected.index = Index(list(range(len(expected.index))))
 
     with ensure_clean_store(setup_path) as store:
         store.append_to_multiple(

@@ -1,6 +1,7 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
+
 import datetime
 import functools
 from functools import partial
@@ -132,9 +133,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_frame_equal(grouped.sum(), exp_df)
     tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        res = grouped.apply(np.sum)
+    res = grouped.apply(np.sum, axis=0)
     tm.assert_frame_equal(res, exp_df)
 
 
@@ -289,9 +288,7 @@ def test_wrap_agg_out(three_group):
 def test_agg_multiple_functions_maintain_order(df):
     # GH #610
     funcs = [("mean", np.mean), ("max", np.max), ("min", np.min)]
-    msg = "is currently using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A")["C"].agg(funcs)
+    result = df.groupby("A")["C"].agg(funcs)
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
@@ -881,11 +878,9 @@ def test_agg_relabel_multiindex_column(
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    msg = "is currently using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(("x", "group")).agg(
-            col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
-        )
+    result = df.groupby(("x", "group")).agg(
+        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+    )
     expected = DataFrame(
         {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )
@@ -1021,10 +1016,9 @@ def test_groupby_as_index_agg(df):
 
     expected3 = grouped["C"].sum()
     expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
-    msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result3 = grouped["C"].agg({"Q": "sum"})
-    tm.assert_frame_equal(result3, expected3)
+    msg = "nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": "sum"})
 
     # GH7115 & GH8112 & GH8582
     df = DataFrame(
@@ -1035,13 +1029,6 @@ def test_groupby_as_index_agg(df):
 
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
-
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        res = gr.apply(sum)
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        alt = df.groupby(ts).apply(sum)
-    tm.assert_frame_equal(res, alt)
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
         gr = df.groupby(ts, as_index=False)
@@ -1261,10 +1248,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     tsframe.columns = ["A", "B", "A", "C"]
     gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
-    warn = None if as_index else FutureWarning
-    msg = "A grouping .* was excluded from the result"
-    with tm.assert_produces_warning(warn, match=msg):
-        res = gb.agg(np.percentile, 80, axis=0)
+    res = gb.agg(np.percentile, 80, axis=0)
 
     ex_data = {
         1: tsframe[tsframe.index.month == 1].quantile(0.8),
@@ -1272,7 +1256,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     }
     expected = DataFrame(ex_data).T
     if not as_index:
-        # TODO: try to get this more consistent?
+        expected.insert(0, "index", [1, 2])
         expected.index = Index(range(2))
 
     tm.assert_frame_equal(res, expected)

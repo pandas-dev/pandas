@@ -23,6 +23,7 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+
 from __future__ import annotations
 
 import locale

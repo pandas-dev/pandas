@@ -305,7 +305,7 @@ def test_transform(string_series, by_row):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+    if op in ("ffill", "bfill", "shift"):
         request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
@@ -547,10 +547,7 @@ def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    warn = FutureWarning if how == "agg" else None
-    msg = f"using Series.[{'|'.join(names)}]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -571,10 +568,7 @@ def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    warn = FutureWarning if how == "agg" else None
-    msg = "using Series.[sum|mean]"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 

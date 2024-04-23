@@ -2,6 +2,7 @@
 Additional tests for NumpyExtensionArray that aren't covered by
 the interface tests.
 """
+
 import numpy as np
 import pytest
 

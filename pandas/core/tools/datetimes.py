@@ -622,8 +622,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp:
-    ...
+) -> Timestamp: ...
 
 
 @overload
@@ -638,8 +637,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -654,8 +652,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeIndex:
-    ...
+) -> DatetimeIndex: ...
 
 
 def to_datetime(
@@ -722,14 +719,6 @@ def to_datetime(
           will keep their time offsets. Limitations exist for mixed
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
-
-        .. warning::
-
-            In a future version of pandas, parsing datetimes with mixed time
-            zones will raise an error unless `utc=True`.
-            Please specify `utc=True` to opt in to the new behaviour
-            and silence this warning. To create a `Series` with mixed offsets and
-            `object` dtype, please use `apply` and `datetime.datetime.strptime`.
 
         See also: pandas general documentation about `timezone conversion and
         localization
@@ -812,7 +801,9 @@ def to_datetime(
         When another datetime conversion error happens. For example when one
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
-        of mixed time offsets, and ``utc=False``.
+        of mixed time offsets, and ``utc=False``, or when parsing datetimes
+        with mixed time zones unless ``utc=True``. If parsing datetimes with mixed
+        time zones, please specify ``utc=True``.
 
     See Also
     --------
@@ -932,35 +923,34 @@ def to_datetime(
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
       are **not successfully converted** to a :class:`DatetimeIndex`.
-      Parsing datetimes with mixed time zones will show a warning unless
-      `utc=True`. If you specify `utc=False` the warning below will be shown
-      and a simple :class:`Index` containing :class:`datetime.datetime`
-      objects will be returned:
+      Parsing datetimes with mixed time zones will raise a ValueError unless
+      ``utc=True``:
 
     >>> pd.to_datetime(
     ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
     ... )  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
-          dtype='object')
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
-    - A mix of timezone-aware and timezone-naive inputs is also converted to
-      a simple :class:`Index` containing :class:`datetime.datetime` objects:
+    - To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
+      :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
+
+    >>> import datetime as dt
+    >>> ser = pd.Series(["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"])
+    >>> ser.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d %H:%M %z"))
+    0    2020-10-25 02:00:00+02:00
+    1    2020-10-25 04:00:00+01:00
+    dtype: object
+
+    - A mix of timezone-aware and timezone-naive inputs will also raise a ValueError
+      unless ``utc=True``:
 
     >>> from datetime import datetime
     >>> pd.to_datetime(
     ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
     ... )  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     |
 
@@ -1003,7 +993,6 @@ def to_datetime(
         errors=errors,
         exact=exact,
     )
-    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
@@ -1135,18 +1124,18 @@ def _assemble_from_unit_mappings(
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(set(required) - set(unit_rev.keys()))
+    req = set(required) - set(unit_rev.keys())
     if len(req):
-        _required = ",".join(req)
+        _required = ",".join(sorted(req))
         raise ValueError(
             "to assemble mappings requires at least that "
             f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
-    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
+    excess = set(unit_rev.keys()) - set(_unit_map.values())
     if len(excess):
-        _excess = ",".join(excess)
+        _excess = ",".join(sorted(excess))
         raise ValueError(
             f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
@@ -1157,7 +1146,7 @@ def _assemble_from_unit_mappings(
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values.dtype):
-            values = values.astype("int64", copy=False)
+            values = values.astype("int64")
         return values
 
     values = (

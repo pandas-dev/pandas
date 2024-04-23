@@ -10,7 +10,6 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
-    option_context,
 )
 import pandas._testing as tm
 
@@ -94,14 +93,6 @@ class TestDataFrameDataTypes:
             {k: v.dtype for k, v in float_string_frame.items()}, index=result.index
         )
         tm.assert_series_equal(result, expected)
-
-        # compat, GH 8722
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with option_context("use_inf_as_na", True):
-                df = DataFrame([[1]])
-                result = df.dtypes
-                tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
     def test_dtypes_timedeltas(self):
         df = DataFrame(

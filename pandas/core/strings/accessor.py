@@ -259,7 +259,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
-        returns_bool: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -321,10 +320,8 @@ class StringMethods(NoNewAttributesMixin):
                             new_values.append(row)
                         pa_type = result._pa_array.type
                         result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
-                if name is not None:
-                    labels = name
-                else:
-                    labels = range(max_len)
+                if name is None:
+                    name = range(max_len)
                 result = (
                     pa.compute.list_flatten(result._pa_array)
                     .to_numpy()
@@ -332,7 +329,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, result.T)
+                    for label, res in zip(name, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -2232,19 +2229,37 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def wrap(self, width: int, **kwargs):
+    def wrap(
+        self,
+        width: int,
+        expand_tabs: bool = True,
+        tabsize: int = 8,
+        replace_whitespace: bool = True,
+        drop_whitespace: bool = True,
+        initial_indent: str = "",
+        subsequent_indent: str = "",
+        fix_sentence_endings: bool = False,
+        break_long_words: bool = True,
+        break_on_hyphens: bool = True,
+        max_lines: int | None = None,
+        placeholder: str = " [...]",
+    ):
         r"""
         Wrap strings in Series/Index at specified line width.
 
         This method has the same keyword parameters and defaults as
-        :class:`textwrap.TextWrapper`.
+            :class:`textwrap.TextWrapper`.
 
         Parameters
         ----------
-        width : int
+        width : int, optional
             Maximum line width.
         expand_tabs : bool, optional
             If True, tab characters will be expanded to spaces (default: True).
+        tabsize : int, optional
+            If expand_tabs is true, then all tab characters in text will be
+            expanded to zero or more spaces, depending on the current column
+            and the given tab size (default: 8).
         replace_whitespace : bool, optional
             If True, each whitespace character (as defined by string.whitespace)
             remaining after tab expansion will be replaced by a single space
@@ -2252,6 +2267,28 @@ class StringMethods(NoNewAttributesMixin):
         drop_whitespace : bool, optional
             If True, whitespace that, after wrapping, happens to end up at the
             beginning or end of a line is dropped (default: True).
+        initial_indent : str, optional
+            String that will be prepended to the first line of wrapped output.
+            Counts towards the length of the first line. The empty string is
+            not indented (default: '').
+        subsequent_indent : str, optional
+            String that will be prepended to all lines of wrapped output except
+            the first. Counts towards the length of each line except the first
+            (default: '').
+        fix_sentence_endings : bool, optional
+            If true, TextWrapper attempts to detect sentence endings and ensure
+            that sentences are always separated by exactly two spaces. This is
+            generally desired for text in a monospaced font. However, the sentence
+            detection algorithm is imperfect: it assumes that a sentence ending
+            consists of a lowercase letter followed by one of '.', '!', or '?',
+            possibly followed by one of '"' or "'", followed by a space. One
+            problem with this algorithm is that it is unable to detect the
+            difference between “Dr.” in `[...] Dr. Frankenstein's monster [...]`
+            and “Spot.” in `[...] See Spot. See Spot run [...]`
+            Since the sentence detection algorithm relies on string.lowercase
+            for the definition of “lowercase letter”, and a convention of using
+            two spaces after a period to separate sentences on the same line,
+            it is specific to English-language texts (default: False).
         break_long_words : bool, optional
             If True, then words longer than width will be broken in order to ensure
             that no lines are longer than width. If it is false, long words will
@@ -2262,6 +2299,12 @@ class StringMethods(NoNewAttributesMixin):
             only whitespaces will be considered as potentially good places for line
             breaks, but you need to set break_long_words to false if you want truly
             insecable words (default: True).
+        max_lines : int, optional
+            If not None, then the output will contain at most max_lines lines, with
+            placeholder appearing at the end of the output (default: None).
+        placeholder : str, optional
+            String that will appear at the end of the output text if it has been
+            truncated (default: ' [...]').
 
         Returns
         -------
@@ -2287,7 +2330,20 @@ class StringMethods(NoNewAttributesMixin):
         1    another line\nto be\nwrapped
         dtype: object
         """
-        result = self._data.array._str_wrap(width, **kwargs)
+        result = self._data.array._str_wrap(
+            width=width,
+            expand_tabs=expand_tabs,
+            tabsize=tabsize,
+            replace_whitespace=replace_whitespace,
+            drop_whitespace=drop_whitespace,
+            initial_indent=initial_indent,
+            subsequent_indent=subsequent_indent,
+            fix_sentence_endings=fix_sentence_endings,
+            break_long_words=break_long_words,
+            break_on_hyphens=break_on_hyphens,
+            max_lines=max_lines,
+            placeholder=placeholder,
+        )
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
@@ -3498,7 +3554,7 @@ def _get_single_group_name(regex: re.Pattern) -> Hashable:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable]:
+def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 
@@ -3512,8 +3568,15 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     -------
     list of column labels
     """
+    rng = range(regex.groups)
     names = {v: k for k, v in regex.groupindex.items()}
-    return [names.get(1 + i, i) for i in range(regex.groups)]
+    if not names:
+        return rng
+    result: list[Hashable] = [names.get(1 + i, i) for i in rng]
+    arr = np.array(result)
+    if arr.dtype.kind == "i" and lib.is_range_indexer(arr, len(arr)):
+        return rng
+    return result
 
 
 def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
@@ -3545,7 +3608,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ("match",))
+    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

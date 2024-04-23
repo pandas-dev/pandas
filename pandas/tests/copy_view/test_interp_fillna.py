@@ -19,19 +19,18 @@ def test_interpolate_no_op(method):
     df = DataFrame({"a": [1, 2]})
     df_orig = df.copy()
 
-    warn = None
     if method == "pad":
-        warn = FutureWarning
-    msg = "DataFrame.interpolate with method=pad is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
+        msg = f"Can not interpolate with method={method}"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(method=method)
+    else:
         result = df.interpolate(method=method)
+        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
 
-    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+        result.iloc[0, 0] = 100
 
-    result.iloc[0, 0] = 100
-
-    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    tm.assert_frame_equal(df, df_orig)
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+        tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
@@ -111,28 +110,17 @@ def test_interp_fill_functions_inplace(func, dtype):
     assert view._mgr._has_no_reference(0)
 
 
-def test_interpolate_cleaned_fill_method():
-    # Check that "method is set to None" case works correctly
+def test_interpolate_cannot_with_object_dtype():
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
-    df_orig = df.copy()
 
-    msg = "DataFrame.interpolate with object dtype"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.interpolate(method="linear")
-
-    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    result.iloc[0, 0] = Timestamp("2021-12-31")
-
-    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    tm.assert_frame_equal(df, df_orig)
+    msg = "DataFrame cannot interpolate with object dtype"
+    with pytest.raises(TypeError, match=msg):
+        df.interpolate()
 
 
 def test_interpolate_object_convert_no_op():
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")
-    msg = "DataFrame.interpolate with method=pad is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.interpolate(method="pad", inplace=True)
 
     # Now CoW makes a copy, it should not!
     assert df._mgr._has_no_reference(0)
@@ -140,21 +128,10 @@ def test_interpolate_object_convert_no_op():
 
 
 def test_interpolate_object_convert_copies():
-    df = DataFrame({"a": Series([1, 2], dtype=object), "b": 1})
-    arr_a = get_array(df, "a")
-    msg = "DataFrame.interpolate with method=pad is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.interpolate(method="pad", inplace=True)
-
-    assert df._mgr._has_no_reference(0)
-    assert not np.shares_memory(arr_a, get_array(df, "a"))
-
-
-def test_interpolate_downcast():
     df = DataFrame({"a": [1, np.nan, 2.5], "b": 1})
     arr_a = get_array(df, "a")
-    msg = "DataFrame.interpolate with method=pad is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "Can not interpolate with method=pad"
+    with pytest.raises(ValueError, match=msg):
         df.interpolate(method="pad", inplace=True, downcast="infer")
 
     assert df._mgr._has_no_reference(0)
@@ -166,12 +143,13 @@ def test_interpolate_downcast_reference_triggers_copy():
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
-    msg = "DataFrame.interpolate with method=pad is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.interpolate(method="pad", inplace=True, downcast="infer")
 
-    assert df._mgr._has_no_reference(0)
-    assert not np.shares_memory(arr_a, get_array(df, "a"))
+    msg = "Can not interpolate with method=pad"
+    with pytest.raises(ValueError, match=msg):
+        df.interpolate(method="pad", inplace=True, downcast="infer")
+        assert df._mgr._has_no_reference(0)
+        assert not np.shares_memory(arr_a, get_array(df, "a"))
+
     tm.assert_frame_equal(df_orig, view)
 
 
@@ -197,15 +175,12 @@ def test_fillna_dict():
     tm.assert_frame_equal(df_orig, df)
 
 
-@pytest.mark.parametrize("downcast", [None, False])
-def test_fillna_inplace(downcast):
+def test_fillna_inplace():
     df = DataFrame({"a": [1.5, np.nan], "b": 1})
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
 
-    msg = "The 'downcast' keyword in fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.fillna(5.5, inplace=True, downcast=downcast)
+    df.fillna(5.5, inplace=True)
     assert np.shares_memory(get_array(df, "a"), arr_a)
     assert np.shares_memory(get_array(df, "b"), arr_b)
     assert df._mgr._has_no_reference(0)

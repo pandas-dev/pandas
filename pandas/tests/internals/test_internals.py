@@ -347,7 +347,7 @@ class TestBlock:
         # GH#37799
         values = np.random.default_rng(2).standard_normal((3, 4))
         blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
-        result = blk._split()
+        result = list(blk._split())
 
         # check that we get views, not copies
         values[:] = -9999
@@ -753,7 +753,7 @@ class TestBlockManager:
             mgr.iget(3).internal_values(), reindexed.iget(3).internal_values()
         )
 
-    def test_get_numeric_data(self, using_copy_on_write):
+    def test_get_numeric_data(self):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -774,18 +774,12 @@ class TestBlockManager:
             np.array([100.0, 200.0, 300.0]),
             inplace=True,
         )
-        if using_copy_on_write:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([1.0, 1.0, 1.0]),
-            )
-        else:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([100.0, 200.0, 300.0]),
-            )
+        tm.assert_almost_equal(
+            mgr.iget(mgr.items.get_loc("float")).internal_values(),
+            np.array([1.0, 1.0, 1.0]),
+        )
 
-    def test_get_bool_data(self, using_copy_on_write):
+    def test_get_bool_data(self):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -801,16 +795,10 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        if using_copy_on_write:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, True, True]),
-            )
-        else:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, False, True]),
-            )
+        tm.assert_numpy_array_equal(
+            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+            np.array([True, True, True]),
+        )
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))

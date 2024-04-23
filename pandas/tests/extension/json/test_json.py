@@ -127,7 +127,7 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Different definitions of NA")
     def test_stack(self):
         """
-        The test does .astype(object).stack(future_stack=True). If we happen to have
+        The test does .astype(object).stack(). If we happen to have
         any missing values in `data`, then we'll end up with different
         rows since we consider `{}` NA, but `.astype(object)` doesn't.
         """
@@ -148,6 +148,13 @@ class TestJSONArray(base.ExtensionTests):
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_frame()
+
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        # EAs that don't have special logic for None will raise, unlike pandas'
+        # which interpret None as the NA value for the dtype.
+        with pytest.raises(AssertionError):
+            super().test_fillna_with_none(data_missing)
 
     @pytest.mark.parametrize(
         "limit_area, input_ilocs, expected_ilocs",
@@ -218,7 +225,7 @@ class TestJSONArray(base.ExtensionTests):
         super().test_fillna_copy_frame(data_missing)
 
     @pytest.mark.xfail(reason="Fails with CoW")
-    def test_equals_same_data_different_object(self, data, request):
+    def test_equals_same_data_different_object(self, data):
         super().test_equals_same_data_different_object(data)
 
     @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")

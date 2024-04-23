@@ -1,5 +1,6 @@
 import contextlib
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -21,6 +22,13 @@ pytest.importorskip("jinja2")
 # 'template' file, but this needs the import error to delayed until render time.
 
 
+@pytest.fixture
+def tmp_excel(tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}.xlsx"
+    tmp.touch()
+    return str(tmp)
+
+
 def assert_equal_cell_styles(cell1, cell2):
     # TODO: should find a better way to check equality
     assert cell1.alignment.__dict__ == cell2.alignment.__dict__
@@ -31,26 +39,43 @@ def assert_equal_cell_styles(cell1, cell2):
     assert cell1.protection.__dict__ == cell2.protection.__dict__
 
 
-@pytest.mark.parametrize(
-    "engine",
-    ["xlsxwriter", "openpyxl"],
-)
-def test_styler_to_excel_unstyled(engine):
+def test_styler_default_values(tmp_excel):
+    # GH 54154
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+
+    with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="custom")
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        # Check font, spacing, indentation
+        assert wb["custom"].cell(1, 1).font.bold is False
+        assert wb["custom"].cell(1, 1).alignment.horizontal is None
+        assert wb["custom"].cell(1, 1).alignment.vertical is None
+
+        # Check border
+        assert wb["custom"].cell(1, 1).border.bottom.color is None
+        assert wb["custom"].cell(1, 1).border.top.color is None
+        assert wb["custom"].cell(1, 1).border.left.color is None
+        assert wb["custom"].cell(1, 1).border.right.color is None
+
+
+@pytest.mark.parametrize("engine", ["xlsxwriter", "openpyxl"])
+def test_styler_to_excel_unstyled(engine, tmp_excel):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
     pytest.importorskip(engine)
     df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
-    with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
-            df.to_excel(writer, sheet_name="dataframe")
-            df.style.to_excel(writer, sheet_name="unstyled")
+    with ExcelWriter(tmp_excel, engine=engine) as writer:
+        df.to_excel(writer, sheet_name="dataframe")
+        df.style.to_excel(writer, sheet_name="unstyled")
 
-        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-            for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
-                assert len(col1) == len(col2)
-                for cell1, cell2 in zip(col1, col2):
-                    assert cell1.value == cell2.value
-                    assert_equal_cell_styles(cell1, cell2)
+    openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                assert cell1.value == cell2.value
+                assert_equal_cell_styles(cell1, cell2)
 
 
 shared_style_params = [
@@ -123,43 +148,65 @@ shared_style_params = [
 ]
 
 
-@pytest.mark.parametrize(
-    "engine",
-    ["xlsxwriter", "openpyxl"],
-)
+def test_styler_custom_style(tmp_excel):
+    # GH 54154
+    css_style = "background-color: #111222"
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([{"A": 1, "B": 2}, {"A": 1, "B": 2}])
+
+    with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+        styler = df.style.map(lambda x: css_style)
+        styler.to_excel(writer, sheet_name="custom", index=False)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        # Check font, spacing, indentation
+        assert wb["custom"].cell(1, 1).font.bold is False
+        assert wb["custom"].cell(1, 1).alignment.horizontal is None
+        assert wb["custom"].cell(1, 1).alignment.vertical is None
+
+        # Check border
+        assert wb["custom"].cell(1, 1).border.bottom.color is None
+        assert wb["custom"].cell(1, 1).border.top.color is None
+        assert wb["custom"].cell(1, 1).border.left.color is None
+        assert wb["custom"].cell(1, 1).border.right.color is None
+
+        # Check background color
+        assert wb["custom"].cell(2, 1).fill.fgColor.index == "00111222"
+        assert wb["custom"].cell(3, 1).fill.fgColor.index == "00111222"
+        assert wb["custom"].cell(2, 2).fill.fgColor.index == "00111222"
+        assert wb["custom"].cell(3, 2).fill.fgColor.index == "00111222"
+
+
+@pytest.mark.parametrize("engine", ["xlsxwriter", "openpyxl"])
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-def test_styler_to_excel_basic(engine, css, attrs, expected):
+def test_styler_to_excel_basic(engine, css, attrs, expected, tmp_excel):
     pytest.importorskip(engine)
     df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
-    with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
-            df.to_excel(writer, sheet_name="dataframe")
-            styler.to_excel(writer, sheet_name="styled")
+    with ExcelWriter(tmp_excel, engine=engine) as writer:
+        df.to_excel(writer, sheet_name="dataframe")
+        styler.to_excel(writer, sheet_name="styled")
 
-        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-            # test unstyled data cell does not have expected styles
-            # test styled cell has expected styles
-            u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
-        for attr in attrs:
-            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
+    openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        # test unstyled data cell does not have expected styles
+        # test styled cell has expected styles
+        u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
+    for attr in attrs:
+        u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
 
-        if isinstance(expected, dict):
-            assert u_cell is None or u_cell != expected[engine]
-            assert s_cell == expected[engine]
-        else:
-            assert u_cell is None or u_cell != expected
-            assert s_cell == expected
+    if isinstance(expected, dict):
+        assert u_cell is None or u_cell != expected[engine]
+        assert s_cell == expected[engine]
+    else:
+        assert u_cell is None or u_cell != expected
+        assert s_cell == expected
 
 
-@pytest.mark.parametrize(
-    "engine",
-    ["xlsxwriter", "openpyxl"],
-)
+@pytest.mark.parametrize("engine", ["xlsxwriter", "openpyxl"])
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
+def test_styler_to_excel_basic_indexes(engine, css, attrs, expected, tmp_excel):
     pytest.importorskip(engine)
     df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
 
@@ -172,31 +219,30 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     null_styler.map_index(lambda x: "null: css;", axis=0)
     null_styler.map_index(lambda x: "null: css;", axis=1)
 
-    with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
-            null_styler.to_excel(writer, sheet_name="null_styled")
-            styler.to_excel(writer, sheet_name="styled")
+    with ExcelWriter(tmp_excel, engine=engine) as writer:
+        null_styler.to_excel(writer, sheet_name="null_styled")
+        styler.to_excel(writer, sheet_name="styled")
 
-        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-            # test null styled index cells does not have expected styles
-            # test styled cell has expected styles
-            ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
-            uc_cell, sc_cell = wb["null_styled"].cell(1, 2), wb["styled"].cell(1, 2)
-        for attr in attrs:
-            ui_cell, si_cell = getattr(ui_cell, attr, None), getattr(si_cell, attr)
-            uc_cell, sc_cell = getattr(uc_cell, attr, None), getattr(sc_cell, attr)
+    openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        # test null styled index cells does not have expected styles
+        # test styled cell has expected styles
+        ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
+        uc_cell, sc_cell = wb["null_styled"].cell(1, 2), wb["styled"].cell(1, 2)
+    for attr in attrs:
+        ui_cell, si_cell = getattr(ui_cell, attr, None), getattr(si_cell, attr)
+        uc_cell, sc_cell = getattr(uc_cell, attr, None), getattr(sc_cell, attr)
 
-        if isinstance(expected, dict):
-            assert ui_cell is None or ui_cell != expected[engine]
-            assert si_cell == expected[engine]
-            assert uc_cell is None or uc_cell != expected[engine]
-            assert sc_cell == expected[engine]
-        else:
-            assert ui_cell is None or ui_cell != expected
-            assert si_cell == expected
-            assert uc_cell is None or uc_cell != expected
-            assert sc_cell == expected
+    if isinstance(expected, dict):
+        assert ui_cell is None or ui_cell != expected[engine]
+        assert si_cell == expected[engine]
+        assert uc_cell is None or uc_cell != expected[engine]
+        assert sc_cell == expected[engine]
+    else:
+        assert ui_cell is None or ui_cell != expected
+        assert si_cell == expected
+        assert uc_cell is None or uc_cell != expected
+        assert sc_cell == expected
 
 
 # From https://openpyxl.readthedocs.io/en/stable/api/openpyxl.styles.borders.html
@@ -219,12 +265,9 @@ excel_border_styles = [
 ]
 
 
-@pytest.mark.parametrize(
-    "engine",
-    ["xlsxwriter", "openpyxl"],
-)
+@pytest.mark.parametrize("engine", ["xlsxwriter", "openpyxl"])
 @pytest.mark.parametrize("border_style", excel_border_styles)
-def test_styler_to_excel_border_style(engine, border_style):
+def test_styler_to_excel_border_style(engine, border_style, tmp_excel):
     css = f"border-left: {border_style} black thin"
     attrs = ["border", "left", "style"]
     expected = border_style
@@ -233,28 +276,27 @@ def test_styler_to_excel_border_style(engine, border_style):
     df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
-    with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
-            df.to_excel(writer, sheet_name="dataframe")
-            styler.to_excel(writer, sheet_name="styled")
+    with ExcelWriter(tmp_excel, engine=engine) as writer:
+        df.to_excel(writer, sheet_name="dataframe")
+        styler.to_excel(writer, sheet_name="styled")
 
-        openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-            # test unstyled data cell does not have expected styles
-            # test styled cell has expected styles
-            u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
-        for attr in attrs:
-            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
+    openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        # test unstyled data cell does not have expected styles
+        # test styled cell has expected styles
+        u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
+    for attr in attrs:
+        u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
 
-        if isinstance(expected, dict):
-            assert u_cell is None or u_cell != expected[engine]
-            assert s_cell == expected[engine]
-        else:
-            assert u_cell is None or u_cell != expected
-            assert s_cell == expected
+    if isinstance(expected, dict):
+        assert u_cell is None or u_cell != expected[engine]
+        assert s_cell == expected[engine]
+    else:
+        assert u_cell is None or u_cell != expected
+        assert s_cell == expected
 
 
-def test_styler_custom_converter():
+def test_styler_custom_converter(tmp_excel):
     openpyxl = pytest.importorskip("openpyxl")
 
     def custom_converter(css):
@@ -262,14 +304,13 @@ def test_styler_custom_converter():
 
     df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: "color: #888999")
-    with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine="openpyxl") as writer:
-            ExcelFormatter(styler, style_converter=custom_converter).write(
-                writer, sheet_name="custom"
-            )
+    with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+        ExcelFormatter(styler, style_converter=custom_converter).write(
+            writer, sheet_name="custom"
+        )
 
-        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
-            assert wb["custom"].cell(2, 2).font.color.value == "00111222"
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        assert wb["custom"].cell(2, 2).font.color.value == "00111222"
 
 
 @pytest.mark.single_cpu

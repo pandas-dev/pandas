@@ -151,7 +151,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -159,7 +159,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python setup.py build_ext -j 4
+    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.
@@ -326,34 +326,6 @@ a milestone before tagging, you can request the bot to backport it with:
    @Meeseeksdev backport <branch>
 
 
-.. _maintaining.asv-machine:
-
-Benchmark machine
------------------
-
-The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results
-are published to https://asv-runner.github.io/asv-collection/pandas/
-
-Configuration
-`````````````
-
-The machine can be configured with the `Ansible <http://docs.ansible.com/ansible/latest/index.html>`_ playbook in https://github.com/tomaugspurger/asv-runner.
-
-Publishing
-``````````
-
-The results are published to another GitHub repository, https://github.com/tomaugspurger/asv-collection.
-Finally, we have a cron job on our docs server to pull from https://github.com/tomaugspurger/asv-collection, to serve them from ``/speed``.
-Ask Tom or Joris for access to the webserver.
-
-Debugging
-`````````
-
-The benchmarks are scheduled by Airflow. It has a dashboard for viewing and debugging the results. You'll need to setup an SSH tunnel to view them
-
-    ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
-
-
 .. _maintaining.release:
 
 Release process
@@ -430,7 +402,7 @@ Release
     git checkout <branch>
     git pull --ff-only upstream <branch>
     git clean -xdf
-    git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
+    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
     git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
     git push upstream <branch> --follow-tags
 
@@ -460,7 +432,7 @@ which will be triggered when the tag is pushed.
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
-   - Title: ``Pandas <version>``
+   - Title: ``pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
    - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate

@@ -1,6 +1,7 @@
 """
 Testing that we work in the downstream packages
 """
+
 import array
 from functools import partial
 import subprocess
@@ -19,10 +20,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
 
 
 @pytest.fixture
@@ -155,7 +152,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn():
+def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
@@ -283,14 +280,6 @@ def test_from_obscure_array(dtype, box):
     else:
         data = box(arr)
 
-    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    depr_msg = f"{cls.__name__}.__init__ is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = cls(arr)
-    result = cls._from_sequence(data, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
-
     if not isinstance(data, memoryview):
         # FIXME(GH#44431) these raise on memoryview and attempted fix
         #  fails on py3.10
@@ -304,25 +293,6 @@ def test_from_obscure_array(dtype, box):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
-
-
-def test_dataframe_consortium() -> None:
-    """
-    Test some basic methods of the dataframe consortium standard.
-
-    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
-    this is just to check that the entry point works as expected.
-    """
-    pytest.importorskip("dataframe_api_compat")
-    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df_pd.__dataframe_consortium_standard__()
-    result_1 = df.get_column_names()
-    expected_1 = ["a", "b"]
-    assert result_1 == expected_1
-
-    ser = Series([1, 2, 3], name="a")
-    col = ser.__column_consortium_standard__()
-    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

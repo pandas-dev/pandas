@@ -476,15 +476,15 @@ For example:
 .. ipython:: python
 
    df
-   df.mean(0)
-   df.mean(1)
+   df.mean(axis=0)
+   df.mean(axis=1)
 
 All such methods have a ``skipna`` option signaling whether to exclude missing
 data (``True`` by default):
 
 .. ipython:: python
 
-   df.sum(0, skipna=False)
+   df.sum(axis=0, skipna=False)
    df.sum(axis=1, skipna=True)
 
 Combined with the broadcasting / arithmetic behavior, one can describe various
@@ -495,8 +495,8 @@ standard deviation of 1), very concisely:
 
    ts_stand = (df - df.mean()) / df.std()
    ts_stand.std()
-   xs_stand = df.sub(df.mean(1), axis=0).div(df.std(1), axis=0)
-   xs_stand.std(1)
+   xs_stand = df.sub(df.mean(axis=1), axis=0).div(df.std(axis=1), axis=0)
+   xs_stand.std(axis=1)
 
 Note that methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
 preserve the location of ``NaN`` values. This is somewhat different from
@@ -1308,8 +1308,8 @@ filling method chosen from the following table:
     :header: "Method", "Action"
     :widths: 30, 50
 
-    pad / ffill, Fill values forward
-    bfill / backfill, Fill values backward
+    ffill, Fill values forward
+    bfill, Fill values backward
     nearest, Fill from the nearest index value
 
 We illustrate these fill methods on a simple Series:

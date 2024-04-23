@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    IndexingError,
-    PerformanceWarning,
-)
+from pandas.errors import IndexingError
 
 import pandas as pd
 from pandas import (
@@ -36,7 +33,7 @@ class TestMultiIndexLoc:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self, any_real_numpy_dtype):
+    def test_loc_getitem_general(self, performance_warning, any_real_numpy_dtype):
         # GH#2817
         dtype = any_real_numpy_dtype
         data = {
@@ -49,8 +46,7 @@ class TestMultiIndexLoc:
         df = df.set_index(keys=["col", "num"])
         key = 4.0, 12
 
-        # emits a PerformanceWarning, ok
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
@@ -383,6 +379,29 @@ class TestMultiIndexLoc:
             index=mi,
             columns=["a", "b", "c", "d"],
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem_axis_set(self):
+        # GH#58116
+        dates = pd.date_range("2001-01-01", freq="D", periods=2)
+        ids = ["i1", "i2", "i3"]
+        index = MultiIndex.from_product([dates, ids], names=["date", "identifier"])
+        df = DataFrame(0.0, index=index, columns=["A", "B"])
+        df.loc(axis=0)["2001-01-01", ["i1", "i3"]] = None
+
+        expected = DataFrame(
+            [
+                [None, None],
+                [0.0, 0.0],
+                [None, None],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+            ],
+            index=index,
+            columns=["A", "B"],
+        )
+
         tm.assert_frame_equal(df, expected)
 
     def test_sorted_multiindex_after_union(self):
