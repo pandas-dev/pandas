@@ -1886,13 +1886,29 @@ def test_agg_lambda_pyarrow_to_same_data_type():
 def test_agg_lambda_float64_pyarrow_dtype_conversion():
     # test numpy dtype conversion back to pyarrow dtype
     # complexes, floats, ints, uints, object
-    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100.0, 200, 255.3873]})
     df["B"] = df["B"].astype("float64[pyarrow]")
     gb = df.groupby("A")
     result = gb.agg(lambda x: x)
 
+    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100.0, 200, 255.3873]})
+    expected["B"] = expected["B"].astype("double[pyarrow]")
+    expected.set_index("A", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+    assert result["B"].dtype == expected["B"].dtype
+
+
+def test_agg_lambda_int64_pyarrow_dtype_conversion():
+    # test numpy dtype conversion back to pyarrow dtype
+    # complexes, floats, ints, uints, object
+    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
+    df["B"] = df["B"].astype("int64[pyarrow]")
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x)
+
     expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
-    expected["B"] = expected["B"].astype("float64[pyarrow]")
+    expected["B"] = expected["B"].astype("int64[pyarrow]")
     expected.set_index("A", inplace=True)
 
     tm.assert_frame_equal(result, expected)
@@ -1912,20 +1928,6 @@ def test_agg_lambda_complex128_pyarrow_dtype_conversion():
         }
     )
     expected["B"] = expected["B"].astype("complex128")
-    expected.set_index("A", inplace=True)
-
-    tm.assert_frame_equal(result, expected)
-    assert result["B"].dtype == expected["B"].dtype
-
-
-def test_agg_lambda_int64_pyarrow_dtype_conversion():
-    df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
-    df["B"] = df["B"].astype("int64[pyarrow]")
-    gb = df.groupby("A")
-    result = gb.agg(lambda x: x)
-
-    expected = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
-    expected["B"] = expected["B"].astype("int64[pyarrow]")
     expected.set_index("A", inplace=True)
 
     tm.assert_frame_equal(result, expected)
@@ -1975,8 +1977,6 @@ def test_agg_lambda_bool_pyarrow_dtype_conversion():
 
 
 def test_agg_lambda_object_pyarrow_dtype_conversion():
-    import pyarrow as pa
-
     df = DataFrame({"A": ["c1", "c2", "c3"], "B": [100, 200, 255]})
     df["B"] = df["B"].astype("int64[pyarrow]")
     gb = df.groupby("A")
@@ -1986,9 +1986,7 @@ def test_agg_lambda_object_pyarrow_dtype_conversion():
         {"A": ["c1", "c2", "c3"], "B": [{"number": 1}, {"number": 1}, {"number": 1}]}
     )
 
-    pyarrow_type = pa.struct({"number": pa.int64()})
-    pandas_pyarrow_dtype = pd.ArrowDtype(pyarrow_type)
-    expected["B"] = expected["B"].astype(pandas_pyarrow_dtype)
+    expected["B"] = expected["B"].astype("object")
     expected.set_index("A", inplace=True)
 
     tm.assert_frame_equal(result, expected)
