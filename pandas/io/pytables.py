@@ -1595,6 +1595,10 @@ class HDFStore:
         leaves : list
             Names (strings) of the pandas objects contained in `path`.
 
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+
         Examples
         --------
         >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
