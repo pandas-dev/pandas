@@ -709,16 +709,14 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-        warn = FutureWarning
-        with tm.assert_produces_warning(warn, match=msg):
-            df = concat([df, d], ignore_index=True)
-            result = concat([df, d], ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            }
+            },
+            dtype=object,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2192,23 +2190,28 @@ class TestMergeOnIndexes:
 
 @pytest.mark.parametrize(
     "index",
-    [Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES]
+    [
+        Index([1, 2, 4], dtype=dtyp, name="index_col")
+        for dtyp in tm.ALL_REAL_NUMPY_DTYPES
+    ]
     + [
-        CategoricalIndex(["A", "B"], categories=["A", "B"], name="index_col"),
-        RangeIndex(start=0, stop=2, name="index_col"),
-        DatetimeIndex(["2018-01-01", "2018-01-02"], name="index_col"),
+        CategoricalIndex(["A", "B", "C"], categories=["A", "B", "C"], name="index_col"),
+        RangeIndex(start=0, stop=3, name="index_col"),
+        DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"], name="index_col"),
     ],
     ids=lambda x: f"{type(x).__name__}[{x.dtype}]",
 )
 def test_merge_index_types(index):
     # gh-20777
     # assert key access is consistent across index types
-    left = DataFrame({"left_data": [1, 2]}, index=index)
-    right = DataFrame({"right_data": [1.0, 2.0]}, index=index)
+    left = DataFrame({"left_data": [1, 2, 3]}, index=index)
+    right = DataFrame({"right_data": [1.0, 2.0, 3.0]}, index=index)
 
     result = left.merge(right, on=["index_col"])
 
-    expected = DataFrame({"left_data": [1, 2], "right_data": [1.0, 2.0]}, index=index)
+    expected = DataFrame(
+        {"left_data": [1, 2, 3], "right_data": [1.0, 2.0, 3.0]}, index=index
+    )
     tm.assert_frame_equal(result, expected)
 
 

@@ -127,7 +127,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)  # pylint: disable=not-callable
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -355,6 +355,13 @@ class IndexOpsMixin(OpsMixin):
         """
         Number of dimensions of the underlying data, by definition 1.
 
+        See Also
+        --------
+        Series.size: Return the number of elements in the underlying data.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
+
         Examples
         --------
         >>> s = pd.Series(["Ant", "Bear", "Cow"])
@@ -412,6 +419,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Return the number of bytes in the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+
         Examples
         --------
         For Series:
@@ -439,6 +451,13 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        See Also
+        --------
+        Series.ndim: Number of dimensions of the underlying data, by definition 1.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
@@ -735,13 +754,8 @@ class IndexOpsMixin(OpsMixin):
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
-
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmax()
+            return delegate.argmax(skipna=skipna)
         else:
             result = nanops.nanargmax(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
@@ -754,15 +768,10 @@ class IndexOpsMixin(OpsMixin):
     ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmin()
+            return delegate.argmin(skipna=skipna)
         else:
             result = nanops.nanargmin(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
@@ -924,6 +933,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         Series
+            Series containing counts of unique values.
 
         See Also
         --------
