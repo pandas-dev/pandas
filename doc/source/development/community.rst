@@ -100,7 +100,7 @@ The pandas mailing list `pandas-dev@python.org <mailto://pandas-dev@python
 conversations and to engage people in the wider community who might not
 be active on the issue tracker but we would like to include in discussions.
 
-Join the mailing list and view the archives `here <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_.
+Join the mailing list and view the archives `here <https://mail.python.org/mailman/listinfo/pandas-dev>`_.
 
 .. _community.slack:
 
