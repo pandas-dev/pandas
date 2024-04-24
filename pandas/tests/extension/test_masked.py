@@ -14,8 +14,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 
-import warnings
-
 import numpy as np
 import pytest
 
@@ -215,13 +213,7 @@ class TestMaskedArrays(base.ExtensionTests):
 
         if sdtype.kind in "iu":
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Downcasting object dtype arrays",
-                        category=FutureWarning,
-                    )
-                    filled = expected.fillna(np.nan)
+                filled = expected.fillna(np.nan)
                 expected = filled.astype("Float64")
             else:
                 # combine method result in 'biggest' (int64) dtype

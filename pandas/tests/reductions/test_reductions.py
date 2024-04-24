@@ -171,9 +171,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
@@ -189,9 +189,9 @@ class TestReductions:
             obj.argmin()
         with pytest.raises(ValueError, match="Encountered all NA values"):
             obj.argmax()
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmin(skipna=False)
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
@@ -378,7 +378,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support reduction '{opname}'",
+                f"does not support operation '{opname}'",
             ]
         )
 
@@ -665,7 +665,7 @@ class TestSeriesReductions:
 
             # GH#844 (changed in GH#9422)
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
-            assert (getattr(df, method)(1) == unit).all()
+            assert (getattr(df, method)(axis=1) == unit).all()
 
             s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
@@ -714,7 +714,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "does not support reduction 'var'",
+                    "does not support operation 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -856,7 +856,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmin()
 
         # datetime64[ns]
@@ -888,7 +889,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with pytest.raises(ValueError, match="Encountered all NA values"):
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
             allna.idxmax()
 
         s = Series(date_range("20130102", periods=6))
@@ -1009,32 +1011,41 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        msg = "'(any|all)' with datetime64 dtypes is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        # GH#34479
+        msg = "datetime64 type does not support operation '(any|all)'"
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-            assert ser.all()
-            assert ser.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
+        # GH#34479
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert ser.all()
-            assert ser.any()
-
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)
@@ -1146,12 +1157,12 @@ class TestSeriesReductions:
             msg = "'>' not supported between instances of 'float' and 'str'"
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmax()
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmax(skipna=False)
             msg = "'<' not supported between instances of 'float' and 'str'"
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin()
-            with pytest.raises(ValueError, match="Encountered an NA value"):
+            with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):
@@ -1547,7 +1558,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 

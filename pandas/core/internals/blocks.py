@@ -38,7 +38,10 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    OutOfBoundsDatetime,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -118,6 +121,7 @@ from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Iterable,
         Sequence,
     )
@@ -385,20 +389,18 @@ class Block(PandasObject, libinternals.Block):
         return [nb]
 
     @final
-    def _split(self) -> list[Block]:
+    def _split(self) -> Generator[Block, None, None]:
         """
         Split a block into a list of single-column blocks.
         """
         assert self.ndim == 2
 
-        new_blocks = []
         for i, ref_loc in enumerate(self._mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
             bp = BlockPlacement(ref_loc)
             nb = type(self)(vals, placement=bp, ndim=2, refs=self.refs)
-            new_blocks.append(nb)
-        return new_blocks
+            yield nb
 
     @final
     def split_and_operate(self, func, *args, **kwargs) -> list[Block]:
@@ -479,7 +481,17 @@ class Block(PandasObject, libinternals.Block):
                 f"{self.values.dtype}. Please report a bug at "
                 "https://github.com/pandas-dev/pandas/issues."
             )
-        return self.astype(new_dtype)
+        try:
+            return self.astype(new_dtype)
+        except OutOfBoundsDatetime as err:
+            # e.g. GH#56419 if self.dtype is a low-resolution dt64 and we try to
+            #  upcast to a higher-resolution dt64, we may have entries that are
+            #  out of bounds for the higher resolution.
+            #  Re-raise with a more informative message.
+            raise OutOfBoundsDatetime(
+                f"Incompatible (high-resolution) value for dtype='{self.dtype}'. "
+                "Explicitly cast before operating."
+            ) from err
 
     @final
     def convert(self) -> list[Block]:
@@ -537,7 +549,9 @@ class Block(PandasObject, libinternals.Block):
         rbs = []
         for blk in blks:
             # Determine dtype column by column
-            sub_blks = [blk] if blk.ndim == 1 or self.shape[0] == 1 else blk._split()
+            sub_blks = (
+                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+            )
             dtypes = [
                 convert_dtypes(
                     b.values,
@@ -1190,8 +1204,7 @@ class Block(PandasObject, libinternals.Block):
                 is_array = isinstance(new, np.ndarray)
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = new
                     if is_array:
                         # we have a different value per-column
@@ -1255,8 +1268,7 @@ class Block(PandasObject, libinternals.Block):
                 is_array = isinstance(other, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     oth = other
                     if is_array:
                         # we have a different value per-column
@@ -1343,7 +1355,6 @@ class Block(PandasObject, libinternals.Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1357,16 +1368,12 @@ class Block(PandasObject, libinternals.Block):
         # Dispatch to the NumpyExtensionArray method.
         # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
         vals = cast(NumpyExtensionArray, self.array_values)
-        if axis == 1:
-            vals = vals.T
-        new_values = vals._pad_or_backfill(
+        new_values = vals.T._pad_or_backfill(
             method=method,
             limit=limit,
             limit_area=limit_area,
             copy=copy,
-        )
-        if axis == 1:
-            new_values = new_values.T
+        ).T
 
         data = extract_array(new_values, extract_numpy=True)
         return [self.make_block_same_class(data, refs=refs)]
@@ -1393,12 +1400,10 @@ class Block(PandasObject, libinternals.Block):
             # If there are no NAs, then interpolate is a no-op
             return [self.copy(deep=False)]
 
-        # TODO(3.0): this case will not be reachable once GH#53638 is enforced
         if self.dtype == _dtype_obj:
-            # only deal with floats
-            # bc we already checked that can_hold_na, we don't have int dtype here
-            # test_interp_basic checks that we make a copy here
-            return [self.copy(deep=False)]
+            # GH#53631
+            name = {1: "Series", 2: "DataFrame"}[self.ndim]
+            raise TypeError(f"{name} cannot interpolate with object dtype.")
 
         copy, refs = self._get_refs_and_copy(inplace)
 
@@ -1705,8 +1710,7 @@ class EABackedBlock(Block):
                 is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = orig_other
                     if is_array:
                         # we have a different value per-column
@@ -1767,8 +1771,7 @@ class EABackedBlock(Block):
                 is_array = isinstance(orig_new, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = orig_new
                     if is_array:
                         # we have a different value per-column
@@ -1814,7 +1817,6 @@ class EABackedBlock(Block):
         self,
         *,
         method: FillnaOptions,
-        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
@@ -1827,11 +1829,11 @@ class EABackedBlock(Block):
         elif limit_area is not None:
             raise NotImplementedError(
                 f"{type(values).__name__} does not implement limit_area "
-                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "(added in pandas 2.2). 3rd-party ExtensionArray authors "
                 "need to add this argument to _pad_or_backfill."
             )
 
-        if values.ndim == 2 and axis == 1:
+        if values.ndim == 2:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
             new_values = values.T._pad_or_backfill(**kwargs).T
         else:

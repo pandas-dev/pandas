@@ -13,7 +13,6 @@ from typing import (
     Union,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -893,7 +892,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -1217,15 +1216,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of value_counts with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            result = value_counts(np.asarray(self), dropna=dropna)
-            # Once the deprecation is enforced, we will need to do
-            #  `result.index = result.index.astype(self.dtype)`
+        result = value_counts(np.asarray(self), dropna=dropna)
+        result.index = result.index.astype(self.dtype)
         return result
 
     # ---------------------------------------------------------------------

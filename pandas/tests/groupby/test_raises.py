@@ -241,16 +241,16 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (None, ""),
-        "any": (None, ""),
+        "all": (TypeError, "'all' with datetime64 dtypes is no longer supported"),
+        "any": (TypeError, "'any' with datetime64 dtypes is no longer supported"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (None, ""),
         "cummin": (None, ""),
-        "cumprod": (TypeError, "datetime64 type does not support cumprod operations"),
-        "cumsum": (TypeError, "datetime64 type does not support cumsum operations"),
+        "cumprod": (TypeError, "datetime64 type does not support operation 'cumprod'"),
+        "cumsum": (TypeError, "datetime64 type does not support operation 'cumsum'"),
         "diff": (None, ""),
         "ffill": (None, ""),
         "fillna": (None, ""),
@@ -265,7 +265,7 @@ def test_groupby_raises_datetime(
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "cannot perform __truediv__ with this index type"),
-        "prod": (TypeError, "datetime64 type does not support prod"),
+        "prod": (TypeError, "datetime64 type does not support operation 'prod'"),
         "quantile": (None, ""),
         "rank": (None, ""),
         "sem": (None, ""),
@@ -275,19 +275,17 @@ def test_groupby_raises_datetime(
             TypeError,
             "|".join(
                 [
-                    r"dtype datetime64\[ns\] does not support reduction",
-                    "datetime64 type does not support skew operations",
+                    r"dtype datetime64\[ns\] does not support operation",
+                    "datetime64 type does not support operation 'skew'",
                 ]
             ),
         ),
         "std": (None, ""),
-        "sum": (TypeError, "datetime64 type does not support sum operations"),
-        "var": (TypeError, "datetime64 type does not support var operations"),
+        "sum": (TypeError, "datetime64 type does not support operation 'sum"),
+        "var": (TypeError, "datetime64 type does not support operation 'var'"),
     }[groupby_func]
 
-    if groupby_func in ["any", "all"]:
-        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
-    elif groupby_func == "fillna":
+    if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
     else:
@@ -325,7 +323,7 @@ def test_groupby_raises_datetime_np(
     klass, msg = {
         np.sum: (
             TypeError,
-            re.escape("datetime64[us] does not support reduction 'sum'"),
+            re.escape("datetime64[us] does not support operation 'sum'"),
         ),
         np.mean: (None, ""),
     }[groupby_func_np]
@@ -419,7 +417,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'mean'",
+                    "'Categorical' .* does not support operation 'mean'",
                     "category dtype does not support aggregation 'mean'",
                 ]
             ),
@@ -428,7 +426,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'median'",
+                    "'Categorical' .* does not support operation 'median'",
                     "category dtype does not support aggregation 'median'",
                 ]
             ),
@@ -447,7 +445,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'sem'",
+                    "'Categorical' .* does not support operation 'sem'",
                     "category dtype does not support aggregation 'sem'",
                 ]
             ),
@@ -458,7 +456,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "dtype category does not support reduction 'skew'",
+                    "dtype category does not support operation 'skew'",
                     "category type does not support skew operations",
                 ]
             ),
@@ -467,7 +465,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'std'",
+                    "'Categorical' .* does not support operation 'std'",
                     "category dtype does not support aggregation 'std'",
                 ]
             ),
@@ -477,7 +475,7 @@ def test_groupby_raises_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'var'",
+                    "'Categorical' .* does not support operation 'var'",
                     "category dtype does not support aggregation 'var'",
                 ]
             ),
@@ -521,10 +519,10 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "dtype category does not support reduction 'sum'"),
+        np.sum: (TypeError, "dtype category does not support operation 'sum'"),
         np.mean: (
             TypeError,
-            "dtype category does not support reduction 'mean'",
+            "dtype category does not support operation 'mean'",
         ),
     }[groupby_func_np]
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
@@ -620,7 +618,7 @@ def test_groupby_raises_category_on_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'sem'",
+                    "'Categorical' .* does not support operation 'sem'",
                     "category dtype does not support aggregation 'sem'",
                 ]
             ),
@@ -632,7 +630,7 @@ def test_groupby_raises_category_on_category(
             "|".join(
                 [
                     "category type does not support skew operations",
-                    "dtype category does not support reduction 'skew'",
+                    "dtype category does not support operation 'skew'",
                 ]
             ),
         ),
@@ -640,7 +638,7 @@ def test_groupby_raises_category_on_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'std'",
+                    "'Categorical' .* does not support operation 'std'",
                     "category dtype does not support aggregation 'std'",
                 ]
             ),
@@ -650,7 +648,7 @@ def test_groupby_raises_category_on_category(
             TypeError,
             "|".join(
                 [
-                    "'Categorical' .* does not support reduction 'var'",
+                    "'Categorical' .* does not support operation 'var'",
                     "category dtype does not support aggregation 'var'",
                 ]
             ),

@@ -70,6 +70,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterator,
         Sequence,
@@ -415,6 +416,7 @@ class WrappedCythonOp:
                 "last",
                 "first",
                 "sum",
+                "median",
             ]:
                 func(
                     out=result,
@@ -427,7 +429,7 @@ class WrappedCythonOp:
                     is_datetimelike=is_datetimelike,
                     **kwargs,
                 )
-            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod"]:
                 if self.how in ["std", "sem"]:
                     kwargs["is_datetimelike"] = is_datetimelike
                 func(
@@ -705,7 +707,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        categories = Categorical(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
@@ -856,16 +858,15 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> Generator[Index, None, None]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
         if len(self.groupings) == 1:
-            return [result_index]
-        return [
-            result_index.get_level_values(level)
-            for level in range(result_index.nlevels)
-        ]
+            yield result_index
+        else:
+            for level in range(result_index.nlevels - 1, -1, -1):
+                yield result_index.get_level_values(level)
 
     # ------------------------------------------------------------
     # Aggregation functions

@@ -139,12 +139,11 @@ def test_concat_mixed_series_frame():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_concat_copy_keyword(copy):
+def test_concat_copy_keyword():
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [1.5, 2.5]})
 
-    result = concat([df, df2], axis=1, copy=copy)
+    result = concat([df, df2], axis=1)
 
     assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
@@ -234,12 +233,11 @@ def test_merge_on_key_enlarging_one(func, how):
     tm.assert_frame_equal(df2, df2_orig)
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_merge_copy_keyword(copy):
+def test_merge_copy_keyword():
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [3, 4.5]})
 
-    result = df.merge(df2, copy=copy, left_index=True, right_index=True)
+    result = df.merge(df2, left_index=True, right_index=True)
 
     assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))

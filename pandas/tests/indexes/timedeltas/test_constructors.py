@@ -56,7 +56,6 @@ class TestTimedeltaIndex:
         #  has one and it does not match the `freq` input
         tdi = timedelta_range("1 second", periods=100, freq="1s")
 
-        depr_msg = "TimedeltaArray.__init__ is deprecated"
         msg = (
             "Inferred frequency .* from passed values does "
             "not conform to passed frequency"
@@ -65,16 +64,7 @@ class TestTimedeltaIndex:
             TimedeltaIndex(tdi, freq="D")
 
         with pytest.raises(ValueError, match=msg):
-            # GH#23789
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                TimedeltaArray(tdi, freq="D")
-
-        with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(tdi._data, freq="D")
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                TimedeltaArray(tdi._data, freq="D")
 
     def test_dt64_data_invalid(self):
         # GH#23539
@@ -153,14 +143,12 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
     def test_timedelta_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rng = timedelta_range("1 days", periods=10.5)
-        exp = timedelta_range("1 days", periods=10)
-        tm.assert_index_equal(rng, exp)
+        msg = "periods must be an integer"
+        with pytest.raises(TypeError, match=msg):
+            timedelta_range("1 days", periods=10.5)
 
     def test_constructor_coverage(self):
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
 
@@ -239,11 +227,6 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
-
-        msg = "TimedeltaArray.__init__ is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tda = TimedeltaArray(tdi, freq=None)
-        assert tda.freq is None
 
     def test_from_categorical(self):
         tdi = timedelta_range(1, periods=5)

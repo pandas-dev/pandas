@@ -240,8 +240,6 @@ def test_is_list_like_generic():
     # is_list_like was yielding false positives for Generic classes in python 3.11
     T = TypeVar("T")
 
-    # https://github.com/pylint-dev/pylint/issues/9398
-    # pylint: disable=multiple-statements
     class MyDataFrame(DataFrame, Generic[T]): ...
 
     tstc = MyDataFrame[int]

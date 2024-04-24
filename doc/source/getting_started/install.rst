@@ -269,6 +269,8 @@ SciPy                     1.10.0             computation     Miscellaneous stati
 xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
+.. _install.excel_dependencies:
+
 Excel files
 ^^^^^^^^^^^
 
@@ -361,7 +363,7 @@ Dependency                Minimum Version    pip extra        Notes
 PyTables                  3.8.0              hdf5             HDF5-based reading / writing
 blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
-fastparquet               2023.04.0          -                Parquet reading / writing (pyarrow is default)
+fastparquet               2023.10.0          -                Parquet reading / writing (pyarrow is default)
 pyarrow                   10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.2.0              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
