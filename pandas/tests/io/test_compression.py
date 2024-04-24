@@ -133,7 +133,7 @@ def test_compression_warning(compression_only):
     )
     with tm.ensure_clean() as path:
         with icom.get_handle(path, "w", compression=compression_only) as handles:
-            with tm.assert_produces_warning(RuntimeWarning):
+            with tm.assert_produces_warning(RuntimeWarning, match="has no effect"):
                 df.to_csv(handles.handle, compression=compression_only)
 
 

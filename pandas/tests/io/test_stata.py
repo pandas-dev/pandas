@@ -189,11 +189,12 @@ class TestStata:
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
         path3 = datapath("io", "data", "stata", "stata2_117.dta")
 
-        with tm.assert_produces_warning(UserWarning):
+        msg = "Leaving in Stata Internal Format"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_114 = self.read_dta(path1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_115 = self.read_dta(path2)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
             # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
@@ -478,7 +479,8 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates=None)
 
         written_and_read_again = self.read_dta(path)
@@ -515,7 +517,8 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates=None, version=version)
             # should get a warning for that format.
 
@@ -612,7 +615,8 @@ class TestStata:
         original.index.name = "index"
         path = temp_file
         # should get a warning for that format.
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path)
 
         written_and_read_again = self.read_dta(path)
@@ -672,7 +676,7 @@ class TestStata:
         original = DataFrame({"s0": s0, "s1": s1, "s2": s2, "s3": s3})
         original.index.name = "index"
         path = temp_file
-        with tm.assert_produces_warning(PossiblePrecisionLoss):
+        with tm.assert_produces_warning(PossiblePrecisionLoss, match="from int64 to"):
             original.to_stata(path)
 
         written_and_read_again = self.read_dta(path)
@@ -687,7 +691,8 @@ class TestStata:
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
         original.index.name = "index"
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates={0: "tc"})
 
         written_and_read_again = self.read_dta(path)
@@ -1111,7 +1116,8 @@ class TestStata:
             [["a"], ["b"], ["c"], ["d"], [1]], columns=["Too_long"]
         ).astype("category")
 
-        with tm.assert_produces_warning(ValueLabelTypeMismatch):
+        msg = "data file created has not lost information due to duplicate labels"
+        with tm.assert_produces_warning(ValueLabelTypeMismatch, match=msg):
             original.to_stata(path)
             # should get a warning for mixed content
 
@@ -1732,7 +1738,8 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             path = temp_file
             original.to_stata(path, convert_strl=["long", 1], version=117)
             reread = self.read_dta(path)
@@ -2139,8 +2146,9 @@ def test_chunked_categorical(version, temp_file):
 def test_chunked_categorical_partial(datapath):
     dta_file = datapath("io", "data", "stata", "stata-dta-partially-labeled.dta")
     values = ["a", "b", "a", "b", 3.0]
+    msg = "series with value labels are not fully labeled"
     with StataReader(dta_file, chunksize=2) as reader:
-        with tm.assert_produces_warning(CategoricalConversionWarning):
+        with tm.assert_produces_warning(CategoricalConversionWarning, match=msg):
             for i, block in enumerate(reader):
                 assert list(block.cats) == values[2 * i : 2 * (i + 1)]
                 if i < 2:
@@ -2148,7 +2156,7 @@ def test_chunked_categorical_partial(datapath):
                 else:
                     idx = pd.Index([3.0], dtype="float64")
                 tm.assert_index_equal(block.cats.cat.categories, idx)
-    with tm.assert_produces_warning(CategoricalConversionWarning):
+    with tm.assert_produces_warning(CategoricalConversionWarning, match=msg):
         with StataReader(dta_file, chunksize=5) as reader:
             large_chunk = reader.__next__()
     direct = read_stata(dta_file)
@@ -2304,7 +2312,8 @@ def test_non_categorical_value_label_name_conversion(temp_file):
         "_1__2_": {3: "three"},
     }
 
-    with tm.assert_produces_warning(InvalidColumnName):
+    msg = "Not all pandas column names were valid Stata variable names"
+    with tm.assert_produces_warning(InvalidColumnName, match=msg):
         data.to_stata(temp_file, value_labels=value_labels)
 
     with StataReader(temp_file) as reader:

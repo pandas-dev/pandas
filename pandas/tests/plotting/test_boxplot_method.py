@@ -129,7 +129,8 @@ class TestDataFramePlots:
         df["Y"] = Series(["A"] * 10)
         # Multiple columns with an ax argument should use same figure
         fig, ax = mpl.pyplot.subplots()
-        with tm.assert_produces_warning(UserWarning):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             axes = df.boxplot(
                 column=["Col1", "Col2"], by="X", ax=ax, return_type="axes"
             )
@@ -607,7 +608,7 @@ class TestDataFrameGroupByPlots:
         # passes multiple axes to plot, hist or boxplot
         # location should be changed if other test is added
         # which has earlier alphabetical order
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             _, axes = mpl.pyplot.subplots(2, 2)
             df.groupby("category").boxplot(column="height", return_type="axes", ax=axes)
             _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=4, layout=(2, 2))
@@ -617,7 +618,7 @@ class TestDataFrameGroupByPlots:
         # GH 6970, GH 7069
         df = hist_df
         fig, axes = mpl.pyplot.subplots(2, 3)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             returned = df.boxplot(
                 column=["height", "weight", "category"],
                 by="gender",
@@ -630,7 +631,7 @@ class TestDataFrameGroupByPlots:
         assert returned[0].figure is fig
 
         # draw on second row
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             returned = df.groupby("classroom").boxplot(
                 column=["height", "weight", "category"], return_type="axes", ax=axes[1]
             )
@@ -647,7 +648,7 @@ class TestDataFrameGroupByPlots:
         _, axes = mpl.pyplot.subplots(2, 3)
         with pytest.raises(ValueError, match=msg):
             # pass different number of axes from required
-            with tm.assert_produces_warning(UserWarning):
+            with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
                 axes = df.groupby("classroom").boxplot(ax=axes)
 
     def test_fontsize(self):

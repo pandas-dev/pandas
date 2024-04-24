@@ -882,7 +882,7 @@ class TestSetOpsUnsorted:
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             # sort=None, the default
             result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])

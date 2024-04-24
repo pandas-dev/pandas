@@ -1565,11 +1565,12 @@ class TestMergeDtypes:
         B = DataFrame({"Y": [1.1, 2.5, 3.0]})
         expected = DataFrame({"X": [3], "Y": [3.0]})
 
-        with tm.assert_produces_warning(UserWarning):
+        msg = "the float values are not equal to their int representation"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = A.merge(B, left_on="X", right_on="Y")
             tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = B.merge(A, left_on="Y", right_on="X")
             tm.assert_frame_equal(result, expected[["Y", "X"]])
 

@@ -557,11 +557,12 @@ is being raised, using ``pytest.raises`` instead.
 Testing a warning
 ^^^^^^^^^^^^^^^^^
 
-Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning
+and specify the warning message using the ``match`` argument.
 
 .. code-block:: python
 
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.

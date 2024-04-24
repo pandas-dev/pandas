@@ -639,7 +639,7 @@ class TestTableOrient:
         # GH 19130
         df = DataFrame(index=idx)
         df.index.name = "index"
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="not round-trippable"):
             set_default_names(df)
 
     def test_timestamp_in_columns(self):

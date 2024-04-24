@@ -696,5 +696,7 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_keyword_quantile_deprecated():
     # GH #52550
     ser = Series([1, 2, 3, 4])
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(
+        FutureWarning, match="the 'quantile' keyword is deprecated, use 'q' instead"
+    ):
         ser.expanding().quantile(quantile=0.5)

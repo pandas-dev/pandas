@@ -145,7 +145,7 @@ class TestDataFrameIndexing:
         # we are producing a warning that since the passed boolean
         # key is not the same as the given index, we will reindex
         # not sure this is really necessary
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="will be reindexed"):
             indexer_obj = indexer_obj.reindex(datetime_frame.index[::-1])
             subframe_obj = datetime_frame[indexer_obj]
             tm.assert_frame_equal(subframe_obj, subframe)

@@ -501,8 +501,7 @@ class TestTimestampConversion:
         # GH#21333 make sure a warning is issued when timezone
         # info is lost
         ts = Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
-        with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
     def test_to_numpy_alias(self):

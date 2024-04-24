@@ -1558,7 +1558,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 
