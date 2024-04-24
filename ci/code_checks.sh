@@ -99,7 +99,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
         -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swaplevel SA01" \
-        -i "pandas.DataFrame.to_feather SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
@@ -117,10 +116,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
-        -i "pandas.DatetimeTZDtype.unit SA01" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.HDFStore.put PR01,SA01" \
-        -i "pandas.HDFStore.walk SA01" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.T SA01" \
         -i "pandas.Index.append PR07,RT03,SA01" \
