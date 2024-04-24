@@ -1737,17 +1737,6 @@ class TestToDatetimeUnit:
         with pytest.raises(ValueError, match=msg):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
 
-    def test_unit_str(self, cache):
-        # GH 57051
-        # Test that strs aren't dropping precision to 32-bit accidentally.
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="'to_datetime' with 'unit' when parsing strings is deprecated",
-        ):
-            res = to_datetime(["1704660000"], unit="s", origin="unix")
-        expected = to_datetime([1704660000], unit="s", origin="unix")
-        tm.assert_index_equal(res, expected)
-
     def test_unit_array_mixed_nans(self, cache):
         values = [11111111111111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
 
