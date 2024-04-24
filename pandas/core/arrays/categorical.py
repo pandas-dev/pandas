@@ -6,6 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
     cast,
     overload,
@@ -2507,6 +2508,28 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             other = self._encode_with_my_categories(other)
             return np.array_equal(self._codes, other._codes)
         return False
+
+    def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:
+        func: Callable
+        if name == "cummin":
+            func = np.minimum.accumulate
+        elif name == "cummax":
+            func = np.maximum.accumulate
+        else:
+            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+        self.check_for_ordered(name)
+
+        codes = self.codes.copy()
+        mask = self.isna()
+        if func == np.minimum.accumulate:
+            codes[mask] = np.iinfo(codes.dtype.type).max
+        # no need to change codes for maximum because codes[mask] is already -1
+        if not skipna:
+            mask = np.maximum.accumulate(mask)
+
+        codes = func(codes)
+        codes[mask] = -1
+        return self._simple_new(codes, dtype=self._dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:

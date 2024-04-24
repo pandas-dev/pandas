@@ -699,7 +699,7 @@ class TestDataFrameAnalytics:
         expected = DataFrame({"A": ["a", np.nan]})
 
         warning = None if using_infer_string else UserWarning
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match="Unable to sort modes"):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
