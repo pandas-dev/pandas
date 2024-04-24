@@ -789,6 +789,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         list
+            List containing the values as Python or pandas scalers.
 
         See Also
         --------
