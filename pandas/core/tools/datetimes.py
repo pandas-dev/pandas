@@ -481,7 +481,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
     arg = extract_array(arg, extract_numpy=True)
 
-    # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
+    # GH#30050 pass an ndarray to tslib.array_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
         arr = arg.astype(f"datetime64[{unit}]")
@@ -519,7 +519,12 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
         else:
             arg = arg.astype(object, copy=False)
-            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+            arr, tz_parsed = tslib.array_to_datetime(
+                arg,
+                utc=utc,
+                errors=errors,
+                unit_for_numerics=unit,
+            )
 
     result = DatetimeIndex(arr, name=name)
     if not isinstance(result, DatetimeIndex):
