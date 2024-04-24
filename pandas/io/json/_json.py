@@ -511,6 +511,7 @@ def read_json(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
+    skiprows: int | list[int] | Callable[[int], bool] = None,
 ) -> DataFrame | Series | JsonReader:
     """
     Convert a JSON string to pandas object.
@@ -829,6 +830,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         encoding_errors: str | None = "strict",
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         engine: JSONEngine = "ujson",
+        skiprows: int | list[int] | Callable[[int], bool] = None,
     ) -> None:
         self.orient = orient
         self.typ = typ
@@ -849,6 +851,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.encoding_errors = encoding_errors
         self.handles: IOHandles[str] | None = None
         self.dtype_backend = dtype_backend
+        self.skiprows = skiprows
 
         if self.engine not in {"pyarrow", "ujson"}:
             raise ValueError(
@@ -1021,10 +1024,18 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.close()
             raise StopIteration
 
+        if isinstance(self.skiprows, int):
+            for _ in range(self.skiprows):
+                next(self.data)
+            self.skiprows = None
+
         lines = list(islice(self.data, self.chunksize))
         if not lines:
             self.close()
             raise StopIteration
+
+        if callable(self.skiprows):
+            lines = [line for i, line in enumerate(lines) if not self.skiprows(i)]
 
         try:
             lines_json = self._combine_lines(lines)
