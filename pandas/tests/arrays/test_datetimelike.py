@@ -906,6 +906,33 @@ class TestDatetimeArray(SharedTests):
         expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_strftime_err(self):
+        arr = DatetimeIndex(np.array(['1820-01-01', '2020-01-02'], 'datetime64[s]'))
+
+        try:
+            result = arr.strftime("%y", 'raise') 
+            assert False
+        except ValueError:
+            assert True
+        
+        try: 
+            result = arr[0].strftime("%y", 'raise')
+            assert False
+        except ValueError:
+            assert True
+
+        result = arr.strftime("%y", 'ignore')
+        expected = pd.Index([None, '20'], dtype = 'object')
+        tm.assert_numpy_array_equal(result, expected)
+
+        assert result[0] == arr[0].strftime("%y", 'ignore')
+
+        result = arr.strftime("%y", 'warn')
+        expected = pd.Index([None, '20'], dtype = 'object')
+        tm.assert_numpy_array_equal(result, expected)
+        
+        assert result[0] == arr[0].strftime("%y", 'warn')
+
     def test_strftime_nat(self):
         # GH 29578
         arr = DatetimeIndex(["2019-01-01", NaT])._data
