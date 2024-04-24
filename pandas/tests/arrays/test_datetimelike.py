@@ -779,7 +779,7 @@ class TestDatetimeArray(SharedTests):
         arr2d = arr1d.reshape(1, -1)
 
         warn = None if arr1d.tz is None else UserWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="will drop timezone information"):
             result = arr2d.to_period("D")
             expected = arr1d.to_period("D").reshape(1, -1)
         tm.assert_period_array_equal(result, expected)
