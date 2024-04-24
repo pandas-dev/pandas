@@ -243,8 +243,19 @@ class Grouper:
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
 
-    def __new__(cls, *args, **kwargs):
-        if kwargs.get("freq") is not None:
+    def __new__(
+        cls,
+        key=None,
+        level=None,
+        freq=None,
+        sort: bool = False,
+        closed='left',
+        label='left',
+        convention='start',
+        origin='start_day',
+        offset=None,
+        dropna: bool = True,):
+        if freq is not None:
             from pandas.core.resample import TimeGrouper
 
             cls = TimeGrouper
