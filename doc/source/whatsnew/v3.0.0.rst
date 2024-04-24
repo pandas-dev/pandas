@@ -214,6 +214,7 @@ Removal of prior version deprecations/changes
 - :func:`concat` no longer ignores empty objects when determining output dtypes (:issue:`39122`)
 - :func:`concat` with all-NA entries no longer ignores the dtype of those entries when determining the result dtype (:issue:`40893`)
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
+- :func:`to_datetime` with a ``unit`` specified no longer parses strings into floats, instead parses them the same way as without ``unit`` (:issue:`50735`)
 - :meth:`DataFrame.groupby` with ``as_index=False`` and aggregation methods will no longer exclude from the result the groupings that do not arise from the input (:issue:`49519`)
 - :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
 - :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
