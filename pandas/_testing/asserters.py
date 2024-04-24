@@ -861,12 +861,19 @@ def assert_series_equal(
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. This also applies when checking
+        Index equivalence.
 
         .. versionchanged:: 2.2.0
 
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
+
+        .. versionchanged:: 3.0.0
+
+            check_exact for comparing the Indexes defaults to True by
+            checking if an Index is of integer dtypes.
+
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
@@ -902,7 +909,6 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
-    check_exact_index = False if check_exact is lib.no_default else check_exact
     if (
         check_exact is lib.no_default
         and rtol is lib.no_default
@@ -914,8 +920,20 @@ def assert_series_equal(
             or is_numeric_dtype(right.dtype)
             and not is_float_dtype(right.dtype)
         )
+        left_index_dtypes = (
+            [left.index.dtype] if left.index.nlevels == 1 else left.index.dtypes
+        )
+        right_index_dtypes = (
+            [right.index.dtype] if right.index.nlevels == 1 else right.index.dtypes
+        )
+        check_exact_index = all(
+            dtype.kind in "iu" for dtype in left_index_dtypes
+        ) or all(dtype.kind in "iu" for dtype in right_index_dtypes)
     elif check_exact is lib.no_default:
         check_exact = False
+        check_exact_index = False
+    else:
+        check_exact_index = check_exact
 
     rtol = rtol if rtol is not lib.no_default else 1.0e-5
     atol = atol if atol is not lib.no_default else 1.0e-8
