@@ -481,7 +481,7 @@ class TestIndex:
 
         assert index[[]].identical(empty_index)
         if dtype == np.bool_:
-            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+            with pytest.raises(ValueError, match="length of the boolean indexer"):
                 assert index[empty_arr].identical(empty_index)
         else:
             assert index[empty_arr].identical(empty_index)
