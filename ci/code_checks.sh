@@ -147,7 +147,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Index.symmetric_difference PR07,RT03,SA01" \
         -i "pandas.Index.take PR01,PR07" \
-        -i "pandas.Index.to_list RT03" \
         -i "pandas.Index.union PR07,RT03,SA01" \
         -i "pandas.Index.view GL08" \
         -i "pandas.Int16Dtype SA01" \
@@ -368,7 +367,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
         -i "pandas.Series.to_frame SA01" \
-        -i "pandas.Series.to_list RT03" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
         -i "pandas.Series.truediv PR07" \
