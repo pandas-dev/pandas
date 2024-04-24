@@ -375,7 +375,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
         -i "pandas.Series.to_frame SA01" \
-        -i "pandas.Series.to_list RT03" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
         -i "pandas.Series.truediv PR07" \
