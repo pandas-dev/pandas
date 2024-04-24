@@ -1501,7 +1501,25 @@ class Timestamp(_Timestamp):
                 "For now, please call the components you need (such as `.year` "
                 "and `.month`) and construct your string from there."
             ) from err
-        return _dt.strftime(format)
+
+        if (errors == 'warn') or (errors == 'ignore'):
+            try:
+                # Note: dispatches to pydatetime
+                return _dt.strftime(format)
+
+            except: # Exception handling according to errors parameter
+                if (errors == 'warn'):
+                    # TODO 
+                    mesg="The following timestamps could be converted to string: ["
+                    mesg+=str(_dt)+"] Set errors='raise' to see the details"
+                    #warnings.warn(mesg,StrfimeErrorWarning, stacklevel=find_stack_level());
+
+                else: # errors == 'ignore'
+                    # TODO
+                    return None
+
+        else: # errors == 'raise'
+            _dt.strftime(format)
     
     def ctime(self):
         """

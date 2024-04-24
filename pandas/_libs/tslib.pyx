@@ -211,27 +211,13 @@ def format_array_from_datetime(
             if format is None:
                 # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
-            elif (errors == 'ignore')or(errors=='warn'):
-                try:
-                    # Note: dispatches to pydatetime
-                    res = ts.strftime(format)
-                except:
-                    res = None
-                    if (errors=='warn'):
-                        mesg="The following timestamps could be converted to string: ["
-                        mesg+=str(ts)+"] Set errors='raise' to see the details"
-                        #warnings.warn(mesg,StrfimeErrorWarning,
-                                    #stacklevel=find_stack_level())
             else:
-                # Do not catch errors, allow them to raise up through
-                res = ts.strftime(format)
-
+                res = ts.strftime(format, errors)
 
             '''
             else:
 
-                # invalid format string
-                # requires dates > 1900
+
                 try:
                     # Note: dispatches to pydatetime
                     res = ts.strftime(format)
