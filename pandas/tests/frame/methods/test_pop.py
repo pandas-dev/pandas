@@ -9,7 +9,7 @@ import pandas._testing as tm
 
 
 class TestDataFramePop:
-    def test_pop(self, float_frame, warn_copy_on_write):
+    def test_pop(self, float_frame):
         float_frame.columns.name = "baz"
 
         float_frame.pop("A")
@@ -23,8 +23,7 @@ class TestDataFramePop:
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"], index=["X", "Y"])
         b = a.pop("B")
-        with tm.assert_cow_warning(warn_copy_on_write):
-            b += 1
+        b += 1
 
         # original frame
         expected = DataFrame([[1, 3], [4, 6]], columns=["A", "C"], index=["X", "Y"])

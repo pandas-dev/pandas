@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -12,16 +16,16 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst & setup.cfg when updating versions!
+# Update install.rst, actions-39-minimum_versions.yaml,
+# deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
-    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-postgresql": "0.10.0",
     "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
-    "dataframe-api-compat": "0.1.7",
-    "fastparquet": "2022.12.0",
+    "fastparquet": "2023.10.0",
     "fsspec": "2022.11.0",
     "html5lib": "1.1",
     "hypothesis": "6.46.1",
@@ -33,7 +37,6 @@ VERSIONS = {
     "numexpr": "2.8.4",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.0",
-    "pandas_gbq": "0.19.0",
     "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "10.0.1",
@@ -64,7 +67,6 @@ INSTALL_MAPPING = {
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
-    "pandas_gbq": "pandas-gbq",
     "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
@@ -82,12 +84,33 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["raise"] = ...,
+) -> types.ModuleType: ...
+
+
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["warn", "ignore"],
+) -> types.ModuleType | None: ...
+
+
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    errors: str = "raise",
     min_version: str | None = None,
-):
+    *,
+    errors: Literal["raise", "warn", "ignore"] = "raise",
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 
@@ -120,9 +143,8 @@ def import_optional_dependency(
         The imported module, when found and the version is correct.
         None is returned when the package is not found and `errors`
         is False, or when the package's version is too old and `errors`
-        is ``'warn'``.
+        is ``'warn'`` or ``'ignore'``.
     """
-
     assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
@@ -134,9 +156,9 @@ def import_optional_dependency(
     )
     try:
         module = importlib.import_module(name)
-    except ImportError:
+    except ImportError as err:
         if errors == "raise":
-            raise ImportError(msg)
+            raise ImportError(msg) from err
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
@@ -163,5 +185,7 @@ def import_optional_dependency(
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
+            else:
+                return None
 
     return module

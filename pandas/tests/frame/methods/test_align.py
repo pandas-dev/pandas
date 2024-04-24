@@ -14,14 +14,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameAlign:
-    def test_align_asfreq_method_raises(self):
-        df = DataFrame({"A": [1, np.nan, 2]})
-        msg = "Invalid fill method"
-        msg2 = "The 'method', 'limit', and 'fill_axis' keywords"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                df.align(df.iloc[::-1], method="asfreq")
-
     def test_frame_align_aware(self):
         idx1 = date_range("2001", periods=5, freq="h", tz="US/Eastern")
         idx2 = date_range("2001", periods=5, freq="2h", tz="US/Eastern")
@@ -48,15 +40,12 @@ class TestDataFrameAlign:
         assert new1.index.tz is timezone.utc
         assert new2.index.tz is timezone.utc
 
-    def test_align_float(self, float_frame, using_copy_on_write):
+    def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
 
-        af, bf = float_frame.align(float_frame, copy=False)
-        if not using_copy_on_write:
-            assert af._mgr is float_frame._mgr
-        else:
-            assert af._mgr is not float_frame._mgr
+        af, bf = float_frame.align(float_frame)
+        assert af._mgr is not float_frame._mgr
 
         # axis = 0
         other = float_frame.iloc[:-5, :3]
@@ -91,34 +80,6 @@ class TestDataFrameAlign:
         af, bf = float_frame.align(other, join="inner", axis=1)
         tm.assert_index_equal(bf.columns, other.columns)
 
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = float_frame.align(other, join="inner", axis=1, method="pad")
-        tm.assert_index_equal(bf.columns, other.columns)
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = float_frame.align(
-                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=None
-            )
-        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = float_frame.align(
-                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
-            )
-        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
-
         # Try to align DataFrame to Series along bad axis
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
@@ -134,16 +95,6 @@ class TestDataFrameAlign:
         tm.assert_index_equal(right.index, float_frame.index)
         assert isinstance(right, Series)
 
-        msg = "The 'broadcast_axis' keyword in DataFrame.align is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            left, right = float_frame.align(s, broadcast_axis=1)
-        tm.assert_index_equal(left.index, float_frame.index)
-        expected = {c: s for c in float_frame.columns}
-        expected = DataFrame(
-            expected, index=float_frame.index, columns=float_frame.columns
-        )
-        tm.assert_frame_equal(right, expected)
-
     def test_align_series_condition(self):
         # see gh-9558
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -155,54 +106,19 @@ class TestDataFrameAlign:
         expected = DataFrame({"a": [0, 2, 0], "b": [0, 5, 0]})
         tm.assert_frame_equal(result, expected)
 
-    def test_align_int(self, int_frame):
-        # test other non-float types
-        other = DataFrame(index=range(5), columns=["A", "B", "C"])
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = int_frame.align(other, join="inner", axis=1, method="pad")
-        tm.assert_index_equal(bf.columns, other.columns)
-
-    def test_align_mixed_type(self, float_string_frame):
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = float_string_frame.align(
-                float_string_frame, join="inner", axis=1, method="pad"
-            )
-        tm.assert_index_equal(bf.columns, float_string_frame.columns)
-
     def test_align_mixed_float(self, mixed_float_frame):
         # mixed floats/ints
         other = DataFrame(index=range(5), columns=["A", "B", "C"])
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
+        af, bf = mixed_float_frame.align(
+            other.iloc[:, 0], join="inner", axis=1, fill_value=0
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = mixed_float_frame.align(
-                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
-            )
         tm.assert_index_equal(bf.index, Index([]))
 
     def test_align_mixed_int(self, mixed_int_frame):
         other = DataFrame(index=range(5), columns=["A", "B", "C"])
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
+        af, bf = mixed_int_frame.align(
+            other.iloc[:, 0], join="inner", axis=1, fill_value=0
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            af, bf = mixed_int_frame.align(
-                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
-            )
         tm.assert_index_equal(bf.index, Index([]))
 
     @pytest.mark.parametrize(
@@ -391,68 +307,6 @@ class TestDataFrameAlign:
 
         with pytest.raises(ValueError, match=r"axis=0 or 1"):
             df.align(series)
-
-    @pytest.mark.parametrize("method", ["pad", "bfill"])
-    @pytest.mark.parametrize("axis", [0, 1, None])
-    @pytest.mark.parametrize("fill_axis", [0, 1])
-    @pytest.mark.parametrize("how", ["inner", "outer", "left", "right"])
-    @pytest.mark.parametrize(
-        "left_slice",
-        [
-            [slice(4), slice(10)],
-            [slice(0), slice(0)],
-        ],
-    )
-    @pytest.mark.parametrize(
-        "right_slice",
-        [
-            [slice(2, None), slice(6, None)],
-            [slice(0), slice(0)],
-        ],
-    )
-    @pytest.mark.parametrize("limit", [1, None])
-    def test_align_fill_method(
-        self, how, method, axis, fill_axis, float_frame, left_slice, right_slice, limit
-    ):
-        frame = float_frame
-        left = frame.iloc[left_slice[0], left_slice[1]]
-        right = frame.iloc[right_slice[0], right_slice[1]]
-
-        msg = (
-            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
-            "are deprecated"
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            aa, ab = left.align(
-                right,
-                axis=axis,
-                join=how,
-                method=method,
-                limit=limit,
-                fill_axis=fill_axis,
-            )
-
-        join_index, join_columns = None, None
-
-        ea, eb = left, right
-        if axis is None or axis == 0:
-            join_index = left.index.join(right.index, how=how)
-            ea = ea.reindex(index=join_index)
-            eb = eb.reindex(index=join_index)
-
-        if axis is None or axis == 1:
-            join_columns = left.columns.join(right.columns, how=how)
-            ea = ea.reindex(columns=join_columns)
-            eb = eb.reindex(columns=join_columns)
-
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
-            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
-
-        tm.assert_frame_equal(aa, ea)
-        tm.assert_frame_equal(ab, eb)
 
     def test_align_series_check_copy(self):
         # GH#

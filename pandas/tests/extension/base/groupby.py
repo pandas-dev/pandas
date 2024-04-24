@@ -28,8 +28,8 @@ class BaseGroupbyTests:
                 "B": data_for_grouping,
             }
         )
-        gr1 = df.groupby("A").grouper.groupings[0]
-        gr2 = df.groupby("B").grouper.groupings[0]
+        gr1 = df.groupby("A")._grouper.groupings[0]
+        gr2 = df.groupby("B")._grouper.groupings[0]
 
         tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
         tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
@@ -114,13 +114,13 @@ class BaseGroupbyTests:
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.groupby("B", group_keys=False).apply(groupby_apply_op)
-        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            df.groupby("B", group_keys=False, observed=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False, observed=False).A.apply(groupby_apply_op)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.groupby("A", group_keys=False).apply(groupby_apply_op)
-        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            df.groupby("A", group_keys=False, observed=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False, observed=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
@@ -162,8 +162,10 @@ class BaseGroupbyTests:
 
             msg = "|".join(
                 [
-                    # period/datetime
+                    # period
                     "does not support sum operations",
+                    # datetime
+                    "does not support operation 'sum'",
                     # all others
                     re.escape(f"agg function failed [how->sum,dtype->{dtype}"),
                 ]

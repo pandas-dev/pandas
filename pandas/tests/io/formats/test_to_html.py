@@ -15,7 +15,6 @@ from pandas import (
     get_option,
     option_context,
 )
-import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -136,13 +135,14 @@ def test_to_html_with_empty_string_label():
 
 
 @pytest.mark.parametrize(
-    "df,expected",
+    "df_data,expected",
     [
-        (DataFrame({"\u03c3": np.arange(10.0)}), "unicode_1"),
-        (DataFrame({"A": ["\u03c3"]}), "unicode_2"),
+        ({"\u03c3": np.arange(10.0)}, "unicode_1"),
+        ({"A": ["\u03c3"]}, "unicode_2"),
     ],
 )
-def test_to_html_unicode(df, expected, datapath):
+def test_to_html_unicode(df_data, expected, datapath):
+    df = DataFrame(df_data)
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
@@ -240,7 +240,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
         (
             DataFrame(
                 [[0, 1], [2, 3], [4, 5], [6, 7]],
-                columns=["foo", None],
+                columns=Index(["foo", None], dtype=object),
                 index=np.arange(4),
             ),
             {"__index__": lambda x: "abcd"[x]},
@@ -419,15 +419,15 @@ def test_to_html_columns_arg(float_frame):
     "columns,justify,expected",
     [
         (
-            MultiIndex.from_tuples(
-                list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+            MultiIndex.from_arrays(
+                [np.arange(2).repeat(2), np.mod(range(4), 2)],
                 names=["CL0", "CL1"],
             ),
             "left",
             "multiindex_1",
         ),
         (
-            MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+            MultiIndex.from_arrays([np.arange(4), np.mod(range(4), 2)]),
             "right",
             "multiindex_2",
         ),
@@ -771,7 +771,7 @@ def test_to_html_render_links(render_links, expected, datapath):
         [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
-    df = DataFrame(data, columns=["foo", "bar", None])
+    df = DataFrame(data, columns=Index(["foo", "bar", None], dtype=object))
 
     result = df.to_html(render_links=render_links)
     expected = expected_html(datapath, expected)
@@ -1164,14 +1164,3 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
-
-
-def test_to_html_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_html except for the "
-        r"argument 'buf' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_html(None, None)

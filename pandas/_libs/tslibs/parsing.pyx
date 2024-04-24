@@ -19,6 +19,7 @@ from cpython.datetime cimport (
 from datetime import timezone
 
 from cpython.object cimport PyObject_Str
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
 
@@ -45,7 +46,6 @@ from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
-    tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
@@ -75,10 +75,7 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas._libs.tslibs.util cimport (
-    get_c_string_buf_and_size,
-    is_array,
-)
+from pandas._libs.tslibs.util cimport is_array
 
 
 cdef extern from "pandas/portable.h":
@@ -176,7 +173,7 @@ cdef datetime _parse_delimited_date(
         int day = 1, month = 1, year
         bint can_swap = 0
 
-    buf = get_c_string_buf_and_size(date_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(date_string, &length)
     if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
         month = _parse_2digit(buf)
@@ -252,7 +249,7 @@ cdef bint _does_string_look_like_time(str parse_string):
         Py_ssize_t length
         int hour = -1, minute = -1
 
-    buf = get_c_string_buf_and_size(parse_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(parse_string, &length)
     if length >= 4:
         if buf[1] == b":":
             # h:MM format
@@ -468,7 +465,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         char first
         int error = 0
 
-    buf = get_c_string_buf_and_size(py_string, &length)
+    buf = PyUnicode_AsUTF8AndSize(py_string, &length)
     if length >= 1:
         first = buf[0]
         if first == b"0":
@@ -522,7 +519,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             pass
 
     if 4 <= date_len <= 7:
-        buf = get_c_string_buf_and_size(date_string, &date_len)
+        buf = PyUnicode_AsUTF8AndSize(date_string, &date_len)
         try:
             i = date_string.index("Q", 1, 6)
             if i == 1:
@@ -703,17 +700,12 @@ cdef datetime dateutil_parse(
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
             if res.tzname != "UTC":
-                # If the system is localized in UTC (as many CI runs are)
-                #  we get tzlocal, once the deprecation is enforced will get
-                #  timezone.utc, not raise.
-                warnings.warn(
+                raise ValueError(
                     f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is deprecated and will raise in a future version. Pass the 'tz' "
+                    "is no longer supported. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level()
                 )
-            ret = ret.replace(tzinfo=_dateutil_tzlocal())
+            ret = ret.replace(tzinfo=timezone.utc)
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
@@ -733,15 +725,10 @@ cdef datetime dateutil_parse(
                 )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
-            # GH#18702
-            warnings.warn(
+            # GH#18702, # GH 50235 enforced in 3.0
+            raise ValueError(
                 f'Parsed string "{timestr}" included an un-recognized timezone '
-                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
-                "in a future version this will raise. Instead pass the string "
-                "without the timezone, then use .tz_localize to convert to a "
-                "recognized timezone.",
-                FutureWarning,
-                stacklevel=find_stack_level()
+                f'"{res.tzname}".'
             )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
@@ -920,8 +907,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (("year", "month", "day", "hour"), "%Y%m%d%H", 0),
         (("year", "month", "day"), "%Y%m%d", 0),
         (("hour", "minute", "second"), "%H%M%S", 0),
-        (("hour", "minute"), "%H%M", 0),
         (("year",), "%Y", 0),
+        (("hour", "minute"), "%H%M", 0),
         (("month",), "%B", 0),
         (("month",), "%b", 0),
         (("month",), "%m", 2),
@@ -941,8 +928,10 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
-    # same default used by dateutil
-    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Use this instead of the dateutil default of
+    # `datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)`
+    # as that causes issues on the 29th of February.
+    default = datetime(1970, 1, 1)
     try:
         parsed_datetime = dateutil_parse(
             dt_str,

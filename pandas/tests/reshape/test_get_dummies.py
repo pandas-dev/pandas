@@ -79,7 +79,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, sparse=sparse, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    def test_get_dummies_basic_types(self, sparse, dtype):
+    def test_get_dummies_basic_types(self, sparse, dtype, using_infer_string):
         # GH 10531
         s_list = list("abc")
         s_series = Series(s_list)
@@ -120,7 +120,8 @@ class TestGetDummies:
 
         result = get_dummies(s_df, columns=["a"], sparse=sparse, dtype=dtype)
 
-        expected_counts = {"int64": 1, "object": 1}
+        key = "string" if using_infer_string else "object"
+        expected_counts = {"int64": 1, key: 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
         expected = Series(expected_counts, name="count").sort_index()
@@ -213,7 +214,7 @@ class TestGetDummies:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_string_dtype(self, df):
+    def test_dataframe_dummies_string_dtype(self, df, using_infer_string):
         # GH44965
         df = df[["A", "B"]]
         df = df.astype({"A": "object", "B": "string"})
@@ -227,7 +228,9 @@ class TestGetDummies:
             },
             dtype=bool,
         )
-        expected[["B_b", "B_c"]] = expected[["B_b", "B_c"]].astype("boolean")
+        if not using_infer_string:
+            # infer_string returns numpy bools
+            expected[["B_b", "B_c"]] = expected[["B_b", "B_c"]].astype("boolean")
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_mix_default(self, df, sparse, dtype):
@@ -450,19 +453,19 @@ class TestGetDummies:
         [
             (
                 {"data": DataFrame({"ä": ["a"]})},
-                DataFrame({"ä_a": [True]}),
+                "ä_a",
             ),
             (
                 {"data": DataFrame({"x": ["ä"]})},
-                DataFrame({"x_ä": [True]}),
+                "x_ä",
             ),
             (
                 {"data": DataFrame({"x": ["a"]}), "prefix": "ä"},
-                DataFrame({"ä_a": [True]}),
+                "ä_a",
             ),
             (
                 {"data": DataFrame({"x": ["a"]}), "prefix_sep": "ä"},
-                DataFrame({"xäa": [True]}),
+                "xäa",
             ),
         ],
     )
@@ -470,6 +473,7 @@ class TestGetDummies:
         # GH22084 get_dummies incorrectly encodes unicode characters
         # in dataframe column names
         result = get_dummies(**get_dummies_kwargs)
+        expected = DataFrame({expected: [True]})
         tm.assert_frame_equal(result, expected)
 
     def test_get_dummies_basic_drop_first(self, sparse):

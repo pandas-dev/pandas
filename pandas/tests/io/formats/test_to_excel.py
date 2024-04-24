@@ -2,6 +2,7 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
+
 import string
 
 import pytest

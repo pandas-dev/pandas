@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
 
 env:
   ENV_FILE: environment.yml
@@ -85,15 +85,8 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: website
         path: web/build
         retention-days: 14
-
-    - name: Trigger web/doc preview
-      run: curl -X POST https://pandas.pydata.org/preview/submit/$RUN_ID/$PR_ID/
-      env:
-        RUN_ID: ${{ github.run_id }}
-        PR_ID: ${{ github.event.pull_request.number }}
-      if: github.event_name == 'pull_request'

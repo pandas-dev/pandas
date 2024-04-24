@@ -1,6 +1,7 @@
 """
 Boilerplate functions used in defining binary operations.
 """
+
 from __future__ import annotations
 
 from functools import wraps
@@ -40,7 +41,7 @@ def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     return wrapper
 
 
-def _unpack_zerodim_and_defer(method, name: str):
+def _unpack_zerodim_and_defer(method: F, name: str) -> F:
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -75,7 +76,9 @@ def _unpack_zerodim_and_defer(method, name: str):
 
         return method(self, other)
 
-    return new_method
+    # error: Incompatible return value type (got "Callable[[Any, Any], Any]",
+    # expected "F")
+    return new_method  # type: ignore[return-value]
 
 
 def get_op_result_name(left, right):

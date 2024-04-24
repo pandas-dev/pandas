@@ -5,7 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("categories", [["b", "a", "c"], ["a", "b", "c", "d"]])
 def test_factorize(categories, ordered):
     cat = pd.Categorical(

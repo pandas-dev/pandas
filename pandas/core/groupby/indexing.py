@@ -99,8 +99,9 @@ class GroupByIndexingMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
-        ...                   columns=["A", "B"])
+        >>> df = pd.DataFrame(
+        ...     [["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]], columns=["A", "B"]
+        ... )
         >>> df.groupby("A")._positional_selector[1:2]
            A  B
         1  a  2
@@ -113,7 +114,6 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
-            # pylint: disable-next=used-before-assignment
             groupby_self = cast(groupby.GroupBy, self)
         else:
             groupby_self = self

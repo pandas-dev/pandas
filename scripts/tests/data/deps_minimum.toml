@@ -161,26 +161,6 @@ test-command = ""
 select = "*-win32"
 environment = { IS_32_BIT="true" }
 
-[tool.black]
-target-version = ['py38', 'py39']
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 update-check = false
@@ -251,104 +231,6 @@ exclude = [
   "env",
 ]
 
-[tool.pylint.messages_control]
-max-line-length = 88
-disable = [
- # intentionally turned off
-  "broad-except",
-  "c-extension-no-member",
-  "comparison-with-itself",
-  "import-error",
-  "import-outside-toplevel",
-  "invalid-name",
-  "invalid-unary-operand-type",
-  "line-too-long",
-  "no-else-continue",
-  "no-else-raise",
-  "no-else-return",
-  "no-member",
-  "no-name-in-module",
-  "not-an-iterable",
-  "overridden-final-method",
-  "pointless-statement",
-  "redundant-keyword-arg",
-  "singleton-comparison",
-  "too-many-ancestors",
-  "too-many-arguments",
-  "too-many-boolean-expressions",
-  "too-many-branches",
-  "too-many-function-args",
-  "too-many-instance-attributes",
-  "too-many-locals",
-  "too-many-nested-blocks",
-  "too-many-public-methods",
-  "too-many-return-statements",
-  "too-many-statements",
-  "unexpected-keyword-arg",
-  "ungrouped-imports",
-  "unsubscriptable-object",
-  "unsupported-assignment-operation",
-  "unsupported-membership-test",
-  "unused-import",
-  "use-implicit-booleaness-not-comparison",
-  "use-implicit-booleaness-not-len",
-  "wrong-import-order",
-  "wrong-import-position",
-
- # misc
-  "abstract-class-instantiated",
-  "no-value-for-parameter",
-  "undefined-variable",
-  "unpacking-non-sequence",
-
- # pylint type "C": convention, for programming standard violation
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "too-many-lines",
-  "unidiomatic-typecheck",
-  "unnecessary-dunder-call",
-  "unnecessary-lambda-assignment",
-
-  # pylint type "R": refactor, for bad code smell
-  "consider-using-with",
-  "cyclic-import",
-  "duplicate-code",
-  "inconsistent-return-statements",
-  "redefined-argument-from-local",
-  "too-few-public-methods",
-
-  # pylint type "W": warning, for python specific problems
-  "abstract-method",
-  "arguments-differ",
-  "arguments-out-of-order",
-  "arguments-renamed",
-  "attribute-defined-outside-init",
-  "comparison-with-callable",
-  "dangerous-default-value",
-  "deprecated-module",
-  "eval-used",
-  "expression-not-assigned",
-  "fixme",
-  "global-statement",
-  "invalid-overridden-method",
-  "keyword-arg-before-vararg",
-  "possibly-unused-variable",
-  "protected-access",
-  "raise-missing-from",
-  "redefined-builtin",
-  "redefined-outer-name",
-  "self-cls-assignment",
-  "signature-differs",
-  "super-init-not-called",
-  "try-except-raise",
-  "unnecessary-lambda",
-  "unspecified-encoding",
-  "unused-argument",
-  "unused-variable",
-  "using-constant-test"
-]
-
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "7.0"
@@ -382,7 +264,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: tests known to invoke undefined behavior",
 ]
 
 [tool.mypy]
@@ -514,14 +396,11 @@ exclude_lines = [
   "pragma: no cover",
   # Don't complain about missing debug-only code:s
   "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
   "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
-  "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
 

@@ -87,14 +87,12 @@ def test_agg(step):
     b_mean = r["B"].mean()
     b_std = r["B"].std()
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
-        result = r.aggregate([np.mean, np.std])
+    result = r.aggregate([np.mean, lambda x: np.std(x, ddof=1)])
     expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
-    expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "std"]])
+    expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "<lambda>"]])
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
-        result = r.aggregate({"A": np.mean, "B": np.std})
+    result = r.aggregate({"A": np.mean, "B": lambda x: np.std(x, ddof=1)})
 
     expected = concat([a_mean, b_std], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -127,19 +125,6 @@ def test_agg(step):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.parametrize(
-    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
-)
-def test_multi_axis_1_raises(func):
-    # GH#46904
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        r = df.rolling(window=3, axis=1)
-    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
-        r.agg(func)
-
-
 def test_agg_apply(raw):
     # passed lambda
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
@@ -147,8 +132,7 @@ def test_agg_apply(raw):
     r = df.rolling(window=3)
     a_sum = r["A"].sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|std]"):
-        result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+    result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
     rcustom = r["B"].apply(lambda x: np.std(x, ddof=1), raw=raw)
     expected = concat([a_sum, rcustom], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -158,18 +142,15 @@ def test_agg_consistency(step):
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3, step=step)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
-        result = r.agg([np.sum, np.mean]).columns
+    result = r.agg([np.sum, np.mean]).columns
     expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])
     tm.assert_index_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
-        result = r["A"].agg([np.sum, np.mean]).columns
+    result = r["A"].agg([np.sum, np.mean]).columns
     expected = Index(["sum", "mean"])
     tm.assert_index_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
-        result = r.agg({"A": [np.sum, np.mean]}).columns
+    result = r.agg({"A": [np.sum, np.mean]}).columns
     expected = MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
     tm.assert_index_equal(result, expected)
 
@@ -350,32 +331,6 @@ def test_dont_modify_attributes_after_methods(
     getattr(roll_obj, arithmetic_win_operators)()
     result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     assert result == expected
-
-
-def test_centered_axis_validation(step):
-    # ok
-    msg = "The 'axis' keyword in Series.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
-
-    # bad axis
-    msg = "No axis named 1 for object type Series"
-    with pytest.raises(ValueError, match=msg):
-        Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
-
-    # ok ok
-    df = DataFrame(np.ones((10, 10)))
-    msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.rolling(window=3, center=True, axis=0, step=step).mean()
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.rolling(window=3, center=True, axis=1, step=step).mean()
-
-    # bad axis
-    msg = "No axis named 2 for object type DataFrame"
-    with pytest.raises(ValueError, match=msg):
-        (df.rolling(window=3, center=True, axis=2, step=step).mean())
 
 
 def test_rolling_min_min_periods(step):

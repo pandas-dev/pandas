@@ -19,10 +19,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Iterable,
-        Sequence,
-    )
+    from collections.abc import Iterable
 
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
@@ -101,13 +98,14 @@ def _get_layout(
         nrows, ncols = layout
 
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
+            layout = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
+            layout = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
 
+        nrows, ncols = layout
         if nrows * ncols < nplots:
             raise ValueError(
                 f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"
@@ -442,7 +440,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
+def flatten_axes(axes: Axes | Iterable[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -451,7 +449,7 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Axes | Sequence[Axes],
+    axes: Axes | Iterable[Axes],
     xlabelsize: int | None = None,
     xrot=None,
     ylabelsize: int | None = None,

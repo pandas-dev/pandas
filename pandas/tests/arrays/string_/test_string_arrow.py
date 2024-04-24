@@ -61,7 +61,7 @@ def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
-            "ArrowStringArray requires a PyArrow (chunked) array of string type"
+            "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
         )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
@@ -76,17 +76,20 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         arr = pa.chunked_array(arr)
 
     msg = re.escape(
-        "ArrowStringArray requires a PyArrow (chunked) array of string type"
+        "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
     )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
 
 
+@pytest.mark.xfail(
+    reason="dict conversion does not seem to be implemented for large string in arrow"
+)
 @pytest.mark.parametrize("chunked", [True, False])
 def test_constructor_valid_string_type_value_dictionary(chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.utf8()))
+    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
@@ -217,22 +220,22 @@ def test_setitem_invalid_indexer_raises():
 
     arr = ArrowStringArray(pa.array(list("abcde")))
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[5] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[-6] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, 5]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[0, -6]] = "foo"
 
-    with pytest.raises(IndexError, match=None):
+    with tm.external_error_raised(IndexError):
         arr[[True, True, False]] = "foo"
 
-    with pytest.raises(ValueError, match=None):
+    with tm.external_error_raised(ValueError):
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 

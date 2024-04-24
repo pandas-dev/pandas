@@ -17,7 +17,8 @@ class TestCategoricalOpsWithFactor:
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         tm.assert_categorical_equal(factor, factor)
 
-    def test_comparisons(self, factor):
+    def test_comparisons(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         result = factor[factor == "a"]
         expected = factor[np.asarray(factor) == "a"]
         tm.assert_categorical_equal(result, expected)
@@ -306,29 +307,23 @@ class TestCategoricalOps:
         with pytest.raises(TypeError, match=msg):
             a < cat_rev
 
-    @pytest.mark.parametrize(
-        "ctor",
-        [
-            lambda *args, **kwargs: Categorical(*args, **kwargs),
-            lambda *args, **kwargs: Series(Categorical(*args, **kwargs)),
-        ],
-    )
-    def test_unordered_different_order_equal(self, ctor):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_unordered_different_order_equal(self, box):
         # https://github.com/pandas-dev/pandas/issues/16014
-        c1 = ctor(["a", "b"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["a", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "b"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["a", "b"], categories=["b", "a"], ordered=False))
         assert (c1 == c2).all()
 
-        c1 = ctor(["a", "b"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["b", "a"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "b"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["b", "a"], categories=["b", "a"], ordered=False))
         assert (c1 != c2).all()
 
-        c1 = ctor(["a", "a"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["b", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "a"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["b", "b"], categories=["b", "a"], ordered=False))
         assert (c1 != c2).all()
 
-        c1 = ctor(["a", "a"], categories=["a", "b"], ordered=False)
-        c2 = ctor(["a", "b"], categories=["b", "a"], ordered=False)
+        c1 = box(Categorical(["a", "a"], categories=["a", "b"], ordered=False))
+        c2 = box(Categorical(["a", "b"], categories=["b", "a"], ordered=False))
         result = c1 == c2
         tm.assert_numpy_array_equal(np.array(result), np.array([True, False]))
 
@@ -379,14 +374,14 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"does not support reduction '{op}'"
+            msg = f"does not support operation '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
     def test_numeric_like_ops_series(self):
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
+        with pytest.raises(TypeError, match="does not support operation 'sum'"):
             np.sum(s)
 
     @pytest.mark.parametrize(

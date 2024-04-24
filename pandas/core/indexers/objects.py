@@ -1,4 +1,5 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -52,11 +53,8 @@ class BaseIndexer:
     >>> from pandas.api.indexers import BaseIndexer
     >>> class CustomIndexer(BaseIndexer):
     ...     def get_window_bounds(self, num_values, min_periods, center, closed, step):
-    ...         start = np.empty(num_values, dtype=np.int64)
-    ...         end = np.empty(num_values, dtype=np.int64)
-    ...         for i in range(num_values):
-    ...             start[i] = i
-    ...             end[i] = i + self.window_size
+    ...         start = np.arange(num_values, dtype=np.int64)
+    ...         end = np.arange(num_values, dtype=np.int64) + self.window_size
     ...         return start, end
     >>> df = pd.DataFrame({"values": range(5)})
     >>> indexer = CustomIndexer(window_size=2)
@@ -300,7 +298,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
 
     Examples
     --------
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     >>> df
          B
     0  0.0
@@ -399,7 +397,7 @@ class GroupbyIndexer(BaseIndexer):
         start_arrays = []
         end_arrays = []
         window_indices_start = 0
-        for key, indices in self.groupby_indices.items():
+        for indices in self.groupby_indices.values():
             index_array: np.ndarray | None
 
             if self.index_array is not None:

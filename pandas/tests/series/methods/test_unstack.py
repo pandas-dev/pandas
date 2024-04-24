@@ -140,7 +140,7 @@ def test_unstack_multi_index_categorical_values():
         columns=Index(list("ABCD"), dtype=object),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
-    mi = df.stack(future_stack=True).index.rename(["major", "minor"])
+    mi = df.stack().index.rename(["major", "minor"])
     ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
     result = ser.unstack()
@@ -148,7 +148,7 @@ def test_unstack_multi_index_categorical_values():
     dti = ser.index.levels[0]
     c = pd.Categorical(["foo"] * len(dti))
     expected = DataFrame(
-        {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
+        {"A": c, "B": c, "C": c, "D": c},
         columns=Index(list("ABCD"), name="minor"),
         index=dti.rename("major"),
     )

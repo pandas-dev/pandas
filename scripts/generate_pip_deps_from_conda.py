@@ -45,7 +45,7 @@ def conda_package_to_pip(package: str):
     - A package requiring a specific version, in conda is defined with a single
       equal (e.g. ``pandas=1.0``) and in pip with two (e.g. ``pandas==1.0``)
     """
-    package = re.sub("(?<=[^<>])=", "==", package).strip()
+    package = re.sub("(?<=[^<>~])=", "==", package).strip()
 
     for compare in ("<=", ">=", "=="):
         if compare in package:

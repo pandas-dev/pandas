@@ -8,11 +8,11 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
     Union,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -28,7 +28,6 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
-    FillnaOptions,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
@@ -79,6 +78,7 @@ from pandas.core.algorithms import (
     unique,
     value_counts_internal as value_counts,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
@@ -121,9 +121,7 @@ _shared_docs_kwargs = {
 }
 
 
-_interval_shared_docs[
-    "class"
-] = """
+_interval_shared_docs["class"] = """
 %(summary)s
 
 Parameters
@@ -232,7 +230,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
-    ):
+    ) -> Self:
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
@@ -370,11 +368,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = ensure_wrapped_if_datetimelike(right)
         right = extract_array(right, extract_numpy=True)
 
-        lbase = getattr(left, "_ndarray", left).base
-        rbase = getattr(right, "_ndarray", right).base
-        if lbase is not None and lbase is rbase:
-            # If these share data, then setitem could corrupt our IA
-            right = right.copy()
+        if isinstance(left, ArrowExtensionArray) or isinstance(
+            right, ArrowExtensionArray
+        ):
+            pass
+        else:
+            lbase = getattr(left, "_ndarray", left)
+            lbase = getattr(lbase, "_data", lbase).base
+            rbase = getattr(right, "_ndarray", right)
+            rbase = getattr(rbase, "_data", rbase).base
+            if lbase is not None and lbase is rbase:
+                # If these share data, then setitem could corrupt our IA
+                right = right.copy()
 
         dtype = IntervalDtype(left.dtype, closed=closed)
 
@@ -699,12 +704,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
     @overload
-    def __getitem__(self, key: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
         key = check_array_indexer(self, key)
@@ -889,16 +892,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
-        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
-
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -909,9 +903,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should be either Interval objects or NA/NaN.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            (Not implemented yet for IntervalArray)
-            Method to use for filling holes in reindexed Series
         limit : int, default None
             (Not implemented yet for IntervalArray)
             If method is specified, this is the maximum number of consecutive
@@ -932,8 +923,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         if copy is False:
             raise NotImplementedError
-        if method is not None:
-            return super().fillna(value=value, method=method, limit=limit)
 
         value_left, value_right = self._validate_scalar(value)
 
@@ -1071,7 +1060,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             fill_value = Index(self._left, copy=False)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
-            empty = self._from_sequence([fill_value] * empty_len)
+            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
         if periods > 0:
             a = empty
@@ -1227,21 +1216,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of value_counts with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            result = value_counts(np.asarray(self), dropna=dropna)
-            # Once the deprecation is enforced, we will need to do
-            #  `result.index = result.index.astype(self.dtype)`
+        result = value_counts(np.asarray(self), dropna=dropna)
+        result.index = result.index.astype(self.dtype)
         return result
 
     # ---------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         # returning 'str' here causes us to render as e.g. "(0, 1]" instead of
         #  "Interval(0, 1, closed='right')"
         return str
@@ -1481,9 +1463,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = IntervalDtype(left.dtype, closed=closed)
         return self._simple_new(left, right, dtype=dtype)
 
-    _interval_shared_docs[
-        "is_non_overlapping_monotonic"
-    ] = """
+    _interval_shared_docs["is_non_overlapping_monotonic"] = """
         Return a boolean whether the %(klass)s is non-overlapping and monotonic.
 
         Non-overlapping means (no Intervals share points), and monotonic means
@@ -1552,7 +1532,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
@@ -1715,6 +1697,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(new_left, new_right)
 
     def delete(self, loc) -> Self:
+        new_left: np.ndarray | DatetimeArray | TimedeltaArray
+        new_right: np.ndarray | DatetimeArray | TimedeltaArray
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
             assert isinstance(self._right, np.ndarray)
@@ -1842,9 +1826,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
             assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
-            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            new_left: DatetimeArray | TimedeltaArray | np.ndarray = type(
+                self._left
+            )._from_sequence(nc[:, 0], dtype=dtype)
             assert isinstance(self._right, (DatetimeArray, TimedeltaArray))
-            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+            new_right: DatetimeArray | TimedeltaArray | np.ndarray = type(
+                self._right
+            )._from_sequence(nc[:, 1], dtype=dtype)
         else:
             assert isinstance(dtype, np.dtype)
             new_left = nc[:, 0].view(dtype)

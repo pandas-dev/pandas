@@ -1,6 +1,7 @@
 """
 Assertion helpers for arithmetic tests.
 """
+
 import numpy as np
 import pytest
 

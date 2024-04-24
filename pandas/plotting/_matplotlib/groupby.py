@@ -50,10 +50,9 @@ def create_iter_data_given_by(
     If `by` is assigned:
 
     >>> import numpy as np
-    >>> tuples = [('h1', 'a'), ('h1', 'b'), ('h2', 'a'), ('h2', 'b')]
+    >>> tuples = [("h1", "a"), ("h1", "b"), ("h2", "a"), ("h2", "b")]
     >>> mi = pd.MultiIndex.from_tuples(tuples)
-    >>> value = [[1, 3, np.nan, np.nan],
-    ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
+    >>> value = [[1, 3, np.nan, np.nan], [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
     >>> data = pd.DataFrame(value, columns=mi)
     >>> create_iter_data_given_by(data)
     {'h1':     h1
@@ -106,9 +105,9 @@ def reconstruct_data_with_by(
 
     Examples
     --------
-    >>> d = {'h': ['h1', 'h1', 'h2'], 'a': [1, 3, 5], 'b': [3, 4, 6]}
+    >>> d = {"h": ["h1", "h1", "h2"], "a": [1, 3, 5], "b": [3, 4, 6]}
     >>> df = pd.DataFrame(d)
-    >>> reconstruct_data_with_by(df, by='h', cols=['a', 'b'])
+    >>> reconstruct_data_with_by(df, by="h", cols=["a", "b"])
        h1      h2
        a     b     a     b
     0  1.0   3.0   NaN   NaN

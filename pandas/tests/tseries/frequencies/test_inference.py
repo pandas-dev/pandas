@@ -23,6 +23,7 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -206,7 +207,8 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 )
 def test_infer_freq_index(freq, expected):
     rng = period_range("1959Q2", "2009Q3", freq=freq)
-    rng = Index(rng.to_timestamp("D", how="e").astype(object))
+    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+        rng = Index(rng.to_timestamp("D", how="e").astype(object))
 
     assert rng.inferred_freq == expected
 
@@ -229,7 +231,6 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
     # see gh-7310, GH#55609
     tz = tz_naive_fixture
@@ -498,7 +499,6 @@ def test_series_datetime_index(freq):
         "YE@OCT",
         "YE@NOV",
         "YE@DEC",
-        "YE@JAN",
         "WOM@1MON",
         "WOM@2MON",
         "WOM@3MON",

@@ -1,4 +1,5 @@
-""" test the scalar Timedelta """
+"""test the scalar Timedelta"""
+
 from datetime import timedelta
 import sys
 
@@ -10,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     NaT,
     iNaT,
@@ -137,6 +139,19 @@ class TestNonNano:
         assert res._value == td._value / 2
         assert res._creso == td._creso
 
+    def test_truediv_na_type_not_supported(self, td):
+        msg_td_floordiv_na = (
+            r"unsupported operand type\(s\) for /: 'Timedelta' and 'NAType'"
+        )
+        with pytest.raises(TypeError, match=msg_td_floordiv_na):
+            td / NA
+
+        msg_na_floordiv_td = (
+            r"unsupported operand type\(s\) for /: 'NAType' and 'Timedelta'"
+        )
+        with pytest.raises(TypeError, match=msg_na_floordiv_td):
+            NA / td
+
     def test_floordiv_timedeltalike(self, td):
         assert td // td == 1
         assert (2.5 * td) // td == 2
@@ -180,6 +195,19 @@ class TestNonNano:
         res = td // np.array(2.0)
         assert res._value == td._value // 2
         assert res._creso == td._creso
+
+    def test_floordiv_na_type_not_supported(self, td):
+        msg_td_floordiv_na = (
+            r"unsupported operand type\(s\) for //: 'Timedelta' and 'NAType'"
+        )
+        with pytest.raises(TypeError, match=msg_td_floordiv_na):
+            td // NA
+
+        msg_na_floordiv_td = (
+            r"unsupported operand type\(s\) for //: 'NAType' and 'Timedelta'"
+        )
+        with pytest.raises(TypeError, match=msg_na_floordiv_td):
+            NA // td
 
     def test_addsub_mismatched_reso(self, td):
         # need to cast to since td is out of bounds for ns, so
@@ -551,6 +579,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
+    @pytest.mark.skip_ubsan
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
     )
@@ -662,4 +691,11 @@ def test_timedelta_attribute_precision():
     result *= 1000
     result += td.nanoseconds
     expected = td._value
+    assert result == expected
+
+
+def test_to_pytimedelta_large_values():
+    td = Timedelta(1152921504609987375, unit="ns")
+    result = td.to_pytimedelta()
+    expected = timedelta(days=13343, seconds=86304, microseconds=609987)
     assert result == expected

@@ -1,4 +1,5 @@
-""" define the IntervalIndex """
+"""define the IntervalIndex"""
+
 from __future__ import annotations
 
 from operator import (
@@ -128,7 +129,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _get_prev_label(label):
@@ -145,7 +146,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.inf)
     else:
-        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
+        raise TypeError(f"cannot determine next label for type {type(label)!r}")
 
 
 def _new_IntervalIndex(cls, d):
@@ -479,7 +480,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='both')
+        >>> index = pd.interval_range(0, 3, closed="both")
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -488,7 +489,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='left')
+        >>> index = pd.interval_range(0, 3, closed="left")
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
@@ -555,9 +556,7 @@ class IntervalIndex(ExtensionIndex):
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
             # error: "object" not callable
-            return constructor(
-                left, right, closed=self.closed
-            )  # type: ignore[operator]
+            return constructor(left, right, closed=self.closed)  # type: ignore[operator]
 
         if scalar:
             # Timestamp/Timedelta
@@ -1006,8 +1005,8 @@ def interval_range(
     ``IntervalIndex`` will have ``periods`` linearly spaced elements between
     ``start`` and ``end``, inclusively.
 
-    To learn more about datetime-like frequency strings, please see `this link
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    To learn more about datetime-like frequency strings, please see
+    :ref:`this link<timeseries.offset_aliases>`.
 
     Examples
     --------
@@ -1019,8 +1018,9 @@ def interval_range(
 
     Additionally, datetime-like input is also supported.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   end=pd.Timestamp('2017-01-04'))
+    >>> pd.interval_range(
+    ...     start=pd.Timestamp("2017-01-01"), end=pd.Timestamp("2017-01-04")
+    ... )
     IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
                    (2017-01-02 00:00:00, 2017-01-03 00:00:00],
                    (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
@@ -1037,8 +1037,7 @@ def interval_range(
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   periods=3, freq='MS')
+    >>> pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=3, freq="MS")
     IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
                    (2017-02-01 00:00:00, 2017-03-01 00:00:00],
                    (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
@@ -1054,7 +1053,7 @@ def interval_range(
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, closed='both')
+    >>> pd.interval_range(end=5, periods=4, closed="both")
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
@@ -1103,9 +1102,23 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
+        dtype: np.dtype = np.dtype("int64")
         if com.all_not_none(start, end, freq):
+            if (
+                isinstance(start, (float, np.float16))
+                or isinstance(end, (float, np.float16))
+                or isinstance(freq, (float, np.float16))
+            ):
+                dtype = np.dtype("float64")
+            elif (
+                isinstance(start, (np.integer, np.floating))
+                and isinstance(end, (np.integer, np.floating))
+                and start.dtype == end.dtype
+            ):
+                dtype = start.dtype
             # 0.1 ensures we capture end
             breaks = np.arange(start, end + (freq * 0.1), freq)
+            breaks = maybe_downcast_numeric(breaks, dtype)
         else:
             # compute the period/start/end if unspecified (at most one)
             if periods is None:
@@ -1124,7 +1137,7 @@ def interval_range(
             # expected "ndarray[Any, Any]"  [
             breaks = maybe_downcast_numeric(
                 breaks,  # type: ignore[arg-type]
-                np.dtype("int64"),
+                dtype,
             )
     else:
         # delegate to the appropriate range function
@@ -1133,4 +1146,9 @@ def interval_range(
         else:
             breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
-    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+    return IntervalIndex.from_breaks(
+        breaks,
+        name=name,
+        closed=closed,
+        dtype=IntervalDtype(subtype=breaks.dtype, closed=closed),
+    )

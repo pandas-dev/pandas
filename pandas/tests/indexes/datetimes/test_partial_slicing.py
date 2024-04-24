@@ -1,4 +1,4 @@
-""" test partial slicing on Series/Frame """
+"""test partial slicing on Series/Frame"""
 
 from datetime import datetime
 
@@ -236,7 +236,7 @@ class TestSlicing:
         rng = date_range(
             start=datetime(2005, 1, 1, 0, 0, 59, microsecond=999990),
             periods=20,
-            freq="US",
+            freq="us",
         )
         s = Series(np.arange(20), rng)
 
@@ -450,8 +450,8 @@ class TestSlicing:
         with pytest.raises(ValueError, match="Both dates must"):
             df[start : end[:-4] + "1:00"]
 
+        df = df.tz_localize(None)
         with pytest.raises(ValueError, match="The index must be timezone"):
-            df = df.tz_localize(None)
             df[start:end]
 
     def test_slice_reduce_to_series(self):

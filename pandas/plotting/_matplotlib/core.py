@@ -93,7 +93,14 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Series
+    from pandas import (
+        Index,
+        Series,
+    )
+
+
+def holds_integer(column: Index) -> bool:
+    return column.inferred_type in {"integer", "mixed-integer"}
 
 
 def _color_in_style(style: str) -> bool:
@@ -290,7 +297,7 @@ class MPLPlot(ABC):
     def _validate_sharex(sharex: bool | None, ax, by) -> bool:
         if sharex is None:
             # if by is defined, subplots are used and sharex should be False
-            if ax is None and by is None:  # pylint: disable=simplifiable-if-statement
+            if ax is None and by is None:
                 sharex = True
             else:
                 # if we get an axis, the users should do the visibility
@@ -465,7 +472,7 @@ class MPLPlot(ABC):
     @final
     @staticmethod
     def _iter_data(
-        data: DataFrame | dict[Hashable, Series | DataFrame]
+        data: DataFrame | dict[Hashable, Series | DataFrame],
     ) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
             # This was originally written to use values.values before EAs
@@ -616,8 +623,7 @@ class MPLPlot(ABC):
             # error: Argument 1 to "len" has incompatible type "Union[bool,
             # Tuple[Any, ...], List[Any], ndarray[Any, Any]]"; expected "Sized"
             all_sec = (
-                is_list_like(self.secondary_y)
-                and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
+                is_list_like(self.secondary_y) and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
@@ -662,7 +668,7 @@ class MPLPlot(ABC):
         return data
 
     @final
-    def _compute_plot_data(self):
+    def _compute_plot_data(self) -> None:
         data = self.data
 
         # GH15079 reconstruct data if by is defined
@@ -672,7 +678,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects(copy=False)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -699,7 +705,7 @@ class MPLPlot(ABC):
 
         self.data = numeric_data.apply(type(self)._convert_to_ndarray)
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         raise AbstractMethodError(self)
 
     @final
@@ -745,7 +751,7 @@ class MPLPlot(ABC):
         """Post process for each axes. Overridden in child classes"""
 
     @final
-    def _adorn_subplots(self, fig: Figure):
+    def _adorn_subplots(self, fig: Figure) -> None:
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
             all_axes = self._get_subplots(fig)
@@ -1022,7 +1028,7 @@ class MPLPlot(ABC):
             return col_idx
 
     @final
-    def _get_ax(self, i: int):
+    def _get_ax(self, i: int) -> Axes:
         # get the twinx ax if appropriate
         if self.subplots:
             i = self._col_idx_to_axis_idx(i)
@@ -1038,7 +1044,7 @@ class MPLPlot(ABC):
         return ax
 
     @final
-    def on_right(self, i: int):
+    def on_right(self, i: int) -> bool:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
@@ -1178,7 +1184,7 @@ class MPLPlot(ABC):
 
         elif is_number(err):
             err = np.tile(
-                [err],  # pyright: ignore[reportGeneralTypeIssues]
+                [err],
                 (nseries, len(data)),
             )
 
@@ -1186,7 +1192,7 @@ class MPLPlot(ABC):
             msg = f"No valid {label} detected"
             raise ValueError(msg)
 
-        return err, data  # pyright: ignore[reportGeneralTypeIssues]
+        return err, data
 
     @final
     def _get_errorbars(
@@ -1211,7 +1217,7 @@ class MPLPlot(ABC):
         return errors
 
     @final
-    def _get_subplots(self, fig: Figure):
+    def _get_subplots(self, fig: Figure) -> list[Axes]:
         if Version(mpl.__version__) < Version("3.8"):
             from matplotlib.axes import Subplot as Klass
         else:
@@ -1247,9 +1253,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not self.data.columns._holds_integer():
+        if is_integer(x) and not holds_integer(self.data.columns):
             x = self.data.columns[x]
-        if is_integer(y) and not self.data.columns._holds_integer():
+        if is_integer(y) and not holds_integer(self.data.columns):
             y = self.data.columns[y]
 
         self.x = x
@@ -1319,11 +1325,11 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
-        if is_integer(c) and not self.data.columns._holds_integer():
+        if is_integer(c) and not holds_integer(self.data.columns):
             c = self.data.columns[c]
         self.c = c
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
@@ -1365,7 +1371,7 @@ class ScatterPlot(PlanePlot):
                 # error: Argument 2 to "_append_legend_handles_labels" of
                 # "MPLPlot" has incompatible type "Hashable"; expected "str"
                 scatter,
-                label,  # type: ignore[arg-type]  # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
@@ -1435,7 +1441,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not self.data.columns._holds_integer():
+        if is_integer(C) and not holds_integer(self.data.columns):
             C = self.data.columns[C]
         self.C = C
 
@@ -1531,7 +1537,7 @@ class LinePlot(MPLPlot):
                 i,
                 # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
                 # incompatible type "Hashable"; expected "str"
-                label,  # type: ignore[arg-type] # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
             errors = self._get_errorbars(label=label, index=i)
@@ -1544,7 +1550,7 @@ class LinePlot(MPLPlot):
             newlines = plotf(
                 ax,
                 x,
-                y,  # pyright: ignore[reportGeneralTypeIssues]
+                y,
                 style=style,
                 column_num=i,
                 stacking_id=stacking_id,
@@ -1719,13 +1725,7 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "Downcasting object dtype arrays",
-                category=FutureWarning,
-            )
-            data = data.fillna(value=0)
+        data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:
@@ -2101,9 +2101,11 @@ class PiePlot(MPLPlot):
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
-                patches, texts, autotexts = results
+                # error: Need more than 2 values to unpack (3 expected)
+                patches, texts, autotexts = results  # type: ignore[misc]
             else:
-                patches, texts = results
+                # error: Too many values to unpack (2 expected, 3 provided)
+                patches, texts = results  # type: ignore[misc]
                 autotexts = []
 
             if self.fontsize is not None:

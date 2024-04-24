@@ -88,9 +88,9 @@ def test_isoformat(ts, timespec, expected_iso):
 
 
 class TestTimestampRendering:
-    timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
-
-    @pytest.mark.parametrize("tz", timezones)
+    @pytest.mark.parametrize(
+        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
+    )
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
     @pytest.mark.parametrize(
         "date", ["2014-03-07", "2014-01-01 09:00", "2014-01-01 00:00:00.000000001"]
@@ -118,7 +118,7 @@ class TestTimestampRendering:
     def test_repr_utcoffset(self):
         # This can cause the tz field to be populated, but it's redundant to
         # include this information in the date-string.
-        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400", tz=None)
+        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400")
         assert "2014-03-13 00:00:00-0400" in repr(date_with_utc_offset)
         assert "tzoffset" not in repr(date_with_utc_offset)
         assert "UTC-04:00" in repr(date_with_utc_offset)

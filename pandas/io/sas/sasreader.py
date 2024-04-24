@@ -1,12 +1,14 @@
 """
 Read SAS sas7bdat or xport files.
 """
+
 from __future__ import annotations
 
 from abc import (
     ABC,
     abstractmethod,
 )
+from collections.abc import Iterator
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -32,18 +34,16 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-class ReaderBase(ABC):
+class SASReader(Iterator["DataFrame"], ABC):
     """
-    Protocol for XportReader and SAS7BDATReader classes.
+    Abstract class for XportReader and SAS7BDATReader.
     """
 
     @abstractmethod
-    def read(self, nrows: int | None = None) -> DataFrame:
-        ...
+    def read(self, nrows: int | None = None) -> DataFrame: ...
 
     @abstractmethod
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
     def __enter__(self) -> Self:
         return self
@@ -67,8 +67,7 @@ def read_sas(
     chunksize: int = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> ReaderBase:
-    ...
+) -> SASReader: ...
 
 
 @overload
@@ -81,8 +80,7 @@ def read_sas(
     chunksize: None = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> DataFrame | ReaderBase:
-    ...
+) -> DataFrame | SASReader: ...
 
 
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
@@ -95,7 +93,7 @@ def read_sas(
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
-) -> DataFrame | ReaderBase:
+) -> DataFrame | SASReader:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -116,22 +114,15 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
-
-        .. versionchanged:: 1.2
-
-            ``TextFileReader`` is a context manager.
     {decompression_options}
 
     Returns
     -------
-    DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
-    or XportReader
+    DataFrame, SAS7BDATReader, or XportReader
+        DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
+        or XportReader, file format is inferred from file extension.
 
     Examples
     --------
@@ -152,10 +143,10 @@ def read_sas(
             format = "sas7bdat"
         else:
             raise ValueError(
-                f"unable to infer format of SAS file from filename: {repr(fname)}"
+                f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
-    reader: ReaderBase
+    reader: SASReader
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
 

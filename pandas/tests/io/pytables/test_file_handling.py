@@ -8,6 +8,7 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_linux,
     is_platform_little_endian,
+    is_platform_mac,
 )
 from pandas.errors import (
     ClosedFileError,
@@ -258,7 +259,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
 @pytest.mark.skipif(
     not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment"
+    reason="Segfaulting in a CI environment",
     # with xfail, would sometimes raise UnicodeDecodeError
     # invalid state byte
 )
@@ -287,12 +288,17 @@ def test_complibs(tmp_path, lvl, lib, request):
     result = read_hdf(tmpfile, gname)
     tm.assert_frame_equal(result, df)
 
+    is_mac = is_platform_mac()
+
     # Open file and check metadata for correct amount of compression
     with tables.open_file(tmpfile, mode="r") as h5table:
         for node in h5table.walk_nodes(where="/" + gname, classname="Leaf"):
             assert node.filters.complevel == lvl
             if lvl == 0:
                 assert node.filters.complib is None
+            elif is_mac and lib == "blosc2":
+                res = node.filters.complib
+                assert res in [lib, "blosc2:blosclz"], res
             else:
                 assert node.filters.complib == lib
 

@@ -4,6 +4,7 @@ Methods that can be shared by many array-like classes or subclasses:
     Index
     ExtensionArray
 """
+
 from __future__ import annotations
 
 import operator
@@ -119,8 +120,9 @@ class OpsMixin:
 
         Examples
         --------
-        >>> df = pd.DataFrame({'height': [1.5, 2.6], 'weight': [500, 800]},
-        ...                   index=['elk', 'moose'])
+        >>> df = pd.DataFrame(
+        ...     {"height": [1.5, 2.6], "weight": [500, 800]}, index=["elk", "moose"]
+        ... )
         >>> df
                height  weight
         elk       1.5     500
@@ -128,14 +130,14 @@ class OpsMixin:
 
         Adding a scalar affects all rows and columns.
 
-        >>> df[['height', 'weight']] + 1.5
+        >>> df[["height", "weight"]] + 1.5
                height  weight
         elk       3.0   501.5
         moose     4.1   801.5
 
         Each element of a list is added to a column of the DataFrame, in order.
 
-        >>> df[['height', 'weight']] + [0.5, 1.5]
+        >>> df[["height", "weight"]] + [0.5, 1.5]
                height  weight
         elk       2.0   501.5
         moose     3.1   801.5
@@ -143,7 +145,7 @@ class OpsMixin:
         Keys of a dictionary are aligned to the DataFrame, based on column names;
         each value in the dictionary is added to the corresponding column.
 
-        >>> df[['height', 'weight']] + {'height': 0.5, 'weight': 1.5}
+        >>> df[["height", "weight"]] + {"height": 0.5, "weight": 1.5}
                height  weight
         elk       2.0   501.5
         moose     3.1   801.5
@@ -151,8 +153,8 @@ class OpsMixin:
         When `other` is a :class:`Series`, the index of `other` is aligned with the
         columns of the DataFrame.
 
-        >>> s1 = pd.Series([0.5, 1.5], index=['weight', 'height'])
-        >>> df[['height', 'weight']] + s1
+        >>> s1 = pd.Series([0.5, 1.5], index=["weight", "height"])
+        >>> df[["height", "weight"]] + s1
                height  weight
         elk       3.0   500.5
         moose     4.1   800.5
@@ -161,13 +163,13 @@ class OpsMixin:
         the :class:`Series` will not be reoriented. If index-wise alignment is desired,
         :meth:`DataFrame.add` should be used with `axis='index'`.
 
-        >>> s2 = pd.Series([0.5, 1.5], index=['elk', 'moose'])
-        >>> df[['height', 'weight']] + s2
+        >>> s2 = pd.Series([0.5, 1.5], index=["elk", "moose"])
+        >>> df[["height", "weight"]] + s2
                elk  height  moose  weight
         elk    NaN     NaN    NaN     NaN
         moose  NaN     NaN    NaN     NaN
 
-        >>> df[['height', 'weight']].add(s2, axis='index')
+        >>> df[["height", "weight"]].add(s2, axis="index")
                height  weight
         elk       2.0   500.5
         moose     4.1   801.5
@@ -175,9 +177,10 @@ class OpsMixin:
         When `other` is a :class:`DataFrame`, both columns names and the
         index are aligned.
 
-        >>> other = pd.DataFrame({'height': [0.2, 0.4, 0.6]},
-        ...                      index=['elk', 'moose', 'deer'])
-        >>> df[['height', 'weight']] + other
+        >>> other = pd.DataFrame(
+        ...     {"height": [0.2, 0.4, 0.6]}, index=["elk", "moose", "deer"]
+        ... )
+        >>> df[["height", "weight"]] + other
                height  weight
         deer      NaN     NaN
         elk       1.7     NaN
@@ -263,10 +266,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         Series,
     )
     from pandas.core.generic import NDFrame
-    from pandas.core.internals import (
-        ArrayManager,
-        BlockManager,
-    )
+    from pandas.core.internals import BlockManager
 
     cls = type(self)
 
@@ -350,7 +350,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             if method == "outer":
                 raise NotImplementedError
             return result
-        if isinstance(result, (BlockManager, ArrayManager)):
+        if isinstance(result, BlockManager):
             # we went through BlockManager.apply e.g. np.sqrt
             result = self._constructor_from_mgr(result, axes=result.axes)
         else:

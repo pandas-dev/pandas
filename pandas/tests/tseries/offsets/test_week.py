@@ -4,6 +4,7 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -40,12 +41,6 @@ class TestWeek:
 
         with pytest.raises(ValueError, match="Day must be"):
             Week(weekday=-1)
-
-    def test_is_anchored(self):
-        assert Week(weekday=0).is_anchored()
-        assert not Week().is_anchored()
-        assert not Week(2, weekday=2).is_anchored()
-        assert not Week(2).is_anchored()
 
     offset_cases = []
     # not business week

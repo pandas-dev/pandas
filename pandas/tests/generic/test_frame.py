@@ -46,27 +46,10 @@ class TestDataFrame:
         assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
-        # allow single item via bool method
-        msg_warn = (
-            "DataFrame.bool is now deprecated and will be removed "
-            "in future version of pandas"
-        )
-        df = DataFrame([[True]])
-        df1 = DataFrame([[False]])
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert df.bool()
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            assert not df1.bool()
-
         df = DataFrame([[False, False]])
         msg_err = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg_err):
             bool(df)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                df.bool()
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby

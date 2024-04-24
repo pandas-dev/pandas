@@ -6,11 +6,7 @@ import pytest
 
 from pandas import option_context
 import pandas._testing as tm
-from pandas.core.api import (
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 
 
@@ -36,7 +32,7 @@ def _frame2():
 def _mixed(_frame):
     return DataFrame(
         {
-            "A": _frame["A"].copy(),
+            "A": _frame["A"],
             "B": _frame["B"].astype("float32"),
             "C": _frame["C"].astype("int64"),
             "D": _frame["D"].astype("int32"),
@@ -48,7 +44,7 @@ def _mixed(_frame):
 def _mixed2(_frame2):
     return DataFrame(
         {
-            "A": _frame2["A"].copy(),
+            "A": _frame2["A"],
             "B": _frame2["B"].astype("float32"),
             "C": _frame2["C"].astype("int64"),
             "D": _frame2["D"].astype("int32"),
@@ -82,22 +78,22 @@ def _integer2():
 
 @pytest.fixture
 def _array(_frame):
-    return _frame["A"].values.copy()
+    return _frame["A"].to_numpy()
 
 
 @pytest.fixture
 def _array2(_frame2):
-    return _frame2["A"].values.copy()
+    return _frame2["A"].to_numpy()
 
 
 @pytest.fixture
 def _array_mixed(_mixed):
-    return _mixed["D"].values.copy()
+    return _mixed["D"].to_numpy()
 
 
 @pytest.fixture
 def _array_mixed2(_mixed2):
-    return _mixed2["D"].values.copy()
+    return _mixed2["D"].to_numpy()
 
 
 @pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
@@ -174,7 +170,7 @@ class TestExpressions:
         df = request.getfixturevalue(fixture)
         arith = comparison_op.__name__
         with option_context("compute.use_numexpr", False):
-            other = df.copy() + 1
+            other = df + 1
 
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 0)
@@ -324,7 +320,7 @@ class TestExpressions:
     @pytest.mark.parametrize(
         "op_str,opname", [("+", "add"), ("*", "mul"), ("-", "sub")]
     )
-    def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
+    def test_bool_ops_warn_on_arithmetic(self, op_str, opname, monkeypatch):
         n = 10
         df = DataFrame(
             {
@@ -343,36 +339,38 @@ class TestExpressions:
             # raises TypeError
             return
 
-        with tm.use_numexpr(True, min_elements=5):
-            with tm.assert_produces_warning():
-                r = f(df, df)
-                e = fe(df, df)
-                tm.assert_frame_equal(r, e)
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 5)
+            with option_context("compute.use_numexpr", True):
+                with tm.assert_produces_warning():
+                    r = f(df, df)
+                    e = fe(df, df)
+                    tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df.a, df.b)
-                e = fe(df.a, df.b)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning():
+                    r = f(df.a, df.b)
+                    e = fe(df.a, df.b)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df.a, True)
-                e = fe(df.a, True)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning():
+                    r = f(df.a, True)
+                    e = fe(df.a, True)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(False, df.a)
-                e = fe(False, df.a)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning():
+                    r = f(False, df.a)
+                    e = fe(False, df.a)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(False, df)
-                e = fe(False, df)
-                tm.assert_frame_equal(r, e)
+                with tm.assert_produces_warning():
+                    r = f(False, df)
+                    e = fe(False, df)
+                    tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df, True)
-                e = fe(df, True)
-                tm.assert_frame_equal(r, e)
+                with tm.assert_produces_warning():
+                    r = f(df, True)
+                    e = fe(df, True)
+                    tm.assert_frame_equal(r, e)
 
     @pytest.mark.parametrize(
         "test_input,expected",
@@ -433,16 +431,15 @@ class TestExpressions:
             "__rfloordiv__",
         ],
     )
-    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
     @pytest.mark.parametrize("scalar", [-5, 5])
     def test_python_semantics_with_numexpr_installed(
-        self, op, box, scalar, monkeypatch
+        self, op, box_with_array, scalar, monkeypatch
     ):
         # https://github.com/pandas-dev/pandas/issues/36047
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 0)
             data = np.arange(-50, 50)
-            obj = box(data)
+            obj = box_with_array(data)
             method = getattr(obj, op)
             result = method(scalar)
 
@@ -454,7 +451,7 @@ class TestExpressions:
 
             # compare result element-wise with Python
             for i, elem in enumerate(data):
-                if box == DataFrame:
+                if box_with_array == DataFrame:
                     scalar_result = result.iloc[i, 0]
                 else:
                     scalar_result = result[i]

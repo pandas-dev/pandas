@@ -32,10 +32,7 @@ class TestSetValue:
         else:
             assert res["baz"].dtype == np.object_
         res = float_frame.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            res._set_value("foobar", "baz", True)
+        res._set_value("foobar", "baz", True)
         assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()

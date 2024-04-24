@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
+import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +15,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -46,11 +41,14 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AggFuncType,
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
+        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -70,7 +68,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool | lib.NoDefault = lib.no_default,
+    observed: bool = True,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -125,7 +123,7 @@ def __internal_pivot_table(
     margins: bool,
     dropna: bool,
     margins_name: Hashable,
-    observed: bool | lib.NoDefault,
+    observed: bool,
     sort: bool,
 ) -> DataFrame:
     """
@@ -168,18 +166,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    observed_bool = False if observed is lib.no_default else observed
-    grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
-    if observed is lib.no_default and any(
-        ping._passed_categorical for ping in grouped.grouper.groupings
-    ):
-        warnings.warn(
-            "The default value of observed=False is deprecated and will change "
-            "to observed=True in a future version of pandas. Specify "
-            "observed=False to silence this warning and retain the current behavior",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -410,7 +397,11 @@ def _generate_marginal_results(
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
-                        [all_key], names=piece.index.names + [None]
+                        [all_key],
+                        names=piece.index.names
+                        + [
+                            None,
+                        ],
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -433,10 +424,10 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack(future_stack=True)
+        row_margin = row_margin.stack()
 
         # GH#26568. Use names instead of indices in case of numeric names
-        new_order_indices = [len(cols)] + list(range(len(cols)))
+        new_order_indices = itertools.chain([len(cols)], range(len(cols)))
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
@@ -472,7 +463,7 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -535,7 +526,8 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns_listlike, append=append  # type: ignore[operator]
+            cols + columns_listlike,  # type: ignore[operator]
+            append=append,
         )
     else:
         index_list: list[Index] | list[Series]
@@ -558,16 +550,18 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=multiindex, columns=values
+                data[values]._values,
+                index=multiindex,
+                columns=cast("SequenceNotStr", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    # unstack with a MultiIndex returns a DataFrame
+    result = cast("DataFrame", indexed.unstack(columns_listlike))  # type: ignore[arg-type]
     result.index.names = [
         name if name is not lib.no_default else None for name in result.index.names
     ]
@@ -649,14 +643,55 @@ def crosstab(
 
     Examples
     --------
-    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
-    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
-    >>> b = np.array(["one", "one", "one", "two", "one", "one",
-    ...               "one", "two", "two", "two", "one"], dtype=object)
-    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
-    ...              dtype=object)
-    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> a = np.array(
+    ...     [
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "bar",
+    ...         "foo",
+    ...         "foo",
+    ...         "foo",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> b = np.array(
+    ...     [
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "one",
+    ...         "one",
+    ...         "one",
+    ...         "two",
+    ...         "two",
+    ...         "two",
+    ...         "one",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> c = np.array(
+    ...     [
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "dull",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "dull",
+    ...         "shiny",
+    ...         "shiny",
+    ...         "shiny",
+    ...     ],
+    ...     dtype=object,
+    ... )
+    >>> pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
     b   one        two
     c   dull shiny dull shiny
     a
@@ -667,8 +702,8 @@ def crosstab(
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
 
-    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
-    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     >>> pd.crosstab(foo, bar)
     col_0  d  e
     row_0
@@ -732,7 +767,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        observed=False,
+        observed=dropna,
         **kwargs,  # type: ignore[arg-type]
     )
 
@@ -804,7 +839,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -813,7 +848,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index
@@ -828,7 +863,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row"):
+def _get_names(arrs, names, prefix: str = "row") -> list:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):
@@ -874,13 +909,7 @@ def _build_names_mapper(
         a list of column names with duplicate names replaced by dummy names
 
     """
-
-    def get_duplicates(names):
-        seen: set = set()
-        return {name for name in names if name not in seen}
-
-    shared_names = set(rownames).intersection(set(colnames))
-    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+    dup_names = set(rownames) | set(colnames)
 
     rownames_mapper = {
         f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names

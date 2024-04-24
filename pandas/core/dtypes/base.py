@@ -1,6 +1,7 @@
 """
 Extend pandas with custom array types.
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -96,10 +97,8 @@ class ExtensionDtype:
     >>> from pandas.api.extensions import ExtensionArray
     >>> class ExtensionDtype:
     ...     def __from_arrow__(
-    ...         self,
-    ...         array: pyarrow.Array | pyarrow.ChunkedArray
-    ...     ) -> ExtensionArray:
-    ...         ...
+    ...         self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ...     ) -> ExtensionArray: ...
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -529,22 +528,18 @@ class Registry:
         self.dtypes.append(dtype)
 
     @overload
-    def find(self, dtype: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
-        ...
+    def find(self, dtype: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]: ...
 
     @overload
-    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
-        ...
+    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT: ...
 
     @overload
-    def find(self, dtype: str) -> ExtensionDtype | None:
-        ...
+    def find(self, dtype: str) -> ExtensionDtype | None: ...
 
     @overload
     def find(
         self, dtype: npt.DTypeLike
-    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
-        ...
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None: ...
 
     def find(
         self, dtype: type_t[ExtensionDtype] | ExtensionDtype | npt.DTypeLike

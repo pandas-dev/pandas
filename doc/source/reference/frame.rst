@@ -48,7 +48,7 @@ Conversion
    DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
-   DataFrame.bool
+   DataFrame.to_numpy
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
@@ -74,6 +74,7 @@ Indexing, iteration
    DataFrame.where
    DataFrame.mask
    DataFrame.query
+   DataFrame.isetitem
 
 For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
@@ -117,7 +118,6 @@ Function application, GroupBy & window
 
    DataFrame.apply
    DataFrame.map
-   DataFrame.applymap
    DataFrame.pipe
    DataFrame.agg
    DataFrame.aggregate
@@ -185,11 +185,9 @@ Reindexing / selection / label manipulation
    DataFrame.duplicated
    DataFrame.equals
    DataFrame.filter
-   DataFrame.first
    DataFrame.head
    DataFrame.idxmax
    DataFrame.idxmin
-   DataFrame.last
    DataFrame.reindex
    DataFrame.reindex_like
    DataFrame.rename
@@ -209,7 +207,6 @@ Missing data handling
 .. autosummary::
    :toctree: api/
 
-   DataFrame.backfill
    DataFrame.bfill
    DataFrame.dropna
    DataFrame.ffill
@@ -219,7 +216,6 @@ Missing data handling
    DataFrame.isnull
    DataFrame.notna
    DataFrame.notnull
-   DataFrame.pad
    DataFrame.replace
 
 Reshaping, sorting, transposing
@@ -238,7 +234,6 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
-   DataFrame.swapaxes
    DataFrame.melt
    DataFrame.explode
    DataFrame.squeeze
@@ -382,7 +377,6 @@ Serialization / IO / conversion
    DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
-   DataFrame.to_gbq
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard

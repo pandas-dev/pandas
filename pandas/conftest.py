@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -28,12 +29,14 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import gc
 import operator
 import os
 from typing import (
     TYPE_CHECKING,
     Callable,
 )
+import uuid
 
 from dateutil.tz import (
     tzlocal,
@@ -47,8 +50,6 @@ from pytz import (
     FixedOffset,
     utc,
 )
-
-from pandas._config.config import _get_option
 
 import pandas.util._test_decorators as td
 
@@ -124,7 +125,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     item : pytest.Item
         pytest test item.
     path : str
-        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        Module path to Python object, e.g. "pandas.DataFrame.append". A
         warning will be filtered when item.name ends with in given path. So it is
         sufficient to specify e.g. "DataFrame.append".
     message : str
@@ -149,7 +150,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
-        ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
@@ -157,17 +157,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
+        ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        (
-            "to_pydatetime",
-            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
-        (
-            "pandas.core.generic.NDFrame.bool",
-            "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas",
-        ),
         (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
@@ -181,25 +173,13 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrame.fillna with 'method' is deprecated",
-        ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if is_doctest:
-            # autouse=True for the add_doctest_imports can lead to expensive teardowns
-            # since doctest_namespace is a session fixture
-            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
-
+    if is_doctest:
+        for item in items:
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
 
 
 hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
@@ -254,7 +234,14 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
+# ----------------------------------------------------------------
+# Autouse fixtures
+# ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
+@pytest.fixture(autouse=True)
 def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
@@ -263,9 +250,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     doctest_namespace["pd"] = pd
 
 
-# ----------------------------------------------------------------
-# Autouse fixtures
-# ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
 def configure_tests() -> None:
     """
@@ -277,7 +261,7 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -285,18 +269,7 @@ def axis(request):
     return request.param
 
 
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -313,6 +286,22 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    """
+    Boolean 'dropna' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
     """
     return request.param
 
@@ -418,6 +407,74 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=[None, "ignore"])
+def na_action(request):
+    """
+    Fixture for 'na_action' argument in map.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    """
+    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=["average", "min", "max", "first", "dense"])
+def rank_method(request):
+    """
+    Fixture for 'rank' argument in rank.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    """
+    Fixture for 'as_index' argument in groupby.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def cache(request):
+    """
+    Fixture for 'cache' argument in to_datetime.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    """
+    Fixture for parallel keyword argument for numba.jit.
+    """
+    return request.param
+
+
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
+def nogil(request):
+    """
+    Fixture for nogil keyword argument for numba.jit.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def nopython(request):
+    """
+    Fixture for nopython keyword argument for numba.jit.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
@@ -480,10 +537,6 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
-
-
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
 
 
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
@@ -678,10 +731,6 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -693,10 +742,6 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy()
-
-
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
 
 
 @pytest.fixture(
@@ -863,8 +908,8 @@ def float_frame() -> DataFrame:
     """
     return DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1186,10 +1231,6 @@ def tz_aware_fixture(request):
     return request.param
 
 
-# Generate cartesian product of tz_aware_fixture:
-tz_aware_fixture2 = tz_aware_fixture
-
-
 _UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
 if zoneinfo is not None:
     _UTCS.append(zoneinfo.ZoneInfo("UTC"))
@@ -1353,7 +1394,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1646,6 +1687,38 @@ def any_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
+def any_real_nullable_dtype(request):
+    """
+    Parameterized fixture for all real dtypes that can hold NA.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    * 'UInt8'
+    * 'UInt16'
+    * 'UInt32'
+    * 'UInt64'
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    * 'uint8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float[pyarrow]'
+    * 'double[pyarrow]'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
@@ -1781,14 +1854,37 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
-def spmatrix(request):
+@pytest.fixture
+def mpl_cleanup():
     """
-    Yields scipy sparse matrix classes.
-    """
-    sparse = pytest.importorskip("scipy.sparse")
+    Ensure Matplotlib is cleaned up around a test.
 
-    return getattr(sparse, request.param + "_matrix")
+    Before a test is run:
+
+    1) Set the backend to "template" to avoid requiring a GUI.
+
+    After a test is run:
+
+    1) Reset units registry
+    2) Reset rc_context
+    3) Close all figures
+
+    See matplotlib/testing/decorators.py#L24.
+    """
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    try:
+        with mpl.rc_context():
+            mpl.use("template")
+            yield
+    finally:
+        mpl_units.registry.clear()
+        mpl_units.registry.update(orig_units_registry)
+        plt.close("all")
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        gc.collect(1)
 
 
 @pytest.fixture(
@@ -1881,34 +1977,14 @@ def indexer_ial(request):
     return request.param
 
 
-@pytest.fixture
-def using_array_manager() -> bool:
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
     """
-    Fixture to check if the array manager is being used.
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
     """
-    return _get_option("mode.data_manager", silent=True) == "array"
-
-
-@pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return (
-        pd.options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
-
-
-@pytest.fixture
-def warn_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is in warning mode.
-    """
-    return (
-        pd.options.mode.copy_on_write == "warn"
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
 
 
 @pytest.fixture
@@ -1932,6 +2008,20 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
+    """
+    Fixture that lists possible PyArrow values for StringDtype storage field.
+    """
     return ("pyarrow", "pyarrow_numpy")
+
+
+@pytest.fixture
+def temp_file(tmp_path):
+    """
+    Generate a unique file for testing use. See link for removal policy.
+    https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
+    """
+    file_path = tmp_path / str(uuid.uuid4())
+    file_path.touch()
+    return file_path

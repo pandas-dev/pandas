@@ -5,13 +5,10 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Any NumPy version should be fine for compiling.  Users are unlikely
-    # to get a NumPy<1.25 so the result will be compatible with all relevant
-    # NumPy versions (if not it is presumably compatible with their version).
-    # Pin <2.0 for releases until tested against an RC.  But explicitly allow
-    # testing the `.dev0` nightlies (which require the extra index).
-    "numpy>1.22.4,<=2.0.0.dev0",
+    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # with both numpy 1 and 2
+    "numpy>=2.0.0rc1",
     "versioneer[toml]"
 ]
 
@@ -30,9 +27,8 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4,<2; python_version<'3.11'",
-  "numpy>=1.23.2,<2; python_version=='3.11'",
-  "numpy>=1.26.0,<2; python_version>='3.12'",
+  "numpy>=1.23.5; python_version<'3.12'",
+  "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
   "tzdata>=2022.7"
@@ -64,11 +60,12 @@ matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
 test = ['hypothesis>=6.46.1', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0']
+pyarrow = ['pyarrow>=10.0.1']
 performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
 computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
 fss = ['fsspec>=2022.11.0']
 aws = ['s3fs>=2022.11.0']
-gcp = ['gcsfs>=2022.11.0', 'pandas-gbq>=0.19.0']
+gcp = ['gcsfs>=2022.11.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
 parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
@@ -76,24 +73,22 @@ hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/i
         #'blosc>=1.20.1',
         'tables>=3.8.0']
 spss = ['pyreadstat>=1.2.0']
-postgresql = ['SQLAlchemy>=2.0.0', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.8.0']
+postgresql = ['SQLAlchemy>=2.0.0', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.10.0']
 mysql = ['SQLAlchemy>=2.0.0', 'pymysql>=1.0.2']
-sql-other = ['SQLAlchemy>=2.0.0', 'adbc-driver-postgresql>=0.8.0', 'adbc-driver-sqlite>=0.8.0']
+sql-other = ['SQLAlchemy>=2.0.0', 'adbc-driver-postgresql>=0.10.0', 'adbc-driver-sqlite>=0.8.0']
 html = ['beautifulsoup4>=4.11.2', 'html5lib>=1.1', 'lxml>=4.9.2']
 xml = ['lxml>=4.9.2']
 plot = ['matplotlib>=3.6.3']
 output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
 compression = ['zstandard>=0.19.0']
-consortium-standard = ['dataframe-api-compat>=0.1.7']
-all = ['adbc-driver-postgresql>=0.8.0',
+all = ['adbc-driver-postgresql>=0.10.0',
        'adbc-driver-sqlite>=0.8.0',
        'beautifulsoup4>=4.11.2',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.3',
        'bottleneck>=1.3.6',
-       'dataframe-api-compat>=0.1.7',
-       'fastparquet>=2022.12.0',
+       'fastparquet>=2023.10.0',
        'fsspec>=2022.11.0',
        'gcsfs>=2022.11.0',
        'html5lib>=1.1',
@@ -105,7 +100,6 @@ all = ['adbc-driver-postgresql>=0.8.0',
        'numexpr>=2.8.4',
        'odfpy>=1.4.1',
        'openpyxl>=3.1.0',
-       'pandas-gbq>=0.19.0',
        'psycopg2>=2.9.6',
        'pyarrow>=10.0.1',
        'pymysql>=1.0.2',
@@ -152,7 +146,7 @@ parentdir_prefix = "pandas-"
 setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
-skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x *-musllinux_aarch64"
+skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
@@ -161,10 +155,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-
-[tool.cibuildwheel.macos]
-archs = "x86_64 arm64"
-test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
@@ -188,31 +178,12 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
-[tool.black]
-target-version = ['py39', 'py310']
-required-version = '23.11.0'
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
 fix = true
+
+[tool.ruff.lint]
 unfixable = []
 typing-modules = ["pandas._typing"]
 
@@ -233,6 +204,8 @@ select = [
   "INT",
   # pylint
   "PL",
+  # flake8-pytest-style
+  "PT",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -259,22 +232,22 @@ select = [
   "FLY",
   # flake8-logging-format
   "G",
+  # flake8-future-annotations
+  "FA",
+  # unconventional-import-alias
+  "ICN001",
+  # flake8-slots
+  "SLOT",
+  # flake8-raise
+  "RSE"
 ]
 
 ignore = [
   ### Intentionally disabled
-  # space before : (needed for how black formats slicing)
-  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
   "E731",
-  # line break before binary operator
-  # "W503",  # not yet implemented
-  # line break after binary operator
-  # "W504",  # not yet implemented
-  # controversial
-  "B006",
   # controversial
   "B007",
   # controversial
@@ -283,18 +256,10 @@ ignore = [
   "B009",
   # getattr is used to side-step mypy
   "B010",
-  # tests use assert False
-  "B011",
   # tests use comparisons but not their returned value
   "B015",
-  # false positives
-  "B019",
-  # Loop control variable overrides iterable it iterates
-  "B020",
   # Function definition does not bind loop variable
   "B023",
-  # Functions defined inside a loop must not use variables redefined in the loop
-  # "B301",  # not yet implemented
   # Only works with python >=3.10
   "B905",
   # Too many arguments to function call
@@ -309,41 +274,105 @@ ignore = [
   "PLW2901",
   # Global statements are discouraged
   "PLW0603",
-  # Docstrings should not be included in stubs
-  "PYI021",
   # Use `typing.NamedTuple` instead of `collections.namedtuple`
   "PYI024",
-  # No builtin `eval()` allowed
-  "PGH001",
-  # compare-to-empty-string
-  "PLC1901",
+  # Use of possibly insecure function; consider using ast.literal_eval
+  "S307",
   # while int | float can be shortened to float, the former is more explicit
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # pytest-missing-fixture-name-underscore
+  "PT004",
+  # pytest-incorrect-fixture-name-underscore
+  "PT005",
+  # pytest-parametrize-names-wrong-type
+  "PT006",
+  # pytest-parametrize-values-wrong-type
+  "PT007",
+  # pytest-patch-with-lambda
+  "PT008",
+  # pytest-raises-with-multiple-statements
+  "PT012",
+  # pytest-assert-in-except
+  "PT017",
+  # pytest-composite-assertion
+  "PT018",
+  # pytest-fixture-param-without-value
+  "PT019",
+  # The following rules may cause conflicts when used with the formatter:
+  "ISC001",
 
 
   ### TODO: Enable gradually
   # Useless statement
   "B018",
-  # Within an except clause, raise exceptions with ...
-  "B904",
   # Magic number
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
-  "PLR5501",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
-  # explicit-f-string-type-conversion
-  "RUF010",
   # mutable-class-default
-  "RUF012"
+  "RUF012",
+
+  # Additional pylint rules
+  # literal-membership
+  "PLR6201", # 847 errors
+  # Method could be a function, class method, or static method
+  "PLR6301", # 11411 errors
+  # Private name import
+  "PLC2701", # 27 errors
+  # Too many positional arguments (6/5)
+  "PLR0917", # 470 errors
+  # compare-to-empty-string
+  "PLC1901",
+  # `tempfile.NamedTemporaryFile` in text mode without explicit `encoding` argument
+  "PLW1514", # 1 error
+  # Object does not implement `__hash__` method
+  "PLW1641", # 16 errors
+  # Bad or misspelled dunder method name
+  "PLW3201", # 69 errors, seems to be all false positive
+  # Unnecessary lookup of dictionary value by key
+  "PLR1733", # 5 errors, it seems like we wannt to ignore these
+  # Unnecessary lookup of list item by index
+  "PLR1736", # 4 errors, we're currently having inline pylint ignore
+  # empty-comment
+  "PLR2044", # autofixable
+  # Unpacking a dictionary in iteration without calling `.items()`
+  "PLE1141", # autofixable
+  # import-outside-toplevel
+  "PLC0415",
+  # unnecessary-dunder-call
+  "PLC2801",
+  # comparison-with-itself
+  "PLR0124",
+  # too-many-public-methods
+  "PLR0904",
+  # too-many-return-statements
+  "PLR0911",
+  # too-many-branches
+  "PLR0912",
+  # too-many-arguments
+  "PLR0913",
+  # too-many-locals
+  "PLR0914",
+  # too-many-statements
+  "PLR0915",
+  # too-many-boolean-expressions
+  "PLR0916",
+  # too-many-nested-blocks
+  "PLR1702",
+  # redefined-argument-from-local
+  "PLR1704",
+  # unnecessary-lambda
+  "PLW0108",
+  # global-statement
+  "PLW0603",
 ]
 
 exclude = [
@@ -358,7 +387,24 @@ exclude = [
   "env",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
+# numpy.random is banned but np.random is not. Is this intentional?
+# "numpy.random".msg = "Do not use numpy.random"
+"pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
+"pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
+"conftest".msg = "No direct imports from conftest"
+"numpy.testing".msg = "Do not use numpy.testing"
+# "numpy.array_equal".msg = "Do not use numpy.array_equal" # Used in pandas/core
+"unittest.mock".msg = "use pytest builtin monkeypatch fixture instead"
+"os.remove".msg = "Do not use os.remove"
+
+
+
+[tool.ruff.lint.flake8-import-conventions.aliases]
+"pandas.core.construction.array" = "pd_array"
+
+[tool.ruff.lint.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
@@ -368,109 +414,12 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 
-[tool.pylint.messages_control]
-max-line-length = 88
-disable = [
- # intentionally turned off
-  "bad-mcs-classmethod-argument",
-  "broad-except",
-  "c-extension-no-member",
-  "comparison-with-itself",
-  "consider-using-enumerate",
-  "import-error",
-  "import-outside-toplevel",
-  "invalid-name",
-  "invalid-unary-operand-type",
-  "line-too-long",
-  "no-else-continue",
-  "no-else-raise",
-  "no-else-return",
-  "no-member",
-  "no-name-in-module",
-  "not-an-iterable",
-  "overridden-final-method",
-  "pointless-statement",
-  "redundant-keyword-arg",
-  "singleton-comparison",
-  "too-many-ancestors",
-  "too-many-arguments",
-  "too-many-boolean-expressions",
-  "too-many-branches",
-  "too-many-function-args",
-  "too-many-instance-attributes",
-  "too-many-locals",
-  "too-many-nested-blocks",
-  "too-many-public-methods",
-  "too-many-return-statements",
-  "too-many-statements",
-  "unexpected-keyword-arg",
-  "ungrouped-imports",
-  "unsubscriptable-object",
-  "unsupported-assignment-operation",
-  "unsupported-membership-test",
-  "unused-import",
-  "use-dict-literal",
-  "use-implicit-booleaness-not-comparison",
-  "use-implicit-booleaness-not-len",
-  "wrong-import-order",
-  "wrong-import-position",
-  "redefined-loop-name",
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
- # misc
-  "abstract-class-instantiated",
-  "no-value-for-parameter",
-  "undefined-variable",
-  "unpacking-non-sequence",
-  "used-before-assignment",
-
- # pylint type "C": convention, for programming standard violation
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "superfluous-parens",
-  "too-many-lines",
-  "unidiomatic-typecheck",
-  "unnecessary-dunder-call",
-  "unnecessary-lambda-assignment",
-
-  # pylint type "R": refactor, for bad code smell
-  "consider-using-with",
-  "cyclic-import",
-  "duplicate-code",
-  "inconsistent-return-statements",
-  "redefined-argument-from-local",
-  "too-few-public-methods",
-
-  # pylint type "W": warning, for python specific problems
-  "abstract-method",
-  "arguments-differ",
-  "arguments-out-of-order",
-  "arguments-renamed",
-  "attribute-defined-outside-init",
-  "broad-exception-raised",
-  "comparison-with-callable",
-  "dangerous-default-value",
-  "deprecated-module",
-  "eval-used",
-  "expression-not-assigned",
-  "fixme",
-  "global-statement",
-  "invalid-overridden-method",
-  "keyword-arg-before-vararg",
-  "possibly-unused-variable",
-  "protected-access",
-  "raise-missing-from",
-  "redefined-builtin",
-  "redefined-outer-name",
-  "self-cls-assignment",
-  "signature-differs",
-  "super-init-not-called",
-  "try-except-raise",
-  "unnecessary-lambda",
-  "unused-argument",
-  "unused-variable",
-  "using-constant-test"
-]
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
@@ -500,20 +449,10 @@ filterwarnings = [
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
-  "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
-  "ignore:tostring:DeprecationWarning:tables",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
-  # Can be removed once https://github.com/numpy/numpy/pull/24794 is merged
-  "ignore:.*In the future `np.long` will be defined as.*:FutureWarning",
 ]
 junit_family = "xunit2"
 markers = [
@@ -523,7 +462,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: Tests known to fail UBSAN check",
 ]
 
 [tool.mypy]
@@ -581,14 +520,9 @@ module = [
   "pandas._config.config", # TODO
   "pandas._libs.*",
   "pandas._testing.*", # TODO
-  "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat._optional", # TODO
   "pandas.compat.compressors", # TODO
-  "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
-  "pandas.core.array_algos.datetimelike_accumulations", # TODO
-  "pandas.core.array_algos.masked_accumulations", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.putmask", # TODO
   "pandas.core.array_algos.quantile", # TODO
@@ -602,9 +536,7 @@ module = [
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
-  "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
@@ -615,11 +547,8 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals.*", # TODO
-  "pandas.core.methods.*", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
-  "pandas.core.ops.invalid", # TODO
-  "pandas.core.ops.mask_ops", # TODO
   "pandas.core.ops.missing", # TODO
   "pandas.core.reshape.*", # TODO
   "pandas.core.strings.*", # TODO
@@ -636,7 +565,6 @@ module = [
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
   "pandas.core.common", # TODO
-  "pandas.core.config_init", # TODO
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
@@ -653,17 +581,12 @@ module = [
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
-  "pandas.io.excel._odswriter", # TODO
   "pandas.io.excel._openpyxl", # TODO
   "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
-  "pandas.io.formats.console", # TODO
-  "pandas.io.formats.css", # TODO
   "pandas.io.formats.excel", # TODO
   "pandas.io.formats.format", # TODO
-  "pandas.io.formats.info", # TODO
-  "pandas.io.formats.printing", # TODO
   "pandas.io.formats.style", # TODO
   "pandas.io.formats.style_render", # TODO
   "pandas.io.formats.xml", # TODO
@@ -672,14 +595,10 @@ module = [
   "pandas.io.sas.sas_xport", # TODO
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
-  "pandas.io.common", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.html", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.stata", # TODO
   "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
@@ -687,7 +606,6 @@ module = [
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO
-  "pandas.util._print_versions", # TODO
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
@@ -754,15 +672,24 @@ reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
 reportUntypedNamedTuple = true
 reportUnusedImport = true
+disableBytesTypePromotions = true
 # disable subset of "basic"
+reportArgumentType = false
+reportAssignmentType = false
+reportAttributeAccessIssue = false
+reportCallIssue = false
 reportGeneralTypeIssues = false
+reportIndexIssue = false
 reportMissingModuleSource = false
+reportOperatorIssue = false
 reportOptionalCall = false
 reportOptionalIterable = false
 reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
+reportRedeclaration = false
+reportReturnType = false
 reportUnboundVariable = false
 
 [tool.coverage.run]
@@ -795,5 +722,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext"
 ignore-regex = 'https://([\w/\.])+'

@@ -18,25 +18,6 @@ from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture
-def frame_with_period_index():
-    return DataFrame(
-        data=np.arange(20).reshape(4, 5),
-        columns=list("abcde"),
-        index=period_range(start="2000", freq="Y", periods=4),
-    )
-
-
-@pytest.fixture
-def left():
-    return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
-
-
-@pytest.fixture
-def right():
-    return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
-
-
-@pytest.fixture
 def left_no_dup():
     return DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
@@ -112,7 +93,9 @@ def right_w_dups(right_no_dup):
         ),
     ],
 )
-def test_join(left, right, how, sort, expected):
+def test_join(how, sort, expected):
+    left = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
+    right = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
@@ -347,7 +330,12 @@ def test_join_overlap(float_frame):
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
 
 
-def test_join_period_index(frame_with_period_index):
+def test_join_period_index():
+    frame_with_period_index = DataFrame(
+        data=np.arange(20).reshape(4, 5),
+        columns=list("abcde"),
+        index=period_range(start="2000", freq="Y", periods=4),
+    )
     other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
     joined_values = np.concatenate([frame_with_period_index.values] * 2, axis=1)
@@ -391,8 +379,8 @@ def test_join_list_series(float_frame):
     tm.assert_frame_equal(result, float_frame)
 
 
-@pytest.mark.parametrize("sort_kw", [True, False])
-def test_suppress_future_warning_with_sort_kw(sort_kw):
+def test_suppress_future_warning_with_sort_kw(sort):
+    sort_kw = sort
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
 
     b = DataFrame({"col2": [4, 5]}, index=["b", "a"])

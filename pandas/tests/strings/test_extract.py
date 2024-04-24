@@ -548,7 +548,6 @@ def test_extractall_single_group_with_quantifier(any_string_dtype):
         (["a3", "b3", "d4c2"], (None,)),
         (["a3", "b3", "d4c2"], ("i1", "i2")),
         (["a3", "b3", "d4c2"], (None, "i2")),
-        (["a3", "b3", "d4c2"], ("i1", "i2")),
     ],
 )
 def test_extractall_no_matches(data, names, any_string_dtype):
@@ -564,13 +563,13 @@ def test_extractall_no_matches(data, names, any_string_dtype):
 
     # one un-named group.
     result = s.str.extractall("(z)")
-    expected = DataFrame(columns=[0], index=expected_index, dtype=any_string_dtype)
-    tm.assert_frame_equal(result, expected)
+    expected = DataFrame(columns=range(1), index=expected_index, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     # two un-named groups.
     result = s.str.extractall("(z)(z)")
-    expected = DataFrame(columns=[0, 1], index=expected_index, dtype=any_string_dtype)
-    tm.assert_frame_equal(result, expected)
+    expected = DataFrame(columns=range(2), index=expected_index, dtype=any_string_dtype)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     # one named group.
     result = s.str.extractall("(?P<first>z)")

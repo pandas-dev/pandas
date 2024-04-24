@@ -79,17 +79,6 @@ def state_data():
 
 
 @pytest.fixture
-def author_missing_data():
-    return [
-        {"info": None},
-        {
-            "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
-            "author_name": {"first": "Jane", "last_name": "Doe"},
-        },
-    ]
-
-
-@pytest.fixture
 def missing_metadata():
     return [
         {
@@ -117,23 +106,6 @@ def missing_metadata():
             ],
             "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
-    ]
-
-
-@pytest.fixture
-def max_level_test_input_data():
-    """
-    input data to test json_normalize with max_level param
-    """
-    return [
-        {
-            "CreatedBy": {"Name": "User001"},
-            "Lookup": {
-                "TextField": "Some text",
-                "UserField": {"Id": "ID001", "Name": "Name001"},
-            },
-            "Image": {"a": "b"},
-        }
     ]
 
 
@@ -424,8 +396,15 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_field(self, author_missing_data):
+    def test_missing_field(self):
         # GH20030:
+        author_missing_data = [
+            {"info": None},
+            {
+                "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
+                "author_name": {"first": "Jane", "last_name": "Doe"},
+            },
+        ]
         result = json_normalize(author_missing_data)
         ex_data = [
             {
@@ -547,8 +526,8 @@ class TestJSONNormalize:
         test_input = {"state": "Texas", "info": parsed_value}
         test_path = "info"
         msg = (
-            f"{test_input} has non list value {parsed_value} for path {test_path}. "
-            "Must be list or null."
+            f"Path must contain list or null, "
+            f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
@@ -581,6 +560,14 @@ class TestJSONNormalize:
         expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
 class TestNestedToRecord:
@@ -843,8 +830,18 @@ class TestNestedToRecord:
             ),
         ],
     )
-    def test_with_max_level(self, max_level, expected, max_level_test_input_data):
+    def test_with_max_level(self, max_level, expected):
         # GH23843: Enhanced JSON normalize
+        max_level_test_input_data = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                },
+                "Image": {"a": "b"},
+            }
+        ]
         output = nested_to_record(max_level_test_input_data, max_level=max_level)
         assert output == expected
 
@@ -902,6 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)

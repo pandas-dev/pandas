@@ -15,8 +15,7 @@ def sort(request):
 
     Caution:
         Don't confuse this one with the "sort" fixture used
-        for DataFrame.append or concat. That one has
-        parameters [True, False].
+        for concat. That one has parameters [True, False].
 
         We can't combine them as sort=True is not permitted
         in the Index setops methods.

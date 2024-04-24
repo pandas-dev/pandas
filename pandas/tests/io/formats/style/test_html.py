@@ -35,6 +35,16 @@ def styler_mi():
 
 
 @pytest.fixture
+def styler_multi():
+    df = DataFrame(
+        data=np.arange(16).reshape(4, 4),
+        columns=MultiIndex.from_product([["A", "B"], ["a", "b"]], names=["A&", "b&"]),
+        index=MultiIndex.from_product([["X", "Y"], ["x", "y"]], names=["X>", "y_"]),
+    )
+    return Styler(df)
+
+
+@pytest.fixture
 def tpl_style(env):
     return env.get_template("html_style.tpl")
 
@@ -93,11 +103,7 @@ def test_w3_html_format(styler):
         lambda x: "att1:v1;"
     ).set_table_attributes('class="my-cls1" style="attr3:v3;"').set_td_classes(
         DataFrame(["my-cls2"], index=["a"], columns=["A"])
-    ).format(
-        "{:.1f}"
-    ).set_caption(
-        "A comprehensive test"
-    )
+    ).format("{:.1f}").set_caption("A comprehensive test")
     expected = dedent(
         """\
         <style type="text/css">
@@ -815,7 +821,6 @@ def test_rendered_links(type, text, exp, found):
 
 def test_multiple_rendered_links():
     links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
-    # pylint: disable-next=consider-using-f-string
     df = DataFrame(["text {} {} text {} {}".format(*links)])
     result = df.style.format(hyperlinks="html").to_html()
     href = '<a href="{0}" target="_blank">{0}</a>'
@@ -1007,3 +1012,23 @@ def test_to_html_na_rep_non_scalar_data(datapath):
 </table>
 """
     assert result == expected
+
+
+@pytest.mark.parametrize("escape_axis_0", [True, False])
+@pytest.mark.parametrize("escape_axis_1", [True, False])
+def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
+    if escape_axis_0:
+        styler_multi.format_index_names(axis=0, escape="html")
+        expected_index = ["X&gt;", "y_"]
+    else:
+        expected_index = ["X>", "y_"]
+
+    if escape_axis_1:
+        styler_multi.format_index_names(axis=1, escape="html")
+        expected_columns = ["A&amp;", "b&amp;"]
+    else:
+        expected_columns = ["A&", "b&"]
+
+    result = styler_multi.to_html(table_uuid="test")
+    for expected_str in expected_index + expected_columns:
+        assert f"{expected_str}</th>" in result

@@ -172,7 +172,7 @@ API changes
   statistical mode(s) by axis/Series. (:issue:`5367`)
 
 - Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
-  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
+  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``.
 
   .. ipython:: python
 

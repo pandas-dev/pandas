@@ -4,10 +4,13 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     cast,
+    overload,
 )
 import warnings
 
 import numpy as np
+
+from pandas._config.config import get_option
 
 import pandas._libs.reshape as libreshape
 from pandas.errors import PerformanceWarning
@@ -32,6 +35,7 @@ from pandas.core.algorithms import (
     factorize,
     unique,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -82,8 +86,9 @@ class _Unstacker:
 
     Examples
     --------
-    >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
-    ...                                    ('two', 'a'), ('two', 'b')])
+    >>> index = pd.MultiIndex.from_tuples(
+    ...     [("one", "a"), ("one", "b"), ("two", "a"), ("two", "b")]
+    ... )
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
     >>> s
     one  a    1
@@ -143,7 +148,7 @@ class _Unstacker:
         num_cells = num_rows * num_columns
 
         # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if num_cells > np.iinfo(np.int32).max:
+        if get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
             warnings.warn(
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
@@ -188,7 +193,7 @@ class _Unstacker:
             return sorted_values
         return values
 
-    def _make_selectors(self):
+    def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
 
         # make the mask
@@ -228,20 +233,31 @@ class _Unstacker:
         return new_values, mask.any(0)
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
-    def get_result(self, values, value_columns, fill_value) -> DataFrame:
+    def get_result(self, obj, value_columns, fill_value) -> DataFrame:
+        values = obj._values
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        values, _ = self.get_new_values(values, fill_value)
+        new_values, _ = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(
-            values, index=index, columns=columns, dtype=values.dtype
+        result = self.constructor(
+            new_values, index=index, columns=columns, dtype=new_values.dtype, copy=False
         )
+        if isinstance(values, np.ndarray):
+            base, new_base = values.base, new_values.base
+        elif isinstance(values, NDArrayBackedExtensionArray):
+            base, new_base = values._ndarray.base, new_values._ndarray.base
+        else:
+            base, new_base = 1, 2  # type: ignore[assignment]
+        if base is new_base:
+            # We can only get here if one of the dimensions is size 1
+            result._mgr.add_references(obj._mgr)
+        return result
 
     def get_new_values(self, values, fill_value=None):
         if values.ndim == 1:
@@ -376,7 +392,7 @@ class _Unstacker:
         return repeater
 
     @cache_readonly
-    def new_index(self) -> MultiIndex:
+    def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
         result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
 
@@ -451,7 +467,11 @@ def _unstack_multiple(
             result = data
             while clocs:
                 val = clocs.pop(0)
-                result = result.unstack(val, fill_value=fill_value, sort=sort)
+                # error: Incompatible types in assignment (expression has type
+                # "DataFrame | Series", variable has type "DataFrame")
+                result = result.unstack(  # type: ignore[assignment]
+                    val, fill_value=fill_value, sort=sort
+                )
                 clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
@@ -460,7 +480,9 @@ def _unstack_multiple(
         dummy_df = data.copy(deep=False)
         dummy_df.index = dummy_index
 
-        unstacked = dummy_df.unstack(
+        # error: Incompatible types in assignment (expression has type "DataFrame |
+        # Series", variable has type "DataFrame")
+        unstacked = dummy_df.unstack(  # type: ignore[assignment]
             "__placeholder__", fill_value=fill_value, sort=sort
         )
         if isinstance(unstacked, Series):
@@ -486,7 +508,19 @@ def _unstack_multiple(
     return unstacked
 
 
-def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
+@overload
+def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame: ...
+
+
+@overload
+def unstack(
+    obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
+) -> Series | DataFrame: ...
+
+
+def unstack(
+    obj: Series | DataFrame, level, fill_value=None, sort: bool = True
+) -> Series | DataFrame:
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -503,7 +537,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(future_stack=True)
+            return obj.T.stack()
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose
@@ -517,9 +551,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
         )
-        return unstacker.get_result(
-            obj._values, value_columns=None, fill_value=fill_value
-        )
+        return unstacker.get_result(obj, value_columns=None, fill_value=fill_value)
 
 
 def _unstack_frame(
@@ -535,7 +567,7 @@ def _unstack_frame(
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
-            obj._values, value_columns=obj.columns, fill_value=fill_value
+            obj, value_columns=obj.columns, fill_value=fill_value
         )
 
 
@@ -572,11 +604,15 @@ def _unstack_extension_series(
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
-    result.columns = result.columns.droplevel(0)
-    return result
+    result.columns = result.columns._drop_level_numbers([0])
+    # error: Incompatible return value type (got "DataFrame | Series", expected
+    # "DataFrame")
+    return result  # type: ignore[return-value]
 
 
-def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
+def stack(
+    frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True
+) -> Series | DataFrame:
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
@@ -659,7 +695,9 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            # error: Incompatible types in assignment (expression has type
+            # "Series | DataFrame", variable has type "DataFrame")
+            result = stack(result, lev, dropna=dropna, sort=sort)  # type: ignore[assignment]
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -672,7 +710,9 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            # error: Incompatible types in assignment (expression has type
+            # "Series | DataFrame", variable has type "DataFrame")
+            result = stack(result, lev, dropna=dropna, sort=sort)  # type: ignore[assignment]
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]
@@ -686,7 +726,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
     return result
 
 
-def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
+def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
     """Creates a MultiIndex from the first N-1 levels of this MultiIndex."""
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
@@ -867,7 +907,7 @@ def _reorder_for_extension_array_stack(
 
     Examples
     --------
-    >>> arr = np.array(['a', 'b', 'c', 'd', 'e', 'f'])
+    >>> arr = np.array(["a", "b", "c", "d", "e", "f"])
     >>> _reorder_for_extension_array_stack(arr, 2, 3)
     array(['a', 'c', 'e', 'b', 'd', 'f'], dtype='<U1')
 
@@ -887,13 +927,15 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         raise ValueError("Columns with duplicate values are not supported in stack")
 
     # If we need to drop `level` from columns, it needs to be in descending order
+    set_levels = set(level)
     drop_levnums = sorted(level, reverse=True)
     stack_cols = frame.columns._drop_level_numbers(
-        [k for k in range(frame.columns.nlevels) if k not in level][::-1]
+        [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
     )
     if len(level) > 1:
         # Arrange columns in the order we want to take them, e.g. level=[2, 0, 1]
         sorter = np.argsort(level)
+        assert isinstance(stack_cols, MultiIndex)
         ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
     else:
         ordered_stack_cols = stack_cols
@@ -907,14 +949,18 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         if len(frame.columns) == 1:
             data = frame.copy()
         else:
-            # Take the data from frame corresponding to this idx value
-            if len(level) == 1:
-                idx = (idx,)
-            gen = iter(idx)
-            column_indexer = tuple(
-                next(gen) if k in level else slice(None)
-                for k in range(frame.columns.nlevels)
-            )
+            if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
+                # GH#57750 - if the frame is an Index with tuples, .loc below will fail
+                column_indexer = idx
+            else:
+                # Take the data from frame corresponding to this idx value
+                if len(level) == 1:
+                    idx = (idx,)
+                gen = iter(idx)
+                column_indexer = tuple(
+                    next(gen) if k in set_levels else slice(None)
+                    for k in range(frame.columns.nlevels)
+                )
             data = frame.loc[:, column_indexer]
 
         if len(level) < frame.columns.nlevels:
@@ -928,7 +974,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     result: Series | DataFrame
     if len(buf) > 0 and not frame.empty:
-        result = concat(buf)
+        result = concat(buf, ignore_index=True)
         ratio = len(result) // len(frame)
     else:
         # input is empty
@@ -953,16 +999,18 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         index_levels = frame.index.levels
         index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
-        index_levels = [frame.index.unique()]
-        codes = factorize(frame.index)[0]
+        codes, uniques = factorize(frame.index, use_na_sentinel=False)
+        index_levels = [uniques]
         index_codes = list(np.tile(codes, (1, ratio)))
-    if isinstance(stack_cols, MultiIndex):
+    if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
         column_levels = [ordered_stack_cols.unique()]
         column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
-    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]
+    # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
+    # dtype[Any]]]", variable has type "FrozenList")
+    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]  # type: ignore[assignment]
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,

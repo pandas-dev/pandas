@@ -164,17 +164,13 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    def test_rename_nocopy(self, float_frame, using_copy_on_write, warn_copy_on_write):
-        renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
+    def test_rename_nocopy(self, float_frame):
+        renamed = float_frame.rename(columns={"C": "foo"})
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 
-        with tm.assert_cow_warning(warn_copy_on_write):
-            renamed.loc[:, "foo"] = 1.0
-        if using_copy_on_write:
-            assert not (float_frame["C"] == 1.0).all()
-        else:
-            assert (float_frame["C"] == 1.0).all()
+        renamed.loc[:, "foo"] = 1.0
+        assert not (float_frame["C"] == 1.0).all()
 
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})

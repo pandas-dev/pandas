@@ -36,7 +36,7 @@ def pytables_hdf5_file(tmp_path):
                 t.row[key] = value
             t.row.append()
 
-    yield path, objname, pd.DataFrame(testsamples)
+    return path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:

@@ -37,14 +37,6 @@ def switch_numexpr_min_elements(request, monkeypatch):
         yield request.param
 
 
-@pytest.fixture(params=[Index, Series, tm.to_array])
-def box_pandas_1d_array(request):
-    """
-    Fixture to test behavior for Index, Series and tm.to_array classes
-    """
-    return request.param
-
-
 @pytest.fixture(
     params=[
         # TODO: add more  dtypes here
@@ -58,17 +50,6 @@ def box_pandas_1d_array(request):
 def numeric_idx(request):
     """
     Several types of numeric-dtypes Index objects
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[Index, Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
-)
-def box_1d_array(request):
-    """
-    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
-    classes
     """
     return request.param
 
@@ -299,6 +280,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             expected = expected.astype(dtype)
         elif type(three_days) is timedelta:
             expected = expected.astype("m8[us]")
+        elif isinstance(
+            three_days,
+            (pd.offsets.Day, pd.offsets.Hour, pd.offsets.Minute, pd.offsets.Second),
+        ):
+            # closest reso is Second
+            expected = expected.astype("m8[s]")
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -580,16 +567,12 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
     # Mod By Zero
 
-    def test_df_mod_zero_df(self, using_array_manager):
+    def test_df_mod_zero_df(self):
         # GH#3590, modulo as ints
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
         # this is technically wrong, as the integer portion is coerced to float
         first = Series([0, 0, 0, 0])
-        if not using_array_manager:
-            # INFO(ArrayManager) BlockManager doesn't preserve dtype per column
-            # while ArrayManager performs op column-wisedoes and thus preserves
-            # dtype if possible
-            first = first.astype("float64")
+        first = first.astype("float64")
         second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
         result = df % df
@@ -1133,11 +1116,10 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
-    def test_ufunc_coercions(self, holder, dtype):
-        idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
-        box = Series if holder is Series else Index
+    def test_ufunc_coercions(self, index_or_series, dtype):
+        idx = index_or_series([1, 2, 3, 4, 5], dtype=dtype, name="x")
+        box = index_or_series
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)
@@ -1497,6 +1479,8 @@ def test_dataframe_div_silenced():
     "data, expected_data",
     [([0, 1, 2], [0, 2, 4])],
 )
+@pytest.mark.parametrize("box_pandas_1d_array", [Index, Series, tm.to_array])
+@pytest.mark.parametrize("box_1d_array", [Index, Series, tm.to_array, np.array, list])
 def test_integer_array_add_list_like(
     box_pandas_1d_array, box_1d_array, data, expected_data
 ):

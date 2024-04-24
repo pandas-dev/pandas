@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -8,7 +11,6 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -21,29 +23,12 @@ from pandas.core.interchange.from_dataframe import from_dataframe
 from pandas.core.interchange.utils import ArrowCTypes
 
 
-@pytest.fixture
-def data_categorical():
-    return {
+@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
+def test_categorical_dtype(data):
+    data_categorical = {
         "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
         "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
     }
-
-
-@pytest.fixture
-def string_data():
-    return {
-        "separator data": [
-            "abC|DeF,Hik",
-            "234,3245.67",
-            "gSaf,qWer|Gre",
-            "asd3,4sad|",
-            np.nan,
-        ]
-    }
-
-
-@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data, data_categorical):
     df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
@@ -179,8 +164,6 @@ def test_missing_from_masked():
         }
     )
 
-    df2 = df.__dataframe__()
-
     rng = np.random.default_rng(2)
     dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
@@ -231,7 +214,16 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string(string_data):
+def test_string():
+    string_data = {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.nan,
+        ]
+    }
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -268,7 +260,6 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -303,8 +294,52 @@ def test_multi_chunk_pyarrow() -> None:
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
 
+def test_multi_chunk_column() -> None:
+    pytest.importorskip("pyarrow", "11.0.0")
+    ser = pd.Series([1, 2, None], dtype="Int64[pyarrow]")
+    df = pd.concat([ser, ser], ignore_index=True).to_frame("a")
+    df_orig = df.copy()
+    with pytest.raises(
+        RuntimeError, match="Found multi-chunk pyarrow array, but `allow_copy` is False"
+    ):
+        pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=False))
+    result = pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=True))
+    # Interchange protocol defaults to creating numpy-backed columns, so currently this
+    # is 'float64'.
+    expected = pd.DataFrame({"a": [1.0, 2.0, None, 1.0, 2.0, None]}, dtype="float64")
+    tm.assert_frame_equal(result, expected)
+
+    # Check that the rechunking we did didn't modify the original DataFrame.
+    tm.assert_frame_equal(df, df_orig)
+    assert len(df["a"].array._pa_array.chunks) == 2
+    assert len(df_orig["a"].array._pa_array.chunks) == 2
+
+
+def test_timestamp_ns_pyarrow():
+    # GH 56712
+    pytest.importorskip("pyarrow", "11.0.0")
+    timestamp_args = {
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "hour": 1,
+        "minute": 1,
+        "second": 1,
+    }
+    df = pd.Series(
+        [datetime(**timestamp_args)],
+        dtype="timestamp[ns][pyarrow]",
+        name="col0",
+    ).to_frame()
+
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
+
+    expected = pd.Timestamp(**timestamp_args)
+    assert result == expected
+
+
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
     tz_data = (
@@ -362,3 +397,242 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
+
+
+def test_empty_string_column():
+    # https://github.com/pandas-dev/pandas/issues/56703
+    df = pd.DataFrame({"a": []}, dtype=str)
+    df2 = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(df2)
+    tm.assert_frame_equal(df, result)
+
+
+def test_large_string():
+    # GH#56702
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = pd.api.interchange.from_dataframe(df.__dataframe__())
+    expected = pd.DataFrame({"a": ["x"]}, dtype="object")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_non_str_names():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.Series([1, 2, 3], name=0).to_frame()
+    names = df.__dataframe__().column_names()
+    assert names == ["0"]
+
+
+def test_non_str_names_w_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/56701
+    df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
+    dfi = df.__dataframe__()
+    with pytest.raises(
+        TypeError,
+        match=(
+            "Expected a Series, got a DataFrame. This likely happened because you "
+            "called __dataframe__ on a DataFrame which, after converting column "
+            r"names to string, resulted in duplicated names: Index\(\['0', '0'\], "
+            r"dtype='object'\). Please rename these columns before using the "
+            "interchange protocol."
+        ),
+    ):
+        pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+
+
+@pytest.mark.parametrize(
+    ("data", "dtype", "expected_dtype"),
+    [
+        ([1, 2, None], "Int64", "int64"),
+        ([1, 2, None], "Int64[pyarrow]", "int64"),
+        ([1, 2, None], "Int8", "int8"),
+        ([1, 2, None], "Int8[pyarrow]", "int8"),
+        (
+            [1, 2, None],
+            "UInt64",
+            "uint64",
+        ),
+        (
+            [1, 2, None],
+            "UInt64[pyarrow]",
+            "uint64",
+        ),
+        ([1.0, 2.25, None], "Float32", "float32"),
+        ([1.0, 2.25, None], "Float32[pyarrow]", "float32"),
+        ([True, False, None], "boolean", "bool"),
+        ([True, False, None], "boolean[pyarrow]", "bool"),
+        (["much ado", "about", None], "string[pyarrow_numpy]", "large_string"),
+        (["much ado", "about", None], "string[pyarrow]", "large_string"),
+        (
+            [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
+            "timestamp[ns][pyarrow]",
+            "timestamp[ns]",
+        ),
+        (
+            [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
+            "timestamp[us][pyarrow]",
+            "timestamp[us]",
+        ),
+        (
+            [
+                datetime(2020, 1, 1, tzinfo=timezone.utc),
+                datetime(2020, 1, 2, tzinfo=timezone.utc),
+                None,
+            ],
+            "timestamp[us, Asia/Kathmandu][pyarrow]",
+            "timestamp[us, tz=Asia/Kathmandu]",
+        ),
+    ],
+)
+def test_pandas_nullable_with_missing_values(
+    data: list, dtype: str, expected_dtype: str
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/57643
+    # https://github.com/pandas-dev/pandas/issues/57664
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    import pyarrow.interchange as pai
+
+    if expected_dtype == "timestamp[us, tz=Asia/Kathmandu]":
+        expected_dtype = pa.timestamp("us", "Asia/Kathmandu")
+
+    df = pd.DataFrame({"a": data}, dtype=dtype)
+    result = pai.from_dataframe(df.__dataframe__())["a"]
+    assert result.type == expected_dtype
+    assert result[0].as_py() == data[0]
+    assert result[1].as_py() == data[1]
+    assert result[2].as_py() is None
+
+
+@pytest.mark.parametrize(
+    ("data", "dtype", "expected_dtype"),
+    [
+        ([1, 2, 3], "Int64", "int64"),
+        ([1, 2, 3], "Int64[pyarrow]", "int64"),
+        ([1, 2, 3], "Int8", "int8"),
+        ([1, 2, 3], "Int8[pyarrow]", "int8"),
+        (
+            [1, 2, 3],
+            "UInt64",
+            "uint64",
+        ),
+        (
+            [1, 2, 3],
+            "UInt64[pyarrow]",
+            "uint64",
+        ),
+        ([1.0, 2.25, 5.0], "Float32", "float32"),
+        ([1.0, 2.25, 5.0], "Float32[pyarrow]", "float32"),
+        ([True, False, False], "boolean", "bool"),
+        ([True, False, False], "boolean[pyarrow]", "bool"),
+        (["much ado", "about", "nothing"], "string[pyarrow_numpy]", "large_string"),
+        (["much ado", "about", "nothing"], "string[pyarrow]", "large_string"),
+        (
+            [datetime(2020, 1, 1), datetime(2020, 1, 2), datetime(2020, 1, 3)],
+            "timestamp[ns][pyarrow]",
+            "timestamp[ns]",
+        ),
+        (
+            [datetime(2020, 1, 1), datetime(2020, 1, 2), datetime(2020, 1, 3)],
+            "timestamp[us][pyarrow]",
+            "timestamp[us]",
+        ),
+        (
+            [
+                datetime(2020, 1, 1, tzinfo=timezone.utc),
+                datetime(2020, 1, 2, tzinfo=timezone.utc),
+                datetime(2020, 1, 3, tzinfo=timezone.utc),
+            ],
+            "timestamp[us, Asia/Kathmandu][pyarrow]",
+            "timestamp[us, tz=Asia/Kathmandu]",
+        ),
+    ],
+)
+def test_pandas_nullable_without_missing_values(
+    data: list, dtype: str, expected_dtype: str
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/57643
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    import pyarrow.interchange as pai
+
+    if expected_dtype == "timestamp[us, tz=Asia/Kathmandu]":
+        expected_dtype = pa.timestamp("us", "Asia/Kathmandu")
+
+    df = pd.DataFrame({"a": data}, dtype=dtype)
+    result = pai.from_dataframe(df.__dataframe__())["a"]
+    assert result.type == expected_dtype
+    assert result[0].as_py() == data[0]
+    assert result[1].as_py() == data[1]
+    assert result[2].as_py() == data[2]
+
+
+def test_string_validity_buffer() -> None:
+    # https://github.com/pandas-dev/pandas/issues/57761
+    pytest.importorskip("pyarrow", "11.0.0")
+    df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
+    result = df.__dataframe__().get_column_by_name("a").get_buffers()["validity"]
+    assert result is None
+
+
+def test_string_validity_buffer_no_missing() -> None:
+    # https://github.com/pandas-dev/pandas/issues/57762
+    pytest.importorskip("pyarrow", "11.0.0")
+    df = pd.DataFrame({"a": ["x", None]}, dtype="large_string[pyarrow]")
+    validity = df.__dataframe__().get_column_by_name("a").get_buffers()["validity"]
+    assert validity is not None
+    result = validity[1]
+    expected = (DtypeKind.BOOL, 1, ArrowCTypes.BOOL, "=")
+    assert result == expected
+
+
+def test_empty_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/56700
+    df = pd.DataFrame({"a": []}, dtype="int8")
+    dfi = df.__dataframe__()
+    result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
+    expected = pd.DataFrame({"a": []}, dtype="int8")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_dtype", "expected_buffer_dtype"),
+    [
+        (
+            pd.Series(["a", "b", "a"], dtype="category"),
+            (DtypeKind.CATEGORICAL, 8, "c", "="),
+            (DtypeKind.INT, 8, "c", "|"),
+        ),
+        (
+            pd.Series(
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+            ),
+            (DtypeKind.DATETIME, 64, "tsn:", "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series(["a", "bc", None]),
+            (DtypeKind.STRING, 8, ArrowCTypes.STRING, "="),
+            (DtypeKind.UINT, 8, ArrowCTypes.UINT8, "="),
+        ),
+        (
+            pd.Series([1, 2, 3]),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
+        ),
+        (
+            pd.Series([1.5, 2, 3]),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
+        ),
+    ],
+)
+def test_buffer_dtype_categorical(
+    data: pd.Series,
+    expected_dtype: tuple[DtypeKind, int, str, str],
+    expected_buffer_dtype: tuple[DtypeKind, int, str, str],
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/54781
+    df = pd.DataFrame({"data": data})
+    dfi = df.__dataframe__()
+    col = dfi.get_column_by_name("data")
+    assert col.dtype == expected_dtype
+    assert col.get_buffers()["data"][1] == expected_buffer_dtype

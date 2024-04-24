@@ -57,7 +57,7 @@ can it now take all numpy numeric dtypes, i.e.
     pd.Index([1, 2, 3], dtype=np.uint16)
     pd.Index([1, 2, 3], dtype=np.float32)
 
-The ability for :class:`Index` to hold the numpy numeric dtypes has meant some changes in Pandas
+The ability for :class:`Index` to hold the numpy numeric dtypes has meant some changes in pandas
 functionality. In particular, operations that previously were forced to create 64-bit indexes,
 can now create indexes with lower bit sizes, e.g. 32-bit indexes.
 
@@ -732,7 +732,7 @@ or, if your formats are all ISO8601 (but possibly not identically-formatted) ::
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`, :issue:`32526`)
+- The ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`, :issue:`32526`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)

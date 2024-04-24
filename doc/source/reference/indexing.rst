@@ -41,6 +41,7 @@ Properties
    Index.empty
    Index.T
    Index.memory_usage
+   Index.array
 
 Modifying and computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,13 +62,6 @@ Modifying and computations
    Index.identical
    Index.insert
    Index.is_
-   Index.is_boolean
-   Index.is_categorical
-   Index.is_floating
-   Index.is_integer
-   Index.is_interval
-   Index.is_numeric
-   Index.is_object
    Index.min
    Index.max
    Index.reindex
@@ -110,6 +104,7 @@ Conversion
    Index.to_list
    Index.to_series
    Index.to_frame
+   Index.to_numpy
    Index.view
 
 Sorting

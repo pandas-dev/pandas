@@ -19,7 +19,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 
 class TestSeriesRepr:
@@ -115,13 +114,13 @@ class TestSeriesRepr:
             1,
             1.2,
             "foo",
-            "\u03B1\u03B2\u03B3",
+            "\u03b1\u03b2\u03b3",
             "loooooooooooooooooooooooooooooooooooooooooooooooooooong",
             ("foo", "bar", "baz"),
             (1, 2),
             ("foo", 1, 2.3),
-            ("\u03B1", "\u03B2", "\u03B3"),
-            ("\u03B1", "bar"),
+            ("\u03b1", "\u03b2", "\u03b3"),
+            ("\u03b1", "bar"),
         ],
     )
     def test_various_names(self, name, string_series):
@@ -253,14 +252,6 @@ class TestSeriesRepr:
         exp = """1.0    1\nNaN    2\ndtype: int64"""
 
         assert repr(s) == exp
-
-    def test_format_pre_1900_dates(self):
-        rng = date_range("1/1/1850", "1/1/1950", freq="YE-DEC")
-        msg = "DatetimeIndex.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rng.format()
-        ts = Series(1, index=rng)
-        repr(ts)
 
     def test_series_repr_nat(self):
         series = Series([0, 1000, 2000, pd.NaT._value], dtype="M8[ns]")

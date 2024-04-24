@@ -86,9 +86,12 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = "last"
-            series = getattr(series.resample("D"), how)().dropna()
-            series = getattr(series.resample(ax_freq), how)().dropna()
+            # Resampling with PeriodDtype is deprecated, so we convert to
+            #  DatetimeIndex, resample, then convert back.
+            ser_ts = series.to_timestamp()
+            ser_d = ser_ts.resample("D").last().dropna()
+            ser_freq = ser_d.resample(ax_freq).last().dropna()
+            series = ser_freq.to_period(ax_freq)
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -202,7 +205,10 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq, is_period=True).rule_code
+    if isinstance(freq, BaseOffset):
+        freqstr = freq.name
+    else:
+        freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -247,9 +253,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
-        base = to_offset(
-            freq_str, is_period=True
-        )._period_dtype_code  # type: ignore[attr-defined]
+        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -306,7 +310,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str)
+                data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
 
 

@@ -1,4 +1,4 @@
-from unittest.mock import (
+from unittest.mock import (  # noqa: TID251
     mock_open,
     patch,
 )
@@ -10,7 +10,7 @@ from web.pandas_web import Preprocessors
 
 
 class MockResponse:
-    def __init__(self, status_code: int, response: dict):
+    def __init__(self, status_code: int, response: dict) -> None:
         self.status_code = status_code
         self._resp = response
 
@@ -18,7 +18,7 @@ class MockResponse:
         return self._resp
 
     @staticmethod
-    def raise_for_status():
+    def raise_for_status() -> None:
         return
 
 
@@ -30,8 +30,8 @@ def context() -> dict:
     }
 
 
-@pytest.fixture(scope="function")
-def mock_response(monkeypatch, request):
+@pytest.fixture
+def mock_response(monkeypatch, request) -> None:
     def mocked_resp(*args, **kwargs):
         status_code, response = request.param
         return MockResponse(status_code, response)
@@ -80,7 +80,7 @@ _releases_list = [
 
 
 @pytest.mark.parametrize("mock_response", [(200, _releases_list)], indirect=True)
-def test_web_preprocessor_creates_releases(mock_response, context):
+def test_web_preprocessor_creates_releases(mock_response, context) -> None:
     m = mock_open()
     with patch("builtins.open", m):
         context = Preprocessors.home_add_releases(context)

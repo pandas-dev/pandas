@@ -607,7 +607,8 @@ cdef ndarray[int64_t] _get_dst_hours(
         ndarray[uint8_t, cast=True] mismatch
         ndarray[int64_t] delta, dst_hours
         ndarray[intp_t] switch_idxs, trans_idx, grp, a_idx, b_idx, one_diff
-        list trans_grp
+        # TODO: Can uncomment when numpy >=2 is the minimum
+        # tuple trans_grp
         intp_t switch_idx
         int64_t left, right
 

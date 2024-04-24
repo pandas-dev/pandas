@@ -2,12 +2,7 @@ import operator
 
 import pytest
 
-from pandas._config.config import _get_option
-
-from pandas import (
-    Series,
-    options,
-)
+from pandas import Series
 
 
 @pytest.fixture
@@ -194,7 +189,7 @@ def use_numpy(request):
 def fillna_method(request):
     """
     Parametrized fixture giving method parameters 'ffill' and 'bfill' for
-    Series.fillna(method=<method>) testing.
+    Series.<method> testing.
     """
     return request.param
 
@@ -217,14 +212,3 @@ def invalid_scalar(data):
     If the array can hold any item (i.e. object dtype), then use pytest.skip.
     """
     return object.__new__(object)
-
-
-@pytest.fixture
-def using_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is enabled.
-    """
-    return (
-        options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )

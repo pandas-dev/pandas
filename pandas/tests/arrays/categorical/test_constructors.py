@@ -24,6 +24,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -34,13 +35,6 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
-    def test_fastpath_deprecated(self):
-        codes = np.array([1, 2, 3])
-        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
-        msg = "The 'fastpath' keyword in Categorical is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            Categorical(codes, dtype=dtype, fastpath=True)
-
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
@@ -437,7 +431,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], ordered=False, dtype=dtype)
 
     @pytest.mark.parametrize("categories", [None, ["a", "b"], ["a", "c"]])
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_str_category(self, categories, ordered):
         result = Categorical(
             ["a", "b"], categories=categories, ordered=ordered, dtype="category"
@@ -683,7 +676,6 @@ class TestCategoricalConstructors:
         expected = Categorical([1, 1, 2, np.nan])
         tm.assert_categorical_equal(result, expected)
 
-    @pytest.mark.parametrize("ordered", [None, True, False])
     def test_construction_with_ordered(self, ordered):
         # GH 9347, 9190
         cat = Categorical([0, 1, 2], ordered=ordered)
@@ -755,12 +747,12 @@ class TestCategoricalConstructors:
 
     def test_from_sequence_copy(self):
         cat = Categorical(np.arange(5).repeat(2))
-        result = Categorical._from_sequence(cat, dtype=None, copy=False)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=False)
 
         # more generally, we'd be OK with a view
         assert result._codes is cat._codes
 
-        result = Categorical._from_sequence(cat, dtype=None, copy=True)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=True)
 
         assert not tm.shares_memory(result, cat)
 
@@ -781,3 +773,17 @@ class TestCategoricalConstructors:
         result = cat.categories.freq
 
         assert expected == result
+
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            [range(5), None],
+            [range(4), range(5)],
+            [[0, 1, 2, 3], range(5)],
+            [[], range(5)],
+        ],
+    )
+    def test_range_values_preserves_rangeindex_categories(self, values, categories):
+        result = Categorical(values=values, categories=categories).categories
+        expected = RangeIndex(range(5))
+        tm.assert_index_equal(result, expected, exact=True)

@@ -32,24 +32,14 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
-    @pytest.mark.parametrize(
-        "unit,unit_depr",
-        [
-            ("h", "H"),
-            ("min", "T"),
-            ("s", "S"),
-            ("ms", "L"),
-            ("ns", "N"),
-            ("us", "U"),
-        ],
-    )
-    def test_units_H_T_S_L_N_U_deprecated(self, unit, unit_depr):
+    @pytest.mark.parametrize("unit", ["h", "s"])
+    def test_units_H_S_deprecated(self, unit):
         # GH#52536
-        msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+        msg = f"'{unit.upper()}' is deprecated and will be removed in a future version."
 
         expected = Timedelta(1, unit=unit)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = Timedelta(1, unit=unit_depr)
+            result = Timedelta(1, unit=unit.upper())
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -103,13 +93,11 @@ class TestTimedeltaConstructorUnitKeyword:
                 "microsecond",
                 "micro",
                 "micros",
-                "u",
                 "US",
                 "Microseconds",
                 "Microsecond",
                 "Micro",
                 "Micros",
-                "U",
             ]
         ]
         + [
@@ -120,13 +108,11 @@ class TestTimedeltaConstructorUnitKeyword:
                 "nanosecond",
                 "nano",
                 "nanos",
-                "n",
                 "NS",
                 "Nanoseconds",
                 "Nanosecond",
                 "Nano",
                 "Nanos",
-                "N",
             ]
         ],
     )
@@ -139,36 +125,39 @@ class TestTimedeltaConstructorUnitKeyword:
             dtype="m8[ns]",
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
-        msg = f"'{unit}' is deprecated and will be removed in a future version."
 
-        if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
-            warn = FutureWarning
-        else:
-            warn = FutureWarning
-            msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = to_timedelta(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
 
-            str_repr = [f"{x}{unit}" for x in np.arange(5)]
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
+        str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
 
-            # scalar
-            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-            result = to_timedelta(2, unit=unit)
-            assert result == expected
-            result = Timedelta(2, unit=unit)
-            assert result == expected
+        # scalar
+        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        result = to_timedelta(2, unit=unit)
+        assert result == expected
+        result = Timedelta(2, unit=unit)
+        assert result == expected
 
-            result = to_timedelta(f"2{unit}")
-            assert result == expected
-            result = Timedelta(f"2{unit}")
-            assert result == expected
+        result = to_timedelta(f"2{unit}")
+        assert result == expected
+        result = Timedelta(f"2{unit}")
+        assert result == expected
+
+    @pytest.mark.parametrize("unit", ["T", "t", "L", "l", "U", "u", "N", "n"])
+    def test_unit_T_L_N_U_raises(self, unit):
+        msg = f"invalid unit abbreviation: {unit}"
+        with pytest.raises(ValueError, match=msg):
+            Timedelta(1, unit=unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(10, unit)
+
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([1, 2], unit)
 
 
 def test_construct_from_kwargs_overflow():
@@ -631,17 +620,16 @@ def test_timedelta_pass_td_and_kwargs_raises():
 
 
 @pytest.mark.parametrize(
-    "constructor, value, unit, expectation",
+    "constructor, value, unit",
     [
-        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+        (Timedelta, "10s", "ms"),
+        (to_timedelta, "10s", "ms"),
+        (to_timedelta, ["1", 2, 3], "s"),
     ],
 )
-def test_string_with_unit(constructor, value, unit, expectation):
-    exp, match = expectation
-    with pytest.raises(exp, match=match):
-        _ = constructor(value, unit=unit)
+def test_string_with_unit(constructor, value, unit):
+    with pytest.raises(ValueError, match="unit must not be specified"):
+        constructor(value, unit=unit)
 
 
 @pytest.mark.parametrize(

@@ -14,7 +14,7 @@ import pandas._testing as tm
 
 
 class TestUpdate:
-    def test_update(self, using_copy_on_write):
+    def test_update(self):
         s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
         s2 = Series([np.nan, 3.5, np.nan, 5.0])
         s.update(s2)
@@ -29,17 +29,9 @@ class TestUpdate:
         df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["c"].update(Series(["foo"], index=[0]))
-            expected = df_orig
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-                df["c"].update(Series(["foo"], index=[0]))
-            expected = DataFrame(
-                [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
-            )
-            expected["c"] = expected["c"].astype(object)
+        with tm.raises_chained_assignment_error():
+            df["c"].update(Series(["foo"], index=[0]))
+        expected = df_orig
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -76,21 +68,23 @@ class TestUpdate:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
-        "series, other, expected",
+        "values, other, expected",
         [
             # update by key
             (
-                Series({"a": 1, "b": 2, "c": 3, "d": 4}),
+                {"a": 1, "b": 2, "c": 3, "d": 4},
                 {"b": 5, "c": np.nan},
-                Series({"a": 1, "b": 5, "c": 3, "d": 4}),
+                {"a": 1, "b": 5, "c": 3, "d": 4},
             ),
             # update by position
-            (Series([1, 2, 3, 4]), [np.nan, 5, 1], Series([1, 5, 1, 4])),
+            ([1, 2, 3, 4], [np.nan, 5, 1], [1, 5, 1, 4]),
         ],
     )
-    def test_update_from_non_series(self, series, other, expected):
+    def test_update_from_non_series(self, values, other, expected):
         # GH 33215
+        series = Series(values)
         series.update(other)
+        expected = Series(expected)
         tm.assert_series_equal(series, expected)
 
     @pytest.mark.parametrize(

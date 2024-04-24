@@ -1,6 +1,7 @@
 """
 Core eval alignment algorithms.
 """
+
 from __future__ import annotations
 
 from functools import (
@@ -14,6 +15,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config.config import get_option
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -124,17 +127,21 @@ def _align_core(terms):
                 reindexer_size = len(reindexer)
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
-                if ordm >= 1 and reindexer_size >= 10000:
+                if (
+                    get_option("performance_warnings")
+                    and ordm >= 1
+                    and reindexer_size >= 10000
+                ):
                     w = (
                         f"Alignment difference on axis {axis} is larger "
-                        f"than an order of magnitude on term {repr(terms[i].name)}, "
+                        f"than an order of magnitude on term {terms[i].name!r}, "
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(
                         w, category=PerformanceWarning, stacklevel=find_stack_level()
                     )
 
-                obj = ti.reindex(reindexer, axis=axis, copy=False)
+                obj = ti.reindex(reindexer, axis=axis)
                 terms[i].update(obj)
 
         terms[i].update(terms[i].value.values)

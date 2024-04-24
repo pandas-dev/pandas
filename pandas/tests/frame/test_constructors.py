@@ -24,8 +24,8 @@ import pytz
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -84,16 +84,15 @@ class TestDataFrameConstructors:
         expected = DataFrame(arr.astype(str), dtype=object)
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_from_2d_datetimearray(self, using_array_manager):
+    def test_constructor_from_2d_datetimearray(self):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         dta = dti._data.reshape(3, 2)
 
         df = DataFrame(dta)
         expected = DataFrame({0: dta[:, 0], 1: dta[:, 1]})
         tm.assert_frame_equal(df, expected)
-        if not using_array_manager:
-            # GH#44724 big performance hit if we de-consolidate
-            assert len(df._mgr.blocks) == 1
+        # GH#44724 big performance hit if we de-consolidate
+        assert len(df._mgr.blocks) == 1
 
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
@@ -236,16 +235,9 @@ class TestDataFrameConstructors:
         assert len(result.columns) == 0
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "constructor",
-        [
-            lambda: DataFrame({}),
-            lambda: DataFrame(data={}),
-        ],
-    )
-    def test_empty_constructor_object_index(self, constructor):
+    def test_empty_constructor_object_index(self):
         expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
-        result = constructor()
+        result = DataFrame({})
         assert len(result.index) == 0
         assert len(result.columns) == 0
         tm.assert_frame_equal(result, expected, check_index_type=True)
@@ -296,36 +288,17 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_constructor_dtype_nocast_view_dataframe(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        if using_copy_on_write:
-            should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 1
-        else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                should_be_view.iloc[0, 0] = 99
-            assert df.values[0, 0] == 99
+        should_be_view.iloc[0, 0] = 99
+        assert df.values[0, 0] == 1
 
-    def test_constructor_dtype_nocast_view_2d_array(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_constructor_dtype_nocast_view_2d_array(self):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
-        if not using_array_manager and not using_copy_on_write:
-            should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            # TODO(CoW-warn) this should warn
-            # with tm.assert_cow_warning(warn_copy_on_write):
-            should_be_view.iloc[0, 0] = 97
-            assert df.values[0, 0] == 97
-        else:
-            # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
-            # a view on the array to ensure contiguous 1D arrays
-            df2 = DataFrame(df.values, dtype=df[0].dtype)
-            assert df2._mgr.arrays[0].flags.c_contiguous
+        df2 = DataFrame(df.values, dtype=df[0].dtype)
+        assert df2._mgr.arrays[0].flags.c_contiguous
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -333,7 +306,6 @@ class TestDataFrameConstructors:
         df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_2d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -1559,7 +1531,7 @@ class TestDataFrameConstructors:
         "tuples,lists",
         [
             ((), []),
-            ((()), []),
+            (((),), [[]]),
             (((), ()), [(), ()]),
             (((), ()), [[], []]),
             (([], []), [[], []]),
@@ -2147,35 +2119,15 @@ class TestDataFrameConstructors:
         cop.index = np.arange(len(cop))
         tm.assert_frame_equal(float_frame, orig)
 
-    def test_constructor_ndarray_copy(
-        self, float_frame, using_array_manager, using_copy_on_write
-    ):
-        if not using_array_manager:
-            arr = float_frame.values.copy()
-            df = DataFrame(arr)
+    def test_constructor_ndarray_copy(self, float_frame):
+        arr = float_frame.values.copy()
+        df = DataFrame(arr)
 
-            arr[5] = 5
-            if using_copy_on_write:
-                assert not (df.values[5] == 5).all()
-            else:
-                assert (df.values[5] == 5).all()
-
-            df = DataFrame(arr, copy=True)
-            arr[6] = 6
-            assert not (df.values[6] == 6).all()
-        else:
-            arr = float_frame.values.copy()
-            # default: copy to ensure contiguous arrays
-            df = DataFrame(arr)
-            assert df._mgr.arrays[0].flags.c_contiguous
-            arr[0, 0] = 100
-            assert df.iloc[0, 0] != 100
-
-            # manually specify copy=False
-            df = DataFrame(arr, copy=False)
-            assert not df._mgr.arrays[0].flags.c_contiguous
-            arr[0, 0] = 1000
-            assert df.iloc[0, 0] == 1000
+        arr[5] = 5
+        assert not (df.values[5] == 5).all()
+        df = DataFrame(arr, copy=True)
+        arr[6] = 6
+        assert not (df.values[6] == 6).all()
 
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
@@ -2328,15 +2280,10 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
-    def test_check_dtype_empty_string_column(self, request, dtype, using_array_manager):
+    def test_check_dtype_empty_string_column(self, request, dtype):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
         data = DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
-
-        if using_array_manager and dtype in tm.BYTES_DTYPES:
-            # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
-            td.mark_array_manager_not_yet_implemented(request)
-
         assert data.b.dtype.name == "object"
 
     def test_to_frame_with_falsey_names(self):
@@ -2511,21 +2458,10 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
         self,
-        request,
         copy,
         any_numeric_ea_dtype,
         any_numpy_dtype,
-        using_array_manager,
-        using_copy_on_write,
     ):
-        if (
-            using_array_manager
-            and not copy
-            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
-        ):
-            # TODO(ArrayManager) properly honor copy keyword for dict input
-            td.mark_array_manager_not_yet_implemented(request)
-
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
@@ -2546,8 +2482,6 @@ class TestDataFrameConstructors:
                 raise TypeError
 
         def check_views(c_only: bool = False):
-            # written to work for either BlockManager or ArrayManager
-
             # Check that the underlying data behind df["c"] is still `c`
             #  after setting with iloc.  Since we don't know which entry in
             #  df._mgr.arrays corresponds to df["c"], we just check that exactly
@@ -2594,9 +2528,6 @@ class TestDataFrameConstructors:
         #  view, so we have to check in the other direction
         df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
-        if not copy and not using_copy_on_write:
-            check_views(True)
-
         if copy:
             if a.dtype.kind == "M":
                 assert a[0] == a.dtype.type(1, "ns")
@@ -2606,12 +2537,6 @@ class TestDataFrameConstructors:
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
             assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
-        elif not using_copy_on_write:
-            # TODO: we can call check_views if we stop consolidating
-            #  in setitem_with_indexer
-            assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
-            # TODO: we can check b[0] == 0 if we stop consolidating in
-            #  setitem_with_indexer (except for datetimelike?)
 
     def test_construct_from_dict_ea_series(self):
         # GH#53744 - default of copy=True should also apply for Series with
@@ -2768,6 +2693,28 @@ class TestDataFrameConstructors:
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
 
+    def test_inference_on_pandas_objects(self):
+        # GH#56012
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = DataFrame(idx, columns=["a"])
+        assert result.dtypes.iloc[0] != np.object_
+        result = DataFrame({"a": idx})
+        assert result.dtypes.iloc[0] == np.object_
+
+        ser = Series([Timestamp("2019-12-31")], dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = DataFrame(ser, columns=["a"])
+        assert result.dtypes.iloc[0] != np.object_
+        result = DataFrame({"a": ser})
+        assert result.dtypes.iloc[0] == np.object_
+
+    def test_dict_keys_returns_rangeindex(self):
+        result = DataFrame({0: [1], 1: [2]}).columns
+        expected = RangeIndex(2)
+        tm.assert_index_equal(result, expected, exact=True)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
@@ -2840,7 +2787,7 @@ class TestDataFrameConstructorIndexInference:
         )
         result = DataFrame({key_val: [1, 2]}, columns=cols)
         expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
-        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        expected.isetitem(1, expected.iloc[:, 1].astype(object))
         tm.assert_frame_equal(result, expected)
 
 
@@ -3101,6 +3048,29 @@ class TestDataFrameConstructorWithDatetimeTZ:
         with pytest.raises(ValueError, match="columns cannot be a set"):
             DataFrame(data, columns={"a", "b", "c"})
 
+    def test_from_dict_with_columns_na_scalar(self):
+        result = DataFrame({"a": pd.NaT}, columns=["a"], index=range(2))
+        expected = DataFrame({"a": Series([pd.NaT, pd.NaT])})
+        tm.assert_frame_equal(result, expected)
+
+    # TODO: make this not cast to object in pandas 3.0
+    @pytest.mark.skipif(
+        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
+    )
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": ["a", "b", "c"], "b": [1.0, 2.0, 3.0], "c": ["d", "e", "f"]},
+        ],
+    )
+    def test_np_string_array_object_cast(self, data):
+        from numpy.dtypes import StringDType
+
+        data["a"] = np.array(data["a"], dtype=StringDType())
+        res = DataFrame(data)
+        assert res["a"].dtype == np.object_
+        assert (res["a"] == data["a"]).all()
+
 
 def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):
@@ -3206,6 +3176,7 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
+    @pytest.mark.skip_ubsan
     def test_out_of_s_bounds_datetime64(self, constructor):
         scalar = np.datetime64(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
@@ -3241,6 +3212,7 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
+    @pytest.mark.skip_ubsan
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
     def test_out_of_s_bounds_timedelta64(self, constructor, cls):
         scalar = cls(np.iinfo(np.int64).max, "D")

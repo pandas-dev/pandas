@@ -28,6 +28,7 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
+import pandas._testing as tm
 
 
 class TestTimestampConstructorUnitKeyword:
@@ -190,18 +191,17 @@ class TestTimestampConstructorFoldKeyword:
 
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
     @pytest.mark.parametrize(
-        "ts_input,fold,value_out",
+        "fold,value_out",
         [
-            (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000),
-            (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000),
+            (0, 1572136200000000),
+            (1, 1572139800000000),
         ],
     )
-    def test_timestamp_constructor_adjust_value_for_fold(
-        self, tz, ts_input, fold, value_out
-    ):
+    def test_timestamp_constructor_adjust_value_for_fold(self, tz, fold, value_out):
         # Test for GH#25057
         # Check that we adjust value for fold correctly
         # based on timestamps since utc
+        ts_input = datetime(2019, 10, 27, 1, 30)
         ts = Timestamp(ts_input, tz=tz, fold=fold)
         result = ts._value
         expected = value_out
@@ -328,6 +328,18 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
 class TestTimestampClassMethodConstructors:
     # Timestamp constructors other than __new__
+
+    def test_utcnow_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcnow is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcnow()
+
+    def test_utcfromtimestamp_deprecated(self):
+        # GH#56680
+        msg = "Timestamp.utcfromtimestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
         # GH#25016
@@ -609,7 +621,6 @@ class TestTimestampConstructors:
         ]
 
         timezones = [
-            (None, 0),
             ("UTC", 0),
             (pytz.utc, 0),
             ("Asia/Tokyo", 9),
@@ -822,6 +833,7 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
+    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
@@ -999,6 +1011,18 @@ class TestTimestampConstructors:
         expected = Timestamp("3/11/2012", tz=tz)
         assert result.hour == expected.hour
         assert result == expected
+
+    def test_explicit_tz_none(self):
+        # GH#48688
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(datetime(2022, 1, 1, tzinfo=timezone.utc), tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2022-01-01 00:00:00", tzinfo=timezone.utc, tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2022-01-01 00:00:00-0400", tz=None)
 
 
 def test_constructor_ambiguous_dst():

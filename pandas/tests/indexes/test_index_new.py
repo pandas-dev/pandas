@@ -1,6 +1,7 @@
 """
 Tests for the Index constructor conducting inference.
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -80,14 +81,10 @@ class TestIndexConstructorInference:
         expected = MultiIndex.from_tuples(values)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        [int, "int64", "int32", "int16", "int8", "uint64", "uint32", "uint16", "uint8"],
-    )
-    def test_constructor_int_dtype_float(self, dtype):
+    def test_constructor_int_dtype_float(self, any_int_numpy_dtype):
         # GH#18400
-        expected = Index([0, 1, 2, 3], dtype=dtype)
-        result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
+        expected = Index([0, 1, 2, 3], dtype=any_int_numpy_dtype)
+        result = Index([0.0, 1.0, 2.0, 3.0], dtype=any_int_numpy_dtype)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("cast_index", [True, False])
@@ -332,11 +329,12 @@ class TestDtypeEnforced:
     @pytest.mark.parametrize(
         "vals",
         [
-            Index(np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")])),
-            Index([datetime(2011, 1, 1), datetime(2011, 1, 2)]),
+            np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")]),
+            [datetime(2011, 1, 1), datetime(2011, 1, 2)],
         ],
     )
     def test_constructor_dtypes_to_datetime(self, cast_index, vals):
+        vals = Index(vals)
         if cast_index:
             index = Index(vals, dtype=object)
             assert isinstance(index, Index)
@@ -413,7 +411,7 @@ class TestIndexConstructorUnwrapping:
             def __init__(self, array) -> None:
                 self.array = array
 
-            def __array__(self, dtype=None) -> np.ndarray:
+            def __array__(self, dtype=None, copy=None) -> np.ndarray:
                 return self.array
 
         expected = Index(array)

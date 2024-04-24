@@ -36,7 +36,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -61,8 +60,8 @@ Basic
 +++++
 
 filepath_or_buffer : various
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
+  URL (including http, ftp, and S3
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
@@ -80,6 +79,9 @@ delim_whitespace : boolean, default False
   will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
+
+  .. deprecated: 2.2.0
+    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -836,6 +838,7 @@ order) and the new column names will be the concatenation of the component
 column names:
 
 .. ipython:: python
+   :okwarning:
 
    data = (
        "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -856,6 +859,7 @@ By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_csv(
        "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
@@ -871,6 +875,7 @@ single column.
 You can also use a dict to specify custom name columns:
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
@@ -883,6 +888,7 @@ data columns:
 
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv(
@@ -901,6 +907,10 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
+
+.. deprecated:: 2.2.0
+   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
+   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -1034,7 +1044,7 @@ Writing CSVs to binary file objects
 
 ``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
 opened binary mode. In most cases, it is not necessary to specify
-``mode`` as Pandas will auto-detect whether the file object is
+``mode`` as pandas will auto-detect whether the file object is
 opened in text or binary mode.
 
 .. ipython:: python
@@ -1594,7 +1604,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pandas currently supports three engines, the C engine, the python engine, and an experimental
 pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
 on larger workloads and is equivalent in speed to the C engine on most other workloads.
 The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
@@ -1693,7 +1703,7 @@ option parameter:
 
 .. code-block:: python
 
-   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}
    df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
 
 More sample configurations and documentation can be found at `S3Fs documentation
@@ -1939,13 +1949,6 @@ Writing in ISO date format, with microseconds:
    json = dfd.to_json(date_format="iso", date_unit="us")
    json
 
-Epoch timestamps, in seconds:
-
-.. ipython:: python
-
-   json = dfd.to_json(date_format="epoch", date_unit="s")
-   json
-
 Writing to a file, with a date index and a date column:
 
 .. ipython:: python
@@ -1955,7 +1958,7 @@ Writing to a file, with a date index and a date column:
    dfj2["ints"] = list(range(5))
    dfj2["bools"] = True
    dfj2.index = pd.date_range("20130101", periods=5)
-   dfj2.to_json("test.json")
+   dfj2.to_json("test.json", date_format="iso")
 
    with open("test.json") as fh:
        print(fh.read())
@@ -2130,7 +2133,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 .. ipython:: python
 
    from io import StringIO
-   json = dfj2.to_json(date_unit="ns")
+   json = dfj2.to_json(date_format="iso", date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(StringIO(json), date_unit="ms")
@@ -3004,14 +3007,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
 Biomedical and Life Science Jorurnals:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   df = pd.read_xml(
-       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
-       xpath=".//journal-meta",
-   )
-   df
+   >>> df = pd.read_xml(
+   ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+   ...    xpath=".//journal-meta",
+   ...)
+   >>> df
+         journal-id  journal-title  issn  publisher
+   0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
 
 With `lxml`_ as default ``parser``, you access the full-featured XML library
 that extends Python's ElementTree API. One powerful tool is ability to query
@@ -3236,7 +3240,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=StringIO(xsl))
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
@@ -3407,7 +3411,7 @@ Write an XML and transform with stylesheet:
       </xsl:template>
     </xsl:stylesheet>"""
 
-   print(geom_df.to_xml(stylesheet=xsl))
+   print(geom_df.to_xml(stylesheet=StringIO(xsl)))
 
 
 XML Final Notes
@@ -3460,20 +3464,15 @@ saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
-.. warning::
+.. note::
 
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
-   old-style ``.xls`` files.
+   When ``engine=None``, the following logic will be used to determine the engine:
 
-   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including new
-   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
-
-   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
-   (``.xlsx``) files.
-   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
-   This is no longer supported, switch to using ``openpyxl`` instead.
+   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+     then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 
@@ -3901,6 +3900,20 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
+
+.. note::
+
+    As of pandas 3.0, by default spreadsheets created with the ``to_excel`` method
+    will not contain any styling. Users wishing to bold text, add bordered styles,
+    etc in a worksheet output by ``to_excel`` can do so by using :meth:`Styler.to_excel`
+    to create styled excel files. For documentation on styling spreadsheets, see
+    `here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
+
+
+.. code-block:: python
+
+    css = "border: 1px solid black; font-weight: bold;"
+    df.style.map_index(lambda x: css).map_index(lambda x: css, axis=1).to_excel("myfile.xlsx")
 
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
@@ -6089,10 +6102,6 @@ Google BigQuery
 
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
 
-pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
-use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
-respective functions from ``pandas-gbq``.
-
 Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/latest/>`__.
 
 .. _io.stata:
@@ -6384,7 +6393,7 @@ ignored.
    In [2]: df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    In [3]: df.info()
-   <class 'pandas.core.frame.DataFrame'>
+   <class 'pandas.DataFrame'>
    RangeIndex: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
    A    1000000 non-null float64

@@ -14,7 +14,7 @@ experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
 the next person. Please visit the `issues page <https://github.com/pandas-dev/pandas/issues?page=1&q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs>`__
 for a full list of issues that are currently open regarding the
-Pandas documentation.
+pandas documentation.
 
 
 

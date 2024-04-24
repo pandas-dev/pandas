@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+
 from datetime import datetime
 import warnings
 
@@ -84,9 +85,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = (
-        list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
-    )
+    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
 
     params = [
         ("Int64", "UInt64", "Float64"),

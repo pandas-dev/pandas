@@ -1,6 +1,7 @@
 """
 test with the TimeGrouper / grouping with datetimes
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -52,8 +53,8 @@ def frame_for_truncated_bingrouper():
 @pytest.fixture
 def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     """
-    GroupBy object such that gb.grouper is a BinGrouper and
-    len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)
+    GroupBy object such that gb._grouper is a BinGrouper and
+    len(gb._grouper.result_index) < len(gb._grouper.group_keys_seq)
 
     Aggregations on this groupby should have
 
@@ -67,9 +68,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    msg = "group_keys_seq is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+    assert len(gb._grouper.result_index) != len(gb._grouper.codes)
 
     return gb
 
@@ -157,7 +156,7 @@ class TestGroupBy:
         g = df.groupby(Grouper(freq="6ME"))
         assert g.group_keys
 
-        assert isinstance(g.grouper, BinGrouper)
+        assert isinstance(g._grouper, BinGrouper)
         groups = g.groups
         assert isinstance(groups, dict)
         assert len(groups) == 3
@@ -480,10 +479,10 @@ class TestGroupBy:
             return Series([x["value"].sum()], ("sum",))
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
@@ -501,9 +500,9 @@ class TestGroupBy:
             return x.value.sum()
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
@@ -880,7 +879,7 @@ class TestGroupBy:
     def test_groupby_apply_timegrouper_with_nat_dict_returns(
         self, groupby_with_truncated_bingrouper
     ):
-        # GH#43500 case where gb.grouper.result_index and gb.grouper.group_keys_seq
+        # GH#43500 case where gb._grouper.result_index and gb._grouper.group_keys_seq
         #  have different lengths that goes through the `isinstance(values[0], dict)`
         #  path
         gb = groupby_with_truncated_bingrouper
@@ -927,11 +926,11 @@ class TestGroupBy:
         # check that we will go through the singular_series path
         #  in _wrap_applied_output_series
         assert gb.ngroups == 1
-        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
+        assert gb._selected_obj.index.nlevels == 1
 
         # function that returns a Series
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             res = gb.apply(lambda x: x["Quantity"] * 2)
 
         dti = Index([Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date")

@@ -23,6 +23,7 @@ main:
 
 The rest of the items in the file will be added directly to the context.
 """
+
 import argparse
 import collections
 import datetime
@@ -118,11 +119,11 @@ class Preprocessors:
                 summary = re.sub(tag_expr, "", html)
                 try:
                     body_position = summary.index(title) + len(title)
-                except ValueError:
+                except ValueError as err:
                     raise ValueError(
                         f'Blog post "{fname}" should have a markdown header '
                         f'corresponding to its "Title" element "{title}"'
-                    )
+                    ) from err
                 summary = " ".join(summary[body_position:].split(" ")[:30])
                 posts.append(
                     {

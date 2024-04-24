@@ -57,8 +57,6 @@ class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
 
-    .. versionadded:: 1.2.0
-
     .. warning::
 
        FloatingArray is currently experimental, and its API or internal
@@ -136,6 +134,12 @@ None
 Methods
 -------
 None
+
+See Also
+--------
+CategoricalDtype : Type for categorical data with the categories and orderedness.
+IntegerDtype : An ExtensionDtype to hold a single size & kind of integer dtype.
+StringDtype : An ExtensionDtype for string data.
 
 Examples
 --------
