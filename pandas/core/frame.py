@@ -2685,6 +2685,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -4012,7 +4022,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4023,7 +4032,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:

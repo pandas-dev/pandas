@@ -1144,18 +1144,38 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
+        complib : default None
+            This parameter is currently not accepted.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        min_itemsize : int, dict, or None
+            Dict of columns that specify minimum str sizes.
+        nan_rep : str
+            Str to use as str nan representation.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
+        errors : str, default 'strict'
+            The error handling scheme to use for encoding errors.
+            The default is 'strict' meaning that encoding errors raise a
+            UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
+            'xmlcharrefreplace' as well as any other name registered with
+            codecs.register_error that can handle UnicodeEncodeErrors.
         track_times : bool, default True
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
+
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
@@ -1574,6 +1594,10 @@ class HDFStore:
             Names (strings) of the groups contained in `path`.
         leaves : list
             Names (strings) of the pandas objects contained in `path`.
+
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
 
         Examples
         --------

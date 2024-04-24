@@ -539,7 +539,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -592,6 +592,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
+
+        See Also
+        --------
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+            one time zone to another.
 
         Examples
         --------
@@ -1475,6 +1482,14 @@ default 'raise'
 
         Namely, the date part of Timestamps without time and
         timezone information.
+
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.year : The year of the datetime.
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.day : The day of the datetime.
 
         Examples
         --------
