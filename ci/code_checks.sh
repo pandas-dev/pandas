@@ -152,7 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.symmetric_difference PR07,RT03,SA01" \
         -i "pandas.Index.take PR01,PR07" \
         -i "pandas.Index.union PR07,RT03,SA01" \
-        -i "pandas.Index.unique RT03" \
         -i "pandas.Index.view GL08" \
         -i "pandas.Int16Dtype SA01" \
         -i "pandas.Int32Dtype SA01" \
