@@ -908,6 +908,11 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Returns None if it can't autodetect the frequency.
 
+        See Also
+        --------
+        DatetimeIndex.freqstr : Return the frequency object as a string if it's set,
+            otherwise None.
+
         Examples
         --------
         For DatetimeIndex:
