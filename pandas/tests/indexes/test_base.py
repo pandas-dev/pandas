@@ -71,8 +71,8 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_constructor_copy(self, index, using_infer_string):
+    def test_constructor_copy(self, using_infer_string):
+        index = Index(list("abc"), name="name")
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
