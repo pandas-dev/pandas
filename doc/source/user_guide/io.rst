@@ -1949,13 +1949,6 @@ Writing in ISO date format, with microseconds:
    json = dfd.to_json(date_format="iso", date_unit="us")
    json
 
-Epoch timestamps, in seconds:
-
-.. ipython:: python
-
-   json = dfd.to_json(date_format="epoch", date_unit="s")
-   json
-
 Writing to a file, with a date index and a date column:
 
 .. ipython:: python
@@ -1965,7 +1958,7 @@ Writing to a file, with a date index and a date column:
    dfj2["ints"] = list(range(5))
    dfj2["bools"] = True
    dfj2.index = pd.date_range("20130101", periods=5)
-   dfj2.to_json("test.json")
+   dfj2.to_json("test.json", date_format="iso")
 
    with open("test.json") as fh:
        print(fh.read())
@@ -2140,7 +2133,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 .. ipython:: python
 
    from io import StringIO
-   json = dfj2.to_json(date_unit="ns")
+   json = dfj2.to_json(date_format="iso", date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(StringIO(json), date_unit="ms")
