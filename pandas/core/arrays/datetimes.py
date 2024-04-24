@@ -2162,8 +2162,10 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.is_year_end : Indicate whether the date is the last day of the year.
-        DatetimeIndex.is_year_start : Indicate whether the date is the first day of a year.
+        DatetimeIndex.is_year_end : Indicate whether the date is the
+            last day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
 
         Examples
         --------
