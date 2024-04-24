@@ -871,8 +871,8 @@ def assert_series_equal(
 
         .. versionchanged:: 3.0.0
 
-            When checking Index equivalence, the default value for check_exact
-            is based off the Index dtype, instead of the Series dtype.
+            check_exact for comparing the Indexes defaults to True by
+            checking if an Index is of integer dtypes.
 
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
@@ -926,12 +926,9 @@ def assert_series_equal(
         right_index_dtypes = (
             [right.index.dtype] if right.index.nlevels == 1 else right.index.dtypes
         )
-        check_exact_index = (
-            all(is_numeric_dtype(dtype) for dtype in left_index_dtypes)
-            and not any(is_float_dtype(dtype) for dtype in left_index_dtypes)
-            or all(is_numeric_dtype(dtype) for dtype in right_index_dtypes)
-            and not any(is_float_dtype(dtype) for dtype in right_index_dtypes)
-        )
+        check_exact_index = all(
+            dtype.kind in "iu" for dtype in left_index_dtypes
+        ) or all(dtype.kind in "iu" for dtype in right_index_dtypes)
     elif check_exact is lib.no_default:
         check_exact = False
         check_exact_index = False
