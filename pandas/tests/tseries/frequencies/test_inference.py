@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import importlib
 
 import numpy as np
 import pytest
@@ -557,9 +556,6 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
     assert res == "B"
 
 
-@pytest.mark.skipif(
-    importlib.util.find_spec("pyarrow") is None, reason="pyarrow not installed"
-)
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
@@ -579,5 +575,6 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 )
 @pytest.mark.parametrize("cls", [Index, Series])
 def test_infer_freq_pyarrow(data, expected, cls):
+    pytest.importorskip("pyarrow")
     obj = cls(data).astype("timestamp[s][pyarrow]")
     assert frequencies.infer_freq(obj) == expected
