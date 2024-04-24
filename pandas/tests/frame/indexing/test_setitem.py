@@ -711,7 +711,10 @@ class TestDataFrameSetItem:
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
-        with tm.assert_produces_warning(PendingDeprecationWarning):
+        with tm.assert_produces_warning(
+            PendingDeprecationWarning,
+            match="matrix subclass is not the recommended way to represent matrices",
+        ):
             df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)

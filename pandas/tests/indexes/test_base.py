@@ -1065,10 +1065,10 @@ class TestIndex:
         left_index = Index(np.random.default_rng(2).permutation(15))
         right_index = date_range("2020-01-01", periods=10)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = left_index.join(right_index, how="outer")
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)
