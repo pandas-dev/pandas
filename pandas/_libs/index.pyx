@@ -712,14 +712,16 @@ cdef class BaseMultiIndexCodesEngine:
             Pre-calculated offsets, one for each level of the index.
         """
         self.levels = levels
-        self.offsets = offsets
+        # Downcast the type if possible, to prevent upcasting when shifting codes:
+        self.offsets = offsets.astype(np.min_scalar_type(offsets[0]), copy=False)
 
         # Transform labels in a single array, and add 2 so that we are working
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
-        codes = labels_arr.astype("uint64", copy=False)
+        codes = np.array(labels).T
+        codes += multiindex_nulls_shift  # inplace sum optimisation
+
         self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
@@ -731,8 +733,37 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lab_ints)
 
-    def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
+    def _codes_to_ints(self, ndarray codes) -> np.ndarray:
+        """
+        Transform combination(s) of uint in one uint or Python integer (each), in a
+        strictly monotonic way (i.e. respecting the lexicographic order of integer
+        combinations).
+
+        Parameters
+        ----------
+        codes : 1- or 2-dimensional array of dtype uint
+            Combinations of integers (one per row)
+
+        Returns
+        -------
+        scalar or 1-dimensional array, of dtype _codes_dtype
+            Integer(s) representing one combination (each).
+        """
+        # To avoid overflows, first make sure we are working with the right dtype:
+        codes = codes.astype(self._codes_dtype, copy=False)
+
+        # Shift the representation of each level by the pre-calculated number of bits:
+        codes <<= self.offsets  # inplace shift optimisation
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
+        return np.bitwise_or.reduce(codes, axis=1)
 
     def _extract_level_codes(self, target) -> np.ndarray:
         """
@@ -757,7 +788,7 @@ cdef class BaseMultiIndexCodesEngine:
             codes[codes > 0] += 1
             if self.level_has_nans[i]:
                 codes[target.codes[i] == -1] += 1
-        return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
+        return self._codes_to_ints(np.array(level_codes, dtype=self._codes_dtype).T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
@@ -788,7 +819,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
 
         # Transform indices into single integer:
-        lab_int = self._codes_to_ints(np.array(indices, dtype="uint64"))
+        lab_int = self._codes_to_ints(np.array(indices, dtype=self._codes_dtype))
 
         return self._base.get_loc(self, lab_int)
 
