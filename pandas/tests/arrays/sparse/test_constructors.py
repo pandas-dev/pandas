@@ -91,12 +91,12 @@ class TestConstructors:
 
         expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="loses timezone information"):
             result = SparseArray(dti)
 
         tm.assert_sp_array_equal(result, expected)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="loses timezone information"):
             result = SparseArray(pd.Series(dti))
 
         tm.assert_sp_array_equal(result, expected)
