@@ -224,6 +224,7 @@ Removal of prior version deprecations/changes
 - Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
 - Disallow constructing a :class:`arrays.SparseArray` with scalar data (:issue:`53039`)
 - Disallow indexing an :class:`Index` with a boolean indexer of length zero, it now raises ``ValueError`` (:issue:`55820`)
+- Disallow nested sequences for 'parse_dates' in :func:`read_csv`, combine the desired columns using :func:`to_datetime` after parsing instead (:issue:`55569`)
 - Disallow non-standard (``np.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series`) to :func:`isin`, :func:`unique`, :func:`factorize` (:issue:`52986`)
 - Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
 - Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)

@@ -814,12 +814,11 @@ def read_csv(
         ):
             depr = True
         if depr:
-            warnings.warn(
-                "Support for nested sequences for 'parse_dates' in pd.read_csv "
-                "is deprecated. Combine the desired columns with pd.to_datetime "
-                "after parsing instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                # GH#55569
+                "Nested sequences for 'parse_dates' is no longer supported. "
+                "Combine the desired columns with pd.to_datetime after parsing "
+                "instead."
             )
 
     if infer_datetime_format is not lib.no_default:

@@ -267,13 +267,10 @@ skip_blank_lines : boolean, default ``True``
 Datetime handling
 +++++++++++++++++
 
-parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
+parse_dates : boolean or list of ints or names, default ``False``.
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
-  * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
-    column.
-  * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
