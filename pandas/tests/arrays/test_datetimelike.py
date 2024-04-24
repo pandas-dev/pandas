@@ -909,23 +909,19 @@ class TestDatetimeArray(SharedTests):
     def test_strftime_err(self):
         arr = DatetimeIndex(np.array(['1820-01-01', '2020-01-02'], 'datetime64[s]'))
 
-        try:
-            result = arr.strftime("%y", 'raise') 
-            assert False
-        except ValueError:
-            assert True
-        
-        try: 
-            result = arr[0].strftime("%y", 'raise')
-            assert False
-        except ValueError:
-            assert True
+        with pytest.raises(ValueError):
+            result = arr.strftime("%y", 'raise')
 
+        with pytest.raises(ValueError):
+            result = arr[0].strftime("%y", 'raise') 
+        
         result = arr.strftime("%y", 'ignore')
         expected = pd.Index([None, '20'], dtype = 'object')
         tm.assert_numpy_array_equal(result, expected)
 
         assert result[0] == arr[0].strftime("%y", 'ignore')
+
+        #with tm.assert_produces_warning(TODO):
 
         result = arr.strftime("%y", 'warn')
         expected = pd.Index([None, '20'], dtype = 'object')
