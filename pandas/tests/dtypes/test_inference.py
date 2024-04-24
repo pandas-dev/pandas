@@ -936,9 +936,9 @@ class TestInference:
     def test_maybe_convert_objects_nullable_boolean(self):
         # GH50047
         arr = np.array([True, False], dtype=object)
-        exp = np.array([True, False])
+        exp = BooleanArray._from_sequence([True, False], dtype="boolean")
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
-        tm.assert_numpy_array_equal(out, exp)
+        tm.assert_extension_array_equal(out, exp)
 
         arr = np.array([True, False, pd.NaT], dtype=object)
         exp = np.array([True, False, pd.NaT], dtype=object)
