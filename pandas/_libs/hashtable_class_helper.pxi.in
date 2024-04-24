@@ -1020,7 +1020,7 @@ cdef class StringHashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def get_indexer(self, object[:] values) -> ndarray:
+    def get_indexer(self, ndarray[object] values) -> ndarray:
         # -> np.ndarray[np.intp]
         cdef:
             Py_ssize_t i, n = len(values)
