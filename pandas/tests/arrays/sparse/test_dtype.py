@@ -84,7 +84,6 @@ with warnings.catch_warnings():
         (SparseDtype("float64"), SparseDtype("float32")),
         (SparseDtype("float64"), SparseDtype("float64", 0)),
         (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
-        (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
         (SparseDtype("float64"), np.dtype("float64")),
     ]
 

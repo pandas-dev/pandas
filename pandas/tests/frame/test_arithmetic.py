@@ -1097,7 +1097,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning  # "evaluating in Python space because ..."
+                    warn = UserWarning
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1105,17 +1105,16 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                    # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
             else:
