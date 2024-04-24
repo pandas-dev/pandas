@@ -1014,7 +1014,8 @@ class TestAlignment:
         else:
             seen = False
 
-        with tm.assert_produces_warning(seen):
+        msg = "Alignment difference on axis 1 is larger than an order of magnitude"
+        with tm.assert_produces_warning(seen, match=msg):
             pd.eval("df + s", engine=engine, parser=parser)
 
         s = Series(np.random.default_rng(2).standard_normal(1000))
@@ -1036,7 +1037,7 @@ class TestAlignment:
         else:
             wrn = False
 
-        with tm.assert_produces_warning(wrn) as w:
+        with tm.assert_produces_warning(wrn, match=msg) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
             if not is_python_engine and performance_warning:

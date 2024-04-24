@@ -24,7 +24,8 @@ class TestTimestampToPyDatetime:
         ts = Timestamp("2011-01-01 9:00:00.123456789")
 
         # Warn the user of data loss (nanoseconds).
-        with tm.assert_produces_warning(UserWarning):
+        msg = "Discarding nonzero nanoseconds in conversion"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             expected = datetime(2011, 1, 1, 9, 0, 0, 123456)
             result = ts.to_pydatetime()
             assert result == expected

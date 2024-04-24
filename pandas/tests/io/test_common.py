@@ -463,7 +463,7 @@ class TestMMapWrapper:
             index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(UnicodeWarning):
+            with tm.assert_produces_warning(UnicodeWarning, match="byte order mark"):
                 df.to_csv(path, compression=compression_, encoding=encoding)
 
             # reading should fail (otherwise we wouldn't need the warning)
