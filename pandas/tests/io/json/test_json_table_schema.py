@@ -115,7 +115,7 @@ class TestBuildSchema:
                 {"name": "C", "type": "datetime"},
                 {"name": "D", "type": "duration"},
             ],
-            "primaryKey": ("level_0", "level_1"),
+            "primaryKey": ["level_0", "level_1"],
         }
         if using_infer_string:
             expected["fields"][0] = {
@@ -128,7 +128,7 @@ class TestBuildSchema:
 
         df.index.names = ["idx0", None]
         expected["fields"][0]["name"] = "idx0"
-        expected["primaryKey"] = ("idx0", "level_1")
+        expected["primaryKey"] = ["idx0", "level_1"]
         result = build_table_schema(df, version=False)
         assert result == expected
 
@@ -451,12 +451,17 @@ class TestTableOrient:
         assert result == expected
 
     def test_date_format_raises(self, df_table):
-        msg = (
+        error_msg = (
             "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
             "Schema requires dates to be formatted with `date_format='iso'`"
         )
-        with pytest.raises(ValueError, match=msg):
-            df_table.to_json(orient="table", date_format="epoch")
+        warning_msg = (
+            "'epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with pytest.raises(ValueError, match=error_msg):
+            with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+                df_table.to_json(orient="table", date_format="epoch")
 
         # others work
         df_table.to_json(orient="table", date_format="iso")
@@ -598,21 +603,21 @@ class TestTableOrient:
             (pd.Index([1], name="myname"), "myname", "name"),
             (
                 pd.MultiIndex.from_product([("a", "b"), ("c", "d")]),
-                ("level_0", "level_1"),
+                ["level_0", "level_1"],
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", "n2"]
                 ),
-                ("n1", "n2"),
+                ["n1", "n2"],
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", None]
                 ),
-                ("n1", "level_1"),
+                ["n1", "level_1"],
                 "names",
             ),
         ],
@@ -634,7 +639,7 @@ class TestTableOrient:
         # GH 19130
         df = DataFrame(index=idx)
         df.index.name = "index"
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="not round-trippable"):
             set_default_names(df)
 
     def test_timestamp_in_columns(self):

@@ -132,6 +132,7 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     default_index,
     ensure_index,
+    maybe_sequence_to_range,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
@@ -538,8 +539,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
-
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -547,7 +546,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
 
-            keys = tuple(data.keys())
+            keys = maybe_sequence_to_range(tuple(data.keys()))
             values = list(data.values())  # Generating list of values- faster way
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
@@ -634,6 +633,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        See Also
+        --------
+        DataFrame.dtypes :  Return the dtypes in the DataFrame.
 
         Examples
         --------
@@ -1391,7 +1394,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return a string representation for a particular Series.
         """
-        # pylint: disable=invalid-repr-returned
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
@@ -1664,6 +1666,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        See Also
+        --------
+        Series.index : The index (axis labels) of the Series.
 
         Examples
         --------
@@ -1981,7 +1987,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
-    def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
+    def unique(self) -> ArrayLike:
         """
         Return unique values of Series object.
 
@@ -5782,17 +5788,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         object,
                         np.bool_,
                     ):
-                        warnings.warn(
-                            "Operation between non boolean Series with different "
-                            "indexes will no longer return a boolean result in "
-                            "a future version. Cast both Series to object type "
-                            "to maintain the prior behavior.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    # to keep original value's dtype for bool ops
-                    left = left.astype(object)
-                    right = right.astype(object)
+                        pass
+                        # GH#52538 no longer cast in these cases
+                    else:
+                        # to keep original value's dtype for bool ops
+                        left = left.astype(object)
+                        right = right.astype(object)
 
                 left, right = left.align(right)
 
@@ -6110,6 +6111,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
     @Appender(make_doc("all", ndim=1))
     def all(
         self,
@@ -6129,6 +6131,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=1))
     def min(
         self,
@@ -6141,6 +6144,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=1))
     def max(
         self,
@@ -6153,6 +6157,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=1))
     def sum(
         self,
@@ -6171,6 +6176,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=1))
     def prod(
         self,
@@ -6189,6 +6195,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=1))
     def mean(
         self,
@@ -6201,6 +6208,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=1))
     def median(
         self,
@@ -6213,6 +6221,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=1))
     def sem(
         self,
@@ -6231,6 +6240,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=1))
     def var(
         self,
@@ -6249,6 +6259,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=1))
     def std(
         self,
@@ -6267,6 +6278,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=1))
     def skew(
         self,
@@ -6279,6 +6291,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=1))
     def kurt(
         self,
