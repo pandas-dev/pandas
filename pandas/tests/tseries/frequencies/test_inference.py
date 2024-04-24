@@ -554,3 +554,26 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (["2022-01-01T10:00:00", "2022-01-01T10:00:30", "2022-01-01T10:01:00"], "30s"),
+        (["2022-01-01T10:00:00", "2022-01-01T10:00:37", "2022-01-01T10:01:00"], None),
+        (["2022-01-01T10:00:00", "2022-01-01T10:00:01", "2022-01-01T10:00:02"], "s"),
+        (
+            [
+                "2022-01-01T10:00:00",
+                "2022-01-01T10:00:01",
+                "2022-01-01T10:00:02",
+                "2022-01-01T10:00:04",
+            ],
+            None,
+        ),
+    ],
+)
+@pytest.mark.parametrize("cls", [Index, Series])
+def test_infer_freq_pyarrow(data, expected, cls):
+    obj = cls(data).astype("timestamp[s][pyarrow]")
+    assert frequencies.infer_freq(obj) == expected
