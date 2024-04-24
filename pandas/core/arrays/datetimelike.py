@@ -117,7 +117,6 @@ from pandas.core import (
 from pandas.core.algorithms import (
     isin,
     map_array,
-    take,
     unique1d,
 )
 from pandas.core.array_algos import datetimelike_accumulations
@@ -2336,7 +2335,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
-    
+
     def take(
         self,
         indices: TakeIndexer,
@@ -2345,27 +2344,18 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         fill_value: Any = None,
         axis: AxisInt = 0,
     ) -> Self:
-        
-        if allow_fill:
-            fill_value = self._validate_scalar(fill_value)
+        result = super().take(
+            indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+        )
 
-        new_data = take(
-            self._ndarray,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            axis=axis,
-        )    
-        result = self._from_backing_data(new_data)
-        
         indices = np.asarray(indices, dtype=np.intp)
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-        
+
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)
             result.freq = freq
-        
-        return result 
+
+        return result
 
     # --------------------------------------------------------------
     # Unsorted
