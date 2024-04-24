@@ -362,6 +362,7 @@ Datetimelike
 - Bug in :class:`Timestamp` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``tzinfo`` or data (:issue:`48688`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
+- Bug in :func:`infer_freq` prevented application to :class:`Series` of with ``pyarrow`` dtype. (:issue:`58403`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
