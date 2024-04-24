@@ -713,7 +713,7 @@ class TestDataFrameSetItem:
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
         with tm.assert_produces_warning(
             PendingDeprecationWarning,
-            match="the matrix subclass is not the recommended way to represent matrices",
+            match="matrix subclass is not the recommended way to represent matrices",
         ):
             df["np-matrix"] = np.matrix(a)
 

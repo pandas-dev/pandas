@@ -1740,7 +1740,7 @@ class TestToDatetimeUnit:
         # Test that strs aren't dropping precision to 32-bit accidentally.
         with tm.assert_produces_warning(
             FutureWarning,
-            match="The behavior of 'to_datetime' with 'unit' when parsing strings is deprecated",
+            match="'to_datetime' with 'unit' when parsing strings is deprecated",
         ):
             res = to_datetime(["1704660000"], unit="s", origin="unix")
         expected = to_datetime([1704660000], unit="s", origin="unix")
