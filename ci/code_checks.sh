@@ -138,7 +138,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.inferred_type SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
-        -i "pandas.Index.item SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.memory_usage RT03" \
         -i "pandas.Index.names GL08" \
