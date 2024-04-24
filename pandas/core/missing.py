@@ -314,7 +314,16 @@ def get_interp_index(method, index: Index) -> Index:
         # prior default
         from pandas import Index
 
-        index = Index(np.arange(len(index)))
+        if isinstance(index.dtype, DatetimeTZDtype) or lib.is_np_dtype(
+            index.dtype, "mM"
+        ):
+            # Convert datetime-like indexes to int64
+            index = Index(index.view("i8"))
+
+        elif not is_numeric_dtype(index.dtype):
+            # We keep behavior consistent with prior versions of pandas for
+            # non-numeric, non-datetime indexes
+            index = Index(range(len(index)))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
@@ -616,6 +625,9 @@ def _interpolate_scipy_wrapper(
         terp = alt_methods.get(method, None)
         if terp is None:
             raise ValueError(f"Can not interpolate with method={method}.")
+
+        # Make sure downcast is not in kwargs for alt methods
+        kwargs.pop("downcast", None)
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
