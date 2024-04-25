@@ -298,7 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.mul PR07" \
         -i "pandas.Series.ne PR07,SA01" \
-        -i "pandas.Series.nunique RT03" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.plot PR02,SA01" \
         -i "pandas.Series.pop RT03,SA01" \
