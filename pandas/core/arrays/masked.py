@@ -16,22 +16,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    DtypeObj,
-    FillnaOptions,
-    InterpolateOptions,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    Self,
-    SequenceIndexer,
-    Shape,
-    npt,
-)
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -97,6 +81,20 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        DtypeObj,
+        FillnaOptions,
+        InterpolateOptions,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        Self,
+        SequenceIndexer,
+        Shape,
+        npt,
     )
     from pandas._libs.missing import NAType
     from pandas.core.arrays import FloatingArray
@@ -114,10 +112,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
     _mask: npt.NDArray[np.bool_]
-
-    # Fill values used for any/all
-    _truthy_value = Scalar  # bool(_truthy_value) = True
-    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
@@ -1402,7 +1396,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # _NestedSequence[_SupportsArray[dtype[Any]]],
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype.falsey_value)  # type: ignore[arg-type]
         result = values.any()
         if skipna:
             return result
@@ -1495,7 +1489,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # _NestedSequence[_SupportsArray[dtype[Any]]],
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype.truthy_value)  # type: ignore[arg-type]
         result = values.all(axis=axis)
 
         if skipna:

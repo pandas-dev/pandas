@@ -1544,6 +1544,24 @@ class BaseMaskedDtype(ExtensionDtype):
     type: type
 
     @property
+    def truthy_value(self):
+        # Fill values used for 'any'
+        if self.kind == "f":
+            return 1.0
+        if self.kind in "iu":
+            return 1
+        return True
+
+    @property
+    def falsey_value(self):
+        # Fill values used for 'all'
+        if self.kind == "f":
+            return 0.0
+        if self.kind in "iu":
+            return 0
+        return False
+
+    @property
     def na_value(self) -> libmissing.NAType:
         return libmissing.NA
 
