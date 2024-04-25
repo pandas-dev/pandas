@@ -811,6 +811,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The timezone.
 
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
