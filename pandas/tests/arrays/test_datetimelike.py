@@ -917,7 +917,7 @@ class TestDatetimeArray(SharedTests):
         
         result = arr.strftime("%y", 'ignore')
         expected = pd.Index([None, '20'], dtype = 'object')
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         assert result[0] == arr[0].strftime("%y", 'ignore')
 
@@ -925,7 +925,7 @@ class TestDatetimeArray(SharedTests):
 
         result = arr.strftime("%y", 'warn')
         expected = pd.Index([None, '20'], dtype = 'object')
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         
         assert result[0] == arr[0].strftime("%y", 'warn')
 
