@@ -134,7 +134,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.inferred_type SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
-        -i "pandas.Index.item SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.memory_usage RT03" \
         -i "pandas.Index.names GL08" \
@@ -288,7 +287,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_monotonic_decreasing SA01" \
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
-        -i "pandas.Series.item SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
         -i "pandas.Series.le PR07,SA01" \
