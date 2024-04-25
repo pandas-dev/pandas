@@ -663,6 +663,28 @@ def read_json(
 
         .. versionadded:: 2.0
 
+    skiprows : int or callable, optional
+        Specifies the number of lines to skip at the beginning of the JSON file, or a callable to determine which 
+        lines to skip based on their content. This parameter can be very useful when certain lines, such as metadata or canary strings, 
+        need to be excluded from the data import process.
+
+        * If an integer is provided, this number of lines from the beginning of the file will be skipped.
+        * If a callable is provided, it will be applied to each line index (0-based), and lines for which the callable returns `True` 
+        will be skipped.
+
+        This parameter can only be used when `lines=True` is specified, as it requires the JSON data to be read line by line.
+
+        Example of using an integer:
+            skiprows=1  # Skips the first line of the JSON file.
+
+        Example of using a callable:
+            skiprows=lambda x: "canary" in x  # Skips lines containing the word 'canary'.
+
+        If this parameter is not set or is `None`, no lines will be skipped.
+
+        .. versionadded:: 2.3
+            The `skiprows` parameter was introduced in pandas version 2.3 to enhance the functionality of the `read_json` method.
+
     Returns
     -------
     Series, DataFrame, or pandas.api.typing.JsonReader
