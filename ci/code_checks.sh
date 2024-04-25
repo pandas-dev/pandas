@@ -110,8 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.copy PR07,SA01" \
         -i "pandas.Index.difference PR07,RT03,SA01" \
         -i "pandas.Index.drop PR07,SA01" \
-        -i "pandas.Index.droplevel RT03,SA01" \
-        -i "pandas.Index.dropna RT03,SA01" \
         -i "pandas.Index.duplicated RT03" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
