@@ -314,7 +314,7 @@ class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
-    def truncate(self, size: int | None = ...) -> int: ...
+    def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
