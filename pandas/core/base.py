@@ -1132,6 +1132,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bytes used
+            Returns memory usage of the values in the Index in bytes.
 
         See Also
         --------
