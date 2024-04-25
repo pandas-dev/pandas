@@ -719,7 +719,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     See Also
     --------
-    numpy.datetime64 : Numpy data type for datetime
+    numpy.datetime64 : Numpy data type for datetime.
     datetime.datetime : Python datetime object.
 
     Examples
