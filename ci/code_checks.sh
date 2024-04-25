@@ -108,7 +108,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
-        -i "pandas.Index.T SA01" \
         -i "pandas.Index.append PR07,RT03,SA01" \
         -i "pandas.Index.copy PR07,SA01" \
         -i "pandas.Index.difference PR07,RT03,SA01" \
@@ -117,7 +116,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.droplevel RT03,SA01" \
         -i "pandas.Index.dropna RT03,SA01" \
         -i "pandas.Index.duplicated RT03" \
-        -i "pandas.Index.empty GL08" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
@@ -229,7 +227,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
         -i "pandas.Series SA01" \
-        -i "pandas.Series.T SA01" \
         -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.at_time PR01" \
@@ -270,7 +267,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.dtype SA01" \
-        -i "pandas.Series.empty GL08" \
         -i "pandas.Series.eq PR07,SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \

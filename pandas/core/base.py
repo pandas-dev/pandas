@@ -309,6 +309,10 @@ class IndexOpsMixin(OpsMixin):
         doc="""
         Return the transpose, which is by definition self.
 
+        See Also
+        --------
+        Index : Immutable sequence used for indexing and alignment.
+
         Examples
         --------
         For Series:
@@ -691,6 +695,40 @@ class IndexOpsMixin(OpsMixin):
     @final
     @property
     def empty(self) -> bool:
+        """
+        Indicator whether Index is empty.
+
+        Returns
+        -------
+        bool
+            If Index is empty, return True, if not return False.
+
+        See Also
+        --------
+        Index.size : Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> idx_empty = pd.Index([1, 2, 3])
+        >>> idx_empty
+        Index([1, 2, 3], dtype='int64')
+        >>> idx_empty.empty
+        False
+
+        >>> idx_empty = pd.Index([])
+        >>> idx_empty
+        Index([], dtype='object')
+        >>> idx_empty.empty
+        True
+
+        If we only have NaNs in our DataFrame, it is not considered empty!
+
+        >>> idx_empty = pd.Index([np.nan, np.nan])
+        >>> idx_empty
+        Index([nan, nan], dtype='float64')
+        >>> idx_empty.empty
+        False
+        """
         return not self.size
 
     @doc(op="max", oppose="min", value="largest")
