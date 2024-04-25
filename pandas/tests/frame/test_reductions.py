@@ -699,7 +699,7 @@ class TestDataFrameAnalytics:
         expected = DataFrame({"A": ["a", np.nan]})
 
         warning = None if using_infer_string else UserWarning
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match="Unable to sort modes"):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
@@ -773,7 +773,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # works when only those columns are selected
-        result = mixed[["A", "B"]].min(1)
+        result = mixed[["A", "B"]].min(axis=1)
         expected = Series([timedelta(days=-1)] * 3)
         tm.assert_series_equal(result, expected)
 
@@ -832,8 +832,8 @@ class TestDataFrameAnalytics:
     def test_sum_corner(self):
         empty_frame = DataFrame()
 
-        axis0 = empty_frame.sum(0)
-        axis1 = empty_frame.sum(1)
+        axis0 = empty_frame.sum(axis=0)
+        axis1 = empty_frame.sum(axis=1)
         assert isinstance(axis0, Series)
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
@@ -967,15 +967,15 @@ class TestDataFrameAnalytics:
     def test_sum_bool(self, float_frame):
         # ensure this works, bug report
         bools = np.isnan(float_frame)
-        bools.sum(1)
-        bools.sum(0)
+        bools.sum(axis=1)
+        bools.sum(axis=0)
 
     def test_sum_mixed_datetime(self):
         # GH#30886
         df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
             [2, 3, 4]
         )
-        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
+        with pytest.raises(TypeError, match="does not support operation 'sum'"):
             df.sum()
 
     def test_mean_corner(self, float_frame, float_string_frame):
@@ -990,7 +990,7 @@ class TestDataFrameAnalytics:
 
         # take mean of boolean column
         float_frame["bool"] = float_frame["A"] > 0
-        means = float_frame.mean(0)
+        means = float_frame.mean(axis=0)
         assert means["bool"] == float_frame["bool"].values.mean()
 
     def test_mean_datetimelike(self):
@@ -1043,13 +1043,13 @@ class TestDataFrameAnalytics:
 
     def test_stats_mixed_type(self, float_string_frame):
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.std(1)
+            float_string_frame.std(axis=1)
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.var(1)
+            float_string_frame.var(axis=1)
         with pytest.raises(TypeError, match="unsupported operand type"):
-            float_string_frame.mean(1)
+            float_string_frame.mean(axis=1)
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.skew(1)
+            float_string_frame.skew(axis=1)
 
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
@@ -1331,11 +1331,11 @@ class TestDataFrameAnalytics:
         result = df[["A", "B"]].any(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
-        result = df.all(1)
+        result = df.all(axis=1)
         expected = Series([True, False, False], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-        result = df.all(1, bool_only=True)
+        result = df.all(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
         # Axis is None
@@ -1381,7 +1381,7 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        msg = "datetime64 type does not support operation: 'any'"
+        msg = "datetime64 type does not support operation 'any'"
         with pytest.raises(TypeError, match=msg):
             df.any(axis=1)
 
@@ -1466,18 +1466,18 @@ class TestDataFrameAnalytics:
 
         if any(isinstance(x, CategoricalDtype) for x in data.dtypes):
             with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
+                TypeError, match=".* dtype category does not support operation"
             ):
                 func(data)
 
             # method version
             with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
+                TypeError, match=".* dtype category does not support operation"
             ):
                 getattr(DataFrame(data), func.__name__)(axis=None)
         if data.dtypes.apply(lambda x: x.kind == "M").any():
             # GH#34479
-            msg = "datetime64 type does not support operation: '(any|all)'"
+            msg = "datetime64 type does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 func(data)
 
@@ -1734,19 +1734,19 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(ser, all_boolean_reductions)()
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(np, all_boolean_reductions)(ser)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=None)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(np, all_boolean_reductions)(df, axis=0)
 
     def test_median_categorical_dtype_nuisance_column(self):
@@ -1755,22 +1755,22 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median()
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median()
 
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
@@ -1964,7 +1964,7 @@ def test_minmax_extensionarray(method, numeric_only):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with pytest.raises(TypeError, match="does not support reduction"):
+    with pytest.raises(TypeError, match="does not support operation"):
         df.sum()
 
 

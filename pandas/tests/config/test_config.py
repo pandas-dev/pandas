@@ -227,7 +227,6 @@ class TestConfig:
 
         validator = cf.is_one_of_factory([None, cf.is_callable])
         cf.register_option("b", lambda: None, "doc", validator=validator)
-        # pylint: disable-next=consider-using-f-string
         cf.set_option("b", "%.1f".format)  # Formatter is callable
         cf.set_option("b", None)  # Formatter is none (default)
         with pytest.raises(ValueError, match="Value must be a callable"):

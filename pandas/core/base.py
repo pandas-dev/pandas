@@ -127,7 +127,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)  # pylint: disable=not-callable
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -355,6 +355,13 @@ class IndexOpsMixin(OpsMixin):
         """
         Number of dimensions of the underlying data, by definition 1.
 
+        See Also
+        --------
+        Series.size: Return the number of elements in the underlying data.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
+
         Examples
         --------
         >>> s = pd.Series(["Ant", "Bear", "Cow"])
@@ -412,6 +419,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Return the number of bytes in the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+
         Examples
         --------
         For Series:
@@ -439,6 +451,13 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        See Also
+        --------
+        Series.ndim: Number of dimensions of the underlying data, by definition 1.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
@@ -770,6 +789,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         list
+            List containing the values as Python or pandas scalers.
 
         See Also
         --------

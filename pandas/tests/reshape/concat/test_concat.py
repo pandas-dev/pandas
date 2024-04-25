@@ -125,7 +125,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ("group_key", None)
+        assert result.columns.names == ["group_key", None]
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -789,14 +789,13 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    warn = None
+    needs_update = False
     if df_dtype == "datetime64[ns]" or (
         df_dtype == "float64" and empty_dtype != "float64"
     ):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
-        result = concat([empty, df])
+        needs_update = True
+
+    result = concat([empty, df])
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -804,6 +803,10 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
             expected = df.astype("float64")
         else:
             expected = df.astype("object")
+
+    if needs_update:
+        # GH#40893 changed the expected here to retain dependence on empty
+        expected = expected.astype(object)
     tm.assert_frame_equal(result, expected)
 
 
@@ -820,17 +823,19 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
         else:
             df_dtype = "float64"
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    warn = None
+    needs_update = False
     if empty_dtype != df_dtype and empty_dtype is not None:
-        warn = FutureWarning
+        needs_update = True
     elif df_dtype == "datetime64[ns]":
-        warn = FutureWarning
+        needs_update = True
 
-    with tm.assert_produces_warning(warn, match=msg):
-        result = concat([empty, df], ignore_index=True)
+    result = concat([empty, df], ignore_index=True)
 
     expected = DataFrame({"foo": [np.nan, 1, 2], "bar": [np.nan, 1, 2]}, dtype=df_dtype)
+    if needs_update:
+        # GH#40893 changed the expected here to retain dependence on empty
+        expected = expected.astype(object)
+        expected.iloc[0] = np.nan
     tm.assert_frame_equal(result, expected)
 
 
@@ -841,10 +846,16 @@ def test_concat_ignore_empty_from_reindex():
 
     aligned = df2.reindex(columns=df1.columns)
 
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df1, aligned], ignore_index=True)
-    expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
+    result = concat([df1, aligned], ignore_index=True)
+
+    expected = DataFrame(
+        {
+            "a": [1, 2],
+            "b": pd.array([pd.Timestamp("2012-01-01"), np.nan], dtype=object),
+        },
+        dtype=object,
+    )
+    expected["a"] = expected["a"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -907,10 +918,10 @@ def test_concat_none_with_timezone_timestamp():
     # GH#52093
     df1 = DataFrame([{"A": None}])
     df2 = DataFrame([{"A": pd.Timestamp("1990-12-20 00:00:00+00:00")}])
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df1, df2], ignore_index=True)
-    expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
+    result = concat([df1, df2], ignore_index=True)
+    expected = DataFrame(
+        {"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]}, dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
 

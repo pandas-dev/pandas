@@ -64,6 +64,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
     set_module,
 )
@@ -993,6 +994,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         It has the row axis labels and column axis labels as the only members.
         They are returned in that order.
+
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.columns: The column labels of the DataFrame.
 
         Examples
         --------
@@ -2295,8 +2301,8 @@ class DataFrame(NDFrame, OpsMixin):
                     exclude.update(index)
 
         if any(exclude):
-            arr_exclude = [x for x in exclude if x in arr_columns]
-            to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
+            arr_exclude = (x for x in exclude if x in arr_columns)
+            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -2679,6 +2685,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -2871,9 +2887,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        This function requires either the `fastparquet
-        <https://pypi.org/project/fastparquet>`_ or `pyarrow
-        <https://arrow.apache.org/docs/python/>`_ library.
+        * This function requires either the `fastparquet
+          <https://pypi.org/project/fastparquet>`_ or `pyarrow
+          <https://arrow.apache.org/docs/python/>`_ library.
+        * When saving a DataFrame with categorical columns to parquet,
+          the file size may increase due to the inclusion of all possible
+          categories, not just those present in the data. This behavior
+          is expected and consistent with pandas' handling of categorical data.
+          To manage file size and ensure a more predictable roundtrip process,
+          consider using :meth:`Categorical.remove_unused_categories` on the
+          DataFrame before saving.
 
         Examples
         --------
@@ -3699,7 +3722,7 @@ class DataFrame(NDFrame, OpsMixin):
         nv.validate_transpose(args, {})
         # construct the args
 
-        dtypes = list(self.dtypes)
+        first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
@@ -3717,11 +3740,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif (
             self._is_homogeneous_type
-            and dtypes
-            and isinstance(dtypes[0], ExtensionDtype)
+            and first_dtype is not None
+            and isinstance(first_dtype, ExtensionDtype)
         ):
             new_values: list
-            if isinstance(dtypes[0], BaseMaskedDtype):
+            if isinstance(first_dtype, BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
                 from pandas.core.arrays.masked import (
                     transpose_homogeneous_masked_arrays,
@@ -3730,7 +3753,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_values = transpose_homogeneous_masked_arrays(
                     cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
                 )
-            elif isinstance(dtypes[0], ArrowDtype):
+            elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
                     ArrowExtensionArray,
@@ -3742,10 +3765,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
-                dtyp = dtypes[0]
-                arr_typ = dtyp.construct_array_type()
+                arr_typ = first_dtype.construct_array_type()
                 values = self.values
-                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+                new_values = [
+                    arr_typ._from_sequence(row, dtype=first_dtype) for row in values
+                ]
 
             result = type(self)._from_arrays(
                 new_values,
@@ -3849,8 +3873,10 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key):
+        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
+            # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
+
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
             # GH#45316 Return view if key is not duplicated
@@ -3996,7 +4022,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4007,7 +4032,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
@@ -4915,6 +4940,11 @@ class DataFrame(NDFrame, OpsMixin):
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+
         Notes
         -----
         Assigning multiple columns within the same ``assign`` is possible.
@@ -5514,6 +5544,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series
             Series representing the item that is dropped.
 
+        See Also
+        --------
+        DataFrame.drop: Drop specified labels from rows or columns.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -5874,7 +5909,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 arrays.append(self.index)
 
-        to_remove: list[Hashable] = []
+        to_remove: set[Hashable] = set()
         for col in keys:
             if isinstance(col, MultiIndex):
                 arrays.extend(col._get_level_values(n) for n in range(col.nlevels))
@@ -5901,7 +5936,7 @@ class DataFrame(NDFrame, OpsMixin):
                 arrays.append(frame[col])
                 names.append(col)
                 if drop:
-                    to_remove.append(col)
+                    to_remove.add(col)
 
             if len(arrays[-1]) != len(self):
                 # check newest element against length of calling frame, since
@@ -5918,7 +5953,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"Index has duplicate keys: {duplicates}")
 
         # use set to handle duplicate column names gracefully in case of drop
-        for c in set(to_remove):
+        for c in to_remove:
             del frame[c]
 
         # clear up memory usage
@@ -6167,12 +6202,13 @@ class DataFrame(NDFrame, OpsMixin):
             names = self.index._get_default_index_names(names, default)
 
             if isinstance(self.index, MultiIndex):
-                to_insert = zip(self.index.levels, self.index.codes)
+                to_insert = zip(reversed(self.index.levels), reversed(self.index.codes))
             else:
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
-            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
+            for j, (lev, lab) in enumerate(to_insert, start=1):
+                i = self.index.nlevels - j
                 if level is not None and i not in level:
                     continue
                 name = names[i]
@@ -11551,6 +11587,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -11597,6 +11634,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11643,6 +11681,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -11658,6 +11697,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
@@ -11678,6 +11718,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
@@ -11729,6 +11770,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -11775,6 +11817,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -11824,6 +11867,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
@@ -11874,6 +11918,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=2))
     def var(
         self,
@@ -11924,6 +11969,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=2))
     def std(
         self,
@@ -11971,6 +12017,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=2))
     def skew(
         self,
@@ -12017,6 +12064,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=2))
     def kurt(
         self,
@@ -12037,20 +12085,52 @@ class DataFrame(NDFrame, OpsMixin):
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
-    def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
-        return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+    def cummin(
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ) -> Self:
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cummin(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=2))
-    def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
-        return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
+    def cummax(
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ) -> Self:
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cummax(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=2))
-    def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
-        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+    def cumsum(
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ) -> Self:
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cumsum(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
-    def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
-        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+    def cumprod(
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ) -> Self:
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cumprod(data, axis, skipna, *args, **kwargs)
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
@@ -12835,6 +12915,11 @@ class DataFrame(NDFrame, OpsMixin):
             """
                 The column labels of the DataFrame.
 
+                See Also
+                --------
+                DataFrame.index: The index (row labels) of the DataFrame.
+                DataFrame.axes: Return a list representing the axes of the DataFrame.
+
                 Examples
                 --------
                 >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
@@ -12863,12 +12948,12 @@ class DataFrame(NDFrame, OpsMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY - only works for BlockManager
+        Internal ONLY.
         """
         mgr = self._mgr
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v in mgr.to_dict().items()
+            for k, v in mgr.to_iter_dict()
         }
 
     @property
