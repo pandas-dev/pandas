@@ -111,8 +111,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     numpy based
     """
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
     _mask: npt.NDArray[np.bool_]
@@ -156,7 +154,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         values = np.empty(shape, dtype=dtype.type)
-        values.fill(cls._internal_fill_value)
+        values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
         result = cls(values, mask)
         if not isinstance(result, cls) or dtype != result.dtype:
@@ -917,7 +915,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         # we always fill with 1 internally
         # to avoid upcasting
-        data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
+        data_fill_value = (
+            self.dtype._internal_fill_value if isna(fill_value) else fill_value
+        )
         result = take(
             self._data,
             indexer,
