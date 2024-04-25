@@ -81,8 +81,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.CategoricalIndex.ordered SA01" \
         -i "pandas.DataFrame.__dataframe__ SA01" \
         -i "pandas.DataFrame.at_time PR01" \
-        -i "pandas.DataFrame.hist RT03" \
-        -i "pandas.DataFrame.infer_objects RT03" \
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
         -i "pandas.DataFrame.max RT03" \
@@ -99,7 +97,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
-        -i "pandas.DataFrame.to_parquet RT03" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DatetimeIndex.freqstr SA01" \
         -i "pandas.DatetimeIndex.indexer_at_time PR01,RT03" \
@@ -280,7 +277,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.ge PR07,SA01" \
         -i "pandas.Series.gt PR07,SA01" \
         -i "pandas.Series.hasnans SA01" \
-        -i "pandas.Series.infer_objects RT03" \
         -i "pandas.Series.is_monotonic_decreasing SA01" \
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
