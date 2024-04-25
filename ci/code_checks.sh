@@ -105,7 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
         -i "pandas.DatetimeTZDtype SA01" \
-        -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
