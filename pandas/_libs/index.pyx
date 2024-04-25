@@ -699,8 +699,7 @@ cdef class BaseMultiIndexCodesEngine:
     Keys are located by first locating each component against the respective
     level, then locating (the integer representation of) codes.
     """
-    def __init__(self, object levels, object labels,
-                 ndarray[uint64_t, ndim=1] offsets):
+    def __init__(self, object levels, object labels, ndarray offsets):
         """
         Parameters
         ----------
@@ -708,12 +707,11 @@ cdef class BaseMultiIndexCodesEngine:
             Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
             Labels of the MultiIndex.
-        offsets : numpy array of uint64 dtype
+        offsets : numpy array of int dtype
             Pre-calculated offsets, one for each level of the index.
         """
         self.levels = levels
-        # Downcast the type if possible, to prevent upcasting when shifting codes:
-        self.offsets = offsets.astype(np.min_scalar_type(offsets[0]), copy=False)
+        self.offsets = offsets
 
         # Transform labels in a single array, and add 2 so that we are working
         # with positive integers (-1 for NaN becomes 1). This enables us to
