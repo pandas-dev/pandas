@@ -97,10 +97,9 @@ the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 .. csv-table::
     :header: "Object Type", "Indexers"
     :widths: 30, 50
-    :delim: ;
 
-    Series; ``s.loc[indexer]``
-    DataFrame; ``df.loc[row_indexer,column_indexer]``
+    Series, ``s.loc[indexer]``
+    DataFrame, ``df.loc[row_indexer,column_indexer]``
 
 .. _indexing.basics:
 
@@ -116,10 +115,9 @@ indexing pandas objects with ``[]``:
 .. csv-table::
     :header: "Object Type", "Selection", "Return Value Type"
     :widths: 30, 30, 60
-    :delim: ;
 
-    Series; ``series[label]``; scalar value
-    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Series, ``series[label]``, scalar value
+    DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:

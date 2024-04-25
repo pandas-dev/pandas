@@ -320,14 +320,13 @@ present in the more domain-specific statistical programming language `R
 .. csv-table::
    :header: "Typeclass","Dtypes"
    :widths: 30,70
-   :delim: |
 
-   ``numpy.floating`` | ``float16, float32, float64, float128``
-   ``numpy.integer`` | ``int8, int16, int32, int64``
-   ``numpy.unsignedinteger`` | ``uint8, uint16, uint32, uint64``
-   ``numpy.object_`` | ``object_``
-   ``numpy.bool_`` | ``bool_``
-   ``numpy.character`` | ``bytes_, str_``
+   ``numpy.floating``, ``float16, float32, float64, float128``
+   ``numpy.integer``, ``int8, int16, int32, int64``
+   ``numpy.unsignedinteger``, ``uint8, uint16, uint32, uint64``
+   ``numpy.object_``, ``object_``
+   ``numpy.bool_``, ``bool_``
+   ``numpy.character``, ``bytes_, str_``
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and
