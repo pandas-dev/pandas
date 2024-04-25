@@ -1835,6 +1835,11 @@ default 'raise'
         """
         The ordinal day of the year.
 
+        See Also
+        --------
+        DatetimeIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        DatetimeIndex.day : The day of the datetime.
+
         Examples
         --------
         For Series:
@@ -2154,6 +2159,13 @@ default 'raise'
         -------
         Series or ndarray
              Booleans indicating if dates belong to a leap year.
+
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Indicate whether the date is the
+            last day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
 
         Examples
         --------

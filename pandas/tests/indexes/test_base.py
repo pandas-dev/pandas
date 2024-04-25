@@ -71,8 +71,8 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_constructor_copy(self, index, using_infer_string):
+    def test_constructor_copy(self, using_infer_string):
+        index = Index(list("abc"), name="name")
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
@@ -1065,10 +1065,10 @@ class TestIndex:
         left_index = Index(np.random.default_rng(2).permutation(15))
         right_index = date_range("2020-01-01", periods=10)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = left_index.join(right_index, how="outer")
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)
