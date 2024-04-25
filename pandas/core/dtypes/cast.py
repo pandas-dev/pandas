@@ -1061,6 +1061,7 @@ def convert_dtypes(
     np.dtype, or ExtensionDtype
     """
     inferred_dtype: str | DtypeObj
+    orig_inferred_dtype = None
 
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
