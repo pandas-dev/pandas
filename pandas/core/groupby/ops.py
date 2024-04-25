@@ -919,7 +919,7 @@ class BaseGrouper:
         result = self._aggregate_series_pure_python(obj, func)
 
         if isinstance(obj._values, ArrowExtensionArray):
-            return maybe_cast_to_pyarrow_result(result)
+            return maybe_cast_to_pyarrow_result(result, obj.dtype)
 
         if not isinstance(obj._values, np.ndarray) and not isinstance(
             obj._values, ArrowExtensionArray

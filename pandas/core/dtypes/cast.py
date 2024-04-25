@@ -478,7 +478,7 @@ def maybe_cast_pointwise_result(
     return result
 
 
-def maybe_cast_to_pyarrow_result(result: ArrayLike) -> ArrayLike:
+def maybe_cast_to_pyarrow_result(result: ArrayLike, obj_dtype: DtypeObj) -> ArrayLike:
     """
     Try casting result of a pointwise operation to its pyarrow dtype
     and arrow extension array if appropriate. If not possible,
@@ -501,12 +501,14 @@ def maybe_cast_to_pyarrow_result(result: ArrayLike) -> ArrayLike:
     stripped_result = result[~isna(result)]
     npvalues = lib.maybe_convert_objects(stripped_result, try_float=False)
 
+    if stripped_result.size == 0:
+        return maybe_cast_pointwise_result(npvalues, obj_dtype, numeric_only=True)
+
     try:
         dtype = convert_dtypes(npvalues, dtype_backend="pyarrow")
         out = pd_array(result, dtype=dtype)
     except (TypeError, ValueError, np.ComplexWarning):
         out = npvalues
-
     return out
 
 
@@ -1194,29 +1196,34 @@ def _infer_pyarrow_dtype(
     input_array: ArrayLike,
     inferred_dtype: str,
 ) -> DtypeObj:
-    if inferred_dtype not in ["time", "date", "decimal", "bytes"]:
-        return input_array.dtype
-
-    # For a limited set of dtype
-    # Let pyarrow infer dtype from input_array
     import pyarrow as pa
-    from pyarrow import (
-        ArrowInvalid,
-        ArrowMemoryError,
-        ArrowNotImplementedError,
-    )
 
-    try:
-        pyarrow_array = pa.array(input_array)
-        return ArrowDtype(pyarrow_array.type)
-    except (
-        TypeError,
-        ValueError,
-        ArrowInvalid,
-        ArrowMemoryError,
-        ArrowNotImplementedError,
-    ):
-        return input_array.dtype
+    if inferred_dtype == "date":
+        return ArrowDtype(pa.date32())
+    elif inferred_dtype == "time":
+        return ArrowDtype(pa.time64("us"))
+    elif inferred_dtype == "bytes":
+        return ArrowDtype(pa.binary())
+    elif inferred_dtype == "decimal":
+        from pyarrow import (
+            ArrowInvalid,
+            ArrowMemoryError,
+            ArrowNotImplementedError,
+        )
+
+        try:
+            pyarrow_array = pa.array(input_array)
+            return ArrowDtype(pyarrow_array.type)
+        except (
+            TypeError,
+            ValueError,
+            ArrowInvalid,
+            ArrowMemoryError,
+            ArrowNotImplementedError,
+        ):
+            return input_array.dtype
+
+    return input_array.dtype
 
 
 def maybe_infer_to_datetimelike(
