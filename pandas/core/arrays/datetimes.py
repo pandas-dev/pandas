@@ -867,6 +867,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         Returns
         -------
         Array or Index
+            Datetme Array/Index with target `tz`.
 
         Raises
         ------
