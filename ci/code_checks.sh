@@ -109,7 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeIndex.std PR01,RT03" \
         -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.DatetimeIndex.to_pydatetime RT03,SA01" \
-        -i "pandas.DatetimeIndex.tz_convert RT03" \
         -i "pandas.DatetimeTZDtype SA01" \
         -i "pandas.DatetimeTZDtype.tz SA01" \
         -i "pandas.Grouper PR02" \
@@ -124,7 +123,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.dropna RT03,SA01" \
         -i "pandas.Index.duplicated RT03" \
         -i "pandas.Index.empty GL08" \
-        -i "pandas.Index.fillna RT03" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
@@ -134,7 +132,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.inferred_type SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
-        -i "pandas.Index.item SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.memory_usage RT03" \
         -i "pandas.Index.names GL08" \
@@ -274,7 +271,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.strftime PR01,PR02" \
         -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
         -i "pandas.Series.dt.total_seconds PR01" \
-        -i "pandas.Series.dt.tz_convert PR01,PR02,RT03" \
+        -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
         -i "pandas.Series.dtype SA01" \
@@ -288,7 +285,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_monotonic_decreasing SA01" \
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
-        -i "pandas.Series.item SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
         -i "pandas.Series.le PR07,SA01" \
