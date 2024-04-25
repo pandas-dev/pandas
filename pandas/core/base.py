@@ -398,6 +398,11 @@ class IndexOpsMixin(OpsMixin):
         ValueError
             If the data is not length = 1.
 
+        See Also
+        --------
+        Index.values : Returns an array representing the data in the Index.
+        Series.head : Returns the first `n` rows.
+
         Examples
         --------
         >>> s = pd.Series([1])
