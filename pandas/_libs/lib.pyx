@@ -2628,7 +2628,11 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif val is C_NA:
-            seen.object_ = True
+            if convert_to_nullable_dtype:
+                seen.null_ = True
+                mask[i] = True
+            else:
+                seen.object_ = True
             continue
         else:
             seen.object_ = True
@@ -2691,6 +2695,12 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
+        elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype()
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
         seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
@@ -2734,12 +2744,12 @@ def maybe_convert_objects(ndarray[object] objects,
         return objects
 
     if seen.bool_:
-        if seen.is_bool:
-            # is_bool property rules out everything else
-            return bools.view(np.bool_)
-        elif convert_to_nullable_dtype and seen.is_bool_or_na:
+        if convert_to_nullable_dtype and seen.is_bool_or_na:
             from pandas.core.arrays import BooleanArray
             return BooleanArray(bools.view(np.bool_), mask)
+        elif seen.is_bool:
+            # is_bool property rules out everything else
+            return bools.view(np.bool_)
         seen.object_ = True
 
     if not seen.object_:
@@ -2752,11 +2762,11 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = floats
                 elif seen.int_ or seen.uint_:
                     if convert_to_nullable_dtype:
-                        from pandas.core.arrays import IntegerArray
+                        # Below we will wrap in IntegerArray
                         if seen.uint_:
-                            result = IntegerArray(uints, mask)
+                            result = uints
                         else:
-                            result = IntegerArray(ints, mask)
+                            result = ints
                     else:
                         result = floats
                 elif seen.nan_:
@@ -2771,7 +2781,6 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
-
         else:
             # don't cast int to float, etc.
             if seen.null_:
@@ -2793,6 +2802,22 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
+
+        # TODO: do these after the itemsize check?
+        if (result is ints or result is uints) and convert_to_nullable_dtype:
+            from pandas.core.arrays import IntegerArray
+
+            # Set these values to 1 to be deterministic, match
+            #  IntegerArray._internal_fill_value
+            result[mask] = 1
+            result = IntegerArray(result, mask)
+        elif result is floats and convert_to_nullable_dtype:
+            from pandas.core.arrays import FloatingArray
+
+            # Set these values to 1.0 to be deterministic, match
+            #  FloatingArray._internal_fill_value
+            result[mask] = 1.0
+            result = FloatingArray(result, mask)
 
         if result is uints or result is ints or result is floats or result is complexes:
             # cast to the largest itemsize when all values are NumPy scalars
