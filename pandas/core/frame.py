@@ -7696,6 +7696,10 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             DataFrame with indices or columns with reordered levels.
 
+        See Also
+        --------
+            DataFrame.swaplevel : Swap levels i and j in a MultiIndex.
+
         Examples
         --------
         >>> data = {
