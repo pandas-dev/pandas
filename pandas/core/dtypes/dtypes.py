@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Scalar,
         Self,
         npt,
         type_t,
@@ -1542,6 +1543,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     base = None
     type: type
+    _internal_fill_value: Scalar
 
     @property
     def truthy_value(self):

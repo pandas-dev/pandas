@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Literal,
+    cast,
     overload,
 )
 import warnings
@@ -147,7 +148,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @classmethod
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
-        values = np.empty(shape, dtype=dtype.type)
+        dtype = cast(BaseMaskedDtype, dtype)
+        values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
         result = cls(values, mask)
@@ -1391,12 +1393,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self.dtype.falsey_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype.falsey_value)
         result = values.any()
         if skipna:
             return result
@@ -1484,12 +1481,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self.dtype.truthy_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype.truthy_value)
         result = values.all(axis=axis)
 
         if skipna:
