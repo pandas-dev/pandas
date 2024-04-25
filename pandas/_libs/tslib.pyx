@@ -206,25 +206,25 @@ def format_array_from_datetime(
                 res += f".{dts.us // 1000:03d}"
 
         else:
-
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
                 # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
-            else:
-                res = ts.strftime(format, errors)
-
-            '''
-            else:
-
-
+            if (errors == "warn") or (errors == "ignore"):
                 try:
-                    # Note: dispatches to pydatetime
                     res = ts.strftime(format)
-                except ValueError:
-                    # Use datetime.str, that returns ts.isoformat(sep=' ')
-                    res = str(ts)
-            '''
+                except (ValueError, NotImplementedError):
+                    # Catches errors and replaces result with None
+                    # TODO
+                    if (errors == "warn"):
+                        mesg="The following timestamps could be converted to string: ["
+                        mesg+=str(ts)+"] Set errors='raise' to see the details"
+                        # warnings.warn(mesg,StrfimeErrorWarning,
+                        # stacklevel=find_stack_level());
+                    res = None
+
+            else:
+                res = ts.strftime(format)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
         #  like we do for the other functions because result is known C-contiguous

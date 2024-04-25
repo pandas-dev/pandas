@@ -1473,7 +1473,7 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
-    def strftime(self, format, errors = 'raise'):
+    def strftime(self, format):
         """
         Return a formatted string of the Timestamp.
 
@@ -1494,43 +1494,15 @@ class Timestamp(_Timestamp):
             _dt = datetime(self.year, self.month, self.day,
                            self.hour, self.minute, self.second,
                            self.microsecond, self.tzinfo, fold=self.fold)
-
         except ValueError as err:
-            if errors == 'ignore':
-                return None
-
             raise NotImplementedError(
                 "strftime not yet supported on Timestamps which "
                 "are outside the range of Python's standard library. "
                 "For now, please call the components you need (such as `.year` "
                 "and `.month`) and construct your string from there."
             ) from err
+        return _dt.strftime(format)
 
-        except Exception as err:
-            if errors == 'ignore':
-                return None
-
-            raise err
-
-
-        if (errors == 'warn') or (errors == 'ignore'):
-            try:
-                # Note: dispatches to pydatetime
-                return _dt.strftime(format)
-
-            except: # Exception handling according to errors parameter
-                if (errors == 'warn'):
-                    # TODO 
-                    mesg="The following timestamps could be converted to string: ["
-                    mesg+=str(_dt)+"] Set errors='raise' to see the details"
-                    #warnings.warn(mesg,StrfimeErrorWarning, stacklevel=find_stack_level());
-
-                else: # errors == 'ignore'
-                    return None
-
-        else: # errors == 'raise'
-            return _dt.strftime(format)
-    
     def ctime(self):
         """
         Return ctime() style string.
