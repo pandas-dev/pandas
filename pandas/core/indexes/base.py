@@ -2578,6 +2578,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+           NA/NaN values replaced with `value`.
 
         See Also
         --------
