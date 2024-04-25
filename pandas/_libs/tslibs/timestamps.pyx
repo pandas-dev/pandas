@@ -1529,7 +1529,7 @@ class Timestamp(_Timestamp):
                     return None
 
         else: # errors == 'raise'
-            _dt.strftime(format)
+            return _dt.strftime(format)
     
     def ctime(self):
         """
