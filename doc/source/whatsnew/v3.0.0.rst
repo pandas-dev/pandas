@@ -391,6 +391,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.str.split` would not treat ``pat`` as regex when ``regex=None`` for series having ``pd.ArrowDtype(pa.string())`` dtype (:issue:`58321`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
