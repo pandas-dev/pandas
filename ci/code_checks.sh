@@ -281,7 +281,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.ge PR07,SA01" \
         -i "pandas.Series.gt PR07,SA01" \
         -i "pandas.Series.hasnans SA01" \
-        -i "pandas.Series.infer_objects RT03" \
         -i "pandas.Series.is_monotonic_decreasing SA01" \
         -i "pandas.Series.is_monotonic_increasing SA01" \
         -i "pandas.Series.is_unique SA01" \
