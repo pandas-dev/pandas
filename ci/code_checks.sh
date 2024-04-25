@@ -215,7 +215,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.PeriodIndex.dayofyear SA01" \
         -i "pandas.PeriodIndex.days_in_month SA01" \
         -i "pandas.PeriodIndex.daysinmonth SA01" \
-        -i "pandas.PeriodIndex.freqstr SA01" \
         -i "pandas.PeriodIndex.from_fields PR07,SA01" \
         -i "pandas.PeriodIndex.from_ordinals SA01" \
         -i "pandas.PeriodIndex.hour SA01" \
