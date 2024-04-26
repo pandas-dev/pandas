@@ -122,7 +122,7 @@ def format_array_from_datetime(
     str format=None,
     na_rep: str | float = "NaT",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
-    str errors=None,
+    str errors="raise",
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -136,6 +136,7 @@ def format_array_from_datetime(
     na_rep : optional, default is None
           a nat format
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    errors : str, "raise" (default), "ignore", or "warn"
 
     Returns
     -------
@@ -217,10 +218,10 @@ def format_array_from_datetime(
                     res = ts.strftime(format)
                 except (ValueError, NotImplementedError):
                     # Catches errors and replaces result with None
-                    mesg= "The following timestamp could not be converted to string: " +\
-                     f"[{ts}]. Set errors='raise' to see the details"
-                    warnings.warn(mesg, StrftimeErrorWarning,
-                    stacklevel=find_stack_level());
+                    mesg= "The following timestamp could not be converted to string:" +\
+                     f" [{ts}]. Set errors='raise' to see the details"
+                    warnings.warn(
+                        mesg, StrftimeErrorWarning, stacklevel=find_stack_level())
 
                     res = None
             elif (errors == "ignore"):
