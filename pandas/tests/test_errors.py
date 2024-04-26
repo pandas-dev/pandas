@@ -38,6 +38,7 @@ import pandas as pd
         "PossiblePrecisionLoss",
         "PyperclipException",
         "SpecificationError",
+        "StrftimeErrorWarning"
         "UnsortedIndexError",
         "UnsupportedFunctionCall",
         "ValueLabelTypeMismatch",
