@@ -686,6 +686,16 @@ class CategoricalConversionWarning(Warning):
     ... # CategoricalConversionWarning: One or more series with value labels...
     """
 
+class StrftimeErrorWarning(Warning):
+    """
+    Warning is raised by ``Timestamp.strftime`` when a ValueError or
+    NotImplementedError occurs, under the ``errors='warn'`` parameter value.
+
+    Examples
+    --------
+    >>> dta = pd.DatetimeIndex(np.array(['-0020-01-01', '2020-01-02'], 'datetime64[s]'))
+    >>> dta.strftime("%y", errors='warn')
+    """
 
 class LossySetitemError(Exception):
     """

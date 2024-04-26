@@ -217,7 +217,7 @@ def format_array_from_datetime(
                     # Catches errors and replaces result with None
                     mesg= "The following timestamp could not be converted to string: " +\
                      f"[{ts}]. Set errors='raise' to see the details"
-                    warnings.warn(mesg, UserWarning,
+                    warnings.warn(mesg, StrftimeErrorWarning,
                     stacklevel=find_stack_level());
 
                     res = None
