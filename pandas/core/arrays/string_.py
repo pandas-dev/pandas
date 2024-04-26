@@ -732,11 +732,12 @@ class NumpyStringArray(BaseNumpyStringArray):
     _ctor_err_msg = "StringArray requires a sequence of strings or pandas.NA"
 
     def __init__(self, values, copy: bool = False) -> None:
-        default_dtype = get_numpy_string_dtype_instance()
         try:
             arr_values = np.asarray(values)
         except (TypeError, ValueError):
             raise ValueError(self._ctor_err_msg)
+        default_dtype = get_numpy_string_dtype_instance(
+            possible_dtype=getattr(arr_values, "dtype", None))
         # this check exists purely to satisfy test_constructor_raises and could
         # be deleted if that restriction was relaxed for NumpyStringArray
         if (((arr_values.dtype.char == "d" and arr_values.size == 0) or

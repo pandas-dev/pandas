@@ -533,7 +533,11 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     return dtype == object or dtype.kind in "SUT"
 
-def get_numpy_string_dtype_instance(na_object=libmissing.NA, coerce=False):
+def get_numpy_string_dtype_instance(
+        na_object=libmissing.NA,
+        coerce=False,
+        possible_dtype=None
+):
     """Get a reference to a ``numpy.dtypes.StringDType`` instance.
 
     This is a convenience wrapper around the StringDType initializer
@@ -546,7 +550,14 @@ def get_numpy_string_dtype_instance(na_object=libmissing.NA, coerce=False):
     coerce : bool
        Whether or not non-strings entries in arrays should be converted
        to strings.
+    possible_dtype : numpy.dtype
+       Returned as the result if the dtype matches the provided settings
     """
+    if possible_dtype is not None:
+        possible_coerce = getattr(possible_dtype, "coerce", True)
+        possible_na = getattr(possible_dtype, "na_object", None)
+        if possible_coerce == coerce and possible_na is libmissing.NA:
+            return possible_dtype
     return np.dtypes.StringDType(na_object=na_object, coerce=coerce)
 
 def is_string_dtype(arr_or_dtype) -> bool:
