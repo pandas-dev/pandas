@@ -3842,20 +3842,9 @@ class Index(IndexOpsMixin, PandasObject):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             if kind == "getitem" and is_index_slice and not start == stop and step != 0:
-                # exclude step=0 from the warning because it will raise anyway
-                # start/stop both None e.g. [:] or [::-1] won't change.
-                # exclude start==stop since it will be empty either way, or
-                # will be [:] or [::-1] which won't change
-                warnings.warn(
-                    # GH#49612
-                    "The behavior of obj[i:j] with a float-dtype index is "
-                    "deprecated. In a future version, this will be treated as "
-                    "positional instead of label-based. For label-based slicing, "
-                    "use obj.loc[i:j] instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise TypeError(
+                    "Using of obj[i:j] with a float-dtype index is not supported"
                 )
-            return self.slice_indexer(start, stop, step)
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
