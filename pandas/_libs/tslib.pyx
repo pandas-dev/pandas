@@ -215,9 +215,9 @@ def format_array_from_datetime(
                     res = ts.strftime(format)
                 except (ValueError, NotImplementedError):
                     # Catches errors and replaces result with None
-                    mesg= "The following timestamp could not be converted to string:" +\
-                     f"[{ts}] Set errors='raise' to see the details"
-                    warnings.warn(mesg,StrftimeErrorWarning,
+                    mesg= "The following timestamp could not be converted to string: " +\
+                     f"[{ts}]. Set errors='raise' to see the details"
+                    warnings.warn(mesg, UserWarning,
                     stacklevel=find_stack_level());
 
                     res = None
