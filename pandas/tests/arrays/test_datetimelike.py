@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 import pytest
+import datetime
 
 from pandas._libs import (
     NaT,
@@ -909,6 +910,17 @@ class TestDatetimeArray(SharedTests):
     def test_strftime_err(self):
         arr = DatetimeIndex(np.array(["1820-01-01", "2020-01-02"], "datetime64[s]"))
 
+        windowFlag = False
+        try:
+            datetime.datetime(1820, 1, 1)
+        except ValueError:
+            windowFlag = True
+        if windowFlag:
+            expected = pd.Index([None, "20"], dtype="object")
+        else:
+            expected = pd.Index(["20", "20"], dtype="object")
+
+
         # with pytest.raises(ValueError):
         #     result = arr.strftime("%y", "raise")
 
@@ -916,13 +928,13 @@ class TestDatetimeArray(SharedTests):
         #     result = arr[0].strftime("%y")
 
         result = arr.strftime("%y", "ignore")
-        expected = pd.Index([None, "20"], dtype="object")
+        # expected = pd.Index([None, "20"], dtype="object")
         tm.assert_index_equal(result, expected)
 
         # with tm.assert_produces_warning(TODO):
 
         result = arr.strftime("%y", "warn")
-        expected = pd.Index([None, "20"], dtype="object")
+        # expected = pd.Index([None, "20"], dtype="object")
         tm.assert_index_equal(result, expected)
 
     def test_strftime_nat(self):

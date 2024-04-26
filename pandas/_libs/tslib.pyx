@@ -210,7 +210,7 @@ def format_array_from_datetime(
             if format is None:
                 # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
-            if (errors == "warn") or (errors == "ignore"):
+            elif (errors == "warn") or (errors == "ignore"):
                 try:
                     res = ts.strftime(format)
                 except (ValueError, NotImplementedError):
@@ -224,6 +224,8 @@ def format_array_from_datetime(
                     res = None
 
             else:
+                # Do not catch errors, allow them to raise up through
+                # errors == 'raise'
                 res = ts.strftime(format)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
