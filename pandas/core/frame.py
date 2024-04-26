@@ -1952,7 +1952,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def to_dict(
         self,
-        orient: Literal["records"],
+        orient: Literal["records", "jsonlines"],
         *,
         into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
@@ -1970,7 +1970,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def to_dict(
         self,
-        orient: Literal["records"],
+        orient: Literal["records", "jsonlines"],
         *,
         into: type[dict] = ...,
         index: bool = ...,
@@ -1981,7 +1981,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal[
-            "dict", "list", "series", "split", "tight", "records", "index"
+            "dict", "list", "series", "split", "tight", "records", "index", "jsonlines"
         ] = "dict",
         *,
         into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
@@ -1995,7 +1995,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        orient : str {'dict', 'list', 'series', 'split', 'tight', 'records', 'index'}
+        orient : str {'dict', 'list', 'series', 'split', 'tight',
+            'records', 'index', 'jsonlines'}
             Determines the type of the values of the dictionary.
 
             - 'dict' (default) : dict like {column -> {index -> value}}
@@ -2009,6 +2010,10 @@ class DataFrame(NDFrame, OpsMixin):
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
+            - 'jsonlines' : newline-separated items like
+            {column -> value}
+            ...
+            {column -> value}
 
             .. versionadded:: 1.4.0
                 'tight' as an allowed value for the ``orient`` argument
@@ -2075,6 +2080,10 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.to_dict("tight")
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
          'data': [[1, 0.5], [2, 0.75]], 'index_names': [None], 'column_names': [None]}
+
+        >>> df.to_dict("jsonlines")
+        {'col1': 1, 'col2': 0.5}
+        {'col1': 2, 'col2': 0.75}
 
         You can also specify the mapping type.
 

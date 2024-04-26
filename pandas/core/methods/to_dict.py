@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -65,7 +66,7 @@ def to_dict(
 @overload
 def to_dict(
     df: DataFrame,
-    orient: Literal["records"],
+    orient: Literal["records", "jsonlines"],
     *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
@@ -85,7 +86,7 @@ def to_dict(
 @overload
 def to_dict(
     df: DataFrame,
-    orient: Literal["records"],
+    orient: Literal["records", "jsonlines"],
     *,
     into: type[dict] = ...,
     index: bool = ...,
@@ -97,7 +98,7 @@ def to_dict(
 def to_dict(
     df: DataFrame,
     orient: Literal[
-        "dict", "list", "series", "split", "tight", "records", "index"
+        "dict", "list", "series", "split", "tight", "records", "index", "jsonlines"
     ] = "dict",
     *,
     into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
@@ -111,7 +112,8 @@ def to_dict(
 
     Parameters
     ----------
-    orient : str {'dict', 'list', 'series', 'split', 'tight', 'records', 'index'}
+    orient : str {'dict', 'list', 'series', 'split', 'tight',
+        'records', 'index', 'jsonlines'}
         Determines the type of the values of the dictionary.
 
         - 'dict' (default) : dict like {column -> {index -> value}}
@@ -125,7 +127,10 @@ def to_dict(
         - 'records' : list like
           [{column -> value}, ... , {column -> value}]
         - 'index' : dict like {index -> {column -> value}}
-
+        - 'jsonlines' : newline-separated items like
+          {column -> value}
+          ...
+          {column -> value}
         .. versionadded:: 1.4.0
             'tight' as an allowed value for the ``orient`` argument
 
@@ -160,7 +165,7 @@ def to_dict(
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-    # 'records', 'index']")
+    # 'records', 'index', 'jsonlines']")
     orient = orient.lower()  # type: ignore[assignment]
 
     if not index and orient not in ["split", "tight"]:
@@ -231,10 +236,10 @@ def to_dict(
             + (("column_names", list(df.columns.names)),)
         )
 
-    elif orient == "records":
+    elif orient in ("records", "jsonlines"):
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
-            return [
+            data = [
                 into_c(zip(columns, map(maybe_box_native, row)))
                 for row in df.itertuples(index=False, name=None)
             ]
@@ -252,6 +257,11 @@ def to_dict(
                 for row in data:
                     for col in object_dtype_cols:
                         row[col] = maybe_box_native(row[col])
+
+        if orient == "jsonlines":
+            jsonlines_string = "\n".join([json.dumps(row) for row in data])
+            return jsonlines_string
+        else:
             return data  # type: ignore[return-value]
 
     elif orient == "index":
