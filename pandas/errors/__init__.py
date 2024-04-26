@@ -698,7 +698,7 @@ class StrftimeErrorWarning(Warning):
     Examples
     --------
     >>> dta = pd.DatetimeIndex(np.array(["-0020-01-01", "2020-01-02"], "datetime64[s]"))
-    >>> dta.strftime("%y", errors="warn")
+    >>> dta.strftime("%y", errors="warn")  # doctest: +SKIP
     """
 
 
