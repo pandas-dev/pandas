@@ -118,7 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
         -i "pandas.Index.get_loc PR07,RT03,SA01" \
         -i "pandas.Index.get_slice_bound PR07" \
-        -i "pandas.Index.identical PR01,SA01" \
         -i "pandas.Index.inferred_type SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
