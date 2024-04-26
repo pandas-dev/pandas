@@ -14,6 +14,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import to_offset
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import StrftimeErrorWarning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -920,6 +921,10 @@ class TestDatetimeArray(SharedTests):
         else:
             expected = pd.Index(["20", "20"], dtype="object")
 
+        if windowFlag:
+            with tm.assert_produces_warning(StrftimeErrorWarning):
+                result = arr.strftime("%y", "warn")
+
         # with pytest.raises(ValueError):
         #     result = arr.strftime("%y", "raise")
 
@@ -930,11 +935,18 @@ class TestDatetimeArray(SharedTests):
         # expected = pd.Index([None, "20"], dtype="object")
         tm.assert_index_equal(result, expected)
 
-        # with tm.assert_produces_warning(StrftimeErrorWarning):
-        #     result = arr.strftime("%y", "warn")
-
         result = arr.strftime("%y", "warn")
         # expected = pd.Index([None, "20"], dtype="object")
+        tm.assert_index_equal(result, expected)
+
+        arr2 = DatetimeIndex(np.array(["-0020-01-01", "2020-01-02"], "datetime64[s]"))
+        expected = pd.Index([None, "20"], dtype="object")
+
+        with pytest.raises(NotImplementedError):
+            result = arr2.strftime("%y", "raise")
+        with tm.assert_produces_warning(StrftimeErrorWarning):
+            result = arr2.strftime("%y", "warn")
+        result = arr2.strftime("%y", "ignore")
         tm.assert_index_equal(result, expected)
 
     def test_strftime_nat(self):
