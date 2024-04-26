@@ -2578,6 +2578,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+           NA/NaN values replaced with `value`.
 
         See Also
         --------
@@ -2647,6 +2648,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Unique values in the index.
 
         See Also
         --------
@@ -2682,6 +2684,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            A new Index object with the duplicate values removed.
 
         See Also
         --------
@@ -4863,8 +4866,9 @@ class Index(IndexOpsMixin, PandasObject):
     def memory_usage(self, deep: bool = False) -> int:
         result = self._memory_usage(deep=deep)
 
-        # include our engine hashtable
-        result += self._engine.sizeof(deep=deep)
+        # include our engine hashtable, only if it's already cached
+        if "_engine" in self._cache:
+            result += self._engine.sizeof(deep=deep)
         return result
 
     @final
@@ -5033,12 +5037,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             if not isinstance(self.dtype, ExtensionDtype):
                 if len(key) == 0 and len(key) != len(self):
-                    warnings.warn(
-                        "Using a boolean indexer with length 0 on an Index with "
-                        "length greater than 0 is deprecated and will raise in a "
-                        "future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
+                    raise ValueError(
+                        "The length of the boolean indexer cannot be 0 "
+                        "when the Index has length greater than 0."
                     )
 
         result = getitem(key)
