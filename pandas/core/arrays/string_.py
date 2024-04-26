@@ -845,6 +845,8 @@ class NumpyStringArray(BaseNumpyStringArray):
         return super().to_numpy(dtype, copy, na_value)
 
     def _str_endswith(self, pat, na=None) -> BooleanArray:
+        if isinstance(pat, tuple) or na is not None:
+            return super()._str_endswith(pat, na)
         pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
         result = np.strings.endswith(self._ndarray, pat)
         return BooleanArray(result, isna(self._ndarray))
@@ -932,6 +934,8 @@ class NumpyStringArray(BaseNumpyStringArray):
         return np.strings.strip(self._ndarray, to_strip)
 
     def _str_startswith(self, pat, na=None) -> BooleanArray:
+        if isinstance(pat, tuple) or na is not None:
+            return super()._str_startswith(pat, na)
         pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
         result = np.strings.startswith(self._ndarray, pat)
         return BooleanArray(result, isna(self._ndarray))
