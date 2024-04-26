@@ -58,8 +58,8 @@ Exceptions and warnings
    errors.PossiblePrecisionLoss
    errors.PyperclipException
    errors.PyperclipWindowsException
-   errors.StrftimeErrorWarning
    errors.SpecificationError
+   errors.StrftimeErrorWarning
    errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
