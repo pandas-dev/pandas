@@ -2093,6 +2093,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+            Returns an Index or MultiIndex object, depending on the resulting index
+            after removing the requested level(s).
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
 
         Examples
         --------
@@ -2619,6 +2625,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns an Index object after removing NA/NaN values.
+
+        See Also
+        --------
+        Index.fillna : Fill NA/NaN values with the specified value.
+        Index.isna : Detect missing values.
 
         Examples
         --------

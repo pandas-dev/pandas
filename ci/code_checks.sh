@@ -109,8 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.copy PR07,SA01" \
         -i "pandas.Index.difference PR07,RT03,SA01" \
         -i "pandas.Index.drop PR07,SA01" \
-        -i "pandas.Index.droplevel RT03,SA01" \
-        -i "pandas.Index.dropna RT03,SA01" \
         -i "pandas.Index.duplicated RT03" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
@@ -158,7 +156,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
         -i "pandas.MultiIndex.drop PR07,RT03,SA01" \
-        -i "pandas.MultiIndex.droplevel RT03,SA01" \
         -i "pandas.MultiIndex.dtypes SA01" \
         -i "pandas.MultiIndex.get_indexer PR07,SA01" \
         -i "pandas.MultiIndex.get_level_values SA01" \
