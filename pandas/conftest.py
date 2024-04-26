@@ -709,6 +709,12 @@ indices_dict = {
     "string-python": Index(
         pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
     ),
+    "string-numpy": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[numpy]")
+    ),
+    "string-numpy-stringdtype": Index(
+        np.array([f"pandas_{i}" for i in range(100)], dtype="T")
+    ),
 }
 if has_pyarrow:
     idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
@@ -1276,6 +1282,7 @@ def string_dtype(request):
     params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "string[numpy]",
     ]
 )
 def nullable_string_dtype(request):
@@ -1284,6 +1291,7 @@ def nullable_string_dtype(request):
 
     * 'string[python]'
     * 'string[pyarrow]'
+    * 'string[numpy]'
     """
     return request.param
 
@@ -1355,6 +1363,7 @@ def object_dtype(request):
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+        "string[numpy]",
     ]
 )
 def any_string_dtype(request):
