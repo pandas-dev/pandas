@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import datetime
 import re
 import warnings
 
 import numpy as np
 import pytest
-import datetime
 
 from pandas._libs import (
     NaT,
@@ -920,7 +920,6 @@ class TestDatetimeArray(SharedTests):
         else:
             expected = pd.Index(["20", "20"], dtype="object")
 
-
         # with pytest.raises(ValueError):
         #     result = arr.strftime("%y", "raise")
 
@@ -931,7 +930,8 @@ class TestDatetimeArray(SharedTests):
         # expected = pd.Index([None, "20"], dtype="object")
         tm.assert_index_equal(result, expected)
 
-        # with tm.assert_produces_warning(TODO):
+        # with tm.assert_produces_warning(StrftimeErrorWarning):
+        #     result = arr.strftime("%y", "warn")
 
         result = arr.strftime("%y", "warn")
         # expected = pd.Index([None, "20"], dtype="object")
