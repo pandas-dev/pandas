@@ -114,7 +114,7 @@ class PandasBufferPyarrow(Buffer):
         """
         Represent this structure as DLPack interface.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """

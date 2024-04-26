@@ -90,13 +90,13 @@ class TestConstructors:
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
 
         expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
-
-        with tm.assert_produces_warning(UserWarning):
+        msg = "loses timezone information"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = SparseArray(dti)
 
         tm.assert_sp_array_equal(result, expected)
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             result = SparseArray(pd.Series(dti))
 
         tm.assert_sp_array_equal(result, expected)
@@ -144,20 +144,12 @@ class TestConstructors:
     @pytest.mark.parametrize("sparse_index", [None, IntIndex(1, [0])])
     def test_constructor_spindex_dtype_scalar(self, sparse_index):
         # scalar input
-        msg = "Constructing SparseArray with scalar data is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr = SparseArray(data=1, sparse_index=sparse_index, dtype=None)
-        exp = SparseArray([1], dtype=None)
-        tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
-        assert arr.fill_value == 0
+        msg = "Cannot construct SparseArray from scalar data. Pass a sequence instead"
+        with pytest.raises(TypeError, match=msg):
+            SparseArray(data=1, sparse_index=sparse_index, dtype=None)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr = SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
-        exp = SparseArray([1], dtype=None)
-        tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
-        assert arr.fill_value == 0
+        with pytest.raises(TypeError, match=msg):
+            SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
 
     def test_constructor_spindex_dtype_scalar_broadcasts(self):
         arr = SparseArray(

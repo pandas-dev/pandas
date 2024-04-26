@@ -1014,7 +1014,8 @@ class TestAlignment:
         else:
             seen = False
 
-        with tm.assert_produces_warning(seen):
+        msg = "Alignment difference on axis 1 is larger than an order of magnitude"
+        with tm.assert_produces_warning(seen, match=msg):
             pd.eval("df + s", engine=engine, parser=parser)
 
         s = Series(np.random.default_rng(2).standard_normal(1000))
@@ -1036,7 +1037,7 @@ class TestAlignment:
         else:
             wrn = False
 
-        with tm.assert_produces_warning(wrn) as w:
+        with tm.assert_produces_warning(wrn, match=msg) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
             if not is_python_engine and performance_warning:
@@ -1609,22 +1610,20 @@ class TestMath:
         kwargs["level"] = kwargs.pop("level", 0) + 1
         return pd.eval(*args, **kwargs)
 
-    @pytest.mark.skipif(
-        not NUMEXPR_INSTALLED, reason="Unary ops only implemented for numexpr"
-    )
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("fn", _unary_math_ops)
-    def test_unary_functions(self, fn):
+    def test_unary_functions(self, fn, engine, parser):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         a = df.a
 
         expr = f"{fn}(a)"
-        got = self.eval(expr)
+        got = self.eval(expr, engine=engine, parser=parser)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect, check_names=False)
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
-    def test_binary_functions(self, fn):
+    def test_binary_functions(self, fn, engine, parser):
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
@@ -1635,7 +1634,7 @@ class TestMath:
         b = df.b
 
         expr = f"{fn}(a, b)"
-        got = self.eval(expr)
+        got = self.eval(expr, engine=engine, parser=parser)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a, b)
         tm.assert_almost_equal(got, expect, check_names=False)

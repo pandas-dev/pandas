@@ -119,7 +119,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == (new_name,)
+        assert index.names == [new_name]
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -127,7 +127,7 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == (name,)
+        assert index.names == [name]
 
     @pytest.mark.xfail
     def test_set_names_single_label_no_level(self, index_flat):
@@ -476,6 +476,17 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_values_natsort_key():
+    # GH#56081
+    def split_convert(s):
+        return tuple(int(x) for x in s.split("."))
+
+    idx = pd.Index(["1.9", "2.0", "1.11", "1.10"])
+    expected = pd.Index(["1.9", "1.10", "1.11", "2.0"])
+    result = idx.sort_values(key=lambda x: tuple(map(split_convert, x)))
     tm.assert_index_equal(result, expected)
 
 
