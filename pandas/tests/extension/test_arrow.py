@@ -706,10 +706,6 @@ class TestArrowArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-        result = data.fillna(method="backfill")
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
@@ -2865,12 +2861,16 @@ def test_dt_to_pytimedelta():
     data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
-    result = ser.dt.to_pytimedelta()
+    msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
-    expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
+    msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 
 

@@ -56,10 +56,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Literal,
     NamedTuple,
     cast,
-    overload,
 )
 import warnings
 
@@ -69,7 +67,6 @@ from pandas.util._exceptions import find_stack_level
 if TYPE_CHECKING:
     from collections.abc import (
         Generator,
-        Iterable,
         Sequence,
     )
 
@@ -583,12 +580,6 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
     return cursor, path[-1]
 
 
-def _is_deprecated(key: str) -> bool:
-    """Returns True if the given option has been deprecated"""
-    key = key.lower()
-    return key in _deprecated_options
-
-
 def _get_deprecated_option(key: str):
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
@@ -685,54 +676,6 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-@overload
-def pp_options_list(
-    keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
-) -> str: ...
-
-
-@overload
-def pp_options_list(
-    keys: Iterable[str], *, width: int = ..., _print: Literal[True]
-) -> None: ...
-
-
-def pp_options_list(
-    keys: Iterable[str], *, width: int = 80, _print: bool = False
-) -> str | None:
-    """Builds a concise listing of available options, grouped by prefix"""
-    from itertools import groupby
-    from textwrap import wrap
-
-    def pp(name: str, ks: Iterable[str]) -> list[str]:
-        pfx = "- " + name + ".[" if name else ""
-        ls = wrap(
-            ", ".join(ks),
-            width,
-            initial_indent=pfx,
-            subsequent_indent="  ",
-            break_long_words=False,
-        )
-        if ls and ls[-1] and name:
-            ls[-1] = ls[-1] + "]"
-        return ls
-
-    ls: list[str] = []
-    singles = [x for x in sorted(keys) if x.find(".") < 0]
-    if singles:
-        ls += pp("", singles)
-    keys = [x for x in keys if x.find(".") >= 0]
-
-    for k, g in groupby(sorted(keys), lambda x: x[: x.rfind(".")]):
-        ks = [x[len(k) + 1 :] for x in list(g)]
-        ls += pp(k, ks)
-    s = "\n".join(ls)
-    if _print:
-        print(s)
-    return s
-
-
-#
 # helpers
 
 

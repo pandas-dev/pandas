@@ -1,6 +1,5 @@
 import datetime
 import decimal
-import re
 
 import numpy as np
 import pytest
@@ -31,15 +30,13 @@ from pandas.tests.extension.decimal import (
 
 @pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]"])
 def test_dt64_array(dtype_unit):
-    # PR 53817
+    # GH#53817
     dtype_var = np.dtype(dtype_unit)
     msg = (
         r"datetime64 and timedelta64 dtype resolutions other than "
-        r"'s', 'ms', 'us', and 'ns' are deprecated. "
-        r"In future releases passing unsupported resolutions will "
-        r"raise an exception."
+        r"'s', 'ms', 'us', and 'ns' are no longer supported."
     )
-    with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+    with pytest.raises(ValueError, match=msg):
         pd.array([], dtype=dtype_var)
 
 
@@ -223,6 +220,14 @@ def test_dt64_array(dtype_unit):
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            None,
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
         # Boolean
         (
             [True, None],
@@ -249,6 +254,14 @@ def test_dt64_array(dtype_unit):
             period_array(["2000", "2001"], freq="D"),
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
+        ),
+        # Complex
+        (
+            np.array([complex(1), complex(2)], dtype=np.complex128),
+            None,
+            NumpyExtensionArray(
+                np.array([complex(1), complex(2)], dtype=np.complex128)
+            ),
         ),
     ],
 )

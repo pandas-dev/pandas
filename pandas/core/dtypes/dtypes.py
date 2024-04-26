@@ -698,8 +698,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
     Parameters
     ----------
     unit : str, default "ns"
-        The precision of the datetime data. Currently limited
-        to ``"ns"``.
+        The precision of the datetime data. Valid options are
+        ``"s"``, ``"ms"``, ``"us"``, ``"ns"``.
     tz : str, int, or datetime.tzinfo
         The timezone.
 
@@ -793,6 +793,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
@@ -806,6 +810,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
 
         Examples
         --------
@@ -1762,24 +1770,18 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
         else:
             dummy = np.empty(0, dtype=self.subtype)
             dummy = ensure_wrapped_if_datetimelike(dummy)
 
             if not can_hold_element(dummy, val):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
 
     @property

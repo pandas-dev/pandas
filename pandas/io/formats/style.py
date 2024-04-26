@@ -1683,6 +1683,8 @@ class Styler(StylerRenderer):
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
+            "_display_funcs_index_names",
+            "_display_funcs_column_names",
             "hidden_rows",
             "hidden_columns",
             "ctx",
@@ -3036,7 +3038,7 @@ class Styler(StylerRenderer):
         return self.map(lambda x: values, subset=subset)
 
     @Substitution(subset=subset_args)
-    def bar(  # pylint: disable=disallowed-name
+    def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,

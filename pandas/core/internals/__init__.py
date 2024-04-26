@@ -6,9 +6,9 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",  # pylint: disable=undefined-all-variable
-    "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
-    "ExtensionBlock",  # pylint: disable=undefined-all-variable
+    "Block",
+    "DatetimeTZBlock",
+    "ExtensionBlock",
     "make_block",
     "BlockManager",
     "SingleBlockManager",

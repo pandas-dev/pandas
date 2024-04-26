@@ -9,10 +9,12 @@ from typing import (
     NoReturn,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -210,6 +212,15 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def to_pytimedelta(self):
+        # GH 57463
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime.timedelta objects instead of an ndarray. To retain the "
+            "old behavior, call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
 
     def to_pydatetime(self) -> Series:
@@ -462,6 +473,15 @@ class TimedeltaProperties(Properties):
         datetime.timedelta(days=2), datetime.timedelta(days=3),
         datetime.timedelta(days=4)], dtype=object)
         """
+        # GH 57463
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pytimedelta is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime.timedelta objects instead of an ndarray. To retain the "
+            "old behavior, call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._get_values().to_pytimedelta()
 
     @property
@@ -572,6 +592,44 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
+    """
+    Accessor object for Series values' datetime-like, timedelta and period properties.
+
+    See Also
+    --------
+    DatetimeIndex : Index of datetime64 data.
+
+    Examples
+    --------
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+
+    >>> dates = pd.Series(
+    ...     ["2024-01-01", "2024-01-15", "2024-02-5"], dtype="datetime64[ns, UTC]"
+    ... )
+    >>> dates.dt.day
+    0     1
+    1    15
+    2     5
+    dtype: int32
+    >>> dates.dt.month
+    0    1
+    1    1
+    2    2
+    dtype: int32
+    """
+
     def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is

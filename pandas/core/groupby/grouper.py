@@ -117,6 +117,11 @@ class Grouper:
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
 
+    See Also
+    --------
+    Series.groupby : Apply a function groupby to a Series.
+    DataFrame.groupby : Apply a function groupby.
+
     Examples
     --------
     ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
@@ -238,7 +243,6 @@ class Grouper:
 
     sort: bool
     dropna: bool
-    _gpr_index: Index | None
     _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
@@ -264,10 +268,7 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self._grouper_deprecated = None
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
-        self._obj_deprecated = None
-        self._gpr_index = None
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
@@ -295,10 +296,6 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
-        # Without setting this, subsequent lookups to .groups raise
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
@@ -380,10 +377,6 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=0)
 
-        # error: Incompatible types in assignment (expression has type
-        # "NDFrameT", variable has type "None")
-        self._obj_deprecated = obj  # type: ignore[assignment]
-        self._gpr_index = ax
         return obj, ax, indexer
 
     @final
@@ -433,7 +426,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
 
@@ -452,7 +444,6 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
-        self._all_grouper = None
         self._orig_cats = None
         self._index = index
         self._sort = sort
@@ -536,9 +527,7 @@ class Grouping:
         elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
-            grouping_vector, self._all_grouper = recode_for_groupby(
-                grouping_vector, sort, observed
-            )
+            grouping_vector = recode_for_groupby(grouping_vector, sort, observed)
 
         self.grouping_vector = grouping_vector
 

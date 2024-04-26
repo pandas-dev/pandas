@@ -495,11 +495,11 @@ class TestSetitemCallable:
 
 class TestSetitemWithExpansion:
     def test_setitem_empty_series(self):
-        # GH#10193
+        # GH#10193, GH#51363 changed in 3.0 to not do inference in Index.insert
         key = Timestamp("2012-01-01")
         series = Series(dtype=object)
         series[key] = 47
-        expected = Series(47, [key])
+        expected = Series(47, Index([key], dtype=object))
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
@@ -1465,6 +1465,39 @@ class TestCoercionFloat32(CoercionTest):
         if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
             raise AssertionError("xfail not relevant for this test.")
+
+
+@pytest.mark.parametrize(
+    "exp_dtype",
+    [
+        "M8[ms]",
+        "M8[ms, UTC]",
+        "m8[ms]",
+    ],
+)
+class TestCoercionDatetime64HigherReso(CoercionTest):
+    @pytest.fixture
+    def obj(self, exp_dtype):
+        idx = date_range("2011-01-01", freq="D", periods=4, unit="s")
+        if exp_dtype == "m8[ms]":
+            idx = idx - Timestamp("1970-01-01")
+            assert idx.dtype == "m8[s]"
+        elif exp_dtype == "M8[ms, UTC]":
+            idx = idx.tz_localize("UTC")
+        return Series(idx)
+
+    @pytest.fixture
+    def val(self, exp_dtype):
+        ts = Timestamp("2011-01-02 03:04:05.678").as_unit("ms")
+        if exp_dtype == "m8[ms]":
+            return ts - Timestamp("1970-01-01")
+        elif exp_dtype == "M8[ms, UTC]":
+            return ts.tz_localize("UTC")
+        return ts
+
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
 
 
 @pytest.mark.parametrize(

@@ -41,7 +41,7 @@ class TestDataFrameSetItem:
     def test_setitem_str_subclass(self):
         # GH#37366
         class mystring(str):
-            pass
+            __slots__ = ()
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
@@ -711,7 +711,10 @@ class TestDataFrameSetItem:
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
-        with tm.assert_produces_warning(PendingDeprecationWarning):
+        with tm.assert_produces_warning(
+            PendingDeprecationWarning,
+            match="matrix subclass is not the recommended way to represent matrices",
+        ):
             df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)
