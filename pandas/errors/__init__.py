@@ -693,7 +693,7 @@ class StrftimeErrorWarning(Warning):
 
     See Also
     --------
-    Series.dt.strftime
+    Series.dt.strftime : Convert to Index using specified date_format.
 
     Examples
     --------
