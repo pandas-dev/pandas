@@ -2360,6 +2360,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
 
+        See Also
+        --------
+        Index.dtype : Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -6452,6 +6456,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         tuple[int, int]
+            Returns a tuple of two integers representing the slice locations for the
+            input labels within the index.
 
         See Also
         --------
