@@ -21,7 +21,11 @@ from numpy cimport (
     ndarray,
 )
 
+import warnings
+
 import numpy as np
+
+from pandas.util._exceptions import find_stack_level
 
 cnp.import_array()
 
