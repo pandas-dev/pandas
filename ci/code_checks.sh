@@ -118,7 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_loc PR07,RT03,SA01" \
         -i "pandas.Index.get_slice_bound PR07" \
         -i "pandas.Index.identical PR01,SA01" \
-        -i "pandas.Index.inferred_type SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
@@ -128,7 +127,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.reindex PR07" \
         -i "pandas.Index.slice_indexer PR07,RT03,SA01" \
-        -i "pandas.Index.slice_locs RT03" \
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Index.symmetric_difference PR07,RT03,SA01" \
         -i "pandas.Index.take PR01,PR07" \
