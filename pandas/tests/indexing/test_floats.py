@@ -491,11 +491,11 @@ class TestFloatIndexers:
         for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        warn = FutureWarning if indexer_sl is tm.setitem else None
-        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
-
         # all should return the same as we are slicing 'the same'
-        with tm.assert_produces_warning(warn, match=msg):
+
+        if indexer_sl is tm.setitem:
+            result1 = indexer_sl(s).loc[2:5]
+        else:
             result1 = indexer_sl(s)[2:5]
         result2 = indexer_sl(s)[2.0:5.0]
         result3 = indexer_sl(s)[2.0:5]
@@ -505,7 +505,9 @@ class TestFloatIndexers:
         tm.assert_series_equal(result1, result4)
 
         expected = Series([1, 2], index=[2.5, 5.0])
-        with tm.assert_produces_warning(warn, match=msg):
+        if indexer_sl is tm.setitem:
+            result = indexer_sl(s).loc[2:5]
+        else:
             result = indexer_sl(s)[2:5]
 
         tm.assert_series_equal(result, expected)

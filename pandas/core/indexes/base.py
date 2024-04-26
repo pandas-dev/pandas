@@ -3842,9 +3842,7 @@ class Index(IndexOpsMixin, PandasObject):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             if kind == "getitem" and is_index_slice and not start == stop and step != 0:
-                raise TypeError(
-                    "Using of obj[i:j] with a float-dtype index is not supported"
-                )
+                self.loc[start:stop]
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers

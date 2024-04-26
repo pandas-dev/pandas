@@ -342,12 +342,25 @@ Float64Index API change
 
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     s[2:4]
-     s.loc[2:4]
-     s.iloc[2:4]
+     In [1]: s[2:4]
+     Out[23]:
+     2.0    1
+     3.0    2
+     dtype: int64
+
+     In [24]: s.loc[2:4]
+     Out[24]:
+     2.0    1
+     3.0    2
+     dtype: int64
+
+     In[25]: s.iloc[2:4]
+     Out[25]:
+     3.0    2
+     4.5    3
+     dtype: int64
 
   In float indexes, slicing using floats are allowed
 
