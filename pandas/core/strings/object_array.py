@@ -66,8 +66,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         convert : bool, default True
             Whether to call `maybe_convert_objects` on the resulting ndarray
         """
-        from pandas.arrays import BooleanArray
-
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
@@ -76,7 +74,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if not len(self):
             return np.array([], dtype=dtype)
 
-        arr = np.asarray(self)
+        arr = np.asarray(self, dtype=object)
         mask = isna(arr)
         map_convert = convert and not np.all(mask)
         try:
@@ -110,18 +108,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             np.putmask(result, mask, na_value)
             if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
-
-        result = result.astype(dtype)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            return constructor(result, mask)
-
         return result
 
     def _str_count(self, pat, flags: int = 0):
