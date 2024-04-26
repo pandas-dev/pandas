@@ -913,14 +913,12 @@ class TestDatetimeArray(SharedTests):
 
         windowFlag = False
         try:
-            datetime.datetime(1820, 1, 1)
+            _ = datetime.datetime(1820, 1, 1)
+            expected = pd.Index(["20", "20"], dtype="object")
         except ValueError:
             windowFlag = True
-        if windowFlag:
             expected = pd.Index([None, "20"], dtype="object")
-        else:
-            expected = pd.Index(["20", "20"], dtype="object")
-
+            
         if windowFlag:
             with tm.assert_produces_warning(StrftimeErrorWarning):
                 result = arr.strftime("%y", "warn")
