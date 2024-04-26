@@ -210,17 +210,22 @@ def format_array_from_datetime(
             if format is None:
                 # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
-            elif (errors == "warn") or (errors == "ignore"):
+            elif (errors == "warn"):
                 try:
                     res = ts.strftime(format)
                 except (ValueError, NotImplementedError):
                     # Catches errors and replaces result with None
                     # TODO
-                    if (errors == "warn"):
-                        mesg="The following timestamps could be converted to string: ["
-                        mesg+=str(ts)+"] Set errors='raise' to see the details"
-                        # warnings.warn(mesg,StrfimeErrorWarning,
-                        # stacklevel=find_stack_level());
+                    mesg= "The following timestamps could be converted to string:" +\
+                     f"[{ts}] Set errors='raise' to see the details"
+                    # warnings.warn(mesg,StrfimeErrorWarning,
+                    # stacklevel=find_stack_level());
+
+                    res = None
+            elif (errors == "ignore"):
+                try:
+                    res = ts.strftime(format)
+                except Exception:
                     res = None
 
             else:

@@ -35,7 +35,7 @@ Other enhancements
 - Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Series` :class:`Index` (:issue:`51452`)
 - Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
 - :meth:`Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
--
+- :func:`DatetimeIndex.strftime` and :func:`DatetimeArray.strftime` now have an optional ``errors`` paramater, which can be set to ``'ignore'`` or ``'warn'`` to intepret bad datetimes as ``None``. The latter also throws a warning (:issue:`58178`) 
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
