@@ -86,6 +86,8 @@ from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
+from pandas.errors import StrftimeErrorWarning
+
 
 def _test_parse_iso8601(ts: str):
     """

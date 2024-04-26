@@ -758,6 +758,7 @@ __all__ = [
     "PossiblePrecisionLoss",
     "PyperclipException",
     "PyperclipWindowsException",
+    "StrftimeErrorWarning",
     "SpecificationError",
     "UndefinedVariableError",
     "UnsortedIndexError",
