@@ -1262,7 +1262,8 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, optional
             Set name for new object.
         deep : bool, default False
-            If True attempts to make a deep copy of the Index. Else makes a shallow copy.
+            If True attempts to make a deep copy of the Index.
+                Else makes a shallow copy.
 
         Returns
         -------
