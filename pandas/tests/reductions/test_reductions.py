@@ -665,7 +665,7 @@ class TestSeriesReductions:
 
             # GH#844 (changed in GH#9422)
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
-            assert (getattr(df, method)(1) == unit).all()
+            assert (getattr(df, method)(axis=1) == unit).all()
 
             s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
@@ -1558,7 +1558,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 

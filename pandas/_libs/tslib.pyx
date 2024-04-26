@@ -1,7 +1,3 @@
-import warnings
-
-from pandas.util._exceptions import find_stack_level
-
 cimport cython
 
 from datetime import timezone
@@ -70,7 +66,6 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -248,150 +243,6 @@ def format_array_from_datetime(
     return result
 
 
-def array_with_unit_to_datetime(
-    ndarray[object] values,
-    str unit,
-    str errors="coerce"
-):
-    """
-    Convert the ndarray to datetime according to the time unit.
-
-    This function converts an array of objects into a numpy array of
-    datetime64[ns]. It returns the converted array
-    and also returns the timezone offset
-
-    if errors:
-      - raise: return converted values or raise OutOfBoundsDatetime
-          if out of range on the conversion or
-          ValueError for other conversions (e.g. a string)
-      - ignore: return non-convertible values as the same unit
-      - coerce: NaT for non-convertibles
-
-    Parameters
-    ----------
-    values : ndarray
-         Date-like objects to convert.
-    unit : str
-         Time unit to use during conversion.
-    errors : str, default 'raise'
-         Error behavior when parsing.
-
-    Returns
-    -------
-    result : ndarray of m8 values
-    tz : parsed timezone offset or None
-    """
-    cdef:
-        Py_ssize_t i, n=len(values)
-        bint is_coerce = errors == "coerce"
-        bint is_raise = errors == "raise"
-        ndarray[int64_t] iresult
-        tzinfo tz = None
-        double fval
-
-    assert is_coerce or is_raise
-
-    if unit == "ns":
-        result, tz = array_to_datetime(
-            values.astype(object, copy=False),
-            errors=errors,
-            creso=NPY_FR_ns,
-        )
-        return result, tz
-
-    result = np.empty(n, dtype="M8[ns]")
-    iresult = result.view("i8")
-
-    for i in range(n):
-        val = values[i]
-
-        try:
-            if checknull_with_nat_and_na(val):
-                iresult[i] = NPY_NAT
-
-            elif is_integer_object(val) or is_float_object(val):
-
-                if val != val or val == NPY_NAT:
-                    iresult[i] = NPY_NAT
-                else:
-                    iresult[i] = cast_from_unit(val, unit)
-
-            elif isinstance(val, str):
-                if len(val) == 0 or val in nat_strings:
-                    iresult[i] = NPY_NAT
-
-                else:
-
-                    try:
-                        fval = float(val)
-                    except ValueError:
-                        raise ValueError(
-                            f"non convertible value {val} with the unit '{unit}'"
-                        )
-                    warnings.warn(
-                        "The behavior of 'to_datetime' with 'unit' when parsing "
-                        "strings is deprecated. In a future version, strings will "
-                        "be parsed as datetime strings, matching the behavior "
-                        "without a 'unit'. To retain the old behavior, explicitly "
-                        "cast ints or floats to numeric type before calling "
-                        "to_datetime.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-
-                    iresult[i] = cast_from_unit(fval, unit)
-
-            else:
-                # TODO: makes more sense as TypeError, but that would be an
-                #  API change.
-                raise ValueError(
-                    f"unit='{unit}' not valid with non-numerical val='{val}'"
-                )
-
-        except (ValueError, TypeError) as err:
-            if is_raise:
-                err.args = (f"{err}, at position {i}",)
-                raise
-            else:
-                # is_coerce
-                iresult[i] = NPY_NAT
-
-    return result, tz
-
-
-cdef _array_with_unit_to_datetime_object_fallback(ndarray[object] values, str unit):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] oresult
-        tzinfo tz = None
-
-    # TODO: fix subtle differences between this and no-unit code
-    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
-    for i in range(n):
-        val = values[i]
-
-        if checknull_with_nat_and_na(val):
-            oresult[i] = <object>NaT
-        elif is_integer_object(val) or is_float_object(val):
-
-            if val != val or val == NPY_NAT:
-                oresult[i] = <object>NaT
-            else:
-                try:
-                    oresult[i] = Timestamp(val, unit=unit)
-                except OutOfBoundsDatetime:
-                    oresult[i] = val
-
-        elif isinstance(val, str):
-            if len(val) == 0 or val in nat_strings:
-                oresult[i] = <object>NaT
-
-            else:
-                oresult[i] = val
-
-    return oresult, tz
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def first_non_null(values: ndarray) -> int:
@@ -423,6 +274,7 @@ cpdef array_to_datetime(
     bint yearfirst=False,
     bint utc=False,
     NPY_DATETIMEUNIT creso=NPY_FR_ns,
+    str unit_for_numerics=None,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -451,6 +303,7 @@ cpdef array_to_datetime(
         indicator whether the dates should be UTC
     creso : NPY_DATETIMEUNIT, default NPY_FR_ns
         Set to NPY_FR_GENERIC to infer a resolution.
+    unit_for_numerics : str, default "ns"
 
     Returns
     -------
@@ -481,6 +334,13 @@ cpdef array_to_datetime(
         abbrev = "ns"
     else:
         abbrev = npy_unit_to_abbrev(creso)
+
+    if unit_for_numerics is not None:
+        # either creso or unit_for_numerics should be passed, not both
+        assert creso == NPY_FR_ns
+    else:
+        unit_for_numerics = abbrev
+
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
 
@@ -532,7 +392,8 @@ cpdef array_to_datetime(
                         creso = state.creso
 
                     # we now need to parse this as if unit=abbrev
-                    iresult[i] = cast_from_unit(val, abbrev, out_reso=creso)
+                    iresult[i] = cast_from_unit(val, unit_for_numerics, out_reso=creso)
+
                     state.found_other = True
 
             elif isinstance(val, str):
