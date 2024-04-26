@@ -2248,9 +2248,25 @@ default 'raise'
         axis : int, optional
             Axis for the function to be applied on. For :class:`pandas.Series`
             this parameter is unused and defaults to ``None``.
+        dtype : dtype, optional, default None
+            Type to use in computing the standard deviation. For arrays of
+            integer type the default is float64, for arrays of float types
+            it is the same as the array type.
+        out : ndarray, optional, default None
+            Alternative output array in which to place the result. It must have
+            the same shape as the expected output but the type (of the
+            calculated values) will be cast if necessary.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array. If the default
+            value is passed, then keepdims will not be passed through to the
+            std method of sub-classes of ndarray, however any non-default value
+            will be. If the sub-class method does not implement keepdims any
+            exceptions will be raised.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is ``NA``, the result
             will be ``NA``.
@@ -2258,6 +2274,7 @@ default 'raise'
         Returns
         -------
         Timedelta
+            Standard deviation over requested axis.
 
         See Also
         --------
