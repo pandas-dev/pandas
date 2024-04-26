@@ -424,7 +424,7 @@ I/O
 
 Period
 ^^^^^^
-- Bug in :meth:`Series.diff` showing ``RuntimeWarning`` of overflowing when the Series has :class:`Period` (:issue:`58320`) 
+- Bug in :meth:`Series.diff` showing ``RuntimeWarning`` of overflowing when the Series has :class:`Period` (:issue:`58320`)
 -
 
 Plotting
