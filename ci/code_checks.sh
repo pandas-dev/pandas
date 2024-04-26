@@ -105,7 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
-        -i "pandas.Index.copy PR07,SA01" \
         -i "pandas.Index.difference PR07,RT03,SA01" \
         -i "pandas.Index.drop PR07,SA01" \
         -i "pandas.Index.duplicated RT03" \
@@ -113,7 +112,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_indexer_for PR01,SA01" \
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
         -i "pandas.Index.get_loc PR07,RT03,SA01" \
-        -i "pandas.Index.get_slice_bound PR07" \
         -i "pandas.Index.identical PR01,SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
