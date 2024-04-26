@@ -1393,7 +1393,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self.dtype.falsey_value)
+        np.putmask(values, self._mask, self.dtype._falsey_value)
         result = values.any()
         if skipna:
             return result
@@ -1481,7 +1481,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self.dtype.truthy_value)
+        np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
         if skipna:

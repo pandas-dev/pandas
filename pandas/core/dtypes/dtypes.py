@@ -1546,7 +1546,7 @@ class BaseMaskedDtype(ExtensionDtype):
     _internal_fill_value: Scalar
 
     @property
-    def truthy_value(self):
+    def _truthy_value(self):
         # Fill values used for 'any'
         if self.kind == "f":
             return 1.0
@@ -1555,7 +1555,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return True
 
     @property
-    def falsey_value(self):
+    def _falsey_value(self):
         # Fill values used for 'all'
         if self.kind == "f":
             return 0.0
