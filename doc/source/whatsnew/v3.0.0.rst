@@ -39,10 +39,10 @@ Other enhancements
 - Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
 - :meth:`Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
 - :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
+- :func:`DatetimeIndex.strftime` and :func:`DatetimeArray.strftime` now have an optional ``errors`` parameter, which can be set to ``'ignore'`` or ``'warn'`` to interpret bad datetimes as ``None``. The latter also throws a warning (:issue:`58178`)
 - :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
-- :func:`DatetimeIndex.strftime` and :func:`DatetimeArray.strftime` now have an optional ``errors`` paramater, which can be set to ``'ignore'`` or ``'warn'`` to intepret bad datetimes as ``None``. The latter also throws a warning (:issue:`58178`) 
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:

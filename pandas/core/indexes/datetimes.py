@@ -262,7 +262,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # methods that dispatch to DatetimeArray and wrap result
 
     @doc(DatetimeArray.strftime)
-    def strftime(self, date_format, errors = 'raise') -> Index:
+    def strftime(self, date_format, errors="raise") -> Index:
         arr = self._data.strftime(date_format, errors)
         return Index(arr, name=self.name, dtype=object)
 
