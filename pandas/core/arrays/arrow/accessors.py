@@ -204,7 +204,12 @@ class ListAccessor(ArrowAccessor):
         1    3
         dtype: int64[pyarrow]
         """
-        return self._data.dropna().explode()
+        from pandas import Series
+
+        counts = pa.compute.list_value_length(self._pa_array).fill_null(0)
+        flattened = pa.compute.list_flatten(self._pa_array)
+        index = self._data.index.repeat(counts)
+        return Series(flattened, dtype=ArrowDtype(flattened.type), index=index)
 
 
 class StructAccessor(ArrowAccessor):

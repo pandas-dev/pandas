@@ -76,7 +76,7 @@ def test_list_len():
 
 def test_list_flatten():
     ser = Series(
-        [[1, 2, 3], None, [4, None]],
+        [[1, 2, 3], None, [4, None], []],
         dtype=ArrowDtype(pa.list_(pa.int64())),
     )
     actual = ser.list.flatten()
