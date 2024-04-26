@@ -689,8 +689,11 @@ class CategoricalConversionWarning(Warning):
 
 class StrftimeErrorWarning(Warning):
     """
-    Warning is raised by ``Timestamp.strftime`` when a ValueError or
-    NotImplementedError occurs, under the ``errors='warn'`` parameter value.
+    Raised by ``Series.dt.strftime`` when an error occurs, when errors is set to 'warn'.
+
+    See Also
+    --------
+    Series.dt.strftime
 
     Examples
     --------
