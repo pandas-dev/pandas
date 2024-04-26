@@ -844,15 +844,6 @@ class NumpyStringArray(BaseNumpyStringArray):
             dtype = get_numpy_string_dtype_instance(na_object=na_value)
         return super().to_numpy(dtype, copy, na_value)
 
-    def _str_pad(self, width, side="left", fillchar=' '):
-        if side == 'left':
-            return np.strings.ljust(self._ndarray, width, fillchar)
-        elif side == 'right':
-            return np.strings.rjust(self._ndarray, width, fillchar)
-        elif side == 'both':
-            return np.strings.center(self._ndarray, width, fillchar)
-        raise ValueError("Invalid side")
-
     def _str_endswith(self, pat, na=None) -> BooleanArray:
         pat = np.asarray(pat, dtype=get_numpy_string_dtype_instance())
         result = np.strings.endswith(self._ndarray, pat)
@@ -922,12 +913,6 @@ class NumpyStringArray(BaseNumpyStringArray):
         if to_strip is not None:
             to_strip = np.asarray(to_strip, dtype=get_numpy_string_dtype_instance())
         return np.strings.lstrip(self._ndarray, to_strip)
-
-    def _str_partition(self, sep=' ', expand=True):
-        return np.column_stack(np.strings.partition(self._ndarray, sep))
-
-    def _str_rpartition(self, sep=' ', expand=True):
-        return np.column_stack(np.strings.rpartition(self._ndarray, sep))
 
     def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=False):
         if regex:
