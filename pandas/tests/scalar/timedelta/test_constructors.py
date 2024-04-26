@@ -293,7 +293,10 @@ def test_construction():
     assert Timedelta("1 milli") == timedelta(milliseconds=1)
     assert Timedelta("1 millisecond") == timedelta(milliseconds=1)
     assert Timedelta("1 us") == timedelta(microseconds=1)
+    # 0x0b5 Latin Extended micro sign
     assert Timedelta("1 µs") == timedelta(microseconds=1)
+    # 0x3bc Greek small letter mu
+    assert Timedelta("1 μs") == timedelta(microseconds=1)
     assert Timedelta("1 micros") == timedelta(microseconds=1)
     assert Timedelta("1 microsecond") == timedelta(microseconds=1)
     assert Timedelta("1.5 microsecond") == Timedelta("00:00:00.000001500")

@@ -136,7 +136,8 @@ cdef dict timedelta_abbrevs = {
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
-    "µs": "us",
+    "µs": "us",  # 0x0b5 Latin Extended micro sign
+    "μs": "us",  # 0x3bc Greek small letter mu
     "micro": "us",
     "micros": "us",
     "ns": "ns",
@@ -1796,7 +1797,8 @@ class Timedelta(_Timedelta):
         * 'minutes', 'minute', 'min', or 'm'
         * 'seconds', 'second', 'sec', or 's'
         * 'milliseconds', 'millisecond', 'millis', 'milli', or 'ms'
-        * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
+        * 'microseconds', 'microsecond', 'micros', 'micro',
+          'µs' (Latin Extended micro sign), 'μs' (Greek small letter mu), or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
         .. deprecated:: 2.2.0

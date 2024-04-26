@@ -55,7 +55,8 @@ UnitChoices: TypeAlias = Literal[
     "us",
     "microseconds",
     "microsecond",
-    "µs",
+    "µs",  # 0x0b5 Latin Extended micro sign
+    "μs",  # 0x3bc Greek small letter mu
     "micro",
     "micros",
     "u",

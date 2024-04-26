@@ -372,6 +372,7 @@ Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
+- Recognize 0x3bc Greek small letter mu as an alias for micro in :class:`Timedelta` (:issue:`58472`)
 
 Timezones
 ^^^^^^^^^

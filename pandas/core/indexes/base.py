@@ -5027,9 +5027,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if com.is_bool_indexer(key):
             # if we have list[bools, length=1e5] then doing this check+convert
-            #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
-            #  time below from 3.8 ms to 496 µs
-            # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
+            #  takes 166 μs + 2.1 ms and cuts the ndarray.__getitem__
+            #  time below from 3.8 ms to 496 μs
+            # if we already have ndarray[bool], the overhead is 1.4 μs or .25%
             if isinstance(getattr(key, "dtype", None), ExtensionDtype):
                 key = key.to_numpy(dtype=bool, na_value=False)
             else:
