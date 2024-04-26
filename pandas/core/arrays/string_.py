@@ -853,23 +853,35 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     def _str_find(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        result = np.strings.find(self._ndarray, sub, start, end)
-        return IntegerArray(result, isna(self._ndarray))
+        na_mask = isna(self._ndarray)
+        result = np.empty_like(self._ndarray, dtype='int64')
+        result[~na_mask] = np.strings.find(
+            self._ndarray[~na_mask], sub, start, end)
+        return IntegerArray(result, na_mask)
 
     def _str_rfind(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        result = np.strings.rfind(self._ndarray, sub, start, end)
-        return IntegerArray(result, isna(self._ndarray))
+        na_mask = isna(self._ndarray)
+        result = np.empty_like(self._ndarray, dtype='int64')
+        result[~na_mask] = np.strings.rfind(
+            self._ndarray[~na_mask], sub, start, end)
+        return IntegerArray(result, na_mask)
 
     def _str_index(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        result = np.strings.index(self._ndarray, sub, start, end)
-        return IntegerArray(result, isna(self._ndarray))
+        na_mask = isna(self._ndarray)
+        result = np.empty_like(self._ndarray, dtype='int64')
+        result[~na_mask] = np.strings.index(
+            self._ndarray[~na_mask], sub, start, end)
+        return IntegerArray(result, na_mask)
 
     def _str_rindex(self, sub, start: int = 0, end=None) -> IntegerArray:
         sub = np.asarray(sub, dtype=get_numpy_string_dtype_instance())
-        result = np.strings.rindex(self._ndarray, sub, start, end)
-        return IntegerArray(result, isna(self._ndarray))
+        na_mask = isna(self._ndarray)
+        result = np.empty_like(self._ndarray, dtype='int64')
+        result[~na_mask] = np.strings.rindex(
+            self._ndarray[~na_mask], sub, start, end)
+        return IntegerArray(result, na_mask)
 
     def _str_isalnum(self) -> BooleanArray:
         result = np.strings.isalnum(self._ndarray)
