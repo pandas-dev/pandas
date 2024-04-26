@@ -769,10 +769,10 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+        na_mask, any_na = libmissing.isnaobj(np.array(scalars, dtype=object), check_for_any_na=True)
         arr = np.asarray(scalars)
         if is_object_dtype(arr.dtype):
             result = np.empty(arr.shape, dtype=get_numpy_string_dtype_instance(coerce=True))
-            na_mask, any_na = libmissing.isnaobj(arr, check_for_any_na=True)
             result[~na_mask] = arr[~na_mask]
             if any_na:
                 result[na_mask] = libmissing.NA
@@ -781,6 +781,8 @@ class NumpyStringArray(BaseNumpyStringArray):
             result = result.astype(get_numpy_string_dtype_instance())
         else:
             result = arr.astype(get_numpy_string_dtype_instance(), copy=False)
+            if any_na:
+                result[na_mask] = libmissing.NA
 
         # Manually creating with new array avoids the validation step in the
         # __init__, so is faster. Refactor need for validation?
