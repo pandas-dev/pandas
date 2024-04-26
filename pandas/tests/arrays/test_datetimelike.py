@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import re
 import warnings
 
@@ -913,9 +912,11 @@ class TestDatetimeArray(SharedTests):
 
         windowFlag = False
         try:
-            datetime.datetime(1820, 1, 1)
+            _ = arr[0].strftime("%y")
         except ValueError:
             windowFlag = True
+            expected = pd.Index([None, "20"], dtype="object")
+
         if windowFlag:
             expected = pd.Index([None, "20"], dtype="object")
         else:
@@ -925,19 +926,29 @@ class TestDatetimeArray(SharedTests):
             with tm.assert_produces_warning(StrftimeErrorWarning):
                 result = arr.strftime("%y", "warn")
 
-        # with pytest.raises(ValueError):
-        #     result = arr.strftime("%y", "raise")
+            with pytest.raises(
+                ValueError, match="format %y requires year >= 1900 on Windows"
+            ):
+                result = arr.strftime("%y", "raise")
 
-        # with pytest.raises(ValueError):
-        #     result = arr[0].strftime("%y")
+            with pytest.raises(
+                ValueError, match="format %y requires year >= 1900 on Windows"
+            ):
+                result = arr[0].strftime("%y")
 
-        result = arr.strftime("%y", "ignore")
-        # expected = pd.Index([None, "20"], dtype="object")
-        tm.assert_index_equal(result, expected)
+            result = arr.strftime("%y", "ignore")
+            tm.assert_index_equal(result, expected)
 
-        result = arr.strftime("%y", "warn")
-        # expected = pd.Index([None, "20"], dtype="object")
-        tm.assert_index_equal(result, expected)
+        else:
+            # "1820-01-01" should be converted properly if not on Windows.
+            result = arr.strftime("%y", "warn")
+            tm.assert_index_equal(result, expected)
+
+            result = arr.strftime("%y", "raise")
+            tm.assert_index_equal(result, expected)
+
+            result = arr.strftime("%y", "ignore")
+            tm.assert_index_equal(result, expected)
 
         arr2 = DatetimeIndex(np.array(["-0020-01-01", "2020-01-02"], "datetime64[s]"))
         expected = pd.Index([None, "20"], dtype="object")
