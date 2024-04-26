@@ -1201,6 +1201,7 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
+            Immutable ndarray holding ordinal values at a particular frequency.
 
         Raises
         ------
