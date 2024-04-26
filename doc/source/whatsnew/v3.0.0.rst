@@ -416,7 +416,7 @@ MultiIndex
 
 I/O
 ^^^
-- Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
+- Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping` elements. (:issue:`57915`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
@@ -424,7 +424,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :meth:`Series.diff` showing ``RuntimeWarning`` of overflowing when the Series has :class:`Period` (:issue:`58320`) 
 -
 
 Plotting
