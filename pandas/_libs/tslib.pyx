@@ -215,11 +215,10 @@ def format_array_from_datetime(
                     res = ts.strftime(format)
                 except (ValueError, NotImplementedError):
                     # Catches errors and replaces result with None
-                    # TODO
-                    mesg= "The following timestamps could be converted to string:" +\
+                    mesg= "The following timestamp could not be converted to string:" +\
                      f"[{ts}] Set errors='raise' to see the details"
-                    # warnings.warn(mesg,StrfimeErrorWarning,
-                    # stacklevel=find_stack_level());
+                    warnings.warn(mesg,StrftimeErrorWarning,
+                    stacklevel=find_stack_level());
 
                     res = None
             elif (errors == "ignore"):
