@@ -2685,6 +2685,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -2866,6 +2876,9 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         bytes if no path argument is provided else None
+            Returns the DataFrame converted to the binary parquet format as bytes if no
+            path argument. Returns None and writes the DataFrame to the specified
+            location in the Parquet format if the path argument is provided.
 
         See Also
         --------
@@ -4012,7 +4025,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4023,7 +4035,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
@@ -5534,6 +5546,11 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         Series
             Series representing the item that is dropped.
+
+        See Also
+        --------
+        DataFrame.drop: Drop specified labels from rows or columns.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
 
         Examples
         --------
@@ -7681,6 +7698,10 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
             DataFrame with indices or columns with reordered levels.
+
+        See Also
+        --------
+            DataFrame.swaplevel : Swap levels i and j in a MultiIndex.
 
         Examples
         --------
@@ -12900,6 +12921,11 @@ class DataFrame(NDFrame, OpsMixin):
             """
                 The column labels of the DataFrame.
 
+                See Also
+                --------
+                DataFrame.index: The index (row labels) of the DataFrame.
+                DataFrame.axes: Return a list representing the axes of the DataFrame.
+
                 Examples
                 --------
                 >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
@@ -12928,12 +12954,12 @@ class DataFrame(NDFrame, OpsMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY - only works for BlockManager
+        Internal ONLY.
         """
         mgr = self._mgr
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v in mgr.to_dict().items()
+            for k, v in mgr.to_iter_dict()
         }
 
     @property
