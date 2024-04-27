@@ -471,8 +471,22 @@ class Apply(metaclass=abc.ABCMeta):
 
                 keys += [key] * len(key_data)
                 results += key_data
-        else:
+        elif is_groupby:
             # key used for column selection and output
+
+            df = obj.obj
+            results, keys = [], []
+            for key, how in func.items():
+                for index in range(df.shape[1]):
+                    col = df.iloc[:, index]
+                    if col.name != key:
+                        continue
+
+                    series = obj._gotitem(key, ndim=1, subset=col)
+                    result = getattr(series, op_name)(how, **kwargs)
+                    results.append(result)
+                    keys.append(key)
+        else:
             results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
                 for key, how in func.items()
@@ -496,11 +510,14 @@ class Apply(metaclass=abc.ABCMeta):
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
         if all(is_ndframe):
-            results = dict(zip(result_index, result_data))
+            results = [result for result in result_data if not result.empty]
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k in result_index if not results[k].empty]
+            keys_to_use = [k for k, v in zip(result_index, result_data) if not v.empty]
             # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else result_index
+            if keys_to_use == []:
+                keys_to_use = result_index
+                results = result_data
+
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
@@ -509,7 +526,7 @@ class Apply(metaclass=abc.ABCMeta):
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
-                {k: results[k] for k in keys_to_use},
+                results,
                 axis=axis,
                 keys=keys_to_use,
             )
