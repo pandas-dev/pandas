@@ -697,6 +697,19 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 class StringArrayNumpySemantics(StringArray):
     _storage = "python_numpy"
 
+    def _validate(self) -> None:
+        """Validate that we only store NaN or strings."""
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
+            raise ValueError(
+                "StringArrayNumpySemantics requires a sequence of strings or NaN"
+            )
+        if self._ndarray.dtype != "object":
+            raise ValueError(
+                "StringArrayNumpySemantics requires a sequence of strings or NaN. Got "
+                f"'{self._ndarray.dtype}' dtype instead."
+            )
+        # TODO validate or force NA/None to NaN
+
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False

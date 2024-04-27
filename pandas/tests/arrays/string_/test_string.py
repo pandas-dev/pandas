@@ -325,8 +325,10 @@ def test_comparison_methods_array(comparison_op, dtype):
 
 
 def test_constructor_raises(cls):
-    if cls is pd.arrays.StringArray or cls is StringArrayNumpySemantics:
+    if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
+    elif cls is StringArrayNumpySemantics:
+        msg = "StringArrayNumpySemantics requires a sequence of strings or NaN"
     else:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
 
@@ -377,6 +379,8 @@ def test_from_sequence_no_mutate(copy, cls, dtype):
         import pyarrow as pa
 
         expected = cls(pa.array(na_arr, type=pa.string(), from_pandas=True))
+    elif cls is StringArrayNumpySemantics:
+        expected = cls(nan_arr)
     else:
         expected = cls(na_arr)
 
