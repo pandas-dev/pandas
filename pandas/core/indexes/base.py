@@ -3842,7 +3842,7 @@ class Index(IndexOpsMixin, PandasObject):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             if kind == "getitem" and is_index_slice and not start == stop and step != 0:
-                self.loc[start:stop]
+                self.loc[start:stop]  # type: ignore[attr-defined]
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
