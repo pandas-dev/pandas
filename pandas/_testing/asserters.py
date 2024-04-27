@@ -808,11 +808,11 @@ def assert_extension_array_equal(
     # Specifically for StringArrayNumpySemantics, validate here we have a valid array
     if isinstance(left.dtype, StringDtype) and left.dtype.storage == "python_numpy":
         assert np.all(
-            [np.isnan(val) for val in left._ndarray[left_na]]
+            [np.isnan(val) for val in left._ndarray[left_na]]  # type: ignore[attr-defined]
         ), "wrong missing value sentinels"
     if isinstance(right.dtype, StringDtype) and right.dtype.storage == "python_numpy":
         assert np.all(
-            [np.isnan(val) for val in right._ndarray[right_na]]
+            [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
         ), "wrong missing value sentinels"
 
     left_valid = left[~left_na].to_numpy(dtype=object)

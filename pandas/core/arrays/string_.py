@@ -718,7 +718,7 @@ class StringArrayNumpySemantics(StringArray):
             dtype = StringDtype(storage="python_numpy")
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
+    def _from_backing_data(self, arr: np.ndarray) -> StringArrayNumpySemantics:
         # need to overrde NumpyExtensionArray._from_backing_data to ensure
         # we always preserve the dtype
         return NDArrayBacked._from_backing_data(self, arr)
