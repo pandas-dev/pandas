@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import operator
 from typing import (
     TYPE_CHECKING,
+    Any,
     ClassVar,
     Literal,
     cast,
@@ -9,7 +11,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_pyarrow_string_dtype,
+)
 
 from pandas._libs import (
     lib,
@@ -17,7 +22,10 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    HAS_PYARROW,
+    pa_version_under10p1,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -81,7 +89,7 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow", "pyarrow_numpy"}, optional
+    storage : {"python", "pyarrow", "python_numpy", "pyarrow_numpy"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
 
     Attributes
@@ -113,7 +121,7 @@ class StringDtype(StorageExtensionDtype):
     # follows NumPy semantics, which uses nan.
     @property
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
-        if self.storage == "pyarrow_numpy":
+        if self.storage in ("pyarrow_numpy", "python_numpy"):
             return np.nan
         else:
             return libmissing.NA
@@ -122,15 +130,17 @@ class StringDtype(StorageExtensionDtype):
 
     def __init__(self, storage=None) -> None:
         if storage is None:
-            infer_string = get_option("future.infer_string")
-            if infer_string:
-                storage = "pyarrow_numpy"
+            if using_pyarrow_string_dtype():
+                if HAS_PYARROW:
+                    storage = "pyarrow_numpy"
+                else:
+                    storage = "python_numpy"
             else:
                 storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
+        if storage not in {"python", "pyarrow", "python_numpy", "pyarrow_numpy"}:
             raise ValueError(
-                f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
-                f"Got {storage} instead."
+                "Storage must be 'python', 'pyarrow', 'python_numpy' or 'pyarrow_numpy'"
+                f". Got {storage} instead."
             )
         if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
@@ -178,6 +188,8 @@ class StringDtype(StorageExtensionDtype):
             return cls()
         elif string == "string[python]":
             return cls(storage="python")
+        elif string == "string[python_numpy]":
+            return cls(storage="python_numpy")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
@@ -207,6 +219,8 @@ class StringDtype(StorageExtensionDtype):
             return StringArray
         elif self.storage == "pyarrow":
             return ArrowStringArray
+        elif self.storage == "python_numpy":
+            return StringArrayNumpySemantics
         else:
             return ArrowStringArrayNumpySemantics
 
@@ -238,7 +252,7 @@ class StringDtype(StorageExtensionDtype):
                 # convert chunk by chunk to numpy and concatenate then, to avoid
                 # overflow for large string data when concatenating the pyarrow arrays
                 arr = arr.to_numpy(zero_copy_only=False)
-                arr = ensure_string_array(arr, na_value=libmissing.NA)
+                arr = ensure_string_array(arr, na_value=self.na_value)
                 results.append(arr)
 
         if len(chunks) == 0:
@@ -248,11 +262,7 @@ class StringDtype(StorageExtensionDtype):
 
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
-        NDArrayBacked.__init__(
-            new_string_array,
-            arr,
-            StringDtype(storage="python"),
-        )
+        NDArrayBacked.__init__(new_string_array, arr, self)
         return new_string_array
 
 
@@ -360,6 +370,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
+    _storage = "python"
 
     def __init__(self, values, copy: bool = False) -> None:
         values = extract_array(values)
@@ -367,7 +378,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
             self._validate()
-        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage=self._storage))
 
     def _validate(self) -> None:
         """Validate that we only store NA or strings."""
@@ -385,22 +396,41 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         else:
             lib.convert_nans_to_NA(self._ndarray)
 
+    def _validate_scalar(self, value):
+        # used by NDArrayBackedExtensionIndex.insert
+        if isna(value):
+            return self.dtype.na_value
+        elif not isinstance(value, str):
+            raise TypeError(
+                f"Cannot set non-string value '{value}' into a string array."
+            )
+        return value
+
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
-            assert isinstance(dtype, StringDtype) and dtype.storage == "python"
+            assert isinstance(dtype, StringDtype) and dtype.storage in (
+                "python",
+                "python_numpy",
+            )
+        else:
+            if get_option("future.infer_string"):
+                dtype = StringDtype(storage="python_numpy")
+            else:
+                dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
 
+        na_value = dtype.na_value
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            result[na_values] = libmissing.NA
+            result[na_values] = na_value
 
         else:
             if lib.is_pyarrow_array(scalars):
@@ -409,12 +439,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 #  zero_copy_only to True which caused problems see GH#52076
                 scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
-            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
+            result = lib.ensure_string_array(scalars, na_value=na_value, copy=copy)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
         new_string_array = cls.__new__(cls)
-        NDArrayBacked.__init__(new_string_array, result, StringDtype(storage="python"))
+        NDArrayBacked.__init__(new_string_array, result, dtype)
 
         return new_string_array
 
@@ -464,7 +494,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # validate new items
         if scalar_value:
             if isna(value):
-                value = libmissing.NA
+                value = self.dtype.na_value
             elif not isinstance(value, str):
                 raise TypeError(
                     f"Cannot set non-string value '{value}' into a StringArray."
@@ -478,7 +508,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             mask = isna(value)
             if mask.any():
                 value = value.copy()
-                value[isna(value)] = libmissing.NA
+                value[isna(value)] = self.dtype.na_value
 
         super().__setitem__(key, value)
 
@@ -591,9 +621,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = libmissing.NA
+            result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            return StringArray(result)
+            return self._from_backing_data(result)
         else:
             # logical
             result = np.zeros(len(self._ndarray), dtype="bool")
@@ -656,6 +686,100 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
             return StringArray(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+
+class StringArrayNumpySemantics(StringArray):
+    _storage = "python_numpy"
+
+    @classmethod
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
+        if dtype is None:
+            dtype = StringDtype(storage="python_numpy")
+        return super()._from_sequence(scalars, dtype=dtype, copy=copy)
+
+    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
+        # need to overrde NumpyExtensionArray._from_backing_data to ensure
+        # we always preserve the dtype
+        return NDArrayBacked._from_backing_data(self, arr)
+
+    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
+        # the masked_reductions use pd.NA
+        if result is libmissing.NA:
+            return np.nan
+        return super()._wrap_reduction_result(axis, result)
+
+    def _cmp_method(self, other, op):
+        result = super()._cmp_method(other, op)
+        if op == operator.ne:
+            return result.to_numpy(np.bool_, na_value=True)
+        else:
+            return result.to_numpy(np.bool_, na_value=False)
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        from pandas.core.algorithms import value_counts_internal as value_counts
+
+        result = value_counts(self._ndarray, sort=False, dropna=dropna)
+        result.index = result.index.astype(self.dtype)
+        return result
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
+
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+        convert = convert and not np.all(mask)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            # if is_integer_dtype(dtype):
+            #     na_value = np.nan
+            # else:
+            #     na_value = False
+            try:
+                result = lib.map_infer_mask(
+                    arr,
+                    f,
+                    mask.view("uint8"),
+                    convert=False,
+                    na_value=na_value,
+                    dtype=np.dtype(cast(type, dtype)),
+                )
+                return result
+
+            except ValueError:
+                result = lib.map_infer_mask(
+                    arr,
+                    f,
+                    mask.view("uint8"),
+                    convert=False,
+                    na_value=na_value,
+                )
+                if convert and result.dtype == object:
+                    result = lib.maybe_convert_objects(result)
+                return result
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
             # -> We know the result type is truly object (e.g. .encode returns bytes

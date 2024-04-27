@@ -200,7 +200,7 @@ class TestStringArray(base.ExtensionTests):
             cast_to = dtype
         elif dtype.storage == "pyarrow":
             cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
-        elif dtype.storage == "pyarrow_numpy":
+        elif dtype.storage in ("python_numpy", "pyarrow_numpy"):
             cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
