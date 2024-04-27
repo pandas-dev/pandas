@@ -47,7 +47,7 @@ class NumericSeriesIndexing:
         self.data[800000]
 
     def time_getitem_slice(self, index, index_structure):
-        self.data[:800000]
+        self.data.loc[:800000]
 
     def time_getitem_list_like(self, index, index_structure):
         self.data[[800000]]
