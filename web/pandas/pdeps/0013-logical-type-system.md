@@ -102,7 +102,7 @@ class BaseType:
         ...
 ```
 
-The theory behind this PDEP is that most users /should not care/ about the physical type that is being used. But if the abstraction our logical type provides is too much, a user could at least inspect and potentially configure which physical type to use.
+The theory behind this PDEP is that most users _should not_ care about the physical type that is being used. But if the abstraction our logical type provides is too much, a user could at least inspect and potentially configure which physical type to use.
 
 With regards to how we may expose such types to end users, there are two currently recognized proposals. The first would use factory functions to create the logical type, i.e. something like:
 
