@@ -1764,10 +1764,11 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         date_format : str
             Date format string (e.g. "%%Y-%%m-%%d").
         errors : 'ignore', 'warn', default 'raise'
+
             - 'raise' (default) does not catch any underlying error and raises them.
             - 'ignore' catches all errors and silently replace the output with None.
             - 'warn' has the same behaviour as 'ignore' and issue a StrftimeErrorWarning
-            warning message.
+               warning message.
 
         Returns
         -------
