@@ -760,32 +760,28 @@ class StringArrayNumpySemantics(StringArray):
         convert = convert and not np.all(mask)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            # if is_integer_dtype(dtype):
-            #     na_value = np.nan
-            # else:
-            #     na_value = False
-            try:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                    dtype=np.dtype(cast(type, dtype)),
-                )
-                return result
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                if is_integer_dtype(dtype):
+                    na_value = 0
+                else:
+                    na_value = True
 
-            except ValueError:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                )
-                if convert and result.dtype == object:
-                    result = lib.maybe_convert_objects(result)
-                return result
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(cast(type, dtype)),
+            )
+            if na_value_is_na and mask.any():
+                if is_integer_dtype(dtype):
+                    result = result.astype("float64")
+                else:
+                    result = result.astype("object")
+                result[mask] = np.nan
+            return result
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
