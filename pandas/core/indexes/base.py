@@ -5111,10 +5111,18 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or list/tuple of indices
+            Single Index or a collection of indices, which can be either a list or a
+            tuple.
 
         Returns
         -------
         Index
+            Returns a new Index object resulting from appending the provided other
+            indices to the original Index.
+
+        See Also
+        --------
+        Index.insert : Make new Index inserting new item at location.
 
         Examples
         --------
