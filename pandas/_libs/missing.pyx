@@ -364,8 +364,14 @@ class NAType(C_NAType):
     >>> pd.NA == pd.NA
     <NA>
 
-    >>> True | pd.NA
+    >>> False | pd.NA
     True
+
+    >>> False & pd.NA
+    False
+
+    >>> np.False_ & pd.NA
+    False
     """
 
     _instance = None
@@ -459,7 +465,7 @@ class NAType(C_NAType):
     # Logical ops using Kleene logic
 
     def __and__(self, other):
-        if other is False:
+        if other is False or other is np.False_:
             return False
         elif other is True or other is C_NA:
             return NA
