@@ -3228,6 +3228,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index object or an array-like object containing elements to be compared
+            with the elements of the original Index.
         sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
@@ -3241,6 +3243,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object containing elements that are in the original
+            Index but not in the `other` Index.
+
+        See Also
+        --------
+        Index.symmetric_difference : Compute the symmetric difference of two Index
+            objects.
+        Index.intersection : Form the intersection of two Index objects.
 
         Examples
         --------
