@@ -106,7 +106,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
         -i "pandas.Index.difference PR07,RT03,SA01" \
-        -i "pandas.Index.drop PR07,SA01" \
         -i "pandas.Index.duplicated RT03" \
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
@@ -120,7 +119,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.nunique RT03" \
         -i "pandas.Index.putmask PR01,RT03" \
         -i "pandas.Index.ravel PR01,RT03" \
-        -i "pandas.Index.reindex PR07" \
         -i "pandas.Index.slice_indexer PR07,RT03,SA01" \
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Index.symmetric_difference PR07,RT03,SA01" \
