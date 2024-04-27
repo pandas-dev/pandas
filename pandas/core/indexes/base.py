@@ -1262,11 +1262,18 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, optional
             Set name for new object.
         deep : bool, default False
+            If True attempts to make a deep copy of the Index.
+                Else makes a shallow copy.
 
         Returns
         -------
         Index
             Index refer to new object which is a copy of this object.
+
+        See Also
+        --------
+        Index.delete: Make new Index with passed location(-s) deleted.
+        Index.drop: Make new Index with passed list of labels deleted.
 
         Notes
         -----
@@ -2093,6 +2100,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+            Returns an Index or MultiIndex object, depending on the resulting index
+            after removing the requested level(s).
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
 
         Examples
         --------
@@ -2360,6 +2373,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
 
+        See Also
+        --------
+        Index.dtype : Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -2615,6 +2632,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns an Index object after removing NA/NaN values.
+
+        See Also
+        --------
+        Index.fillna : Fill NA/NaN values with the specified value.
+        Index.isna : Detect missing values.
 
         Examples
         --------
@@ -6382,7 +6405,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         label : object
+            The label for which to calculate the slice bound.
         side : {'left', 'right'}
+            if 'left' return leftmost position of given label.
+            if 'right' return one-past-the-rightmost position of given label.
 
         Returns
         -------
@@ -6471,6 +6497,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         tuple[int, int]
+            Returns a tuple of two integers representing the slice locations for the
+            input labels within the index.
 
         See Also
         --------
