@@ -2872,6 +2872,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Another Index or an array-like object containing elements to form the union
+            with the original Index.
         sort : bool or None, default None
             Whether to sort the resulting Index.
 
@@ -2888,6 +2890,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with all unique elements from both the original
+            Index and the `other` Index.
+
+        See Also
+        --------
+        Index.unique : Return unique values in the index.
+        Index.intersection : Form the intersection of two Index objects.
+        Index.difference : Return a new Index with elements of index not in `other`.
 
         Examples
         --------
@@ -3302,7 +3312,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index or an array-like object with elements to compute the symmetric
+            difference with the original Index.
         result_name : str
+            A string representing the name of the resulting Index, if desired.
         sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
@@ -3316,6 +3329,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object containing elements that appear in either the
+            original Index or the `other` Index, but not both.
+
+        See Also
+        --------
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.union : Form the union of two Index objects.
+        Index.intersection : Form the intersection of two Index objects.
 
         Notes
         -----
