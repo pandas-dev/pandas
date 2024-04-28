@@ -178,5 +178,7 @@ def test_center_reindex_frame(frame, q):
 def test_keyword_quantile_deprecated():
     # GH #52550
     s = Series([1, 2, 3, 4])
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(
+        FutureWarning, match="the 'quantile' keyword is deprecated, use 'q' instead"
+    ):
         s.rolling(2).quantile(quantile=0.4)
