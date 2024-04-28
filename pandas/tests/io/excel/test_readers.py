@@ -6,11 +6,12 @@ from datetime import (
 )
 from functools import partial
 from io import BytesIO
+import os
 from pathlib import Path
+import platform
 import re
 from urllib.error import URLError
 import uuid
-
 from zipfile import BadZipFile
 
 import numpy as np
@@ -987,7 +988,6 @@ class TestReaders:
         with pytest.raises(error, match=msg):
             pd.read_excel(BytesIO(bad_stream))
 
-    """
     @pytest.mark.network
     @pytest.mark.single_cpu
     def test_read_from_http_url(self, httpserver, read_ext):
@@ -1060,7 +1060,6 @@ class TestReaders:
             del x
             # should not throw an exception because the passed file was closed
             f.read()
-    """
 
     def test_reader_seconds(self, request, engine, read_ext):
         xfail_datetimes_with_pyxlsb(engine, request)
