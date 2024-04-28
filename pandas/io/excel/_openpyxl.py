@@ -606,7 +606,7 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         return cell.value
 
     def get_sheet_data(
-        self, sheet: Workbook.worksheets, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
         if self.book.read_only:
             sheet.reset_dimensions()

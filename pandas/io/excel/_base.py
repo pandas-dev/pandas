@@ -127,7 +127,7 @@ sheet_name : str, int, list, or None, default 0
       as a dict of `DataFrame`
     * ``None``: All worksheets.
 
-table_name: str, list of str, or None, default 0
+table_name : str, list of str, or None, default 0
     Strings are used for table_names that correspond to Excel Table names.
     Lists of strings are used to request multiple tables.
     Specify ``None`` to get all tables.
@@ -431,7 +431,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | list[DataFrame]: ...
+) -> DataFrame | list[DataFrame] | dict[str, DataFrame]: ...
 
 
 @overload
@@ -472,7 +472,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> dict[IntStrT, DataFrame]: ...
+) -> DataFrame | dict[IntStrT, DataFrame] | dict[str, DataFrame]: ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -482,7 +482,7 @@ def read_excel(
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     # If sheet name and table name are specified -> Nested Dictionary of DataFrames
-    table_name: str | int | list[str] | None = 0,
+    table_name: str | list[str] | None = 0,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | str | Sequence[int] | None = None,
@@ -513,7 +513,7 @@ def read_excel(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
-) -> DataFrame | dict[IntStrT, DataFrame]:
+) -> DataFrame | dict[IntStrT, DataFrame] | dict[str, DataFrame]:
     check_dtype_backend(dtype_backend)
     should_close = False
     if engine_kwargs is None:
