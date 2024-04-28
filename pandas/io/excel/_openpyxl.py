@@ -621,7 +621,7 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
                 tables.append(table.name)
         return tables
 
-    def get_sheets_required(self, tables) -> list[Workbook.worksheets]:
+    def get_sheets_required(self, tables):
         sheets_reqd = []
         for sheet in self.book.worksheets:
             for table in sheet.tables.values():
@@ -630,14 +630,14 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
                     continue
         return sheets_reqd
 
-    def get_sheet_tables(self, sheet: Workbook.worksheets):
+    def get_sheet_tables(self, sheet):
         tables = {}
         for table in sheet.tables.values():
             tables[table.name] = table
         return tables
 
     def get_table_data(
-        self, sheet: Workbook.worksheets, tablename, file_rows_needed: int | None = None
+        self, sheet, tablename, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
         table = sheet[tablename.ref]
         return self.get_data(table, file_rows_needed)
