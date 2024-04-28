@@ -431,9 +431,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | list[DataFrame]:
-    ...
-
+) -> DataFrame | list[DataFrame]: ...
 
 
 @overload
