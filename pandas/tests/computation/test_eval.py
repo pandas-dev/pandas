@@ -48,7 +48,6 @@ from pandas.core.computation.expressions import (
 )
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
-    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,
@@ -266,7 +265,7 @@ class TestEval:
                 tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "arith1", sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
+        "arith1", sorted(set(ARITH_OPS_SYMS).difference({"**", "//", "%"}))
     )
     def test_binary_arith_ops(self, arith1, lhs, rhs, engine, parser):
         ex = f"lhs {arith1} rhs"
@@ -1005,15 +1004,18 @@ class TestAlignment:
         assert res.shape == expected.shape
         tm.assert_frame_equal(res, expected)
 
-    def test_performance_warning_for_poor_alignment(self, engine, parser):
+    def test_performance_warning_for_poor_alignment(
+        self, performance_warning, engine, parser
+    ):
         df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
-        if engine == "numexpr":
+        if engine == "numexpr" and performance_warning:
             seen = PerformanceWarning
         else:
             seen = False
 
-        with tm.assert_produces_warning(seen):
+        msg = "Alignment difference on axis 1 is larger than an order of magnitude"
+        with tm.assert_produces_warning(seen, match=msg):
             pd.eval("df + s", engine=engine, parser=parser)
 
         s = Series(np.random.default_rng(2).standard_normal(1000))
@@ -1030,15 +1032,15 @@ class TestAlignment:
 
         is_python_engine = engine == "python"
 
-        if not is_python_engine:
+        if not is_python_engine and performance_warning:
             wrn = PerformanceWarning
         else:
             wrn = False
 
-        with tm.assert_produces_warning(wrn) as w:
+        with tm.assert_produces_warning(wrn, match=msg) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
-            if not is_python_engine:
+            if not is_python_engine and performance_warning:
                 assert len(w) == 1
                 msg = str(w[0].message)
                 logged = np.log10(s.size - df.shape[1])
@@ -1608,22 +1610,20 @@ class TestMath:
         kwargs["level"] = kwargs.pop("level", 0) + 1
         return pd.eval(*args, **kwargs)
 
-    @pytest.mark.skipif(
-        not NUMEXPR_INSTALLED, reason="Unary ops only implemented for numexpr"
-    )
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("fn", _unary_math_ops)
-    def test_unary_functions(self, fn):
+    def test_unary_functions(self, fn, engine, parser):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         a = df.a
 
         expr = f"{fn}(a)"
-        got = self.eval(expr)
+        got = self.eval(expr, engine=engine, parser=parser)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect, check_names=False)
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
-    def test_binary_functions(self, fn):
+    def test_binary_functions(self, fn, engine, parser):
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
@@ -1634,7 +1634,7 @@ class TestMath:
         b = df.b
 
         expr = f"{fn}(a, b)"
-        got = self.eval(expr)
+        got = self.eval(expr, engine=engine, parser=parser)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a, b)
         tm.assert_almost_equal(got, expect, check_names=False)
@@ -1964,7 +1964,7 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace(using_copy_on_write):
+def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
@@ -1974,13 +1974,9 @@ def test_set_inplace(using_copy_on_write):
     df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
-    if not using_copy_on_write:
-        tm.assert_series_equal(ser, expected["A"])
-        tm.assert_series_equal(result_view["A"], expected["A"])
-    else:
-        expected = Series([1, 2, 3], name="A")
-        tm.assert_series_equal(ser, expected)
-        tm.assert_series_equal(result_view["A"], expected)
+    expected = Series([1, 2, 3], name="A")
+    tm.assert_series_equal(ser, expected)
+    tm.assert_series_equal(result_view["A"], expected)
 
 
 class TestValidate:

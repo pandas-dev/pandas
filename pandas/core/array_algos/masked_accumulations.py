@@ -22,7 +22,7 @@ def _cum_func(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-):
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     """
     Accumulations for 1D masked array.
 
@@ -74,17 +74,25 @@ def _cum_func(
     return values, mask
 
 
-def cumsum(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
+def cumsum(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     return _cum_func(np.cumsum, values, mask, skipna=skipna)
 
 
-def cumprod(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
+def cumprod(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     return _cum_func(np.cumprod, values, mask, skipna=skipna)
 
 
-def cummin(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
+def cummin(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     return _cum_func(np.minimum.accumulate, values, mask, skipna=skipna)
 
 
-def cummax(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
+def cummax(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     return _cum_func(np.maximum.accumulate, values, mask, skipna=skipna)

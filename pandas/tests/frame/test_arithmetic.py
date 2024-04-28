@@ -57,7 +57,7 @@ class DummyElement:
         self.value = value
         self.dtype = np.dtype(dtype)
 
-    def __array__(self):
+    def __array__(self, dtype=None, copy=None):
         return np.array(self.value, dtype=self.dtype)
 
     def __str__(self) -> str:
@@ -1097,7 +1097,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning  # "evaluating in Python space because ..."
+                    warn = UserWarning
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1105,17 +1105,16 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                    # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
             else:
@@ -1239,9 +1238,8 @@ class TestFrameArithmeticUnsorted:
 
         # since filling converts dtypes from object, changed expected to be
         # object
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            filled = df.fillna(np.nan)
+
+        filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
         expected[pd.isna(expected)] = np.nan
@@ -1252,14 +1250,10 @@ class TestFrameArithmeticUnsorted:
         expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = op(df, df.fillna(7))
+        result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = op(df.fillna(7), df)
+        result = op(df.fillna(7), df)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])

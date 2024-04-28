@@ -1,6 +1,7 @@
 """
 Tests for DateOffset additions over Daylight Savings Time
 """
+
 from datetime import timedelta
 
 import pytest
@@ -29,7 +30,6 @@ from pandas._libs.tslibs.offsets import (
     YearBegin,
     YearEnd,
 )
-from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
@@ -73,7 +73,7 @@ class TestDST:
         "microseconds",
     ]
 
-    def _test_all_offsets(self, n, **kwds):
+    def _test_all_offsets(self, n, performance_warning, **kwds):
         valid_offsets = (
             self.valid_date_offsets_plural
             if n > 1
@@ -81,9 +81,16 @@ class TestDST:
         )
 
         for name in valid_offsets:
-            self._test_offset(offset_name=name, offset_n=n, **kwds)
+            self._test_offset(
+                offset_name=name,
+                offset_n=n,
+                performance_warning=performance_warning,
+                **kwds,
+            )
 
-    def _test_offset(self, offset_name, offset_n, tstart, expected_utc_offset):
+    def _test_offset(
+        self, offset_name, offset_n, tstart, expected_utc_offset, performance_warning
+    ):
         offset = DateOffset(**{offset_name: offset_n})
 
         if (
@@ -105,7 +112,7 @@ class TestDST:
             dti = DatetimeIndex([tstart])
             warn_msg = "Non-vectorized DateOffset"
             with pytest.raises(pytz.AmbiguousTimeError, match=err_msg):
-                with tm.assert_produces_warning(PerformanceWarning, match=warn_msg):
+                with tm.assert_produces_warning(performance_warning, match=warn_msg):
                     dti + offset
             return
 
@@ -149,18 +156,19 @@ class TestDST:
             offset_string = f"-{(hrs_offset * -1):02}00"
         return Timestamp(string + offset_string).tz_convert(tz)
 
-    def test_springforward_plural(self):
+    def test_springforward_plural(self, performance_warning):
         # test moving from standard to daylight savings
         for tz, utc_offsets in self.timezone_utc_offsets.items():
             hrs_pre = utc_offsets["utc_offset_standard"]
             hrs_post = utc_offsets["utc_offset_daylight"]
             self._test_all_offsets(
                 n=3,
+                performance_warning=performance_warning,
                 tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
                 expected_utc_offset=hrs_post,
             )
 
-    def test_fallback_singular(self):
+    def test_fallback_singular(self, performance_warning):
         # in the case of singular offsets, we don't necessarily know which utc
         # offset the new Timestamp will wind up in (the tz for 1 month may be
         # different from 1 second) so we don't specify an expected_utc_offset
@@ -168,15 +176,17 @@ class TestDST:
             hrs_pre = utc_offsets["utc_offset_standard"]
             self._test_all_offsets(
                 n=1,
+                performance_warning=performance_warning,
                 tstart=self._make_timestamp(self.ts_pre_fallback, hrs_pre, tz),
                 expected_utc_offset=None,
             )
 
-    def test_springforward_singular(self):
+    def test_springforward_singular(self, performance_warning):
         for tz, utc_offsets in self.timezone_utc_offsets.items():
             hrs_pre = utc_offsets["utc_offset_standard"]
             self._test_all_offsets(
                 n=1,
+                performance_warning=performance_warning,
                 tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
                 expected_utc_offset=None,
             )

@@ -39,7 +39,7 @@ class TestResetIndex:
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )[:5]
-        ser = df.stack(future_stack=True)
+        ser = df.stack()
         ser.index.names = ["hash", "category"]
 
         ser.name = "value"

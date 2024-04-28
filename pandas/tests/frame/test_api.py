@@ -356,9 +356,7 @@ class TestDataFrameMisc:
         assert obj.iloc[key] == 1
 
         # Now we do copy.
-        result = obj.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
+        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 
@@ -376,8 +374,4 @@ class TestDataFrameMisc:
         # GH38740
         pytest.importorskip("jinja2")
         df = DataFrame()
-        msg = "DataFrame._data is deprecated"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            inspect.getmembers(df)
+        inspect.getmembers(df)

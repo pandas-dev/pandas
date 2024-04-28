@@ -35,6 +35,16 @@ def _three_digit_exp():
 
 
 class TestDataFrameToStringFormatters:
+    def test_keyword_deprecation(self):
+        # GH 57280
+        msg = (
+            "Starting with pandas version 3.0.0 all arguments of to_string "
+            "except for the argument 'buf' will be keyword-only."
+        )
+        s = Series(["a", "b"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.to_string(None, "NaN")
+
     def test_to_string_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(

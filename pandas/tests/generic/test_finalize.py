@@ -1,6 +1,7 @@
 """
 An exhaustive list of pandas methods exercising NDFrame.__finalize__.
 """
+
 import operator
 import re
 
@@ -89,7 +90,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("rename", columns={"A": "a"})),
     (pd.DataFrame, frame_data, operator.methodcaller("rename", index=lambda x: x)),
     (pd.DataFrame, frame_data, operator.methodcaller("fillna", "A")),
-    (pd.DataFrame, frame_data, operator.methodcaller("fillna", method="ffill")),
     (pd.DataFrame, frame_data, operator.methodcaller("set_index", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("reset_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("isna")),
@@ -375,9 +375,6 @@ def idfn(x):
         return str(x)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
-)
 @pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
@@ -492,9 +489,9 @@ def test_binops(request, args, annotate, all_binary_operators):
     ]
     if is_cmp and isinstance(left, pd.DataFrame) and isinstance(right, pd.Series):
         # in 2.0 silent alignment on comparisons was removed xref GH#28759
-        left, right = left.align(right, axis=1, copy=False)
+        left, right = left.align(right, axis=1)
     elif is_cmp and isinstance(left, pd.Series) and isinstance(right, pd.DataFrame):
-        right, left = right.align(left, axis=1, copy=False)
+        right, left = right.align(left, axis=1)
 
     result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}

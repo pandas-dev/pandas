@@ -1,6 +1,7 @@
 """
 Define extension dtypes.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -20,6 +21,8 @@ import warnings
 
 import numpy as np
 import pytz
+
+from pandas._config.config import get_option
 
 from pandas._libs import (
     lib,
@@ -695,8 +698,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
     Parameters
     ----------
     unit : str, default "ns"
-        The precision of the datetime data. Currently limited
-        to ``"ns"``.
+        The precision of the datetime data. Valid options are
+        ``"s"``, ``"ms"``, ``"us"``, ``"ns"``.
     tz : str, int, or datetime.tzinfo
         The timezone.
 
@@ -713,6 +716,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ------
     ZoneInfoNotFoundError
         When the requested timezone cannot be found.
+
+    See Also
+    --------
+    numpy.datetime64 : Numpy data type for datetime.
+    datetime.datetime : Python datetime object.
 
     Examples
     --------
@@ -790,6 +798,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
@@ -803,6 +815,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
 
         Examples
         --------
@@ -1702,17 +1718,15 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
-            if self._is_na_fill_value:
+            if self._is_na_fill_value or other._is_na_fill_value:
                 # this case is complicated by two things:
                 # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
                 # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
                 # i.e. we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = (
-                    other._is_na_fill_value
-                    and isinstance(self.fill_value, type(other.fill_value))
-                    or isinstance(other.fill_value, type(self.fill_value))
-                )
+                fill_value = isinstance(
+                    self.fill_value, type(other.fill_value)
+                ) or isinstance(other.fill_value, type(self.fill_value))
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
@@ -1761,24 +1775,18 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
         else:
             dummy = np.empty(0, dtype=self.subtype)
             dummy = ensure_wrapped_if_datetimelike(dummy)
 
             if not can_hold_element(dummy, val):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    # GH#53043
+                    "fill_value must be a valid value for the SparseDtype.subtype"
                 )
 
     @property
@@ -2028,7 +2036,9 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+        if get_option("performance_warnings") and (
+            not (len(set(fill_values)) == 1 or isna(fill_values).all())
+        ):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
                 f"values: '{fill_values}'. Picking the first and "
@@ -2071,6 +2081,10 @@ class ArrowDtype(StorageExtensionDtype):
     Returns
     -------
     ArrowDtype
+
+    See Also
+    --------
+    DataFrame.convert_dtypes : Convert columns to the best possible dtypes.
 
     Examples
     --------

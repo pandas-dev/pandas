@@ -80,7 +80,6 @@ def test_tab_completion(multiindex_dataframe_random_data):
         "corr",
         "corrwith",
         "cov",
-        "dtypes",
         "ndim",
         "diff",
         "idxmax",
@@ -148,7 +147,7 @@ If you removed a method, you should update them
 def test_frame_consistency(groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        msg = "first and last are entirely different between frame and groupby"
+        msg = "first and last don't exist for DataFrame anymore"
         pytest.skip(reason=msg)
 
     if groupby_func in ("cumcount", "ngroup"):
@@ -181,13 +180,12 @@ def test_frame_consistency(groupby_func):
         exclude_result = {"engine", "engine_kwargs"}
     elif groupby_func in ("median", "prod", "sem"):
         exclude_expected = {"axis", "kwargs", "skipna"}
-    elif groupby_func in ("backfill", "bfill", "ffill", "pad"):
-        exclude_expected = {"downcast", "inplace", "axis", "limit_area"}
+    elif groupby_func in ("bfill", "ffill"):
+        exclude_expected = {"inplace", "axis", "limit_area"}
     elif groupby_func in ("cummax", "cummin"):
-        exclude_expected = {"skipna", "args"}
-        exclude_result = {"numeric_only"}
+        exclude_expected = {"axis", "skipna", "args"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"skipna"}
+        exclude_expected = {"axis", "skipna", "numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
     elif groupby_func in ("rank",):
@@ -209,7 +207,8 @@ def test_frame_consistency(groupby_func):
 def test_series_consistency(request, groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        pytest.skip("first and last are entirely different between Series and groupby")
+        msg = "first and last don't exist for Series anymore"
+        pytest.skip(msg)
 
     if groupby_func in ("cumcount", "corrwith", "ngroup"):
         assert not hasattr(Series, groupby_func)
@@ -237,8 +236,8 @@ def test_series_consistency(request, groupby_func):
         exclude_result = {"engine", "engine_kwargs"}
     elif groupby_func in ("median", "prod", "sem"):
         exclude_expected = {"axis", "kwargs", "skipna"}
-    elif groupby_func in ("backfill", "bfill", "ffill", "pad"):
-        exclude_expected = {"downcast", "inplace", "axis", "limit_area"}
+    elif groupby_func in ("bfill", "ffill"):
+        exclude_expected = {"inplace", "axis", "limit_area"}
     elif groupby_func in ("cummax", "cummin"):
         exclude_expected = {"skipna", "args"}
         exclude_result = {"numeric_only"}

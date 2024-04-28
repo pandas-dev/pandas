@@ -174,7 +174,7 @@ class ParserBase:
                     and all(map(is_integer, self.index_col))
                 ):
                     raise ValueError(
-                        "index_col must only contain row numbers "
+                        "index_col must only contain integers of column positions "
                         "when specifying a multi-index header"
                     )
                 else:
@@ -487,6 +487,8 @@ class ParserBase:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
+                else:
+                    col_na_values, col_na_fvalues = set(), set()
 
             clean_dtypes = self._clean_mapping(self.dtype)
 
@@ -519,7 +521,6 @@ class ParserBase:
         dct: Mapping,
         na_values,
         na_fvalues,
-        verbose: bool = False,
         converters=None,
         dtypes=None,
     ) -> dict[Any, np.ndarray]:
@@ -596,8 +597,6 @@ class ParserBase:
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
-            if verbose and na_count:
-                print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
     @final
@@ -859,16 +858,14 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
-        ...
+    ) -> tuple[Sequence[Hashable] | Index, DataFrame]: ...
 
     @overload
     def _do_date_conversions(
         self,
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
-        ...
+    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]: ...
 
     @final
     def _do_date_conversions(
@@ -927,14 +924,12 @@ class ParserBase:
         self,
         usecols: Callable[[Hashable], object],
         names: Iterable[Hashable],
-    ) -> set[int]:
-        ...
+    ) -> set[int]: ...
 
     @overload
     def _evaluate_usecols(
         self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT:
-        ...
+    ) -> SequenceT: ...
 
     @final
     def _evaluate_usecols(
@@ -1158,24 +1153,18 @@ def _make_date_converter(
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    ".*parsing datetimes with mixed time zones will raise an error",
-                    category=FutureWarning,
+            str_objs = ensure_object(strs)
+            try:
+                result = tools.to_datetime(
+                    str_objs,
+                    format=date_fmt,
+                    utc=False,
+                    dayfirst=dayfirst,
+                    cache=cache_dates,
                 )
-                str_objs = ensure_object(strs)
-                try:
-                    result = tools.to_datetime(
-                        str_objs,
-                        format=date_fmt,
-                        utc=False,
-                        dayfirst=dayfirst,
-                        cache=cache_dates,
-                    )
-                except (ValueError, TypeError):
-                    # test_usecols_with_parse_dates4
-                    return str_objs
+            except (ValueError, TypeError):
+                # test_usecols_with_parse_dates4
+                return str_objs
 
             if isinstance(result, DatetimeIndex):
                 arr = result.to_numpy()
@@ -1184,45 +1173,31 @@ def _make_date_converter(
             return result._values
         else:
             try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        ".*parsing datetimes with mixed time zones "
-                        "will raise an error",
-                        category=FutureWarning,
+                pre_parsed = date_parser(
+                    *(unpack_if_single_element(arg) for arg in date_cols)
+                )
+                try:
+                    result = tools.to_datetime(
+                        pre_parsed,
+                        cache=cache_dates,
                     )
-                    pre_parsed = date_parser(
-                        *(unpack_if_single_element(arg) for arg in date_cols)
-                    )
-                    try:
-                        result = tools.to_datetime(
-                            pre_parsed,
-                            cache=cache_dates,
-                        )
-                    except (ValueError, TypeError):
-                        # test_read_csv_with_custom_date_parser
-                        result = pre_parsed
+                except (ValueError, TypeError):
+                    # test_read_csv_with_custom_date_parser
+                    result = pre_parsed
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
             except Exception:
                 # e.g. test_datetime_fractional_seconds
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        ".*parsing datetimes with mixed time zones "
-                        "will raise an error",
-                        category=FutureWarning,
-                    )
-                    pre_parsed = parsing.try_parse_dates(
-                        parsing.concat_date_cols(date_cols),
-                        parser=date_parser,
-                    )
-                    try:
-                        return tools.to_datetime(pre_parsed)
-                    except (ValueError, TypeError):
-                        # TODO: not reached in tests 2023-10-27; needed?
-                        return pre_parsed
+                pre_parsed = parsing.try_parse_dates(
+                    parsing.concat_date_cols(date_cols),
+                    parser=date_parser,
+                )
+                try:
+                    return tools.to_datetime(pre_parsed)
+                except (ValueError, TypeError):
+                    # TODO: not reached in tests 2023-10-27; needed?
+                    return pre_parsed
 
     return converter
 
@@ -1260,7 +1235,6 @@ parser_defaults = {
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
-    "verbose": False,
     "encoding": None,
     "compression": None,
     "skip_blank_lines": True,
@@ -1354,7 +1328,7 @@ def _process_date_conversion(
             date_cols.update(old_names)
 
     if isinstance(data_dict, DataFrame):
-        data_dict = concat([DataFrame(new_data), data_dict], axis=1, copy=False)
+        data_dict = concat([DataFrame(new_data), data_dict], axis=1)
     else:
         data_dict.update(new_data)
     new_cols.extend(columns)

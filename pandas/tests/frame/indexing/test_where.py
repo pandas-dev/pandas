@@ -96,7 +96,6 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -171,13 +170,12 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects(copy=False)
+            econd = cond.reindex_like(df).fillna(True).infer_objects()
             expected = dfi.mask(~econd)
 
             return_value = dfi.where(cond, np.nan, inplace=True)
@@ -357,10 +355,9 @@ class TestDataFrameIndexingWhere:
 
         expected = a.copy()
         expected[~do_not_replace] = b
+        expected[[0, 1]] = expected[[0, 1]].astype("float64")
 
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = a.where(do_not_replace, b)
+        result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
         a = DataFrame({0: [4, 6], 1: [1, 0]})
@@ -369,9 +366,9 @@ class TestDataFrameIndexingWhere:
 
         expected = a.copy()
         expected[~do_not_replace] = b
+        expected[1] = expected[1].astype("float64")
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = a.where(do_not_replace, b)
+        result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
     def test_where_datetime(self):
@@ -738,17 +735,10 @@ class TestDataFrameIndexingWhere:
     def test_where_interval_fullop_downcast(self, frame_or_series):
         # GH#45768
         obj = frame_or_series([pd.Interval(0, 0)] * 2)
-        other = frame_or_series([1.0, 2.0])
+        other = frame_or_series([1.0, 2.0], dtype=object)
+        res = obj.where(~obj.notna(), other)
+        tm.assert_equal(res, other)
 
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = obj.where(~obj.notna(), other)
-
-        # since all entries are being changed, we will downcast result
-        #  from object to ints (not floats)
-        tm.assert_equal(res, other.astype(np.int64))
-
-        # unlike where, Block.putmask does not downcast
         with tm.assert_produces_warning(
             FutureWarning, match="Setting an item of incompatible dtype"
         ):
@@ -783,14 +773,7 @@ class TestDataFrameIndexingWhere:
 
         res4 = df.mask(mask2, "foo")
         tm.assert_frame_equal(res4, df)
-
-        # opposite case where we are replacing *all* values -> we downcast
-        #  from object dtype # GH#45768
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res5 = df.where(mask2, 4)
         expected = DataFrame(4, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(res5, expected)
 
         # unlike where, Block.putmask does not downcast
         with tm.assert_produces_warning(
@@ -991,16 +974,9 @@ def test_where_downcast_to_td64():
     mask = np.array([False, False, False])
 
     td = pd.Timedelta(days=1)
-
-    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = ser.where(mask, td)
     expected = Series([td, td, td], dtype="m8[ns]")
-    tm.assert_series_equal(res, expected)
 
-    with pd.option_context("future.no_silent_downcasting", True):
-        with tm.assert_produces_warning(None, match=msg):
-            res2 = ser.where(mask, td)
+    res2 = ser.where(mask, td)
     expected2 = expected.astype(object)
     tm.assert_series_equal(res2, expected2)
 
@@ -1035,13 +1011,6 @@ def test_where_dt64_2d():
 
     mask = np.asarray(df.isna()).copy()
     mask[:, 1] = True
-
-    # setting all of one column, none of the other
-    expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
-        _check_where_equivalences(df, mask, other, expected)
 
     # setting part of one column, none of the other
     mask[1, 0] = True

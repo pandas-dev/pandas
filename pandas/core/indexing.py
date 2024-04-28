@@ -13,8 +13,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
@@ -52,6 +50,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    construct_1d_array_from_inferred_fill_value,
     infer_fill_value,
     is_valid_na_for_dtype,
     isna,
@@ -63,7 +62,6 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
-    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -229,7 +227,7 @@ class IndexingMixin:
            a  b  c  d
         0  1  2  3  4
         >>> type(df.iloc[[0]])
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
 
         >>> df.iloc[[0, 1]]
              a    b    c    d
@@ -759,7 +757,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         if self.name == "loc":
             # always holds here bc iloc overrides _get_setitem_indexer
-            self._ensure_listlike_indexer(key)
+            self._ensure_listlike_indexer(key, axis=self.axis)
 
         if isinstance(key, tuple):
             for x in key:
@@ -856,12 +854,13 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        orig_key = key
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
-            key = key[column_axis]
-            axis = column_axis
+            # unless axis is already specified, then go with that
+            if axis is None:
+                axis = column_axis
+            key = key[axis]
 
         if (
             axis == column_axis
@@ -874,7 +873,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
             diff = Index(key).difference(self.obj.columns, sort=False)
 
-            if len(diff) and com.is_null_slice(orig_key[0]):
+            if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
                 #  is a new column, add the new columns with dtype=np.void
                 #  so that later when we go through setitem_single_column
@@ -894,7 +893,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY:
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -902,7 +901,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
@@ -1148,7 +1147,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH#41369 Loop in reverse order ensures indexing along columns before rows
         # which selects only necessary blocks which avoids dtype conversion if possible
         axis = len(tup) - 1
-        for key in tup[::-1]:
+        for key in reversed(tup):
             if com.is_null_slice(key):
                 axis -= 1
                 continue
@@ -1180,7 +1179,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         if type(key) is tuple:
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 return self.obj._get_value(*key, takeable=self._takeable)
@@ -1194,13 +1193,13 @@ class _LocationIndexer(NDFrameIndexerBase):
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _getitem_tuple(self, tup: tuple):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         raise AbstractMethodError(self)
@@ -1880,12 +1879,9 @@ class _iLocIndexer(_LocationIndexer):
 
                             self.obj[key] = empty_value
                         elif not is_list_like(value):
-                            # Find our empty_value dtype by constructing an array
-                            #  from our value and doing a .take on it
-                            arr = sanitize_array(value, Index(range(1)), copy=False)
-                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                            empty_value = algos.take_nd(arr, taker)
-                            self.obj[key] = empty_value
+                            self.obj[key] = construct_1d_array_from_inferred_fill_value(
+                                value, len(self.obj)
+                            )
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
@@ -1902,15 +1898,7 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    with warnings.catch_warnings():
-                        # TODO: re-issue this with setitem-specific message?
-                        warnings.filterwarnings(
-                            "ignore",
-                            "The behavior of Index.insert with object-dtype "
-                            "is deprecated",
-                            category=FutureWarning,
-                        )
-                        labels = index.insert(len(index), key)
+                    labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -2107,7 +2095,7 @@ class _iLocIndexer(_LocationIndexer):
                         tuple(sub_indexer),
                         value[item],
                         multiindex_indexer,
-                        using_cow=using_copy_on_write(),
+                        using_cow=True,
                     )
                 else:
                     val = np.nan
@@ -2167,6 +2155,17 @@ class _iLocIndexer(_LocationIndexer):
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
+            dtype = self.obj.dtypes.iloc[loc]
+            if dtype == np.void:
+                # This means we're expanding, with multiple columns, e.g.
+                #     df = pd.DataFrame({'A': [1,2,3], 'B': [4,5,6]})
+                #     df.loc[df.index <= 2, ['F', 'G']] = (1, 'abc')
+                # Columns F and G will initially be set to np.void.
+                # Here, we replace those temporary `np.void` columns with
+                # columns of the appropriate dtype, based on `value`.
+                self.obj.iloc[:, loc] = construct_1d_array_from_inferred_fill_value(
+                    value, len(self.obj)
+                )
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
@@ -2217,14 +2216,7 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            with warnings.catch_warnings():
-                # TODO: re-issue this with setitem-specific message?
-                warnings.filterwarnings(
-                    "ignore",
-                    "The behavior of Index.insert with object-dtype is deprecated",
-                    category=FutureWarning,
-                )
-                new_index = index.insert(len(index), indexer)
+            new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so
@@ -2280,7 +2272,7 @@ class _iLocIndexer(_LocationIndexer):
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
                 # append a Series
-                value = value.reindex(index=self.obj.columns, copy=True)
+                value = value.reindex(index=self.obj.columns)
                 value.name = indexer
             elif isinstance(value, dict):
                 value = Series(
@@ -2310,7 +2302,7 @@ class _iLocIndexer(_LocationIndexer):
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
-                    df = df.infer_objects(copy=False)
+                    df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
@@ -2383,7 +2375,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
+                # TODO(CoW): copy shouldn't be needed here
+                ser_values = ser.reindex(obj.axes[0][indexer[0]]).copy()._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:

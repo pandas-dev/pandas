@@ -36,26 +36,20 @@ class TestMultiLevel:
         tm.assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(
-        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
+        self, multiindex_year_month_day_dataframe_random_data
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         new_index = ymd.index[::10]
         chunk = ymd.reindex(new_index)
-        if using_copy_on_write:
-            assert chunk.index.is_(new_index)
-        else:
-            assert chunk.index is new_index
+        assert chunk.index.is_(new_index)
 
         chunk = ymd.loc[new_index]
         assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        if using_copy_on_write:
-            assert chunk.columns.is_(new_index)
-        else:
-            assert chunk.columns is new_index
+        assert chunk.columns.is_(new_index)
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns.equals(new_index)
@@ -141,7 +135,7 @@ class TestMultiLevel:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
         )
-        df["Totals", ""] = df.sum(1)
+        df["Totals", ""] = df.sum(axis=1)
         df = df._consolidate()
 
     def test_level_with_tuples(self):

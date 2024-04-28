@@ -5,10 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
 
 import pandas as pd
 from pandas import (
@@ -43,12 +40,12 @@ class TestSliceLocs:
             columns=Index(list("ABCD"), dtype=object),
             index=date_range("2000-01-01", periods=50, freq="B"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
 
         slob = slice(*idx.slice_locs(df.index[5], df.index[15]))
         sliced = stacked[slob]
-        expected = df[5:16].stack(future_stack=True)
+        expected = df[5:16].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
         slob = slice(
@@ -58,7 +55,7 @@ class TestSliceLocs:
             )
         )
         sliced = stacked[slob]
-        expected = df[6:15].stack(future_stack=True)
+        expected = df[6:15].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_with_type_mismatch(self):
@@ -67,7 +64,7 @@ class TestSliceLocs:
             columns=Index(list("ABCD"), dtype=object),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs((1, 3))
@@ -78,7 +75,7 @@ class TestSliceLocs:
             index=Index([f"i-{i}" for i in range(5)], name="a"),
             columns=Index([f"i-{i}" for i in range(5)], name="a"),
         )
-        stacked = df.stack(future_stack=True)
+        stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(timedelta(seconds=30))
@@ -749,7 +746,7 @@ class TestGetLoc:
 
         assert index.get_loc("D") == slice(0, 3)
 
-    def test_get_loc_past_lexsort_depth(self):
+    def test_get_loc_past_lexsort_depth(self, performance_warning):
         # GH#30053
         idx = MultiIndex(
             levels=[["a"], [0, 7], [1]],
@@ -759,7 +756,7 @@ class TestGetLoc:
         )
         key = ("a", 7)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             # PerformanceWarning: indexing past lexsort depth may impact performance
             result = idx.get_loc(key)
 
