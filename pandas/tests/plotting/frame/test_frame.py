@@ -2042,7 +2042,7 @@ class TestDataFramePlots:
         plt.close("all")
 
         gs, axes = _generate_4_axes_via_gridspec()
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=axes, sharex=True)
         _check(axes)
 
@@ -2106,7 +2106,7 @@ class TestDataFramePlots:
         plt.close("all")
 
         gs, axes = _generate_4_axes_via_gridspec()
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=axes, sharey=True)
 
         gs.tight_layout(plt.gcf())
@@ -2227,7 +2227,7 @@ class TestDataFramePlots:
 
         # vertical / subplots / sharex=True / sharey=True
         ax1, ax2 = _get_vertical_grid()
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=[ax1, ax2], sharex=True, sharey=True)
         assert len(axes[0].lines) == 1
         assert len(axes[1].lines) == 1
@@ -2243,7 +2243,7 @@ class TestDataFramePlots:
 
         # horizontal / subplots / sharex=True / sharey=True
         ax1, ax2 = _get_horizontal_grid()
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=[ax1, ax2], sharex=True, sharey=True)
         assert len(axes[0].lines) == 1
         assert len(axes[1].lines) == 1
@@ -2293,7 +2293,7 @@ class TestDataFramePlots:
 
         # subplots / sharex=True / sharey=True
         axes = _get_boxed_grid()
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=axes, sharex=True, sharey=True)
         for ax in axes:
             assert len(ax.lines) == 1

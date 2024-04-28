@@ -783,6 +783,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {klass}
             {klass} with requested index / column level(s) removed.
 
+        See Also
+        --------
+        DataFrame.replace : Replace values given in `to_replace` with `value`.
+        DataFrame.pivot : Return reshaped DataFrame organized by given
+            index / column values.
+
         Examples
         --------
         >>> df = (
@@ -1861,6 +1867,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         iterator
             Info axis as iterator.
+
+        See Also
+        --------
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples.
 
         Examples
         --------
@@ -6568,6 +6579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         same type as input object
+            Returns an object of the same type as the input object.
 
         See Also
         --------

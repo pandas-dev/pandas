@@ -717,6 +717,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
+    See Also
+    --------
+    numpy.datetime64 : Numpy data type for datetime.
+    datetime.datetime : Python datetime object.
+
     Examples
     --------
     >>> from zoneinfo import ZoneInfo
@@ -793,6 +798,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
@@ -806,6 +815,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
 
         Examples
         --------
