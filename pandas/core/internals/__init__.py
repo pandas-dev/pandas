@@ -6,17 +6,8 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",
-    "DatetimeTZBlock",
-    "ExtensionBlock",
     "make_block",
     "BlockManager",
     "SingleBlockManager",
     "concatenate_managers",
 ]
-
-
-def __getattr__(name: str):
-    # GH#55139
-
-    raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")
