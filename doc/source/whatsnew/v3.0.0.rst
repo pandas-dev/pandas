@@ -11,9 +11,26 @@ including other versions of pandas.
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.enhancements:
 
+
+
 Enhancements
 ~~~~~~~~~~~~
+.. _whatsnew_300.enhancements.read_excel_table_parameter:
 
+``Addition of table name parameter in pandas read_excel``
+^^^^^^^^^^^^^^^^
+
+Previously, when using pandas :func:`read_excel`` method the data read from Excel could not be selected in more detail than on the sheet level.
+To distinguish data that is part of a particular table in the Excel file could be tedious without the use of third party API's.
+This enhancement is a solution to `Issue #38937 <https://github.com/pandas-dev/pandas/issues/38937>`__ introduces the ability to specify a table_name parameter that corresponds to the name of a table in the specified Excel file.
+The table_name argument accepts the names as a string, a list of strings, or the value of None which corresponds to reading in every table in that file.
+
+The return format has some changes, but only if a table_name parameter is specified. If it is not specified, the return remains a DataFrame or dictionary of DataFrames
+holding the data from each sheet.
+ - If a table_name is specified and a sheet_name is not, the return will be a DataFrame or dictionary of DataFrames holding the table data desired
+ - If a table_name is specified and a sheet_name is also specified, the return with be a nested dictionary containing 2 dictionaries:
+    - The first dictionary is a dictionary of DataFrames corresponding to the data on each sheet
+    - The second dictionary is a dictionary of DataFrames corresponding to the data in each table
 .. _whatsnew_300.enhancements.enhancement1:
 
 enhancement1
