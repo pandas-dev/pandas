@@ -329,7 +329,7 @@ def test_against_frame_and_seriesgroupby(
         else:
             name = "proportion" if normalize else "count"
             expected = expected.reset_index().rename({0: name}, axis=1)
-            if "level_0" in result:
+            if groupby in ["array", "function"] and (not as_index and frame):
                 expected.insert(loc=0, column="level_0", value=result["level_0"])
             else:
                 expected.insert(loc=0, column="country", value=result["country"])
