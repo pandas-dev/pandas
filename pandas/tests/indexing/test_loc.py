@@ -1,4 +1,5 @@
-""" test label based indexing with loc """
+"""test label based indexing with loc"""
+
 from collections import namedtuple
 from datetime import (
     date,
@@ -508,7 +509,7 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        msg = f"\"None of [Index([3], dtype='{np.dtype(int)}')] are in the [index]"
+        msg = "None of [RangeIndex(start=3, stop=4, step=1)] are in the [index]"
         with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
@@ -666,7 +667,7 @@ class TestLocBaseIndependent:
         df.loc[:, ("Respondent", "EndDate")] = to_datetime(
             df.loc[:, ("Respondent", "EndDate")]
         )
-        df = df.infer_objects(copy=False)
+        df = df.infer_objects()
 
         # Adding a new key
         df.loc[:, ("Respondent", "Duration")] = (
@@ -1204,10 +1205,7 @@ class TestLocBaseIndependent:
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
-        msg = (
-            rf"None of \[Index\(\[0, 1\], dtype='{np.dtype(int)}'\)\] "
-            r"are in the \[index\]"
-        )
+        msg = r"None of .*Index.* are in the \[index\]"
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
@@ -2027,7 +2025,7 @@ class TestLocSetitemWithExpansion:
         ids=["self", "to_datetime64", "to_pydatetime", "np.datetime64"],
     )
     def test_loc_setitem_datetime_keys_cast(self, conv):
-        # GH#9516
+        # GH#9516, GH#51363 changed in 3.0 to not cast on Index.insert
         dt1 = Timestamp("20130101 09:00:00")
         dt2 = Timestamp("20130101 10:00:00")
         df = DataFrame()
@@ -2036,7 +2034,7 @@ class TestLocSetitemWithExpansion:
 
         expected = DataFrame(
             {"one": [100.0, 200.0]},
-            index=[dt1, dt2],
+            index=Index([conv(dt1), conv(dt2)], dtype=object),
             columns=Index(["one"], dtype=object),
         )
         tm.assert_frame_equal(df, expected)

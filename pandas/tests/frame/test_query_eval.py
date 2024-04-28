@@ -188,6 +188,16 @@ class TestDataFrameEval:
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
+    def test_using_numpy(self, engine, parser):
+        # GH 58041
+        skip_if_no_pandas_parser(parser)
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("@np.floor(a)", engine=engine, parser=parser)
+        expected = np.floor(df["a"])
+        if engine == "numexpr":
+            expected.name = None  # See GH 58069
+        tm.assert_series_equal(expected, res)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
@@ -1414,4 +1424,12 @@ class TestDataFrameQueryBacktickQuoting:
                 "B": Series([1, 2], dtype=dtype, index=[0, 2]),
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_all_nat_in_object(self):
+        # GH#57068
+        now = pd.Timestamp.now("UTC")  # noqa: F841
+        df = DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
+        result = df.query("a > @now")
+        expected = DataFrame({"a": []}, dtype=object)
         tm.assert_frame_equal(result, expected)

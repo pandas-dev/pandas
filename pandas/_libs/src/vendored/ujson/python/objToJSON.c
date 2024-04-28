@@ -74,7 +74,6 @@ typedef struct __NpyArrContext {
   npy_intp ndim;
   npy_intp index[NPY_MAXDIMS];
   int type_num;
-  PyArray_GetItemFunc *getitem;
 
   char **rowLabels;
   char **columnLabels;
@@ -405,7 +404,6 @@ static void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
   }
 
   npyarr->array = (PyObject *)obj;
-  npyarr->getitem = (PyArray_GetItemFunc *)PyArray_DESCR(obj)->f->getitem;
   npyarr->dataptr = PyArray_DATA(obj);
   npyarr->ndim = PyArray_NDIM(obj) - 1;
   npyarr->curdim = 0;
@@ -447,8 +445,15 @@ static void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   npyarr->curdim--;
   npyarr->dataptr -= npyarr->stride * npyarr->index[npyarr->stridedim];
   npyarr->stridedim -= npyarr->inc;
-  npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
+
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArrayPassThru_iterEnd received a non-array object");
+    return;
+  }
+  const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
+  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
   npyarr->dataptr += npyarr->stride;
 
   NpyArr_freeItemValue(obj, tc);
@@ -467,18 +472,25 @@ static int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
 
   NpyArr_freeItemValue(obj, tc);
 
-  if (PyArray_ISDATETIME(npyarr->array)) {
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArr_iterNextItem received a non-array object");
+    return 0;
+  }
+  PyArrayObject *arrayobj = (PyArrayObject *)npyarr->array;
+
+  if (PyArray_ISDATETIME(arrayobj)) {
     GET_TC(tc)->itemValue = obj;
     Py_INCREF(obj);
-    ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
+    ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(arrayobj);
     // Also write the resolution (unit) of the ndarray
-    PyArray_Descr *dtype = PyArray_DESCR(npyarr->array);
+    PyArray_Descr *dtype = PyArray_DESCR(arrayobj);
     ((PyObjectEncoder *)tc->encoder)->valueUnit =
         get_datetime_metadata_from_dtype(dtype).base;
     ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
     ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
   } else {
-    GET_TC(tc)->itemValue = npyarr->getitem(npyarr->dataptr, npyarr->array);
+    GET_TC(tc)->itemValue = PyArray_GETITEM(arrayobj, npyarr->dataptr);
   }
 
   npyarr->dataptr += npyarr->stride;
@@ -505,8 +517,15 @@ static int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 
   npyarr->curdim++;
   npyarr->stridedim += npyarr->inc;
-  npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
+  if (!PyArray_Check(npyarr->array)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "NpyArr_iterNext received a non-array object");
+    return 0;
+  }
+  const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
+
+  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
   npyarr->index[npyarr->stridedim] = 0;
 
   ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
@@ -1610,7 +1629,14 @@ ISITERABLE:
       if (!values) {
         goto INVALID;
       }
-      pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
+
+      if (!PyArray_Check(pc->newObj)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "Object_beginTypeContext received a non-array object");
+        goto INVALID;
+      }
+      const PyArrayObject *arrayobj = (const PyArrayObject *)pc->newObj;
+      pc->columnLabelsLen = PyArray_DIM(arrayobj, 0);
       pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
                                              pc->columnLabelsLen);
       if (!pc->columnLabels) {

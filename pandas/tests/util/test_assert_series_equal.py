@@ -473,3 +473,46 @@ def test_assert_series_equal_int_tol():
     tm.assert_extension_array_equal(
         left.astype("Int64").values, right.astype("Int64").values, rtol=1.5
     )
+
+
+@pytest.mark.parametrize(
+    "left_idx, right_idx",
+    [
+        (
+            pd.Index([0, 0.2, 0.4, 0.6, 0.8, 1]),
+            pd.Index(np.linspace(0, 1, 6)),
+        ),
+        (
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], [0, 0.2, 0.4, 0.6, 0.8, 1]]),
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], np.linspace(0, 1, 6)]),
+        ),
+        (
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+        ),
+        pytest.param(
+            pd.Index([1, 2, 3, 4, 5, 10000000000001]),
+            pd.Index([1, 2, 3, 4, 5, 10000000000002]),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+        pytest.param(
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+    ],
+)
+def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
+    # GH#57067
+    ser1 = Series(np.zeros(6, dtype=int), left_idx)
+    ser2 = Series(np.zeros(6, dtype=int), right_idx)
+    tm.assert_series_equal(ser1, ser2)
+    tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())

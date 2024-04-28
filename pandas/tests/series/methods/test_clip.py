@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 import pandas as pd
 from pandas import (
     Series,
@@ -69,15 +71,11 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        # TODO: avoid this warning here?  seems like we should never be upcasting
-        #  in the first place?
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.clip(lower=[0, 4, np.nan])
-        tm.assert_series_equal(res, Series([1, 4, 3]))
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.clip(upper=[1, np.nan, 1])
-        tm.assert_series_equal(res, Series([1, 2, 1]))
+
+        res = s.clip(lower=[0, 4, np.nan])
+        tm.assert_series_equal(res, Series([1, 4, 3.0]))
+        res = s.clip(upper=[1, np.nan, 1])
+        tm.assert_series_equal(res, Series([1, 2, 1.0]))
 
         # GH#40420
         s = Series([1, 2, 3])
@@ -135,12 +133,30 @@ class TestSeriesClip:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [object, "M8[us]"])
-    def test_clip_with_timestamps_and_oob_datetimes(self, dtype):
+    def test_clip_with_timestamps_and_oob_datetimes_object(self):
         # GH-42794
-        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=object)
 
         result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
-        expected = Series([Timestamp.min, Timestamp.max], dtype=dtype)
+        expected = Series([Timestamp.min, Timestamp.max], dtype=object)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_with_timestamps_and_oob_datetimes_non_nano(self):
+        # GH#56410
+        dtype = "M8[us]"
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
+
+        msg = (
+            r"Incompatible \(high-resolution\) value for dtype='datetime64\[us\]'. "
+            "Explicitly cast before operating"
+        )
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ser.clip(lower=Timestamp.min, upper=Timestamp.max)
+
+        lower = Timestamp.min.as_unit("us")
+        upper = Timestamp.max.as_unit("us")
+        result = ser.clip(lower=lower, upper=upper)
+        expected = Series([lower, upper], dtype=dtype)
 
         tm.assert_series_equal(result, expected)

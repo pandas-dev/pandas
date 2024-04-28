@@ -296,32 +296,6 @@ def test_transform_frame(on):
     tm.assert_frame_equal(result, expected)
 
 
-def test_fillna():
-    # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2s")
-    ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
-    r = ts.resample("s")
-
-    expected = r.ffill()
-    msg = "DatetimeIndexResampler.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="ffill")
-    tm.assert_series_equal(result, expected)
-
-    expected = r.bfill()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = r.fillna(method="bfill")
-    tm.assert_series_equal(result, expected)
-
-    msg2 = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
-        r"\(bfill\) or nearest\. Got 0"
-    )
-    with pytest.raises(ValueError, match=msg2):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            r.fillna(0)
-
-
 @pytest.mark.parametrize(
     "func",
     [
@@ -466,34 +440,30 @@ def cases(request):
 
 def test_agg_mixed_column_aggregation(cases, a_mean, a_std, b_mean, b_std, request):
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
-    msg = "using SeriesGroupBy.[mean|std]"
+    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "<lambda_0>"]])
     # "date" is an index and a column, so get included in the agg
     if "df_mult" in request.node.callspec.id:
         date_mean = cases["date"].mean()
         date_std = cases["date"].std()
         expected = pd.concat([date_mean, date_std, expected], axis=1)
         expected.columns = pd.MultiIndex.from_product(
-            [["date", "A", "B"], ["mean", "std"]]
+            [["date", "A", "B"], ["mean", "<lambda_0>"]]
         )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.aggregate([np.mean, np.std])
+    result = cases.aggregate([np.mean, lambda x: np.std(x, ddof=1)])
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "agg",
     [
-        {"func": {"A": np.mean, "B": np.std}},
-        {"A": ("A", np.mean), "B": ("B", np.std)},
-        {"A": NamedAgg("A", np.mean), "B": NamedAgg("B", np.std)},
+        {"func": {"A": np.mean, "B": lambda x: np.std(x, ddof=1)}},
+        {"A": ("A", np.mean), "B": ("B", lambda x: np.std(x, ddof=1))},
+        {"A": NamedAgg("A", np.mean), "B": NamedAgg("B", lambda x: np.std(x, ddof=1))},
     ],
 )
 def test_agg_both_mean_std_named_result(cases, a_mean, b_std, agg):
-    msg = "using SeriesGroupBy.[mean|std]"
     expected = pd.concat([a_mean, b_std], axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.aggregate(**agg)
+    result = cases.aggregate(**agg)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -549,11 +519,9 @@ def test_agg_dict_of_lists(cases, a_mean, a_std, b_mean, b_std):
 )
 def test_agg_with_lambda(cases, agg):
     # passed lambda
-    msg = "using SeriesGroupBy.sum"
     rcustom = cases["B"].apply(lambda x: np.std(x, ddof=1))
     expected = pd.concat([cases["A"].sum(), rcustom], axis=1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = cases.agg(**agg)
+    result = cases.agg(**agg)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -740,7 +708,9 @@ def test_selection_api_validation():
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    with pytest.raises(TypeError, match="datetime64 type does not support sum"):
+    with pytest.raises(
+        TypeError, match="datetime64 type does not support operation 'sum'"
+    ):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)
     tm.assert_frame_equal(exp, result)

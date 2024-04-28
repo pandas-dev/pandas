@@ -552,11 +552,6 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             expected = expected.set_index(["x", "x2"])
         else:
             expected = expected.set_index("x")
-    elif index_kind != "range" and reduction_func != "size":
-        # size, unlike other methods, has the desired behavior in GH#49519
-        expected = expected.drop(columns="x")
-        if index_kind == "multi":
-            expected = expected.drop(columns="x2")
     if reduction_func in ("idxmax", "idxmin") and index_kind != "range":
         # expected was computed with a RangeIndex; need to translate to index values
         values = expected["y"].values.tolist()
@@ -572,26 +567,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         if as_index:
             expected = expected["size"].rename(None)
 
-    if as_index or index_kind == "range" or reduction_func == "size":
-        warn = None
-    else:
-        warn = FutureWarning
-    msg = "A grouping .* was excluded from the result"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(gb_keepna, reduction_func)(*args)
+    result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)
 
 
-def test_categorical_transformers(
-    request, transformation_func, observed, sort, as_index
-):
+def test_categorical_transformers(transformation_func, observed, sort, as_index):
     # GH#36327
-    if transformation_func == "fillna":
-        msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
-
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
@@ -621,12 +604,7 @@ def test_categorical_transformers(
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
 
-    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = getattr(gb_keepna, "pct_change")(*args)
-    else:
-        result = getattr(gb_keepna, transformation_func)(*args)
+    result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
 
     for iloc, value in zip(

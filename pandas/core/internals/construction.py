@@ -2,6 +2,7 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -31,12 +32,14 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
+    is_scalar,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     algorithms,
@@ -57,6 +60,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
+    maybe_sequence_to_range,
     union_indexes,
 )
 from pandas.core.internals.blocks import (
@@ -248,10 +252,12 @@ def ndarray_to_mgr(
 
     elif isinstance(values, (np.ndarray, ExtensionArray)):
         # drop subclass info
-        _copy = (
-            copy if (dtype is None or astype_is_view(values.dtype, dtype)) else False
-        )
-        values = np.array(values, copy=_copy)
+        if copy and (dtype is None or astype_is_view(values.dtype, dtype)):
+            # only force a copy now if copy=True was requested
+            # and a subsequent `astype` will not already result in a copy
+            values = np.array(values, copy=True, order="F")
+        else:
+            values = np.array(values, copy=False)
         values = _ensure_2d(values)
 
     else:
@@ -354,48 +360,51 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Sequence[Any] | Series
+    arrays: Sequence[Any]
 
     if columns is not None:
-        from pandas.core.series import Series
+        columns = ensure_index(columns)
+        arrays = [np.nan] * len(columns)
+        midxs = set()
+        data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
+        data_values = list(data.values())
 
-        arrays = Series(data, index=columns, dtype=object)
-        missing = arrays.isna()
+        for i, column in enumerate(columns):
+            try:
+                idx = data_keys.get_loc(column)
+            except KeyError:
+                midxs.add(i)
+                continue
+            array = data_values[idx]
+            arrays[i] = array
+            if is_scalar(array) and isna(array):
+                midxs.add(i)
+
         if index is None:
             # GH10856
             # raise ValueError if only scalars in dict
-            index = _extract_index(arrays[~missing])
+            if midxs:
+                index = _extract_index(
+                    [array for i, array in enumerate(arrays) if i not in midxs]
+                )
+            else:
+                index = _extract_index(arrays)
         else:
             index = ensure_index(index)
 
         # no obvious "empty" int column
-        if missing.any() and not is_integer_dtype(dtype):
-            nan_dtype: DtypeObj
-
-            if dtype is not None:
-                # calling sanitize_array ensures we don't mix-and-match
-                #  NA dtypes
-                midxs = missing.values.nonzero()[0]
-                for i in midxs:
-                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
-                    arrays.iat[i] = arr
-            else:
-                # GH#1783
-                nan_dtype = np.dtype("object")
-                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                nmissing = missing.sum()
-                if copy:
-                    rhs = [val] * nmissing
-                else:
-                    # GH#45369
-                    rhs = [val.copy() for _ in range(nmissing)]
-                arrays.loc[missing] = rhs
-
-        arrays = list(arrays)
-        columns = ensure_index(columns)
+        if midxs and not is_integer_dtype(dtype):
+            # GH#1783
+            for i in midxs:
+                arr = construct_1d_arraylike_from_scalar(
+                    arrays[i],
+                    len(index),
+                    dtype if dtype is not None else np.dtype("object"),
+                )
+                arrays[i] = arr
 
     else:
-        keys = list(data.keys())
+        keys = maybe_sequence_to_range(list(data.keys()))
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
 
@@ -519,11 +528,11 @@ def _homogenize(
     for val in data:
         if isinstance(val, (ABCSeries, Index)):
             if dtype is not None:
-                val = val.astype(dtype, copy=False)
+                val = val.astype(dtype)
             if isinstance(val, ABCSeries) and val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
-                val = val.reindex(index, copy=False)
+                val = val.reindex(index)
             refs.append(val._references)
             val = val._values
         else:
@@ -558,7 +567,7 @@ def _extract_index(data) -> Index:
     if len(data) == 0:
         return default_index(0)
 
-    raw_lengths = []
+    raw_lengths = set()
     indexes: list[list[Hashable] | Index] = []
 
     have_raw_arrays = False
@@ -574,7 +583,7 @@ def _extract_index(data) -> Index:
             indexes.append(list(val.keys()))
         elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
             have_raw_arrays = True
-            raw_lengths.append(len(val))
+            raw_lengths.add(len(val))
         elif isinstance(val, np.ndarray) and val.ndim > 1:
             raise ValueError("Per-column arrays must each be 1-dimensional")
 
@@ -587,24 +596,23 @@ def _extract_index(data) -> Index:
         index = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
-        lengths = list(set(raw_lengths))
-        if len(lengths) > 1:
+        if len(raw_lengths) > 1:
             raise ValueError("All arrays must be of the same length")
 
         if have_dicts:
             raise ValueError(
                 "Mixing dicts with non-Series may lead to ambiguous ordering."
             )
-
+        raw_length = raw_lengths.pop()
         if have_series:
-            if lengths[0] != len(index):
+            if raw_length != len(index):
                 msg = (
-                    f"array length {lengths[0]} does not match index "
+                    f"array length {raw_length} does not match index "
                     f"length {len(index)}"
                 )
                 raise ValueError(msg)
         else:
-            index = default_index(lengths[0])
+            index = default_index(raw_length)
 
     return ensure_index(index)
 

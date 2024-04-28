@@ -343,7 +343,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         "names": ["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"],
     }
     with tm.assert_produces_warning(
-        (DeprecationWarning, FutureWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), **kwds)
 
@@ -724,7 +724,7 @@ def test_multiple_date_col_name_collision(all_parsers, data, parse_dates, msg):
     )
     with pytest.raises(ValueError, match=msg):
         with tm.assert_produces_warning(
-            (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+            FutureWarning, match=depr_msg, check_stacklevel=False
         ):
             parser.read_csv(StringIO(data), parse_dates=parse_dates)
 
@@ -1248,14 +1248,14 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         with_indices = parser.read_csv(
             StringIO(data), parse_dates={"nominal": [1, 2]}, index_col="nominal"
         )
 
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         with_names = parser.read_csv(
             StringIO(data),
@@ -1280,13 +1280,13 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(data), index_col=["nominal", "ID"], parse_dates={"nominal": [1, 2]}
         )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         expected = parser.read_csv(StringIO(data), parse_dates={"nominal": [1, 2]})
 
@@ -2267,7 +2267,7 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
     )
     with tm.assert_produces_warning(
-        (FutureWarning, DeprecationWarning), match=depr_msg, check_stacklevel=False
+        FutureWarning, match=depr_msg, check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
@@ -2330,8 +2330,8 @@ def test_from_csv_with_mixed_offsets(all_parsers):
     result = parser.read_csv(StringIO(data), parse_dates=["a"])["a"]
     expected = Series(
         [
-            Timestamp("2020-01-01 00:00:00+01:00"),
-            Timestamp("2020-01-01 00:00:00+00:00"),
+            "2020-01-01T00:00:00+01:00",
+            "2020-01-01T00:00:00+00:00",
         ],
         name="a",
         index=[0, 1],

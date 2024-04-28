@@ -337,7 +337,7 @@ def _convert_listlike_datetimes(
     unit : str
         None or string of the frequency of the passed data
     errors : str
-        error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
+        error handing behaviors from to_datetime, 'raise', 'coerce'
     dayfirst : bool
         dayfirst parsing behavior from to_datetime
     yearfirst : bool
@@ -387,7 +387,6 @@ def _convert_listlike_datetimes(
         if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
-                # TODO: looks like we incorrectly raise with errors=="ignore"
                 np.asarray(arg),
                 np.dtype("M8[s]"),
                 is_coerce=errors == "coerce",
@@ -418,9 +417,6 @@ def _convert_listlike_datetimes(
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(npvalues, name=name)
-        elif errors == "ignore":
-            idx = Index(arg, name=name)
-            return idx
         raise
 
     arg = ensure_object(arg)
@@ -485,7 +481,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
     arg = extract_array(arg, extract_numpy=True)
 
-    # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
+    # GH#30050 pass an ndarray to tslib.array_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
         arr = arg.astype(f"datetime64[{unit}]")
@@ -523,14 +519,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
         else:
             arg = arg.astype(object, copy=False)
-            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+            arr, tz_parsed = tslib.array_to_datetime(
+                arg,
+                utc=utc,
+                errors=errors,
+                unit_for_numerics=unit,
+            )
 
-    if errors == "ignore":
-        # Index constructor _may_ infer to DatetimeIndex
-        result = Index._with_infer(arr, name=name)
-    else:
-        result = DatetimeIndex(arr, name=name)
-
+    result = DatetimeIndex(arr, name=name)
     if not isinstance(result, DatetimeIndex):
         return result
 
@@ -629,11 +625,9 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp:
-    ...
+) -> Timestamp: ...
 
 
 @overload
@@ -646,11 +640,9 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -663,11 +655,9 @@ def to_datetime(
     format: str | None = ...,
     exact: bool = ...,
     unit: str | None = ...,
-    infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeIndex:
-    ...
+) -> DatetimeIndex: ...
 
 
 def to_datetime(
@@ -679,7 +669,6 @@ def to_datetime(
     format: str | None = None,
     exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
-    infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
@@ -696,10 +685,9 @@ def to_datetime(
         method expects minimally the following columns: :const:`"year"`,
         :const:`"month"`, :const:`"day"`. The column "year"
         must be specified in 4-digit format.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
-        - If :const:`'ignore'`, then invalid parsing will return the input.
     dayfirst : bool, default False
         Specify a date parse order if `arg` is str or is list-like.
         If :const:`True`, parses dates with the day first, e.g. :const:`"10/11/12"`
@@ -737,14 +725,6 @@ def to_datetime(
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
 
-        .. warning::
-
-            In a future version of pandas, parsing datetimes with mixed time
-            zones will raise an error unless `utc=True`.
-            Please specify `utc=True` to opt in to the new behaviour
-            and silence this warning. To create a `Series` with mixed offsets and
-            `object` dtype, please use `apply` and `datetime.datetime.strptime`.
-
         See also: pandas general documentation about `timezone conversion and
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
@@ -780,16 +760,6 @@ def to_datetime(
         integer or float number. This will be based off the origin.
         Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
         the number of milliseconds to the unix epoch start.
-    infer_datetime_format : bool, default False
-        If :const:`True` and no `format` is given, attempt to infer the format
-        of the datetime strings based on the first non-NaN element,
-        and if it can be inferred, switch to a faster method of parsing them.
-        In some cases this can increase the parsing speed by ~5-10x.
-
-        .. deprecated:: 2.0.0
-            A strict version of this argument is now the default, passing it has
-            no effect.
-
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -836,7 +806,9 @@ def to_datetime(
         When another datetime conversion error happens. For example when one
         of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
-        of mixed time offsets, and ``utc=False``.
+        of mixed time offsets, and ``utc=False``, or when parsing datetimes
+        with mixed time zones unless ``utc=True``. If parsing datetimes with mixed
+        time zones, please specify ``utc=True``.
 
     See Also
     --------
@@ -956,35 +928,34 @@ def to_datetime(
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
       are **not successfully converted** to a :class:`DatetimeIndex`.
-      Parsing datetimes with mixed time zones will show a warning unless
-      `utc=True`. If you specify `utc=False` the warning below will be shown
-      and a simple :class:`Index` containing :class:`datetime.datetime`
-      objects will be returned:
+      Parsing datetimes with mixed time zones will raise a ValueError unless
+      ``utc=True``:
 
     >>> pd.to_datetime(
     ...     ["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"]
     ... )  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
-          dtype='object')
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
-    - A mix of timezone-aware and timezone-naive inputs is also converted to
-      a simple :class:`Index` containing :class:`datetime.datetime` objects:
+    - To create a :class:`Series` with mixed offsets and ``object`` dtype, please use
+      :meth:`Series.apply` and :func:`datetime.datetime.strptime`:
+
+    >>> import datetime as dt
+    >>> ser = pd.Series(["2020-10-25 02:00 +0200", "2020-10-25 04:00 +0100"])
+    >>> ser.apply(lambda x: dt.datetime.strptime(x, "%Y-%m-%d %H:%M %z"))
+    0    2020-10-25 02:00:00+02:00
+    1    2020-10-25 04:00:00+01:00
+    dtype: object
+
+    - A mix of timezone-aware and timezone-naive inputs will also raise a ValueError
+      unless ``utc=True``:
 
     >>> from datetime import datetime
     >>> pd.to_datetime(
     ...     ["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)]
     ... )  # doctest: +SKIP
-    FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise an error unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning. To create a `Series`
-    with mixed offsets and `object` dtype, please use `apply` and
-    `datetime.datetime.strptime`.
-    Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
+    ValueError: Mixed timezones detected. Pass utc=True in to_datetime
+    or tz='UTC' in DatetimeIndex to convert to a common timezone.
 
     |
 
@@ -1012,25 +983,6 @@ def to_datetime(
     """
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            stacklevel=find_stack_level(),
-        )
-    if errors == "ignore":
-        # GH#54467
-        warnings.warn(
-            "errors='ignore' is deprecated and will raise in a future version. "
-            "Use to_datetime without passing `errors` and catch exceptions "
-            "explicitly instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if arg is None:
         return None
 
@@ -1046,7 +998,6 @@ def to_datetime(
         errors=errors,
         exact=exact,
     )
-    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
@@ -1141,11 +1092,10 @@ def _assemble_from_unit_mappings(
     Parameters
     ----------
     arg : DataFrame
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {'raise', 'coerce'}, default 'raise'
 
         - If :const:`'raise'`, then invalid parsing will raise an exception
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`
-        - If :const:`'ignore'`, then invalid parsing will return the input
     utc : bool
         Whether to convert/localize timestamps to UTC.
 
@@ -1179,18 +1129,18 @@ def _assemble_from_unit_mappings(
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(set(required) - set(unit_rev.keys()))
+    req = set(required) - set(unit_rev.keys())
     if len(req):
-        _required = ",".join(req)
+        _required = ",".join(sorted(req))
         raise ValueError(
             "to assemble mappings requires at least that "
             f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
-    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
+    excess = set(unit_rev.keys()) - set(_unit_map.values())
     if len(excess):
-        _excess = ",".join(excess)
+        _excess = ",".join(sorted(excess))
         raise ValueError(
             f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
@@ -1201,7 +1151,7 @@ def _assemble_from_unit_mappings(
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values.dtype):
-            values = values.astype("int64", copy=False)
+            values = values.astype("int64")
         return values
 
     values = (

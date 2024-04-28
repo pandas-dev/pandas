@@ -15,6 +15,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import (
     lib,
     tslib,
@@ -101,13 +103,11 @@ _ITER_CHUNKSIZE = 10_000
 
 
 @overload
-def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype:
-    ...
+def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype: ...
 
 
 @overload
-def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]:
-    ...
+def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]: ...
 
 
 def tz_to_dtype(
@@ -186,7 +186,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     Parameters
     ----------
-    values : Series, Index, DatetimeArray, ndarray
+    data : Series, Index, DatetimeArray, ndarray
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
@@ -287,7 +287,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-    _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
@@ -540,7 +539,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -593,6 +592,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
+
+        See Also
+        --------
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+            one time zone to another.
 
         Examples
         --------
@@ -647,12 +653,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super().__array__(dtype=dtype)
+        return super().__array__(dtype=dtype, copy=copy)
 
     def __iter__(self) -> Iterator:
         """
@@ -767,17 +773,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # -----------------------------------------------------------------
     # Comparison Methods
 
-    def _has_same_tz(self, other) -> bool:
-        # vzone shouldn't be None if value is non-datetime like
-        if isinstance(other, np.datetime64):
-            # convert to Timestamp as np.datetime64 doesn't have tz attr
-            other = Timestamp(other)
-
-        if not hasattr(other, "tzinfo"):
-            return False
-        other_tz = other.tzinfo
-        return timezones.tz_compare(self.tzinfo, other_tz)
-
     def _assert_tzawareness_compat(self, other) -> None:
         # adapted from _Timestamp._assert_tzawareness_compat
         other_tz = getattr(other, "tzinfo", None)
@@ -818,11 +813,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
                 res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
-            warnings.warn(
-                "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
-                PerformanceWarning,
-                stacklevel=find_stack_level(),
-            )
+            if get_option("performance_warnings"):
+                warnings.warn(
+                    "Non-vectorized DateOffset being applied to Series or "
+                    "DatetimeIndex.",
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(),
+                )
             res_values = self.astype("O") + offset
             # TODO(GH#55564): as_unit will be unnecessary
             result = type(self)._from_sequence(res_values).as_unit(self.unit)
@@ -870,6 +867,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         Returns
         -------
         Array or Index
+            Datetme Array/Index with target `tz`.
 
         Raises
         ------
@@ -1289,6 +1287,10 @@ default 'raise'
         Series or Index
             Series or Index of month names.
 
+        See Also
+        --------
+        DatetimeIndex.day_name : Return the day names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01", freq="ME", periods=3))
@@ -1346,6 +1348,10 @@ default 'raise'
         Series or Index
             Series or Index of day names.
 
+        See Also
+        --------
+        DatetimeIndex.month_name : Return the month names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01-01", freq="D", periods=3))
@@ -1393,6 +1399,14 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
+            objects with timezones. The time part of the Timestamps.
+        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
+            objects. Namely, the date part of Timestamps without time and timezone
+            information.
+
         Examples
         --------
         For Series:
@@ -1430,6 +1444,12 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.tz : Return the timezone.
+
         Examples
         --------
         For Series:
@@ -1463,6 +1483,14 @@ default 'raise'
 
         Namely, the date part of Timestamps without time and
         timezone information.
+
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.year : The year of the datetime.
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.day : The day of the datetime.
 
         Examples
         --------
@@ -1543,6 +1571,11 @@ default 'raise'
         """
         The year of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.day: The day of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1565,6 +1598,11 @@ default 'raise'
         "M",
         """
         The month as January=1, December=12.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.day: The day of the datetime.
 
         Examples
         --------
@@ -1589,6 +1627,12 @@ default 'raise'
         """
         The day of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.hour: The hours of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1611,6 +1655,12 @@ default 'raise'
         "h",
         """
         The hours of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.day: The day of the datetime.
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
 
         Examples
         --------
@@ -1635,6 +1685,11 @@ default 'raise'
         """
         The minutes of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.hour: The hours of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1657,6 +1712,12 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
 
         Examples
         --------
@@ -1681,6 +1742,11 @@ default 'raise'
         """
         The microseconds of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1703,6 +1769,11 @@ default 'raise'
         "ns",
         """
         The nanoseconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
 
         Examples
         --------
@@ -1765,6 +1836,11 @@ default 'raise'
         """
         The ordinal day of the year.
 
+        See Also
+        --------
+        DatetimeIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        DatetimeIndex.day : The day of the datetime.
+
         Examples
         --------
         For Series:
@@ -1794,6 +1870,12 @@ default 'raise'
         "q",
         """
         The quarter of the date.
+
+        See Also
+        --------
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+        DatetimeIndex.time : Returns numpy array of datetime.time objects.
+            The time part of the Timestamps.
 
         Examples
         --------
@@ -2079,6 +2161,13 @@ default 'raise'
         Series or ndarray
              Booleans indicating if dates belong to a leap year.
 
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Indicate whether the date is the
+            last day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
+
         Examples
         --------
         This method is available on Series with datetime values under
@@ -2159,9 +2248,25 @@ default 'raise'
         axis : int, optional
             Axis for the function to be applied on. For :class:`pandas.Series`
             this parameter is unused and defaults to ``None``.
+        dtype : dtype, optional, default None
+            Type to use in computing the standard deviation. For arrays of
+            integer type the default is float64, for arrays of float types
+            it is the same as the array type.
+        out : ndarray, optional, default None
+            Alternative output array in which to place the result. It must have
+            the same shape as the expected output but the type (of the
+            calculated values) will be cast if necessary.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array. If the default
+            value is passed, then keepdims will not be passed through to the
+            std method of sub-classes of ndarray, however any non-default value
+            will be. If the sub-class method does not implement keepdims any
+            exceptions will be raised.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is ``NA``, the result
             will be ``NA``.
@@ -2169,6 +2274,7 @@ default 'raise'
         Returns
         -------
         Timedelta
+            Standard deviation over requested axis.
 
         See Also
         --------
@@ -2394,7 +2500,7 @@ def objects_to_datetime64(
     yearfirst : bool
     utc : bool, default False
         Whether to convert/localize timestamps to UTC.
-    errors : {'raise', 'ignore', 'coerce'}
+    errors : {'raise', 'coerce'}
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
@@ -2414,10 +2520,10 @@ def objects_to_datetime64(
     ValueError : if data cannot be converted to datetimes
     TypeError  : When a type cannot be converted to datetime
     """
-    assert errors in ["raise", "ignore", "coerce"]
+    assert errors in ["raise", "coerce"]
 
     # if str-dtype, convert
-    data = np.array(data, copy=False, dtype=np.object_)
+    data = np.asarray(data, dtype=np.object_)
 
     result, tz_parsed = tslib.array_to_datetime(
         data,
@@ -2786,7 +2892,12 @@ def _generate_range(
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
-        start = offset.rollforward(start)  # type: ignore[assignment]
+
+        # GH #56147 account for negative direction and range bounds
+        if offset.n >= 0:
+            start = offset.rollforward(start)  # type: ignore[assignment]
+        else:
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

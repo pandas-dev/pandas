@@ -45,9 +45,20 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
+- :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
--
+- :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
+- Allow dictionaries to be passed to :meth:`pandas.Series.str.replace` via ``pat`` parameter (:issue:`51748`)
+- Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Series` :class:`Index` (:issue:`51452`)
+- Support reading value labels from Stata 108-format (Stata 6) and earlier files (:issue:`58154`)
+- Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
+- :meth:`Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
+- :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
+- :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
+- :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
+- :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -57,10 +68,63 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Improved behavior in groupby for ``observed=False``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A number of bugs have been fixed due to improved handling of unobserved groups (:issue:`55738`). All remarks in this section equally impact :class:`.SeriesGroupBy`.
+
+In previous versions of pandas, a single grouping with :meth:`.DataFrameGroupBy.apply` or :meth:`.DataFrameGroupBy.agg` would pass the unobserved groups to the provided function, resulting in ``0`` below.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "key1": pd.Categorical(list("aabb"), categories=list("abc")),
+            "key2": [1, 1, 1, 2],
+            "values": [1, 2, 3, 4],
+        }
+    )
+    df
+    gb = df.groupby("key1", observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+However this was not the case when using multiple groupings, resulting in ``NaN`` below.
+
+.. code-block:: ipython
+
+    In [1]: gb = df.groupby(["key1", "key2"], observed=False)
+    In [2]: gb[["values"]].apply(lambda x: x.sum())
+    Out[2]:
+               values
+    key1 key2
+    a    1        3.0
+         2        NaN
+    b    1        3.0
+         2        4.0
+    c    1        NaN
+         2        NaN
+
+Now using multiple groupings will also pass the unobserved groups to the provided function.
+
+.. ipython:: python
+
+    gb = df.groupby(["key1", "key2"], observed=False)
+    gb[["values"]].apply(lambda x: x.sum())
+
+Similarly:
+
+- In previous versions of pandas the method :meth:`.DataFrameGroupBy.sum` would result in ``0`` for unobserved groups, but :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.all`, and :meth:`.DataFrameGroupBy.any` would all result in NA values. Now these methods result in ``1``, ``True``, and ``False`` respectively.
+- :meth:`.DataFrameGroupBy.groups` did not include unobserved groups and now does.
+
+These improvements also fixed certain bugs in groupby:
+
+- :meth:`.DataFrameGroupBy.agg` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`36698`)
+- :meth:`.DataFrameGroupBy.groups` with ``sort=False`` would sort groups; they now occur in the order they are observed (:issue:`56966`)
+- :meth:`.DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
+- :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
+- :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
@@ -90,11 +154,15 @@ For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
-+-----------------+---------------------+
-| Package         | New Minimum Version |
-+=================+=====================+
-|                 |                     |
-+-----------------+---------------------+
++------------------------+---------------------+
+| Package                | New Minimum Version |
++========================+=====================+
+| fastparquet            | 2023.10.0           |
++------------------------+---------------------+
+| adbc-driver-postgresql | 0.10.0              |
++------------------------+---------------------+
+| mypy (dev)             | 1.9.0               |
++------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -103,16 +171,55 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
-- :attr:`MultiIndex.codes`, :attr:`MultiIndex.levels`, and :attr:`MultiIndex.names` now returns a ``tuple`` instead of a ``FrozenList`` (:issue:`53531`)
--
+- :func:`read_table`'s ``parse_dates`` argument defaults to ``None`` to improve consistency with :func:`read_csv` (:issue:`57476`)
+- Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
+- Updated :meth:`DataFrame.to_excel` so that the output spreadsheet has no styling. Custom styling can still be done using :meth:`Styler.to_excel` (:issue:`54154`)
+- pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
+- pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
+- when comparing the indexes in :func:`testing.assert_series_equal`, check_exact defaults to True if an :class:`Index` is of integer dtypes. (:issue:`57386`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
+
+Copy keyword
+^^^^^^^^^^^^
+
+The ``copy`` keyword argument in the following methods is deprecated and
+will be removed in a future version:
+
+- :meth:`DataFrame.truncate` / :meth:`Series.truncate`
+- :meth:`DataFrame.tz_convert` / :meth:`Series.tz_convert`
+- :meth:`DataFrame.tz_localize` / :meth:`Series.tz_localize`
+- :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
+- :meth:`DataFrame.align` / :meth:`Series.align`
+- :meth:`DataFrame.astype` / :meth:`Series.astype`
+- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+- :meth:`DataFrame.to_period` / :meth:`Series.to_period`
+- :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
+- :meth:`DataFrame.rename` / :meth:`Series.rename`
+- :meth:`DataFrame.transpose`
+- :meth:`DataFrame.swaplevel`
+- :meth:`DataFrame.merge` / :func:`pd.merge`
+
+Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
+necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect
+starting with 3.0, so it can be safely removed from your code.
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
+- Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
+- Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
+- Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
+- Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -120,56 +227,150 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :class:`.DataFrameGroupBy.idxmin`, :class:`.DataFrameGroupBy.idxmax`, :class:`.SeriesGroupBy.idxmin`, and :class:`.SeriesGroupBy.idxmax` will now raise a ``ValueError`` when used with ``skipna=False`` and an NA value is encountered (:issue:`10694`)
+- :func:`concat` no longer ignores empty objects when determining output dtypes (:issue:`39122`)
+- :func:`concat` with all-NA entries no longer ignores the dtype of those entries when determining the result dtype (:issue:`40893`)
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
+- :func:`to_datetime` with a ``unit`` specified no longer parses strings into floats, instead parses them the same way as without ``unit`` (:issue:`50735`)
+- :meth:`DataFrame.groupby` with ``as_index=False`` and aggregation methods will no longer exclude from the result the groupings that do not arise from the input (:issue:`49519`)
+- :meth:`Series.dt.to_pydatetime` now returns a :class:`Series` of :py:class:`datetime.datetime` objects (:issue:`52459`)
+- :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
+- All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
+- Disallow allowing logical operations (``||``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``); wrap the objects in :class:`Series`, :class:`Index`, or ``np.array`` first instead (:issue:`52264`)
+- Disallow automatic casting to object in :class:`Series` logical operations (``&``, ``^``, ``||``) between series with mismatched indexes and dtypes other than ``object`` or ``bool`` (:issue:`52538`)
+- Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
+- Disallow constructing a :class:`arrays.SparseArray` with scalar data (:issue:`53039`)
+- Disallow indexing an :class:`Index` with a boolean indexer of length zero, it now raises ``ValueError`` (:issue:`55820`)
+- Disallow non-standard (``np.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series`) to :func:`isin`, :func:`unique`, :func:`factorize` (:issue:`52986`)
+- Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
+- Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)
+- Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
+- Removed 'fastpath' keyword in :class:`Categorical` constructor (:issue:`20110`)
+- Removed 'kind' keyword in :meth:`Series.resample` and :meth:`DataFrame.resample` (:issue:`58125`)
+- Removed alias :class:`arrays.PandasArray` for :class:`arrays.NumpyExtensionArray` (:issue:`53694`)
+- Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
+- Removed extension test classes ``BaseNoReduceTests``, ``BaseNumericReduceTests``, ``BaseBooleanReduceTests`` (:issue:`54663`)
+- Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
+- Require :meth:`SparseDtype.fill_value` to be a valid value for the :meth:`SparseDtype.subtype` (:issue:`53043`)
+- Stopped performing dtype inference with in :meth:`Index.insert` with object-dtype index; this often affects the index/columns that result when setting new entries into an empty :class:`Series` or :class:`DataFrame` (:issue:`51363`)
+- Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
+- All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
+- All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
-- Removed :meth:`DataFrame.applymap`, :meth:`Styler.applymap` and :meth:`Styler.applymap_index` (:issue:`52364`)
+- Enforce deprecation in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with object dtype and mismatched null-like values, which are now considered not-equal (:issue:`18463`)
+- Enforced deprecation ``all`` and ``any`` reductions with ``datetime64``, :class:`DatetimeTZDtype`, and :class:`PeriodDtype` dtypes (:issue:`58029`)
+- Enforced deprecation disallowing ``float`` "periods" in :func:`date_range`, :func:`period_range`, :func:`timedelta_range`, :func:`interval_range`,  (:issue:`56036`)
+- Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
+- Enforced deprecation in :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype performing dtype inference on the ``.index`` of the result (:issue:`56161`)
+- Enforced deprecation of :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` allowing the ``name`` argument to be a non-tuple when grouping by a list of length 1 (:issue:`54155`)
+- Enforced deprecation of :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`57820`)
+- Enforced deprecation of :meth:`offsets.Tick.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
+- Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
+- Enforced deprecation of non-standard (``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series`) argument to :func:`api.extensions.take` (:issue:`52981`)
+- Enforced deprecation of parsing system timezone strings to ``tzlocal``, which depended on system timezone, pass the 'tz' keyword instead (:issue:`50791`)
+- Enforced deprecation of passing a dictionary to :meth:`SeriesGroupBy.agg` (:issue:`52268`)
+- Enforced deprecation of string ``AS`` denoting frequency in :class:`YearBegin` and strings ``AS-DEC``, ``AS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
+- Enforced deprecation of string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57699`)
+- Enforced deprecation of string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
+- Enforced deprecation of string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57793`)
+- Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`57627`)
+- Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`57627`)
+- Enforced deprecation of the behavior of :func:`concat` when ``len(keys) != len(objs)`` would truncate to the shorter of the two. Now this raises a ``ValueError`` (:issue:`43485`)
+- Enforced deprecation of values "pad", "ffill", "bfill", and "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`57869`)
+- Enforced deprecation removing :meth:`Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)
+- Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
+- In :meth:`DataFrame.stack`, the default value of ``future_stack`` is now ``True``; specifying ``False`` will raise a ``FutureWarning`` (:issue:`55448`)
+- Iterating over a :class:`.DataFrameGroupBy` or :class:`.SeriesGroupBy` will return tuples of length 1 for the groups when grouping by ``level`` a list of length 1 (:issue:`50064`)
+- Methods ``apply``, ``agg``, and ``transform`` will no longer replace NumPy functions (e.g. ``np.sum``) and built-in functions (e.g. ``min``) with the equivalent pandas implementation; use string aliases (e.g. ``"sum"`` and ``"min"``) if you desire to use the pandas implementation (:issue:`53974`)
+- Passing both ``freq`` and ``fill_value`` in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` now raises a ``ValueError`` (:issue:`54818`)
+- Removed :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` supporting bool dtype (:issue:`53975`)
+- Removed :meth:`DateOffset.is_anchored` and :meth:`offsets.Tick.is_anchored` (:issue:`56594`)
+- Removed ``DataFrame.applymap``, ``Styler.applymap`` and ``Styler.applymap_index`` (:issue:`52364`)
 - Removed ``DataFrame.bool`` and ``Series.bool`` (:issue:`51756`)
 - Removed ``DataFrame.first`` and ``DataFrame.last`` (:issue:`53710`)
+- Removed ``DataFrame.swapaxes`` and ``Series.swapaxes`` (:issue:`51946`)
 - Removed ``DataFrameGroupBy.grouper`` and ``SeriesGroupBy.grouper`` (:issue:`56521`)
 - Removed ``DataFrameGroupby.fillna`` and ``SeriesGroupBy.fillna``` (:issue:`55719`)
 - Removed ``Index.format``, use :meth:`Index.astype` with ``str`` or :meth:`Index.map` with a ``formatter`` function instead (:issue:`55439`)
+- Removed ``Resample.fillna`` (:issue:`55719`)
 - Removed ``Series.__int__`` and ``Series.__float__``. Call ``int(Series.iloc[0])`` or ``float(Series.iloc[0])`` instead. (:issue:`51131`)
 - Removed ``Series.ravel`` (:issue:`56053`)
 - Removed ``Series.view`` (:issue:`56054`)
+- Removed ``StataReader.close`` (:issue:`49228`)
+- Removed ``_data`` from :class:`DataFrame`, :class:`Series`, :class:`.arrays.ArrowExtensionArray` (:issue:`52003`)
 - Removed ``axis`` argument from :meth:`DataFrame.groupby`, :meth:`Series.groupby`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.resample`, and :meth:`Series.resample` (:issue:`51203`)
 - Removed ``axis`` argument from all groupby operations (:issue:`50405`)
+- Removed ``convert_dtype`` from :meth:`Series.apply` (:issue:`52257`)
+- Removed ``method``, ``limit`` ``fill_axis`` and ``broadcast_axis`` keywords from :meth:`DataFrame.align` (:issue:`51968`)
 - Removed ``pandas.api.types.is_interval`` and ``pandas.api.types.is_period``, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Removed ``pandas.io.sql.execute`` (:issue:`50185`)
 - Removed ``pandas.value_counts``, use :meth:`Series.value_counts` instead (:issue:`53493`)
 - Removed ``read_gbq`` and ``DataFrame.to_gbq``. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
+- Removed ``use_nullable_dtypes`` from :func:`read_parquet` (:issue:`51853`)
+- Removed ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
+- Removed argument ``limit`` from :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`.DataFrameGroupBy.pct_change`, and :meth:`.SeriesGroupBy.pct_change`; the argument ``method`` must be set to ``None`` and will be removed in a future version of pandas (:issue:`53520`)
 - Removed deprecated argument ``obj`` in :meth:`.DataFrameGroupBy.get_group` and :meth:`.SeriesGroupBy.get_group` (:issue:`53545`)
 - Removed deprecated behavior of :meth:`Series.agg` using :meth:`Series.apply` (:issue:`53325`)
+- Removed deprecated keyword ``method`` on :meth:`Series.fillna`, :meth:`DataFrame.fillna` (:issue:`57760`)
+- Removed option ``mode.use_inf_as_na``, convert inf entries to ``NaN`` before instead (:issue:`51684`)
+- Removed support for :class:`DataFrame` in :meth:`DataFrame.from_records`(:issue:`51697`)
+- Removed support for ``errors="ignore"`` in :func:`to_datetime`, :func:`to_timedelta` and :func:`to_numeric` (:issue:`55734`)
+- Removed support for ``slice`` in :meth:`DataFrame.take` (:issue:`51539`)
 - Removed the ``ArrayManager`` (:issue:`55043`)
 - Removed the ``fastpath`` argument from the :class:`Series` constructor (:issue:`55466`)
 - Removed the ``is_boolean``, ``is_integer``, ``is_floating``, ``holds_integer``, ``is_numeric``, ``is_categorical``, ``is_object``, and ``is_interval`` attributes of :class:`Index` (:issue:`50042`)
+- Removed the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Removed unused arguments ``*args`` and ``**kwargs`` in :class:`Resampler` methods (:issue:`50977`)
 - Unrecognized timezones when parsing strings to datetimes now raises a ``ValueError`` (:issue:`51477`)
+- Removed the :class:`Grouper` attributes ``ax``, ``groups``, ``indexer``, and ``obj`` (:issue:`51206`, :issue:`51182`)
+- Removed deprecated keyword ``verbose`` on :func:`read_csv` and :func:`read_table` (:issue:`56556`)
+- Removed the ``method`` keyword in ``ExtensionArray.fillna``, implement ``ExtensionArray._pad_or_backfill`` instead (:issue:`53621`)
+- Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
+- Enforced deprecation of ``argmin``, ``argmax``, ``idxmin``, and ``idxmax`` returning a result when ``skipna=False`` and an NA value is encountered or all values are NA values; these operations will now raise in such cases (:issue:`33941`, :issue:`51276`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- :attr:`Categorical.categories` returns a :class:`RangeIndex` columns instead of an :class:`Index` if the constructed ``values`` was a ``range``. (:issue:`57787`)
+- :class:`DataFrame` returns a :class:`RangeIndex` columns when possible when ``data`` is a ``dict`` (:issue:`57943`)
+- :class:`Series` returns a :class:`RangeIndex` index when possible when ``data`` is a ``dict`` (:issue:`58118`)
+- :func:`concat` returns a :class:`RangeIndex` column when possible when ``objs`` contains :class:`Series` and :class:`DataFrame` and ``axis=0`` (:issue:`58119`)
+- :func:`concat` returns a :class:`RangeIndex` level in the :class:`MultiIndex` result when ``keys`` is a ``range`` or :class:`RangeIndex` (:issue:`57542`)
+- :meth:`RangeIndex.append` returns a :class:`RangeIndex` instead of a :class:`Index` when appending values that could continue the :class:`RangeIndex` (:issue:`57467`)
+- :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
+- :meth:`Series.str.partition` with :class:`ArrowDtype` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57768`)
+- Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
 - Performance improvement in :meth:`DataFrame.join` with ``how="left"`` or ``how="right"`` and ``sort=True`` (:issue:`56919`)
 - Performance improvement in :meth:`DataFrameGroupBy.ffill`, :meth:`DataFrameGroupBy.bfill`, :meth:`SeriesGroupBy.ffill`, and :meth:`SeriesGroupBy.bfill` (:issue:`56902`)
 - Performance improvement in :meth:`Index.join` by propagating cached attributes in cases where the result matches one of the inputs (:issue:`57023`)
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
+- Performance improvement in :meth:`Index.to_frame` returning a :class:`RangeIndex` columns of a :class:`Index` when possible. (:issue:`58018`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
+- Performance improvement in :meth:`MultiIndex.memory_usage` to ignore the index engine when it isn't already cached. (:issue:`58385`)
+- Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask or integers returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
 - Performance improvement in :meth:`RangeIndex.append` when appending the same index (:issue:`57252`)
+- Performance improvement in :meth:`RangeIndex.argmin` and :meth:`RangeIndex.argmax` (:issue:`57823`)
+- Performance improvement in :meth:`RangeIndex.insert` returning a :class:`RangeIndex` instead of a :class:`Index` when the :class:`RangeIndex` is empty. (:issue:`57833`)
+- Performance improvement in :meth:`RangeIndex.round` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57824`)
+- Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`, :issue:`57752`)
+- Performance improvement in :meth:`RangeIndex.reindex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57647`, :issue:`57752`)
+- Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`, :issue:`57752`)
+- Performance improvement in :func:`merge` if hash-join can be used (:issue:`57970`)
+- Performance improvement in :meth:`to_hdf` avoid unnecessary reopenings of the HDF5 file to speedup data addition to files with a very large number of groups . (:issue:`58248`)
+- Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
--
+- Performance improvement in unary methods on a :class:`RangeIndex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57825`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
-- Fixed bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
-- Fixed bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 
 Categorical
 ^^^^^^^^^^^
@@ -178,13 +379,16 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :class:`Timestamp` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``tzinfo`` or data (:issue:`48688`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
--
+- Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
+- Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
+- Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
 Timedelta
 ^^^^^^^^^
--
--
+- Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
+- Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 
 Timezones
 ^^^^^^^^^
@@ -198,6 +402,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
 
@@ -208,12 +413,12 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :func:`interval_range` where start and end numeric types were always cast to 64 bit (:issue:`57268`)
 -
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 -
 
 Missing
@@ -223,13 +428,16 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- :func:`DataFrame.loc` with ``axis=0``  and :class:`MultiIndex` when setting a value adds extra columns (:issue:`58116`)
 -
 
 I/O
 ^^^
--
--
+- Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
+- Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
+- Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
+- Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
+- Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 
 Period
 ^^^^^^
@@ -238,43 +446,53 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in  :meth:`.DataFrameGroupBy.boxplot` failed when there were multiple groupings (:issue:`14701`)
+- Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
 -
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
+- Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
+- Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
-- Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby arguments ``dropna`` and ``sort`` (:issue:`55919`, :issue:`56966`, :issue:`56851`)
-- Bug in :meth:`.DataFrameGroupBy.nunique` and :meth:`.SeriesGroupBy.nunique` would fail with multiple categorical groupings when ``as_index=False`` (:issue:`52848`)
-- Bug in :meth:`.DataFrameGroupBy.prod`, :meth:`.DataFrameGroupBy.any`, and :meth:`.DataFrameGroupBy.all` would result in NA values on unobserved groups; they now result in ``1``, ``False``, and ``True`` respectively (:issue:`55783`)
-- Bug in :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
--
+- Bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
+
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 -
 
 Sparse
 ^^^^^^
--
+- Bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 -
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
+- Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 -
 
 Styler
 ^^^^^^
 -
--
 
 Other
 ^^^^^
+- Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
+- Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
+- Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
+- Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
+- Bug in :meth:`DataFrame.transform` that was returning the wrong order unless the index was monotonically increasing. (:issue:`57069`)
 - Bug in :meth:`DataFrame.where` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+- Bug in :meth:`Index.sort_values` when passing a key function that turns values into tuples, e.g. ``key=natsort.natsort_key``, would raise ``TypeError`` (:issue:`56081`)
+- Bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
+- Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
+- Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 
 .. ***DO NOT USE THIS SECTION***
 

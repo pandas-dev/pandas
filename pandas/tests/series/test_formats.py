@@ -114,13 +114,13 @@ class TestSeriesRepr:
             1,
             1.2,
             "foo",
-            "\u03B1\u03B2\u03B3",
+            "\u03b1\u03b2\u03b3",
             "loooooooooooooooooooooooooooooooooooooooooooooooooooong",
             ("foo", "bar", "baz"),
             (1, 2),
             ("foo", 1, 2.3),
-            ("\u03B1", "\u03B2", "\u03B3"),
-            ("\u03B1", "bar"),
+            ("\u03b1", "\u03b2", "\u03b3"),
+            ("\u03b1", "bar"),
         ],
     )
     def test_various_names(self, name, string_series):

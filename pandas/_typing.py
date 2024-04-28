@@ -107,8 +107,10 @@ if TYPE_CHECKING:
 
     if sys.version_info >= (3, 11):
         from typing import Self  # pyright: ignore[reportUnusedImport]
+        from typing import Unpack  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
+        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
 
 else:
     npt: Any = None
@@ -116,8 +118,10 @@ else:
     Self: Any = None
     TypeGuard: Any = None
     Concatenate: Any = None
+    Unpack: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+HashableT2 = TypeVar("HashableT2", bound=Hashable)
 MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
@@ -136,30 +140,22 @@ _T_co = TypeVar("_T_co", covariant=True)
 
 class SequenceNotStr(Protocol[_T_co]):
     @overload
-    def __getitem__(self, index: SupportsIndex, /) -> _T_co:
-        ...
+    def __getitem__(self, index: SupportsIndex, /) -> _T_co: ...
 
     @overload
-    def __getitem__(self, index: slice, /) -> Sequence[_T_co]:
-        ...
+    def __getitem__(self, index: slice, /) -> Sequence[_T_co]: ...
 
-    def __contains__(self, value: object, /) -> bool:
-        ...
+    def __contains__(self, value: object, /) -> bool: ...
 
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int: ...
 
-    def __iter__(self) -> Iterator[_T_co]:
-        ...
+    def __iter__(self) -> Iterator[_T_co]: ...
 
-    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
-        ...
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int: ...
 
-    def count(self, value: Any, /) -> int:
-        ...
+    def count(self, value: Any, /) -> int: ...
 
-    def __reversed__(self) -> Iterator[_T_co]:
-        ...
+    def __reversed__(self) -> Iterator[_T_co]: ...
 
 
 ListLike = Union[AnyArrayLike, SequenceNotStr, range]
@@ -203,7 +199,7 @@ Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = tuple[int, ...]
-Suffixes = tuple[Optional[str], Optional[str]]
+Suffixes = Sequence[Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
@@ -222,7 +218,7 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, Mapping[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
@@ -243,6 +239,7 @@ T = TypeVar("T")
 # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
+TypeT = TypeVar("TypeT", bound=type)
 
 # types of vectorized key functions for DataFrame::sort_values and
 # DataFrame::sort_index, among others
@@ -313,13 +310,11 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> bytes:
-        ...
+    def readline(self) -> bytes: ...
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
-    def truncate(self, size: int | None = ...) -> int:
-        ...
+    def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
@@ -434,7 +429,7 @@ IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+DateTimeErrorChoices = Literal["raise", "coerce"]
 
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]

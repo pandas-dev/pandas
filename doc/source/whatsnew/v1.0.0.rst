@@ -414,7 +414,7 @@ Extended verbose info output for :class:`~pandas.DataFrame`
    ...                    "text_col": ["a", "b", "c"],
    ...                    "float_col": [0.0, 0.1, 0.2]})
    In [2]: df.info(verbose=True)
-   <class 'pandas.core.frame.DataFrame'>
+   <class 'pandas.DataFrame'>
    RangeIndex: 3 entries, 0 to 2
    Data columns (total 3 columns):
    int_col      3 non-null int64

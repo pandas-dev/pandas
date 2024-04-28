@@ -1,6 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -16,8 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import (
     NaT,
     Timedelta,
@@ -30,7 +29,6 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -47,7 +45,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PeriodDtype,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -96,6 +97,32 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def freq(self) -> BaseOffset | None:
+        """
+        Return the frequency object if it is set, otherwise None.
+
+        To learn more about the frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+        PeriodIndex.freq : Return the frequency object if it is set, otherwise None.
+
+        Examples
+        --------
+        >>> datetimeindex = pd.date_range(
+        ...     "2022-02-22 02:22:22", periods=10, tz="America/Chicago", freq="h"
+        ... )
+        >>> datetimeindex
+        DatetimeIndex(['2022-02-22 02:22:22-06:00', '2022-02-22 03:22:22-06:00',
+                       '2022-02-22 04:22:22-06:00', '2022-02-22 05:22:22-06:00',
+                       '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
+                       '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
+                       '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
+                      dtype='datetime64[ns, America/Chicago]', freq='h')
+        >>> datetimeindex.freq
+        <Hour>
+        """
         return self._data.freq
 
     @freq.setter
@@ -115,15 +142,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            freq = PeriodDtype(self._data.freq)._freqstr
             return freq
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
-    def _resolution_obj(self) -> Resolution:
-        ...
+    def _resolution_obj(self) -> Resolution: ...
 
     @cache_readonly
     @doc(DatetimeLikeArrayMixin.resolution)
@@ -454,9 +480,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         data = self._data._ndarray
-        if using_copy_on_write():
-            data = data.view()
-            data.flags.writeable = False
+        data = data.view()
+        data.flags.writeable = False
         return data
 
     @doc(DatetimeIndexOpsMixin.shift)

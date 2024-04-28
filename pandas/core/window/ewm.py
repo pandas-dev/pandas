@@ -226,6 +226,8 @@ class ExponentialMovingWindow(BaseWindow):
     Returns
     -------
     pandas.api.typing.ExponentialMovingWindow
+        An instance of ExponentialMovingWindow for further exponentially weighted (EW)
+        calculations, e.g. using the ``mean`` method.
 
     See Also
     --------
@@ -1072,7 +1074,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 result_kwargs["columns"] = self._selected_obj.columns
             else:
                 result_kwargs["name"] = self._selected_obj.name
-            np_array = self._selected_obj.astype(np.float64, copy=False).to_numpy()
+            np_array = self._selected_obj.astype(np.float64).to_numpy()
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )

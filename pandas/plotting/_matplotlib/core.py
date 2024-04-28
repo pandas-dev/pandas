@@ -297,7 +297,7 @@ class MPLPlot(ABC):
     def _validate_sharex(sharex: bool | None, ax, by) -> bool:
         if sharex is None:
             # if by is defined, subplots are used and sharex should be False
-            if ax is None and by is None:  # pylint: disable=simplifiable-if-statement
+            if ax is None and by is None:
                 sharex = True
             else:
                 # if we get an axis, the users should do the visibility
@@ -678,7 +678,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects(copy=False)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -1725,13 +1725,7 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "Downcasting object dtype arrays",
-                category=FutureWarning,
-            )
-            data = data.fillna(value=0)
+        data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:

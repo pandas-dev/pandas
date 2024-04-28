@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        extra: ["test", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output-formatting", "clipboard", "compression", "consortium-standard", "all"]
+        extra: ["test", "pyarrow", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output-formatting", "clipboard", "compression", "all"]
       fail-fast: false
     name: Install Extras - ${{ matrix.extra }}
     concurrency:

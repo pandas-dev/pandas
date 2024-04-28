@@ -359,12 +359,13 @@ class TestSeriesArithmetic:
             else None
         )
         ser = Series([True, None, False], dtype="boolean")
-        with tm.assert_produces_warning(warning):
+        msg = "operator is not supported by numexpr for the bool dtype"
+        with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match=msg):
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
@@ -659,12 +660,10 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            if comparison_op is operator.ne:
-                expected = expected.fillna(True).astype(bool)
-            else:
-                expected = expected.fillna(False).astype(bool)
+        if comparison_op is operator.ne:
+            expected = expected.fillna(True).astype(bool)
+        else:
+            expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
@@ -809,9 +808,6 @@ class TestNamePreservation:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        warn = None
-        if box in [list, tuple] and is_logical:
-            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -820,9 +816,12 @@ class TestNamePreservation:
                 return
             result = getattr(left, name)(right)
         else:
-            # GH#37374 logical ops behaving as set ops deprecated
-            with tm.assert_produces_warning(warn, match=msg):
-                result = op(left, right)
+            if is_logical and box in [list, tuple]:
+                with pytest.raises(TypeError, match=msg):
+                    # GH#52264 logical ops with dtype-less sequences deprecated
+                    op(left, right)
+                return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

@@ -163,7 +163,7 @@ as having a multi-level index:
 
 .. ipython:: python
 
-    table.stack(future_stack=True)
+    table.stack()
 
 .. _reshaping.stacking:
 
@@ -209,7 +209,7 @@ stacked level becomes the new lowest level in a :class:`MultiIndex` on the colum
 
 .. ipython:: python
 
-   stacked = df2.stack(future_stack=True)
+   stacked = df2.stack()
    stacked
 
 With a "stacked" :class:`DataFrame` or :class:`Series` (having a :class:`MultiIndex` as the
@@ -245,7 +245,7 @@ will result in a **sorted** copy of the original :class:`DataFrame` or :class:`S
    index = pd.MultiIndex.from_product([[2, 1], ["a", "b"]])
    df = pd.DataFrame(np.random.randn(4), index=index, columns=["A"])
    df
-   all(df.unstack().stack(future_stack=True) == df.sort_index())
+   all(df.unstack().stack() == df.sort_index())
 
 .. _reshaping.stack_multiple:
 
@@ -270,16 +270,16 @@ processed individually.
     df = pd.DataFrame(np.random.randn(4, 4), columns=columns)
     df
 
-    df.stack(level=["animal", "hair_length"], future_stack=True)
+    df.stack(level=["animal", "hair_length"])
 
 The list of levels can contain either level names or level numbers but
 not a mixture of the two.
 
 .. ipython:: python
 
-    # df.stack(level=['animal', 'hair_length'], future_stack=True)
+    # df.stack(level=['animal', 'hair_length'])
     # from above is equivalent to:
-    df.stack(level=[1, 2], future_stack=True)
+    df.stack(level=[1, 2])
 
 Missing data
 ~~~~~~~~~~~~

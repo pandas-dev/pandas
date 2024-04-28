@@ -619,6 +619,8 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
 
+.. _whatsnew_220.silent_downcasting:
+
 Deprecated automatic downcasting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -946,4 +948,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.1.4..v2.2.0|HEAD
+.. contributors:: v2.1.4..v2.2.0

@@ -1,4 +1,5 @@
-""" Test cases for time series specific (freq conversion, etc) """
+"""Test cases for time series specific (freq conversion, etc)"""
+
 from datetime import (
     date,
     datetime,
@@ -14,7 +15,8 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
     DataFrame,
@@ -42,6 +44,7 @@ from pandas.tests.plotting.common import _check_ticks_props
 from pandas.tseries.offsets import WeekOfMonth
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 class TestTSPlot:
@@ -238,8 +241,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
-        freq = df.index.asfreq(freq).freq
+        freq = df.index.freq.rule_code
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -253,7 +255,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = freq_to_period_freqstr(1, df.index.freq.rule_code)
+        freq = PeriodDtype(df.index.freq)._freqstr
         freq = df.index.to_period(freq).freq
         _check_plot_works(df.plot, freq)
 
@@ -292,27 +294,6 @@ class TestTSPlot:
         dr = Index([datetime(2000, 1, 1), datetime(2000, 1, 6), datetime(2000, 1, 11)])
         ser = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
         _check_plot_works(ser.plot)
-
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    def test_uhf(self):
-        import pandas.plotting._matplotlib.converter as conv
-
-        idx = date_range("2012-6-22 21:59:51.960928", freq="ms", periods=500)
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
-        )
-
-        _, ax = mpl.pyplot.subplots()
-        df.plot(ax=ax)
-        axis = ax.get_xaxis()
-
-        tlocs = axis.get_ticklocs()
-        tlabels = axis.get_ticklabels()
-        for loc, label in zip(tlocs, tlabels):
-            xp = conv._from_ordinal(loc).strftime("%H:%M:%S.%f")
-            rs = str(label.get_text())
-            if len(rs):
-                assert xp == rs
 
     def test_irreg_hf(self):
         idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
@@ -946,7 +927,7 @@ class TestTSPlot:
     @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
         # GH13341, using sharex=True
-        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)
@@ -1714,6 +1695,25 @@ class TestTSPlot:
         axes = df.plot(x="x", y="y", subplots=True, sharex=False)
         _check_ticks_props(axes, xrot=0)
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            date_range("2020-01-01", periods=5),
+            date_range("2020-01-01", periods=5, tz="UTC"),
+            timedelta_range("1 day", periods=5, freq="D"),
+            period_range("2020-01-01", periods=5, freq="D"),
+            Index([date(2000, 1, i) for i in [1, 3, 6, 20, 22]], dtype=object),
+            range(5),
+        ],
+    )
+    def test_pickle_fig(self, temp_file, frame_or_series, idx):
+        # GH18439, GH#24088, statsmodels#4772
+        df = frame_or_series(range(5), index=idx)
+        fig, ax = plt.subplots(1, 1)
+        df.plot(ax=ax)
+        with temp_file.open(mode="wb") as path:
+            pickle.dump(fig, path)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
@@ -1746,9 +1746,5 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         kwargs["ax"] = ax
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
-
-        # GH18439, GH#24088, statsmodels#4772
-        with tm.ensure_clean(return_filelike=True) as path:
-            pickle.dump(fig, path)
     finally:
         plt.close(fig)
