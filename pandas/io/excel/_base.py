@@ -482,7 +482,7 @@ def read_excel(
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     # If sheet name and table name are specified -> Nested Dictionary of DataFrames
-    table_name: str | list[str] | None = 0,
+    table_name: str | int | list[str] | None = 0,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | str | Sequence[int] | None = None,
@@ -513,7 +513,7 @@ def read_excel(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
-) -> DataFrame | dict[IntStrT, DataFrame] | dict[str, DataFrame]:
+) -> DataFrame | list[DataFrame] | dict[str, DataFrame]:
     check_dtype_backend(dtype_backend)
     should_close = False
     if engine_kwargs is None:
@@ -1997,6 +1997,10 @@ class ExcelFile:
         ["Sheet1", "Sheet2"]
         """
         return self._reader.sheet_names
+
+    @property
+    def table_names(self):
+        return self._reader.table_names
 
     def close(self) -> None:
         """close io if necessary"""
