@@ -798,6 +798,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             ret_dict = True
         elif table_name is None:
             tables = self.table_names
+            print(self.table_names)
             ret_dict = True
         else:
             tables = [table_name]
