@@ -6637,7 +6637,7 @@ class Index(IndexOpsMixin, PandasObject):
             An integer representing the location where the new item will be inserted
             into the Index.
         item : object
-            An object representing the new item to be inserted into the Index.
+            The new item to be inserted into the Index.
 
         Returns
         -------
