@@ -170,7 +170,7 @@ def align_terms(terms):
 
     # if all input series have a common name, propagate it to the returned series
     names = {term.value.name for term in terms if isinstance(term.value, ABCSeries)}
-    name = next(iter(names)) if len(names) == 1 else None
+    name = names.pop() if len(names) == 1 else None
 
     # perform the main alignment
     typ, axes = _align_core(terms)
