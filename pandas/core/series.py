@@ -5280,6 +5280,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Replace values where the conditions are True.
 
+        .. versionadded:: 2.2.0
+
         Parameters
         ----------
         caselist : A list of tuples of conditions and expected replacements
@@ -5296,8 +5298,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and should return a scalar or Series. The callable
             must not change the input Series
             (though pandas doesn`t check it).
-
-            .. versionadded:: 2.2.0
 
         Returns
         -------
