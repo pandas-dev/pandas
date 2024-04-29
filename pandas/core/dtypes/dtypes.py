@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Scalar,
         Self,
         npt,
         type_t,
@@ -717,6 +718,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
+    See Also
+    --------
+    numpy.datetime64 : Numpy data type for datetime.
+    datetime.datetime : Python datetime object.
+
     Examples
     --------
     >>> from zoneinfo import ZoneInfo
@@ -793,6 +799,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
@@ -806,6 +816,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
 
         Examples
         --------
@@ -1538,6 +1552,25 @@ class BaseMaskedDtype(ExtensionDtype):
 
     base = None
     type: type
+    _internal_fill_value: Scalar
+
+    @property
+    def _truthy_value(self):
+        # Fill values used for 'any'
+        if self.kind == "f":
+            return 1.0
+        if self.kind in "iu":
+            return 1
+        return True
+
+    @property
+    def _falsey_value(self):
+        # Fill values used for 'all'
+        if self.kind == "f":
+            return 0.0
+        if self.kind in "iu":
+            return 0
+        return False
 
     @property
     def na_value(self) -> libmissing.NAType:

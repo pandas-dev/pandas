@@ -455,6 +455,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         DatetimeIndex
 
+        See Also
+        --------
+        DatetimeIndex.round : Perform round operation on the data to the
+            specified `freq`.
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+
         Examples
         --------
         >>> idx = pd.DatetimeIndex(
@@ -508,6 +515,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
+        start = start.as_unit(self.unit)
+        end = end.as_unit(self.unit)
 
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
@@ -694,10 +703,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             Time passed in either as object (datetime.time) or as string in
             appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p").
+        asof : bool, default False
+            This parameter is currently not supported.
 
         Returns
         -------
         np.ndarray[np.intp]
+            Index locations of values at given `time` of day.
 
         See Also
         --------
@@ -750,6 +762,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         np.ndarray[np.intp]
+            Index locations of values between particular times of day.
 
         See Also
         --------
