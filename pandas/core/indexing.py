@@ -757,7 +757,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         if self.name == "loc":
             # always holds here bc iloc overrides _get_setitem_indexer
-            self._ensure_listlike_indexer(key)
+            self._ensure_listlike_indexer(key, axis=self.axis)
 
         if isinstance(key, tuple):
             for x in key:
@@ -857,8 +857,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
-            key = key[column_axis]
-            axis = column_axis
+            # unless axis is already specified, then go with that
+            if axis is None:
+                axis = column_axis
+            key = key[axis]
 
         if (
             axis == column_axis
@@ -899,7 +901,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
@@ -1177,7 +1179,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         if type(key) is tuple:
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 return self.obj._get_value(*key, takeable=self._takeable)
@@ -1191,13 +1193,13 @@ class _LocationIndexer(NDFrameIndexerBase):
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _getitem_tuple(self, tup: tuple):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         raise AbstractMethodError(self)

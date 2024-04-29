@@ -326,6 +326,30 @@ class TestBase:
         if index.inferred_type == "object":
             assert result3 > result2
 
+    def test_memory_usage_doesnt_trigger_engine(self, index):
+        index._cache.clear()
+        assert "_engine" not in index._cache
+
+        res_without_engine = index.memory_usage()
+        assert "_engine" not in index._cache
+
+        # explicitly load and cache the engine
+        _ = index._engine
+        assert "_engine" in index._cache
+
+        res_with_engine = index.memory_usage()
+
+        # the empty engine doesn't affect the result even when initialized with values,
+        # because engine.sizeof() doesn't consider the content of engine.values
+        assert res_with_engine == res_without_engine
+
+        if len(index) == 0:
+            assert res_without_engine == 0
+            assert res_with_engine == 0
+        else:
+            assert res_without_engine > 0
+            assert res_with_engine > 0
+
     def test_argsort(self, index):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
@@ -880,7 +904,10 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "Cannot change data-type for object array"
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)

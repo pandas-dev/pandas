@@ -45,6 +45,7 @@ REDUCTIONS = ("sum", "prod", "min", "max")
 _unary_math_ops = (
     "sin",
     "cos",
+    "tan",
     "exp",
     "log",
     "expm1",
@@ -115,7 +116,7 @@ class Term:
         res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
-        if hasattr(res, "ndim") and res.ndim > 2:
+        if hasattr(res, "ndim") and isinstance(res.ndim, int) and res.ndim > 2:
             raise NotImplementedError(
                 "N-dimensional objects, where N > 2, are not supported with eval"
             )

@@ -173,7 +173,7 @@ def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()
     elif PYPY and extra_warnings:
         return assert_produces_warning(
             extra_warnings,
-            match="|".join(extra_match),
+            match=extra_match,
         )
     else:
         if using_copy_on_write():
@@ -190,5 +190,5 @@ def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()
             warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
             warning,
-            match="|".join((match, *extra_match)),
+            match=(match, *extra_match),
         )
