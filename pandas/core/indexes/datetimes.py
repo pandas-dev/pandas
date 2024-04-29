@@ -760,6 +760,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         np.ndarray[np.intp]
+            Index locations of values between particular times of day.
 
         See Also
         --------

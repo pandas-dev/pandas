@@ -220,6 +220,14 @@ def test_dt64_array(dtype_unit):
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            None,
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
         # Boolean
         (
             [True, None],
@@ -246,6 +254,14 @@ def test_dt64_array(dtype_unit):
             period_array(["2000", "2001"], freq="D"),
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
+        ),
+        # Complex
+        (
+            np.array([complex(1), complex(2)], dtype=np.complex128),
+            None,
+            NumpyExtensionArray(
+                np.array([complex(1), complex(2)], dtype=np.complex128)
+            ),
         ),
     ],
 )
