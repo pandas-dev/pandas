@@ -525,6 +525,8 @@ class ArrowExtensionArray(
         if pa_type is not None and pa_array.type != pa_type:
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
+                if pa_array.type != pa_type:
+                    pa_array = pa_array.cast(pa_type)
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)

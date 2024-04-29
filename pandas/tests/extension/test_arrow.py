@@ -3498,6 +3498,14 @@ def test_to_numpy_timestamp_to_int():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("arrow_type", [pa.large_string(), pa.string()])
+def test_cast_dictionary_different_value_dtype(arrow_type):
+    df = pd.DataFrame({"a": ["x", "y"]}, dtype="string[pyarrow]")
+    data_type = ArrowDtype(pa.dictionary(pa.int32(), arrow_type))
+    result = df.astype({"a": data_type})
+    assert result.dtypes.iloc[0] == data_type
+
+
 def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
