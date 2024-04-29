@@ -42,6 +42,7 @@ Other enhancements
 - :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
+- :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -220,6 +221,7 @@ Removal of prior version deprecations/changes
 - :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
+- Changed behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` to always treat integer keys as labels, never as positional, consistent with :class:`DataFrame` behavior (:issue:`50617`)
 - Disallow allowing logical operations (``||``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``); wrap the objects in :class:`Series`, :class:`Index`, or ``np.array`` first instead (:issue:`52264`)
 - Disallow automatic casting to object in :class:`Series` logical operations (``&``, ``^``, ``||``) between series with mismatched indexes and dtypes other than ``object`` or ``bool`` (:issue:`52538`)
 - Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
@@ -340,6 +342,9 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.argmin` and :meth:`RangeIndex.argmax` (:issue:`57823`)
 - Performance improvement in :meth:`RangeIndex.insert` returning a :class:`RangeIndex` instead of a :class:`Index` when the :class:`RangeIndex` is empty. (:issue:`57833`)
 - Performance improvement in :meth:`RangeIndex.round` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57824`)
+- Performance improvement in :meth:`RangeIndex.searchsorted` (:issue:`58376`)
+- Performance improvement in :meth:`RangeIndex.to_numpy` when specifying an ``na_value`` (:issue:`58376`)
+- Performance improvement in :meth:`RangeIndex.value_counts` (:issue:`58376`)
 - Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`, :issue:`57752`)
 - Performance improvement in :meth:`RangeIndex.reindex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57647`, :issue:`57752`)
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`, :issue:`57752`)
@@ -465,6 +470,7 @@ Styler
 Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
+- Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)

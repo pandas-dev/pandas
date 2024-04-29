@@ -497,6 +497,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
 
+        See Also
+        --------
+        astype : Cast argument to a specified dtype.
+        CategoricalDtype : Type for categorical data.
+
         Examples
         --------
         >>> cat = pd.Categorical(["a", "b"], ordered=True)
@@ -721,6 +726,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
 
+        See Also
+        --------
+        codes : The category codes of the categorical.
+        CategoricalIndex : An Index with an underlying ``Categorical``.
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(["a", "b"], ordered=True)
@@ -810,6 +820,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Whether the categories have an ordered relationship.
 
+        See Also
+        --------
+        set_ordered : Set the ordered attribute.
+        as_ordered : Set the Categorical to be ordered.
+        as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -860,6 +876,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         ndarray[int]
             A non-writable view of the ``codes`` array.
+
+        See Also
+        --------
+        Categorical.from_codes : Make a Categorical from codes.
+        CategoricalIndex : An Index with an underlying ``Categorical``.
 
         Examples
         --------
@@ -1641,6 +1662,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The numpy array interface.
 
+        Users should not call this directly. Rather, it is invoked by
+        :func:`numpy.array` and :func:`numpy.asarray`.
+
         Parameters
         ----------
         dtype : np.dtype or None
@@ -1655,6 +1679,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
+
+        See Also
+        --------
+        numpy.asarray : Convert input to numpy.ndarray.
 
         Examples
         --------
