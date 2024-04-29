@@ -2872,7 +2872,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
-            Another Index or an array-like object containing elements to form the union
+            Index or an array-like object containing elements to form the union
             with the original Index.
         sort : bool or None, default None
             Whether to sort the resulting Index.
