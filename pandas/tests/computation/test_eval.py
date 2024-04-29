@@ -738,9 +738,9 @@ class TestEval:
         assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
     def test_eval_keep_name(self, engine, parser):
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
-        res = df.eval("a * a", engine=engine, parser=parser)
-        expected = df["a"] * df["a"]
+        df = Series([2, 15, 28], name="a").to_frame()
+        res = df.eval("a + a", engine=engine, parser=parser)
+        expected = Series([4, 30, 56], name="a")
         tm.assert_series_equal(expected, res)
 
     def test_eval_unmatching_names(self, engine, parser):
