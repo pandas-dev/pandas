@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -113,8 +114,12 @@ class TestSeriesGetitemScalars:
             ser["c"]
 
     def test_getitem_int64(self, datetime_series):
+        if np_version_gt2:
+            msg = r"^np.int64\(5\)$"
+        else:
+            msg = "^5$"
         idx = np.int64(5)
-        with pytest.raises(KeyError, match="^5$"):
+        with pytest.raises(KeyError, match=msg):
             datetime_series[idx]
 
     def test_getitem_full_range(self):
