@@ -3082,6 +3082,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            An Index or an array-like object containing elements to form the
+            intersection with the original Index.
         sort : True, False or None, default False
             Whether to sort the resulting index.
 
@@ -3093,6 +3095,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with elements common to both the original Index
+            and the `other` Index.
+
+        See Also
+        --------
+        Index.union : Form the union of two Index objects.
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.isin : Return a boolean array where the index values are in values.
 
         Examples
         --------
@@ -6606,11 +6616,19 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         loc : int
+            The integer location where the new item will be inserted.
         item : object
+            The new item to be inserted into the Index.
 
         Returns
         -------
         Index
+            Returns a new Index object resulting from inserting the specified item at
+            the specified location within the original Index.
+
+        See Also
+        --------
+        Index.append : Append a collection of Indexes together.
 
         Examples
         --------
