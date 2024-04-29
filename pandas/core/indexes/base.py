@@ -6647,7 +6647,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.append : Append a collection of Index options together.
+        Index.append : Append a collection of Indexes together.
 
         Examples
         --------
