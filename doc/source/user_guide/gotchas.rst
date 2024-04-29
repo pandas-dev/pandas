@@ -316,7 +316,7 @@ Why not make NumPy like R?
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
 <https://www.r-project.org/>`__. Part of the reason is the
-`NumPy type hierarchy<https://numpy.org/doc/stable/user/basics.types.html>__.
+`NumPy type hierarchy <https://numpy.org/doc/stable/user/basics.types.html>`__.
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and
