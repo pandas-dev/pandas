@@ -326,6 +326,7 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional)
+        Example: Lists, Tuples, NumPy Arrays, pandas Series, Range Objects.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
