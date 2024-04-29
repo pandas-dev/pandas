@@ -668,11 +668,15 @@ class Grouping:
         cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
 
-    @cache_readonly
+    @property
     def observed_grouping(self) -> Grouping:
         if self._observed:
             return self
 
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
         grouping = Grouping(
             self._index,
             self._orig_grouper,
