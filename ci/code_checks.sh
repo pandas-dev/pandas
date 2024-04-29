@@ -115,7 +115,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.identical PR01,SA01" \
         -i "pandas.Index.insert PR07,RT03,SA01" \
         -i "pandas.Index.intersection PR07,RT03,SA01" \
-        -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.names GL08" \
         -i "pandas.Index.nunique RT03" \
         -i "pandas.Index.putmask PR01,RT03" \
