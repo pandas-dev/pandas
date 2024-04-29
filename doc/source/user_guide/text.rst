@@ -735,10 +735,10 @@ Method summary
     :meth:`~Series.str.get_dummies`,Split strings on the delimiter returning DataFrame of dummy variables
     :meth:`~Series.str.contains`,Return boolean array if each string contains pattern/regex
     :meth:`~Series.str.replace`,Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
-    :meth:`~Series.str.removeprefix`,Remove prefix from string, i.e. only remove if string starts with prefix.
-    :meth:`~Series.str.removesuffix`,Remove suffix from string, i.e. only remove if string ends with suffix.
+    :meth:`~Series.str.removeprefix`,Remove prefix from string i.e. only remove if string starts with prefix.
+    :meth:`~Series.str.removesuffix`,Remove suffix from string i.e. only remove if string ends with suffix.
     :meth:`~Series.str.repeat`,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
-    :meth:`~Series.str.pad`,Add whitespace to left, right, or both sides of strings
+    :meth:`~Series.str.pad`,Add whitespace to the sides of strings
     :meth:`~Series.str.center`,Equivalent to ``str.center``
     :meth:`~Series.str.ljust`,Equivalent to ``str.ljust``
     :meth:`~Series.str.rjust`,Equivalent to ``str.rjust``
@@ -750,9 +750,9 @@ Method summary
     :meth:`~Series.str.startswith`,Equivalent to ``str.startswith(pat)`` for each element
     :meth:`~Series.str.endswith`,Equivalent to ``str.endswith(pat)`` for each element
     :meth:`~Series.str.findall`,Compute list of all occurrences of pattern/regex for each string
-    :meth:`~Series.str.match`,Call ``re.match`` on each element, returning matched groups as list
-    :meth:`~Series.str.extract`,Call ``re.search`` on each element, returning DataFrame with one row for each element and one column for each regex capture group
-    :meth:`~Series.str.extractall`,Call ``re.findall`` on each element, returning DataFrame with one row for each match and one column for each regex capture group
+    :meth:`~Series.str.match`,Call ``re.match`` on each element returning matched groups as list
+    :meth:`~Series.str.extract`,Call ``re.search`` on each element returning DataFrame with one row for each element and one column for each regex capture group
+    :meth:`~Series.str.extractall`,Call ``re.findall`` on each element returning DataFrame with one row for each match and one column for each regex capture group
     :meth:`~Series.str.len`,Compute string lengths
     :meth:`~Series.str.strip`,Equivalent to ``str.strip``
     :meth:`~Series.str.rstrip`,Equivalent to ``str.rstrip``

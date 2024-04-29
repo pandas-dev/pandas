@@ -1838,7 +1838,7 @@ with optional parameters:
      :widths: 20, 150
 
      ``split``, dict like {index -> [index]; columns -> [columns]; data -> [values]}
-     ``records``, list like [{column -> value}, ... ]
+     ``records``, list like [{column -> value}; ... ]
      ``index``, dict like {index -> {column -> value}}
      ``columns``, dict like {column -> {index -> value}}
      ``values``, just the values array
