@@ -98,8 +98,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DatetimeIndex.indexer_at_time PR01,RT03" \
-        -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
@@ -110,8 +108,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
         -i "pandas.Index.get_loc PR07,RT03,SA01" \
         -i "pandas.Index.identical PR01,SA01" \
-        -i "pandas.Index.insert PR07,RT03,SA01" \
-        -i "pandas.Index.intersection PR07,RT03,SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.names GL08" \
         -i "pandas.Index.nunique RT03" \
@@ -243,7 +239,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.round PR01,PR02" \
         -i "pandas.Series.dt.seconds SA01" \
         -i "pandas.Series.dt.strftime PR01,PR02" \
-        -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
+        -i "pandas.Series.dt.to_period PR01,PR02" \
         -i "pandas.Series.dt.total_seconds PR01" \
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
