@@ -22,6 +22,7 @@ from typing import (
     Final,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -593,7 +594,7 @@ class HDFStore:
     def __setitem__(self, key: str, value) -> None:
         self.put(key, value)
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str) -> int | None:
         return self.remove(key)
 
     def __getattr__(self, name: str):
@@ -1203,7 +1204,7 @@ class HDFStore:
             dropna=dropna,
         )
 
-    def remove(self, key: str, where=None, start=None, stop=None) -> None:
+    def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
         Remove pandas object partially by specifying the where condition
 
@@ -1251,14 +1252,12 @@ class HDFStore:
         # remove the node
         if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
+            return None
 
         # delete from the table
-        else:
-            if not s.is_table:
-                raise ValueError(
-                    "can only remove with where on objects written as tables"
-                )
-            return s.delete(where=where, start=start, stop=stop)
+        if not s.is_table:
+            raise ValueError("can only remove with where on objects written as tables")
+        return s.delete(where=where, start=start, stop=stop)
 
     def append(
         self,
@@ -2895,7 +2894,7 @@ class Fixed:
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> Series | DataFrame:
         raise NotImplementedError(
             "cannot read on an abstract storer: subclasses should implement"
         )
@@ -2907,7 +2906,7 @@ class Fixed:
 
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
-    ) -> None:
+    ) -> int | None:
         """
         support fully deleting the node in its entirety (only) - where
         specification must be None
@@ -3601,7 +3600,7 @@ class Table(Fixed):
 
         return dict(d1 + d2 + d3)
 
-    def index_cols(self):
+    def index_cols(self) -> list[tuple[Any, Any]]:
         """return a list of my index cols"""
         # Note: each `i.cname` below is assured to be a str.
         return [(i.axis, i.cname) for i in self.index_axes]
@@ -3731,7 +3730,7 @@ class Table(Fixed):
         dc = set(self.data_columns)
         base_pos = len(_indexables)
 
-        def f(i, c):
+        def f(i, c: str) -> DataCol:
             assert isinstance(c, str)
             klass = DataCol
             if c in dc:
@@ -3897,7 +3896,7 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4590,7 +4589,9 @@ class AppendableTable(Table):
             self.table.append(rows)
             self.table.flush()
 
-    def delete(self, where=None, start: int | None = None, stop: int | None = None):
+    def delete(
+        self, where=None, start: int | None = None, stop: int | None = None
+    ) -> int | None:
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -4918,7 +4919,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> DataFrame:
         df = super().read(where=where, columns=columns, start=start, stop=stop)
         df = df.set_index(self.levels)
 
@@ -5379,7 +5380,13 @@ class Selection:
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
 
-    def generate(self, where):
+    @overload
+    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+
+    @overload
+    def generate(self, where: None) -> None: ...
+
+    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None
