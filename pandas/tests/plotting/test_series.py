@@ -378,7 +378,7 @@ class TestSeriesPlots:
         )
         ax = _check_plot_works(series.plot.pie)
         _check_text_labels(ax.texts, series.index)
-        assert ax.get_ylabel() == "YLABEL"
+        assert ax.get_ylabel() == ""
 
     def test_pie_series_no_label(self):
         series = Series(

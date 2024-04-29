@@ -2077,9 +2077,6 @@ class PiePlot(MPLPlot):
 
         for i, (label, y) in enumerate(self._iter_data(data=self.data)):
             ax = self._get_ax(i)
-            if label is not None:
-                label = pprint_thing(label)
-                ax.set_ylabel(label)
 
             kwds = self.kwds.copy()
 
