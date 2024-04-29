@@ -6634,8 +6634,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         loc : int
-            An integer representing the location where the new item will be inserted
-            into the Index.
+            The integer location where the new item will be inserted.
         item : object
             The new item to be inserted into the Index.
 
