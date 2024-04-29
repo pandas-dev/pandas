@@ -478,40 +478,6 @@ def maybe_cast_pointwise_result(
     return result
 
 
-def maybe_cast_to_pyarrow_result(result: ArrayLike, obj_dtype: DtypeObj) -> ArrayLike:
-    """
-    Try casting result of a pointwise operation to its pyarrow dtype
-    and arrow extension array if appropriate. If not possible,
-    returns np.ndarray.
-
-    Parameters
-    ----------
-    result : array-like
-        Result to cast.
-
-    Returns
-    -------
-    result : array-like
-        result maybe casted to the dtype.
-    """
-    from pandas.core.construction import array as pd_array
-
-    # maybe_convert_objects is unable to detect NA as nan
-    # (detects it as object instead)
-    stripped_result = result[~isna(result)]
-    npvalues = lib.maybe_convert_objects(stripped_result, try_float=False)
-
-    if stripped_result.size == 0:
-        return maybe_cast_pointwise_result(npvalues, obj_dtype, numeric_only=True)
-
-    try:
-        dtype = convert_dtypes(npvalues, dtype_backend="pyarrow")
-        out = pd_array(result, dtype=dtype)
-    except (TypeError, ValueError, np.ComplexWarning):
-        out = npvalues
-    return out
-
-
 def _maybe_cast_to_extension_array(
     cls: type[ExtensionArray], obj: ArrayLike, dtype: ExtensionDtype | None = None
 ) -> ArrayLike:
@@ -1061,7 +1027,6 @@ def convert_dtypes(
     np.dtype, or ExtensionDtype
     """
     inferred_dtype: str | DtypeObj
-    orig_inferred_dtype = None
 
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
@@ -1070,7 +1035,6 @@ def convert_dtypes(
             inferred_dtype = lib.infer_dtype(input_array)
         else:
             inferred_dtype = input_array.dtype
-        orig_inferred_dtype = inferred_dtype
 
         if is_string_dtype(inferred_dtype):
             if not convert_string or inferred_dtype == "bytes":
@@ -1168,8 +1132,7 @@ def convert_dtypes(
             elif isinstance(inferred_dtype, StringDtype):
                 base_dtype = np.dtype(str)
             else:
-                base_dtype = _infer_pyarrow_dtype(input_array, orig_inferred_dtype)
-
+                base_dtype = inferred_dtype
             if (
                 base_dtype.kind == "O"  # type: ignore[union-attr]
                 and input_array.size > 0
@@ -1180,10 +1143,8 @@ def convert_dtypes(
                 pa_type = pa.null()
             else:
                 pa_type = to_pyarrow_type(base_dtype)
-
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
-
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
         # GH 53648
         inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
@@ -1191,40 +1152,6 @@ def convert_dtypes(
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
     return inferred_dtype  # type: ignore[return-value]
-
-
-def _infer_pyarrow_dtype(
-    input_array: ArrayLike,
-    inferred_dtype: str,
-) -> DtypeObj:
-    import pyarrow as pa
-
-    if inferred_dtype == "date":
-        return ArrowDtype(pa.date32())
-    elif inferred_dtype == "time":
-        return ArrowDtype(pa.time64("us"))
-    elif inferred_dtype == "bytes":
-        return ArrowDtype(pa.binary())
-    elif inferred_dtype == "decimal":
-        from pyarrow import (
-            ArrowInvalid,
-            ArrowMemoryError,
-            ArrowNotImplementedError,
-        )
-
-        try:
-            pyarrow_array = pa.array(input_array)
-            return ArrowDtype(pyarrow_array.type)
-        except (
-            TypeError,
-            ValueError,
-            ArrowInvalid,
-            ArrowMemoryError,
-            ArrowNotImplementedError,
-        ):
-            return input_array.dtype
-
-    return input_array.dtype
 
 
 def maybe_infer_to_datetimelike(

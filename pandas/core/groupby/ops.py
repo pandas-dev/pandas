@@ -36,7 +36,6 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
-    maybe_cast_to_pyarrow_result,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -46,6 +45,7 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -917,21 +917,24 @@ class BaseGrouper:
         """
 
         result = self._aggregate_series_pure_python(obj, func)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
 
         if isinstance(obj._values, ArrowExtensionArray):
-            return maybe_cast_to_pyarrow_result(result, obj.dtype)
+            out = maybe_cast_pointwise_result(
+                npvalues, obj.dtype, numeric_only=True, same_dtype=False
+            )
+            import pyarrow as pa
 
-        if not isinstance(obj._values, np.ndarray) and not isinstance(
-            obj._values, ArrowExtensionArray
-        ):
+            if isinstance(out.dtype, ArrowDtype) and pa.types.is_struct(
+                out.dtype.pyarrow_dtype
+            ):
+                out = npvalues
+
+        elif not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
             #  is sufficiently strict that it casts appropriately.
-            preserve_dtype = True
-
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues
