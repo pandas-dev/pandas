@@ -100,7 +100,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.DatetimeIndex.indexer_at_time PR01,RT03" \
         -i "pandas.DatetimeIndex.snap PR01,RT03" \
-        -i "pandas.DatetimeIndex.to_period RT03" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
@@ -242,7 +241,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.round PR01,PR02" \
         -i "pandas.Series.dt.seconds SA01" \
         -i "pandas.Series.dt.strftime PR01,PR02" \
-        -i "pandas.Series.dt.to_period PR01,PR02,RT03" \
+        -i "pandas.Series.dt.to_period PR01,PR02" \
         -i "pandas.Series.dt.total_seconds PR01" \
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
