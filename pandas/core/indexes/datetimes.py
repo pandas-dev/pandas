@@ -451,9 +451,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        Parameters
+        ----------
+        freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'S'
+            Frequency strings can have multiples, e.g. '5h'. See
+            :ref:`here <timeseries.offset_aliases>` for a list of
+            frequency aliases.
+
         Returns
         -------
         DatetimeIndex
+            Time stamps to nearest occurring `freq`.
 
         See Also
         --------

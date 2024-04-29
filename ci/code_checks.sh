@@ -98,7 +98,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.DatetimeIndex.snap PR01,RT03" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.append PR07,RT03,SA01" \
