@@ -178,9 +178,10 @@ The inferred resolution now matches that of the input strings:
 
 In cases with mixed-resolution inputs, the highest resolution is used:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    In [2]: pd.to_datetime(["2024-03-22 11:43:01", "2024-03-22 11:43:01.002"]).dtype
+    In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
+    Out[2]: dtype('<M8[ns]')
 
 .. _whatsnew_300.api_breaking.deps:
 
