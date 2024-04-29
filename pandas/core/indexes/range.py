@@ -57,9 +57,13 @@ if TYPE_CHECKING:
         Dtype,
         JoinHow,
         NaPosition,
+        NumpySorter,
         Self,
         npt,
     )
+
+    from pandas import Series
+
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
@@ -1359,3 +1363,64 @@ class RangeIndex(Index):
                 taken += self.start
 
         return self._shallow_copy(taken, name=self.name)
+
+    def value_counts(
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
+    ) -> Series:
+        from pandas import Series
+
+        if bins is not None:
+            return super().value_counts(
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                bins=bins,
+                dropna=dropna,
+            )
+        name = "proportion" if normalize else "count"
+        data: npt.NDArray[np.floating] | npt.NDArray[np.signedinteger] = np.ones(
+            len(self), dtype=np.int64
+        )
+        if normalize:
+            data = data / len(self)
+        return Series(data, index=self.copy(), name=name)
+
+    def searchsorted(  # type: ignore[override]
+        self,
+        value,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if side not in {"left", "right"} or sorter is not None:
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+
+        was_scalar = False
+        if is_scalar(value):
+            was_scalar = True
+            array_value = np.array([value])
+        else:
+            array_value = np.asarray(value)
+        if array_value.dtype.kind not in "iu":
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+
+        if flip := (self.step < 0):
+            rng = self._range[::-1]
+            start = rng.start
+            step = rng.step
+            shift = side == "right"
+        else:
+            start = self.start
+            step = self.step
+            shift = side == "left"
+        result = (array_value - start - int(shift)) // step + 1
+        if flip:
+            result = len(self) - result
+        result = np.maximum(np.minimum(result, len(self)), 0)
+        if was_scalar:
+            return np.intp(result.item())
+        return result.astype(np.intp, copy=False)
