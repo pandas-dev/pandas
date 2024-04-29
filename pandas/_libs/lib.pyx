@@ -2808,14 +2808,14 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas.core.arrays import IntegerArray
 
             # Set these values to 1 to be deterministic, match
-            #  IntegerArray._internal_fill_value
+            #  IntegerDtype._internal_fill_value
             result[mask] = 1
             result = IntegerArray(result, mask)
         elif result is floats and convert_to_nullable_dtype:
             from pandas.core.arrays import FloatingArray
 
             # Set these values to 1.0 to be deterministic, match
-            #  FloatingArray._internal_fill_value
+            #  FloatingDtype._internal_fill_value
             result[mask] = 1.0
             result = FloatingArray(result, mask)
 

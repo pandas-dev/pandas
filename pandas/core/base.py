@@ -556,7 +556,6 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -668,7 +667,7 @@ class IndexOpsMixin(OpsMixin):
         )
 
         values = self._values
-        if fillna:
+        if fillna and self.hasnans:
             if not can_hold_element(values, na_value):
                 # if we can't hold the na_value asarray either makes a copy or we
                 # error before modifying values. The asarray later on thus won't make
@@ -943,7 +942,6 @@ class IndexOpsMixin(OpsMixin):
 
         return algorithms.map_array(arr, mapper, na_action=na_action)
 
-    @final
     def value_counts(
         self,
         normalize: bool = False,
