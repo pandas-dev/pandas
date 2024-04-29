@@ -1629,7 +1629,7 @@ class TestDataFramePlots:
         for ax in axes:
             _check_text_labels(ax.texts, df.index)
         for ax, ylabel in zip(axes, df.columns):
-            assert ax.get_ylabel() == ylabel
+            assert ax.get_ylabel() == ""
 
     def test_pie_df_labels_colors(self):
         df = DataFrame(
