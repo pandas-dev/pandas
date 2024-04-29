@@ -3953,6 +3953,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+            An iterable containing the values to be used for creating the new index.
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -6686,6 +6687,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         labels : array-like or scalar
+            Array-like object or a scalar value, representing the labels to be removed
+            from the Index.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
@@ -6698,6 +6701,11 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         KeyError
             If not all of the labels are found in the selected axis
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
+        Index.drop_duplicates : Return Index with duplicate values removed.
 
         Examples
         --------
