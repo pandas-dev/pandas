@@ -68,6 +68,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name: ClassVar[str] = "boolean"
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = False
+
     # https://github.com/python/mypy/issues/4125
     # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
@@ -293,13 +296,6 @@ class BooleanArray(BaseMaskedArray):
     Length: 3, dtype: boolean
     """
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = False
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "bool", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = True  # type: ignore[assignment]
-    _falsey_value = False  # type: ignore[assignment]
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
