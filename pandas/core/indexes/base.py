@@ -1013,6 +1013,42 @@ class Index(IndexOpsMixin, PandasObject):
         return self[:]
 
     def view(self, cls=None):
+        """
+        Return a view on self.
+
+        Parameters
+        ----------
+        cls : data-type or ndarray sub-class, optional
+            Data-type descriptor of the returned view, e.g., float32 or int16.
+            Omitting it results in the view having the same data-type as `self`.
+            This argument can also be specified as an ndarray sub-class,
+            e.g., np.int64 or np.float32 which then specifies the type of
+            the returned object.
+
+        Returns
+        -------
+        numpy.ndarray
+            A new view of the same data in memory.
+
+        See Also
+        --------
+        numpy.ndarray.view : Returns a new view of array with the same data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=["1", "2", "3"])
+        >>> s.index.view("object")
+        array(['1', '2', '3'], dtype=object)
+
+        >>> s = pd.Series([1, 2, 3], index=[-1, 0, 1])
+        >>> s.index.view(np.int64)
+        array([-1,  0,  1])
+        >>> s.index.view(np.float32)
+        array([   nan,    nan, 0.e+00, 0.e+00, 1.e-45, 0.e+00], dtype=float32)
+        >>> s.index.view(np.uint64)
+        array([18446744073709551615,                    0,                    1],
+          dtype=uint64)
+        """
         # we need to see if we are subclassing an
         # index type here
         if cls is not None:
