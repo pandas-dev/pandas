@@ -6342,9 +6342,14 @@ class Index(IndexOpsMixin, PandasObject):
         KeyError : If key does not exist, or key is not unique and index is
             not ordered.
 
+        See Also
+        --------
+        Index.slice_locs : Computes slice locations for input labels.
+        Index.get_slice_bound : Retrieves slice bound that corresponds to given label.
+
         Notes
         -----
-        This function assumes that the data is sorted, so use at your own peril
+        This function assumes that the data is sorted, so use at your own peril.
 
         Examples
         --------
