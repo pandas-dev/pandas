@@ -1120,9 +1120,21 @@ class Index(IndexOpsMixin, PandasObject):
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
         fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -6330,19 +6342,26 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
+            If None, defaults to 1.
 
         Returns
         -------
         slice
+            A slice object.
 
         Raises
         ------
         KeyError : If key does not exist, or key is not unique and index is
             not ordered.
 
+        See Also
+        --------
+        Index.slice_locs : Computes slice locations for input labels.
+        Index.get_slice_bound : Retrieves slice bound that corresponds to given label.
+
         Notes
         -----
-        This function assumes that the data is sorted, so use at your own peril
+        This function assumes that the data is sorted, so use at your own peril.
 
         Examples
         --------

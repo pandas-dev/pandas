@@ -70,9 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.DataFrame.__dataframe__ SA01" \
-        -i "pandas.DataFrame.kurt RT03,SA01" \
-        -i "pandas.DataFrame.kurtosis RT03,SA01" \
         -i "pandas.DataFrame.max RT03" \
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
@@ -100,9 +97,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.names GL08" \
         -i "pandas.Index.putmask PR01,RT03" \
         -i "pandas.Index.ravel PR01,RT03" \
-        -i "pandas.Index.slice_indexer PR07,RT03,SA01" \
         -i "pandas.Index.str PR01,SA01" \
-        -i "pandas.Index.take PR01,PR07" \
         -i "pandas.Index.view GL08" \
         -i "pandas.Int16Dtype SA01" \
         -i "pandas.Int32Dtype SA01" \
