@@ -815,7 +815,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
     def parse_sheet(
         self,
-        data: None = None | ...,
+        data: list,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         output: dict | None = None,
