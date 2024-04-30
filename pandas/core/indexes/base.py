@@ -1038,15 +1038,15 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> s = pd.Series([1, 2, 3], index=["1", "2", "3"])
         >>> s.index.view("object")
-        ['1' '2' '3']
+        array(['1', '2', '3'], dtype=object)
 
         >>> s = pd.Series([1, 2, 3], index=[-1, 0, 1])
         >>> s.index.view(np.int64)
-        [-1  0  1]
+        array([-1  0  1], dtype=int64)
         >>> s.index.view(np.float32)
-        [nan    nan 0.e+00 0.e+00 1.e-45 0.e+00]
+        array([nan    nan 0.e+00 0.e+00 1.e-45 0.e+00], dtype=float32)
         >>> s.index.view(np.uint64)
-        [18446744073709551615   0   1]
+        array([18446744073709551615   0   1], dtype=uint64)
         """
         # we need to see if we are subclassing an
         # index type here
