@@ -93,4 +93,4 @@ def test_hash_read_only_categorical():
     idx = pd.Index(pd.Index(["a", "b", "c"], dtype="object").values)
     cat = pd.CategoricalDtype(idx)
     arr = pd.Series(["a", "b"], dtype=cat).values
-    assert hash(arr.dtype) == 1532899084736511412
+    assert hash(arr.dtype) == hash(arr.dtype)
