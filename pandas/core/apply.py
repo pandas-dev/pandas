@@ -628,7 +628,11 @@ class Apply(metaclass=abc.ABCMeta):
 
             cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                raise KeyError(f"Column(s) {list(cols)} do not exist")
+                raise KeyError(
+                    f"Column(s) {list(cols)} do not exist, "
+                    "if you don't mean to apply to each rows, "
+                    "consider using `axis=0` instead."
+                )
 
         aggregator_types = (list, tuple, dict)
 
