@@ -2767,6 +2767,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         np.ndarray[bool]
+            A numpy array of boolean values indicating duplicate index values.
 
         See Also
         --------
@@ -2872,6 +2873,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index or an array-like object containing elements to form the union
+            with the original Index.
         sort : bool or None, default None
             Whether to sort the resulting Index.
 
@@ -2888,6 +2891,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with all unique elements from both the original
+            Index and the `other` Index.
+
+        See Also
+        --------
+        Index.unique : Return unique values in the index.
+        Index.intersection : Form the intersection of two Index objects.
+        Index.difference : Return a new Index with elements of index not in `other`.
 
         Examples
         --------
@@ -3082,6 +3093,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            An Index or an array-like object containing elements to form the
+            intersection with the original Index.
         sort : True, False or None, default False
             Whether to sort the resulting index.
 
@@ -3093,6 +3106,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with elements common to both the original Index
+            and the `other` Index.
+
+        See Also
+        --------
+        Index.union : Form the union of two Index objects.
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.isin : Return a boolean array where the index values are in values.
 
         Examples
         --------
@@ -3302,7 +3323,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index or an array-like object with elements to compute the symmetric
+            difference with the original Index.
         result_name : str
+            A string representing the name of the resulting Index, if desired.
         sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
@@ -3316,6 +3340,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object containing elements that appear in either the
+            original Index or the `other` Index, but not both.
+
+        See Also
+        --------
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.union : Form the union of two Index objects.
+        Index.intersection : Form the intersection of two Index objects.
 
         Notes
         -----
@@ -5312,11 +5344,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but checks that object attributes and types are also equal.
 
+        Parameters
+        ----------
+        other : Index
+            The Index object you want to compare with the current Index object.
+
         Returns
         -------
         bool
             If two Index objects have equal elements and same type True,
             otherwise False.
+
+        See Also
+        --------
+        Index.equals: Determine if two Index object are equal.
+        Index.has_duplicates: Check if the Index has duplicate values.
+        Index.is_unique: Return if the index has unique values.
 
         Examples
         --------
@@ -6625,11 +6668,19 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         loc : int
+            The integer location where the new item will be inserted.
         item : object
+            The new item to be inserted into the Index.
 
         Returns
         -------
         Index
+            Returns a new Index object resulting from inserting the specified item at
+            the specified location within the original Index.
+
+        See Also
+        --------
+        Index.append : Append a collection of Indexes together.
 
         Examples
         --------
