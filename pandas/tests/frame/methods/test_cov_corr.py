@@ -464,6 +464,7 @@ class TestDataFrameCorrWith:
 
     def test_corrwith_min_periods_method(self):
         # GH#9490
+        pytest.importorskip("scipy")
         df1 = DataFrame(
             {
                 "A": [1, np.nan, 7, 8],
