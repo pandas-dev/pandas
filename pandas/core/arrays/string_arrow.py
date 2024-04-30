@@ -634,7 +634,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                 # float64 for int (to match maybe_convert_objects) or
                 # object for bool (again to match maybe_convert_objects)
                 if is_integer_dtype(dtype):
-                    dtype = np.float64
+                    dtype = np.dtype("float64")
                 else:
                     dtype = np.dtype(object)
             result = lib.map_infer_mask(
