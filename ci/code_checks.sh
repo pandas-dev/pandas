@@ -71,7 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.DataFrame.__dataframe__ SA01" \
-        -i "pandas.DataFrame.at_time PR01" \
         -i "pandas.DataFrame.kurt RT03,SA01" \
         -i "pandas.DataFrame.kurtosis RT03,SA01" \
         -i "pandas.DataFrame.max RT03" \
