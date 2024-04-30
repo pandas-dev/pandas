@@ -780,7 +780,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 output[asheetname] = DataFrame()
                 continue
 
-            output = self.parse_sheet(
+            output = self._parse_sheet(
                 data=data,
                 output=output,
                 asheetname=asheetname,
@@ -813,7 +813,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         else:
             return output[last_sheetname]
 
-    def parse_sheet(
+    def _parse_sheet(
         self,
         data: list,
         output: dict,
