@@ -103,7 +103,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.slice_indexer PR07,RT03,SA01" \
         -i "pandas.Index.str PR01,SA01" \
-        -i "pandas.Index.take PR01,PR07" \
         -i "pandas.Index.view GL08" \
         -i "pandas.Int16Dtype SA01" \
         -i "pandas.Int32Dtype SA01" \
