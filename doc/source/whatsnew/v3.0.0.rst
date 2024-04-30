@@ -392,7 +392,6 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-
 - Bug in :class:`Series` constructor responsible for bad datetime to str dtype conversions in ``read_csv``. (:issue:`57512`)
 - Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
