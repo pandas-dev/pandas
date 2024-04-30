@@ -842,9 +842,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 output[outputDict][asheetname] = DataFrame()
                 continue
 
-            output = self.parse_data(
+            output = self._parse_sheet(
                 data=data,
-                asheetname=asheetname,
+                parse_area=asheetname,
                 header=header,
                 output=output,
                 outputDict=outputDict,
@@ -899,9 +899,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
                             output[outputDict][atablename] = DataFrame()
                             continue
 
-                        output = self.parse_data(
+                        output = self._parse_sheet(
                             data=table_data,
-                            asheetname=atablename,
+                            parse_area=atablename,
                             header=header,
                             output=output,
                             outputDict=outputDict,
@@ -942,11 +942,11 @@ class BaseExcelReader(Generic[_WorkbookT]):
         else:
             return output["sheets"][last_sheetname]
 
-    def parse_data(
+    def _parse_sheet(
         self,
         data: list,
         output: dict,
-        asheetname: str | int | None = None,
+        parse_area: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         outputDict: str | None = None,
         names: SequenceNotStr[Hashable] | range | None = None,
@@ -1083,19 +1083,19 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 **kwds,
             )
 
-            output[outputDict][asheetname] = parser.read(nrows=nrows)
+            output[outputDict][parse_area] = parser.read(nrows=nrows)
 
             if header_names:
-                output[outputDict][asheetname].columns = output[outputDict][
-                    asheetname
+                output[outputDict][parse_area].columns = output[outputDict][
+                    parse_area
                 ].columns.set_names(header_names)
 
         except EmptyDataError:
             # No Data, return an empty DataFrame
-            output[outputDict][asheetname] = DataFrame()
+            output[outputDict][parse_area] = DataFrame()
 
         except Exception as err:
-            err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
+            err.args = (f"{err.args[0]} (sheet: {parse_area})", *err.args[1:])
             raise err
 
         return output
