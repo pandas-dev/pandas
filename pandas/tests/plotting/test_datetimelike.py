@@ -1433,10 +1433,18 @@ class TestTSPlot:
         values2 = np.arange(11.0, 12.0, 0.5)
 
         _, ax = mpl.pyplot.subplots()
-        line1, line2, = ax.plot(
-            [x.toordinal() for x in dates], values1, "-",
-            [x.toordinal() for x in dates], values2, "-",
-            linewidth=4)
+        (
+            line1,
+            line2,
+        ) = ax.plot(
+            [x.toordinal() for x in dates],
+            values1,
+            "-",
+            [x.toordinal() for x in dates],
+            values2,
+            "-",
+            linewidth=4,
+        )
 
         exp = np.array([x.toordinal() for x in dates], dtype=np.float64)
         tm.assert_numpy_array_equal(line1.get_xydata()[:, 0], exp)
