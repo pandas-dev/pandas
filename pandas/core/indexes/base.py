@@ -5325,11 +5325,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but checks that object attributes and types are also equal.
 
+        Parameters
+        ----------
+        other : Index
+            The Index object you want to compare with the current Index object.
+
         Returns
         -------
         bool
             If two Index objects have equal elements and same type True,
             otherwise False.
+
+        See Also
+        --------
+        Index.equals: Determine if two Index object are equal.
+        Index.has_duplicates: Check if the Index has duplicate values.
+        Index.is_unique: Return if the index has unique values.
 
         Examples
         --------
