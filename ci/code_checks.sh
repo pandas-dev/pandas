@@ -85,9 +85,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.DataFrame.var PR01,RT03,SA01" \
-        -i "pandas.Grouper PR02" \
-        -i "pandas.Index.append PR07,RT03,SA01" \
-        -i "pandas.Index.difference PR07,RT03,SA01" \
+        -i "pandas.Grouper PR02" \     
         -i "pandas.Index.get_indexer PR07,SA01" \
         -i "pandas.Index.get_indexer_for PR01,SA01" \
         -i "pandas.Index.get_indexer_non_unique PR07,SA01" \
