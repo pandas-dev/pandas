@@ -11,26 +11,9 @@ including other versions of pandas.
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.enhancements:
 
-
-
 Enhancements
 ~~~~~~~~~~~~
-.. _whatsnew_300.enhancements.read_excel_table_parameter:
 
-``Addition of table name parameter in pandas read_excel``
-^^^^^^^^^^^^^^^^
-
-Previously, when using pandas :func:`read_excel`` method the data read from Excel could not be selected in more detail than on the sheet level.
-To distinguish data that is part of a particular table in the Excel file could be tedious without the use of third party API's.
-This enhancement is a solution to `Issue #38937 <https://github.com/pandas-dev/pandas/issues/38937>`__ introduces the ability to specify a table_name parameter that corresponds to the name of a table in the specified Excel file.
-The table_name argument accepts the names as a string, a list of strings, or the value of None which corresponds to reading in every table in that file.
-
-The return format has some changes, but only if a table_name parameter is specified. If it is not specified, the return remains a DataFrame or dictionary of DataFrames
-holding the data from each sheet.
- - If a table_name is specified and a sheet_name is not, the return will be a DataFrame or dictionary of DataFrames holding the table data desired
- - If a table_name is specified and a sheet_name is also specified, the return with be a nested dictionary containing 2 dictionaries:
-    - The first dictionary is a dictionary of DataFrames corresponding to the data on each sheet
-    - The second dictionary is a dictionary of DataFrames corresponding to the data in each table
 .. _whatsnew_300.enhancements.enhancement1:
 
 enhancement1
@@ -59,6 +42,7 @@ Other enhancements
 - :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
+- :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -237,6 +221,7 @@ Removal of prior version deprecations/changes
 - :meth:`SeriesGroupBy.agg` no longer pins the name of the group to the input passed to the provided ``func`` (:issue:`51703`)
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
+- Changed behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` to always treat integer keys as labels, never as positional, consistent with :class:`DataFrame` behavior (:issue:`50617`)
 - Disallow allowing logical operations (``||``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``); wrap the objects in :class:`Series`, :class:`Index`, or ``np.array`` first instead (:issue:`52264`)
 - Disallow automatic casting to object in :class:`Series` logical operations (``&``, ``^``, ``||``) between series with mismatched indexes and dtypes other than ``object`` or ``bool`` (:issue:`52538`)
 - Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
@@ -357,6 +342,9 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.argmin` and :meth:`RangeIndex.argmax` (:issue:`57823`)
 - Performance improvement in :meth:`RangeIndex.insert` returning a :class:`RangeIndex` instead of a :class:`Index` when the :class:`RangeIndex` is empty. (:issue:`57833`)
 - Performance improvement in :meth:`RangeIndex.round` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57824`)
+- Performance improvement in :meth:`RangeIndex.searchsorted` (:issue:`58376`)
+- Performance improvement in :meth:`RangeIndex.to_numpy` when specifying an ``na_value`` (:issue:`58376`)
+- Performance improvement in :meth:`RangeIndex.value_counts` (:issue:`58376`)
 - Performance improvement in :meth:`RangeIndex.join` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57651`, :issue:`57752`)
 - Performance improvement in :meth:`RangeIndex.reindex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57647`, :issue:`57752`)
 - Performance improvement in :meth:`RangeIndex.take` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57445`, :issue:`57752`)
@@ -402,6 +390,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
@@ -482,6 +471,7 @@ Styler
 Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
+- Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
@@ -493,6 +483,7 @@ Other
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
+- Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 
 .. ***DO NOT USE THIS SECTION***
 
