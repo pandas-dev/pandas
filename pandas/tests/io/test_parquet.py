@@ -649,6 +649,12 @@ class TestBasic(Base):
         ],
     )
     def test_read_empty_array(self, pa, dtype):
+        # GH#58467
+        from pandas.compat._optional import VERSIONS
+
+        pa_min_ver = VERSIONS.get("pyarrow")
+        if Version(pyarrow.__version__) == Version(pa_min_ver):
+            pytest.skip("pandas.core.internals' has no attribute 'DatetimeTZBlock")
         # GH #41241
         df = pd.DataFrame(
             {
@@ -938,6 +944,11 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+        from pandas.compat._optional import VERSIONS
+
+        pa_min_ver = VERSIONS.get("pyarrow")
+        if Version(pyarrow.__version__) == Version(pa_min_ver):
+            pytest.skip("pandas.core.internals' has no attribute 'DatetimeTZBlock")
         if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             request.applymarker(
                 pytest.mark.xfail(
@@ -1107,6 +1118,11 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
+        from pandas.compat._optional import VERSIONS
+
+        pa_min_ver = VERSIONS.get("pyarrow")
+        if Version(pyarrow.__version__) == Version(pa_min_ver):
+            pytest.skip("pandas.core.internals' has no attribute 'DatetimeTZBlock")
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
