@@ -818,7 +818,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         data: list,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
-        output: dict | None = None,
+        output: dict | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
