@@ -2854,7 +2854,7 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
-    cnp.dtype dtype=np.dtype(object)
+    object dtype=np.dtype(object)
 ) -> None:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2887,7 +2887,6 @@ def map_infer_mask(
         flatiter arr_it = PyArray_IterNew(arr)
         flatiter result_it = PyArray_IterNew(result)
 
-    n = len(arr)
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
