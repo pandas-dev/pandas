@@ -2767,6 +2767,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         np.ndarray[bool]
+            A numpy array of boolean values indicating duplicate index values.
 
         See Also
         --------
