@@ -1120,9 +1120,21 @@ class Index(IndexOpsMixin, PandasObject):
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
         fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
 
         Returns
         -------
@@ -2767,6 +2779,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         np.ndarray[bool]
+            A numpy array of boolean values indicating duplicate index values.
 
         See Also
         --------
@@ -2872,6 +2885,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index or an array-like object containing elements to form the union
+            with the original Index.
         sort : bool or None, default None
             Whether to sort the resulting Index.
 
@@ -2888,6 +2903,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with all unique elements from both the original
+            Index and the `other` Index.
+
+        See Also
+        --------
+        Index.unique : Return unique values in the index.
+        Index.intersection : Form the intersection of two Index objects.
+        Index.difference : Return a new Index with elements of index not in `other`.
 
         Examples
         --------
@@ -3082,6 +3105,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            An Index or an array-like object containing elements to form the
+            intersection with the original Index.
         sort : True, False or None, default False
             Whether to sort the resulting index.
 
@@ -3093,6 +3118,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object with elements common to both the original Index
+            and the `other` Index.
+
+        See Also
+        --------
+        Index.union : Form the union of two Index objects.
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.isin : Return a boolean array where the index values are in values.
 
         Examples
         --------
@@ -3312,7 +3345,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index or array-like
+            Index or an array-like object with elements to compute the symmetric
+            difference with the original Index.
         result_name : str
+            A string representing the name of the resulting Index, if desired.
         sort : bool or None, default None
             Whether to sort the resulting index. By default, the
             values are attempted to be sorted, but any TypeError from
@@ -3326,6 +3362,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns a new Index object containing elements that appear in either the
+            original Index or the `other` Index, but not both.
+
+        See Also
+        --------
+        Index.difference : Return a new Index with elements of index not in other.
+        Index.union : Form the union of two Index objects.
+        Index.intersection : Form the intersection of two Index objects.
 
         Notes
         -----
@@ -3963,6 +4007,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+            An iterable containing the values to be used for creating the new index.
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -5329,11 +5374,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but checks that object attributes and types are also equal.
 
+        Parameters
+        ----------
+        other : Index
+            The Index object you want to compare with the current Index object.
+
         Returns
         -------
         bool
             If two Index objects have equal elements and same type True,
             otherwise False.
+
+        See Also
+        --------
+        Index.equals: Determine if two Index object are equal.
+        Index.has_duplicates: Check if the Index has duplicate values.
+        Index.is_unique: Return if the index has unique values.
 
         Examples
         --------
@@ -6304,19 +6360,26 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
+            If None, defaults to 1.
 
         Returns
         -------
         slice
+            A slice object.
 
         Raises
         ------
         KeyError : If key does not exist, or key is not unique and index is
             not ordered.
 
+        See Also
+        --------
+        Index.slice_locs : Computes slice locations for input labels.
+        Index.get_slice_bound : Retrieves slice bound that corresponds to given label.
+
         Notes
         -----
-        This function assumes that the data is sorted, so use at your own peril
+        This function assumes that the data is sorted, so use at your own peril.
 
         Examples
         --------
@@ -6642,11 +6705,19 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         loc : int
+            The integer location where the new item will be inserted.
         item : object
+            The new item to be inserted into the Index.
 
         Returns
         -------
         Index
+            Returns a new Index object resulting from inserting the specified item at
+            the specified location within the original Index.
+
+        See Also
+        --------
+        Index.append : Append a collection of Indexes together.
 
         Examples
         --------
@@ -6704,6 +6775,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         labels : array-like or scalar
+            Array-like object or a scalar value, representing the labels to be removed
+            from the Index.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
@@ -6716,6 +6789,11 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         KeyError
             If not all of the labels are found in the selected axis
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
+        Index.drop_duplicates : Return Index with duplicate values removed.
 
         Examples
         --------
