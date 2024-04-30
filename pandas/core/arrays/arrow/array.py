@@ -2581,7 +2581,7 @@ class ArrowExtensionArray(
             n = None
         if pat is None:
             split_func = pc.utf8_split_whitespace
-        elif regex or (regex is None and len(pat) != 1):
+        elif regex:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         else:
             split_func = functools.partial(pc.split_pattern, pattern=pat)
