@@ -87,11 +87,11 @@ class TestFloatIndexers:
         ],
     )
     def test_scalar_non_numeric_series_fallback(self, index):
-        # fallsback to position selection, series only
+        # starting in 3.0, integer keys are always treated as labels, no longer
+        #  fall back to positional.
         s = Series(np.arange(len(index)), index=index)
 
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(KeyError, match="3"):
             s[3]
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
@@ -118,12 +118,9 @@ class TestFloatIndexers:
             indexer_sl(s3)[1.0]
 
         if indexer_sl is not tm.loc:
-            # __getitem__ falls back to positional
-            msg = "Series.__getitem__ treating keys as positions is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result = s3[1]
-            expected = 2
-            assert result == expected
+            # as of 3.0, __getitem__ no longer falls back to positional
+            with pytest.raises(KeyError, match="^1$"):
+                s3[1]
 
         with pytest.raises(KeyError, match=r"^1\.0$"):
             indexer_sl(s3)[1.0]
