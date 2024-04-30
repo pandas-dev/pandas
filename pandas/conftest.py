@@ -92,7 +92,6 @@ try:
 except ImportError:
     has_pyarrow = False
 else:
-    del pa
     has_pyarrow = True
 
 import zoneinfo
@@ -1358,6 +1357,25 @@ def object_dtype(request):
     ]
 )
 def any_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'object'
+    * 'string[python]'
+    * 'string[pyarrow]'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "string[python]",
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+        pytest.param(pd.ArrowDtype(pa.string()), marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def any_string_dtype_2(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
