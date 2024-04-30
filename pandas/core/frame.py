@@ -931,6 +931,11 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame interchange object
             The object which consuming library can use to ingress the dataframe.
 
+        See Also
+        --------
+        DataFrame.from_records : Constructor from tuples, also record arrays.
+        DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+
         Notes
         -----
         Details on the interchange protocol:
