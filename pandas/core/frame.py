@@ -11132,6 +11132,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
+        min_periods: int | None = None,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -11161,6 +11162,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
 
             .. versionadded:: 1.5.0
 
@@ -11205,7 +11209,10 @@ class DataFrame(NDFrame, OpsMixin):
         this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
-            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(
+                lambda x: other.corr(x, method=method, min_periods=min_periods),
+                axis=axis,
+            )
 
         if numeric_only:
             other = other._get_numeric_data()
