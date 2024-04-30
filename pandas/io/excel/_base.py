@@ -80,7 +80,6 @@ if TYPE_CHECKING:
         HashableT,
         IntStrT,
         ReadBuffer,
-        Scalar,
         Self,
         SequenceNotStr,
         StorageOptions,
@@ -806,7 +805,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 **kwds,
             )
 
-
         if last_sheetname is None:
             raise ValueError("Sheet name is an empty list")
 
@@ -816,8 +814,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
             return output[last_sheetname]
 
     def parse_sheet(
-            self,
-        data: list[list[Scalar]] | None = None,
+        self,
+        data: list[list] | None = None,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         output: dict | None = None,
@@ -971,6 +969,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             raise err
 
         return output
+
 
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(Generic[_WorkbookT]):
