@@ -2854,16 +2854,35 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
+    cnp.dtype dtype=np.dtype(object)
 ) -> None:
     """
-    Helper for map_infer_mask, split off to use fused types based on the result.
+    Substitute for np.vectorize with pandas-friendly dtype inference.
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+    mask : ndarray
+        uint8 dtype ndarray indicating values not to apply `f` to.
+    convert : bool, default True
+        Whether to call `maybe_convert_objects` on the resulting ndarray.
+    na_value : Any, optional
+        The result value to use for masked values. By default, the
+        input value is used.
+    dtype : numpy.dtype
+        The numpy dtype to use for the result ndarray.
+
+    Returns
+    -------
+    np.ndarray or an ExtensionArray
     """
     cdef:
         Py_ssize_t i
         Py_ssize_t n = len(arr)
         object val
 
-        ndarray result = np.empty(n, dtype=object)
+        ndarray result = np.empty(n, dtype=dtype)
 
         flatiter arr_it = PyArray_IterNew(arr)
         flatiter result_it = PyArray_IterNew(result)
