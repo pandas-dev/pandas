@@ -782,9 +782,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             output = self.parse_sheet(
                 data=data,
+                output=output,
                 asheetname=asheetname,
                 header=header,
-                output=output,
                 names=names,
                 index_col=index_col,
                 usecols=usecols,
@@ -816,9 +816,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def parse_sheet(
         self,
         data: list,
+        output: dict,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
-        output: dict | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
