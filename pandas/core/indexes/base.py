@@ -6330,10 +6330,12 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
+            If None, defaults to 1.
 
         Returns
         -------
         slice
+            A slice object.
 
         Raises
         ------
