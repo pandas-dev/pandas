@@ -119,31 +119,11 @@ sheet_name : str, int, list, or None, default 0
     Available cases:
 
     * Defaults to ``0``: 1st sheet as a `DataFrame`
-      If a table name is specified and a sheet name is not (so it defaults
-      to 0), no sheets will be loaded.
     * ``1``: 2nd sheet as a `DataFrame`
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
     * ``None``: All worksheets.
-
-table_name : str, list of str, or None, default 0
-    Strings are used for table_names that correspond to Excel Table names.
-    Lists of strings are used to request multiple tables.
-    Specify ``None`` to get all tables.
-
-    Available cases:
-
-    * Defaults to ``0``: No tables are read or returned
-    * ``Table1``: Load table with name "Table1", returned as a DataFrame
-    * ``["Table1", "Table2", "Table3"]``: Load the tables with names "Table1",
-      "Table2", and "Table3". Returned as a dictionary of DataFrames
-    * ``sheet_name="Sheet1", table_name="Table1":`` Load both the sheet with
-      name "Sheet1" and the table with name "Table1". Returned as a nested
-      dictionary, containing a "sheets" dictionary and a "tables" dictionary.
-      Each of these 2 dictionaries hold DataFrames of their respective data.
-      This is the same for if a list of either or both of these parameters
-      are specified.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -318,10 +298,9 @@ engine_kwargs : dict, optional
 
 Returns
 -------
-DataFrame, dict of DataFrames, or nested dictionary containing 2 dicts of DataFrames
+DataFrame or dict of DataFrames
     DataFrame from the passed in Excel file. See notes in sheet_name
-    argument for more information on when a dict of DataFrames is returned,
-    and table_name for when a nested dictionary is returned.
+    argument for more information on when a dict of DataFrames is returned.
 
 See Also
 --------
@@ -399,9 +378,6 @@ def read_excel(
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
-    # table name is str -> DataFrame
-    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
-    table_name: str = ...,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
@@ -431,7 +407,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | list[DataFrame] | dict[str, DataFrame]: ...
+) -> DataFrame: ...
 
 
 @overload
@@ -440,9 +416,6 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
-    # table name is list[str] -> DataFrame
-    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
-    table_name: list[str] | None,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
@@ -472,7 +445,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | dict[IntStrT, DataFrame] | dict[str, DataFrame]: ...
+) -> dict[IntStrT, DataFrame]: ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -481,8 +454,6 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
-    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
-    table_name: str | int | list[str] | None = 0,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | str | Sequence[int] | None = None,
@@ -513,16 +484,12 @@ def read_excel(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
-) -> DataFrame | list[DataFrame] | dict[str, DataFrame]:
+) -> DataFrame | dict[IntStrT, DataFrame]:
     check_dtype_backend(dtype_backend)
     should_close = False
     if engine_kwargs is None:
-        if table_name == 0:
-            # The only time table_name will have a value of 0 is when it's not specified
-            engine_kwargs = {}
-        else:
-            # To read in table data the file cannot be read only
-            engine_kwargs = {"read_only": False}
+        engine_kwargs = {}
+
     if not isinstance(io, ExcelFile):
         should_close = True
         io = ExcelFile(
@@ -540,7 +507,6 @@ def read_excel(
     try:
         data = io.parse(
             sheet_name=sheet_name,
-            table_name=table_name,
             header=header,
             names=names,
             index_col=index_col,
@@ -585,6 +551,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
+
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -748,7 +715,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        table_name: str | int | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
@@ -788,29 +754,12 @@ class BaseExcelReader(Generic[_WorkbookT]):
         else:
             sheets = [sheet_name]
 
-        tables: list[str] | None
-        if isinstance(table_name, int):
-            tables = None
-            if table_name != 0:
-                raise NotImplementedError
-        elif isinstance(table_name, list):
-            tables = table_name
-            ret_dict = True
-        elif table_name is None:
-            tables = self.table_names
-            print(self.table_names)
-            ret_dict = True
-        else:
-            tables = [table_name]
-
         # handle same-type duplicates.
         sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
-        output = {"sheets": {}, "tables": {}}
-        outputDict = None
+        output = {}
 
         last_sheetname = None
-        outputDict = "sheets"
         for asheetname in sheets:
             last_sheetname = asheetname
             if verbose:
@@ -829,15 +778,14 @@ class BaseExcelReader(Generic[_WorkbookT]):
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
-                output[outputDict][asheetname] = DataFrame()
+                output[asheetname] = DataFrame()
                 continue
 
-            output = self.parse_multiindex(
+            output = self.parse_sheet(
                 data=data,
                 asheetname=asheetname,
                 header=header,
                 output=output,
-                outputDict=outputDict,
                 names=names,
                 index_col=index_col,
                 usecols=usecols,
@@ -857,88 +805,22 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 dtype_backend=dtype_backend,
                 **kwds,
             )
+
+
         if last_sheetname is None:
             raise ValueError("Sheet name is an empty list")
 
-        last_tablename = None
-        outputDict = "tables"
-
-        if tables is not None:
-            sheets_reqd = self.get_sheets_required(tables)
-            for req_sheet in sheets_reqd:
-                sheet_tables = self.get_sheet_tables(req_sheet)
-                for atablename in tables:
-                    last_tablename = atablename
-                    table_data = None
-
-                    if atablename in sheet_tables.keys():
-                        if verbose:
-                            print(f"Reading Table: {atablename}")
-
-                        file_rows_needed = self._calc_rows(
-                            header, index_col, skiprows, nrows
-                        )
-                        table_data = self.get_table_data(
-                            req_sheet, sheet_tables[atablename], file_rows_needed
-                        )
-                        tables.remove(atablename)
-
-                        usecols = maybe_convert_usecols(usecols)
-
-                        if not table_data:
-                            output[outputDict][atablename] = DataFrame()
-                            continue
-
-                        output = self.parse_multiindex(
-                            data=table_data,
-                            asheetname=atablename,
-                            header=header,
-                            output=output,
-                            outputDict=outputDict,
-                            names=names,
-                            index_col=index_col,
-                            usecols=usecols,
-                            dtype=dtype,
-                            skiprows=skiprows,
-                            nrows=nrows,
-                            true_values=true_values,
-                            false_values=false_values,
-                            na_values=na_values,
-                            parse_dates=parse_dates,
-                            date_parser=date_parser,
-                            date_format=date_format,
-                            thousands=thousands,
-                            decimal=decimal,
-                            comment=comment,
-                            skipfooter=skipfooter,
-                            dtype_backend=dtype_backend,
-                            **kwds,
-                        )
-
-        if not bool(output["tables"]) and not bool(output["sheets"]):
-            return DataFrame()
-
         if ret_dict:
-            if tables is None:
-                return output["sheets"]
-            elif sheet_name == 0:
-                return output["tables"]
-            else:
-                return output
-        elif tables is not None and sheet_name != 0:
             return output
-        elif tables is not None and sheet_name == 0:
-            return output["tables"][last_tablename]
         else:
-            return output["sheets"][last_sheetname]
+            return output[last_sheetname]
 
-    def parse_multiindex(
-        self,
+    def parse_sheet(
+            self,
         data: list[list[Scalar]] | None = None,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         output: dict | None = None,
-        outputDict: str | None = None,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
@@ -1073,23 +955,22 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 **kwds,
             )
 
-            output[outputDict][asheetname] = parser.read(nrows=nrows)
+            output[asheetname] = parser.read(nrows=nrows)
 
             if header_names:
-                output[outputDict][asheetname].columns = output[outputDict][
-                    asheetname
-                ].columns.set_names(header_names)
+                output[asheetname].columns = output[asheetname].columns.set_names(
+                    header_names
+                )
 
         except EmptyDataError:
             # No Data, return an empty DataFrame
-            output[outputDict][asheetname] = DataFrame()
+            output[asheetname] = DataFrame()
 
         except Exception as err:
             err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
             raise err
 
         return output
-
 
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(Generic[_WorkbookT]):
@@ -1757,7 +1638,6 @@ class ExcelFile:
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        table_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
@@ -1920,7 +1800,6 @@ class ExcelFile:
         """
         return self._reader.parse(
             sheet_name=sheet_name,
-            table_name=table_name,
             header=header,
             names=names,
             index_col=index_col,
@@ -1997,10 +1876,6 @@ class ExcelFile:
         ["Sheet1", "Sheet2"]
         """
         return self._reader.sheet_names
-
-    @property
-    def table_names(self):
-        return self._reader.table_names
 
     def close(self) -> None:
         """close io if necessary"""
