@@ -4254,7 +4254,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         join_index, (left_indexer, right_indexer)
-             The resulting Index after performing the join operation.
+            The resulting Index after performing the join operation.
 
         See Also
         --------
