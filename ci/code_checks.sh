@@ -192,7 +192,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series SA01" \
         -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
-        -i "pandas.Series.at_time PR01" \
         -i "pandas.Series.backfill PR01,SA01" \
         -i "pandas.Series.case_when RT03" \
         -i "pandas.Series.cat PR07,SA01" \
