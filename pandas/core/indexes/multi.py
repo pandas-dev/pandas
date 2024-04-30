@@ -123,84 +123,56 @@ _index_doc_kwargs.update(
 )
 
 
-class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
-    """
-    This class manages a MultiIndex by mapping label combinations to positive
-    integers.
+class MultiIndexUInt64Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
+    """Manages a MultiIndex by mapping label combinations to positive integers.
+
+    The number of possible label combinations must not overflow the 64 bits integers.
     """
 
     _base = libindex.UInt64Engine
+    _codes_dtype = "uint64"
 
-    def _codes_to_ints(self, codes):
-        """
-        Transform combination(s) of uint64 in one uint64 (each), in a strictly
-        monotonic way (i.e. respecting the lexicographic order of integer
-        combinations): see BaseMultiIndexCodesEngine documentation.
 
-        Parameters
-        ----------
-        codes : 1- or 2-dimensional array of dtype uint64
-            Combinations of integers (one per row)
+class MultiIndexUInt32Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt32Engine):
+    """Manages a MultiIndex by mapping label combinations to positive integers.
 
-        Returns
-        -------
-        scalar or 1-dimensional array, of dtype uint64
-            Integer(s) representing one combination (each).
-        """
-        # Shift the representation of each level by the pre-calculated number
-        # of bits:
-        codes <<= self.offsets
+    The number of possible label combinations must not overflow the 32 bits integers.
+    """
 
-        # Now sum and OR are in fact interchangeable. This is a simple
-        # composition of the (disjunct) significant bits of each level (i.e.
-        # each column in "codes") in a single positive integer:
-        if codes.ndim == 1:
-            # Single key
-            return np.bitwise_or.reduce(codes)
+    _base = libindex.UInt32Engine
+    _codes_dtype = "uint32"
 
-        # Multiple keys
-        return np.bitwise_or.reduce(codes, axis=1)
+
+class MultiIndexUInt16Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt16Engine):
+    """Manages a MultiIndex by mapping label combinations to positive integers.
+
+    The number of possible label combinations must not overflow the 16 bits integers.
+    """
+
+    _base = libindex.UInt16Engine
+    _codes_dtype = "uint16"
+
+
+class MultiIndexUInt8Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt8Engine):
+    """Manages a MultiIndex by mapping label combinations to positive integers.
+
+    The number of possible label combinations must not overflow the 8 bits integers.
+    """
+
+    _base = libindex.UInt8Engine
+    _codes_dtype = "uint8"
 
 
 class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectEngine):
-    """
+    """Manages a MultiIndex by mapping label combinations to positive integers.
+
     This class manages those (extreme) cases in which the number of possible
     label combinations overflows the 64 bits integers, and uses an ObjectEngine
     containing Python integers.
     """
 
     _base = libindex.ObjectEngine
-
-    def _codes_to_ints(self, codes):
-        """
-        Transform combination(s) of uint64 in one Python integer (each), in a
-        strictly monotonic way (i.e. respecting the lexicographic order of
-        integer combinations): see BaseMultiIndexCodesEngine documentation.
-
-        Parameters
-        ----------
-        codes : 1- or 2-dimensional array of dtype uint64
-            Combinations of integers (one per row)
-
-        Returns
-        -------
-        int, or 1-dimensional array of dtype object
-            Integer(s) representing one combination (each).
-        """
-        # Shift the representation of each level by the pre-calculated number
-        # of bits. Since this can overflow uint64, first make sure we are
-        # working with Python integers:
-        codes = codes.astype("object") << self.offsets
-
-        # Now sum and OR are in fact interchangeable. This is a simple
-        # composition of the (disjunct) significant bits of each level (i.e.
-        # each column in "codes") in a single positive integer (per row):
-        if codes.ndim == 1:
-            # Single key
-            return np.bitwise_or.reduce(codes)
-
-        # Multiple keys
-        return np.bitwise_or.reduce(codes, axis=1)
+    _codes_dtype = "object"
 
 
 def names_compat(meth: F) -> F:
@@ -1229,13 +1201,25 @@ class MultiIndex(Index):
         # equivalent to sorting lexicographically the codes themselves. Notice
         # that each level needs to be shifted by the number of bits needed to
         # represent the _previous_ ones:
-        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
+        offsets = np.concatenate([lev_bits[1:], [0]])
+        # Downcast the type if possible, to prevent upcasting when shifting codes:
+        offsets = offsets.astype(np.min_scalar_type(int(offsets[0])))
 
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
             # The levels would overflow a 64 bit uint - use Python integers:
             return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
-        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
+        if lev_bits[0] > 32:
+            # The levels would overflow a 32 bit uint - use uint64
+            return MultiIndexUInt64Engine(self.levels, self.codes, offsets)
+        if lev_bits[0] > 16:
+            # The levels would overflow a 16 bit uint - use uint8
+            return MultiIndexUInt32Engine(self.levels, self.codes, offsets)
+        if lev_bits[0] > 8:
+            # The levels would overflow a 8 bit uint - use uint16
+            return MultiIndexUInt16Engine(self.levels, self.codes, offsets)
+        # The levels fit in an 8 bit uint - use uint8
+        return MultiIndexUInt8Engine(self.levels, self.codes, offsets)
 
     # Return type "Callable[..., MultiIndex]" of "_constructor" incompatible with return
     # type "Type[MultiIndex]" in supertype "Index"
