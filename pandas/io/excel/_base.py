@@ -80,7 +80,6 @@ if TYPE_CHECKING:
         HashableT,
         IntStrT,
         ReadBuffer,
-        Scalar,
         Self,
         SequenceNotStr,
         StorageOptions,
@@ -431,7 +430,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | list[DataFrame] | dict[str, DataFrame]: ...
+) -> DataFrame | dict[str, DataFrame] | dict[str, dict[str, DataFrame]]: ...
 
 
 @overload
@@ -472,7 +471,12 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame | dict[IntStrT, DataFrame] | dict[str, DataFrame]: ...
+) -> (
+    DataFrame
+    | dict[IntStrT, DataFrame]
+    | dict[str, DataFrame]
+    | dict[str, dict[str, DataFrame]]
+): ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -513,7 +517,12 @@ def read_excel(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
-) -> DataFrame | list[DataFrame] | dict[str, DataFrame]:
+) -> (
+    DataFrame
+    | dict[IntStrT, DataFrame]
+    | dict[str, DataFrame]
+    | dict[str, dict[str, DataFrame]]
+):
     check_dtype_backend(dtype_backend)
     should_close = False
     if engine_kwargs is None:
@@ -806,6 +815,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # handle same-type duplicates.
         sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
+        output: dict[str, DataFrame] | dict[str, dict[str, DataFrame]]
         output = {"sheets": {}, "tables": {}}
         outputDict = None
 
@@ -832,7 +842,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 output[outputDict][asheetname] = DataFrame()
                 continue
 
-            output = self.parse_multiindex(
+            output = self.parse_data(
                 data=data,
                 asheetname=asheetname,
                 header=header,
@@ -889,7 +899,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                             output[outputDict][atablename] = DataFrame()
                             continue
 
-                        output = self.parse_multiindex(
+                        output = self.parse_data(
                             data=table_data,
                             asheetname=atablename,
                             header=header,
@@ -932,12 +942,12 @@ class BaseExcelReader(Generic[_WorkbookT]):
         else:
             return output["sheets"][last_sheetname]
 
-    def parse_multiindex(
+    def parse_data(
         self,
-        data: list[list[Scalar]] | None = None,
+        data: list,
+        output: dict,
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
-        output: dict | None = None,
         outputDict: str | None = None,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
