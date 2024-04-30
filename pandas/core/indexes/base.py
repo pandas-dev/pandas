@@ -4237,12 +4237,12 @@ class Index(IndexOpsMixin, PandasObject):
             An Index object to join with the original Index.
         how : {'left', 'right', 'inner', 'outer'}
             Specifies the type of join to perform. It can take one of the following
-                values:
-            * 'left': Perform a left join, preserving the order of the original Index.
-            * 'right': Perform a right join.
-            * 'inner': Perform an inner join, retaining only the intersection of the i
-                ndices.
-            * 'outer': Perform an outer join, retaining all elements from both indices.
+            values.
+            * left : Perform a left join, preserving the order of the original Index.
+            * right : Perform a right join.
+            * inner : Perform an inner join, retaining only the intersection of the
+              indices.
+            * outer : Perform an outer join, retaining all elements from both indices.
         level : int or level name, default None
             Specifies the level of a multi-index, if applicable.
         return_indexers : bool, default False
