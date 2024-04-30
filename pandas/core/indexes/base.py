@@ -1120,9 +1120,21 @@ class Index(IndexOpsMixin, PandasObject):
         axis : int, optional
             The axis over which to select values, always 0.
         allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
         fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
             -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
 
         Returns
         -------
