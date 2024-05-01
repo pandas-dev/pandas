@@ -5026,7 +5026,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_list_like(value):
             com.require_length_match(value, self.index)
 
-        if isinstance(value.type, pa.DataType):
+        if isinstance(value, pa.lib.Array):
             dtype = ArrowDtype(value.type)
         else:
             dtype = None
