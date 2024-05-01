@@ -824,7 +824,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # handle same-type duplicates.
         sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
-        output: dict[str, DataFrame] | dict[str, dict]
+        output: dict | dict[str, DataFrame] | dict[str, dict] | None
         output = {"sheets": {}, "tables": {}}
         outputDict = None
 
@@ -841,7 +841,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_data(sheet, file_rows_needed)
+            data = self.get_data(
+                sheet=sheet, tablename=None, file_rows_needed=file_rows_needed
+            )
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -898,7 +900,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
                             header, index_col, skiprows, nrows
                         )
                         table_data = self.get_data(
-                            req_sheet, sheet_tables[atablename], file_rows_needed
+                            sheet=req_sheet,
+                            tablename=sheet_tables[atablename],
+                            file_rows_needed=file_rows_needed,
                         )
                         tables.remove(atablename)
 

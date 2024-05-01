@@ -605,15 +605,6 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
 
         return cell.value
 
-    """
-    def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
-        if self.book.read_only:
-            sheet.reset_dimensions()
-        return self.get_data(sheet.rows, file_rows_needed)
-    """
-
     @property
     def table_names(self) -> list[str]:
         tables = None
@@ -638,16 +629,11 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
             tables[table.name] = table
         return tables
 
-    """
-    def get_table_data(
-        self, sheet, tablename, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
-        table = sheet[tablename.ref]
-        return self.get_data(table, file_rows_needed)
-    """
-
     def get_data(
-        self, sheet, tablename: None = None, file_rows_needed: int | None = None
+        self,
+        sheet,
+        tablename,
+        file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         if tablename is not None:
             input = sheet[tablename.ref]
