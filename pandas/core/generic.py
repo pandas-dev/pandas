@@ -11777,7 +11777,8 @@ numeric_only : bool, default False
 
 Returns
 -------
-{name1} or scalar\
+{name1} or scalar
+    The product of the values over the requested axis.\
 {see_also}\
 {examples}
 """
