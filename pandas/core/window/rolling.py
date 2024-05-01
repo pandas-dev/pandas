@@ -2,12 +2,14 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
+
 from __future__ import annotations
 
 import copy
 from datetime import timedelta
 from functools import partial
 import inspect
+import pandas as pd
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -539,65 +541,65 @@ class BaseWindow(SelectionMixin):
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
     def _apply(
-        self,
-        func: Callable[..., Any],
-        name: str,
-        numeric_only: bool = False,
-        numba_args: tuple[Any, ...] = (),
-        **kwargs,
-    ):
-        """
-        Rolling statistical measure using supplied function.
+            self,
+            func: Callable[..., Any],
+            name: str,
+            numeric_only: bool = False,
+            numba_args: tuple[Any, ...] = (),
+            multi_column: bool = False,
+            **kwargs,
+        ):
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
 
-        Designed to be used with passed-in Cython array-based functions.
+            if multi_column:
+                def multi_column_func(dataframe: pd.DataFrame):
+                    results = []
+                    for start in range(len(dataframe) - window_indexer.window_size + 1):
+                        end = start + window_indexer.window_size
+                        window_df = dataframe.iloc[start:end]
+                        if window_df[['value', 'weight']].notna().sum().min() >= min_periods:
+                            result = window_df['value'] * window_df['weight']
+                            results.append(result.iloc[-1])
+                        else:
+                            results.append(np.nan)
 
-        Parameters
-        ----------
-        func : callable function to apply
-        name : str,
-        numba_args : tuple
-            args to be passed when func is a numba func
-        **kwargs
-            additional arguments for rolling function and window function
+                    # Prepend NaNs for positions without a full window
+                    for _ in range(window_indexer.window_size - 1):
+                        results.insert(0, np.nan)
+                    return pd.Series(results, index=dataframe.index)
 
-        Returns
-        -------
-        y : type of input
-        """
-        window_indexer = self._get_window_indexer()
-        min_periods = (
-            self.min_periods
-            if self.min_periods is not None
-            else window_indexer.window_size
-        )
+                return multi_column_func(self._selected_obj)
+            else:
+                def homogeneous_func(values: np.ndarray):
+                    if values.size == 0:
+                        return values.copy()
 
-        def homogeneous_func(values: np.ndarray):
-            # calculation function
+                    def calc(x):
+                        start, end = window_indexer.get_window_bounds(
+                            num_values=len(x),
+                            min_periods=min_periods,
+                            center=self.center,
+                            closed=self.closed,
+                            step=self.step,
+                        )
+                        print(f"Calculating on array with bounds: start={start}, end={end}")  # Debug print
+                        return func(x, start, end, min_periods, *numba_args)
 
-            if values.size == 0:
-                return values.copy()
+                    with np.errstate(all="ignore"):
+                        result = calc(values)
 
-            def calc(x):
-                start, end = window_indexer.get_window_bounds(
-                    num_values=len(x),
-                    min_periods=min_periods,
-                    center=self.center,
-                    closed=self.closed,
-                    step=self.step,
-                )
-                self._check_window_bounds(start, end, len(x))
+                    return result
 
-                return func(x, start, end, min_periods, *numba_args)
-
-            with np.errstate(all="ignore"):
-                result = calc(values)
-
+            if self.method == "single":
+                result = self._apply_columnwise(homogeneous_func, name, numeric_only, **kwargs)
+            else:
+                result = self._apply_tablewise(homogeneous_func, name, numeric_only, **kwargs)
             return result
-
-        if self.method == "single":
-            return self._apply_columnwise(homogeneous_func, name, numeric_only)
-        else:
-            return self._apply_tablewise(homogeneous_func, name, numeric_only)
 
     def _numba_apply(
         self,
@@ -694,6 +696,7 @@ class BaseWindowGroupby(BaseWindow):
         name: str,
         numeric_only: bool = False,
         numba_args: tuple[Any, ...] = (),
+        multi_column: bool = False,
         **kwargs,
     ) -> DataFrame | Series:
         result = super()._apply(
@@ -701,6 +704,7 @@ class BaseWindowGroupby(BaseWindow):
             name,
             numeric_only,
             numba_args,
+            multi_column=multi_column,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex
@@ -872,8 +876,8 @@ class Window(BaseWindow):
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
-        To learn more about the offsets & frequency strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        To learn more about the offsets & frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
@@ -924,12 +928,11 @@ class Window(BaseWindow):
         Default ``None`` (``'right'``).
 
     step : int, default None
-
-        .. versionadded:: 1.5.0
-
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
         than None or 1 will produce a result with a different shape than the input.
+
+        .. versionadded:: 1.5.0
 
     method : str {'single', 'table'}, default 'single'
 
@@ -1177,38 +1180,53 @@ class Window(BaseWindow):
         y : type of input
         """
         # "None" not callable  [misc]
-        window = self._scipy_weight_generator(  # type: ignore[misc]
-            self.window, **kwargs
-        )
+        window = self._scipy_weight_generator(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
-        def homogeneous_func(values: np.ndarray):
-            # calculation function
+        if multi_column:
+            # Multi-column logic
+            def multi_column_func(dataframe: pd.DataFrame):
+                results = []
 
-            if values.size == 0:
-                return values.copy()
+                for i in range(len(dataframe)):
+                    window_df = dataframe.iloc[max(i - offset, 0): min(i + offset + 1, len(dataframe))]
+                    if window_df.dropna(how='all').shape[0] >= self.min_periods:
+                        # Apply the function to the DataFrame slice
+                        result = func(window_df, window)
+                        results.append(result)
+                    else:
+                        # Append NaNs in a way that preserves DataFrame structure
+                        results.append(pd.Series([np.nan] * len(window_df.columns), index=window_df.columns))
 
-            def calc(x):
-                additional_nans = np.array([np.nan] * offset)
-                x = np.concatenate((x, additional_nans))
-                return func(
-                    x,
-                    window,
-                    self.min_periods if self.min_periods is not None else len(window),
-                )
+                # Combine results into a DataFrame
+                return pd.concat(results, axis=1).reindex_like(dataframe)
 
-            with np.errstate(all="ignore"):
-                # Our weighted aggregations return memoryviews
-                result = np.asarray(calc(values))
+            return multi_column_func(self._selected_obj)
+        else:
+            # Original single-column functionality
+            def homogeneous_func(values: np.ndarray):
+                if values.size == 0:
+                    return values.copy()
 
-            if self.center:
-                result = self._center_window(result, offset)
+                def calc(x):
+                    additional_nans = np.array([np.nan] * offset)
+                    x = np.concatenate((x, additional_nans))
+                    return func(
+                        x,
+                        window,
+                        self.min_periods if self.min_periods is not None else len(window),
+                    )
 
-            return result
+                with np.errstate(all="ignore"):
+                    # Our weighted aggregations return memoryviews
+                    result = np.asarray(calc(values))
 
-        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
-            :: self.step
-        ]
+                if self.center:
+                    result = self._center_window(result, offset)
+
+                return result
+
+            return self._apply_columnwise(homogeneous_func, name, numeric_only)[::self.step]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1216,8 +1234,8 @@ class Window(BaseWindow):
             """
         See Also
         --------
-        pandas.DataFrame.aggregate : Similar DataFrame method.
-        pandas.Series.aggregate : Similar Series method.
+        DataFrame.aggregate : Similar DataFrame method.
+        Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -1448,6 +1466,7 @@ class RollingAndExpandingMixin(BaseWindow):
         engine_kwargs: dict[str, bool] | None = None,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
+        multi_column: bool = False, # Added multi_column parameter
     ):
         if args is None:
             args = ()
@@ -1459,10 +1478,10 @@ class RollingAndExpandingMixin(BaseWindow):
 
         numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
-            if raw is False:
-                raise ValueError("raw must be `True` when using the numba engine")
+            if raw is False and not multi_column:  # Adjusted to allow multi_column with raw=False
+                raise ValueError("raw must be `True` when using the numba engine, unless multi_column is True")
             numba_args = args
-            if self.method == "single":
+            if self.method == "single" and not multi_column:  # Adjusted for multi_column
                 apply_func = generate_numba_apply_func(
                     func, **get_jit_arguments(engine_kwargs, kwargs)
                 )
@@ -1481,6 +1500,7 @@ class RollingAndExpandingMixin(BaseWindow):
             apply_func,
             name="apply",
             numba_args=numba_args,
+            multi_column=multi_column,
         )
 
     def _generate_cython_apply_func(
@@ -1906,8 +1926,8 @@ class Rolling(RollingAndExpandingMixin):
             """
         See Also
         --------
-        pandas.Series.rolling : Calling object with Series data.
-        pandas.DataFrame.rolling : Calling object with DataFrame data.
+        Series.rolling : Calling object with Series data.
+        DataFrame.rolling : Calling object with DataFrame data.
         """
         ),
         examples=dedent(
@@ -2013,6 +2033,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
+        multi_column: bool = False,  # Added multi_column parameter
     ):
         return super().apply(
             func,
@@ -2021,6 +2042,7 @@ class Rolling(RollingAndExpandingMixin):
             engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
+            multi_column=multi_column,
         )
 
     @doc(
