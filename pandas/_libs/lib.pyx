@@ -2854,8 +2854,8 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
-    object dtype=np.dtype(object)
-) -> None:
+    cnp.dtype dtype=np.dtype(object)
+) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
