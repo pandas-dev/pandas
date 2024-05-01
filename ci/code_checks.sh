@@ -77,7 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.DataFrame.prod RT03" \
         -i "pandas.DataFrame.product RT03" \
-        -i "pandas.DataFrame.sem PR01,RT03,SA01" \
         -i "pandas.DataFrame.skew RT03,SA01" \
         -i "pandas.DataFrame.sparse PR01" \
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
