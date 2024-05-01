@@ -144,6 +144,13 @@ Methods
 -------
 None
 
+See Also
+--------
+Int8Dtype : 8-bit nullable integer type.
+Int16Dtype : 16-bit nullable integer type.
+Int32Dtype : 32-bit nullable integer type.
+Int64Dtype : 64-bit nullable integer type.
+
 Examples
 --------
 For Int8Dtype:
