@@ -5850,6 +5850,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : %(target_klass)s
+            An iterable containing the values to be used for computing indexer.
 
         Returns
         -------
@@ -5860,6 +5861,12 @@ class Index(IndexOpsMixin, PandasObject):
         missing : np.ndarray[np.intp]
             An indexer into the target of the values not found.
             These correspond to the -1 in the indexer array.
+
+        See Also
+        --------
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
 
         Examples
         --------
