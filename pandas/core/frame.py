@@ -39,6 +39,7 @@ import warnings
 
 import numpy as np
 from numpy import ma
+import pyarrow as pa
 
 from pandas._config import get_option
 
@@ -5024,7 +5025,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
+
+        if isinstance(value.type, pa.DataType):
+            dtype = ArrowDtype(value.type)
+        else:
+            dtype = None
+        arr = sanitize_array(value, self.index, dtype, copy=True, allow_2d=True)
         if (
             isinstance(value, Index)
             and value.dtype == "object"
