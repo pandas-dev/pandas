@@ -146,10 +146,10 @@ None
 
 See Also
 --------
-Int8Dtype : For np.int8.
-Int16Dtype : For np.int16.
-Int32Dtype : For np.int32.
-Int64Dtype : For np.int64.
+Int8Dtype : 8-bit nullable integer type.
+Int16Dtype : 16-bit nullable integer type.
+Int32Dtype : 32-bit nullable integer type.
+Int64Dtype : 64-bit nullable integer type.
 
 Examples
 --------
