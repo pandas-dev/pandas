@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_loc PR07,RT03,SA01" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.names GL08" \
-        -i "pandas.Index.putmask PR01,RT03" \
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Int16Dtype SA01" \
