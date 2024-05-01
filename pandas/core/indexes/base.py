@@ -3543,6 +3543,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : Index
+            An iterable containing the values to be used for computing indexer.
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -3569,6 +3570,12 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
+
+        See Also
+        --------
+        Index.get_indexer_for : Returns an indexer even when non-unique.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
 
         Notes
         -----
