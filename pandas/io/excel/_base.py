@@ -647,9 +647,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def get_sheet_by_index(self, index: int):
         raise NotImplementedError
 
-    def get_sheet_data(self, sheet, rows: int | None = None):
-        raise NotImplementedError
-
     @property
     def table_names(self) -> list[str]:
         raise NotImplementedError
@@ -660,7 +657,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def get_sheet_tables(self, sheet):
         raise NotImplementedError
 
-    def get_table_data(self, input, file_rows_needed: int | None):
+    def get_data(self, sheet, tablename, file_rows_needed: int | None):
         raise NotImplementedError
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -844,7 +841,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, file_rows_needed)
+            data = self.get_data(sheet, file_rows_needed)
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -900,7 +897,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                         file_rows_needed = self._calc_rows(
                             header, index_col, skiprows, nrows
                         )
-                        table_data = self.get_table_data(
+                        table_data = self.get_data(
                             req_sheet, sheet_tables[atablename], file_rows_needed
                         )
                         tables.remove(atablename)
@@ -957,7 +954,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def _parse_sheet(
         self,
         data: list,
-        output: dict,
+        output: dict | dict[str, dict],
         parse_area: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         outputDict: str | None = None,
