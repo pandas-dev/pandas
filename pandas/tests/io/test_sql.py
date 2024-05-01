@@ -1841,15 +1841,23 @@ def test_api_custom_dateparsing_error(
                 "IntDateCol": "int32",
                 "IntDateOnlyCol": "int32",
                 "IntCol": "int32",
-                "DateCol": "datetime64[ns]",
             }
         )
 
+    if conn_name == "postgresql_adbc_types" and is_adbc_010():
+        pass
     elif "postgres" in conn_name or "mysql" in conn_name:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
+
+
+def is_adbc_010():
+    adbc = import_optional_dependency("adbc_driver_manager")
+    if isinstance(adbc, bool):
+        return False
+    return adbc.__version__ == "0.10.0"
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
