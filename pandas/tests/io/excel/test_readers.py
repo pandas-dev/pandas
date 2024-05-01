@@ -792,7 +792,6 @@ class TestReaders:
         expected = DataFrame(columns=["col_1", "col_2"])
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
-        print("This previous failed")
 
     def test_exception_message_includes_sheet_name(self, read_ext):
         # GH 48706
