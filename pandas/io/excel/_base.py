@@ -650,6 +650,19 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def get_sheet_data(self, sheet, rows: int | None = None):
         raise NotImplementedError
 
+    @property
+    def table_names(self) -> list[str]:
+        raise NotImplementedError
+
+    def get_sheets_required(self, tables: list[str] | None):
+        raise NotImplementedError
+
+    def get_sheet_tables(self, sheet):
+        raise NotImplementedError
+
+    def get_table_data(self, input, file_rows_needed: int | None):
+        raise NotImplementedError
+
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
         n_sheets = len(self.sheet_names)
         if index >= n_sheets:
@@ -807,7 +820,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
             ret_dict = True
         elif table_name is None:
             tables = self.table_names
-            print(self.table_names)
             ret_dict = True
         else:
             tables = [table_name]
@@ -815,7 +827,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # handle same-type duplicates.
         sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
-        output: dict[str, DataFrame] | dict[str, dict[str, DataFrame]]
+        output: dict[str, DataFrame] | dict[str, dict]
         output = {"sheets": {}, "tables": {}}
         outputDict = None
 
@@ -2010,6 +2022,14 @@ class ExcelFile:
 
     @property
     def table_names(self):
+        """
+        Names of the tables in the document
+
+        Returns
+        -------
+        list of str
+            List of table names in the document
+        """
         return self._reader.table_names
 
     def close(self) -> None:
