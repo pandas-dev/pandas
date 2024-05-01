@@ -5241,9 +5241,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+            Array of booleans denoting where values in the original
+            data are not ``NA``.
+        value : scalar
+            Scalar value to use to fill holes (e.g. 0).
+            This value cannot be a list-likes.
+
         Returns
         -------
         Index
+            A new Index of the values set with the mask.
 
         See Also
         --------
