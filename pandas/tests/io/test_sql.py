@@ -1841,10 +1841,11 @@ def test_api_custom_dateparsing_error(
                 "IntDateCol": "int32",
                 "IntDateOnlyCol": "int32",
                 "IntCol": "int32",
+                "DateCol": "datetime64[ns]",
             }
         )
 
-    if "postgres" in conn_name or "mysql" in conn_name:
+    elif "postgres" in conn_name or "mysql" in conn_name:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
