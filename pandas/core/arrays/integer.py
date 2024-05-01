@@ -144,6 +144,13 @@ Methods
 -------
 None
 
+See Also
+--------
+Int8Dtype : For np.int8.
+Int16Dtype : For np.int16.
+Int32Dtype : For np.int32.
+Int64Dtype : For np.int64.
+
 Examples
 --------
 For Int8Dtype:
