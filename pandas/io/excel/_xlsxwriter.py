@@ -93,7 +93,7 @@ class _XlsxStyler:
     }
 
     @classmethod
-    def convert(cls, style_dict, num_format_str=None):
+    def convert(cls, style_dict, num_format_str=None) -> dict[str, Any]:
         """
         converts a style_dict to an xlsxwriter format dict
 
