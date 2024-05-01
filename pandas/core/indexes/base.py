@@ -3490,10 +3490,22 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label
+            The key to check its location if it is present in the index.
 
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
+            Integer location, slice or boolean mask.
+
+        See Also
+        --------
+        Index.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
 
         Examples
         --------
