@@ -329,13 +329,10 @@ def test_against_frame_and_seriesgroupby(
         else:
             name = "proportion" if normalize else "count"
             expected = expected.reset_index().rename({0: name}, axis=1)
-            if groupby == "column":
-                expected = expected.rename({"level_0": "country"}, axis=1)
-                expected["country"] = np.where(expected["country"], "US", "FR")
-            elif groupby == "function":
-                expected["level_0"] = expected["level_0"] == 1
+            if groupby in ["array", "function"] and (not as_index and frame):
+                expected.insert(loc=0, column="level_0", value=result["level_0"])
             else:
-                expected["level_0"] = np.where(expected["level_0"], "US", "FR")
+                expected.insert(loc=0, column="country", value=result["country"])
             tm.assert_frame_equal(result, expected)
     else:
         # compare against SeriesGroupBy value_counts
