@@ -5965,10 +5965,22 @@ class Index(IndexOpsMixin, PandasObject):
         This dispatches to get_indexer or get_indexer_non_unique
         as appropriate.
 
+        Parameters
+        ----------
+        target : Index
+            An iterable containing the values to be used for computing indexer.
+
         Returns
         -------
         np.ndarray[np.intp]
             List of indices.
+
+        See Also
+        --------
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
 
         Examples
         --------
