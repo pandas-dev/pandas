@@ -1812,6 +1812,11 @@ class ExcelFile:
             sheet positions (chart sheets do not count as a sheet position).
             Lists of strings/integers are used to request multiple sheets.
             Specify ``None`` to get all worksheets.
+        table_name : str, list of str, or None, default 0
+            Strings are used for table_names that correspond to Excel Table names.
+            Lists of strings are used to request multiple tables.
+            Specify ``None`` to get all tables.
+
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
