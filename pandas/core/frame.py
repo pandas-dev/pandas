@@ -931,6 +931,11 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame interchange object
             The object which consuming library can use to ingress the dataframe.
 
+        See Also
+        --------
+        DataFrame.from_records : Constructor from tuples, also record arrays.
+        DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+
         Notes
         -----
         Details on the interchange protocol:
@@ -11127,6 +11132,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
+        min_periods: int | None = None,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -11156,6 +11162,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
 
             .. versionadded:: 1.5.0
 
@@ -11200,7 +11209,10 @@ class DataFrame(NDFrame, OpsMixin):
         this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
-            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(
+                lambda x: other.corr(x, method=method, min_periods=min_periods),
+                axis=axis,
+            )
 
         if numeric_only:
             other = other._get_numeric_data()
@@ -12064,7 +12076,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
-    @doc(make_doc("kurt", ndim=2))
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -12072,6 +12083,85 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased kurtosis over requested axis.
+
+        Kurtosis obtained using Fisher's definition of
+        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Unbiased kurtosis over requested axis.
+
+        See Also
+        --------
+        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2, 3], index=["cat", "dog", "dog", "mouse"])
+        >>> s
+        cat    1
+        dog    2
+        dog    2
+        mouse  3
+        dtype: int64
+        >>> s.kurt()
+        1.5
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 2, 3], "b": [3, 4, 4, 4]},
+        ...     index=["cat", "dog", "dog", "mouse"],
+        ... )
+        >>> df
+               a   b
+          cat  1   3
+          dog  2   4
+          dog  2   4
+        mouse  3   4
+        >>> df.kurt()
+        a   1.5
+        b   4.0
+        dtype: float64
+
+        With axis=None
+
+        >>> df.kurt(axis=None).round(6)
+        -0.988693
+
+        Using axis=1
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2], "b": [3, 4], "c": [3, 4], "d": [1, 2]},
+        ...     index=["cat", "dog"],
+        ... )
+        >>> df.kurt(axis=1)
+        cat   -6.0
+        dog   -6.0
+        dtype: float64
+        """
         result = super().kurt(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
