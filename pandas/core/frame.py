@@ -12029,7 +12029,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
-    @doc(make_doc("skew", ndim=2))
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12037,6 +12036,80 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased skew over requested axis.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Unbiased skew over requested axis.
+
+        See Also
+        --------
+        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.skew()
+        0.0
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 3], "b": [2, 3, 4], "c": [1, 3, 5]},
+        ...     index=["tiger", "zebra", "cow"],
+        ... )
+        >>> df
+                a   b   c
+        tiger   1   2   1
+        zebra   2   3   3
+        cow     3   4   5
+        >>> df.skew()
+        a   0.0
+        b   0.0
+        c   0.0
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.skew(axis=1)
+        tiger   1.732051
+        zebra  -1.732051
+        cow     0.000000
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True` to avoid
+        getting an error.
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 3], "b": ["T", "Z", "X"]}, index=["tiger", "zebra", "cow"]
+        ... )
+        >>> df.skew(numeric_only=True)
+        a   0.0
+        dtype: float64
+        """
         result = super().skew(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
