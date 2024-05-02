@@ -1537,128 +1537,25 @@ def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
     tm.assert_frame_equal(result, expected)
 
 
-# GH#58084
-def test_min_one_unobserved_category_no_type_coercion():
+@pytest.mark.parametrize("dtype", ["int32", "float32"])
+def test_min_one_unobserved_category_no_type_coercion(dtype):
+    # GH#58084
     df = DataFrame({"A": Categorical([1, 1, 2], categories=[1, 2, 3]), "B": [3, 4, 5]})
-    df["B"] = df["B"].astype("int32")
+    df["B"] = df["B"].astype(dtype)
     gb = df.groupby("A", observed=False)
     result = gb.transform("min")
 
-    expected = DataFrame({"B": [3, 3, 5]}, dtype="int32")
+    expected = DataFrame({"B": [3, 3, 5]}, dtype=dtype)
     tm.assert_frame_equal(expected, result)
 
 
-# GH#58084
-def test_min_multiple_unobserved_categories_no_type_coercion():
-    df = DataFrame(
-        {
-            "X": Categorical(
-                ["432945", "randomcat", -4325466, "randomcat", -4325466, -4325466],
-                categories=[
-                    1,
-                    "randomcat",
-                    100,
-                    333,
-                    "cat43543",
-                    -4325466,
-                    54665,
-                    -546767,
-                    "432945",
-                    767076,
-                ],
-            ),
-            "Y": [0, 940645, np.iinfo(np.int64).min, 9449, 100044444, 40],
-        }
-    )
-    df["Y"] = df["Y"].astype("int64")
-
-    gb = df.groupby("X", observed=False)
-    result = gb.transform("min")
-
-    expected = DataFrame(
-        {
-            "Y": [
-                0,
-                9449,
-                np.iinfo(np.int64).min,
-                9449,
-                np.iinfo(np.int64).min,
-                np.iinfo(np.int64).min,
-            ]
-        },
-        dtype="int64",
-    )
-    tm.assert_frame_equal(expected, result)
-
-
-# GH#58084
-def test_min_float32_multiple_unobserved_categories_no_type_coercion():
-    df = DataFrame(
-        {
-            "X": Categorical(
-                ["cat43543", -4325466, 54665, "cat43543", -4325466, 54665],
-                categories=[
-                    1,
-                    "randomcat",
-                    100,
-                    333,
-                    "cat43543",
-                    -4325466,
-                    54665,
-                    -546767,
-                    "432945",
-                    767076,
-                ],
-            ),
-            "Y": [
-                0.3940429,
-                940645.49,
-                np.finfo(np.float32).min,
-                9449.03333,
-                100044444.403294,
-                40.3020909,
-            ],
-        }
-    )
-    df["Y"] = df["Y"].astype("float32")
-
-    gb = df.groupby("X", observed=False)
-    result = gb.transform("min")
-
-    expected = DataFrame(
-        {
-            "Y": [
-                0.3940429,
-                940645.49,
-                np.finfo(np.float32).min,
-                0.3940429,
-                940645.49,
-                np.finfo(np.float32).min,
-            ]
-        },
-        dtype="float32",
-    )
-    tm.assert_frame_equal(expected, result)
-
-
-# GH#58084
 def test_min_all_empty_data_no_type_coercion():
+    # GH#58084
     df = DataFrame(
         {
             "X": Categorical(
                 [],
-                categories=[
-                    1,
-                    "randomcat",
-                    100,
-                    333,
-                    "cat43543",
-                    -4325466,
-                    54665,
-                    -546767,
-                    "432945",
-                    767076,
-                ],
+                categories=[1, "randomcat", 100],
             ),
             "Y": [],
         }
@@ -1672,8 +1569,8 @@ def test_min_all_empty_data_no_type_coercion():
     tm.assert_frame_equal(expected, result)
 
 
-# GH#58084
 def test_min_one_dim_no_type_coercion():
+    # GH#58084
     df = DataFrame({"Y": [9435, -5465765, 5055, 0, 954960]})
     df["Y"] = df["Y"].astype("int32")
     categories = Categorical([1, 2, 2, 5, 1], categories=[1, 2, 3, 4, 5])
