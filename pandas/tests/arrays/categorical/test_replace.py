@@ -10,7 +10,6 @@ import pandas._testing as tm
     [
         # one-to-one
         (4, 1, [1, 2, 3], False),
-        (5, 6, [1, 2, 3], False),
         # many-to-one
         ((5, 6), 2, [1, 2, 3], False),
     ],
@@ -19,24 +18,16 @@ def test_replace_categorical_series(to_replace, value, expected, flip_categories
     # GH 31720
 
     ser = pd.Series([1, 2, 3], dtype="category")
-    result = ser.replace(to_replace, value)
-    expected = pd.Series(expected, dtype="category")
-    ser.replace(to_replace, value, inplace=True)
-
-    if flip_categories:
-        expected = expected.cat.set_categories(expected.cat.categories[::-1])
-
-    tm.assert_series_equal(expected, result, check_category_order=False)
-    tm.assert_series_equal(expected, ser, check_category_order=False)
+    msg = "with CategoricalDtype is not supported"
+    with pytest.raises(TypeError, match=msg):
+        ser.replace(to_replace, value)
 
 
 @pytest.mark.parametrize(
     "to_replace, value, result, expected_error_msg",
     [
         ("b", "c", ["a", "c"], "Categorical.categories are different"),
-        ("c", "d", ["a", "b"], None),
         # https://github.com/pandas-dev/pandas/issues/33288
-        ("a", "a", ["a", "b"], None),
         ("b", None, ["a", None], "Categorical.categories length are different"),
     ],
 )
