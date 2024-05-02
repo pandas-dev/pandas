@@ -15,6 +15,7 @@ cdef dict c_OFFSET_TO_PERIOD_FREQSTR
 cdef dict c_PERIOD_TO_OFFSET_FREQSTR
 cdef dict c_OFFSET_REMOVED_FREQSTR
 cdef dict c_DEPR_ABBREVS
+cdef set c_PERIOD_AND_OFFSET_ALIASES
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit

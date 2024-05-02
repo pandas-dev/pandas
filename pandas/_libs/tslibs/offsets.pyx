@@ -59,6 +59,7 @@ from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_REMOVED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
+    c_PERIOD_AND_OFFSET_ALIASES,
     c_PERIOD_TO_OFFSET_FREQSTR,
     periods_per_day,
 )
@@ -4839,22 +4840,38 @@ cpdef to_offset(freq, bint is_period=False):
                         )
                     # below we raise for lowercase monthly and bigger frequencies
                     if (name.upper() != name and
-                            name.lower() not in {"h", "min", "s", "ms", "us", "ns"} and
-                            name.upper() not in c_PERIOD_TO_OFFSET_FREQSTR and
-                            name.upper() in c_OFFSET_TO_PERIOD_FREQSTR):
+                            name.lower() not in c_PERIOD_AND_OFFSET_ALIASES and
+                            name.upper() in c_PERIOD_AND_OFFSET_ALIASES):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                 if is_period:
                     if name in c_PERIOD_TO_OFFSET_FREQSTR:
                         name = c_PERIOD_TO_OFFSET_FREQSTR[name]
                     # we will remove the check below after deprecating lowercase
                     # frequencies for "d", "b", "w", "weekday", "w-sun”, and so on.
-                    elif name in {"b", "d"}:
-                        name = name.upper()
                     elif (name.upper() not in {"B", "D"} and
                             not name.upper().startswith("W")):
                         raise ValueError(
                             f"\'{name}\' is not supported as period frequency."
                         )
+                if name in c_PERIOD_AND_OFFSET_ALIASES:
+                    if name.startswith(("W", "w", "D", "d", "B", "b")) and name != name.upper():
+                        if name.startswith(("W", "w")):
+                            warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed "
+                            f"in a future version, please use \'{name.upper()}\' instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                            )
+                        name = name.upper()
+                    if not name.startswith(("W", "w", "D", "d", "B", "b")) and name != name.lower():
+                        warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use \'{name.lower()}\' instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                        )
+                        name = name.lower()
+
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
