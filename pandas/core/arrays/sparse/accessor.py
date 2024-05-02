@@ -243,6 +243,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    Parameters
+    ----------
+    data : scipy.sparse.spmatrix
+        Must be convertible to csc format.
+
     See Also
     --------
     DataFrame.sparse.density : Ratio of non-sparse points to total (dense) data points.
