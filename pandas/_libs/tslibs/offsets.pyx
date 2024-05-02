@@ -4843,16 +4843,21 @@ cpdef to_offset(freq, bint is_period=False):
                             name.lower() not in c_PERIOD_AND_OFFSET_ALIASES and
                             name.upper() in c_PERIOD_AND_OFFSET_ALIASES):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                if is_period:
-                    if name in c_PERIOD_TO_OFFSET_FREQSTR:
-                        name = c_PERIOD_TO_OFFSET_FREQSTR[name]
+                elif is_period and name.upper() in c_OFFSET_REMOVED_FREQSTR:
+                    if name.upper() != name:
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in "
+                            f"a future version, please use \'{name.upper()}\' "
+                            f"instead.",
                     # we will remove the check below after deprecating lowercase
                     # frequencies for "d", "b", "w", "weekday", "w-sun”, and so on.
-                    elif (name.upper() not in {"B", "D"} and
-                            not name.upper().startswith("W")):
-                        raise ValueError(
-                            f"\'{name}\' is not supported as period frequency."
-                        )
+                        elif (name.upper() not in c_PERIOD_AND_OFFSET_ALIASES and
+                                not name.lower() not in c_PERIOD_AND_OFFSET_ALIASES):
+                            raise ValueError(
+                                f"\'{name}\' is not supported as period frequency."
+                            )
+                        
+                        name = c_OFFSET_REMOVED_FREQSTR[name.upper()]
                 if name in c_PERIOD_AND_OFFSET_ALIASES:
                     if name.startswith(("W", "w", "D", "d", "B", "b")) and name != name.upper():
                         if name.startswith(("W", "w")):
