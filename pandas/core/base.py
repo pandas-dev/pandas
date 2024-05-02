@@ -342,6 +342,12 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+        Series.nbytes : Return the number of bytes in the underlying data.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])

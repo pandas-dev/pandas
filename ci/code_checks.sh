@@ -235,7 +235,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rsub PR07" \
         -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.shape SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
