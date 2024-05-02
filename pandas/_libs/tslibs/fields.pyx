@@ -246,7 +246,11 @@ def get_start_end_field(
     if freqstr:
         if freqstr == "C":
             raise ValueError(f"Custom business days is not supported by {field}")
-        is_business = freqstr.endswith("B")
+        freq = ""
+        for char in freqstr:
+            if(char.isalpha()):
+                freq += char
+        is_business = freq == "B"
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
