@@ -167,13 +167,11 @@ class _Unstacker:
     ]:
         v = self.level
 
-        levs = list(self.index.levels)
         codes = list(self.index.codes)
-
         if not self.sort:
             # Create new codes considering that labels are already sorted
             codes = [factorize(code)[0] for code in codes]
-
+        levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
 
