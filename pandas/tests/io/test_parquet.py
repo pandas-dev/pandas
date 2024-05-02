@@ -676,9 +676,9 @@ class TestBasic(Base):
 
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
-        df = df_full
-        
         from pandas.compat._optional import VERSIONS
+
+        df = df_full
 
         pa_min_ver = VERSIONS.get("pyarrow")
         if Version(pyarrow.__version__) == Version(pa_min_ver):
