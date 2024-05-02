@@ -2867,7 +2867,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     See Also
     --------
     Series.dt : Accessor object for datetimelike properties of the Series values.
-    Series.sparse : Accessor for SparseSparse from other sparse matrix data types.
+    Series.sparse : Accessor for sparse matrix data types.
 
     Examples
     --------
