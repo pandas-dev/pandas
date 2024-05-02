@@ -262,6 +262,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
 
+    See Also
+    --------
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+    Index : Immutable sequence used for indexing and alignment.
+
     Notes
     -----
     Please reference the :ref:`User Guide <basics.series>` for more information.
