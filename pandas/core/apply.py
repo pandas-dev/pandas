@@ -482,6 +482,7 @@ class Apply(metaclass=abc.ABCMeta):
                 if cols.ndim == 1:
                     series_list = [obj._gotitem(key, ndim=1, subset=cols)]
                 else:
+                    series_list = []
                     for index in range(cols.shape[1]):
                         col = cols.iloc[:, index]
 
