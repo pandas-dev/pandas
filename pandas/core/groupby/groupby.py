@@ -1202,10 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = RangeIndex(len(values))
-                result = concat(values, axis=0, keys=keys)
+                result = concat(values, axis=0)
 
         elif not not_indexed_same:
             result = concat(values, axis=0)
