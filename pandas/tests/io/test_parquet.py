@@ -50,8 +50,6 @@ pytestmark = [
     ),
 ]
 
-pa = pytest.importorskip("pyarrow", minversion="11.0.0")
-
 # setup engines & skips
 @pytest.fixture(
     params=[
@@ -78,6 +76,9 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
+
+    if Version(pyarrow.__version__) == "10.0.1":
+        pytest.skip("skip the minimum '10.0.1' pyarrow version")
     return "pyarrow"
 
 
