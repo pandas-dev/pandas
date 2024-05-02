@@ -331,7 +331,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self.isna()
         if limit is not None and limit < len(self):
-            modify = mask.cumsum() > limit
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
             if modify.any():
                 # Only copy mask if necessary
                 mask = mask.copy()

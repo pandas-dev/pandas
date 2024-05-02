@@ -1069,8 +1069,9 @@ class ExtensionArray:
         mask = self.isna()
         if limit is not None and limit < len(self):
             # isna can return an ExtensionArray, we're assuming that comparisons
-            # are implemented and the result can use `.any()`
-            modify = mask.cumsum() > limit
+            # are implemented.
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
             if modify.any():
                 # Only copy mask if necessary
                 mask = mask.copy()
