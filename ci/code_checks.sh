@@ -375,7 +375,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.weekday SA01" \
         -i "pandas.Timestamp.weekofyear SA01" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray._concat_same_type PR07,SA01" \
+        -i "pandas.api.extensions.ExtensionArray._concat_same_type PR07" \
         -i "pandas.api.extensions.ExtensionArray._formatter SA01" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence SA01" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \

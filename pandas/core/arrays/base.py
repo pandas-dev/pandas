@@ -1794,6 +1794,15 @@ class ExtensionArray:
         -------
         ExtensionArray
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._formatter : Formatting function for
+            scalar values.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+
         Examples
         --------
         >>> arr1 = pd.array([1, 2, 3])
