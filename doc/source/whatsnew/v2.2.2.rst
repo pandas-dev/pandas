@@ -14,6 +14,9 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 - Added new display.option for intger formatting within DataFrames (:issue:`57177`)
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_222.regressions:
 
 Fixed regressions
