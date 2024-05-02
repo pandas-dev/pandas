@@ -1125,6 +1125,14 @@ class TestArrowArray(base.ExtensionTests):
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
 
+    def test_assign_column_in_dataframe(self, data):
+        df = pd.DataFrame({"A": [1]}, dtype=ArrowDtype(pa.uint64()))
+        df["B"] = pa.array([1], type=pa.uint64())
+        result = df.dtypes
+        expected = pd.Series({"A": "uint64[pyarrow]", "B": "uint64[pyarrow]"})
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""

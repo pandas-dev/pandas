@@ -1,13 +1,8 @@
 from datetime import datetime
 
-import pyarrow as pa
 import pytz
 
-from pandas import (
-    ArrowDtype,
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -33,11 +28,3 @@ class TestDataFrameAlterAxes:
         df.columns = ["foo", "bar", "baz", "quux", "foo2"]
         tm.assert_series_equal(float_frame["C"], df["baz"], check_names=False)
         tm.assert_series_equal(float_frame["hi"], df["foo2"], check_names=False)
-
-    def test_assign_pyarrow_columns(self):
-        df = DataFrame({"A": [1]}, dtype=ArrowDtype(pa.uint64()))
-        df["B"] = pa.array([1], type=pa.uint64())
-        result = df.dtypes
-        expected = Series(Series({"A": "uint64[pyarrow]", "B": "uint64[pyarrow]"}))
-
-        tm.assert_series_equal(result, expected)
