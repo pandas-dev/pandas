@@ -1844,10 +1844,19 @@ class ExtensionArray:
         Returns
         -------
         array
+            An array performing the accumulation operation.
 
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray.view : Return a view on the array.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
 
         Examples
         --------
