@@ -311,7 +311,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
-        -i "pandas.TimedeltaIndex.days SA01" \
         -i "pandas.TimedeltaIndex.microseconds SA01" \
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
