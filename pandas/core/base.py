@@ -874,9 +874,9 @@ class IndexOpsMixin(OpsMixin):
 
         See Also
         --------
-        pandas.Series.items : Lazily iterate over (index, value) tuples.
-        pandas.Series.index : The index (axis labels) of the Series.
-        pandas.Series.apply : Invoke function on values of Series.
+        Series.items : Lazily iterate over (index, value) tuples.
+        Series.index : The index (axis labels) of the Series.
+        Series.apply : Invoke function on values of Series.
 
         Examples
         --------
