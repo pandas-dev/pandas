@@ -836,6 +836,10 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
