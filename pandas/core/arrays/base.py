@@ -742,7 +742,8 @@ class ExtensionArray:
         If returning an ExtensionArray, then
 
         * ``na_values._is_boolean`` should be True
-        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
 
         Examples
@@ -1067,6 +1068,8 @@ class ExtensionArray:
         """
         mask = self.isna()
         if limit is not None and limit < len(self):
+            # isna can return an ExtensionArray, we're assuming that comparisons
+            # are implemented and the result can use `.any()`
             modify = mask.cumsum() > limit
             if modify.any():
                 # Only copy mask if necessary
