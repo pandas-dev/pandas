@@ -655,8 +655,7 @@ class TestBasic(Base):
                 "value": pd.array([], dtype=dtype),
             }
         )
-        if pyarrow.__version__ == "10.0.1":
-            pytest.skip("skip the pyarrow version '10.0.1'")
+        pytest.importorskip("pyarrow", "10.0.1")
         # GH 45694
         expected = None
         if dtype == "float":
@@ -673,9 +672,7 @@ class TestBasic(Base):
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
         df = df_full
-
-        if pyarrow.__version__ == "10.0.1":
-            pytest.skip("skip the pyarrow version '10.0.1'")
+        pytest.importorskip("pyarrow", "10.0.1")
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
@@ -943,8 +940,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
-        if pyarrow.__version__ == "10.0.1":
-            pytest.skip("skip the pyarrow version '10.0.1'")
+        pytest.importorskip("pyarrow", "10.0.1")
+
         if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             request.applymarker(
                 pytest.mark.xfail(
