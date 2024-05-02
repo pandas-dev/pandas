@@ -165,7 +165,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series SA01" \
         -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.backfill PR01,SA01" \
