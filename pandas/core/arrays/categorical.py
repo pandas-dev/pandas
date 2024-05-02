@@ -2987,6 +2987,12 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         """
         Return Series of codes as well as the index.
 
+        See Also
+        --------
+        Series.cat.categories : Return the categories of this categorical.
+        Series.cat.as_ordered : Set the Categorical to be ordered.
+        Series.cat.as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
