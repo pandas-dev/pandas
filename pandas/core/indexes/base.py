@@ -3490,10 +3490,22 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label
+            The key to check its location if it is present in the index.
 
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
+            Integer location, slice or boolean mask.
+
+        See Also
+        --------
+        Index.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
 
         Examples
         --------
@@ -3543,6 +3555,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : Index
+            An iterable containing the values to be used for computing indexer.
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -3569,6 +3582,12 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
+
+        See Also
+        --------
+        Index.get_indexer_for : Returns an indexer even when non-unique.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
 
         Notes
         -----
@@ -5253,9 +5272,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+            Array of booleans denoting where values in the original
+            data are not ``NA``.
+        value : scalar
+            Scalar value to use to fill holes (e.g. 0).
+            This value cannot be a list-likes.
+
         Returns
         -------
         Index
+            A new Index of the values set with the mask.
 
         See Also
         --------
@@ -5843,6 +5872,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : %(target_klass)s
+            An iterable containing the values to be used for computing indexer.
 
         Returns
         -------
@@ -5853,6 +5883,12 @@ class Index(IndexOpsMixin, PandasObject):
         missing : np.ndarray[np.intp]
             An indexer into the target of the values not found.
             These correspond to the -1 in the indexer array.
+
+        See Also
+        --------
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
 
         Examples
         --------
@@ -5929,10 +5965,22 @@ class Index(IndexOpsMixin, PandasObject):
         This dispatches to get_indexer or get_indexer_non_unique
         as appropriate.
 
+        Parameters
+        ----------
+        target : Index
+            An iterable containing the values to be used for computing indexer.
+
         Returns
         -------
         np.ndarray[np.intp]
             List of indices.
+
+        See Also
+        --------
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
 
         Examples
         --------
