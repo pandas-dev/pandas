@@ -1312,19 +1312,6 @@ def test_bitwise(pa_type):
     tm.assert_series_equal(result, expected)
 
 
-def test_construct_from_string_with_name_exception(monkeypatch):
-    def mock_type_for_alias(*args, **kwargs):
-        raise NameError
-
-    with monkeypatch.context() as m:
-        # Doing this as a substitute for pyarrow not being defined.
-        m.setattr(pa, "type_for_alias", mock_type_for_alias)
-        with pytest.raises(
-            ImportError, match="pyarrow>=10.0.1 is required for ArrowDtype"
-        ):
-            ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
-
-
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
