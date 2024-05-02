@@ -1202,10 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = RangeIndex(len(values))
-                result = concat(values, axis=0, keys=keys)
+                result = concat(values, axis=0)
 
         elif not not_indexed_same:
             result = concat(values, axis=0)
@@ -1286,11 +1283,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # zip in reverse so we can always insert at loc 0
-        for level, (name, lev, in_axis) in enumerate(
+        for level, (name, lev) in enumerate(
             zip(
                 reversed(self._grouper.names),
-                reversed(self._grouper.get_group_levels()),
-                reversed([grp.in_axis for grp in self._grouper.groupings]),
+                self._grouper.get_group_levels(),
             )
         ):
             if name is None:

@@ -70,6 +70,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterator,
         Sequence,
@@ -857,16 +858,15 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> Generator[Index, None, None]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
         if len(self.groupings) == 1:
-            return [result_index]
-        return [
-            result_index.get_level_values(level)
-            for level in range(result_index.nlevels)
-        ]
+            yield result_index
+        else:
+            for level in range(result_index.nlevels - 1, -1, -1):
+                yield result_index.get_level_values(level)
 
     # ------------------------------------------------------------
     # Aggregation functions
