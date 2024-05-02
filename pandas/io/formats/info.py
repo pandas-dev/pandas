@@ -422,7 +422,7 @@ class _BaseInfo(ABC):
                 # categories)
                 if (
                     "object" in self.dtype_counts
-                    or self.data.index._is_memory_usage_qualified()
+                    or self.data.index._is_memory_usage_qualified
                 ):
                     size_qualifier = "+"
         return size_qualifier

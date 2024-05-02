@@ -706,7 +706,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def fillna(
         self,
-        value=None,
+        value,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -737,8 +737,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if value is None:
-            raise ValueError("Must specify 'value'.")
         if limit is not None:
             raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)

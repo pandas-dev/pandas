@@ -328,7 +328,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self.isna()
         if limit is not None and limit < len(self):
             modify = mask.cumsum() > limit
@@ -353,8 +353,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
             new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
-            if value is not None:
-                self._validate_setitem_value(value)
+            self._validate_setitem_value(value)
 
             if not copy:
                 new_values = self[:]

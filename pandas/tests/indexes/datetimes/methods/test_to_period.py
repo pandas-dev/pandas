@@ -117,10 +117,10 @@ class TestToPeriod:
             freq="5min",
         )
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             pi1 = rng.to_period("5min")
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             pi2 = rng.to_period()
 
         tm.assert_index_equal(pi1, pi2)
@@ -143,8 +143,7 @@ class TestToPeriod:
             ]
         )
 
-        with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             period = index.to_period(freq="ms")
         assert 2 == len(period)
         assert period[0] == Period("2007-01-01 10:11:12.123Z", "ms")
@@ -158,8 +157,7 @@ class TestToPeriod:
             ]
         )
 
-        with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             period = index.to_period(freq="us")
         assert 2 == len(period)
         assert period[0] == Period("2007-01-01 10:11:12.123456Z", "us")
@@ -172,10 +170,7 @@ class TestToPeriod:
     def test_to_period_tz(self, tz):
         ts = date_range("1/1/2000", "2/1/2000", tz=tz)
 
-        with tm.assert_produces_warning(UserWarning):
-            # GH#21333 warning that timezone info will be lost
-            # filter warning about freq deprecation
-
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             result = ts.to_period()[0]
             expected = ts[0].to_period(ts.freq)
 
@@ -183,8 +178,7 @@ class TestToPeriod:
 
         expected = date_range("1/1/2000", "2/1/2000").to_period()
 
-        with tm.assert_produces_warning(UserWarning):
-            # GH#21333 warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             result = ts.to_period(ts.freq)
 
         tm.assert_index_equal(result, expected)
@@ -193,7 +187,7 @@ class TestToPeriod:
     def test_to_period_tz_utc_offset_consistency(self, tz):
         # GH#22905
         ts = date_range("1/1/2000", "2/1/2000", tz="Etc/GMT-1")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             result = ts.to_period()[0]
             expected = ts[0].to_period(ts.freq)
             assert result == expected

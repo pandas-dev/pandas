@@ -322,7 +322,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
@@ -798,6 +798,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     days_docstring = textwrap.dedent(
         """Number of days for each element.
+
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
+    Series.dt.nanoseconds : Return number of nanoseconds for each element.
 
     Examples
     --------
