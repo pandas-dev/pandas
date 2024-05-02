@@ -1715,6 +1715,17 @@ class ExtensionArray:
 
         See Also
         --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+        api.extensions.ExtensionArray._from_sequence : Construct a new
+            ExtensionArray from a sequence of scalars.
+
+
+
 
         Examples
         --------
