@@ -870,6 +870,13 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         iterator
+            An iterator yielding scalar values from the Series.
+
+        See Also
+        --------
+        pandas.Series.items : Lazily iterate over (index, value) tuples.
+        pandas.Series.index : The index (axis labels) of the Series.
+        pandas.Series.apply : Invoke function on values of Series.
 
         Examples
         --------
