@@ -276,6 +276,12 @@ pc_memory_usage_doc = """
     df.info() is called. Valid values True,False,'deep'
 """
 
+pc_integer_format_doc = """
+:   str
+    This formats integer values in a DataFrame with a delimiter (either "," or "_"). The default
+    delimiter is no space.
+"""
+
 
 def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
@@ -388,6 +394,12 @@ with cf.config_prefix("display"):
     cf.register_option(
         "max_dir_items", 100, pc_max_dir_items, validator=is_nonnegative_int
     )
+    cf.register_option(
+        "integer_format",
+        None,
+        pc_integer_format_doc,
+        validator=is_instance_factory((type(None), str)),
+    )
 
 tc_sim_interactive_doc = """
 : boolean
@@ -412,9 +424,11 @@ with cf.config_prefix("mode"):
         "copy_on_write",
         # Get the default from an environment variable, if set, otherwise defaults
         # to False. This environment variable can be set for testing.
-        "warn"
-        if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
-        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        (
+            "warn"
+            if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
+            else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1"
+        ),
         copy_on_write_doc,
         validator=is_one_of_factory([True, False, "warn"]),
     )
