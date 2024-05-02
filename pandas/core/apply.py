@@ -474,18 +474,19 @@ class Apply(metaclass=abc.ABCMeta):
         elif is_groupby:
             # key used for column selection and output
 
-            df = obj.obj
+            df = selected_obj
             results, keys = [], []
             for key, how in func.items():
-                for index in range(df.shape[1]):
-                    col = df.iloc[:, index]
-                    if col.name != key:
-                        continue
+                cols = df[key]
+
+                for index in range(cols.shape[1]):
+                    col = cols.iloc[:, index]
 
                     series = obj._gotitem(key, ndim=1, subset=col)
                     result = getattr(series, op_name)(how, **kwargs)
                     results.append(result)
                     keys.append(key)
+
         else:
             results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
@@ -525,11 +526,18 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat(
-                results,
-                axis=axis,
-                keys=keys_to_use,
-            )
+            if len(keys_to_use) == 0:
+                result = concat(
+                    results,
+                    axis=axis,
+                )
+            else:
+                result = concat(
+                    results,
+                    axis=axis,
+                    keys=keys_to_use,
+                )
+
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(
