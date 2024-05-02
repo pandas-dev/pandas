@@ -183,16 +183,17 @@ def test_frame_consistency(groupby_func):
     elif groupby_func in ("bfill", "ffill"):
         exclude_expected = {"inplace", "axis", "limit_area"}
     elif groupby_func in ("cummax", "cummin"):
-        exclude_expected = {"skipna", "args"}
-        exclude_result = {"numeric_only"}
+        exclude_expected = {"axis", "skipna", "args"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"skipna"}
+        exclude_expected = {"axis", "skipna", "numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
     elif groupby_func in ("rank",):
         exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
+    elif groupby_func in ["corrwith"]:
+        exclude_expected = {"min_periods"}
     if groupby_func not in ["pct_change", "size"]:
         exclude_expected |= {"axis"}
 

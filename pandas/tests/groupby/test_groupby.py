@@ -113,8 +113,9 @@ def test_pass_args_kwargs(ts, tsframe):
         expected_seq = df_grouped.quantile([0.4, 0.8])
         if not as_index:
             # apply treats the op as a transform; .quantile knows it's a reduction
-            apply_result = apply_result.reset_index()
-            apply_result["level_0"] = [1, 1, 2, 2]
+            apply_result.index = range(4)
+            apply_result.insert(loc=0, column="level_0", value=[1, 1, 2, 2])
+            apply_result.insert(loc=1, column="level_1", value=[0.4, 0.8, 0.4, 0.8])
         tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
         agg_result = df_grouped.agg(f, q=80)
@@ -519,9 +520,7 @@ def test_as_index_select_column():
     result = df.groupby("A", as_index=False, group_keys=True)["B"].apply(
         lambda x: x.cumsum()
     )
-    expected = Series(
-        [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
-    )
+    expected = Series([2, 6, 6], name="B", index=range(3))
     tm.assert_series_equal(result, expected)
 
 
@@ -671,7 +670,7 @@ def test_raises_on_nuisance(df):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support operation: 'sum'"
+    msg = "datetime64 type does not support operation 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
@@ -1794,7 +1793,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             else:
                 msg = "category type does not support"
             if op == "skew":
-                msg = "|".join([msg, "does not support reduction 'skew'"])
+                msg = "|".join([msg, "does not support operation 'skew'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 

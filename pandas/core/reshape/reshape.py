@@ -35,6 +35,7 @@ from pandas.core.algorithms import (
     factorize,
     unique,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -61,6 +62,7 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.indexes.frozen import FrozenList
 
 
 class _Unstacker:
@@ -233,20 +235,31 @@ class _Unstacker:
         return new_values, mask.any(0)
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
-    def get_result(self, values, value_columns, fill_value) -> DataFrame:
+    def get_result(self, obj, value_columns, fill_value) -> DataFrame:
+        values = obj._values
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        values, _ = self.get_new_values(values, fill_value)
+        new_values, _ = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(
-            values, index=index, columns=columns, dtype=values.dtype
+        result = self.constructor(
+            new_values, index=index, columns=columns, dtype=new_values.dtype, copy=False
         )
+        if isinstance(values, np.ndarray):
+            base, new_base = values.base, new_values.base
+        elif isinstance(values, NDArrayBackedExtensionArray):
+            base, new_base = values._ndarray.base, new_values._ndarray.base
+        else:
+            base, new_base = 1, 2  # type: ignore[assignment]
+        if base is new_base:
+            # We can only get here if one of the dimensions is size 1
+            result._mgr.add_references(obj._mgr)
+        return result
 
     def get_new_values(self, values, fill_value=None):
         if values.ndim == 1:
@@ -339,15 +352,21 @@ class _Unstacker:
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
 
-        new_levels: tuple[Index, ...]
+        new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)
+            # error: Cannot determine type of "__add__"  [has-type]
+            new_levels = value_columns.levels + (  # type: ignore[has-type]
+                self.removed_level_full,
+            )
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            new_levels = (value_columns, self.removed_level_full)
+            new_levels = [
+                value_columns,
+                self.removed_level_full,
+            ]
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
@@ -540,9 +559,7 @@ def unstack(
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
         )
-        return unstacker.get_result(
-            obj._values, value_columns=None, fill_value=fill_value
-        )
+        return unstacker.get_result(obj, value_columns=None, fill_value=fill_value)
 
 
 def _unstack_frame(
@@ -558,7 +575,7 @@ def _unstack_frame(
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
-            obj._values, value_columns=obj.columns, fill_value=fill_value
+            obj, value_columns=obj.columns, fill_value=fill_value
         )
 
 
@@ -985,26 +1002,27 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
+    index_levels: list | FrozenList
     if isinstance(frame.index, MultiIndex):
         index_levels = frame.index.levels
-        index_codes = tuple(np.tile(frame.index.codes, (1, ratio)))
+        index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
         codes, uniques = factorize(frame.index, use_na_sentinel=False)
-        # Incompatible types in assignment (expression has type
-        # "tuple[ndarray[Any, Any] | Index]", variable has type "tuple[Index, ...]")
-        index_levels = (uniques,)  # type: ignore[assignment]
-        index_codes = tuple(np.tile(codes, (1, ratio)))
+        index_levels = [uniques]
+        index_codes = list(np.tile(codes, (1, ratio)))
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = (ordered_stack_cols.unique(),)
-        column_codes = (factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0],)
-    column_codes = tuple(np.repeat(codes, len(frame)) for codes in column_codes)
+        column_levels = [ordered_stack_cols.unique()]
+        column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
+    # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
+    # dtype[Any]]]", variable has type "FrozenList")
+    column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]  # type: ignore[assignment]
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,
-        names=frame.index.names + ordered_stack_cols.names,
+        names=frame.index.names + list(ordered_stack_cols.names),
         verify_integrity=False,
     )
 
