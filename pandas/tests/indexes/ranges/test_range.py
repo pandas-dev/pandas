@@ -200,11 +200,6 @@ class TestRangeIndex:
         i_view = i.view("i8")
         tm.assert_numpy_array_equal(i.values, i_view)
 
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            i_view = i.view(RangeIndex)
-        tm.assert_index_equal(i, i_view)
-
     def test_dtype(self, simple_index):
         index = simple_index
         assert index.dtype == np.int64
@@ -380,8 +375,11 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = "Passing a type in RangeIndex.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
+        with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
     def test_prevent_casting(self, simple_index):
@@ -876,3 +874,36 @@ def test_getitem_integers_return_index():
     result = RangeIndex(0, 10, 2, name="foo")[[0, 1, -1]]
     expected = Index([0, 2, 8], dtype="int64", name="foo")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(3),
+        range(0),
+        range(0, 3, 2),
+        range(3, -3, -2),
+    ],
+)
+def test_value_counts(sort, dropna, ascending, normalize, rng):
+    ri = RangeIndex(rng, name="A")
+    result = ri.value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    expected = Index(list(rng), name="A").value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    tm.assert_series_equal(result, expected, check_index_type=False)
+
+
+@pytest.mark.parametrize("side", ["left", "right"])
+@pytest.mark.parametrize("value", [0, -5, 5, -3, np.array([-5, -3, 0, 5])])
+def test_searchsorted(side, value):
+    ri = RangeIndex(-3, 3, 2)
+    result = ri.searchsorted(value=value, side=side)
+    expected = Index(list(ri)).searchsorted(value=value, side=side)
+    if isinstance(value, int):
+        assert result == expected
+    else:
+        tm.assert_numpy_array_equal(result, expected)

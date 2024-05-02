@@ -209,60 +209,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     indexes, kind = _sanitize_and_check(indexes)
 
-    def _unique_indices(inds, dtype) -> Index:
-        """
-        Concatenate indices and remove duplicates.
-
-        Parameters
-        ----------
-        inds : list of Index or list objects
-        dtype : dtype to set for the resulting Index
-
-        Returns
-        -------
-        Index
-        """
-        if all(isinstance(ind, Index) for ind in inds):
-            inds = [ind.astype(dtype, copy=False) for ind in inds]
-            result = inds[0].unique()
-            other = inds[1].append(inds[2:])
-            diff = other[result.get_indexer_for(other) == -1]
-            if len(diff):
-                result = result.append(diff.unique())
-            if sort:
-                result = result.sort_values()
-            return result
-
-        def conv(i):
-            if isinstance(i, Index):
-                i = i.tolist()
-            return i
-
-        return Index(
-            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort),
-            dtype=dtype,
-        )
-
-    def _find_common_index_dtype(inds):
-        """
-        Finds a common type for the indexes to pass through to resulting index.
-
-        Parameters
-        ----------
-        inds: list of Index or list objects
-
-        Returns
-        -------
-        The common type or None if no indexes were given
-        """
-        dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
-        if dtypes:
-            dtype = find_common_type(dtypes)
-        else:
-            dtype = None
-
-        return dtype
-
     if kind == "special":
         result = indexes[0]
 
@@ -294,18 +240,36 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         return result
 
     elif kind == "array":
-        dtype = _find_common_index_dtype(indexes)
-        index = indexes[0]
-        if not all(index.equals(other) for other in indexes[1:]):
-            index = _unique_indices(indexes, dtype)
+        if not all_indexes_same(indexes):
+            dtype = find_common_type([idx.dtype for idx in indexes])
+            inds = [ind.astype(dtype, copy=False) for ind in indexes]
+            index = inds[0].unique()
+            other = inds[1].append(inds[2:])
+            diff = other[index.get_indexer_for(other) == -1]
+            if len(diff):
+                index = index.append(diff.unique())
+            if sort:
+                index = index.sort_values()
+        else:
+            index = indexes[0]
 
         name = get_unanimous_names(*indexes)[0]
         if name != index.name:
             index = index.rename(name)
         return index
-    else:  # kind='list'
-        dtype = _find_common_index_dtype(indexes)
-        return _unique_indices(indexes, dtype)
+    elif kind == "list":
+        dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
+        if dtypes:
+            dtype = find_common_type(dtypes)
+        else:
+            dtype = None
+        all_lists = (idx.tolist() if isinstance(idx, Index) else idx for idx in indexes)
+        return Index(
+            lib.fast_unique_multiple_list_gen(all_lists, sort=bool(sort)),
+            dtype=dtype,
+        )
+    else:
+        raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
 
 
 def _sanitize_and_check(indexes):
@@ -329,14 +293,14 @@ def _sanitize_and_check(indexes):
     sanitized_indexes : list of Index or list objects
     type : {'list', 'array', 'special'}
     """
-    kinds = list({type(index) for index in indexes})
+    kinds = {type(index) for index in indexes}
 
     if list in kinds:
         if len(kinds) > 1:
             indexes = [
                 Index(list(x)) if not isinstance(x, Index) else x for x in indexes
             ]
-            kinds.remove(list)
+            kinds -= {list}
         else:
             return indexes, "list"
 

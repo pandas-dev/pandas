@@ -333,6 +333,8 @@ engine_kwargs : dict, default None
 Returns
 -------
 %(klass)s
+    %(klass)s with the same indexes as the original object filled
+    with transformed values.
 
 See Also
 --------
@@ -1200,10 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = RangeIndex(len(values))
-                result = concat(values, axis=0, keys=keys)
+                result = concat(values, axis=0)
 
         elif not not_indexed_same:
             result = concat(values, axis=0)
@@ -1284,11 +1283,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # zip in reverse so we can always insert at loc 0
-        for level, (name, lev, in_axis) in enumerate(
+        for level, (name, lev) in enumerate(
             zip(
                 reversed(self._grouper.names),
-                reversed(self._grouper.get_group_levels()),
-                reversed([grp.in_axis for grp in self._grouper.groupings]),
+                self._grouper.get_group_levels(),
             )
         ):
             if name is None:
@@ -1439,6 +1437,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data and indices into a Numba jitted function.
         """
         data = self._obj_with_exclusions
+        index_sorting = self._grouper.result_ilocs
         df = data if data.ndim == 2 else data.to_frame()
 
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
@@ -1456,7 +1455,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         # result values needs to be resorted to their original positions since we
         # evaluated the data sorted by group
-        result = result.take(np.argsort(sorted_index), axis=0)
+        result = result.take(np.argsort(index_sorting), axis=0)
         index = data.index
         if data.ndim == 1:
             result_kwargs = {"name": data.name}
@@ -1550,6 +1549,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+            A pandas object with the result of applying ``func`` to each group.
 
         See Also
         --------
@@ -2244,6 +2244,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         pandas.Series or pandas.DataFrame
+            Mean of values within each group. Same object type as the caller.
         %(see_also)s
         Examples
         --------
@@ -3511,11 +3512,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.DatetimeIndexResamplerGroupby,
-        pandas.api.typing.PeriodIndexResamplerGroupby, or
-        pandas.api.typing.TimedeltaIndexResamplerGroupby
-            Return a new groupby object, with type depending on the data
-            being resampled.
+        DatetimeIndexResampler, PeriodIndexResampler or TimdeltaResampler
+            Resampler object for the type of the index.
 
         See Also
         --------
@@ -4590,7 +4588,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        DataFrame with ranking of values within each group
+        DataFrame
+            The ranking of values within each group.
         %(see_also)s
         Examples
         --------
@@ -4662,6 +4661,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+            Cumulative product for each group. Same object type as the caller.
         %(see_also)s
         Examples
         --------
@@ -4720,6 +4720,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+            Cumulative sum for each group. Same object type as the caller.
         %(see_also)s
         Examples
         --------
@@ -4782,6 +4783,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+            Cumulative min for each group. Same object type as the caller.
         %(see_also)s
         Examples
         --------
@@ -4852,6 +4854,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+            Cumulative max for each group. Same object type as the caller.
         %(see_also)s
         Examples
         --------
@@ -5007,7 +5010,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             period = cast(int, period)
             if freq is not None:
                 f = lambda x: x.shift(
-                    period,  # pylint: disable=cell-var-from-loop
+                    period,
                     freq,
                     0,  # axis
                     fill_value,
@@ -5602,7 +5605,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
         idx = cast(MultiIndex, idx)
         levels = list(idx.levels) + [lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
-        mi = MultiIndex(levels=levels, codes=codes, names=list(idx.names) + [None])
+        mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
         nidx = len(idx)
         idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)

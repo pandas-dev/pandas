@@ -127,7 +127,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)  # pylint: disable=not-callable
+            mem = memory_usage(deep=True)
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -309,6 +309,10 @@ class IndexOpsMixin(OpsMixin):
         doc="""
         Return the transpose, which is by definition self.
 
+        See Also
+        --------
+        Index : Immutable sequence used for indexing and alignment.
+
         Examples
         --------
         For Series:
@@ -355,6 +359,13 @@ class IndexOpsMixin(OpsMixin):
         """
         Number of dimensions of the underlying data, by definition 1.
 
+        See Also
+        --------
+        Series.size: Return the number of elements in the underlying data.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
+
         Examples
         --------
         >>> s = pd.Series(["Ant", "Bear", "Cow"])
@@ -391,6 +402,11 @@ class IndexOpsMixin(OpsMixin):
         ValueError
             If the data is not length = 1.
 
+        See Also
+        --------
+        Index.values : Returns an array representing the data in the Index.
+        Series.head : Returns the first `n` rows.
+
         Examples
         --------
         >>> s = pd.Series([1])
@@ -411,6 +427,11 @@ class IndexOpsMixin(OpsMixin):
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
+
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
 
         Examples
         --------
@@ -439,6 +460,13 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        See Also
+        --------
+        Series.ndim: Number of dimensions of the underlying data, by definition 1.
+        Series.shape: Return a tuple of the shape of the underlying data.
+        Series.dtype: Return the dtype object of the underlying data.
+        Series.values: Return Series as ndarray or ndarray-like depending on the dtype.
 
         Examples
         --------
@@ -528,7 +556,6 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -640,7 +667,7 @@ class IndexOpsMixin(OpsMixin):
         )
 
         values = self._values
-        if fillna:
+        if fillna and self.hasnans:
             if not can_hold_element(values, na_value):
                 # if we can't hold the na_value asarray either makes a copy or we
                 # error before modifying values. The asarray later on thus won't make
@@ -667,6 +694,40 @@ class IndexOpsMixin(OpsMixin):
     @final
     @property
     def empty(self) -> bool:
+        """
+        Indicator whether Index is empty.
+
+        Returns
+        -------
+        bool
+            If Index is empty, return True, if not return False.
+
+        See Also
+        --------
+        Index.size : Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> idx_empty = pd.Index([1, 2, 3])
+        >>> idx_empty
+        Index([1, 2, 3], dtype='int64')
+        >>> idx_empty.empty
+        False
+
+        >>> idx_empty = pd.Index([])
+        >>> idx_empty
+        Index([], dtype='object')
+        >>> idx_empty.empty
+        True
+
+        If we only have NaNs in our DataFrame, it is not considered empty!
+
+        >>> idx_empty = pd.Index([np.nan, np.nan])
+        >>> idx_empty
+        Index([nan, nan], dtype='float64')
+        >>> idx_empty.empty
+        False
+        """
         return not self.size
 
     @doc(op="max", oppose="min", value="largest")
@@ -735,13 +796,8 @@ class IndexOpsMixin(OpsMixin):
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
-
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmax()
+            return delegate.argmax(skipna=skipna)
         else:
             result = nanops.nanargmax(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
@@ -754,15 +810,10 @@ class IndexOpsMixin(OpsMixin):
     ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-
-        if skipna and len(delegate) > 0 and isna(delegate).all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and isna(delegate).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmin()
+            return delegate.argmin(skipna=skipna)
         else:
             result = nanops.nanargmin(delegate, skipna=skipna)
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
@@ -780,6 +831,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         list
+            List containing the values as Python or pandas scalers.
 
         See Also
         --------
@@ -890,7 +942,6 @@ class IndexOpsMixin(OpsMixin):
 
         return algorithms.map_array(arr, mapper, na_action=na_action)
 
-    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -924,6 +975,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         Series
+            Series containing counts of unique values.
 
         See Also
         --------
@@ -1010,6 +1062,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
+            A integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1116,6 +1169,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bytes used
+            Returns memory usage of the values in the Index in bytes.
 
         See Also
         --------

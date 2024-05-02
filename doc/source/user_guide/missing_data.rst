@@ -386,6 +386,27 @@ Replace NA with a scalar value
    df
    df.fillna(0)
 
+When the data has object dtype, you can control what type of NA values are present.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": [pd.NA, np.nan, None]}, dtype=object)
+   df
+   df.fillna(None)
+   df.fillna(np.nan)
+   df.fillna(pd.NA)
+
+However when the dtype is not object, these will all be replaced with the proper NA value for the dtype.
+
+.. ipython:: python
+
+   data = {"np": [1.0, np.nan, np.nan, 2], "arrow": pd.array([1.0, pd.NA, pd.NA, 2], dtype="float64[pyarrow]")}
+   df = pd.DataFrame(data)
+   df
+   df.fillna(None)
+   df.fillna(np.nan)
+   df.fillna(pd.NA)
+
 Fill gaps forward or backward
 
 .. ipython:: python

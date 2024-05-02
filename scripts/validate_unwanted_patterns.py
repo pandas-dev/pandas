@@ -54,6 +54,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
     "_fill_limit_area_1d",
+    "_make_block",
 }
 
 
