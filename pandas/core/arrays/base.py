@@ -1724,9 +1724,6 @@ class ExtensionArray:
         api.extensions.ExtensionArray._from_sequence : Construct a new
             ExtensionArray from a sequence of scalars.
 
-
-
-
         Examples
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
