@@ -225,24 +225,6 @@ def data_for_grouping(dtype):
     return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
 
 
-def expected_inferred_result_dtype(dtype):
-    """
-    When the data pass through aggregate,
-    the inferred data type that it will become
-
-    """
-
-    pa_dtype = dtype.pyarrow_dtype
-    if pa.types.is_date(pa_dtype):
-        return "date32[day][pyarrow]"
-    elif pa.types.is_time(pa_dtype):
-        return "time64[us][pyarrow]"
-    elif pa.types.is_decimal(pa_dtype):
-        return ArrowDtype(pa.decimal128(4, 3))
-    else:
-        return dtype
-
-
 @pytest.fixture
 def data_for_sorting(data_for_grouping):
     """
@@ -1146,6 +1128,17 @@ class TestArrowArray(base.ExtensionTests):
     def test_groupby_agg_extension(self, data_for_grouping):
         # GH#38980 groupby agg on extension type fails for non-numeric types
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+
+        def expected_inferred_result_dtype(dtype):
+            pa_dtype = dtype.pyarrow_dtype
+            if pa.types.is_date(pa_dtype):
+                return "date32[day][pyarrow]"
+            elif pa.types.is_time(pa_dtype):
+                return "time64[us][pyarrow]"
+            elif pa.types.is_decimal(pa_dtype):
+                return ArrowDtype(pa.decimal128(4, 3))
+            else:
+                return dtype
 
         expected_df = pd.DataFrame(
             {"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping}
