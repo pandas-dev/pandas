@@ -479,10 +479,16 @@ class Apply(metaclass=abc.ABCMeta):
             for key, how in func.items():
                 cols = df[key]
 
-                for index in range(cols.shape[1]):
-                    col = cols.iloc[:, index]
+                if cols.ndim == 1:
+                    series_list = [obj._gotitem(key, ndim=1, subset=cols)]
+                else:
+                    for index in range(cols.shape[1]):
+                        col = cols.iloc[:, index]
 
-                    series = obj._gotitem(key, ndim=1, subset=col)
+                        series = obj._gotitem(key, ndim=1, subset=col)
+                        series_list.append(series)
+
+                for series in series_list:
                     result = getattr(series, op_name)(how, **kwargs)
                     results.append(result)
                     keys.append(key)
