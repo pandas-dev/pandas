@@ -182,7 +182,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
-        -i "pandas.Series.dt.days SA01" \
         -i "pandas.Series.dt.days_in_month SA01" \
         -i "pandas.Series.dt.daysinmonth SA01" \
         -i "pandas.Series.dt.floor PR01,PR02" \
@@ -309,7 +308,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
-        -i "pandas.TimedeltaIndex.days SA01" \
         -i "pandas.TimedeltaIndex.microseconds SA01" \
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
