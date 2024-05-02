@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Interval.left SA01" \
         -i "pandas.Interval.mid SA01" \
         -i "pandas.Interval.right SA01" \
-        -i "pandas.IntervalDtype PR01,SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
@@ -167,7 +166,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series SA01" \
         -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
-        -i "pandas.Series.backfill PR01,SA01" \
         -i "pandas.Series.case_when RT03" \
         -i "pandas.Series.cat PR07,SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
