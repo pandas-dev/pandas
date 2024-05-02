@@ -677,6 +677,12 @@ class TestBasic(Base):
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
         df = df_full
+        
+        from pandas.compat._optional import VERSIONS
+
+        pa_min_ver = VERSIONS.get("pyarrow")
+        if Version(pyarrow.__version__) == Version(pa_min_ver):
+            pytest.skip("pandas.core.internals' has no attribute 'DatetimeTZBlock")
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
@@ -1118,11 +1124,6 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
-        from pandas.compat._optional import VERSIONS
-
-        pa_min_ver = VERSIONS.get("pyarrow")
-        if Version(pyarrow.__version__) == Version(pa_min_ver):
-            pytest.skip("pandas.core.internals' has no attribute 'DatetimeTZBlock")
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
