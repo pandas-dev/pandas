@@ -864,6 +864,10 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)

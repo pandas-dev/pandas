@@ -319,8 +319,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.day_of_year SA01" \
-        -i "pandas.Timestamp.dayofyear SA01" \
         -i "pandas.Timestamp.dst SA01" \
         -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
