@@ -673,7 +673,7 @@ class TestBasic(Base):
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
         df = df_full
-        
+
         if Version(pyarrow.__version__) == "10.0.1":
             pytest.skip("skip the pyarrow version '10.0.1'")
 
