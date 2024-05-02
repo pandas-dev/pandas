@@ -246,15 +246,14 @@ def get_start_end_field(
     if freqstr:
         if freqstr == "C":
             raise ValueError(f"Custom business days is not supported by {field}")
-        is_business = freqstr[0] == "B"
-
+        period_str = "".join([
+            dt_char for dt_char in list(freqstr.split("-")[0]) if not dt_char.isdigit()
+        ])
+        is_business = period_str == "B"
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
-        period_str = "".join([
-            dt_char for dt_char in list(freqstr.split("-")[0]) if not dt_char.isdigit()
-        ])
         if (period_str in ["MS", "QS", "YS"]):
             end_month = 12 if month_kw == 1 else month_kw - 1
             start_month = month_kw
