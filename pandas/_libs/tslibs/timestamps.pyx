@@ -904,6 +904,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.month_name : Return the month name of the Timestamp with
+            specified locale.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
