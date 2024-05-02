@@ -1304,6 +1304,10 @@ class IntervalDtype(PandasExtensionDtype):
         """
         The dtype of the Interval bounds.
 
+        See Also
+        --------
+        IntervalDtype: An ExtensionDtype for Interval data.
+
         Examples
         --------
         >>> dtype = pd.IntervalDtype(subtype="int64", closed="both")
