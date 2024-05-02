@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow
 
-    from pandas.io.formats.format import EngFormatter, IntegerFormatter
+    from pandas.io.formats.format import EngFormatter
     from pandas.tseries.holiday import AbstractHolidayCalendar
 
     ScalarLike_co = Union[
@@ -353,7 +353,6 @@ FormattersType = Union[
 ]
 ColspaceType = Mapping[Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
-IntegerFormatType = Union[str, Callable, "IntegerFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
