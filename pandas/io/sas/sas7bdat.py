@@ -16,7 +16,6 @@ Reference for binary data compression:
 
 from __future__ import annotations
 
-from collections import abc
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
@@ -45,7 +44,7 @@ from pandas import (
 
 from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.sasreader import ReaderBase
+from pandas.io.sas.sasreader import SASReader
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -116,7 +115,7 @@ class _Column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(ReaderBase, abc.Iterator):
+class SAS7BDATReader(SASReader):
     """
     Read SAS files in SAS7BDAT format.
 

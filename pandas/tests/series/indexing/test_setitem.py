@@ -181,14 +181,12 @@ class TestSetitemDT64Values:
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
+        # As of 3.0, int keys are treated as labels, so this becomes
+        #  setitem-with-expansion
         ser = Series(["a"] * 10, index=["a"] * 10)
-
-        # string index falls back to positional
-        msg = "index -11|-1 is out of bounds for axis 0 with size 10"
-        warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                ser[-11] = "foo"
+        ser[-11] = "foo"
+        exp = Series(["a"] * 10 + ["foo"], index=["a"] * 10 + [-11])
+        tm.assert_series_equal(ser, exp)
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.at])
     @pytest.mark.parametrize("ser_index", [0, 1])
@@ -1468,6 +1466,39 @@ class TestCoercionFloat32(CoercionTest):
 
 
 @pytest.mark.parametrize(
+    "exp_dtype",
+    [
+        "M8[ms]",
+        "M8[ms, UTC]",
+        "m8[ms]",
+    ],
+)
+class TestCoercionDatetime64HigherReso(CoercionTest):
+    @pytest.fixture
+    def obj(self, exp_dtype):
+        idx = date_range("2011-01-01", freq="D", periods=4, unit="s")
+        if exp_dtype == "m8[ms]":
+            idx = idx - Timestamp("1970-01-01")
+            assert idx.dtype == "m8[s]"
+        elif exp_dtype == "M8[ms, UTC]":
+            idx = idx.tz_localize("UTC")
+        return Series(idx)
+
+    @pytest.fixture
+    def val(self, exp_dtype):
+        ts = Timestamp("2011-01-02 03:04:05.678").as_unit("ms")
+        if exp_dtype == "m8[ms]":
+            return ts - Timestamp("1970-01-01")
+        elif exp_dtype == "M8[ms, UTC]":
+            return ts.tz_localize("UTC")
+        return ts
+
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
+
+
+@pytest.mark.parametrize(
     "val,exp_dtype,warn",
     [
         (Timestamp("2012-01-01"), "datetime64[ns]", None),
@@ -1716,24 +1747,24 @@ def test_setitem_bool_int_float_consistency(indexer_sli):
 def test_setitem_positional_with_casting():
     # GH#45070 case where in __setitem__ we get a KeyError, then when
     #  we fallback we *also* get a ValueError if we try to set inplace.
+    # As of 3.0 we always treat int keys as labels, so this becomes
+    #  setitem-with-expansion
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        ser[0] = "X"
-    expected = Series(["X", 2, 3], index=["a", "b", "c"], dtype=object)
+    ser[0] = "X"
+    expected = Series([1, 2, 3, "X"], index=["a", "b", "c", 0], dtype=object)
     tm.assert_series_equal(ser, expected)
 
 
 def test_setitem_positional_float_into_int_coerces():
     # Case where we hit a KeyError and then trying to set in-place incorrectly
-    #  casts a float to an int
+    #  casts a float to an int;
+    # As of 3.0 we always treat int keys as labels, so this becomes
+    #  setitem-with-expansion
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        ser[0] = 1.5
-    expected = Series([1.5, 2, 3], index=["a", "b", "c"])
+    ser[0] = 1.5
+    expected = Series([1, 2, 3, 1.5], index=["a", "b", "c", 0])
     tm.assert_series_equal(ser, expected)
 
 
