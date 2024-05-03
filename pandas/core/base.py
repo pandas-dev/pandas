@@ -909,6 +909,11 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
 
+        See Also
+        --------
+        Series.isna : Detect missing values.
+        Series.notna : Detect existing (non-missing) values.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, None])
