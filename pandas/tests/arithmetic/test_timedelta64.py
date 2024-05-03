@@ -8,7 +8,7 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat._constants import WASM
+from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
