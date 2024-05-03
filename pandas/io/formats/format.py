@@ -434,7 +434,7 @@ class DataFrameFormatter:
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
-        integer_format: IntegerFormatType | None = None,
+        integer_format: str | None = None,
         sparsify: bool | None = None,
         index_names: bool = True,
         max_rows: int | None = None,
@@ -1068,7 +1068,7 @@ def format_array(
     values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
-    integer_format: IntegerFormatType | None = None,
+    integer_format: str | None = None,
     na_rep: str = "NaN",
     digits: int | None = None,
     space: str | int | None = None,
@@ -1163,10 +1163,9 @@ class _GenericArrayFormatter:
         na_rep: str = "NaN",
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
-        integer_format: IntegerFormatType | None = None,
+        integer_format: str | None = None,
         justify: str = "right",
         decimal: str = ".",
-        delimiter: str | None = None,
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
@@ -1181,7 +1180,6 @@ class _GenericArrayFormatter:
         self.integer_format = integer_format
         self.justify = justify
         self.decimal = decimal
-        self.delimiter = delimiter
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
