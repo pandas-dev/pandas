@@ -909,6 +909,11 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
 
+        See Also
+        --------
+        Series.isna : Detect missing values.
+        Series.notna : Detect existing (non-missing) values.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, None])
@@ -1135,6 +1140,11 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
 
+        See Also
+        --------
+        Series.is_monotonic_decreasing : Return boolean if values in the object are
+            monotonically decreasing.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 2])
@@ -1157,6 +1167,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.is_monotonic_increasing : Return boolean if values in the object are
+            monotonically increasing.
 
         Examples
         --------
