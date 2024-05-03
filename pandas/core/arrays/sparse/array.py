@@ -717,6 +717,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         value : scalar
         limit : int, optional
+            Not supported for SparseArray, must be None.
         copy: bool, default True
             Ignored for SparseArray.
 
@@ -736,6 +737,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
+        if limit is not None:
+            raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
