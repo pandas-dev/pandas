@@ -379,7 +379,7 @@ jobs:
           actions-cache-folder: emsdk-cache
 
       - name: Install pyodide-build
-        run: pip install "pydantic<2" "pyodide-build==0.25.1"
+        run: pip install "pyodide-build==0.25.1"
 
       - name: Build pandas for Pyodide
         run: |
