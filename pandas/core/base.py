@@ -342,6 +342,12 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+        Series.nbytes : Return the number of bytes in the underlying data.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -1101,6 +1107,12 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.unique : Return unique values of Series object.
+        Series.drop_duplicates : Return Series with duplicate values removed.
+        Series.duplicated : Indicate duplicate Series values.
 
         Examples
         --------
