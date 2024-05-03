@@ -327,6 +327,11 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
         # for engine=python
         ...
 
+class ReadParquetBuffer(ReadBuffer[AnyStr_co], Protocol):
+    def __iter__(self) -> Iterator[AnyStr_co]:
+        # for engine=python
+        ...
+
     def fileno(self) -> int:
         # for _MMapWrapper
         ...
@@ -418,6 +423,9 @@ WindowingRankType = Literal["average", "min", "max"]
 
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_parquet engines
+ParquetEngine = Literal["pyarrow", "fastparquet"]
 
 # read_json engines
 JSONEngine = Literal["ujson", "pyarrow"]

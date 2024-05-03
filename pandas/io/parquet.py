@@ -4,27 +4,60 @@ from __future__ import annotations
 import io
 import json
 import os
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    IO,
 )
+
+from collections import (
+    abc,
+    defaultdict,
+)
+
+import warnings
 from warnings import catch_warnings
 
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    ParserWarning,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
+from pandas.util._exceptions import find_stack_level
+from pandas.core.indexes.api import RangeIndex
 
 import pandas as pd
+import numpy as np
+
 from pandas import (
     DataFrame,
     get_option,
+    Series,
 )
 from pandas.core.shared_docs import _shared_docs
+
+from pandas.core.dtypes.common import (
+    is_file_like,
+    is_float,
+    is_integer,
+    pandas_dtype,
+    is_list_like,
+)
+
+from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    is_index_col,
+    parser_defaults,
+)
 
 from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
@@ -36,12 +69,16 @@ from pandas.io.common import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+    
     from pandas._typing import (
         DtypeBackend,
         FilePath,
         ReadBuffer,
         StorageOptions,
         WriteBuffer,
+        ParquetEngine,
+        ReadParquetBuffer
     )
 
 
@@ -78,6 +115,26 @@ def get_engine(engine: str) -> BaseImpl:
 
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
+
+_pyarrow_unsupported = {
+    "skipfooter",
+    "float_precision",
+    "chunksize",
+    "comment",
+    "nrows",
+    "thousands",
+    "memory_map",
+    "dialect",
+    "delim_whitespace",
+    "quoting",
+    "lineterminator",
+    "converters",
+    "iterator",
+    "dayfirst",
+    "verbose",
+    "skipinitialspace",
+    "low_memory",
+}
 
 def _get_path_or_handle(
     path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
@@ -151,7 +208,7 @@ class BaseImpl:
     def write(self, df: DataFrame, path, compression, **kwargs) -> None:
         raise AbstractMethodError(self)
 
-    def read(self, path, columns=None, **kwargs) -> DataFrame:
+    def read(self, path, columns=None, chunksize=int|None, **kwargs) -> DataFrame:
         raise AbstractMethodError(self)
 
 
@@ -241,10 +298,11 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        chunksize: int | None = None,
         **kwargs,
-    ) -> DataFrame:
+    ) -> DataFrame | TextFileReader:
         kwargs["use_pandas_metadata"] = True
-
+        print('Chunksize value =', chunksize)
         to_pandas_kwargs = {}
         if dtype_backend == "numpy_nullable":
             from pandas.io._util import _arrow_dtype_mapping
@@ -252,7 +310,7 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype 
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
@@ -270,7 +328,16 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+            if (chunksize != 0) and (chunksize != None):
+                self.api.parquet.write_table(pa_table, 'dummyParquet')
+                parquet_file = self.api.parquet.ParquetFile('dummyParquet')
+                for batch in parquet_file.iter_batches(batch_size=chunksize):
+                    pa_table = batch                
+                
+                result = pa_table.to_pandas(**to_pandas_kwargs)
+                return result
+            else:    
+                result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -280,6 +347,495 @@ class PyArrowImpl(BaseImpl):
         finally:
             if handles is not None:
                 handles.close()
+
+class TextFileReader(abc.Iterator):
+    """
+
+    Passed dialect overrides any of the related parser options
+
+    """
+
+    def __init__(
+        self,
+        f: FilePath | ReadParquetBuffer[bytes] | ReadParquetBuffer[str] | list,
+        engine: ParquetEngine | None = None,
+        **kwds,
+    ) -> None:
+        if engine is not None:
+            engine_specified = True
+        else:
+            engine = "pyarrow"
+            engine_specified = False
+        self.engine = engine
+        self._engine_specified = kwds.get("engine_specified", engine_specified)   
+
+        _validate_skipfooter(kwds)
+
+        if kwds.get("header", "infer") == "infer":
+            kwds["header"] = 0 if kwds.get("names") is None else None
+
+        self.orig_options = kwds
+
+        self._currow = 0
+
+        options = self._get_options_with_defaults(engine)
+        options["storage_options"] = kwds.get("storage_options", None)
+
+        self.chunksize = options.pop("chunksize", None)
+        self.nrows = options.pop("nrows", None)
+
+        self._check_file_or_buffer(f, engine)
+        self.options, self.engine = self._clean_options(options, engine)
+
+        if "has_index_names" in kwds:
+            self.options["has_index_names"] = kwds["has_index_names"]
+
+        self.handles: IOHandles | None = None
+        self._engine = self._make_engine(f, self.engine)
+
+    def close(self) -> None:
+        if self.handles is not None:
+            self.handles.close()
+        self._engine.close()
+
+    def _get_options_with_defaults(self, engine: ParquetEngine) -> dict[str, Any]:
+        kwds = self.orig_options
+
+        options = {}
+        default: object | None
+
+        for argname, default in parser_defaults.items():
+            value = kwds.get(argname, default)
+
+            if (
+                engine == "pyarrow"
+                and argname in _pyarrow_unsupported
+                and value != default
+                and value != getattr(value, "value", default)
+            ):
+                raise ValueError(
+                    f"The {argname!r} option is not supported with the "
+                    f"'pyarrow' engine"
+                )
+            options[argname] = value
+
+        return options
+
+    def _check_file_or_buffer(self, f, engine: ParquetEngine) -> None:
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
+            raise ValueError(
+                "The 'python' engine cannot iterate through this file buffer."
+            )
+
+    def _clean_options(
+        self, options: dict[str, Any], engine: ParquetEngine
+    ) -> tuple[dict[str, Any], ParquetEngine]:
+        result = options.copy()
+
+        fallback_reason = None
+
+        # C engine not supported
+        if engine == "c":
+            if options["skipfooter"] > 0:
+                fallback_reason = "the 'c' engine does not support skipfooter"
+                engine = "pyarrow"
+
+        sep = options["delimiter"]
+        delim_whitespace = options["delim_whitespace"]
+
+        if sep is None and not delim_whitespace:
+            if engine in ("c"):
+                fallback_reason = (
+                    f"the '{engine}' engine does not support "
+                    "sep=None with delim_whitespace=False"
+                )
+                engine = "pyarrow"
+        elif sep is not None and len(sep) > 1:
+            if engine == "c" and sep == r"\s+":
+                result["delim_whitespace"] = True
+                del result["delimiter"]
+            elif engine not in ("python", "python-fwf"):
+
+                fallback_reason = (
+                    f"the '{engine}' engine does not support "
+                    "regex separators (separators > 1 char and "
+                    r"different from '\s+' are interpreted as regex)"
+                )
+                engine = "pyarrow"
+        elif delim_whitespace:
+            if "python" in engine:
+                result["delimiter"] = r"\s+"
+        elif sep is not None:
+            encodeable = True
+            encoding = sys.getfilesystemencoding() or "utf-8"
+            try:
+                if len(sep.encode(encoding)) > 1:
+                    encodeable = False
+            except UnicodeDecodeError:
+                encodeable = False
+            if not encodeable and engine not in ("python", "python-fwf"):
+                fallback_reason = (
+                    f"the separator encoded in {encoding} "
+                    f"is > 1 char long, and the '{engine}' engine "
+                    "does not support such separators"
+                )
+                engine = "pyarrow"
+
+        quotechar = options["quotechar"]
+        if quotechar is not None and isinstance(quotechar, (str, bytes)):
+            if (
+                len(quotechar) == 1
+                and ord(quotechar) > 127
+                and engine not in ("python", "python-fwf")
+            ):
+                fallback_reason = (
+                    "ord(quotechar) > 127, meaning the "
+                    "quotechar is larger than one byte, "
+                    f"and the '{engine}' engine does not support such quotechars"
+                )
+                engine = "pyarrow"
+
+        if fallback_reason and self._engine_specified:
+            raise ValueError(fallback_reason)
+
+
+        if fallback_reason:
+            warnings.warn(
+                (
+                    "Falling back to the 'python' engine because "
+                    f"{fallback_reason}; you can avoid this warning by specifying "
+                    "engine='python'."
+                ),
+                ParserWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        index_col = options["index_col"]
+        names = options["names"]
+        converters = options["converters"]
+        na_values = options["na_values"]
+        skiprows = options["skiprows"]
+
+        if index_col is True:
+            raise ValueError("The value of index_col couldn't be 'True'")
+        if is_index_col(index_col):
+            if not isinstance(index_col, (list, tuple, np.ndarray)):
+                index_col = [index_col]
+        result["index_col"] = index_col
+
+        names = list(names) if names is not None else names
+
+        if converters is not None:
+            if not isinstance(converters, dict):
+                raise TypeError(
+                    "Type converters must be a dict or subclass, "
+                    f"input was a {type(converters).__name__}"
+                )
+        else:
+            converters = {}
+
+        keep_default_na = options["keep_default_na"]
+        floatify = engine != "pyarrow"
+        na_values, na_fvalues = _clean_na_values(
+            na_values, keep_default_na, floatify=floatify
+        )
+
+        if engine == "pyarrow":
+            if not is_integer(skiprows) and skiprows is not None:
+                # pyarrow expects skiprows to be passed as an integer
+                raise ValueError(
+                    "skiprows argument must be an integer when using "
+                    "engine='pyarrow'"
+                )
+        else:
+            if is_integer(skiprows):
+                skiprows = list(range(skiprows))
+            if skiprows is None:
+                skiprows = set()
+            elif not callable(skiprows):
+                skiprows = set(skiprows)
+
+        # put stuff back
+        result["names"] = names
+        result["converters"] = converters
+        result["na_values"] = na_values
+        result["na_fvalues"] = na_fvalues
+        result["skiprows"] = skiprows
+
+        return result, engine
+
+    def __next__(self) -> DataFrame:
+        try:
+            return self.get_chunk()
+        except StopIteration:
+            self.close()
+            raise
+
+    def _make_engine(
+        self,
+        f: FilePath | ReadParquetBuffer[bytes] | ReadParquetBuffer[str] | list | IO,
+        engine: ParquetEngine = "pyarrow",
+    ) -> ParserBase:
+        mapping: dict[str, type[ParserBase]] = {
+            "pyarrow": ArrowParserWrapper,
+        }
+        if engine not in mapping:
+            raise ValueError(
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
+        if not isinstance(f, list):
+            # open file here
+            is_text = True
+            mode = "r"
+            if engine == "pyarrow":
+                is_text = False
+                mode = "rb"
+            elif (
+                engine == "c"
+                and self.options.get("encoding", "utf-8") == "utf-8"
+                and isinstance(stringify_path(f), str)
+            ):
+                is_text = False
+                if "b" not in mode:
+                    mode += "b"
+            self.handles = get_handle(
+                f,
+                mode,
+                encoding=self.options.get("encoding", None),
+                compression=self.options.get("compression", None),
+                memory_map=self.options.get("memory_map", False),
+                is_text=is_text,
+                errors=self.options.get("encoding_errors", "strict"),
+                storage_options=self.options.get("storage_options", None),
+            )
+            assert self.handles is not None
+            f = self.handles.handle
+
+        elif engine != "python":
+            msg = f"Invalid file path or buffer object type: {type(f)}"
+            raise ValueError(msg)
+
+        try:
+            return mapping[engine](f, **self.options)
+        except Exception:
+            if self.handles is not None:
+                self.handles.close()
+            raise
+
+    def _failover_to_python(self) -> None:
+        raise AbstractMethodError(self)
+
+    def read(self, nrows: int | None = None) -> DataFrame:
+        if self.engine == "pyarrow":
+            try:
+                df = self._engine.read()  # type: ignore[attr-defined]
+            except Exception:
+                self.close()
+                raise
+        else:
+            nrows = validate_integer("nrows", nrows)
+            try:
+                (
+                    index,
+                    columns,
+                    col_dict,
+                ) = self._engine.read(  # type: ignore[attr-defined]
+                    nrows
+                )
+            except Exception:
+                self.close()
+                raise
+
+            if index is None:
+                if col_dict:
+                    # Any column is actually fine:
+                    new_rows = len(next(iter(col_dict.values())))
+                    index = RangeIndex(self._currow, self._currow + new_rows)
+                else:
+                    new_rows = 0
+            else:
+                new_rows = len(index)
+
+            if hasattr(self, "orig_options"):
+                dtype_arg = self.orig_options.get("dtype", None)
+            else:
+                dtype_arg = None
+
+            if isinstance(dtype_arg, dict):
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+                dtype.update(dtype_arg)
+            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
+                np.str_,
+                np.object_,
+            ):
+                dtype = defaultdict(lambda: dtype_arg)
+            else:
+                dtype = None
+
+            if dtype is not None:
+                new_col_dict = {}
+                for k, v in col_dict.items():
+                    d = (
+                        dtype[k]
+                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                        else None
+                    )
+                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
+            else:
+                new_col_dict = col_dict
+
+            df = DataFrame(
+                new_col_dict,
+                columns=columns,
+                index=index,
+                copy=False,
+            )
+
+            self._currow += new_rows
+        return df
+
+    def get_chunk(self, size: int | None = None) -> DataFrame:
+        if size is None:
+            size = self.chunksize
+        if self.nrows is not None:
+            if self._currow >= self.nrows:
+                raise StopIteration
+            size = min(size, self.nrows - self._currow)
+        return self.read(nrows=size)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()
+
+def _validate_skipfooter(kwds: dict[str, Any]) -> None:
+    """
+    Check whether skipfooter is compatible with other kwargs in TextFileReader.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+
+    Raises
+    ------
+    ValueError
+        If skipfooter is not compatible with other parameters.
+    """
+    if kwds.get("skipfooter"):
+        if kwds.get("iterator") or kwds.get("chunksize"):
+            raise ValueError("'skipfooter' not supported for iteration")
+        if kwds.get("nrows"):
+            raise ValueError("'skipfooter' not supported with 'nrows'")
+        
+
+def validate_integer(
+    name: str, val: int | float | None, min_val: int = 0
+) -> int | None:
+    """
+    Checks whether the 'name' parameter for parsing is either
+    an integer OR float that can SAFELY be cast to an integer
+    without losing accuracy. Raises a ValueError if that is
+    not the case.
+
+    Parameters
+    ----------
+    name : str
+        Parameter name (used for error reporting)
+    val : int or float
+        The value to check
+    min_val : int
+        Minimum allowed value (val < min_val will result in a ValueError)
+    """
+    if val is None:
+        return val
+
+    msg = f"'{name:s}' must be an integer >={min_val:d}"
+    if is_float(val):
+        if int(val) != val:
+            raise ValueError(msg)
+        val = int(val)
+    elif not (is_integer(val) and val >= min_val):
+        raise ValueError(msg)
+
+    return int(val)
+
+def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = True):
+    na_fvalues: set | dict
+    if na_values is None:
+        if keep_default_na:
+            na_values = STR_NA_VALUES
+        else:
+            na_values = set()
+        na_fvalues = set()
+    elif isinstance(na_values, dict):
+        old_na_values = na_values.copy()
+        na_values = {}  # Prevent aliasing.
+
+        for k, v in old_na_values.items():
+            if not is_list_like(v):
+                v = [v]
+
+            if keep_default_na:
+                v = set(v) | STR_NA_VALUES
+
+            na_values[k] = v
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
+    else:
+        if not is_list_like(na_values):
+            na_values = [na_values]
+        na_values = _stringify_na_values(na_values, floatify)
+        if keep_default_na:
+            na_values = na_values | STR_NA_VALUES
+
+        na_fvalues = _floatify_na_values(na_values)
+
+    return na_values, na_fvalues
+
+def _floatify_na_values(na_values):
+    # create float versions of the na_values
+    result = set()
+    for v in na_values:
+        try:
+            v = float(v)
+            if not np.isnan(v):
+                result.add(v)
+        except (TypeError, ValueError, OverflowError):
+            pass
+    return result
+
+def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
+    """return a stringified and numeric for these values"""
+    result: list[str | float] = []
+    for x in na_values:
+        result.append(str(x))
+        result.append(x)
+        try:
+            v = float(x)
+
+            # we are like 999 here
+            if v == int(v):
+                v = int(v)
+                result.append(f"{v}.0")
+                result.append(str(v))
+
+            if floatify:
+                result.append(v)
+        except (TypeError, ValueError, OverflowError):
+            pass
+        if floatify:
+            try:
+                result.append(int(x))
+            except (TypeError, ValueError, OverflowError):
+                pass
+    return set(result)
+
 
 
 class FastParquetImpl(BaseImpl):
@@ -351,6 +907,7 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        chunksize: int | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
@@ -487,8 +1044,9 @@ def read_parquet(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
+    chunksize: int | None = None,
     **kwargs,
-) -> DataFrame:
+) -> DataFrame | TextFileReader:
     """
     Load a parquet object from the file path, returning a DataFrame.
 
@@ -631,5 +1189,6 @@ def read_parquet(
         storage_options=storage_options,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
+        chunksize=chunksize,
         **kwargs,
     )
