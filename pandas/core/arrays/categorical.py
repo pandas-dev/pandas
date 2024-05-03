@@ -1310,7 +1310,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Parameters
         ----------
         new_categories : category or list-like of category
-           The new categories to be included.
+            The new categories to be included.
 
         Returns
         -------
@@ -2863,6 +2863,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     Parameters
     ----------
     data : Series or CategoricalIndex
+
+    See Also
+    --------
+    Series.dt : Accessor object for datetimelike properties of the Series values.
+    Series.sparse : Accessor for sparse matrix data types.
 
     Examples
     --------
