@@ -540,9 +540,9 @@ class TestDatetimeIndex:
             datetime(5000, 1, 1),
             datetime(6000, 1, 1),
         ]
-        exp = Index(dates, dtype=object)
-        # coerces to object
-        tm.assert_index_equal(Index(dates).astype(object), exp)
+        exp = Index(dates, dtype="M8[us]")
+        res = Index(dates)
+        tm.assert_index_equal(res, exp)
 
         DatetimeIndex(dates)
 
