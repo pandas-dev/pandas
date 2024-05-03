@@ -249,7 +249,7 @@ def get_start_end_field(
         period_str = "".join([
             dt_char for dt_char in list(freqstr.split("-")[0]) if not dt_char.isdigit()
         ])
-        is_business = period_str == "B"
+        is_business = period_str.startswith("B")
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
         # month of year. Other offsets use month, startingMonth as ending
