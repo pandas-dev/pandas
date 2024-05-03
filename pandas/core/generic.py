@@ -6622,8 +6622,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Self:
         """
-        Convert columns from numpy dtypes to the best possible dtypes that support
-        ``pd.NA``.
+        Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
         Parameters
         ----------
