@@ -309,7 +309,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp PR07,SA01" \
         -i "pandas.Timestamp.as_unit SA01" \
         -i "pandas.Timestamp.asm8 SA01" \
         -i "pandas.Timestamp.astimezone SA01" \
