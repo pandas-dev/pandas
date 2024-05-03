@@ -7,10 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    WASM,
-)
+from pandas.compat import IS64
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -288,7 +285,7 @@ def test_max_sas_date(datapath):
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
 
-    if (not IS64) or (WASM):
+    if not IS64:
         # No good reason for this, just what we get on the CI
         expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
 
@@ -331,7 +328,7 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
-    if (not IS64) or (WASM):
+    if not IS64:
         # No good reason for this, just what we get on the CI
         expected[0].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
         expected[1].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
@@ -362,7 +359,7 @@ def test_null_date(datapath):
             ),
         },
     )
-    if (not IS64) or (WASM):
+    if not IS64:
         # No good reason for this, just what we get on the CI
         expected.loc[0, "datetimecol"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, expected)
