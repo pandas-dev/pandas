@@ -354,7 +354,7 @@ jobs:
     # https://github.com/pyodide/pyodide/blob/stable/Makefile.envs#L2
     # The Node.js version can be determined via Pyodide:
     # https://pyodide.org/en/stable/usage/index.html#node-js
-    name: Build pandas distribution for Pyodide
+    name: Pyodide build
     runs-on: ubuntu-22.04
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
