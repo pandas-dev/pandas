@@ -13,7 +13,7 @@ default in pandas 3.0:
 
 * In pandas 3.0, enable a "string" dtype by default, using PyArrow if available
   or otherwise the numpy object-dtype alternative.
-* The default string dtype will use missing value semantics using NaN consistent
+* The default string dtype will use missing value semantics (using NaN) consistent
   with the other default data types.
 
 This will give users a long-awaited proper string dtype for 3.0, while 1) not
@@ -26,12 +26,12 @@ using NumPy 2.0, etc).
 ## Background
 
 Currently, pandas by default stores text data in an `object`-dtype NumPy array.
-The current implementation has two primary drawbacks: First, `object`-dtype is
+The current implementation has two primary drawbacks. First, `object` dtype is
 not specific to strings: any Python object can be stored in an `object`-dtype
 array, not just strings, and seeing `object` as the dtype for a column with
 strings is confusing for users. Second: this is not efficient (all string
-methods on a Series are eventually done by calling Python methods on the
-individual string objects).
+methods on a Series are eventually calling Python methods on the individual
+string objects).
 
 To solve the first issue, a dedicated extension dtype for string data has
 already been
@@ -51,8 +51,9 @@ This could be specified with the `storage` keyword in the opt-in string dtype
 Since its introduction, the `StringDtype` has always been opt-in, and has used
 the experimental `pd.NA` sentinel for missing values (which was also [introduced
 in pandas 1.0](https://pandas.pydata.org/docs/whatsnew/v1.0.0.html#experimental-na-scalar-to-denote-missing-values)).
-However, up to this date, pandas has not yet made the step to use `pd.NA` by
-default.
+However, up to this date, pandas has not yet taken the step to use `pd.NA` by
+default, and thus the `StringDtype` deviates in missing value behaviour compared
+to the default data types.
 
 In 2023, [PDEP-10](https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html)
 proposed to start using a PyArrow-backed string dtype by default in pandas 3.0
@@ -125,15 +126,15 @@ This option will be expanded to also work when PyArrow is not installed.
 
 ### Missing value semantics
 
-Given that all other default data types uses NaN semantics for missing values,
+Given that all other default data types use NaN semantics for missing values,
 this proposal says that a new default string dtype should still use the same
 default semantics. Further, it should result in default data types when doing
 operations on the string column that result in a boolean or numeric data type
 (e.g., methods like `.str.startswith(..)` or `.str.len(..)`, or comparison
 operators like `==`, should result in default `int64` and `bool` data types).
 
-Because the current original `StringDtype` implementations already use `pd.NA`
-and return masked integer and boolean arrays in operations, a new variant of the
+Because the original `StringDtype` implementations already use `pd.NA` and
+return masked integer and boolean arrays in operations, a new variant of the
 existing dtypes that uses `NaN` and default data types is needed.
 
 ### Object-dtype "fallback" implementation
@@ -175,7 +176,7 @@ To avoid introducing a new string dtype while other discussions and changes are
 in flux (eventually making pyarrow a required dependency? adopting `pd.NA` as
 the default missing value sentinel? using the new NumPy 2.0 capabilities?), we
 could also delay introducing a default string dtype until there is more clarity
-for those other discussions.
+in those other discussions.
 
 However:
 
@@ -184,11 +185,12 @@ However:
    significant part of the user base that has PyArrow installed) in performance.
 2. In case we eventually transition to use `pd.NA` as the default missing value
    sentinel, we will need a migration path for _all_ our data types, and thus
-   the challenges around this will not be unique to the string dtype.
+   the challenges around this will not be unique to the string dtype and
+   therefore not a reason to delay this.
 
 ### Why not use the existing StringDtype with `pd.NA`?
 
-Because adding even more variants of the string dtype will make things only more
+Wouldn't adding even more variants of the string dtype will make things only more
 confusing? Indeed, this proposal unfortunately introduces more variants of the
 string dtype. However, the reason for this is to ensure the actual default user
 experience is _less_ confusing, and the new string dtype fits better with the
