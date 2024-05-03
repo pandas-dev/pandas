@@ -88,7 +88,6 @@ dependencies:
   - numpydoc
   - pydata-sphinx-theme=0.14
   - pytest-cython  # doctest
-  - docutils < 0.21  # https://github.com/sphinx-doc/sphinx/issues/12302
   - sphinx
   - sphinx-design
   - sphinx-copybutton
