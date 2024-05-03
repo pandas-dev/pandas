@@ -626,6 +626,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        Series.dtypes : Return the dtype object of the underlying data.
+        Series.astype : Cast a pandas object to a specified dtype dtype.
+        Series.convert_dtypes : Convert columns to the best possible dtypes using dtypes
+            supporting pd.NA.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
