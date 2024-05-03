@@ -279,7 +279,7 @@ pc_memory_usage_doc = """
 pc_integer_format_doc = """
 :   str
     This formats integer values in a DataFrame with a delimiter that defaults
-    to None (''). The other two options are 'comma' (',') and 'underscore' ('_'). 
+    to None (''). The other two options are 'comma' (',') and 'underscore' ('_').
 """
 
 

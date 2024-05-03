@@ -2306,7 +2306,7 @@ class TestIntArrayFormatter:
 
     def test_format_invalid_to_none(self):
         with option_context("display.integer_format", "."):
-            df = pd.DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
+            df = DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
 
             with pytest.raises(
                 ValueError, match="integer_format must be one of ',','_', or None"
