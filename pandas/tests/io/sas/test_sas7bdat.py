@@ -193,7 +193,7 @@ def test_date_time(datapath):
     res = df0["DateTimeHi"].astype("M8[us]").dt.round("ms")
     df0["DateTimeHi"] = res.astype("M8[ms]")
 
-    if (not IS64) or (WASM):
+    if not IS64:
         # No good reason for this, just what we get on the CI
         df0.loc[0, "DateTimeHi"] += np.timedelta64(1, "ms")
         df0.loc[[2, 3], "DateTimeHi"] -= np.timedelta64(1, "ms")
