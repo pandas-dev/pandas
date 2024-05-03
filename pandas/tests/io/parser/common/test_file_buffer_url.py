@@ -15,6 +15,7 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -80,7 +81,7 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_wasm  # limited file system access on WASM
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
@@ -94,8 +95,7 @@ def test_nonexistent_path(all_parsers):
     assert path == e.value.filename
 
 
-@td.skip_if_wasm  # limited file system access on WASM, it leads to different
-# error messages than on other platforms
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 @td.skip_if_windows  # os.chmod does not work in windows
 def test_no_permission(all_parsers):
     # GH 23784
