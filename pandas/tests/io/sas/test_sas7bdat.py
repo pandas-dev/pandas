@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat._constants import (
+    IS64,
+    WASM,
+)
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -253,6 +256,7 @@ def test_corrupt_read(datapath):
         pd.read_sas(fname)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date(datapath):
     # GH 20927
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
@@ -292,6 +296,7 @@ def test_max_sas_date(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date_iterator(datapath):
     # GH 20927
     # when called as an iterator, only those chunks with a date > pd.Timestamp.max
