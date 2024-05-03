@@ -95,7 +95,6 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         FloatFormatType,
-        IntegerFormatType,
         FormattersType,
         IndexLabel,
         SequenceNotStr,
