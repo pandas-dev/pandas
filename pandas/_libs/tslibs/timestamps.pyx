@@ -771,6 +771,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         str
 
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -853,6 +858,10 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -903,6 +912,11 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.month_name : Return the month name of the Timestamp with
+            specified locale.
 
         Examples
         --------
@@ -1751,7 +1765,7 @@ class Timestamp(_Timestamp):
         tzinfo_type tzinfo=None,
         *,
         nanosecond=None,
-        tz=None,
+        tz=_no_input,
         unit=None,
         fold=None,
     ):
@@ -1782,6 +1796,10 @@ class Timestamp(_Timestamp):
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
+
+        explicit_tz_none = tz is None
+        if tz is _no_input:
+            tz = None
 
         if tzinfo is not None:
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
@@ -1882,6 +1900,11 @@ class Timestamp(_Timestamp):
 
         if ts.value == NPY_NAT:
             return NaT
+
+        if ts.tzinfo is not None and explicit_tz_none:
+            raise ValueError(
+                "Passed data is timezone-aware, incompatible with 'tz=None'."
+            )
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 

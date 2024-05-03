@@ -1422,7 +1422,6 @@ reference/api/pandas.Series.transpose,pandas.Series.T
 reference/api/pandas.Index.transpose,pandas.Index.T
 reference/api/pandas.Index.notnull,pandas.Index.notna
 reference/api/pandas.Index.tolist,pandas.Index.to_list
-reference/api/pandas.arrays.PandasArray,pandas.arrays.NumpyExtensionArray
 reference/api/pandas.core.groupby.DataFrameGroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.groupby.GroupBy.backfill,pandas.core.groupby.DataFrameGroupBy.bfill
 reference/api/pandas.core.resample.Resampler.backfill,pandas.core.resample.Resampler.bfill

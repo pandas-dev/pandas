@@ -158,6 +158,12 @@ class ExtensionArray:
     _values_for_argsort
     _values_for_factorize
 
+    See Also
+    --------
+    api.extensions.ExtensionDtype : A custom data type, to be paired with an
+        ExtensionArray.
+    api.extensions.ExtensionArray.dtype : An instance of ExtensionDtype.
+
     Notes
     -----
     The interface includes the following abstract methods that must be
@@ -288,6 +294,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence_of_strings : Construct a new
+            ExtensionArray from a sequence of strings.
+        api.extensions.ExtensionArray._hash_pandas_object : Hook for
+            hash_pandas_object.
 
         Examples
         --------
@@ -885,7 +898,7 @@ class ExtensionArray:
         # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
@@ -919,7 +932,7 @@ class ExtensionArray:
         # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax")
 
     def interpolate(
@@ -1707,6 +1720,17 @@ class ExtensionArray:
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+        api.extensions.ExtensionArray._from_sequence : Construct a new
+            ExtensionArray from a sequence of scalars.
+
         Examples
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
@@ -1783,10 +1807,20 @@ class ExtensionArray:
         Parameters
         ----------
         to_concat : sequence of this type
+            An array of the same dtype to concatenate.
 
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._formatter : Formatting function for
+            scalar values.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
 
         Examples
         --------
@@ -1838,10 +1872,19 @@ class ExtensionArray:
         Returns
         -------
         array
+            An array performing the accumulation operation.
 
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray.view : Return a view on the array.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
 
         Examples
         --------
@@ -1886,7 +1929,7 @@ class ExtensionArray:
 
         Raises
         ------
-        TypeError : subclass does not define reductions
+        TypeError : subclass does not define operations
 
         Examples
         --------
@@ -1897,7 +1940,7 @@ class ExtensionArray:
         if meth is None:
             raise TypeError(
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}'"
+                f"does not support operation '{name}'"
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:
@@ -2110,25 +2153,6 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
-
-    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        """
-        Replace values in locations specified by 'mask' using pad or backfill.
-
-        See also
-        --------
-        ExtensionArray.fillna
-        """
-        func = missing.get_fill_func(method)
-        npvalues = self.astype(object)
-        # NB: if we don't copy mask here, it may be altered inplace, which
-        #  would mess up the `self[mask] = ...` below.
-        func(npvalues, limit=limit, mask=mask.copy())
-        new_values = self._from_sequence(npvalues, dtype=self.dtype)
-        self[mask] = new_values[mask]
 
     def _rank(
         self,

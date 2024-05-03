@@ -171,7 +171,7 @@ def concat(
     Parameters
     ----------
     objs : an iterable or mapping of Series or DataFrame objects
-        If a mapping is passed, the sorted keys will be used as the `keys`
+        If a mapping is passed, the keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
@@ -518,8 +518,11 @@ class _Concatenator:
                         # to have unique names
                         name = current_column
                         current_column += 1
-
-                obj = sample._constructor({name: obj}, copy=False)
+                    obj = sample._constructor(obj, copy=False)
+                    if isinstance(obj, ABCDataFrame):
+                        obj.columns = range(name, name + 1, 1)
+                else:
+                    obj = sample._constructor({name: obj}, copy=False)
 
             new_objs.append(obj)
 
