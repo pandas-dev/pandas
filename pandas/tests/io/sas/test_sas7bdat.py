@@ -171,6 +171,7 @@ def test_airline(datapath):
     tm.assert_frame_equal(df, df0)
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_date_time(datapath):
     # Support of different SAS date/datetime formats (PR #15871)
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
@@ -342,6 +343,7 @@ def test_max_sas_date_iterator(datapath):
     tm.assert_frame_equal(results[1], expected[1])
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_null_date(datapath):
     fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")
