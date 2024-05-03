@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Interval.left SA01" \
         -i "pandas.Interval.mid SA01" \
         -i "pandas.Interval.right SA01" \
-        -i "pandas.IntervalDtype.subtype SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
@@ -164,10 +163,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.case_when RT03" \
-        -i "pandas.Series.cat PR07,SA01" \
+        -i "pandas.Series.cat PR07" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
@@ -320,13 +318,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.day_name SA01" \
         -i "pandas.Timestamp.day_of_week SA01" \
-        -i "pandas.Timestamp.day_of_year SA01" \
         -i "pandas.Timestamp.dayofweek SA01" \
-        -i "pandas.Timestamp.dayofyear SA01" \
-        -i "pandas.Timestamp.days_in_month SA01" \
-        -i "pandas.Timestamp.daysinmonth SA01" \
         -i "pandas.Timestamp.dst SA01" \
         -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
@@ -379,11 +372,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.weekday SA01" \
         -i "pandas.Timestamp.weekofyear SA01" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray SA01" \
-        -i "pandas.api.extensions.ExtensionArray._accumulate RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._concat_same_type PR07,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._formatter SA01" \
-        -i "pandas.api.extensions.ExtensionArray._from_sequence SA01" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \
         -i "pandas.api.extensions.ExtensionArray._hash_pandas_object RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
