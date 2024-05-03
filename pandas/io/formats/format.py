@@ -1467,12 +1467,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
 class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
-        if (
-            (self.integer_format == ",")
-            or (self.integer_format == "_")
-            or (self.integer_format == None)
-        ):
-            if self.integer_format == None:
+
+        if self.integer_format in (",", "_", None):
+            if self.integer_format is None:
                 self.integer_format = ""
             if self.leading_space is False:
                 formatter_str = lambda x: f"{x:{self.integer_format}}".format(x=x)

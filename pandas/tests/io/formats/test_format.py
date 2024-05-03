@@ -2264,42 +2264,42 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
 class TestIntArrayFormatter:
     def test_format_comma(self):
         with option_context("display.integer_format", ","):
-            df = pd.DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
+            df = DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
             formatted_df = repr(df)
             # Valid delimiter used for integer_format
             expected_results = {
                 "A": ["1,000", "20,000", "30"],
                 "B": ["4.1", "50000.2", "600.0"],
             }
-            expected_df = pd.DataFrame(expected_results)
+            expected_df = DataFrame(expected_results)
             expected_df = repr(expected_df)
 
             assert formatted_df == expected_df
 
     def test_format_underscore(self):
         with option_context("display.integer_format", "_"):
-            df = pd.DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
+            df = DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
             formatted_df = repr(df)
             # Valid delimiter used for integer_format
             expected_results = {
                 "A": ["1_000", "20_000", "30"],
                 "B": ["4.1", "50000.2", "600.0"],
             }
-            expected_df = pd.DataFrame(expected_results)
+            expected_df = DataFrame(expected_results)
             expected_df = repr(expected_df)
 
             assert formatted_df == expected_df
 
     def test_format_empty(self):
         with option_context("display.integer_format", None):
-            df = pd.DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
+            df = DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
             formatted_df = repr(df)
             # Valid delimiter used for integer_format
             expected_results = {
                 "A": ["1000", "20000", "30"],
                 "B": ["4.1", "50000.2", "600.0"],
             }
-            expected_df = pd.DataFrame(expected_results)
+            expected_df = DataFrame(expected_results)
             expected_df = repr(expected_df)
 
             assert formatted_df == expected_df
@@ -2314,14 +2314,14 @@ class TestIntArrayFormatter:
                 repr(df)
 
         with option_context("display.integer_format", None):
-            df = pd.DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
+            df = DataFrame({"A": [1000, 20000, 30], "B": [4.1, 50000.2, 600.0]})
             formatted_df = repr(df)
             # Valid delimiter used for integer_format
             expected_results = {
                 "A": ["1000", "20000", "30"],
                 "B": ["4.1", "50000.2", "600.0"],
             }
-            expected_df = pd.DataFrame(expected_results)
+            expected_df = DataFrame(expected_results)
             expected_df = repr(expected_df)
 
             assert formatted_df == expected_df

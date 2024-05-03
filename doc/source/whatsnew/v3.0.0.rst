@@ -38,7 +38,7 @@ Other enhancements
 - Support reading value labels from Stata 108-format (Stata 6) and earlier files (:issue:`58154`)
 - Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
 - :meth:`Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
-- Added new display.option for intger formatting within DataFrames (:issue:`57177`)
+- Added new display.option for integer formatting within DataFrames (:issue:`57177`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
