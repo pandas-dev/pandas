@@ -71,7 +71,9 @@ class TestNormalize:
         assert not rng.is_normalized
 
     @td.skip_if_windows
-    @pytest.mark.skipif(WASM, "tzset is available only on Unix-like systems, not WASM")
+    @pytest.mark.skipif(
+        WASM, reason="tzset is available only on Unix-like systems, not WASM"
+    )
     @pytest.mark.parametrize(
         "timezone",
         [
