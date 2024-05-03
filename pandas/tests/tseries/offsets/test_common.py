@@ -9,6 +9,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     IS64,
+    WASM,
     is_platform_windows,
 )
 
@@ -106,6 +107,7 @@ def _offset(request):
     return request.param
 
 
+@pytest.mark.xfail(WASM, reason="OverflowError received on WASM")
 def test_apply_out_of_range(request, tz_naive_fixture, _offset):
     tz = tz_naive_fixture
 
