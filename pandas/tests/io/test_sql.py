@@ -1846,7 +1846,7 @@ def test_api_custom_dateparsing_error(
 
     if conn_name == "postgresql_adbc_types":
         adbc = import_optional_dependency("adbc_driver_manager")
-        assert adbc == "0.10.0", adbc
+        assert adbc.__version__ == "0.10.0", adbc.__version__
     elif "postgres" in conn_name or "mysql" in conn_name:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
