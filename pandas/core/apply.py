@@ -533,18 +533,11 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
-            if len(keys_to_use) == 0:
-                result = concat(
-                    results,
-                    axis=axis,
-                )
-            else:
-                result = concat(
-                    results,
-                    axis=axis,
-                    keys=keys_to_use,
-                )
-
+            result = concat(
+                results,
+                axis=axis,
+                keys=keys_to_use,
+            )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(
