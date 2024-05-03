@@ -841,6 +841,12 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.isoweekday : Return the ISO day of the week represented by the date.
+        Timestamp.weekday : Return the day of the week represented by the date.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
