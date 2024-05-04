@@ -407,7 +407,6 @@ cdef class Interval(IntervalMixin):
 
     See Also
     --------
-    Interval.open_left : Boolean inverse of closed_left.
     Interval.closed_left : Check if the interval is closed on the left side.
     Interval.closed_right : Check if the interval is closed on the right side.
     Interval.open_left : Check if the interval is open on the left side.
