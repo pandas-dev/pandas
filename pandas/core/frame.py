@@ -12149,7 +12149,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs : dict
-            Parameters to accommodate numpy arguments.
+            Additional keyword arguments to be passed to the function.
 
         Returns
         -------
