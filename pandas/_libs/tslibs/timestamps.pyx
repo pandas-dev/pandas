@@ -771,6 +771,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         str
 
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -836,6 +841,12 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.isoweekday : Return the ISO day of the week represented by the date.
+        Timestamp.weekday : Return the day of the week represented by the date.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -852,6 +863,10 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
 
         Examples
         --------
@@ -903,6 +918,11 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.month_name : Return the month name of the Timestamp with
+            specified locale.
 
         Examples
         --------

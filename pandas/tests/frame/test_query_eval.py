@@ -58,26 +58,26 @@ class TestCompat:
         result = df.query("A>0")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_None(self, df, expected1, expected2):
         result = df.query("A>0", engine=None)
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_python(self, df, expected1, expected2):
         result = df.query("A>0", engine="python")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_numexpr(self, df, expected1, expected2):
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, expected2, check_names=False)
+            tm.assert_series_equal(result, expected2)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -194,8 +194,12 @@ class TestDataFrameEval:
         df = Series([0.2, 1.5, 2.8], name="a").to_frame()
         res = df.eval("@np.floor(a)", engine=engine, parser=parser)
         expected = np.floor(df["a"])
-        if engine == "numexpr":
-            expected.name = None  # See GH 58069
+        tm.assert_series_equal(expected, res)
+
+    def test_eval_simple(self, engine, parser):
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("a", engine=engine, parser=parser)
+        expected = df["a"]
         tm.assert_series_equal(expected, res)
 
 

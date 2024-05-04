@@ -931,6 +931,11 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame interchange object
             The object which consuming library can use to ingress the dataframe.
 
+        See Also
+        --------
+        DataFrame.from_records : Constructor from tuples, also record arrays.
+        DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+
         Notes
         -----
         Details on the interchange protocol:
@@ -2685,6 +2690,16 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
+        See Also
+        --------
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_excel : Write object to an Excel sheet.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_json : Convert the object to a JSON string.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        DataFrame.to_string : Convert DataFrame to a string.
+
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -2866,6 +2881,9 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         bytes if no path argument is provided else None
+            Returns the DataFrame converted to the binary parquet format as bytes if no
+            path argument. Returns None and writes the DataFrame to the specified
+            location in the Parquet format if the path argument is provided.
 
         See Also
         --------
@@ -4012,7 +4030,6 @@ class DataFrame(NDFrame, OpsMixin):
             return series._values[index]
 
         series = self._get_item(col)
-        engine = self.index._engine
 
         if not isinstance(self.index, MultiIndex):
             # CategoricalIndex: Trying to use the engine fastpath may give incorrect
@@ -4023,7 +4040,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = engine.get_loc(index)
+        loc = self.index._engine.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
@@ -5534,6 +5551,11 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         Series
             Series representing the item that is dropped.
+
+        See Also
+        --------
+        DataFrame.drop: Drop specified labels from rows or columns.
+        DataFrame.drop_duplicates: Return DataFrame with duplicate rows removed.
 
         Examples
         --------
@@ -7681,6 +7703,10 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
             DataFrame with indices or columns with reordered levels.
+
+        See Also
+        --------
+            DataFrame.swaplevel : Swap levels i and j in a MultiIndex.
 
         Examples
         --------
@@ -11106,6 +11132,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
+        min_periods: int | None = None,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -11135,6 +11162,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
 
             .. versionadded:: 1.5.0
 
@@ -11179,7 +11209,10 @@ class DataFrame(NDFrame, OpsMixin):
         this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
-            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(
+                lambda x: other.corr(x, method=method, min_periods=min_periods),
+                axis=axis,
+            )
 
         if numeric_only:
             other = other._get_numeric_data()
@@ -11697,7 +11730,6 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
-    @doc(make_doc("prod", ndim=2))
     def prod(
         self,
         axis: Axis | None = 0,
@@ -11706,6 +11738,73 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ) -> Series:
+        """
+        Return the product of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.prod with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            The product of the values over the requested axis.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        By default, the product of an empty or all-NA Series is ``1``
+
+        >>> pd.Series([], dtype="float64").prod()
+        1.0
+
+        This can be controlled with the ``min_count`` parameter
+
+        >>> pd.Series([], dtype="float64").prod(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).prod()
+        1.0
+
+        >>> pd.Series([np.nan]).prod(min_count=1)
+        nan
+        """
         result = super().prod(
             axis=axis,
             skipna=skipna,
@@ -11846,7 +11945,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
-    @doc(make_doc("sem", ndim=2))
     def sem(
         self,
         axis: Axis | None = 0,
@@ -11855,6 +11953,76 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased standard error of the mean over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sem with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs :
+            Additional keywords passed.
+
+        Returns
+        -------
+        Series or DataFrame (if level specified)
+            Unbiased standard error of the mean over requested axis.
+
+        See Also
+        --------
+        DataFrame.var : Return unbiased variance over requested axis.
+        DataFrame.std : Returns sample standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.sem().round(6)
+        0.57735
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [2, 3]}, index=["tiger", "zebra"])
+        >>> df
+               a   b
+        tiger  1   2
+        zebra  2   3
+        >>> df.sem()
+        a   0.5
+        b   0.5
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.sem(axis=1)
+        tiger   0.5
+        zebra   0.5
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True`
+        to avoid getting an error.
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": ["T", "Z"]}, index=["tiger", "zebra"])
+        >>> df.sem(numeric_only=True)
+        a   0.5
+        dtype: float64
+        """
         result = super().sem(
             axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
         )
@@ -11996,7 +12164,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
-    @doc(make_doc("skew", ndim=2))
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12004,6 +12171,80 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased skew over requested axis.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Unbiased skew over requested axis.
+
+        See Also
+        --------
+        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.skew()
+        0.0
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 3], "b": [2, 3, 4], "c": [1, 3, 5]},
+        ...     index=["tiger", "zebra", "cow"],
+        ... )
+        >>> df
+                a   b   c
+        tiger   1   2   1
+        zebra   2   3   3
+        cow     3   4   5
+        >>> df.skew()
+        a   0.0
+        b   0.0
+        c   0.0
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.skew(axis=1)
+        tiger   1.732051
+        zebra  -1.732051
+        cow     0.000000
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True` to avoid
+        getting an error.
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 3], "b": ["T", "Z", "X"]}, index=["tiger", "zebra", "cow"]
+        ... )
+        >>> df.skew(numeric_only=True)
+        a   0.0
+        dtype: float64
+        """
         result = super().skew(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -12043,7 +12284,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
-    @doc(make_doc("kurt", ndim=2))
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -12051,6 +12291,85 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased kurtosis over requested axis.
+
+        Kurtosis obtained using Fisher's definition of
+        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Unbiased kurtosis over requested axis.
+
+        See Also
+        --------
+        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2, 3], index=["cat", "dog", "dog", "mouse"])
+        >>> s
+        cat    1
+        dog    2
+        dog    2
+        mouse  3
+        dtype: int64
+        >>> s.kurt()
+        1.5
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2, 2, 3], "b": [3, 4, 4, 4]},
+        ...     index=["cat", "dog", "dog", "mouse"],
+        ... )
+        >>> df
+               a   b
+          cat  1   3
+          dog  2   4
+          dog  2   4
+        mouse  3   4
+        >>> df.kurt()
+        a   1.5
+        b   4.0
+        dtype: float64
+
+        With axis=None
+
+        >>> df.kurt(axis=None).round(6)
+        -0.988693
+
+        Using axis=1
+
+        >>> df = pd.DataFrame(
+        ...     {"a": [1, 2], "b": [3, 4], "c": [3, 4], "d": [1, 2]},
+        ...     index=["cat", "dog"],
+        ... )
+        >>> df.kurt(axis=1)
+        cat   -6.0
+        dog   -6.0
+        dtype: float64
+        """
         result = super().kurt(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -12893,6 +13212,11 @@ class DataFrame(NDFrame, OpsMixin):
             """
                 The column labels of the DataFrame.
 
+                See Also
+                --------
+                DataFrame.index: The index (row labels) of the DataFrame.
+                DataFrame.axes: Return a list representing the axes of the DataFrame.
+
                 Examples
                 --------
                 >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
@@ -12921,12 +13245,12 @@ class DataFrame(NDFrame, OpsMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY - only works for BlockManager
+        Internal ONLY.
         """
         mgr = self._mgr
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v in mgr.to_dict().items()
+            for k, v in mgr.to_iter_dict()
         }
 
     @property
