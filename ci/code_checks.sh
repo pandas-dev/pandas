@@ -207,7 +207,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
         -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
         -i "pandas.Series.min RT03" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
