@@ -2843,7 +2843,15 @@ cdef class QuarterEnd(QuarterOffset):
     cdef readonly:
         int _period_dtype_code
 
-    def __init__(self, n=1, normalize=False, starting_month=None):
+    def __init__(self, n=1, normalize=False, startingMonth=None,
+                 *, starting_month=None):
+        if startingMonth is not None:
+            warnings.warn(
+                "`startingMonth` is deprecated and will be removed in a future "
+                "version. Use `starting_month` instead",
+                DeprecationWarning
+            )
+            starting_month = startingMonth
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         QuarterOffset.__init__(self, n, normalize, starting_month)
