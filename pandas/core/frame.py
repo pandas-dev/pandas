@@ -12153,11 +12153,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame (if level specified)
+        Series or scalar
             Standard deviation over requested axis.
 
         See Also
         --------
+        Series.std : Return standard deviation over Series values.
         DataFrame.mean : Return the mean of the values over the requested axis.
         DataFrame.mediam : Return the mediam of the values over the requested axis.
         DataFrame.mode : Get the mode(s) of each element along the requested axis.
