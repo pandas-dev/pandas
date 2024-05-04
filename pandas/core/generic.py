@@ -6622,7 +6622,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Self:
         """
-        Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
+        Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
         Parameters
         ----------
@@ -6639,13 +6639,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
         dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
-            Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            Back-end data type applied to the resultant :class:`DataFrame` or
+            :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
+              or :class:`Series` (default).
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+              DataFrame or Series.
 
             .. versionadded:: 2.0
 
