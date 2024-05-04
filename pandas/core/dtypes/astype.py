@@ -97,9 +97,14 @@ def _astype_nansafe(
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
-    elif arr.dtype == object:
+    elif arr.dtype == object or arr.dtype.kind == "T":
         # if we have a datetime/timedelta array of objects
         # then coerce to datetime64[ns] and use DatetimeArray.astype
+
+        # array_to_timedelta64 doesn't support numpy stringdtype yet
+        # TODO: fix?
+        if arr.dtype.kind == "T":
+            arr = arr.astype(object)
 
         if lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray

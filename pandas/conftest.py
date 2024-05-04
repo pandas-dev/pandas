@@ -51,7 +51,6 @@ from pytz import (
     utc,
 )
 
-from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -158,6 +157,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
+        ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -714,13 +714,6 @@ indices_dict = {
 if has_pyarrow:
     idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
-if np_version_gt2:
-    indices_dict["string-numpy"] = Index(
-        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[numpy]")
-    )
-    indices_dict["string-numpy-stringdtype"] = Index(
-        np.array([f"pandas_{i}" for i in range(100)], dtype="T")
-    )
 
 
 @pytest.fixture(params=indices_dict.keys())
@@ -1284,7 +1277,6 @@ def string_dtype(request):
     params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[numpy]", marks=td.skip_if_no("numpy", "2.0")),
     ]
 )
 def nullable_string_dtype(request):
@@ -1293,7 +1285,6 @@ def nullable_string_dtype(request):
 
     * 'string[python]'
     * 'string[pyarrow]'
-    * 'string[numpy]'
     """
     return request.param
 
@@ -1302,7 +1293,6 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-        pytest.param("numpy", marks=td.skip_if_no("numpy", "2.0")),
         pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
@@ -1312,7 +1302,6 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
-    * 'numpy'
     * 'pyarrow_numpy'
     """
     return request.param
@@ -1366,7 +1355,6 @@ def object_dtype(request):
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[numpy]", marks=td.skip_if_no("numpy", "2.0")),
     ]
 )
 def any_string_dtype(request):

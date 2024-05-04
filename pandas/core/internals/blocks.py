@@ -103,7 +103,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     IntervalArray,
     NumpyExtensionArray,
-    NumpyStringArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -2105,10 +2104,7 @@ class NumpyBlock(Block):
 
     @property
     def array_values(self) -> ExtensionArray:
-        if self.values.dtype.kind == 'T':
-            return NumpyStringArray(self.values)
-        else:
-            return NumpyExtensionArray(self.values)
+        return NumpyExtensionArray(self.values)
 
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         if dtype == _dtype_obj:

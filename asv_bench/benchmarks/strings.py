@@ -1,7 +1,6 @@
 import warnings
 
 import numpy as np
-from numpy.dtypes import StringDType
 
 from pandas import (
     NA,
@@ -14,27 +13,14 @@ from pandas.arrays import StringArray
 
 
 class Dtypes:
-    params = [
-        "str",
-        "string[python]",
-        "string[pyarrow]",
-        "string[numpy]",
-        StringDType(),
-    ]
+    params = ["str", "string[python]", "string[pyarrow]"]
     param_names = ["dtype"]
-    dtype_mapping = {
-        "str": "str",
-        "string[python]": object,
-        "string[pyarrow]": object,
-        "string[numpy]": StringDType(),
-        StringDType(): StringDType(),
-    }
 
     def setup(self, dtype):
         try:
             self.s = Series(
-                Index([f"i-{i}" for i in range(10000)], dtype=self.dtype_mapping[dtype])._values,
-                dtype=dtype
+                Index([f"i-{i}" for i in range(10000)], dtype=object)._values,
+                dtype=dtype,
             )
         except ImportError as err:
             raise NotImplementedError from err
@@ -43,17 +29,11 @@ class Dtypes:
 class Construction:
     params = (
         ["series", "frame", "categorical_series"],
-        ["str", "string[python]", "string[pyarrow]", "string[numpy]", StringDType()],
+        ["str", "string[python]", "string[pyarrow]"],
     )
     param_names = ["pd_type", "dtype"]
     pd_mapping = {"series": Series, "frame": DataFrame, "categorical_series": Series}
-    dtype_mapping = {
-        "str": "str",
-        "string[python]": object,
-        "string[pyarrow]": object,
-        "string[numpy]": StringDType(),
-        StringDType(): StringDType(),
-    }
+    dtype_mapping = {"str": "str", "string[python]": object, "string[pyarrow]": object}
 
     def setup(self, pd_type, dtype):
         series_arr = np.array(
