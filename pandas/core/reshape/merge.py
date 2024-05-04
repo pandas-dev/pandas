@@ -1623,62 +1623,111 @@ class _MergeOperation:
 
     @final
     def _validate_validate_kwd(self, validate: str) -> None:
+        # Split validation string
+        validations = validate.split("+")
+
         # Check uniqueness of each
         if self.left_index:
-            left_unique = self.orig_left.index.is_unique
+            left_merge_index = self.orig_left.index
         else:
-            left_unique = MultiIndex.from_arrays(self.left_join_keys).is_unique
+            left_merge_index = MultiIndex.from_arrays(self.left_join_keys)
+        left_unique = left_merge_index.is_unique
 
         if self.right_index:
-            right_unique = self.orig_right.index.is_unique
+            right_merge_index = self.orig_right.index
         else:
-            right_unique = MultiIndex.from_arrays(self.right_join_keys).is_unique
+            right_merge_index = MultiIndex.from_arrays(self.right_join_keys)
+        right_unique = right_merge_index.is_unique
+
+        # Check totality of each
+        intersect_index = left_merge_index.intersection(right_merge_index)
+        right_total = right_merge_index.sort_values().drop(intersect_index).empty
+        left_total = left_merge_index.sort_values().drop(intersect_index).empty
 
         # Check data integrity
-        if validate in ["one_to_one", "1:1"]:
-            if not left_unique and not right_unique:
-                raise MergeError(
-                    "Merge keys are not unique in either left "
-                    "or right dataset; not a one-to-one merge"
-                )
-            if not left_unique:
-                raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-one merge"
-                )
-            if not right_unique:
-                raise MergeError(
-                    "Merge keys are not unique in right dataset; not a one-to-one merge"
-                )
+        for validation in validations:
+            if validation in ["one_to_one", "1:1"]:
+                if not left_unique and not right_unique:
+                    raise MergeError(
+                        "Merge keys are not unique in either left "
+                        "or right dataset; not a one-to-one merge"
+                    )
+                if not left_unique:
+                    raise MergeError(
+                        "Merge keys are not unique in left dataset; "
+                        "not a one-to-one merge"
+                    )
+                if not right_unique:
+                    raise MergeError(
+                        "Merge keys are not unique in right dataset; "
+                        "not a one-to-one merge"
+                    )
 
-        elif validate in ["one_to_many", "1:m"]:
-            if not left_unique:
-                raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-many merge"
+            elif validation in ["one_to_many", "1:m"]:
+                if not left_unique:
+                    raise MergeError(
+                        "Merge keys are not unique in left dataset; "
+                        "not a one-to-many merge"
+                    )
+
+            elif validation in ["many_to_one", "m:1"]:
+                if not right_unique:
+                    raise MergeError(
+                        "Merge keys are not unique in right dataset; "
+                        "not a many-to-one merge"
+                    )
+
+            elif validation in ["many_to_many", "m:m"]:
+                pass
+
+            elif validation in ["total"]:
+                if not left_total and not right_total:
+                    raise MergeError(
+                        "Neither the merge keys in the left dataset are all present "
+                        "in the right dataset, nor the merge keys in the right "
+                        "dataset all present in the left dataset; not a total merge."
+                    )
+                if not left_total:
+                    raise MergeError(
+                        "Merge keys in left dataset are not all present in the right "
+                        "dataset; not a total merge"
+                    )
+                if not right_total:
+                    raise MergeError(
+                        "Merge keys in right dataset are not all present "
+                        "in the left dataset; not a total merge"
+                    )
+
+            elif validation in ["left_total"]:
+                if not left_total:
+                    raise MergeError(
+                        "Merge keys in left dataset are not all present "
+                        "in the right dataset; not a left total merge"
+                    )
+
+            elif validation in ["right_total"]:
+                if not right_total:
+                    raise MergeError(
+                        "Merge keys in right dataset are not all present "
+                        "in the left dataset; not a right total merge"
+                    )
+
+            else:
+                raise ValueError(
+                    f'"{validation}" is not a valid argument. '
+                    "Valid arguments are:\n"
+                    '- "1:1"\n'
+                    '- "1:m"\n'
+                    '- "m:1"\n'
+                    '- "m:m"\n'
+                    '- "one_to_one"\n'
+                    '- "one_to_many"\n'
+                    '- "many_to_one"\n'
+                    '- "many_to_many"\n'
+                    '- "total"\n'
+                    '- "left_total"\n'
+                    '- "right_total"'
                 )
-
-        elif validate in ["many_to_one", "m:1"]:
-            if not right_unique:
-                raise MergeError(
-                    "Merge keys are not unique in right dataset; "
-                    "not a many-to-one merge"
-                )
-
-        elif validate in ["many_to_many", "m:m"]:
-            pass
-
-        else:
-            raise ValueError(
-                f'"{validate}" is not a valid argument. '
-                "Valid arguments are:\n"
-                '- "1:1"\n'
-                '- "1:m"\n'
-                '- "m:1"\n'
-                '- "m:m"\n'
-                '- "one_to_one"\n'
-                '- "one_to_many"\n'
-                '- "many_to_one"\n'
-                '- "many_to_many"'
-            )
 
 
 def get_join_indexers(

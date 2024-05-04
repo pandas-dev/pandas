@@ -393,6 +393,14 @@ validate : str, optional
     * "many_to_one" or "m:1": check if merge keys are unique in right
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
+    * "total": check if all merge keys on each side are also present
+      on the other side
+    * "left_total": check if mere keys on the left side are all present
+      on the right side
+    * "right_total": check if merge keys on the right side are all present
+      on the left side
+
+    More than one merge type can be passed when separated by a ``+``.
 
 Returns
 -------

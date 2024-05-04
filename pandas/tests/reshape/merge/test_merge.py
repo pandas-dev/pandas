@@ -1203,6 +1203,44 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected_3)
 
+        # Make sure left totality works
+        result = merge(
+            left,
+            right,
+            left_index=True,
+            right_index=True,
+            validate="one_to_one+left_total",
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Make sure right totality raises exception
+        msg = (
+            "Merge keys in right dataset are not all present in the left dataset; "
+            "not a right total merge"
+        )
+        with pytest.raises(MergeError, match=msg):
+            merge(
+                left,
+                right,
+                left_index=True,
+                right_index=True,
+                validate="one_to_one+right_total",
+            )
+
+        # Make sure general totality raises exception
+        msg = (
+            "Merge keys in right dataset are not all present in the left dataset; "
+            "not a total merge"
+        )
+        with pytest.raises(MergeError, match=msg):
+            merge(
+                left,
+                right,
+                left_index=True,
+                right_index=True,
+                validate="one_to_one+total",
+            )
+
         # Dups on right
         right_w_dups = concat([right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[4])])
         merge(
@@ -1211,6 +1249,14 @@ class TestMerge:
             left_index=True,
             right_index=True,
             validate="one_to_many",
+        )
+
+        merge(
+            left,
+            right_w_dups,
+            left_index=True,
+            right_index=True,
+            validate="left_total",
         )
 
         msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
@@ -1236,6 +1282,13 @@ class TestMerge:
             left_index=True,
             right_index=True,
             validate="many_to_one",
+        )
+        merge(
+            left_w_dups,
+            right,
+            left_index=True,
+            right_index=True,
+            validate="left_total",
         )
 
         msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
@@ -1279,7 +1332,10 @@ class TestMerge:
             '- "one_to_one"\n'
             '- "one_to_many"\n'
             '- "many_to_one"\n'
-            '- "many_to_many"'
+            '- "many_to_many"\n'
+            '- "total"\n'
+            '- "left_total"\n'
+            '- "right_total"'
         )
         with pytest.raises(ValueError, match=msg):
             merge(left, right, on="a", validate="jibberish")
@@ -1322,6 +1378,37 @@ class TestMerge:
 
         result = merge(left, right, on=["a", "b"], validate="1:1")
         tm.assert_frame_equal(result, expected_multi)
+
+        right_total_ext = concat(
+            [right, DataFrame({"a": ["b"], "b": [1], "d": ["neigh"]}, index=[3])],
+            sort=True,
+        )
+        expected_total_ext = DataFrame(
+            {
+                "a": ["a", "a", "b", "b"],
+                "b": [0, 1, 0, 1],
+                "c": ["cat", "dog", "weasel", "horse"],
+                "d": ["meow", "bark", "um... weasel noise?", "neigh"],
+            },
+            index=range(4),
+        )
+        result = merge(left, right_total_ext, on=["a", "b"], validate="1:1+total")
+        tm.assert_frame_equal(result, expected_total_ext)
+
+        # Ensure not left total raises error
+        right_reduced = right.drop_duplicates(subset=["b"])
+
+        msg = (
+            "Merge keys in left dataset are not all present in the right dataset; "
+            "not a left total merge"
+        )
+        with pytest.raises(MergeError, match=msg):
+            merge(
+                left,
+                right_reduced,
+                on=["a", "b"],
+                validate="left_total",
+            )
 
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
