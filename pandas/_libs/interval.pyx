@@ -377,6 +377,12 @@ cdef class Interval(IntervalMixin):
     """
     Left bound for the interval.
 
+    See Also
+    --------
+    Interval.right : Return the right bound for the interval.
+    numpy.ndarray.left : A similar method in numpy for obtaining
+        the left endpoint(s) of intervals.
+
     Examples
     --------
     >>> interval = pd.Interval(left=1, right=2, closed='left')
