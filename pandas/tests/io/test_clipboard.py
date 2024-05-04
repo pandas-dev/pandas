@@ -222,7 +222,7 @@ class TestClipboard:
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="ignores the sep argument"):
             df.to_clipboard(excel=False, sep="\t")
 
     # Tests that the default behavior of to_clipboard is tab

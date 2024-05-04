@@ -481,7 +481,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     """
     arg = extract_array(arg, extract_numpy=True)
 
-    # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
+    # GH#30050 pass an ndarray to tslib.array_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
         arr = arg.astype(f"datetime64[{unit}]")
@@ -519,7 +519,12 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
         else:
             arg = arg.astype(object, copy=False)
-            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+            arr, tz_parsed = tslib.array_to_datetime(
+                arg,
+                utc=utc,
+                errors=errors,
+                unit_for_numerics=unit,
+            )
 
     result = DatetimeIndex(arr, name=name)
     if not isinstance(result, DatetimeIndex):
@@ -1124,18 +1129,18 @@ def _assemble_from_unit_mappings(
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(set(required) - set(unit_rev.keys()))
+    req = set(required) - set(unit_rev.keys())
     if len(req):
-        _required = ",".join(req)
+        _required = ",".join(sorted(req))
         raise ValueError(
             "to assemble mappings requires at least that "
             f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
-    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
+    excess = set(unit_rev.keys()) - set(_unit_map.values())
     if len(excess):
-        _excess = ",".join(excess)
+        _excess = ",".join(sorted(excess))
         raise ValueError(
             f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )

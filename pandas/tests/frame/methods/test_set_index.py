@@ -163,7 +163,7 @@ class TestSetIndex:
         )
         df.index.name = "name"
 
-        assert df.set_index(df.index).index.names == ("name",)
+        assert df.set_index(df.index).index.names == ["name"]
 
         mi = MultiIndex.from_arrays(df[["A", "B"]].T.values, names=["A", "B"])
         mi2 = MultiIndex.from_arrays(
@@ -172,7 +172,7 @@ class TestSetIndex:
 
         df = df.set_index(["A", "B"])
 
-        assert df.set_index(df.index).index.names == ("A", "B")
+        assert df.set_index(df.index).index.names == ["A", "B"]
 
         # Check that set_index isn't converting a MultiIndex into an Index
         assert isinstance(df.set_index(df.index).index, MultiIndex)
@@ -292,7 +292,7 @@ class TestSetIndex:
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
             expected = df.set_index(["B"], drop=False, append=append)
-            expected.index.names = [index_name] + list(name) if append else name
+            expected.index.names = [index_name] + name if append else name
 
             tm.assert_frame_equal(result, expected)
 
@@ -464,12 +464,12 @@ class TestSetIndex:
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
-        assert df.index.names == ("datetime", "label")
+        assert df.index.names == ["datetime", "label"]
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
-        assert df.index.names == ("label", "datetime")
+        assert df.index.names == ["label", "datetime"]
 
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = DatetimeIndex(

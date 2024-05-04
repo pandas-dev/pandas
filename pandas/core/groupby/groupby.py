@@ -1202,10 +1202,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = RangeIndex(len(values))
-                result = concat(values, axis=0, keys=keys)
+                result = concat(values, axis=0)
 
         elif not not_indexed_same:
             result = concat(values, axis=0)
@@ -1286,11 +1283,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # zip in reverse so we can always insert at loc 0
-        for level, (name, lev, in_axis) in enumerate(
+        for level, (name, lev) in enumerate(
             zip(
                 reversed(self._grouper.names),
-                reversed(self._grouper.get_group_levels()),
-                reversed([grp.in_axis for grp in self._grouper.groupings]),
+                self._grouper.get_group_levels(),
             )
         ):
             if name is None:
@@ -5014,7 +5010,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             period = cast(int, period)
             if freq is not None:
                 f = lambda x: x.shift(
-                    period,  # pylint: disable=cell-var-from-loop
+                    period,
                     freq,
                     0,  # axis
                     fill_value,
@@ -5609,7 +5605,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
         idx = cast(MultiIndex, idx)
         levels = list(idx.levels) + [lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
-        mi = MultiIndex(levels=levels, codes=codes, names=list(idx.names) + [None])
+        mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
         nidx = len(idx)
         idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)

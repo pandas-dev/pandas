@@ -157,6 +157,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
+        ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (

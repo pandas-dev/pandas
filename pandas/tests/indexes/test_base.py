@@ -71,8 +71,8 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.parametrize("index", ["string"], indirect=True)
-    def test_constructor_copy(self, index, using_infer_string):
+    def test_constructor_copy(self, using_infer_string):
+        index = Index(list("abc"), name="name")
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
@@ -358,7 +358,10 @@ class TestIndex:
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
-            msg = "Cannot change data-type for object array"
+            msg = (
+                "Cannot change data-type for array of references.|"
+                "Cannot change data-type for object array.|"
+            )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -478,7 +481,7 @@ class TestIndex:
 
         assert index[[]].identical(empty_index)
         if dtype == np.bool_:
-            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+            with pytest.raises(ValueError, match="length of the boolean indexer"):
                 assert index[empty_arr].identical(empty_index)
         else:
             assert index[empty_arr].identical(empty_index)
@@ -905,7 +908,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(("foo", "bar") + index.names[2:])
+            index = index.rename(["foo", "bar"] + index.names[2:])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
@@ -1062,10 +1065,10 @@ class TestIndex:
         left_index = Index(np.random.default_rng(2).permutation(15))
         right_index = date_range("2020-01-01", periods=10)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = left_index.join(right_index, how="outer")
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)

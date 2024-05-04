@@ -132,6 +132,7 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     default_index,
     ensure_index,
+    maybe_sequence_to_range,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
@@ -260,6 +261,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The name to give to the Series.
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
+
+    See Also
+    --------
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+    Index : Immutable sequence used for indexing and alignment.
 
     Notes
     -----
@@ -538,8 +544,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         _data : BlockManager for the new Series
         index : index for the new Series
         """
-        keys: Index | tuple
-
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -547,7 +551,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # using generators in effects the performance.
             # Below is the new way of extracting the keys and values
 
-            keys = tuple(data.keys())
+            keys = maybe_sequence_to_range(tuple(data.keys()))
             values = list(data.values())  # Generating list of values- faster way
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
@@ -622,6 +626,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        Series.dtypes : Return the dtype object of the underlying data.
+        Series.astype : Cast a pandas object to a specified dtype dtype.
+        Series.convert_dtypes : Convert columns to the best possible dtypes using dtypes
+            supporting pd.NA.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -634,6 +645,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        See Also
+        --------
+        DataFrame.dtypes :  Return the dtypes in the DataFrame.
 
         Examples
         --------
@@ -898,19 +913,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if is_integer(key) and self.index._should_fallback_to_positional:
-            warnings.warn(
-                # GH#50617
-                "Series.__getitem__ treating keys as positions is deprecated. "
-                "In a future version, integer keys will always be treated "
-                "as labels (consistent with DataFrame behavior). To access "
-                "a value by position, use `ser.iloc[pos]`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self._values[key]
-
         elif key_is_scalar:
+            # Note: GH#50617 in 3.0 we changed int key to always be treated as
+            #  a label, matching DataFrame behavior.
             return self._get_value(key)
 
         # Convert generator to list before going through hashable part
@@ -955,35 +960,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(key, tuple):
             return self._get_values_tuple(key)
 
-        elif not is_list_like(key):
-            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
-            return self.loc[key]
-
-        if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
-            key = list(key)
-
-        key_type = lib.infer_dtype(key, skipna=False)
-
-        # Note: The key_type == "boolean" case should be caught by the
-        #  com.is_bool_indexer check in __getitem__
-        if key_type == "integer":
-            # We need to decide whether to treat this as a positional indexer
-            #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if not self.index._should_fallback_to_positional:
-                return self.loc[key]
-            else:
-                warnings.warn(
-                    # GH#50617
-                    "Series.__getitem__ treating keys as positions is deprecated. "
-                    "In a future version, integer keys will always be treated "
-                    "as labels (consistent with DataFrame behavior). To access "
-                    "a value by position, use `ser.iloc[pos]`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return self.iloc[key]
-
-        # handle the dup indexing case GH#4246
         return self.loc[key]
 
     def _get_values_tuple(self, key: tuple):
@@ -1073,27 +1049,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
-            if is_integer(key):
-                if not self.index._should_fallback_to_positional:
-                    # GH#33469
-                    self.loc[key] = value
-                else:
-                    # positional setter
-                    # can't use _mgr.setitem_inplace yet bc could have *both*
-                    #  KeyError and then ValueError, xref GH#45070
-                    warnings.warn(
-                        # GH#50617
-                        "Series.__setitem__ treating keys as positions is deprecated. "
-                        "In a future version, integer keys will always be treated "
-                        "as labels (consistent with DataFrame behavior). To set "
-                        "a value by position, use `ser.iloc[pos] = value`",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    self._set_values(key, value)
-            else:
-                # GH#12862 adding a new key to the Series
-                self.loc[key] = value
+            # GH#12862 adding a new key to the Series
+            self.loc[key] = value
 
         except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
@@ -1152,28 +1109,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # Without this, the call to infer_dtype will consume the generator
             key = list(key)
 
-        if not self.index._should_fallback_to_positional:
-            # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value)
-
-        else:
-            # Note: key_type == "boolean" should not occur because that
-            #  should be caught by the is_bool_indexer check in __setitem__
-            key_type = lib.infer_dtype(key, skipna=False)
-
-            if key_type == "integer":
-                warnings.warn(
-                    # GH#50617
-                    "Series.__setitem__ treating keys as positions is deprecated. "
-                    "In a future version, integer keys will always be treated "
-                    "as labels (consistent with DataFrame behavior). To set "
-                    "a value by position, use `ser.iloc[pos] = value`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                self._set_values(key, value)
-            else:
-                self._set_labels(key, value)
+        self._set_labels(key, value)
 
     def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
@@ -1470,7 +1406,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return a string representation for a particular Series.
         """
-        # pylint: disable=invalid-repr-returned
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
@@ -1743,6 +1678,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        See Also
+        --------
+        Series.index : The index (axis labels) of the Series.
 
         Examples
         --------
@@ -2060,7 +1999,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
-    def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
+    def unique(self) -> ArrayLike:
         """
         Return unique values of Series object.
 
@@ -5353,6 +5292,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Replace values where the conditions are True.
 
+        .. versionadded:: 2.2.0
+
         Parameters
         ----------
         caselist : A list of tuples of conditions and expected replacements
@@ -5369,8 +5310,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and should return a scalar or Series. The callable
             must not change the input Series
             (though pandas doesn`t check it).
-
-            .. versionadded:: 2.2.0
 
         Returns
         -------
@@ -5861,17 +5800,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         object,
                         np.bool_,
                     ):
-                        warnings.warn(
-                            "Operation between non boolean Series with different "
-                            "indexes will no longer return a boolean result in "
-                            "a future version. Cast both Series to object type "
-                            "to maintain the prior behavior.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    # to keep original value's dtype for bool ops
-                    left = left.astype(object)
-                    right = right.astype(object)
+                        pass
+                        # GH#52538 no longer cast in these cases
+                    else:
+                        # to keep original value's dtype for bool ops
+                        left = left.astype(object)
+                        right = right.astype(object)
 
                 left, right = left.align(right)
 
@@ -6189,6 +6123,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
     @Appender(make_doc("all", ndim=1))
     def all(
         self,
@@ -6208,6 +6143,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=1))
     def min(
         self,
@@ -6220,6 +6156,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=1))
     def max(
         self,
@@ -6232,6 +6169,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
     @doc(make_doc("sum", ndim=1))
     def sum(
         self,
@@ -6250,6 +6188,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=1))
     def prod(
         self,
@@ -6268,6 +6207,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=1))
     def mean(
         self,
@@ -6280,6 +6220,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=1))
     def median(
         self,
@@ -6292,6 +6233,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=1))
     def sem(
         self,
@@ -6310,6 +6252,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
     @doc(make_doc("var", ndim=1))
     def var(
         self,
@@ -6328,6 +6271,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=1))
     def std(
         self,
@@ -6346,6 +6290,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=1))
     def skew(
         self,
@@ -6358,6 +6303,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
     @doc(make_doc("kurt", ndim=1))
     def kurt(
         self,

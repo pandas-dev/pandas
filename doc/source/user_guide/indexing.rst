@@ -94,13 +94,14 @@ well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 ``p.loc['a', :]``.
 
-.. csv-table::
-    :header: "Object Type", "Indexers"
-    :widths: 30, 50
-    :delim: ;
 
-    Series; ``s.loc[indexer]``
-    DataFrame; ``df.loc[row_indexer,column_indexer]``
+.. ipython:: python
+
+   ser = pd.Series(range(5), index=list("abcde"))
+   ser.loc[["a", "c", "e"]]
+
+   df = pd.DataFrame(np.arange(25).reshape(5, 5), index=list("abcde"), columns=list("abcde"))
+   df.loc[["a", "c", "e"], ["b", "d"]]
 
 .. _indexing.basics:
 
@@ -116,10 +117,9 @@ indexing pandas objects with ``[]``:
 .. csv-table::
     :header: "Object Type", "Selection", "Return Value Type"
     :widths: 30, 30, 60
-    :delim: ;
 
-    Series; ``series[label]``; scalar value
-    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Series, ``series[label]``, scalar value
+    DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -261,6 +261,10 @@ Slicing ranges
 The most robust and consistent way of slicing ranges along arbitrary axes is
 described in the :ref:`Selection by Position <indexing.integer>` section
 detailing the ``.iloc`` method. For now, we explain the semantics of slicing using the ``[]`` operator.
+
+    .. note::
+
+        When the :class:`Series` has float indices, slicing will select by position.
 
 With Series, the syntax works exactly as with an ndarray, returning a slice of
 the values and the corresponding labels:
@@ -948,7 +952,7 @@ To select a row where each column meets its own criterion:
 
   values = {'ids': ['a', 'b'], 'ids2': ['a', 'c'], 'vals': [1, 3]}
 
-  row_mask = df.isin(values).all(1)
+  row_mask = df.isin(values).all(axis=1)
 
   df[row_mask]
 
