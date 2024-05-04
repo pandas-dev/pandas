@@ -89,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Interval PR02" \
         -i "pandas.Interval.closed SA01" \
         -i "pandas.Interval.left SA01" \
-        -i "pandas.Interval.mid SA01" \
         -i "pandas.Interval.right SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \

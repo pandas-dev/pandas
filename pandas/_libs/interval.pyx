@@ -167,6 +167,12 @@ cdef class IntervalMixin:
         """
         Return the midpoint of the Interval.
 
+        See Also
+        --------
+        Interval.left : Return the left bound for the interval.
+        Interval.right : Return the right bound for the interval.
+        Interval.length : Return the length of the interval.
+
         Examples
         --------
         >>> iv = pd.Interval(0, 5)
