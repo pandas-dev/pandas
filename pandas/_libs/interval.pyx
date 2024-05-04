@@ -417,6 +417,13 @@ cdef class Interval(IntervalMixin):
 
     Either ``left``, ``right``, ``both`` or ``neither``.
 
+    See Also
+    --------
+    Interval.closed_left : Check if the interval is closed on the left side.
+    Interval.closed_right : Check if the interval is closed on the right side.
+    Interval.open_left : Check if the interval is open on the left side.
+    Interval.open_right : Check if the interval is open on the right side.
+
     Examples
     --------
     >>> interval = pd.Interval(left=1, right=2, closed='left')
