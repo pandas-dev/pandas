@@ -1064,3 +1064,23 @@ def test_where_inplace_no_other():
     df.where(cond, inplace=True)
     expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_where_consistent_inplace():
+    # GH#57083
+    s = Series(range(5))
+    t = Series([True, False])
+    expected_where = Series([0, 99, 99, 99, 99])
+    # where
+    w = s.where(t, 99)
+    tm.assert_series_equal(w, expected_where)
+    w_inplace = s.copy()
+    w_inplace.where(t, 99, inplace=True)
+    tm.assert_series_equal(w_inplace, expected_where)
+    # mask
+    expected_mask = Series([99, 1, 99, 99, 99])
+    m = s.mask(t, 99)
+    tm.assert_series_equal(m, expected_mask)
+    m_inplace = s.copy()
+    m_inplace.mask(t, 99, inplace=True)
+    tm.assert_series_equal(m_inplace, expected_mask)
