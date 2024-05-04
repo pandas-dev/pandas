@@ -158,6 +158,12 @@ class ExtensionArray:
     _values_for_argsort
     _values_for_factorize
 
+    See Also
+    --------
+    api.extensions.ExtensionDtype : A custom data type, to be paired with an
+        ExtensionArray.
+    api.extensions.ExtensionArray.dtype : An instance of ExtensionDtype.
+
     Notes
     -----
     The interface includes the following abstract methods that must be
@@ -288,6 +294,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence_of_strings : Construct a new
+            ExtensionArray from a sequence of strings.
+        api.extensions.ExtensionArray._hash_pandas_object : Hook for
+            hash_pandas_object.
 
         Examples
         --------
@@ -742,7 +755,8 @@ class ExtensionArray:
         If returning an ExtensionArray, then
 
         * ``na_values._is_boolean`` should be True
-        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
 
         Examples
@@ -1045,19 +1059,12 @@ class ExtensionArray:
             Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            The maximum number of entries where NA values will be filled.
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
             For ExtensionArray subclasses that cannot do this, it is at the
             author's discretion whether to ignore "copy=False" or to raise.
-            The base class implementation ignores the keyword in pad/backfill
-            cases.
 
         Returns
         -------
@@ -1073,6 +1080,15 @@ class ExtensionArray:
         Length: 6, dtype: Int64
         """
         mask = self.isna()
+        if limit is not None and limit < len(self):
+            # isna can return an ExtensionArray, we're assuming that comparisons
+            # are implemented.
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
@@ -1707,6 +1723,17 @@ class ExtensionArray:
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+        api.extensions.ExtensionArray._from_sequence : Construct a new
+            ExtensionArray from a sequence of scalars.
+
         Examples
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
@@ -1783,10 +1810,20 @@ class ExtensionArray:
         Parameters
         ----------
         to_concat : sequence of this type
+            An array of the same dtype to concatenate.
 
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._formatter : Formatting function for
+            scalar values.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
 
         Examples
         --------
@@ -1838,10 +1875,19 @@ class ExtensionArray:
         Returns
         -------
         array
+            An array performing the accumulation operation.
 
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray.view : Return a view on the array.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
 
         Examples
         --------
