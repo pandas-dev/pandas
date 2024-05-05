@@ -79,17 +79,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swaplevel SA01" \
         -i "pandas.DataFrame.to_markdown SA01" \
-        -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.join PR07,RT03,SA01" \
-        -i "pandas.Index.names GL08" \
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Interval PR02" \
-        -i "pandas.Interval.closed SA01" \
-        -i "pandas.Interval.left SA01" \
-        -i "pandas.Interval.right SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
@@ -299,7 +294,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp PR07,SA01" \
         -i "pandas.Timestamp.as_unit SA01" \
         -i "pandas.Timestamp.asm8 SA01" \
         -i "pandas.Timestamp.astimezone SA01" \
@@ -318,9 +312,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.isocalendar SA01" \
         -i "pandas.Timestamp.isoformat SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
-        -i "pandas.Timestamp.max PR02,PR07,SA01" \
+        -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
-        -i "pandas.Timestamp.min PR02,PR07,SA01" \
+        -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.minute GL08" \
         -i "pandas.Timestamp.month GL08" \
         -i "pandas.Timestamp.month_name SA01" \
