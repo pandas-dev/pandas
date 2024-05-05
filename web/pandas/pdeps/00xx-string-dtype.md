@@ -2,7 +2,7 @@
 
 - Created: May 3, 2024
 - Status: Under discussion
-- Discussion:
+- Discussion: https://github.com/pandas-dev/pandas/pull/58551
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1
 
@@ -71,10 +71,11 @@ data type in pandas that is not backed by Python objects.
 After acceptance of PDEP-10, two aspects of the proposal have been under
 reconsideration:
 
-- Based on user feedback, it has been considered to relax the new `pyarrow`
-  requirement to not be a _hard_ runtime dependency. In addition, NumPy 2.0 can
-  potentially reduce the need to make PyArrow a required dependency specifically
-  for a dedicated pandas string dtype.
+- Based on user feedback (mostly around installation complexity and size), it
+  has been considered to relax the new `pyarrow` requirement to not be a _hard_
+  runtime dependency. In addition, NumPy 2.0 could in the future potentially
+  reduce the need to make PyArrow a required dependency specifically for a
+  dedicated pandas string dtype.
 - The PDEP did not consider the usage of the experimental `pd.NA` as a
   consequence of adopting one of the existing implementations of the
   `StringDtype`.
@@ -104,6 +105,9 @@ To be able to move forward with a string data type in pandas 3.0, this PDEP prop
    object-dtype backed StringArray for its implementation.
 4. We update installation guidelines to clearly encourage users to install
    pyarrow for the default user experience.
+
+Those string dtypes enabled by default will then no longer be considered as
+experimental.
 
 ### Default inference of a string dtype
 
@@ -141,15 +145,17 @@ existing dtypes that uses `NaN` and default data types is needed.
 
 To avoid a hard dependency on PyArrow for pandas 3.0, this PDEP proposes to keep
 a "fallback" option in case PyArrow is not installed. The original `StringDtype`
-backed by a numpy object-dtype array of Python strings can be used for this, and
-only need minor updates to follow the above-mentioned missing value semantics
+backed by a numpy object-dtype array of Python strings can be mostly reused for
+this (adding a new variant of the dtype) and a new `StringArray` subclass only
+needs minor changes to follow the above-mentioned missing value semantics
 ([GH-58451](https://github.com/pandas-dev/pandas/pull/58451)).
 
 For pandas 3.0, this is the most realistic option given this implementation is
 already available for a long time. Beyond 3.0, we can still explore further
-improvements such as using nanoarrow or NumPy 2.0, but at that point that is an
-implementation detail that should not have a direct impact on users (except for
-performance).
+improvements such as using NumPy 2.0 ([GH-58503](https://github.com/pandas-dev/pandas/issues/58503))
+or nanoarrow ([GH-58552](https://github.com/pandas-dev/pandas/issues/58552)),
+but at that point that is an implementation detail that should not have a
+direct impact on users (except for performance).
 
 ### Naming
 
