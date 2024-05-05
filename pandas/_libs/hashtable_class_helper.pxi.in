@@ -1207,7 +1207,8 @@ cdef class StringHashTable(HashTable):
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
                     v = PyUnicode_AsUTF8(<str>val)
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError,TypeError):
+                    # pd.NA will raise TypeError
                     v = PyUnicode_AsUTF8(<str>repr(val))
                 vecs[i] = v
 

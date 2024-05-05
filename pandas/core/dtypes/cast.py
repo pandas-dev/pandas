@@ -729,7 +729,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
-    if dtype.kind == "U":
+    if dtype.kind in "SU":
         dtype = np.dtype(np.object_)
 
     fill_value = _ensure_dtype_type(fill_value, dtype)
@@ -1481,7 +1481,7 @@ def find_common_type(types):
             if t.kind in "iufc":
                 return np.dtype("object")
 
-    return np.result_type(*types)
+    return np_find_common_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(
