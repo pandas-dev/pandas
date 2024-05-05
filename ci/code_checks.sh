@@ -89,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Interval PR02" \
         -i "pandas.Interval.closed SA01" \
         -i "pandas.Interval.left SA01" \
-        -i "pandas.Interval.mid SA01" \
         -i "pandas.Interval.right SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
@@ -163,10 +162,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.case_when RT03" \
-        -i "pandas.Series.cat PR07,SA01" \
+        -i "pandas.Series.cat PR07" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
@@ -197,15 +195,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.dtype SA01" \
         -i "pandas.Series.eq PR07,SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
         -i "pandas.Series.gt PR07,SA01" \
-        -i "pandas.Series.hasnans SA01" \
-        -i "pandas.Series.is_monotonic_decreasing SA01" \
-        -i "pandas.Series.is_monotonic_increasing SA01" \
-        -i "pandas.Series.is_unique SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
         -i "pandas.Series.le PR07,SA01" \
@@ -213,9 +206,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.max RT03" \
         -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
         -i "pandas.Series.min RT03" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
@@ -237,7 +228,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rsub PR07" \
         -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.shape SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
@@ -319,8 +309,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.day_of_week SA01" \
-        -i "pandas.Timestamp.dayofweek SA01" \
         -i "pandas.Timestamp.dst SA01" \
         -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
@@ -373,11 +361,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.weekday SA01" \
         -i "pandas.Timestamp.weekofyear SA01" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray SA01" \
-        -i "pandas.api.extensions.ExtensionArray._accumulate RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._concat_same_type PR07,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._formatter SA01" \
-        -i "pandas.api.extensions.ExtensionArray._from_sequence SA01" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \
         -i "pandas.api.extensions.ExtensionArray._hash_pandas_object RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
