@@ -5981,8 +5981,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
     ) -> Series:
         """
-        Return Multiplication of series and other, element-wise
-        (binary operator `mul`).
+        Return Multiplication of series and other, element-wise (binary operator `mul`).
 
         Equivalent to ``series * other``, but with support to substitute
         a fill_value for
