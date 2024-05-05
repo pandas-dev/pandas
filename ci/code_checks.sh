@@ -87,7 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.ravel PR01,RT03" \
         -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Interval PR02" \
-        -i "pandas.Interval.mid SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
@@ -204,9 +203,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.max RT03" \
         -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
         -i "pandas.Series.min RT03" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
