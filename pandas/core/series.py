@@ -5984,8 +5984,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Multiplication of series and other, element-wise (binary operator `mul`).
 
         Equivalent to ``series * other``, but with support to substitute
-        a fill_value for
-        missing data in either one of the inputs.
+        a fill_value for missing data in either one of the inputs.
 
         Parameters
         ----------
