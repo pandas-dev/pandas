@@ -81,7 +81,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index PR07" \
         -i "pandas.Index.join PR07,RT03,SA01" \
         -i "pandas.Index.ravel PR01,RT03" \
-        -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Interval PR02" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
@@ -228,7 +227,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
         -i "pandas.Series.std PR01,RT03,SA01" \
-        -i "pandas.Series.str PR01,SA01" \
         -i "pandas.Series.str.capitalize RT03" \
         -i "pandas.Series.str.casefold RT03" \
         -i "pandas.Series.str.center RT03,SA01" \
