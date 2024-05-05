@@ -1810,11 +1810,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1, 2, 3], name="x")
         >>> idx.names
-        ['x']
+        FrozenList(['x'])
 
         >>> idx = s = pd.Index([1, 2, 3], name=("x", "y"))
         >>> idx.names
-        [('x', 'y')]
+        FrozenList([('x', 'y')])
         """
         return FrozenList((self.name,))
 
