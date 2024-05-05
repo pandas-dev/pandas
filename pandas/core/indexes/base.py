@@ -1799,6 +1799,23 @@ class Index(IndexOpsMixin, PandasObject):
         return names
 
     def _get_names(self) -> FrozenList:
+        """
+        Get names on index.
+
+        See Also
+        --------
+        Index.name : Return Index or MultiIndex name.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3], name="x")
+        >>> idx.names
+        FrozenList(['x'])
+
+        >>> idx = s = pd.Index([1, 2, 3], name=("x", "y"))
+        >>> idx.names
+        FrozenList([('x', 'y')])
+        """
         return FrozenList((self.name,))
 
     def _set_names(self, values, *, level=None) -> None:
