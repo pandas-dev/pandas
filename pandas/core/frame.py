@@ -11744,7 +11744,6 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
-    @doc(make_doc("sum", ndim=2))
     def sum(
         self,
         axis: Axis | None = 0,
@@ -11753,6 +11752,87 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ) -> Series:
+        """
+        Return the sum of the values over the requested axis.
+
+        This is equivalent to the method ``numpy.sum``.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Sum over requested axis.
+
+        See Also
+        --------
+        Series.sum : Return the sum over Series values.
+        DataFrame.mean : Return the mean of the values over the requested axis.
+        DataFrame.median : Return the median of the values over the requested axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.std : Return the standard deviation of the values over the
+            requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.sum()
+        14
+
+        By default, the sum of an empty or all-NA Series is ``0``.
+
+        >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+        0.0
+
+        This can be controlled with the ``min_count`` parameter. For example, if
+        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+        >>> pd.Series([], dtype="float64").sum(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).sum()
+        0.0
+
+        >>> pd.Series([np.nan]).sum(min_count=1)
+        nan
+        """
         result = super().sum(
             axis=axis,
             skipna=skipna,
