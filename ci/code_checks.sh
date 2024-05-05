@@ -295,7 +295,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp PR07,SA01" \
         -i "pandas.Timestamp.as_unit SA01" \
         -i "pandas.Timestamp.asm8 SA01" \
         -i "pandas.Timestamp.astimezone SA01" \
@@ -314,9 +313,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.isocalendar SA01" \
         -i "pandas.Timestamp.isoformat SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
-        -i "pandas.Timestamp.max PR02,PR07,SA01" \
+        -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
-        -i "pandas.Timestamp.min PR02,PR07,SA01" \
+        -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.minute GL08" \
         -i "pandas.Timestamp.month GL08" \
         -i "pandas.Timestamp.month_name SA01" \
