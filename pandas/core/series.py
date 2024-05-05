@@ -6157,7 +6157,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
-    @doc(make_doc("max", ndim=1))
     def max(
         self,
         axis: Axis | None = 0,
@@ -6165,6 +6164,65 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return the maximum of the values over the requested axis.
+
+        If you want the *index* of the maximum, use ``idxmax``.
+        This is the equivalent of the ``numpy.ndarray`` method ``argmax``.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            The maximum of the values in the Series.
+
+        See Also
+        --------
+        numpy.max : Equivalent numpy function for arrays.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.max()
+        8
+        """
         return NDFrame.max(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -6221,7 +6279,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
-    @doc(make_doc("median", ndim=1))
     def median(
         self,
         axis: Axis | None = 0,
@@ -6229,6 +6286,75 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ) -> Any:
+        """
+        Return the median of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Median of the values for the requested axis.
+
+        See Also
+        --------
+        numpy.median : Equivalent numpy function for computing median.
+        Series.sum : Sum of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.median()
+        2.0
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [2, 3]}, index=["tiger", "zebra"])
+        >>> df
+               a   b
+        tiger  1   2
+        zebra  2   3
+        >>> df.median()
+        a   1.5
+        b   2.5
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.median(axis=1)
+        tiger   1.5
+        zebra   2.5
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True`
+        to avoid getting an error.
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": ["T", "Z"]}, index=["tiger", "zebra"])
+        >>> df.median(numeric_only=True)
+        a   1.5
+        dtype: float64
+        """
         return NDFrame.median(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
