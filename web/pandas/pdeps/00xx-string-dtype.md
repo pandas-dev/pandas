@@ -101,7 +101,7 @@ To be able to move forward with a string data type in pandas 3.0, this PDEP prop
    (but slower) version.
 2. This default "string" dtype will follow the same behaviour for missing values
    as our other default data types, and use `NaN` as the missing value sentinel.
-3. The version that is not backed by PyArrow can reuse the existing numpy
+3. The version that is not backed by PyArrow can reuse (with minor code additions) the existing numpy
    object-dtype backed StringArray for its implementation.
 4. We update installation guidelines to clearly encourage users to install
    pyarrow for the default user experience.
