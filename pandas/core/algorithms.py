@@ -178,6 +178,11 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
 
+    elif values.dtype.kind == "T":
+        # numpy String Dtype
+        # no modifications needed
+        return values
+
     # we have failed, return object
     values = np.asarray(values, dtype=object)
     return ensure_object(values)
@@ -299,6 +304,9 @@ def _check_object_for_strings(values: np.ndarray) -> str:
         # StringHashTable and ObjectHashtable
         if lib.is_string_array(values, skipna=False):
             ndtype = "string"
+    elif values.dtype.kind == "T":
+        # numpy StringDType case
+        ndtype = "string"
     return ndtype
 
 
@@ -920,6 +928,11 @@ def value_counts_arraylike(
     """
     original = values
     values = _ensure_data(values)
+
+    # TODO: Fixup value_counts in hashtable_func_helper.pxi.in
+    # to accept numpy StringDType
+    if values.dtype.kind == "T":
+        values = values.astype(object)
 
     keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
 
@@ -1678,25 +1691,9 @@ def map_array(
     if not len(arr):
         return arr.copy()
 
-    if isinstance(arr.dtype, np.dtype):
-        ret_dtype = arr.dtype
-    else:
-        # NJG TODO: simplify this
-        try:
-            ret_dtype = arr._ndarray.dtype
-        except AttributeError:
-            ret_dtype = None
-
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        ret = lib.map_infer(values, mapper)
+        return lib.map_infer(values, mapper)
     else:
-        ret = lib.map_infer_mask(
-            values, mapper, mask=isna(values).view(np.uint8))
-
-    if ret.dtype == object and ret_dtype is not None:
-        # cast from object back to StringDType
-        return ret.astype(ret_dtype, copy=False)
-
-    return ret
+        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))

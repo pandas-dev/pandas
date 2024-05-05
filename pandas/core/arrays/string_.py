@@ -388,9 +388,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # if it's available
         if np_version_gt2:
             if not values.dtype.kind == "T":
-                from numpy.dtypes import StringDType
-
-                values = values.astype(StringDType(na_object=libmissing.NA))
+                values = values.astype(
+                    np.dtypes.StringDType(na_object=libmissing.NA, coerce=False)
+                )
 
         return values
 
@@ -429,9 +429,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # TODO: Support converting directly to string array in ensure_string_array?
         if np_version_gt2:
             if not result.dtype.kind == "T":
-                from numpy.dtypes import StringDType
-
-                result = result.astype(StringDType(na_object=libmissing.NA))
+                result = result.astype(
+                    np.dtypes.StringDType(na_object=libmissing.NA, coerce=False)
+                )
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -448,12 +448,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        dtype = object
+        arr_dtype = object
         if np_version_gt2:
-            from numpy.dtypes import StringDType
-
-            dtype = StringDType(na_object=libmissing.NA)
-        values = np.empty(shape, dtype=dtype)
+            arr_dtype = np.dtypes.StringDType(na_object=libmissing.NA, coerce=False)
+        values = np.empty(shape, dtype=arr_dtype)
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -473,9 +471,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     def _values_for_factorize(self) -> tuple[np.ndarray, None]:
         arr = self._ndarray.copy()
-        mask = self.isna()
-        arr[mask] = None
-        return arr, None
+        if self._ndarray.dtype == object:
+            mask = self.isna()
+            arr[mask] = None
+            return arr, None
+        else:
+            return arr, libmissing.NA
 
     def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
@@ -620,9 +621,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             dtype = object
             if np_version_gt2:
-                from numpy.dtypes import StringDType
-
-                dtype = StringDType(na_object=libmissing.NA)
+                dtype = np.dtypes.StringDType(na_object=libmissing.NA, coerce=False)
             result = np.empty_like(self._ndarray, dtype=dtype)
             result[mask] = libmissing.NA
             result[valid] = op(self._ndarray[valid], other)

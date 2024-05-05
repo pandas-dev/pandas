@@ -5,6 +5,14 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 from cpython.unicode cimport PyUnicode_AsUTF8
 
+from numpy cimport (
+    flatiter,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+)
+
 {{py:
 
 # name
@@ -1090,7 +1098,7 @@ cdef class StringHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+    def map_locations(self, ndarray values, object mask = None) -> None:
         # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
@@ -1099,13 +1107,14 @@ cdef class StringHashTable(HashTable):
             const char *v
             const char **vecs
             khiter_t k
+            flatiter it = PyArray_IterNew(values)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if isinstance(val, str):
                 # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
@@ -1114,6 +1123,8 @@ cdef class StringHashTable(HashTable):
             else:
                 v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         with nogil:
             for i in range(n):
@@ -1124,7 +1135,7 @@ cdef class StringHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique(self, ndarray[object] values, ObjectVector uniques,
+    def _unique(self, ndarray values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
                 bint return_inverse=False):
@@ -1171,18 +1182,19 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            flatiter it = PyArray_IterNew(values)
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
-        use_na_value = na_value is not None
+        use_na_value = na_value is not None and na_value is not C_NA
 
         # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if (ignore_na
                 and (not isinstance(val, str)
@@ -1198,6 +1210,8 @@ cdef class StringHashTable(HashTable):
                 except UnicodeEncodeError:
                     v = PyUnicode_AsUTF8(<str>repr(val))
                 vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         # compute
         with nogil:
@@ -1232,7 +1246,7 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1257,7 +1271,7 @@ cdef class StringHashTable(HashTable):
         return self._unique(values, uniques, ignore_na=False,
                             return_inverse=return_inverse)
 
-    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+    def factorize(self, ndarray values, Py_ssize_t na_sentinel=-1,
                   object na_value=None, object mask=None, ignore_na=True):
         """
         Calculate unique values and labels (no sorting!)

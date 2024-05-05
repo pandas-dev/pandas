@@ -60,9 +60,7 @@ else:
 class NumpyExtensionArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NumpyStringArrayMixin,
-    # str_mixin,
-    # ObjectStringArrayMixin,
+    str_mixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
