@@ -12108,8 +12108,10 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         numpy.var : Equivalent function in NumPy.
-        DataFrame.std : Return the standard deviation of the values over
-            the requested axis..
+        Series.var : Return unbiased variance over Series values.
+        Series.std : Return standard deviation over Series values.
+        DataFrame.std : Return standard deviation of the values over
+            the requested axis.
 
         Examples
         --------
