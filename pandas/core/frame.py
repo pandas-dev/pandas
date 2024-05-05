@@ -11740,7 +11740,6 @@ class DataFrame(NDFrame, OpsMixin):
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
-
         min_count : int, default 0
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
