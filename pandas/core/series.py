@@ -6291,7 +6291,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
         **kwargs
             Additional keyword arguments to be passed to the function.
 
