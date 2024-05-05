@@ -2749,11 +2749,55 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> str | None: ...
 
-    @doc(
-        Series.to_markdown,
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples="""Examples
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        mode: str = "wt",
+        index: bool = True,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> str | None:
+        """
+        Print DataFrame in Markdown-friendly format.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened, "wt" by default.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
+
+        **kwargs
+            These parameters will be passed to `tabulate <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            DataFrame in Markdown-friendly format.
+
+        See Also
+        --------
+        DataFrame.to_html : Render DataFrame to HTML-formatted table.
+        DataFrame.to_latex : Render DataFrame to LaTeX-formatted table.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2773,17 +2817,8 @@ class DataFrame(NDFrame, OpsMixin):
         |  0 | elk        | dog        |
         +----+------------+------------+
         |  1 | pig        | quetzal    |
-        +----+------------+------------+""",
-    )
-    def to_markdown(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        *,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
-    ) -> str | None:
+        +----+------------+------------+
+        """
         if "showindex" in kwargs:
             raise ValueError("Pass 'index' instead of 'showindex")
 

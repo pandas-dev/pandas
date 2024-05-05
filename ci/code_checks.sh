@@ -78,7 +78,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.std PR01,RT03,SA01" \
         -i "pandas.DataFrame.sum RT03" \
         -i "pandas.DataFrame.swaplevel SA01" \
-        -i "pandas.DataFrame.to_markdown SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.Index.join PR07,RT03,SA01" \
