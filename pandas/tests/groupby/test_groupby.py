@@ -2958,7 +2958,7 @@ def test_groupby_dropna_with_nunique_unique():
 
 @pytest.mark.parametrize("as_index_flag", [False])
 def test_groupby_agg_namedagg_with_duplicate_columns(as_index_flag):
-    # GH #58446
+    # GH#58446
     df = DataFrame(
         {
             "col1": [2, 1, 1, 0, 2, 0],
