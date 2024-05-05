@@ -383,6 +383,12 @@ cdef class Interval(IntervalMixin):
     """
     Left bound for the interval.
 
+    See Also
+    --------
+    Interval.right : Return the right bound for the interval.
+    numpy.ndarray.left : A similar method in numpy for obtaining
+        the left endpoint(s) of intervals.
+
     Examples
     --------
     >>> interval = pd.Interval(left=1, right=2, closed='left')
@@ -395,6 +401,12 @@ cdef class Interval(IntervalMixin):
     cdef readonly object right
     """
     Right bound for the interval.
+
+    See Also
+    --------
+    Interval.left : Return the left bound for the interval.
+    numpy.ndarray.right : A similar method in numpy for obtaining
+        the right endpoint(s) of intervals.
 
     Examples
     --------
@@ -410,6 +422,13 @@ cdef class Interval(IntervalMixin):
     String describing the inclusive side the intervals.
 
     Either ``left``, ``right``, ``both`` or ``neither``.
+
+    See Also
+    --------
+    Interval.closed_left : Check if the interval is closed on the left side.
+    Interval.closed_right : Check if the interval is closed on the right side.
+    Interval.open_left : Check if the interval is open on the left side.
+    Interval.open_right : Check if the interval is open on the right side.
 
     Examples
     --------
