@@ -4345,8 +4345,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.join(idx2, how="outer")
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
         >>> idx1.join(other=idx2, how="outer", return_indexers=True)
-        Index([1, 2, 3, 4, 5, 6], dtype='int64'),
-        array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2])
+        (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
+        array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
         """
         other = ensure_index(other)
         sort = sort or how == "outer"
