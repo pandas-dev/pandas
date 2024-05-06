@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
+    rev: v0.4.3
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -46,12 +46,12 @@ repos:
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.0
+    rev: v0.16.2
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
     -   id: check-case-conflict
     -   id: check-toml
@@ -91,7 +91,7 @@ repos:
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.2
+    rev: v18.1.4
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
