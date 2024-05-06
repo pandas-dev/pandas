@@ -4323,9 +4323,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : Index
+            The other index on which join is performed.
         how : {'left', 'right', 'inner', 'outer'}
         level : int or level name, default None
+            It is either the integer position or the name of the level.
         return_indexers : bool, default False
+            Whether to return the indexers or not for both the index objects.
         sort : bool, default False
             Sort the join keys lexicographically in the result Index. If False,
             the order of the join keys depends on the join type (how keyword).
@@ -4333,6 +4336,14 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         join_index, (left_indexer, right_indexer)
+            The new index.
+
+        See Also
+        --------
+        DataFrame.join : Join columns with `other` DataFrame either on index
+            or on a key.
+        DataFrame.merge : Merge DataFrame or named Series objects with a
+            database-style join.
 
         Examples
         --------
@@ -4340,6 +4351,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([4, 5, 6])
         >>> idx1.join(idx2, how="outer")
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
+        >>> idx1.join(other=idx2, how="outer", return_indexers=True)
+        (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
+        array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
         """
         other = ensure_index(other)
         sort = sort or how == "outer"
