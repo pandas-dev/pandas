@@ -12311,7 +12311,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
-    @doc(make_doc("std", ndim=2))
     def std(
         self,
         axis: Axis | None = 0,
@@ -12320,6 +12319,82 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return sample standard deviation over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.std with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs : dict
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Standard deviation over requested axis.
+
+        See Also
+        --------
+        Series.std : Return standard deviation over Series values.
+        DataFrame.mean : Return the mean of the values over the requested axis.
+        DataFrame.mediam : Return the mediam of the values over the requested axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
+
+        Notes
+        -----
+        To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
+        default `ddof=1`)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "person_id": [0, 1, 2, 3],
+        ...         "age": [21, 25, 62, 43],
+        ...         "height": [1.61, 1.87, 1.49, 2.01],
+        ...     }
+        ... ).set_index("person_id")
+        >>> df
+                   age  height
+        person_id
+        0           21    1.61
+        1           25    1.87
+        2           62    1.49
+        3           43    2.01
+
+        The standard deviation of the columns can be found as follows:
+
+        >>> df.std()
+        age       18.786076
+        height     0.237417
+        dtype: float64
+
+        Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+
+        >>> df.std(ddof=0)
+        age       16.269219
+        height     0.205609
+        dtype: float64
+        """
         result = super().std(
             axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
         )
