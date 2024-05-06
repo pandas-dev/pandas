@@ -84,6 +84,16 @@ class TestIntervalArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"

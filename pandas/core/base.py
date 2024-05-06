@@ -342,6 +342,12 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+        Series.nbytes : Return the number of bytes in the underlying data.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -556,7 +562,6 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
-    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -668,7 +673,7 @@ class IndexOpsMixin(OpsMixin):
         )
 
         values = self._values
-        if fillna:
+        if fillna and self.hasnans:
             if not can_hold_element(values, na_value):
                 # if we can't hold the na_value asarray either makes a copy or we
                 # error before modifying values. The asarray later on thus won't make
@@ -871,6 +876,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         iterator
+            An iterator yielding scalar values from the Series.
+
+        See Also
+        --------
+        Series.items : Lazily iterate over (index, value) tuples.
 
         Examples
         --------
@@ -898,6 +908,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.isna : Detect missing values.
+        Series.notna : Detect existing (non-missing) values.
 
         Examples
         --------
@@ -943,7 +958,6 @@ class IndexOpsMixin(OpsMixin):
 
         return algorithms.map_array(arr, mapper, na_action=na_action)
 
-    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -1064,6 +1078,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
+            A integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1098,6 +1113,12 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
 
+        See Also
+        --------
+        Series.unique : Return unique values of Series object.
+        Series.drop_duplicates : Return Series with duplicate values removed.
+        Series.duplicated : Indicate duplicate Series values.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -1118,6 +1139,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.is_monotonic_decreasing : Return boolean if values in the object are
+            monotonically decreasing.
 
         Examples
         --------
@@ -1141,6 +1167,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.is_monotonic_increasing : Return boolean if values in the object are
+            monotonically increasing.
 
         Examples
         --------
