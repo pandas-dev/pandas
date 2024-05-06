@@ -552,7 +552,7 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
     def _str_rindex(self, sub, start: int = 0, end=None) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_rindex(sub, start, end)
-        sub = np.asarray(sub, dtype=np.dtypesStringDType(na_object=libmissing.NA))
+        sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         result[~na_mask] = np.strings.rindex(self._ndarray[~na_mask], sub, start, end)

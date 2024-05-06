@@ -13,6 +13,9 @@ from numpy cimport (
     PyArray_IterNew,
 )
 
+
+from libc.string cimport strdup
+
 {{py:
 
 # name
@@ -978,7 +981,12 @@ cdef class StringHashTable(HashTable):
         kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
+        cdef:
+            khiter_t k
         if self.table is not NULL:
+            for k in range(kh_end(self.table)):
+                if kh_exist(self.table, k):
+                    free(<char*>kh_key(self.table, k))
             kh_destroy_str(self.table)
             self.table = NULL
 
@@ -1059,7 +1067,7 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
+    def lookup(self, ndarray values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # mask not yet implemented
         cdef:
@@ -1069,13 +1077,14 @@ cdef class StringHashTable(HashTable):
             const char *v
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
+            flatiter it = PyArray_IterNew(values)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
         if vecs is NULL:
             raise MemoryError()
         for i in range(n):
-            val = values[i]
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
 
             if isinstance(val, str):
                 # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
@@ -1083,7 +1092,19 @@ cdef class StringHashTable(HashTable):
                 v = PyUnicode_AsUTF8(<str>val)
             else:
                 v = PyUnicode_AsUTF8(self.na_string_sentinel)
+
+            # Need to copy result from PyUnicode_AsUTF8 when we have
+            # numpy strings
+            # Since numpy strings aren't backed by object arrays
+            # the buffer returned by PyUnicode_AsUTF8 will get freed
+            # in the next iteration when the created str object is GC'ed,
+            # clobbering the value of v
+            #if values.dtype.kind == "T":
+            v = strdup(v)
+
             vecs[i] = v
+
+            PyArray_ITER_NEXT(it)
 
         with nogil:
             for i in range(n):
@@ -1093,6 +1114,11 @@ cdef class StringHashTable(HashTable):
                     locs[i] = self.table.vals[k]
                 else:
                     locs[i] = -1
+
+        if values.dtype.kind == "T":
+            # free copied strings
+            for i in range(n):
+                free(vecs[i])
 
         free(vecs)
         return np.asarray(locs)
@@ -1122,6 +1148,16 @@ cdef class StringHashTable(HashTable):
                 v = PyUnicode_AsUTF8(<str>val)
             else:
                 v = PyUnicode_AsUTF8(self.na_string_sentinel)
+
+            # Need to copy result from PyUnicode_AsUTF8 when we have
+            # numpy strings
+            # Since numpy strings aren't backed by object arrays
+            # the buffer returned by PyUnicode_AsUTF8 will get freed
+            # in the next iteration when the created str object is GC'ed,
+            # clobbering the value of v
+            #if values.dtype.kind == "T":
+            v = strdup(v)
+
             vecs[i] = v
 
             PyArray_ITER_NEXT(it)
@@ -1131,6 +1167,7 @@ cdef class StringHashTable(HashTable):
                 v = vecs[i]
                 k = kh_put_str(self.table, v, &ret)
                 self.table.vals[k] = i
+
         free(vecs)
 
     @cython.boundscheck(False)
@@ -1210,6 +1247,16 @@ cdef class StringHashTable(HashTable):
                 except (UnicodeEncodeError,TypeError):
                     # pd.NA will raise TypeError
                     v = PyUnicode_AsUTF8(<str>repr(val))
+
+                # Need to copy result from PyUnicode_AsUTF8 when we have
+                # numpy strings
+                # Since numpy strings aren't backed by object arrays
+                # the buffer returned by PyUnicode_AsUTF8 will get freed
+                # in the next iteration when the created str object is GC'ed,
+                # clobbering the value of v
+                #if values.dtype.kind == "T":
+                v = strdup(v)
+
                 vecs[i] = v
 
             PyArray_ITER_NEXT(it)
@@ -1236,6 +1283,11 @@ cdef class StringHashTable(HashTable):
                     # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
                     labels[i] = idx
+
+        #if values.dtype.kind == "T":
+            # free copied strings
+        #    for i in range(n):
+        #        free(vecs[i])
 
         free(vecs)
 
