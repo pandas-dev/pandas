@@ -34,6 +34,7 @@ ctypedef fused numeric_t:
 ctypedef fused numeric_object_t:
     numeric_t
     object
+    bytes
 
 ctypedef fused uint8_int64_object_t:
     uint8_t
