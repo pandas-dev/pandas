@@ -5973,7 +5973,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("mul", "series"))
     def mul(
         self,
         other,
@@ -5981,6 +5980,69 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value: float | None = None,
         axis: Axis = 0,
     ) -> Series:
+        """
+        Return Multiplication of series and other, element-wise (binary operator `mul`).
+
+        Equivalent to ``series * other``, but with support to substitute
+        a fill_value for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            With which to compute the multiplication.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.rmul : Reverse of the Multiplication operator, see
+            `Python documentation
+            <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_
+            for more details.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        dtype: float64
+        >>> b = pd.Series([1, np.nan, 1, np.nan], index=["a", "b", "d", "e"])
+        >>> b
+        a    1.0
+        b    NaN
+        d    1.0
+        e    NaN
+        dtype: float64
+        >>> a.multiply(b, fill_value=0)
+        a    1.0
+        b    0.0
+        c    0.0
+        d    0.0
+        e    NaN
+        dtype: float64
+        >>> a.mul(5, fill_value=0)
+        a    5.0
+        b    5.0
+        c    5.0
+        d    0.0
+        dtype: float64
+        """
         return self._flex_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )
@@ -6266,7 +6328,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
-    @doc(make_doc("mean", ndim=1))
     def mean(
         self,
         axis: Axis | None = 0,
@@ -6274,6 +6335,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ) -> Any:
+        """
+        Return the mean of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Median of the values for the requested axis.
+
+        See Also
+        --------
+        numpy.median : Equivalent numpy function for computing median.
+        Series.sum : Sum of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.mean()
+        2.0
+        """
         return NDFrame.mean(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
