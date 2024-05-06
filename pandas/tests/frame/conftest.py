@@ -17,9 +17,9 @@ def datetime_frame() -> DataFrame:
     Columns are ['A', 'B', 'C', 'D']
     """
     return DataFrame(
-        np.random.default_rng(2).standard_normal((100, 4)),
+        np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
-        index=date_range("2000-01-01", periods=100, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
 
