@@ -7642,16 +7642,30 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
-    @doc(
-        Series.swaplevel,
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
-            'columns' for column-wise."""
-        ),
-        examples=dedent(
-            """\
+    def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
+        """
+        Swap levels i and j in a :class:`MultiIndex`.
+
+        Default is to swap the two innermost levels of the index.
+
+        Parameters
+        ----------
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+                    The axis to swap levels on. 0 or 'index' for row-wise, 1 or
+                    'columns' for column-wise.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame with levels swapped in MultiIndex.
+
+        See Also
+        --------
+        DataFrame.reorder_levels: Reorder levels of MultiIndex.
+        DataFrame.sort_index: Sort MultiIndex.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -7701,10 +7715,8 @@ class DataFrame(NDFrame, OpsMixin):
         History     Final exam  January         A
         Geography   Final exam  February        B
         History     Coursework  March           A
-        Geography   Coursework  April           C"""
-        ),
-    )
-    def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
+        Geography   Coursework  April           C
+        """
         result = self.copy(deep=False)
 
         axis = self._get_axis_number(axis)
