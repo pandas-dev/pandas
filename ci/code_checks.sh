@@ -75,22 +75,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02,SA01" \
-        -i "pandas.DataFrame.std PR01,RT03,SA01" \
-        -i "pandas.DataFrame.sum RT03" \
-        -i "pandas.DataFrame.swaplevel SA01" \
-        -i "pandas.DataFrame.to_markdown SA01" \
-        -i "pandas.DataFrame.var PR01,RT03,SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
-        -i "pandas.Index.join PR07,RT03,SA01" \
-        -i "pandas.Index.names GL08" \
-        -i "pandas.Index.ravel PR01,RT03" \
-        -i "pandas.Index.str PR01,SA01" \
         -i "pandas.Interval PR02" \
-        -i "pandas.Interval.closed SA01" \
-        -i "pandas.Interval.left SA01" \
-        -i "pandas.Interval.mid SA01" \
-        -i "pandas.Interval.right SA01" \
         -i "pandas.IntervalIndex.closed SA01" \
         -i "pandas.IntervalIndex.contains RT03" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
@@ -163,10 +150,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.__iter__ RT03,SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.case_when RT03" \
-        -i "pandas.Series.cat PR07,SA01" \
+        -i "pandas.Series.cat PR07" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
@@ -197,15 +183,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.dtype SA01" \
         -i "pandas.Series.eq PR07,SA01" \
         -i "pandas.Series.floordiv PR07" \
         -i "pandas.Series.ge PR07,SA01" \
         -i "pandas.Series.gt PR07,SA01" \
-        -i "pandas.Series.hasnans SA01" \
-        -i "pandas.Series.is_monotonic_decreasing SA01" \
-        -i "pandas.Series.is_monotonic_increasing SA01" \
-        -i "pandas.Series.is_unique SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
         -i "pandas.Series.le PR07,SA01" \
@@ -213,13 +194,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.max RT03" \
-        -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
         -i "pandas.Series.min RT03" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
-        -i "pandas.Series.mul PR07" \
         -i "pandas.Series.ne PR07,SA01" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.plot PR02,SA01" \
@@ -237,7 +214,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.rsub PR07" \
         -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.shape SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
@@ -247,7 +223,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
         -i "pandas.Series.std PR01,RT03,SA01" \
-        -i "pandas.Series.str PR01,SA01" \
         -i "pandas.Series.str.capitalize RT03" \
         -i "pandas.Series.str.casefold RT03" \
         -i "pandas.Series.str.center RT03,SA01" \
@@ -310,7 +285,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp PR07,SA01" \
         -i "pandas.Timestamp.as_unit SA01" \
         -i "pandas.Timestamp.asm8 SA01" \
         -i "pandas.Timestamp.astimezone SA01" \
@@ -319,10 +293,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.day_of_week SA01" \
-        -i "pandas.Timestamp.day_of_year SA01" \
-        -i "pandas.Timestamp.dayofweek SA01" \
-        -i "pandas.Timestamp.dayofyear SA01" \
         -i "pandas.Timestamp.dst SA01" \
         -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
@@ -333,9 +303,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.isocalendar SA01" \
         -i "pandas.Timestamp.isoformat SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
-        -i "pandas.Timestamp.max PR02,PR07,SA01" \
+        -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
-        -i "pandas.Timestamp.min PR02,PR07,SA01" \
+        -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.minute GL08" \
         -i "pandas.Timestamp.month GL08" \
         -i "pandas.Timestamp.month_name SA01" \
@@ -375,11 +345,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.weekday SA01" \
         -i "pandas.Timestamp.weekofyear SA01" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray SA01" \
-        -i "pandas.api.extensions.ExtensionArray._accumulate RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._concat_same_type PR07,SA01" \
-        -i "pandas.api.extensions.ExtensionArray._formatter SA01" \
-        -i "pandas.api.extensions.ExtensionArray._from_sequence SA01" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \
         -i "pandas.api.extensions.ExtensionArray._hash_pandas_object RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \

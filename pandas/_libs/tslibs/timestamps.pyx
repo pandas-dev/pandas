@@ -841,6 +841,12 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.isoweekday : Return the ISO day of the week represented by the date.
+        Timestamp.weekday : Return the day of the week represented by the date.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -857,6 +863,10 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
 
         Examples
         --------
@@ -1287,10 +1297,24 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp.
-    year, month, day : int
-    hour, minute, second, microsecond : int, optional, default 0
+    year : int
+        Value of year.
+    month : int
+        Value of month.
+    day : int
+        Value of day.
+    hour : int, optional, default 0
+        Value of hour.
+    minute : int, optional, default 0
+        Value of minute.
+    second : int, optional, default 0
+        Value of second.
+    microsecond : int, optional, default 0
+        Value of microsecond.
     tzinfo : datetime.tzinfo, optional, default None
+        Timezone info.
     nanosecond : int, optional, default 0
+        Value of nanosecond.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -1305,6 +1329,11 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
+
+    See Also
+    --------
+    Timedelta : Represents a duration, the difference between two dates or times.
+    datetime.datetime : Python datetime.datetime object.
 
     Notes
     -----
