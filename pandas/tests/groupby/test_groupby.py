@@ -2956,8 +2956,7 @@ def test_groupby_dropna_with_nunique_unique():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index_flag", [False])
-def test_groupby_agg_namedagg_with_duplicate_columns(as_index_flag):
+def test_groupby_agg_namedagg_with_duplicate_columns():
     # GH#58446
     df = DataFrame(
         {
@@ -2969,7 +2968,7 @@ def test_groupby_agg_namedagg_with_duplicate_columns(as_index_flag):
         }
     )
 
-    result = df.groupby(by=["col1", "col1", "col2"], as_index=as_index_flag).agg(
+    result = df.groupby(by=["col1", "col1", "col2"], as_index=False).agg(
         new_col=pd.NamedAgg(column="col1", aggfunc="min"),
         new_col1=pd.NamedAgg(column="col1", aggfunc="max"),
         new_col2=pd.NamedAgg(column="col2", aggfunc="count"),
@@ -2984,8 +2983,5 @@ def test_groupby_agg_namedagg_with_duplicate_columns(as_index_flag):
             "new_col2": [1, 1, 1, 1, 2],
         }
     )
-
-    if not as_index_flag:
-        expected.reset_index(drop=True, inplace=True)
 
     tm.assert_frame_equal(result, expected)
