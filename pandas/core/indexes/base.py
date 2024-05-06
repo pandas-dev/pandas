@@ -996,9 +996,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a view on self.
 
+        Parameters
+        ----------
+        order : {'K', 'A', 'C', 'F'}, default 'C'
+            Specify the memory layout of the view. This parameter is not
+            implemented currently.
+
         Returns
         -------
         Index
+            A view on self.
 
         See Also
         --------
