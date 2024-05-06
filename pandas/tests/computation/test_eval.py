@@ -1984,9 +1984,8 @@ def test_set_inplace():
     tm.assert_series_equal(result_view["A"], expected)
 
 
-class TestValidate:
-    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
-    def test_validate_bool_args(self, value):
-        msg = 'For argument "inplace" expected type bool, received type'
-        with pytest.raises(ValueError, match=msg):
-            pd.eval("2+2", inplace=value)
+@pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+def test_validate_bool_args(value):
+    msg = 'For argument "inplace" expected type bool, received type'
+    with pytest.raises(ValueError, match=msg):
+        pd.eval("2+2", inplace=value)

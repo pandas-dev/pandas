@@ -550,7 +550,7 @@ def test_expanding_cov_pairwise_diff_length():
     df2a = DataFrame(
         [[5, 6], [2, 1]], index=[0, 2], columns=Index(["X", "Y"], name="foo")
     )
-    # TODO: xref gh-15826
+    # xref gh-15826
     # .loc is not preserving the names
     result1 = df1.expanding().cov(df2, pairwise=True).loc[2]
     result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]

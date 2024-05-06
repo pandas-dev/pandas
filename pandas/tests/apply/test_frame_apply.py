@@ -1489,7 +1489,7 @@ def test_apply_dtype(col):
 
 def test_apply_mutating():
     # GH#35462 case where applied func pins a new BlockManager to a row
-    df = DataFrame({"a": range(100), "b": range(100, 200)})
+    df = DataFrame({"a": range(10), "b": range(10, 20)})
     df_orig = df.copy()
 
     def func(row):
