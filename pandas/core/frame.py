@@ -39,7 +39,6 @@ import warnings
 
 import numpy as np
 from numpy import ma
-import pyarrow as pa
 
 from pandas._config import get_option
 
@@ -50,10 +49,17 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+    pa_version_under10p1,
+)
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+
+if not pa_version_under10p1:
+    import pyarrow as pa
+
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -3012,6 +3018,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
+        self.pyarrow = """pyarrow"""
         """
         Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
@@ -3065,7 +3072,7 @@ class DataFrame(NDFrame, OpsMixin):
           `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
-        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
+        * This function requires `%s <https://arrow.apache.org/docs/python/>`_
           library.
         * For supported dtypes please refer to `supported ORC features in Arrow
           <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
@@ -3088,7 +3095,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> b.seek(0)  # doctest: +SKIP
         0
         >>> content = b.read()  # doctest: +SKIP
-        """
+        """ % self.pyarrow
         from pandas.io.orc import to_orc
 
         return to_orc(
@@ -5061,7 +5068,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_list_like(value):
             com.require_length_match(value, self.index)
 
-        if isinstance(value, pa.lib.Array):
+        if not pa_version_under10p1 and isinstance(value, pa.lib.Array):
             dtype = ArrowDtype(value.type)
         else:
             dtype = None
