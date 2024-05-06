@@ -294,7 +294,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     z   NaN
     dtype: float64
 
-    Note that the Index is first build with the keys from the dictionary.
+    Note that the Index is first built with the keys from the dictionary.
     After this the Series is reindexed with the given Index values, hence we
     get all NaN as a result.
 
