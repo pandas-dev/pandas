@@ -1029,6 +1029,8 @@ cdef class StringHashTable(HashTable):
 
         v = PyUnicode_AsUTF8(key)
 
+        v = strdup(v)
+
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
@@ -1099,7 +1101,6 @@ cdef class StringHashTable(HashTable):
             # the buffer returned by PyUnicode_AsUTF8 will get freed
             # in the next iteration when the created str object is GC'ed,
             # clobbering the value of v
-            #if values.dtype.kind == "T":
             v = strdup(v)
 
             vecs[i] = v
@@ -1155,7 +1156,6 @@ cdef class StringHashTable(HashTable):
             # the buffer returned by PyUnicode_AsUTF8 will get freed
             # in the next iteration when the created str object is GC'ed,
             # clobbering the value of v
-            #if values.dtype.kind == "T":
             v = strdup(v)
 
             vecs[i] = v
@@ -1254,7 +1254,6 @@ cdef class StringHashTable(HashTable):
                 # the buffer returned by PyUnicode_AsUTF8 will get freed
                 # in the next iteration when the created str object is GC'ed,
                 # clobbering the value of v
-                #if values.dtype.kind == "T":
                 v = strdup(v)
 
                 vecs[i] = v
@@ -1283,11 +1282,6 @@ cdef class StringHashTable(HashTable):
                     # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
                     labels[i] = idx
-
-        #if values.dtype.kind == "T":
-            # free copied strings
-        #    for i in range(n):
-        #        free(vecs[i])
 
         free(vecs)
 

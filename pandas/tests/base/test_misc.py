@@ -83,7 +83,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 
 @pytest.mark.skipif(
     PYPY or using_pyarrow_string_dtype(),
-    reason="not relevant for PyPy doesn't work properly for arrow strings",
+    reason="not relevant for PyPy, doesn't work properly for arrow strings",
 )
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
@@ -102,14 +102,11 @@ def test_memory_usage(index_or_series_memory_obj):
     is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
         is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
     )
-    is_object_string = is_dtype_equal(obj, "string[python]") or (
-        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
-    )
 
     if len(obj) == 0:
         expected = 0
         assert res_deep == res == expected
-    elif is_object or is_categorical or is_object_string:
+    elif is_object or is_categorical:
         # only deep will pick them up
         assert res_deep > res
     else:

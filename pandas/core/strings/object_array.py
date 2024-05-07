@@ -546,7 +546,11 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
-        result[~na_mask] = np.strings.index(self._ndarray[~na_mask], sub, start, end)
+        if start is None:
+            start = 0
+        result[~na_mask] = np.strings.index(
+            self._ndarray[~na_mask], sub, start=start, end=end
+        )
         return IntegerArray(result, na_mask)
 
     def _str_rindex(self, sub, start: int = 0, end=None) -> IntegerArray:
@@ -555,7 +559,11 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
-        result[~na_mask] = np.strings.rindex(self._ndarray[~na_mask], sub, start, end)
+        if start is None:
+            start = 0
+        result[~na_mask] = np.strings.rindex(
+            self._ndarray[~na_mask], sub, start=start, end=end
+        )
         return IntegerArray(result, na_mask)
 
     def _str_isalnum(self) -> BooleanArray:
@@ -630,7 +638,7 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
     def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=False):
         if self._ndarray.dtype == object:
             return super()._str_replace(pat, repl, n, case, flags, regex)
-        if regex:
+        if regex or case is not None:
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         pat = np.asarray(pat, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
