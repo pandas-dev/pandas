@@ -3018,7 +3018,6 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
-        self.pyarrow = """pyarrow"""
         """
         Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
@@ -3072,7 +3071,7 @@ class DataFrame(NDFrame, OpsMixin):
           `here <https://en.wikipedia.org/wiki/Apache_ORC>`__.
         * Before using this function you should read the :ref:`user guide about
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
-        * This function requires `%s <https://arrow.apache.org/docs/python/>`_
+        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
           library.
         * For supported dtypes please refer to `supported ORC features in Arrow
           <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
@@ -3095,7 +3094,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> b.seek(0)  # doctest: +SKIP
         0
         >>> content = b.read()  # doctest: +SKIP
-        """ % self.pyarrow
+        """
         from pandas.io.orc import to_orc
 
         return to_orc(
