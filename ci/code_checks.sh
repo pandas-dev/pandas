@@ -193,7 +193,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.ne PR07,SA01" \
         -i "pandas.Series.pad PR01,SA01" \
