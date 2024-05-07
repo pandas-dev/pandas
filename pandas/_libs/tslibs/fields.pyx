@@ -3,7 +3,6 @@ Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
 from locale import LC_TIME
-import re
 
 from _strptime import LocaleTime
 
@@ -50,6 +49,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+from pandas._libs.tslibs.offsets cimport to_offset
 
 import_pandas_datetime()
 
@@ -254,7 +254,8 @@ def get_start_end_field(
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
-        if re.split("[0-9]*", freqstr, maxsplit=1)[1][0:2] in ["MS", "QS", "YS"]:
+        offset = to_offset(freqstr)
+        if offset.freqstr.replace(str(offset.n), "")[0:2]  in ["MS", "QS", "YS"]:
             end_month = 12 if month_kw == 1 else month_kw - 1
             start_month = month_kw
         else:
