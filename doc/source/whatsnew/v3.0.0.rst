@@ -256,6 +256,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock`` (:issue:`58467`)
 - Enforced deprecation of ``keep_date_col`` keyword in :func:`read_csv` (:issue:`55569`)
 - Enforced deprecation of ``quantile`` keyword in :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile`, renamed to ``q`` instead. (:issue:`52550`)
+- Enforced deprecation of argument ``infer_datetime_format`` in :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Enforced deprecation of combining parsed datetime columns in :func:`read_csv` in ``parse_dates`` (:issue:`55569`)
 - Enforced deprecation of non-standard (``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series`) argument to :func:`api.extensions.take` (:issue:`52981`)
 - Enforced deprecation of parsing system timezone strings to ``tzlocal``, which depended on system timezone, pass the 'tz' keyword instead (:issue:`50791`)

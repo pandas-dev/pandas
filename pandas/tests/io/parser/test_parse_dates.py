@@ -525,25 +525,6 @@ def test_parse_dates_empty_string(all_parsers):
 @pytest.mark.parametrize(
     "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
 )
-def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
-    # GH 49024, 51017
-    parser = all_parsers
-    data = "Date,test\n2012-01-01,1\n,2"
-
-    getattr(parser, reader)(
-        FutureWarning,
-        "The argument 'infer_datetime_format' is deprecated",
-        StringIO(data),
-        parse_dates=["Date"],
-        infer_datetime_format=True,
-        sep=",",
-        raise_on_extra_warnings=False,
-    )
-
-
-@pytest.mark.parametrize(
-    "reader", ["read_csv_check_warnings", "read_table_check_warnings"]
-)
 def test_parse_dates_date_parser_and_date_format(all_parsers, reader):
     # GH 50601
     parser = all_parsers

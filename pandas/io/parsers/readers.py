@@ -117,7 +117,6 @@ if TYPE_CHECKING:
         na_filter: bool
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
-        infer_datetime_format: bool | lib.NoDefault
         date_parser: Callable | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
@@ -316,15 +315,6 @@ parse_dates : bool, None, list of Hashable, default None
     :func:`~pandas.read_csv`.
 
     Note: A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : bool, default False
-    If ``True`` and ``parse_dates`` is enabled, pandas will attempt to infer the
-    format of the ``datetime`` strings in the columns, and if it can be inferred,
-    switch to a faster method of parsing them. In some cases this can increase
-    the parsing speed by 5-10x.
-
-    .. deprecated:: 2.0.0
-        A strict version of this argument is now the default, passing it has no effect.
-
 date_parser : Callable, optional
     Function to use for converting a sequence of string columns to an array of
     ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
@@ -748,7 +738,6 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -779,17 +768,6 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
@@ -906,7 +884,6 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -937,17 +914,6 @@ def read_table(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
