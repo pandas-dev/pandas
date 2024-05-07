@@ -361,7 +361,7 @@ def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
         obj.transform(op)
 
 
-def test_transform_axis_raises():
+def test_transform_missing_labels_raises():
     # GH 58474
     df = DataFrame({"foo": [2, 4, 6], "bar": [1, 2, 3]}, index=["A", "B", "C"])
     msg = r"Row\(s\) or Column\(s\) \['A', 'B'\] do not exist"
