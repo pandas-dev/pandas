@@ -847,12 +847,6 @@ Performance-wise, you should try these methods of parsing dates in order:
    then use ``to_datetime``.
 
 
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
-
-
 .. _io.csv.mixed_timezones:
 
 Parsing a CSV with mixed timezones
