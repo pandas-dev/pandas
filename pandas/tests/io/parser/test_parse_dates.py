@@ -602,45 +602,6 @@ def test_parse_dates_no_convert_thousands(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
-def test_date_parser_resolution_if_not_ns(all_parsers):
-    # see gh-10245
-    parser = all_parsers
-    data = """\
-date,time,prn,rxstatus
-2013-11-03,19:00:00,126,00E80000
-2013-11-03,19:00:00,23,00E80000
-2013-11-03,19:00:00,13,00E80000
-"""
-
-    def date_parser(dt, time):
-        try:
-            arr = dt + "T" + time
-        except TypeError:
-            # dt & time are date/time objects
-            arr = [datetime.combine(d, t) for d, t in zip(dt, time)]
-        return np.array(arr, dtype="datetime64[s]")
-
-    result = parser.read_csv_check_warnings(
-        FutureWarning,
-        "use 'date_format' instead",
-        StringIO(data),
-        date_parser=date_parser,
-        parse_dates={"datetime": ["date", "time"]},
-        index_col=["datetime", "prn"],
-    )
-
-    datetimes = np.array(["2013-11-03T19:00:00"] * 3, dtype="datetime64[s]")
-    expected = DataFrame(
-        data={"rxstatus": ["00E80000"] * 3},
-        index=MultiIndex.from_arrays(
-            [datetimes, [126, 23, 13]],
-            names=["datetime", "prn"],
-        ),
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 def test_parse_date_column_with_empty_string(all_parsers):
     # see gh-6428
     parser = all_parsers
@@ -1087,33 +1048,6 @@ def test_parse_dates_dict_format(all_parsers):
         {
             "a": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
             "b": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
-        }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
-)
-def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
-    # GH#51240
-    parser = all_parsers
-    data = """a,b
-31-,12-2019
-31-,12-2020"""
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
-        )
-    expected = DataFrame(
-        {
-            key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
         }
     )
     tm.assert_frame_equal(result, expected)

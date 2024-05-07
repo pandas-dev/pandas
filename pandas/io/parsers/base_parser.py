@@ -122,7 +122,7 @@ class ParserBase:
         self.col_names: Sequence[Hashable] | None = None
 
         parse_dates = kwds.pop("parse_dates", False)
-        if isinstance(parse_dates, None) or lib.is_bool(parse_dates):
+        if parse_dates is None or lib.is_bool(parse_dates):
             parse_dates = bool(parse_dates)
         elif not isinstance(parse_dates, list):
             raise TypeError(

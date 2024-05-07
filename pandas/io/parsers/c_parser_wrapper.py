@@ -166,29 +166,28 @@ class CParserWrapper(ParserBase):
         # error: Cannot determine type of 'names'
         self.orig_names = self.names  # type: ignore[has-type]
 
-        if not self._has_complex_date_col:
-            # error: Cannot determine type of 'index_col'
-            if self._reader.leading_cols == 0 and is_index_col(
-                self.index_col  # type: ignore[has-type]
-            ):
-                (
-                    index_names,
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
-                    self.index_col,
-                ) = self._clean_index_names(
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
-                    # error: Cannot determine type of 'index_col'
-                    self.index_col,  # type: ignore[has-type]
-                )
+        # error: Cannot determine type of 'index_col'
+        if self._reader.leading_cols == 0 and is_index_col(
+            self.index_col  # type: ignore[has-type]
+        ):
+            (
+                index_names,
+                # error: Cannot determine type of 'names'
+                self.names,  # type: ignore[has-type]
+                self.index_col,
+            ) = self._clean_index_names(
+                # error: Cannot determine type of 'names'
+                self.names,  # type: ignore[has-type]
+                # error: Cannot determine type of 'index_col'
+                self.index_col,  # type: ignore[has-type]
+            )
 
-                if self.index_names is None:
-                    self.index_names = index_names
+            if self.index_names is None:
+                self.index_names = index_names
 
-            if self._reader.header is None and not passed_names:
-                assert self.index_names is not None
-                self.index_names = [None] * len(self.index_names)
+        if self._reader.header is None and not passed_names:
+            assert self.index_names is not None
+            self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -273,9 +272,6 @@ class CParserWrapper(ParserBase):
         names = self.names  # type: ignore[has-type]
 
         if self._reader.leading_cols:
-            if self._has_complex_date_col:
-                raise NotImplementedError("file structure not yet supported")
-
             # implicit index, no index names
             arrays = []
 
