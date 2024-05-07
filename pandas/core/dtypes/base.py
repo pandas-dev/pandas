@@ -488,8 +488,8 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
 
     See Also
     --------
-    api.extensions.ExtensionDtype : The base class for creating custom
-        pandas data types.
+    api.extensions.ExtensionDtype : The base class for creating custom pandas
+        data types.
     Series : One-dimensional array with axis labels.
     DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
         tabular data.
