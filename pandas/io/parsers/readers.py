@@ -40,7 +40,6 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
-    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -119,7 +118,6 @@ if TYPE_CHECKING:
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
         infer_datetime_format: bool | lib.NoDefault
-        keep_date_col: bool | lib.NoDefault
         date_parser: Callable | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
@@ -302,8 +300,7 @@ na_filter : bool, default True
     performance of reading a large file.
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
-list}}, default None
+parse_dates : bool, None, list of Hashable, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
@@ -311,10 +308,6 @@ list}}, default None
       specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
-      as a single date column. Values are joined with a space before parsing.
-    * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
-      result 'foo'. Values are joined with a space before parsing.
 
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
@@ -332,9 +325,6 @@ infer_datetime_format : bool, default False
     .. deprecated:: 2.0.0
         A strict version of this argument is now the default, passing it has no effect.
 
-keep_date_col : bool, default False
-    If ``True`` and ``parse_dates`` specifies combining multiple columns then
-    keep the original columns.
 date_parser : Callable, optional
     Function to use for converting a sequence of string columns to an array of
     ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
@@ -759,7 +749,6 @@ def read_csv(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -790,38 +779,6 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    if lib.is_list_like(parse_dates):
-        # GH#55569
-        depr = False
-        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
-        # attribute "__iter__" (not iterable)
-        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-            depr = True
-        elif isinstance(parse_dates, dict) and any(
-            lib.is_list_like(x) for x in parse_dates.values()
-        ):
-            depr = True
-        if depr:
-            warnings.warn(
-                "Support for nested sequences for 'parse_dates' in pd.read_csv "
-                "is deprecated. Combine the desired columns with pd.to_datetime "
-                "after parsing instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
@@ -950,7 +907,6 @@ def read_table(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -981,29 +937,6 @@ def read_table(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
-    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-        # GH#55569
-        warnings.warn(
-            "Support for nested sequences for 'parse_dates' in pd.read_table "
-            "is deprecated. Combine the desired columns with pd.to_datetime "
-            "after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
@@ -1671,7 +1604,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
     comment : str, optional
         Comment out remainder of line
     parse_dates : bool, default False
-    keep_date_col : bool, default False
     date_parser : function, optional
 
         .. deprecated:: 2.0.0

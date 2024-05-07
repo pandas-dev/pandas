@@ -150,14 +150,9 @@ class PythonParser(ParserBase):
         # get popped off for index
         self.orig_names: list[Hashable] = list(self.columns)
 
-        # needs to be cleaned/refactored
-        # multiple date column thing turning into a real spaghetti factory
-
-        if not self._has_complex_date_col:
-            (index_names, self.orig_names, self.columns) = self._get_index_name()
-            self._name_processed = True
-            if self.index_names is None:
-                self.index_names = index_names
+        index_names, self.orig_names, self.columns = self._get_index_name()
+        if self.index_names is None:
+            self.index_names = index_names
 
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
