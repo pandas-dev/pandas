@@ -232,6 +232,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray.fillna)
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
+        if limit is not None and limit < len(self):
+            modify = mask.cumsum() > limit
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
 
         value = missing.check_value_size(value, mask, len(self))
 
