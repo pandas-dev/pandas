@@ -1389,6 +1389,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Either ``left``, ``right``, ``both`` or ``neither``.
 
+        See Also
+        --------
+        IntervalArray.closed : Returns inclusive side of the IntervalArray.
+        Interval.closed : Returns inclusive side of the Interval.
+        IntervalIndex.closed : Returns inclusive side of the IntervalIndex.
+
         Examples
         --------
 
