@@ -1207,15 +1207,12 @@ def _process_date_conversion(
     columns,
     dtype_backend=lib.no_default,
 ) -> tuple[dict, list]:
-    def _isindex(colspec):
-        return (isinstance(index_col, list) and colspec in index_col) or (
-            isinstance(index_names, list) and colspec in index_names
-        )
-
     for colspec in parse_spec:
         if isinstance(colspec, int) and colspec not in data_dict:
             colspec = columns[colspec]
-        if _isindex(colspec):
+        if (isinstance(index_col, list) and colspec in index_col) or (
+            isinstance(index_names, list) and colspec in index_names
+        ):
             continue
         elif dtype_backend == "pyarrow":
             import pyarrow as pa
