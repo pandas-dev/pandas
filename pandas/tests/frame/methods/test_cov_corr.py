@@ -285,7 +285,7 @@ class TestDataFrameCorrWith:
         b = datetime_frame.add(noise, axis=0)
 
         # make sure order does not matter
-        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
+        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][len(a) // 2 :])
         del b["B"]
 
         colcorr = a.corrwith(b, axis=0)
@@ -301,7 +301,7 @@ class TestDataFrameCorrWith:
         dropped = a.corrwith(b, axis=1, drop=True)
         assert a.index[-1] not in dropped.index
 
-        # non time-series data
+    def test_corrwith_non_timeseries_data(self):
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(

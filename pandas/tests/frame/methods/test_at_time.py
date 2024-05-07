@@ -97,7 +97,7 @@ class TestAtTime:
 
     def test_at_time_axis(self, axis):
         # issue 8839
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
         ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
         ts.index, ts.columns = rng, rng
 

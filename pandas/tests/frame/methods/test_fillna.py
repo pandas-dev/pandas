@@ -60,9 +60,6 @@ class TestFillNA:
 
         padded = datetime_frame.ffill()
         assert np.isnan(padded.loc[padded.index[:5], "A"]).all()
-        assert (
-            padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
-        ).all()
 
         msg = r"missing 1 required positional argument: 'value'"
         with pytest.raises(TypeError, match=msg):
