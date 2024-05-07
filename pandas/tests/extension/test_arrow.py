@@ -39,7 +39,6 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
@@ -1127,7 +1126,7 @@ class TestArrowArray(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(
-        pa_version_under10p1,
+        pa_version_under11p0,
         reason="Assignment of pyarrow arrays yield unexpected dtypes",
     )
     def test_assign_column_in_dataframe(self, data):
