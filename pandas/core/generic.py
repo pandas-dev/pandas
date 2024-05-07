@@ -2055,6 +2055,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, "_attrs", attrs)
                 flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
+
                 # set in the order of internal names
                 # to avoid definitional recursion
                 # e.g. say fill_value needing _mgr to be
