@@ -1124,7 +1124,8 @@ def _make_date_converter(
     def converter(*date_cols, col: Hashable):
         if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
             return date_cols[0]
-
+        # TODO: Can we remove concat_date_cols after deprecation of parsing
+        # multiple cols?
         strs = parsing.concat_date_cols(date_cols)
         date_fmt = (
             date_format.get(col) if isinstance(date_format, dict) else date_format
