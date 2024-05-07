@@ -276,12 +276,6 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : boolean, default ``False``
-  If ``True`` and parse_dates is enabled for a column, attempt to infer the
-  datetime format to speed up the processing.
-
-  .. deprecated:: 2.0.0
-   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
@@ -1639,7 +1633,6 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``decimal``
 * ``iterator``
 * ``dayfirst``
-* ``infer_datetime_format``
 * ``verbose``
 * ``skipinitialspace``
 * ``low_memory``
