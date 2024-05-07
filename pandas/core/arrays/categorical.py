@@ -497,6 +497,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
 
+        See Also
+        --------
+        astype : Cast argument to a specified dtype.
+        CategoricalDtype : Type for categorical data.
+
         Examples
         --------
         >>> cat = pd.Categorical(["a", "b"], ordered=True)
@@ -721,6 +726,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
 
+        See Also
+        --------
+        codes : The category codes of the categorical.
+        CategoricalIndex : An Index with an underlying ``Categorical``.
+
         Examples
         --------
         >>> dtype = pd.CategoricalDtype(["a", "b"], ordered=True)
@@ -810,6 +820,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Whether the categories have an ordered relationship.
 
+        See Also
+        --------
+        set_ordered : Set the ordered attribute.
+        as_ordered : Set the Categorical to be ordered.
+        as_unordered : Set the Categorical to be unordered.
+
         Examples
         --------
         For :class:`pandas.Series`:
@@ -860,6 +876,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         ndarray[int]
             A non-writable view of the ``codes`` array.
+
+        See Also
+        --------
+        Categorical.from_codes : Make a Categorical from codes.
+        CategoricalIndex : An Index with an underlying ``Categorical``.
 
         Examples
         --------
@@ -1289,7 +1310,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Parameters
         ----------
         new_categories : category or list-like of category
-           The new categories to be included.
+            The new categories to be included.
 
         Returns
         -------
@@ -1641,6 +1662,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The numpy array interface.
 
+        Users should not call this directly. Rather, it is invoked by
+        :func:`numpy.array` and :func:`numpy.asarray`.
+
         Parameters
         ----------
         dtype : np.dtype or None
@@ -1655,6 +1679,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
+
+        See Also
+        --------
+        numpy.asarray : Convert input to numpy.ndarray.
 
         Examples
         --------
@@ -2836,6 +2864,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     ----------
     data : Series or CategoricalIndex
 
+    See Also
+    --------
+    Series.dt : Accessor object for datetimelike properties of the Series values.
+    Series.sparse : Accessor for sparse matrix data types.
+
     Examples
     --------
     >>> s = pd.Series(list("abbccc")).astype("category")
@@ -2958,6 +2991,12 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def codes(self) -> Series:
         """
         Return Series of codes as well as the index.
+
+        See Also
+        --------
+        Series.cat.categories : Return the categories of this categorical.
+        Series.cat.as_ordered : Set the Categorical to be ordered.
+        Series.cat.as_unordered : Set the Categorical to be unordered.
 
         Examples
         --------
