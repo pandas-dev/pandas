@@ -1863,6 +1863,8 @@ class ExtensionBlock(EABackedBlock):
     ) -> list[Block]:
         if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
+            if limit is not None:
+                raise ValueError("limit must be None")
             return super().fillna(
                 value=value,
                 limit=limit,
