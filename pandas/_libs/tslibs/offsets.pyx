@@ -500,6 +500,13 @@ cdef class BaseOffset:
         """
         Return a copy of the frequency.
 
+        See Also
+        --------
+        tseries.offsets.Week.copy : Return a copy of Week offset.
+        tseries.offsets.DateOffset.copy : Return a copy of date offset.
+        tseries.offsets.MonthEnd.copy : Return a copy of MonthEnd offset.
+        tseries.offsets.YearBegin.copy : Return a copy of YearBegin offset.
+
         Examples
         --------
         >>> freq = pd.DateOffset(1)
