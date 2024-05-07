@@ -1132,13 +1132,18 @@ def _make_date_converter(
         )
 
         str_objs = ensure_object(strs)
-        result = tools.to_datetime(
-            str_objs,
-            format=date_fmt,
-            utc=False,
-            dayfirst=dayfirst,
-            cache=cache_dates,
-        )
+        try:
+            result = tools.to_datetime(
+                str_objs,
+                format=date_fmt,
+                utc=False,
+                dayfirst=dayfirst,
+                cache=cache_dates,
+            )
+        except (ValueError, TypeError):
+            # test_usecols_with_parse_dates4
+            # test_multi_index_parse_dates
+            return str_objs
 
         if isinstance(result, DatetimeIndex):
             arr = result.to_numpy()
