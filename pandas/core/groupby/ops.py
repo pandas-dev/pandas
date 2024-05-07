@@ -921,7 +921,7 @@ class BaseGrouper:
 
         if isinstance(obj._values, ArrowExtensionArray):
             out = maybe_cast_pointwise_result(
-                npvalues, obj.dtype, numeric_only=True, same_dtype=False
+                npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
             )
             import pyarrow as pa
 
