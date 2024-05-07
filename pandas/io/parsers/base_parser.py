@@ -1212,11 +1212,9 @@ def _process_date_conversion(
             isinstance(index_names, list) and colspec in index_names
         )
 
-    orig_names = columns
-
     for colspec in parse_spec:
         if isinstance(colspec, int) and colspec not in data_dict:
-            colspec = orig_names[colspec]
+            colspec = columns[colspec]
         if _isindex(colspec):
             continue
         elif dtype_backend == "pyarrow":
