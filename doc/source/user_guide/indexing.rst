@@ -403,9 +403,9 @@ are returned:
    s = pd.Series(list('abcde'), index=[0, 3, 2, 5, 4])
    s.loc[3:5]
 
-If at least one of the two is absent, but the index is sorted, and can be
-compared against start and stop labels, then slicing will still work as
-expected, by selecting labels which *rank* between the two:
+If the index is sorted, and can be compared against start and stop labels,
+then slicing will still work as expected, by selecting labels which *rank*
+between the two:
 
 .. ipython:: python
 
