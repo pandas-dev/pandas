@@ -118,7 +118,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_boolean(self, mixed_float_frame, mixed_int_frame, datetime_frame):
         # boolean indexing
-        d = datetime_frame.index[10]
+        d = datetime_frame.index[len(datetime_frame) // 2]
         indexer = datetime_frame.index > d
         indexer_obj = indexer.astype(object)
 
