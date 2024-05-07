@@ -8,10 +8,7 @@ from typing import (
     Literal,
 )
 
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -709,7 +706,6 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,
