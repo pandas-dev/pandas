@@ -427,7 +427,5 @@ def test_day_first_parse_dates(parser):
 
 
 def test_wrong_parse_dates_type(xml_books, parser, iterparse):
-    with pytest.raises(
-        TypeError, match="Only booleans and lists are accepted are accepted"
-    ):
+    with pytest.raises(TypeError, match="Only booleans and lists are accepted"):
         read_xml(xml_books, parse_dates={"date"}, parser=parser, iterparse=iterparse)
