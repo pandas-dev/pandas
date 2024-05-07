@@ -1129,23 +1129,12 @@ class TestArrowArray(base.ExtensionTests):
         # GH#38980 groupby agg on extension type fails for non-numeric types
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 
-        def expected_inferred_result_dtype(dtype):
-            pa_dtype = dtype.pyarrow_dtype
-            if pa.types.is_date(pa_dtype):
-                return "date32[day][pyarrow]"
-            elif pa.types.is_time(pa_dtype):
-                return "time64[us][pyarrow]"
-            elif pa.types.is_decimal(pa_dtype):
-                return ArrowDtype(pa.decimal128(4, 3))
-            else:
-                return dtype
-
         expected_df = pd.DataFrame(
             {"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping}
         )
         expected = expected_df.iloc[[0, 2, 4, 7]]
         expected = expected.set_index("A")
-        expected_dtype = expected_inferred_result_dtype(expected["B"].dtype)
+        expected_dtype = expected["B"].dtype
         expected["B"] = expected["B"].astype(expected_dtype)
 
         result = df.groupby("A").agg({"B": "first"})
