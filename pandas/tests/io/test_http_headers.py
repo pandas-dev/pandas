@@ -1,6 +1,7 @@
 """
 Tests for the pandas custom headers in http(s) requests
 """
+
 from functools import partial
 import gzip
 from io import BytesIO

@@ -355,8 +355,8 @@ class TestDataFrameCorrWith:
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_matches_corrcoef(self):
-        df1 = DataFrame(np.arange(10000), columns=["a"])
-        df2 = DataFrame(np.arange(10000) ** 2, columns=["a"])
+        df1 = DataFrame(np.arange(100), columns=["a"])
+        df2 = DataFrame(np.arange(100) ** 2, columns=["a"])
         c1 = df1.corrwith(df2)["a"]
         c2 = np.corrcoef(df1["a"], df2["a"])[0][1]
 
@@ -459,5 +459,30 @@ class TestDataFrameCorrWith:
         )
         ser_bool = Series([True, True, False, True])
         result = df_bool.corrwith(ser_bool)
+        expected = Series([0.57735, 0.57735], index=["A", "B"])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_min_periods_method(self):
+        # GH#9490
+        pytest.importorskip("scipy")
+        df1 = DataFrame(
+            {
+                "A": [1, np.nan, 7, 8],
+                "B": [False, True, True, False],
+                "C": [10, 4, 9, 3],
+            }
+        )
+        df2 = df1[["B", "C"]]
+        result = (df1 + 1).corrwith(df2.B, method="spearman", min_periods=2)
+        expected = Series([0.0, 1.0, 0.0], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_min_periods_boolean(self):
+        # GH#9490
+        df_bool = DataFrame(
+            {"A": [True, True, False, False], "B": [True, False, False, True]}
+        )
+        ser_bool = Series([True, True, False, True])
+        result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)

@@ -219,8 +219,7 @@ cdef _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64D(dt) for dt in holidays]
-    holidays = tuple(sorted(holidays))
+    holidays = tuple(sorted(_to_dt64D(dt) for dt in holidays))
 
     kwargs = {"weekmask": weekmask}
     if holidays:
@@ -419,11 +418,10 @@ cdef class BaseOffset:
 
         if "holidays" in all_paras and not all_paras["holidays"]:
             all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != "_")]
-        attrs = sorted(set(attrs))
-        params = tuple([str(type(self))] + attrs)
+        exclude = {"kwds", "name", "calendar"}
+        attrs = {(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != "_")}
+        params = tuple([str(type(self))] + sorted(attrs))
         return params
 
     @property
@@ -956,22 +954,6 @@ cdef class Tick(SingleConstructorOffset):
     @cache_readonly
     def _as_pd_timedelta(self):
         return Timedelta(self)
-
-    @property
-    def delta(self):
-        warnings.warn(
-            # GH#55498
-            f"{type(self).__name__}.delta is deprecated and will be removed in "
-            "a future version. Use pd.Timedelta(obj) instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        try:
-            return self.n * Timedelta(self._nanos_inc)
-        except OverflowError as err:
-            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
-            Timedelta(self).as_unit("ns")
-            raise AssertionError("This should not be reached.")
 
     @property
     def nanos(self) -> int64_t:
@@ -4885,14 +4867,6 @@ cpdef to_offset(freq, bint is_period=False):
                             f"instead of \'{name}\'"
                         )
                 elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name.upper().startswith("A"):
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use "
-                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
                     if name.upper() != name:
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in "

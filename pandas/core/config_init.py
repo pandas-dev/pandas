@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+
 from __future__ import annotations
 
 import os
@@ -36,7 +37,7 @@ use_bottleneck_doc = """
 """
 
 
-def use_bottleneck_cb(key) -> None:
+def use_bottleneck_cb(key: str) -> None:
     from pandas.core import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
@@ -50,7 +51,7 @@ use_numexpr_doc = """
 """
 
 
-def use_numexpr_cb(key) -> None:
+def use_numexpr_cb(key: str) -> None:
     from pandas.core.computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
@@ -64,7 +65,7 @@ use_numba_doc = """
 """
 
 
-def use_numba_cb(key) -> None:
+def use_numba_cb(key: str) -> None:
     from pandas.core.util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
@@ -92,11 +93,6 @@ pc_precision_doc = """
     Floating point output precision in terms of number of places after the
     decimal, for regular formatting as well as scientific notation. Similar
     to ``precision`` in :meth:`numpy.set_printoptions`.
-"""
-
-pc_colspace_doc = """
-: int
-    Default space for DataFrame columns.
 """
 
 pc_max_rows_doc = """
@@ -204,11 +200,6 @@ pc_east_asian_width_doc = """
     Enabling this may affect to the performance (default: False)
 """
 
-pc_ambiguous_as_wide_doc = """
-: boolean
-    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
-    (default: False)
-"""
 
 pc_table_schema_doc = """
 : boolean
@@ -286,7 +277,7 @@ pc_memory_usage_doc = """
 """
 
 
-def table_schema_cb(key) -> None:
+def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
     enable_data_resource_formatter(cf.get_option(key))
@@ -611,7 +602,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key) -> None:
+def register_plotting_backend_cb(key: str | None) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -625,7 +616,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,  # type: ignore[arg-type]
     )
 
 
@@ -637,7 +628,7 @@ register_converter_doc = """
 """
 
 
-def register_converter_cb(key) -> None:
+def register_converter_cb(key: str) -> None:
     from pandas.plotting import (
         deregister_matplotlib_converters,
         register_matplotlib_converters,

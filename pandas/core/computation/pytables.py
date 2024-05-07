@@ -1,4 +1,5 @@
-""" manage PyTables query interface via Expressions """
+"""manage PyTables query interface via Expressions"""
+
 from __future__ import annotations
 
 import ast

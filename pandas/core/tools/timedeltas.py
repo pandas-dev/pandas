@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -53,8 +54,7 @@ def to_timedelta(
     arg: str | float | timedelta,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Timedelta:
-    ...
+) -> Timedelta: ...
 
 
 @overload
@@ -62,8 +62,7 @@ def to_timedelta(
     arg: Series,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -71,8 +70,7 @@ def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> TimedeltaIndex:
-    ...
+) -> TimedeltaIndex: ...
 
 
 def to_timedelta(
@@ -114,18 +112,17 @@ def to_timedelta(
         * 'W'
         * 'D' / 'days' / 'day'
         * 'hours' / 'hour' / 'hr' / 'h' / 'H'
-        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'm' / 'minute' / 'min' / 'minutes'
         * 's' / 'seconds' / 'sec' / 'second' / 'S'
-        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
-        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
-        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
 
         Must not be specified when `arg` contains strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
-            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
-            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
+            Units 'H'and 'S' are deprecated and will be removed
+            in a future version. Please use 'h' and 's'.
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

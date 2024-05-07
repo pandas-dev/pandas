@@ -113,7 +113,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Parameters
     ----------
-    values : array-like
+    data : array-like
         The timedelta data.
 
     dtype : numpy.dtype
@@ -196,7 +196,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Constructors
 
     _freq = None
-    _default_dtype = TD64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -323,7 +322,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
@@ -800,6 +799,12 @@ class TimedeltaArray(dtl.TimelikeOps):
     days_docstring = textwrap.dedent(
         """Number of days for each element.
 
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
+    Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
     Examples
     --------
     For Series:
@@ -1072,7 +1077,10 @@ def sequence_to_td64ns(
         # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(f"dtype {data.dtype} cannot be converted to timedelta64[ns]")
 
-    data = np.array(data, copy=copy)
+    if not copy:
+        data = np.asarray(data)
+    else:
+        data = np.array(data, copy=copy)
 
     assert data.dtype.kind == "m"
     assert data.dtype != "m8"  # i.e. not unit-less
@@ -1152,7 +1160,7 @@ def _objects_to_td64ns(
     higher level.
     """
     # coerce Index to np.ndarray, converting string-dtype if necessary
-    values = np.array(data, dtype=np.object_, copy=False)
+    values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
     return result.view("timedelta64[ns]")

@@ -4,6 +4,7 @@ as a CParser-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
+
 from decimal import Decimal
 from io import (
     BytesIO,
@@ -509,8 +510,8 @@ def test_file_like_no_next(c_parser_only):
 
 def test_buffer_rd_bytes_bad_unicode(c_parser_only):
     # see gh-22748
-    t = BytesIO(b"\xB0")
-    t = TextIOWrapper(t, encoding="ascii", errors="surrogateescape")
+    t = BytesIO(b"\xb0")
+    t = TextIOWrapper(t, encoding="UTF-8", errors="surrogateescape")
     msg = "'utf-8' codec can't encode character"
     with pytest.raises(UnicodeError, match=msg):
         c_parser_only.read_csv(t, encoding="UTF-8")

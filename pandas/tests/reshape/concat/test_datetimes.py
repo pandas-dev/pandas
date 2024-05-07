@@ -226,15 +226,6 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT:
-                # GH#18463
-                # TODO: setting nan here is to keep the test passing as we
-                #  make assert_frame_equal stricter, but is nan really the
-                #  ideal behavior here?
-                if tz1 is not None:
-                    expected.iloc[-1, 0] = np.nan
-                else:
-                    expected.iloc[:-1, 0] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
@@ -590,8 +581,9 @@ def test_concat_float_datetime64():
     result = concat([df_time.iloc[:0], df_float])
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df_time, df_float.iloc[:0]])
+    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+        object
+    )
+
+    result = concat([df_time, df_float.iloc[:0]])
     tm.assert_frame_equal(result, expected)

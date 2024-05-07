@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -92,6 +92,8 @@ from pandas.core.internals.ops import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -267,12 +269,6 @@ class BaseBlockManager(PandasObject):
     # Python3 compat
     __bool__ = __nonzero__
 
-    def _normalize_axis(self, axis: AxisInt) -> int:
-        # switch axis to follow BlockManager logic
-        if self.ndim == 2:
-            axis = 1 if axis == 0 else 0
-        return axis
-
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
@@ -445,14 +441,6 @@ class BaseBlockManager(PandasObject):
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
-
-    def apply_with_block(
-        self,
-        f,
-        align_keys: list[str] | None = None,
-        **kwargs,
-    ) -> Self:
-        raise AbstractMethodError(self)
 
     @final
     def isna(self, func) -> Self:
@@ -659,8 +647,7 @@ class BaseBlockManager(PandasObject):
                 new_blocks.append(blk)
 
             elif blk.is_object:
-                nbs = blk._split()
-                new_blocks.extend(nb for nb in nbs if nb.is_bool)
+                new_blocks.extend(nb for nb in blk._split() if nb.is_bool)
 
         return self._combine(new_blocks)
 
@@ -1494,14 +1481,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value : np.ndarray or ExtensionArray
         refs : The reference tracking object of the value to set.
         """
-        with warnings.catch_warnings():
-            # TODO: re-issue this with setitem-specific message?
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of Index.insert with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            new_axis = self.items.insert(loc, item)
+        new_axis = self.items.insert(loc, item)
 
         if value.ndim == 2:
             value = value.T
@@ -1529,7 +1509,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
 
         if (
-            _get_option("performance_warnings")
+            get_option("performance_warnings")
             and sum(not block.is_extension for block in self.blocks) > 100
         ):
             warnings.warn(
@@ -1546,7 +1526,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         When inserting a new Block at location 'loc', we increment
         all of the mgr_locs of blocks above that by one.
         """
-        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
+        # Faster version of set(arr) for sequences of small numbers
+        blknos = np.bincount(self.blknos[loc:]).nonzero()[0]
+        for blkno in blknos:
             # .620 this way, .326 of which is in increment_above
             blk = self.blocks[blkno]
             blk._mgr_locs = blk._mgr_locs.increment_above(loc)
@@ -1563,9 +1545,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
         elif loc == 0:
-            # np.append is a lot faster, let's use it if we can.
-            self._blklocs = np.append(self._blklocs[::-1], 0)[::-1]
-            self._blknos = np.append(self._blknos[::-1], len(self.blocks))[::-1]
+            # As of numpy 1.26.4, np.concatenate faster than np.append
+            self._blklocs = np.concatenate([[0], self._blklocs])
+            self._blknos = np.concatenate([[len(self.blocks)], self._blknos])
         else:
             new_blklocs, new_blknos = libinternals.update_blklocs_and_blknos(
                 self.blklocs, self.blknos, loc, len(self.blocks)
@@ -1618,7 +1600,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nrows = 0
         else:
             nrows = result_blocks[0].values.shape[-1]
-        index = Index(range(nrows))
+        index = default_index(nrows)
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1756,21 +1738,18 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_dict(self) -> dict[str, Self]:
+    def to_iter_dict(self) -> Generator[tuple[str, Self], None, None]:
         """
-        Return a dict of str(dtype) -> BlockManager
+        Yield a tuple of (str(dtype), BlockManager)
 
         Returns
         -------
-        values : a dict of dtype -> BlockManager
+        values : a tuple of (str(dtype), BlockManager)
         """
-
-        bd: dict[str, list[Block]] = {}
-        for b in self.blocks:
-            bd.setdefault(str(b.dtype), []).append(b)
-
-        # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks) for dtype, blocks in bd.items()}
+        key = lambda block: str(block.dtype)
+        for dtype, blocks in itertools.groupby(sorted(self.blocks, key=key), key=key):
+            # TODO(EA2D): the combine will be unnecessary with 2D EAs
+            yield dtype, self._combine(list(blocks))
 
     def as_array(
         self,
@@ -1824,6 +1803,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     na_value=na_value,
                     copy=copy,
                 ).reshape(blk.shape)
+            elif not copy:
+                arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 
@@ -2349,7 +2330,7 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
-    tuples = list(enumerate(arrays))
+    tuples = enumerate(arrays)
 
     if not consolidate:
         return _tuples_to_blocks_no_consolidate(tuples, refs)
@@ -2370,7 +2351,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)
 
-            values, placement = _stack_arrays(list(tup_block), dtype)
+            values, placement = _stack_arrays(tup_block, dtype)
             if is_dtlike:
                 values = ensure_wrapped_if_datetimelike(values)
             blk = block_type(values, placement=BlockPlacement(placement), ndim=2)
@@ -2467,15 +2448,6 @@ def _merge_blocks(
 
     # can't consolidate --> no merge
     return blocks, False
-
-
-def _fast_count_smallints(arr: npt.NDArray[np.intp]):
-    """Faster version of set(arr) for sequences of small numbers."""
-    counts = np.bincount(arr)
-    nz = counts.nonzero()[0]
-    # Note: list(zip(...) outperforms list(np.c_[nz, counts[nz]]) here,
-    #  in one benchmark by a factor of 11
-    return zip(nz, counts[nz])
 
 
 def _preprocess_slice_or_indexer(

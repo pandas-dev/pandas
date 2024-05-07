@@ -771,6 +771,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         str
 
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -836,6 +841,12 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.isoweekday : Return the ISO day of the week represented by the date.
+        Timestamp.weekday : Return the day of the week represented by the date.
+        Timestamp.day_of_year : Return day of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -852,6 +863,10 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.day_of_week : Return day of the week.
 
         Examples
         --------
@@ -903,6 +918,11 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timestamp.month_name : Return the month name of the Timestamp with
+            specified locale.
 
         Examples
         --------
@@ -1277,10 +1297,24 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp.
-    year, month, day : int
-    hour, minute, second, microsecond : int, optional, default 0
+    year : int
+        Value of year.
+    month : int
+        Value of month.
+    day : int
+        Value of day.
+    hour : int, optional, default 0
+        Value of hour.
+    minute : int, optional, default 0
+        Value of minute.
+    second : int, optional, default 0
+        Value of second.
+    microsecond : int, optional, default 0
+        Value of microsecond.
     tzinfo : datetime.tzinfo, optional, default None
+        Timezone info.
     nanosecond : int, optional, default 0
+        Value of nanosecond.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -1295,6 +1329,11 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
+
+    See Also
+    --------
+    Timedelta : Represents a duration, the difference between two dates or times.
+    datetime.datetime : Python datetime.datetime object.
 
     Notes
     -----
@@ -1751,7 +1790,7 @@ class Timestamp(_Timestamp):
         tzinfo_type tzinfo=None,
         *,
         nanosecond=None,
-        tz=None,
+        tz=_no_input,
         unit=None,
         fold=None,
     ):
@@ -1782,6 +1821,10 @@ class Timestamp(_Timestamp):
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
+
+        explicit_tz_none = tz is None
+        if tz is _no_input:
+            tz = None
 
         if tzinfo is not None:
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
@@ -1882,6 +1925,11 @@ class Timestamp(_Timestamp):
 
         if ts.value == NPY_NAT:
             return NaT
+
+        if ts.tzinfo is not None and explicit_tz_none:
+            raise ValueError(
+                "Passed data is timezone-aware, incompatible with 'tz=None'."
+            )
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 

@@ -314,34 +314,6 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
-    cdef:
-        list buf
-        Py_ssize_t k = len(lists)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i in range(k):
-        buf = lists[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
-    if sort:
-        try:
-            uniques.sort()
-        except TypeError:
-            pass
-
-    return uniques
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
     """
     Generate a list of unique values from a generator of lists.
@@ -361,15 +333,15 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True) -> list:
         list buf
         Py_ssize_t j, n
         list uniques = []
-        dict table = {}
-        object val, stub = 0
+        set table = set()
+        object val
 
     for buf in gen:
         n = len(buf)
         for j in range(n):
             val = buf[j]
             if val not in table:
-                table[val] = stub
+                table.add(val)
                 uniques.append(val)
     if sort:
         try:
@@ -505,7 +477,7 @@ def has_infs(const floating[:] arr) -> bool:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def has_only_ints_or_nan(floating[:] arr) -> bool:
+def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
@@ -659,7 +631,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
+def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -675,6 +647,28 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
         if left[i] != i:
             return False
 
+    return True
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
+    """
+    Check if sequence is equivalent to a range with the specified step.
+    """
+    cdef:
+        Py_ssize_t i, n = len(sequence)
+        int6432_t first_element
+
+    if step == 0:
+        return False
+    if n == 0:
+        return True
+
+    first_element = sequence[0]
+    for i in range(1, n):
+        if sequence[i] != first_element + i * step:
+            return False
     return True
 
 
@@ -2634,7 +2628,11 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif val is C_NA:
-            seen.object_ = True
+            if convert_to_nullable_dtype:
+                seen.null_ = True
+                mask[i] = True
+            else:
+                seen.object_ = True
             continue
         else:
             seen.object_ = True
@@ -2697,6 +2695,12 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
+        elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype()
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
         seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
@@ -2740,12 +2744,12 @@ def maybe_convert_objects(ndarray[object] objects,
         return objects
 
     if seen.bool_:
-        if seen.is_bool:
-            # is_bool property rules out everything else
-            return bools.view(np.bool_)
-        elif convert_to_nullable_dtype and seen.is_bool_or_na:
+        if convert_to_nullable_dtype and seen.is_bool_or_na:
             from pandas.core.arrays import BooleanArray
             return BooleanArray(bools.view(np.bool_), mask)
+        elif seen.is_bool:
+            # is_bool property rules out everything else
+            return bools.view(np.bool_)
         seen.object_ = True
 
     if not seen.object_:
@@ -2758,11 +2762,11 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = floats
                 elif seen.int_ or seen.uint_:
                     if convert_to_nullable_dtype:
-                        from pandas.core.arrays import IntegerArray
+                        # Below we will wrap in IntegerArray
                         if seen.uint_:
-                            result = IntegerArray(uints, mask)
+                            result = uints
                         else:
-                            result = IntegerArray(ints, mask)
+                            result = ints
                     else:
                         result = floats
                 elif seen.nan_:
@@ -2777,7 +2781,6 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
-
         else:
             # don't cast int to float, etc.
             if seen.null_:
@@ -2799,6 +2802,22 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
+
+        # TODO: do these after the itemsize check?
+        if (result is ints or result is uints) and convert_to_nullable_dtype:
+            from pandas.core.arrays import IntegerArray
+
+            # Set these values to 1 to be deterministic, match
+            #  IntegerDtype._internal_fill_value
+            result[mask] = 1
+            result = IntegerArray(result, mask)
+        elif result is floats and convert_to_nullable_dtype:
+            from pandas.core.arrays import FloatingArray
+
+            # Set these values to 1.0 to be deterministic, match
+            #  FloatingDtype._internal_fill_value
+            result[mask] = 1.0
+            result = FloatingArray(result, mask)
 
         if result is uints or result is ints or result is floats or result is complexes:
             # cast to the largest itemsize when all values are NumPy scalars

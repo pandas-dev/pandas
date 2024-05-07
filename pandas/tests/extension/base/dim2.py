@@ -1,6 +1,7 @@
 """
 Tests for 2D compatibility.
 """
+
 import numpy as np
 import pytest
 

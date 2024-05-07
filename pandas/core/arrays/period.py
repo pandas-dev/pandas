@@ -54,7 +54,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -135,11 +134,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     dtype : PeriodDtype, optional
         A PeriodDtype instance from which to extract a `freq`. If both
         `freq` and `dtype` are specified, then the frequencies must match.
-    freq : str or DateOffset
-        The `freq` to use for the array. Mostly applicable when `values`
-        is an ndarray of integers, when `freq` is required. When `values`
-        is a PeriodArray (or box around), it's checked that ``values.freq``
-        matches `freq`.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
@@ -224,20 +218,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(
-        self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
-    ) -> None:
-        if freq is not None:
-            # GH#52462
-            warnings.warn(
-                "The 'freq' keyword in the PeriodArray constructor is deprecated "
-                "and will be removed in a future version. Pass 'dtype' instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            freq = validate_dtype_freq(dtype, freq)
-            dtype = PeriodDtype(freq)
-
+    def __init__(self, values, dtype: Dtype | None = None, copy: bool = False) -> None:
         if dtype is not None:
             dtype = pandas_dtype(dtype)
             if not isinstance(dtype, PeriodDtype):
@@ -256,7 +237,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 raise raise_on_incompatible(values, dtype.freq)
             values, dtype = values._ndarray, values.dtype
 
-        values = np.array(values, dtype="int64", copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype="int64")
+        else:
+            values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
         dtype = cast(PeriodDtype, dtype)
@@ -400,7 +384,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
         elif dtype == bool:
@@ -842,19 +828,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         else:
             return self
 
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing,
-            #  similar to dtl._period_dispatch
-            dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
-            # error: Incompatible return value type (got "Union[ExtensionArray,
-            # ndarray[Any, Any]]", expected "PeriodArray")
-            return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
-
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -1119,13 +1092,11 @@ def period_array(
 
 
 @overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
-    ...
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
 
 
 @overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
-    ...
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
 
 
 def validate_dtype_freq(

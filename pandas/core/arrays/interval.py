@@ -13,7 +13,6 @@ from typing import (
     Union,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -29,7 +28,6 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
-    FillnaOptions,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
@@ -706,12 +704,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
     @overload
-    def __getitem__(self, key: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
         key = check_array_indexer(self, key)
@@ -896,23 +892,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
-    ) -> Self:
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
-        return super()._pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
-
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -923,17 +903,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should be either Interval objects or NA/NaN.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            (Not implemented yet for IntervalArray)
-            Method to use for filling holes in reindexed Series
         limit : int, default None
             (Not implemented yet for IntervalArray)
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            The maximum number of entries where NA values will be filled.
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -946,8 +918,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         if copy is False:
             raise NotImplementedError
-        if method is not None:
-            return super().fillna(value=value, method=method, limit=limit)
+        if limit is not None:
+            raise ValueError("limit must be None")
 
         value_left, value_right = self._validate_scalar(value)
 
@@ -1241,15 +1213,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of value_counts with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            result = value_counts(np.asarray(self), dropna=dropna)
-            # Once the deprecation is enforced, we will need to do
-            #  `result.index = result.index.astype(self.dtype)`
+        result = value_counts(np.asarray(self), dropna=dropna)
+        result.index = result.index.astype(self.dtype)
         return result
 
     # ---------------------------------------------------------------------
@@ -1564,7 +1529,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')

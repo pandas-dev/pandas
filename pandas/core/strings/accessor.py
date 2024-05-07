@@ -162,6 +162,16 @@ class StringMethods(NoNewAttributesMixin):
     Patterned after Python's string methods, with some inspiration from
     R's stringr package.
 
+    Parameters
+    ----------
+    data : Series or Index
+        The content of the Series or Index.
+
+    See Also
+    --------
+    Series.str : Vectorized string functions for Series.
+    Index.str : Vectorized string functions for Index.
+
     Examples
     --------
     >>> s = pd.Series(["A_Str_Series"])
@@ -259,7 +269,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
-        returns_bool: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -321,10 +330,8 @@ class StringMethods(NoNewAttributesMixin):
                             new_values.append(row)
                         pa_type = result._pa_array.type
                         result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
-                if name is not None:
-                    labels = name
-                else:
-                    labels = range(max_len)
+                if name is None:
+                    name = range(max_len)
                 result = (
                     pa.compute.list_flatten(result._pa_array)
                     .to_numpy()
@@ -332,7 +339,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, result.T)
+                    for label, res in zip(name, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -3611,7 +3618,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ("match",))
+    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

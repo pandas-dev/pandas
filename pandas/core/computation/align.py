@@ -1,6 +1,7 @@
 """
 Core eval alignment algorithms.
 """
+
 from __future__ import annotations
 
 from functools import (
@@ -15,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _get_option
+from pandas._config.config import get_option
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -127,7 +128,7 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if (
-                    _get_option("performance_warnings")
+                    get_option("performance_warnings")
                     and ordm >= 1
                     and reindexer_size >= 10000
                 ):
@@ -159,19 +160,24 @@ def align_terms(terms):
         # can't iterate so it must just be a constant or single variable
         if isinstance(terms.value, (ABCSeries, ABCDataFrame)):
             typ = type(terms.value)
-            return typ, _zip_axes_from_type(typ, terms.value.axes)
-        return np.result_type(terms.type), None
+            name = terms.value.name if isinstance(terms.value, ABCSeries) else None
+            return typ, _zip_axes_from_type(typ, terms.value.axes), name
+        return np.result_type(terms.type), None, None
 
     # if all resolved variables are numeric scalars
     if all(term.is_scalar for term in terms):
-        return result_type_many(*(term.value for term in terms)).type, None
+        return result_type_many(*(term.value for term in terms)).type, None, None
+
+    # if all input series have a common name, propagate it to the returned series
+    names = {term.value.name for term in terms if isinstance(term.value, ABCSeries)}
+    name = names.pop() if len(names) == 1 else None
 
     # perform the main alignment
     typ, axes = _align_core(terms)
-    return typ, axes
+    return typ, axes, name
 
 
-def reconstruct_object(typ, obj, axes, dtype):
+def reconstruct_object(typ, obj, axes, dtype, name):
     """
     Reconstruct an object given its type, raw value, and possibly empty
     (None) axes.
@@ -199,7 +205,9 @@ def reconstruct_object(typ, obj, axes, dtype):
     res_t = np.result_type(obj.dtype, dtype)
 
     if not isinstance(typ, partial) and issubclass(typ, PandasObject):
-        return typ(obj, dtype=res_t, **axes)
+        if name is None:
+            return typ(obj, dtype=res_t, **axes)
+        return typ(obj, dtype=res_t, name=name, **axes)
 
     # special case for pathological things like ~True/~False
     if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
