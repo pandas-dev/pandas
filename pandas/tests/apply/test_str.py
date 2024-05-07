@@ -28,7 +28,7 @@ from pandas.tests.apply.common import (
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_with_string_funcs(request, float_frame, func, kwds, how):
+def test_apply_with_string_funcs(float_frame, func, kwds, how):
     result = getattr(float_frame, how)(func, **kwds)
     expected = getattr(float_frame, func)(**kwds)
     tm.assert_series_equal(result, expected)
