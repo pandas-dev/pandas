@@ -1880,7 +1880,8 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             if len(indices) == 0:
                 return
-            argsort = np.argsort(indices)
+            # GH#58530 wrong item assignment by repeated key
+            _, argsort = np.unique(indices, return_index=True)
             indices = indices[argsort]
             value = value.take(argsort)
             mask = np.zeros(len(self), dtype=np.bool_)
