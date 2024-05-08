@@ -131,25 +131,38 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        precision = (
+        self._precision = (
             get_option("styler.format.precision") if precision is None else precision
         )
-        self._initialize_display_funcs()
+        self._initialize_display_funcs(precision)
 
-    def _initialize_display_funcs(self):
-        def default_display_func_dict(key_type) -> defaultdict:
+    def _initialize_display_funcs(self, precision: int | None):
+        def default_display_func_dict(key_type, precision: int | None) -> defaultdict:
             return defaultdict(
-                lambda: partial(_default_formatter, precision=self.precision),
+                lambda: partial(_default_formatter, precision=precision),
                 key_type=key_type,
             )
 
-        self._display_funcs = default_display_func_dict(key_type=tuple[int, int])
-        self._display_funcs_index = default_display_func_dict(key_type=tuple[int, int])
-        self._display_funcs_index_names = default_display_func_dict(key_type=int)
-        self._display_funcs_columns = default_display_func_dict(
-            key_type=tuple[int, int]
+        # maps (row, col) -> format func
+        self._display_funcs = default_display_func_dict(
+            key_type=tuple[int, int], precision=precision
         )
-        self._display_funcs_column_names = default_display_func_dict(key_type=int)
+        # maps (row, level) -> format func
+        self._display_funcs_index = default_display_func_dict(
+            key_type=tuple[int, int], precision=precision
+        )
+        # maps index level -> format func
+        self._display_funcs_index_names = default_display_func_dict(
+            key_type=int, precision=precision
+        )
+        # maps (level, col) -> format func
+        self._display_funcs_columns = default_display_func_dict(
+            key_type=tuple[int, int], precision=precision
+        )
+        # maps col level -> format func
+        self._display_funcs_column_names = default_display_func_dict(
+            key_type=int, precision=precision
+        )
 
     def _render(
         self,
