@@ -165,7 +165,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.days_in_month SA01" \
-        -i "pandas.Series.dt.daysinmonth SA01" \
         -i "pandas.Series.dt.floor PR01,PR02" \
         -i "pandas.Series.dt.freq GL08" \
         -i "pandas.Series.dt.microseconds SA01" \
