@@ -289,7 +289,7 @@ class PythonParser(ParserBase):
         data, columns = self._exclude_implicit_index(alldata)
 
         conv_data = self._convert_data(data)
-        columns, conv_data = self._do_date_conversions(columns, conv_data)
+        conv_data = self._do_date_conversions(columns, conv_data)
 
         index, result_columns = self._make_index(
             conv_data, alldata, columns, indexnamerow

@@ -814,25 +814,23 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]: ...
+    ) -> DataFrame: ...
 
     @overload
     def _do_date_conversions(
         self,
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]: ...
+    ) -> Mapping[Hashable, ArrayLike]: ...
 
     @final
     def _do_date_conversions(
         self,
         names: Sequence[Hashable] | Index,
         data: Mapping[Hashable, ArrayLike] | DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, Mapping[Hashable, ArrayLike] | DataFrame]:
-        # returns data, columns
-
+    ) -> Mapping[Hashable, ArrayLike] | DataFrame:
         if isinstance(self.parse_dates, list):
-            data, names = _process_date_conversion(
+            return _process_date_conversion(
                 data,
                 self._date_conv,
                 self.parse_dates,
@@ -842,7 +840,7 @@ class ParserBase:
                 dtype_backend=self.dtype_backend,
             )
 
-        return names, data
+        return data
 
     @final
     def _check_data_length(
@@ -1199,14 +1197,14 @@ parser_defaults = {
 
 
 def _process_date_conversion(
-    data_dict,
+    data_dict: Mapping[Hashable, ArrayLike] | DataFrame,
     converter: Callable,
     parse_spec: list,
     index_col,
     index_names,
-    columns,
+    columns: Sequence[Hashable] | Index,
     dtype_backend=lib.no_default,
-) -> tuple[dict, list]:
+) -> Mapping[Hashable, ArrayLike] | DataFrame:
     for colspec in parse_spec:
         if isinstance(colspec, int) and colspec not in data_dict:
             colspec = columns[colspec]
@@ -1226,9 +1224,12 @@ def _process_date_conversion(
 
         # Pyarrow engine returns Series which we need to convert to
         # numpy array before converter, its a no-op for other parsers
-        data_dict[colspec] = converter(np.asarray(data_dict[colspec]), col=colspec)
+        result = converter(np.asarray(data_dict[colspec]), col=colspec)
+        # error: Unsupported target for indexed assignment
+        # ("Mapping[Hashable, ExtensionArray | ndarray[Any, Any]] | DataFrame")
+        data_dict[colspec] = result  # type: ignore[index]
 
-    return data_dict, columns
+    return data_dict
 
 
 def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):

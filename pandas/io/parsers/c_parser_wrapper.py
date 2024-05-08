@@ -302,12 +302,10 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            column_names, date_data = self._do_date_conversions(names, data)
+            date_data = self._do_date_conversions(names, data)
 
             # maybe create a mi on the columns
-            column_names = self._maybe_make_multi_index_columns(
-                column_names, self.col_names
-            )
+            column_names = self._maybe_make_multi_index_columns(names, self.col_names)
 
         else:
             # rename dict keys
@@ -330,7 +328,7 @@ class CParserWrapper(ParserBase):
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, date_data = self._do_date_conversions(names, data)
+            date_data = self._do_date_conversions(names, data)
             index, column_names = self._make_index(date_data, alldata, names)
 
         return index, column_names, date_data
