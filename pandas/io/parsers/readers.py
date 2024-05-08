@@ -119,7 +119,6 @@ if TYPE_CHECKING:
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
         keep_date_col: bool | lib.NoDefault
-        date_parser: Callable | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
         cache_dates: bool
@@ -306,8 +305,7 @@ list}}, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
-    * ``None``. Behaves like ``True`` if ``date_parser`` or ``date_format`` are
-      specified.
+    * ``None``. Behaves like ``True`` if ``date_format`` is specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
@@ -325,20 +323,6 @@ list}}, default None
 keep_date_col : bool, default False
     If ``True`` and ``parse_dates`` specifies combining multiple columns then
     keep the original columns.
-date_parser : Callable, optional
-    Function to use for converting a sequence of string columns to an array of
-    ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. pandas will try to call ``date_parser`` in three different ways,
-    advancing to the next if an exception occurs: 1) Pass one or more arrays
-    (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
-    string values from the columns defined by ``parse_dates`` into a single array
-    and pass that; and 3) call ``date_parser`` once for each row using one or
-    more strings (corresponding to the columns defined by ``parse_dates``) as
-    arguments.
-
-    .. deprecated:: 2.0.0
-       Use ``date_format`` instead, or read in as ``object`` and then apply
-       :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
     Format to use for parsing dates when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
@@ -624,13 +608,10 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
-    # if we pass a date_parser and parse_dates=False, we should not parse the
+    # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
     if kwds.get("parse_dates", None) is None:
-        if (
-            kwds.get("date_parser", lib.no_default) is lib.no_default
-            and kwds.get("date_format", None) is None
-        ):
+        if kwds.get("date_format", None) is None:
             kwds["parse_dates"] = False
         else:
             kwds["parse_dates"] = True
@@ -749,7 +730,6 @@ def read_csv(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     keep_date_col: bool | lib.NoDefault = lib.no_default,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -928,7 +908,6 @@ def read_table(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     keep_date_col: bool | lib.NoDefault = lib.no_default,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -1638,9 +1617,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         Comment out remainder of line
     parse_dates : bool, default False
     keep_date_col : bool, default False
-    date_parser : function, optional
-
-        .. deprecated:: 2.0.0
     date_format : str or dict of column -> format, default ``None``
 
         .. versionadded:: 2.0.0

@@ -4,7 +4,6 @@ test suite is independent of the others because the
 engine is set to 'python-fwf' internally.
 """
 
-from datetime import datetime
 from io import (
     BytesIO,
     StringIO,
@@ -284,17 +283,6 @@ def test_fwf_regression():
 2009164205000   9.5810  9.0896  8.4009  7.4652  6.0322  5.8189  5.4379
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
-
-    with tm.assert_produces_warning(FutureWarning, match="use 'date_format' instead"):
-        result = read_fwf(
-            StringIO(data),
-            index_col=0,
-            header=None,
-            names=names,
-            widths=widths,
-            parse_dates=True,
-            date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
-        )
     expected = DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
@@ -314,7 +302,6 @@ def test_fwf_regression():
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
     )
-    tm.assert_frame_equal(result, expected)
     result = read_fwf(
         StringIO(data),
         index_col=0,

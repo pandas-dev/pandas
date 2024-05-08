@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import copy
 import csv
-import datetime
 from enum import Enum
 import itertools
 from typing import (
@@ -127,7 +126,6 @@ class ParserBase:
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
-        self.date_parser = kwds.pop("date_parser", lib.no_default)
         self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
@@ -146,7 +144,6 @@ class ParserBase:
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
-            date_parser=self.date_parser,
             date_format=self.date_format,
             dayfirst=self.dayfirst,
             cache_dates=self.cache_dates,
@@ -1120,84 +1117,39 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
     date_format: dict[Hashable, str] | str | None = None,
 ):
-    if date_parser is not lib.no_default:
-        warnings.warn(
-            "The argument 'date_parser' is deprecated and will "
-            "be removed in a future version. "
-            "Please use 'date_format' instead, or read your data in as 'object' dtype "
-            "and then call 'to_datetime'.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    if date_parser is not lib.no_default and date_format is not None:
-        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
-
-    def unpack_if_single_element(arg):
-        # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-        if isinstance(arg, np.ndarray) and arg.ndim == 1 and len(arg) == 1:
-            return arg[0]
-        return arg
-
     def converter(*date_cols, col: Hashable):
         if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
             return date_cols[0]
+        # TODO: Can we remove concat_date_cols after deprecation of parsing
+        # multiple cols?
+        strs = parsing.concat_date_cols(date_cols)
+        date_fmt = (
+            date_format.get(col) if isinstance(date_format, dict) else date_format
+        )
 
-        if date_parser is lib.no_default:
-            strs = parsing.concat_date_cols(date_cols)
-            date_fmt = (
-                date_format.get(col) if isinstance(date_format, dict) else date_format
+        str_objs = ensure_object(strs)
+        try:
+            result = tools.to_datetime(
+                str_objs,
+                format=date_fmt,
+                utc=False,
+                dayfirst=dayfirst,
+                cache=cache_dates,
             )
+        except (ValueError, TypeError):
+            # test_usecols_with_parse_dates4
+            # test_multi_index_parse_dates
+            return str_objs
 
-            str_objs = ensure_object(strs)
-            try:
-                result = tools.to_datetime(
-                    str_objs,
-                    format=date_fmt,
-                    utc=False,
-                    dayfirst=dayfirst,
-                    cache=cache_dates,
-                )
-            except (ValueError, TypeError):
-                # test_usecols_with_parse_dates4
-                return str_objs
-
-            if isinstance(result, DatetimeIndex):
-                arr = result.to_numpy()
-                arr.flags.writeable = True
-                return arr
-            return result._values
-        else:
-            try:
-                pre_parsed = date_parser(
-                    *(unpack_if_single_element(arg) for arg in date_cols)
-                )
-                try:
-                    result = tools.to_datetime(
-                        pre_parsed,
-                        cache=cache_dates,
-                    )
-                except (ValueError, TypeError):
-                    # test_read_csv_with_custom_date_parser
-                    result = pre_parsed
-                if isinstance(result, datetime.datetime):
-                    raise Exception("scalar parser")
-                return result
-            except Exception:
-                # e.g. test_datetime_fractional_seconds
-                pre_parsed = parsing.try_parse_dates(
-                    parsing.concat_date_cols(date_cols),
-                    parser=date_parser,
-                )
-                try:
-                    return tools.to_datetime(pre_parsed)
-                except (ValueError, TypeError):
-                    # TODO: not reached in tests 2023-10-27; needed?
-                    return pre_parsed
+        if isinstance(result, DatetimeIndex):
+            arr = result.to_numpy()
+            arr.flags.writeable = True
+            return arr
+        return result._values
 
     return converter
 
@@ -1230,7 +1182,6 @@ parser_defaults = {
     "parse_dates": False,
     "keep_date_col": False,
     "dayfirst": False,
-    "date_parser": lib.no_default,
     "date_format": None,
     "usecols": None,
     # 'iterator': False,
