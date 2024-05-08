@@ -126,22 +126,13 @@ def test_groupby_raises_string(
         "corrwith": (TypeError, "Could not convert"),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (
-            (NotImplementedError, TypeError),
-            "(function|cummax) is not (implemented|supported) for (this|object) dtype",
-        ),
-        "cummin": (
-            (NotImplementedError, TypeError),
-            "(function|cummin) is not (implemented|supported) for (this|object) dtype",
-        ),
+        "cummax": (None, ""),
+        "cummin": (None, ""),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(function|cumprod) is not (implemented|supported) for (this|object) dtype",
         ),
-        "cumsum": (
-            (NotImplementedError, TypeError),
-            "(function|cumsum) is not (implemented|supported) for (this|object) dtype",
-        ),
+        "cumsum": (None, ""),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "fillna": (None, ""),
