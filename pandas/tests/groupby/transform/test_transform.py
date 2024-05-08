@@ -715,12 +715,17 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
 @pytest.mark.parametrize(
     "gb_target",
     [
-        {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
-        {"level": 0},
-        {"by": "string"},
+        {
+            "id": 0,
+            "value": {
+                "by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)
+            },
+        },
+        {"id": 1, "value": {"level": 0}},
+        {"id": 2, "value": {"by": "string"}},
         # TODO: create xfail condition given other params
-        # {"by": 'string_missing'},
-        {"by": ["int", "string"]},
+        # {"id": 3, "value": {"by": 'string_missing'}},
+        {"id": 4, "value": {"by": ["int", "string"]}},
     ],
 )
 @pytest.mark.parametrize(
@@ -739,35 +744,65 @@ def test_cython_transform_frame_column(
     request, op, args, targop, df_fix, gb_target, column
 ):
     df = request.getfixturevalue(df_fix)
-    gb = df.groupby(group_keys=False, **gb_target)
+    gb = df.groupby(group_keys=False, **gb_target["value"])
     c = column
-    if (
-        c not in ["float", "int", "float_missing"]
-        and op != "shift"
-        and not (c == "timedelta" and op == "cumsum")
-    ):
-        msg = "|".join(
-            [
-                "does not support .* operations",
-                "does not support operation",
-                ".* is not supported for object dtype",
-                "is not implemented for this dtype",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            gb[c].transform(op)
-        with pytest.raises(TypeError, match=msg):
-            getattr(gb[c], op)()
-    else:
-        expected = gb[c].apply(targop)
-        expected.name = c
-        if c in ["string_missing", "string"]:
-            expected = expected.fillna(np.nan)
 
-        res = gb[c].transform(op, *args)
-        tm.assert_series_equal(expected, res)
-        res2 = getattr(gb[c], op)(*args)
-        tm.assert_series_equal(expected, res2)
+    # mapping df_fix -> gb_target that results in single element groups
+    single_element_groups = {"frame": [0, 1], "frame_mi": [0]}
+    nan_single_groups = single_element_groups
+
+    if op == "cumprod" and c not in ["float", "int", "float_missing"]:
+        # np.cumprod does not raise error is each group only has 1 element
+        if (
+            c in ["string", "string_missing"]
+            and gb_target["id"] in single_element_groups[df_fix]
+        ):
+            test_apply_and_transform(gb, c, targop, op, args)
+        else:
+            test_raises_typeerror(gb[c], op)
+
+    elif op == "cumsum" and c not in [
+        "float",
+        "int",
+        "float_missing",
+        "timedelta",
+        "string",
+    ]:
+        # np.cumsum does not raise error is nan is in its own group only
+        if c == "string_missing" and gb_target["id"] in nan_single_groups[df_fix]:
+            test_apply_and_transform(gb, c, targop, op, args)
+        else:
+            test_raises_typeerror(gb[c], op)
+
+    else:
+        test_apply_and_transform(gb, c, targop, op, args)
+
+
+def test_apply_and_transform(gb, c, targop, op, args):
+    expected = gb[c].apply(targop)
+    expected.name = c
+    if c in ["string_missing", "string"]:
+        expected = expected.fillna(np.nan)
+
+    res = gb[c].transform(op, *args)
+    tm.assert_series_equal(expected, res)
+    res2 = getattr(gb[c], op)(*args)
+    tm.assert_series_equal(expected, res2)
+
+
+def test_raises_typeerror(groupby, op):
+    msg = "|".join(
+        [
+            "does not support .* operations",
+            "does not support operation",
+            ".* is not supported for object dtype",
+            "is not implemented for this dtype",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        groupby.transform(op)
+    with pytest.raises(TypeError, match=msg):
+        getattr(groupby, op)()
 
 
 @pytest.mark.parametrize(
@@ -1534,4 +1569,137 @@ def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
 
     result = df.groupby(series, as_index=False).transform("sum")
     expected = DataFrame({"X": [-93203.0, -93203.0, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_string_dtype_cummin_fallback():
+    # GH#49758
+    df = DataFrame(
+        {
+            "str_col": ["xyz", "klm", "nop", "hij", "abc", "xxz", "efg"],
+            "num_col": [5, 3, 3, 3, 3, 5, 3],
+        }
+    )
+    gb = df.groupby("num_col")
+    result = gb.transform("cummin")
+
+    expected = DataFrame(
+        {"str_col": ["xyz", "klm", "klm", "hij", "abc", "xxz", "abc"]}, index=range(7)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_string_dtype_cummax_fallback():
+    # GH#49758
+    df = Series(
+        ["xyz", "klm", "nop", "hij", "abc", "xxz", "efg"],
+        name="str_col",
+        index=Index([5, 3, 3, 3, 3, 5, 3], name="num_idx"),
+    )
+
+    gb = df.groupby("num_idx")
+    result = gb.transform("cummax")
+
+    expected = Series(
+        ["xyz", "klm", "nop", "nop", "nop", "xyz", "nop"],
+        name="str_col",
+        index=Index([5, 3, 3, 3, 3, 5, 3], name="num_idx"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_transform_string_dtype_cumsum_fallback():
+    # GH#49758
+    df = Series(
+        ["xyz", "klm", "nop", "hij", "abc", "xxz", "efg"],
+        name="str_col",
+        index=Index([5, 3, 3, 3, 3, 5, 3], name="num_idx"),
+    )
+
+    gb = df.groupby("num_idx")
+    result = gb.transform("cumsum")
+
+    expected = Series(
+        [
+            "xyz",
+            "klm",
+            "klmnop",
+            "klmnophij",
+            "klmnophijabc",
+            "xyzxxz",
+            "klmnophijabcefg",
+        ],
+        name="str_col",
+        index=Index([5, 3, 3, 3, 3, 5, 3], name="num_idx"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_transform_binary_pyarrow_dtype_rank_fallback():
+    # GH#49758
+    df = DataFrame(
+        {
+            "str_col": pd.array(
+                ["xyz", "klm", "nop", "hij", "abc", "xxz", "abc"],
+                dtype="binary[pyarrow]",
+            ),
+            "num_col": [5, 3, 3, 3, 3, 5, 3],
+        }
+    )
+    gb = df.groupby("num_col")
+    result = gb.transform("rank", method="max")
+
+    expected = DataFrame(
+        {"str_col": pd.array([2, 4, 5, 3, 2, 1, 2], dtype="int64[pyarrow]")},
+        index=range(7),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_float_pyarrow_dtype_cumprod_fallback():
+    # GH#49758
+    from decimal import Decimal
+
+    import pyarrow as pa
+
+    decimal_type = pd.ArrowDtype(pa.decimal128(20, scale=10))
+
+    df = DataFrame(
+        {
+            "float_col": pd.array(
+                [
+                    Decimal("43"),
+                    Decimal("45"),
+                    Decimal("-5.657657"),
+                    Decimal("55"),
+                    Decimal("-8.454"),
+                    Decimal("0"),
+                    Decimal("-0.4544"),
+                ],
+                dtype=decimal_type,
+            ),
+            "num_col": [5, 3, 3, 3, 3, 5, 3],
+        }
+    )
+    gb = df.groupby("num_col")
+    result = gb.transform("cumprod")
+
+    expected_decimal_type = pd.ArrowDtype(pa.decimal128(29, scale=23))
+    expected = DataFrame(
+        {
+            "float_col": pd.array(
+                [
+                    Decimal("43.0"),
+                    Decimal("45.0"),
+                    Decimal("-254.594565"),
+                    Decimal("-14002.701075"),
+                    Decimal("118378.83488805"),
+                    Decimal("0.0"),
+                    Decimal("-53791.34257312992"),
+                ],
+                dtype=expected_decimal_type,
+            )
+        },
+        index=range(7),
+    )
     tm.assert_frame_equal(result, expected)
