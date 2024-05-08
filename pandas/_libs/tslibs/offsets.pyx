@@ -429,6 +429,12 @@ cdef class BaseOffset:
         """
         Return a dict of extra parameters for the offset.
 
+        See Also
+        --------
+        tseries.offsets.DateOffset : The base class for all pandas date offsets.
+        tseries.offsets.WeekOfMonth : Represents the week of the month.
+        tseries.offsets.LastWeekOfMonth : Represents the last week of the month.
+
         Examples
         --------
         >>> pd.DateOffset(5).kwds
@@ -557,6 +563,14 @@ cdef class BaseOffset:
     def name(self) -> str:
         """
         Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Week : Represents a weekly offset.
+        DateOffset : Base class for all other offset classes.
+        tseries.offsets.Day : Represents a single day offset.
+        tseries.offsets.MonthEnd : Represents a monthly offset that
+            snaps to the end of the month.
 
         Examples
         --------
