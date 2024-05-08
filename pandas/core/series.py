@@ -1957,6 +1957,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series
             Modes of the Series in sorted order.
 
+        See Also
+        --------
+        numpy.mode : Equivalent numpy function for computing median.
+        Series.sum : Sum of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
         Examples
         --------
         >>> s = pd.Series([2, 4, 2, 2, 4, None])
