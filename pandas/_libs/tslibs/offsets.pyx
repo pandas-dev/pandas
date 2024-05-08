@@ -558,6 +558,14 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        See Also
+        --------
+        tseries.offsets.Week : Represents a weekly offset.
+        DateOffset : Base class for all other offset classes.
+        tseries.offsets.Day : Represents a single day offset.
+        tseries.offsets.MonthEnd : Represents a monthly offset that
+            snaps to the end of the month.
+
         Examples
         --------
         >>> pd.offsets.Hour().name
