@@ -22,7 +22,6 @@ from pandas._libs import (
 )
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._libs.tslibs import parsing
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -32,7 +31,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
-    ensure_object,
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -1047,17 +1045,15 @@ def _make_date_converter(
     cache_dates: bool = True,
     date_format: dict[Hashable, str] | str | None = None,
 ):
-    def converter(*date_cols, col: Hashable):
-        if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
-            return date_cols[0]
-        # TODO: Can we remove concat_date_cols after deprecation of parsing
-        # multiple cols?
-        strs = parsing.concat_date_cols(date_cols)
+    def converter(date_col, col: Hashable):
+        if date_col.dtype.kind in "Mm":
+            return date_col
+
         date_fmt = (
             date_format.get(col) if isinstance(date_format, dict) else date_format
         )
 
-        str_objs = ensure_object(strs)
+        str_objs = lib.ensure_string_array(date_col)
         try:
             result = tools.to_datetime(
                 str_objs,

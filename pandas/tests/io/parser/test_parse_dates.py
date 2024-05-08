@@ -14,8 +14,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import parsing
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -37,18 +35,6 @@ pytestmark = pytest.mark.filterwarnings(
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
-
-@pytest.mark.parametrize("container", [list, tuple, Index, Series])
-@pytest.mark.parametrize("dim", [1, 2])
-def test_concat_date_col_fail(container, dim):
-    msg = "not all elements from date_cols are numpy arrays"
-    value = "19990127"
-
-    date_cols = tuple(container([value]) for _ in range(dim))
-
-    with pytest.raises(ValueError, match=msg):
-        parsing.concat_date_cols(date_cols)
 
 
 def test_date_col_as_index_col(all_parsers):

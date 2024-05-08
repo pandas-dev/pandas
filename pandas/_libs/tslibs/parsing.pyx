@@ -29,11 +29,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    PyArray_GETITEM,
-    PyArray_ITER_DATA,
-    PyArray_ITER_NEXT,
-    PyArray_IterNew,
-    flatiter,
     float64_t,
     int64_t,
 )
@@ -74,8 +69,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
-
-from pandas._libs.tslibs.util cimport is_array
 
 
 cdef extern from "pandas/portable.h":
@@ -1130,80 +1123,6 @@ cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
         item = PyObject_Str(item)
 
     return item
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def concat_date_cols(tuple date_cols) -> np.ndarray:
-    """
-    Concatenates elements from numpy arrays in `date_cols` into strings.
-
-    Parameters
-    ----------
-    date_cols : tuple[ndarray]
-
-    Returns
-    -------
-    arr_of_rows : ndarray[object]
-
-    Examples
-    --------
-    >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
-    >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = concat_date_cols((dates, times))
-    >>> result
-    array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
-    """
-    cdef:
-        Py_ssize_t rows_count = 0, col_count = len(date_cols)
-        Py_ssize_t col_idx, row_idx
-        list list_to_join
-        cnp.ndarray[object] iters
-        object[::1] iters_view
-        flatiter it
-        cnp.ndarray[object] result
-        object[::1] result_view
-
-    if col_count == 0:
-        return np.zeros(0, dtype=object)
-
-    if not all(is_array(array) for array in date_cols):
-        raise ValueError("not all elements from date_cols are numpy arrays")
-
-    rows_count = min(len(array) for array in date_cols)
-    result = np.zeros(rows_count, dtype=object)
-    result_view = result
-
-    if col_count == 1:
-        array = date_cols[0]
-        it = <flatiter>PyArray_IterNew(array)
-        for row_idx in range(rows_count):
-            item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            result_view[row_idx] = convert_to_unicode(item, True)
-            PyArray_ITER_NEXT(it)
-    else:
-        # create fixed size list - more efficient memory allocation
-        list_to_join = [None] * col_count
-        iters = np.zeros(col_count, dtype=object)
-
-        # create memoryview of iters ndarray, that will contain some
-        # flatiter's for each array in `date_cols` - more efficient indexing
-        iters_view = iters
-        for col_idx, array in enumerate(date_cols):
-            iters_view[col_idx] = PyArray_IterNew(array)
-
-        # array elements that are on the same line are converted to one string
-        for row_idx in range(rows_count):
-            for col_idx, array in enumerate(date_cols):
-                # this cast is needed, because we did not find a way
-                # to efficiently store `flatiter` type objects in ndarray
-                it = <flatiter>iters_view[col_idx]
-                item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                list_to_join[col_idx] = convert_to_unicode(item, False)
-                PyArray_ITER_NEXT(it)
-            result_view[row_idx] = " ".join(list_to_join)
-
-    return result
 
 
 cpdef str get_rule_month(str source):
