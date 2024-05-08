@@ -1,9 +1,11 @@
 # NB: This is for the Timestamp.timestamp *method* specifically, not
 # the Timestamp class in general.
 
+import pytest
 from pytz import utc
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -11,6 +13,7 @@ import pandas._testing as tm
 
 class TestTimestampMethod:
     @td.skip_if_windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_timestamp(self, fixed_now_ts):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()

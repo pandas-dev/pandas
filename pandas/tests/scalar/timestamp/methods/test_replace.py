@@ -11,6 +11,7 @@ from pandas._libs.tslibs import (
     conversion,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -99,6 +100,7 @@ class TestTimestampReplace:
         with pytest.raises(ValueError, match=msg):
             ts.replace(hour=0.1)
 
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_replace_tzinfo_equiv_tz_localize_none(self):
         # GH#14621, GH#7825
         # assert conversion to naive is the same as replacing tzinfo with None
@@ -106,6 +108,7 @@ class TestTimestampReplace:
         assert ts.tz_localize(None) == ts.replace(tzinfo=None)
 
     @td.skip_if_windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_replace_tzinfo(self):
         # GH#15683
         dt = datetime(2016, 3, 27, 1)

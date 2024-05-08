@@ -314,7 +314,7 @@ jobs:
     timeout-minutes: 90
 
     concurrency:
-      #https://github.community/t/concurrecy-not-work-for-push/183068/7
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
       cancel-in-progress: true
 
@@ -346,3 +346,62 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
+
+  emscripten:
+    # Note: the Python version, Emscripten toolchain version are determined
+    # by the Pyodide version. The appropriate versions can be found in the
+    # Pyodide repodata.json "info" field, or in the Makefile.envs file:
+    # https://github.com/pyodide/pyodide/blob/stable/Makefile.envs#L2
+    # The Node.js version can be determined via Pyodide:
+    # https://pyodide.org/en/stable/usage/index.html#node-js
+    name: Pyodide build
+    runs-on: ubuntu-22.04
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm
+      cancel-in-progress: true
+    steps:
+      - name: Checkout pandas Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python for Pyodide
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.3'
+
+      - name: Set up Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.46'
+          actions-cache-folder: emsdk-cache
+
+      - name: Install pyodide-build
+        run: pip install "pyodide-build==0.25.1"
+
+      - name: Build pandas for Pyodide
+        run: |
+          pyodide build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Set up Pyodide virtual environment
+        run: |
+          pyodide venv .venv-pyodide
+          source .venv-pyodide/bin/activate
+          pip install dist/*.whl
+
+      - name: Test pandas for Pyodide
+        env:
+          PANDAS_CI: 1
+        run: |
+          source .venv-pyodide/bin/activate
+          pip install pytest hypothesis
+          # do not import pandas from the checked out repo
+          cd ..
+          python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'

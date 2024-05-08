@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas.compat import WASM
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -959,6 +960,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
@@ -975,7 +977,8 @@ class TestToDatetime:
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
 
-    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize("tz", ["Pacific/Auckland", "US/Samoa"])
     def test_to_datetime_today(self, tz):
         # See GH#18666
@@ -1007,6 +1010,7 @@ class TestToDatetime:
         to_datetime([arg])
 
     @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize(
         "format, expected_ds",
         [

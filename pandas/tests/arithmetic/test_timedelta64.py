@@ -8,6 +8,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
@@ -1741,6 +1742,7 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    @pytest.mark.skipif(WASM, reason="no fp exception support in wasm")
     def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
         # GH#35529
         box = box_with_array
