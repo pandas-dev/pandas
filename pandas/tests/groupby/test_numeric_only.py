@@ -334,10 +334,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     fails_on_numeric_object = (
         "corr",
         "cov",
-        "cummax",
-        "cummin",
-        "cumprod",
-        "cumsum",
         "quantile",
     )
     # ops that give an object result on object input
@@ -358,6 +354,11 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "max",
         "prod",
         "skew",
+        "cummax",
+        "cummin",
+        "cumsum",
+        # cumprod does not fail for object dtype, if element are numeric
+        "cumprod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -376,6 +377,13 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
+    valid_func_has_numeric_only = (
+        "cummin",
+        "cummax",
+        "cumsum",
+        # cumprod does not fail for object dtype, if element are numeric
+        "cumprod",
+    )
     has_numeric_only = (
         "first",
         "last",
@@ -399,7 +407,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         msg = "got an unexpected keyword argument 'numeric_only'"
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
-    elif dtype is object:
+    elif dtype is object and groupby_func not in valid_func_has_numeric_only:
         msg = "|".join(
             [
                 "SeriesGroupBy.sem called with numeric_only=True and dtype object",
