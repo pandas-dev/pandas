@@ -2009,7 +2009,7 @@ def test_resample_empty_series_with_tz():
     expected_idx = DatetimeIndex(
         [], freq="2MS", name="ts", dtype="datetime64[ns, Atlantic/Faroe]"
     )
-    expected = Series([], index=expected_idx, name="values", dtype="float64")
+    expected = Series([], index=expected_idx, name="values")
     tm.assert_series_equal(result, expected)
 
 

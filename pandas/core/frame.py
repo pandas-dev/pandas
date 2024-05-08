@@ -13059,16 +13059,14 @@ class DataFrame(NDFrame, OpsMixin):
                 interpolation=interpolation,
                 method=method,
             )
-            if method == "single":
-                res = res_df.iloc[0]
-            else:
-                # cannot directly iloc over sparse arrays
-                res = res_df.T.iloc[:, 0]
+            res = res_df.iloc[0]
             if axis == 1 and len(self) == 0:
                 # GH#41544 try to get an appropriate dtype
-                dtype = find_common_type(list(self.dtypes))
-                if needs_i8_conversion(dtype):
-                    return res.astype(dtype)
+                dtype = "float64"
+                cdtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(cdtype):
+                    dtype = cdtype
+                return res.astype(dtype)
             return res
 
         q = Index(q, dtype=np.float64)

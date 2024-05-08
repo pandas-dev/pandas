@@ -739,19 +739,15 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64),
+                Series(name=2),
             ),
             (
                 "agg",
-                Series(
-                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
-                ),
+                Series(name=2, index=Index([], name=1)),
             ),
             (
                 "apply",
-                Series(
-                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
-                ),
+                Series(name=2, index=Index([], name=1)),
             ),
         ],
     )

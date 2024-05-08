@@ -652,8 +652,8 @@ def sanitize_array(
         data = list(data)
 
         if len(data) == 0 and dtype is None:
-            # We default to float64, matching numpy
-            subarr = np.array([], dtype=np.float64)
+            # We default to object, diverging from NumPy
+            subarr = np.array([], dtype=np.object_)
 
         elif dtype is not None:
             subarr = _try_cast(data, dtype, copy)

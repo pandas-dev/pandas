@@ -1418,11 +1418,12 @@ def test_stack_timezone_aware_values(future_stack):
 def test_stack_empty_frame(dropna, future_stack):
     # GH 36113
     levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
-    expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
+    expected = Series(dtype=np.object_, index=MultiIndex(levels=levels, codes=[[], []]))
     if future_stack and dropna is not lib.no_default:
         with pytest.raises(ValueError, match="dropna must be unspecified"):
             DataFrame(dtype=np.float64).stack(dropna=dropna, future_stack=future_stack)
     else:
+        # dtype=np.float64 is lost since there are no columns
         result = DataFrame(dtype=np.float64).stack(
             dropna=dropna, future_stack=future_stack
         )
@@ -1612,7 +1613,9 @@ class TestStackUnstackMultiLevel:
             (
                 [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
                 ["ix1", "ix2", "col1", "col2", "col3"],
-                None,
+                # Nones are used as floats in the presence of numeric data,
+                # resulting in np.nan for index level 1.
+                np.nan,
                 [None, None, 30.0],
             ),
         ],
@@ -1624,10 +1627,12 @@ class TestStackUnstackMultiLevel:
         # https://github.com/pandas-dev/pandas/issues/19351
         # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
         # and the Index levels contain values that are not present in the subset
-        result = DataFrame(result_rows, columns=result_columns).set_index(
-            ["ix1", "ix2"]
+        data = (
+            DataFrame(result_rows, columns=result_columns)
+            .set_index(["ix1", "ix2"])
+            .iloc[1:2]
         )
-        result = result.iloc[1:2].unstack("ix2")
+        result = data.unstack("ix2")
         expected = DataFrame(
             [expected_row],
             columns=MultiIndex.from_product(

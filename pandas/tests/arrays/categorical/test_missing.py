@@ -122,9 +122,9 @@ class TestCategoricalMissing:
         "na_value, dtype",
         [
             (pd.NaT, "datetime64[ns]"),
-            (None, "float64"),
+            (None, "object"),
             (np.nan, "float64"),
-            (pd.NA, "float64"),
+            (pd.NA, "object"),
         ],
     )
     def test_categorical_only_missing_values_no_cast(self, na_value, dtype):

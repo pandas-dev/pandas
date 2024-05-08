@@ -924,7 +924,14 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": np.int64})
+        expected = DataFrame(exp_data).astype(
+            {
+                "A2010": np.float64,
+                "A2011": np.float64,
+                "B2010": np.float64,
+                "year": np.int64,
+            }
+        )
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
@@ -987,7 +994,14 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": np.int64})
+        expected = DataFrame(exp_data).astype(
+            {
+                "Aone": np.float64,
+                "Atwo": np.float64,
+                "Bone": np.float64,
+                "year": np.int64,
+            }
+        )
 
         expected = expected.set_index(["id", "year"])
         expected.index = expected.index.set_levels([0, 1], level=0)
@@ -1211,7 +1225,7 @@ class TestWideToLong:
             name=("id", "num"),
         )
         expected = DataFrame(
-            {"a": [100, 200, 300, 400], "b": [np.nan] * 4},
+            {"a": [100, 200, 300, 400], "b": pd.Series([np.nan] * 4, dtype="object")},
             index=index,
         )
         new_level = expected.index.levels[0].astype(dtype)

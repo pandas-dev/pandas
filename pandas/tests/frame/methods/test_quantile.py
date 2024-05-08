@@ -81,7 +81,7 @@ class TestDataFrameQuantile:
     def test_empty(self, interp_method):
         interpolation, method = interp_method
         q = DataFrame({"x": [], "y": []}).quantile(
-            0.1, axis=0, numeric_only=True, interpolation=interpolation, method=method
+            0.1, axis=0, interpolation=interpolation, method=method
         )
         assert np.isnan(q["x"]) and np.isnan(q["y"])
 
@@ -319,8 +319,11 @@ class TestDataFrameQuantile:
         result = DataFrame({"x": [], "y": []}).quantile(
             [0.1, 0.9], axis=0, interpolation=interpolation, method=method
         )
+        dtype = "float64" if method == "single" else "object"
         expected = DataFrame(
-            {"x": [np.nan, np.nan], "y": [np.nan, np.nan]}, index=[0.1, 0.9]
+            {"x": [np.nan, np.nan], "y": [np.nan, np.nan]},
+            index=[0.1, 0.9],
+            dtype=dtype,
         )
         tm.assert_frame_equal(result, expected)
 

@@ -549,7 +549,7 @@ class TestRolling:
         # GH-38057 from_tuples gives empty object dtype, we now get float/int levels
         # expected.index = MultiIndex.from_tuples([], names=["s1", None])
         expected.index = MultiIndex.from_product(
-            [Index([], dtype="float64"), Index([], dtype="int64")], names=["s1", None]
+            [Index([]), Index([], dtype="int64")], names=["s1", None]
         )
         tm.assert_frame_equal(result, expected)
 
@@ -559,8 +559,8 @@ class TestRolling:
         expected = expected.drop(columns=["s1", "s2"])
         expected.index = MultiIndex.from_product(
             [
-                Index([], dtype="float64"),
-                Index([], dtype="float64"),
+                Index([]),
+                Index([]),
                 Index([], dtype="int64"),
             ],
             names=["s1", "s2", None],

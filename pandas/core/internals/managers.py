@@ -1778,7 +1778,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
         if len(self.blocks) == 0:
-            arr = np.empty(self.shape, dtype=float)
+            arr = np.empty(self.shape, dtype=object)
             return arr.transpose()
 
         if self.is_single_block:

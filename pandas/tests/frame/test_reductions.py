@@ -1627,7 +1627,7 @@ class TestDataFrameReductions:
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
         df = DataFrame({"x": []})
-        expected_float_series = Series([], dtype=float)
+        expected_float_series = Series([], dtype=object)
         # check axis 0
         assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())
         assert np.isnan(df.max(axis=0).x) == np.isnan(expected_float_series.max())

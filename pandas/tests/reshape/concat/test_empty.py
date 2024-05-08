@@ -90,7 +90,7 @@ class TestEmptyConcat:
         expected = DataFrame(
             {
                 0: Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
-                1: values,
+                1: Series(values, dtype=dtype),
             }
         )
         result = concat([first, second], axis=1)

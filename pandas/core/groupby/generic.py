@@ -578,7 +578,7 @@ class SeriesGroupBy(GroupBy[Series]):
             concatenated = concat(results, ignore_index=True)
             result = self._set_result_index_ordered(concatenated)
         else:
-            result = self.obj._constructor(dtype=np.float64)
+            result = self.obj._constructor(dtype=self.obj.dtype)
 
         result.name = self.obj.name
         return result

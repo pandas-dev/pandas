@@ -1479,9 +1479,7 @@ def test_empty_df(method, op):
     group = getattr(gb, "b")
 
     result = getattr(group, method)(op)
-    expected = Series(
-        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
-    )
+    expected = Series([], name="b", index=Index([], name="a"))
 
     tm.assert_series_equal(result, expected)
 
