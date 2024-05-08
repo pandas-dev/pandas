@@ -134,21 +134,22 @@ class StylerRenderer:
         precision = (
             get_option("styler.format.precision") if precision is None else precision
         )
-        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
-            tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
-            tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
-            int, Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
-            tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
-            int, Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._initialize_display_funcs()
+
+    def _initialize_display_funcs(self):
+        def default_display_func_dict(key_type) -> defaultdict:
+            return defaultdict(
+                lambda: partial(_default_formatter, precision=self.precision),
+                key_type=key_type,
+            )
+
+        self._display_funcs = default_display_func_dict(key_type=tuple[int, int])
+        self._display_funcs_index = default_display_func_dict(key_type=tuple[int, int])
+        self._display_funcs_index_names = default_display_func_dict(key_type=int)
+        self._display_funcs_columns = default_display_func_dict(
+            key_type=tuple[int, int]
+        )
+        self._display_funcs_column_names = default_display_func_dict(key_type=int)
 
     def _render(
         self,
