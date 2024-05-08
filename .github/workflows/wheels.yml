@@ -199,3 +199,61 @@ jobs:
           source ci/upload_wheels.sh
           set_upload_vars
           upload_wheels
+
+  # Build Pyodide wheels and upload them to Anaconda.org
+  # NOTE: this job must be kept in sync with the emscripten job in unit-tests.yml.
+  # The difference is that this does not run the tests after building the wheels.
+  build_pyodide_wheels:
+    name: Build Pyodide wheels
+    # Run on schedule, manual (workflow dispatch), and push events
+    # Skip on PRs, because these are running in the unit tests job already
+    if: >-
+      (github.event_name == 'schedule') ||
+      (github.event_name == 'workflow_dispatch') &&
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout pandas Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python for Pyodide
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.3'
+
+      - name: Set up Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.46'
+          actions-cache-folder: emsdk-cache
+
+      - name: Install pyodide-build
+        run: pip install "pyodide-build==0.25.1"
+
+      - name: Build pandas for Pyodide
+        # Here, upload_wheels.sh requires artifacts to be in ./wheelhouse/
+        run: |
+          mkdir -p wheelhouse
+          pyodide build --outdir wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pyodide_wheel
+          path: ./wheelhouse/*.whl
+
+      - name: Upload Pyodide wheels
+        if: >-
+          success() &&
+          (github.event_name == 'schedule') ||
+          (github.event_name == 'workflow_dispatch') &&
+          (github.repository == 'pandas-dev/pandas')
+        shell: bash -el {0}
+        env:
+          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
+        run: |
+          source ci/upload_wheels.sh
+          set_upload_vars
+          upload_wheels
