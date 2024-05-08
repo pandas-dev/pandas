@@ -329,8 +329,8 @@ class TestStata:
             "stata12_be_119",
         ],
     )
-    def test_read_dta12(self, file, datapath):
-        parsed_117 = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
+    def test_read_dta_strl(self, file, datapath):
+        parsed = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
         expected = DataFrame.from_records(
             [
                 [1, "abc", "abcdefghi"],
@@ -340,7 +340,7 @@ class TestStata:
             columns=["x", "y", "z"],
         )
 
-        tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
+        tm.assert_frame_equal(parsed, expected, check_dtype=False)
 
     # 117 is not included in this list as it uses ASCII strings
     @pytest.mark.parametrize(
@@ -352,7 +352,7 @@ class TestStata:
             "stata14_be_119",
         ],
     )
-    def test_read_dta18(self, file, datapath):
+    def test_read_dta118_119(self, file, datapath):
         parsed_118 = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
         parsed_118["Bytes"] = parsed_118["Bytes"].astype("O")
         expected = DataFrame.from_records(
@@ -1831,7 +1831,7 @@ The repeated labels are:\n-+\nwolof
             "stata16_be_119",
         ],
     )
-    def test_unicode_dta_118(self, file, datapath):
+    def test_unicode_dta_118_119(self, file, datapath):
         unicode_df = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
 
         columns = ["utf8", "latin1", "ascii", "utf8_strl", "ascii_strl"]
