@@ -10369,7 +10369,7 @@ class DataFrame(NDFrame, OpsMixin):
         return op.apply().__finalize__(self, method="apply")
 
     def map(
-        self, func: PythonFuncType, na_action: str | None = None, **kwargs
+        self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.

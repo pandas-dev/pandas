@@ -1253,7 +1253,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action=None) -> Self:
+    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
         """
         Map categories using an input mapping or function.
 
