@@ -822,7 +822,6 @@ class TestGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-
     def test_groupby_tuple_keys_handle_multiindex(self):
         # https://github.com/pandas-dev/pandas/issues/21340
         df = DataFrame(
@@ -850,7 +849,9 @@ class TestGrouping:
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = df.groupby("category_tuple").apply(lambda x: x.sort_values(by="num1"))
+            result = df.groupby("category_tuple").apply(
+                lambda x: x.sort_values(by="num1")
+            )
         expected = expected[result.columns]
 
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
