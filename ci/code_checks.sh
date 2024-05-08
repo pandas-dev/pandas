@@ -582,7 +582,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.kwds SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
-        -i "pandas.tseries.offsets.BQuarterBegin.name SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.nanos GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.normalize GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.rule_code GL08" \
@@ -592,7 +591,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.kwds SA01" \
         -i "pandas.tseries.offsets.BQuarterEnd.n GL08" \
-        -i "pandas.tseries.offsets.BQuarterEnd.name SA01" \
         -i "pandas.tseries.offsets.BQuarterEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.rule_code GL08" \
@@ -603,7 +601,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearBegin.kwds SA01" \
         -i "pandas.tseries.offsets.BYearBegin.month GL08" \
         -i "pandas.tseries.offsets.BYearBegin.n GL08" \
-        -i "pandas.tseries.offsets.BYearBegin.name SA01" \
         -i "pandas.tseries.offsets.BYearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.BYearBegin.normalize GL08" \
         -i "pandas.tseries.offsets.BYearBegin.rule_code GL08" \
@@ -613,7 +610,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.kwds SA01" \
         -i "pandas.tseries.offsets.BYearEnd.month GL08" \
         -i "pandas.tseries.offsets.BYearEnd.n GL08" \
-        -i "pandas.tseries.offsets.BYearEnd.name SA01" \
         -i "pandas.tseries.offsets.BYearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BYearEnd.rule_code GL08" \
@@ -624,7 +620,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay.kwds SA01" \
         -i "pandas.tseries.offsets.BusinessDay.n GL08" \
-        -i "pandas.tseries.offsets.BusinessDay.name SA01" \
         -i "pandas.tseries.offsets.BusinessDay.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessDay.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessDay.rule_code GL08" \
@@ -637,7 +632,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessHour.kwds SA01" \
         -i "pandas.tseries.offsets.BusinessHour.n GL08" \
-        -i "pandas.tseries.offsets.BusinessHour.name SA01" \
         -i "pandas.tseries.offsets.BusinessHour.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessHour.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessHour.rule_code GL08" \
@@ -648,7 +642,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.kwds SA01" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.n GL08" \
-        -i "pandas.tseries.offsets.BusinessMonthBegin.name SA01" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.rule_code GL08" \
@@ -657,7 +650,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.kwds SA01" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.n GL08" \
-        -i "pandas.tseries.offsets.BusinessMonthEnd.name SA01" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.rule_code GL08" \
@@ -671,7 +663,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.kwds SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.n GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessDay.name SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.nanos GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.rule_code GL08" \
@@ -684,7 +675,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.kwds SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour.n GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessHour.name SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour.nanos GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.rule_code GL08" \
@@ -698,7 +688,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.kwds SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.n GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.name SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.nanos GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.rule_code GL08" \
@@ -711,7 +700,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.kwds SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.n GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.name SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.rule_code GL08" \
@@ -721,7 +709,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.kwds SA01" \
         -i "pandas.tseries.offsets.DateOffset.n GL08" \
-        -i "pandas.tseries.offsets.DateOffset.name SA01" \
         -i "pandas.tseries.offsets.DateOffset.nanos GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
         -i "pandas.tseries.offsets.DateOffset.rule_code GL08" \
@@ -730,7 +717,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.kwds SA01" \
         -i "pandas.tseries.offsets.Day.n GL08" \
-        -i "pandas.tseries.offsets.Day.name SA01" \
         -i "pandas.tseries.offsets.Day.nanos SA01" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \
         -i "pandas.tseries.offsets.Day.rule_code GL08" \
@@ -739,7 +725,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.kwds SA01" \
         -i "pandas.tseries.offsets.Easter.n GL08" \
-        -i "pandas.tseries.offsets.Easter.name SA01" \
         -i "pandas.tseries.offsets.Easter.nanos GL08" \
         -i "pandas.tseries.offsets.Easter.normalize GL08" \
         -i "pandas.tseries.offsets.Easter.rule_code GL08" \
@@ -750,7 +735,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253.kwds SA01" \
         -i "pandas.tseries.offsets.FY5253.n GL08" \
-        -i "pandas.tseries.offsets.FY5253.name SA01" \
         -i "pandas.tseries.offsets.FY5253.nanos GL08" \
         -i "pandas.tseries.offsets.FY5253.normalize GL08" \
         -i "pandas.tseries.offsets.FY5253.rule_code GL08" \
@@ -764,7 +748,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.kwds SA01" \
         -i "pandas.tseries.offsets.FY5253Quarter.n GL08" \
-        -i "pandas.tseries.offsets.FY5253Quarter.name SA01" \
         -i "pandas.tseries.offsets.FY5253Quarter.nanos GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.normalize GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.qtr_with_extra_week GL08" \
@@ -778,7 +761,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.kwds SA01" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
-        -i "pandas.tseries.offsets.Hour.name SA01" \
         -i "pandas.tseries.offsets.Hour.nanos SA01" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
         -i "pandas.tseries.offsets.Hour.rule_code GL08" \
@@ -787,7 +769,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.kwds SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth.name SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.nanos GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.rule_code GL08" \
@@ -798,7 +779,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Micro.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Micro.kwds SA01" \
         -i "pandas.tseries.offsets.Micro.n GL08" \
-        -i "pandas.tseries.offsets.Micro.name SA01" \
         -i "pandas.tseries.offsets.Micro.nanos SA01" \
         -i "pandas.tseries.offsets.Micro.normalize GL08" \
         -i "pandas.tseries.offsets.Micro.rule_code GL08" \
@@ -807,7 +787,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Milli.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Milli.kwds SA01" \
         -i "pandas.tseries.offsets.Milli.n GL08" \
-        -i "pandas.tseries.offsets.Milli.name SA01" \
         -i "pandas.tseries.offsets.Milli.nanos SA01" \
         -i "pandas.tseries.offsets.Milli.normalize GL08" \
         -i "pandas.tseries.offsets.Milli.rule_code GL08" \
@@ -816,7 +795,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Minute.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Minute.kwds SA01" \
         -i "pandas.tseries.offsets.Minute.n GL08" \
-        -i "pandas.tseries.offsets.Minute.name SA01" \
         -i "pandas.tseries.offsets.Minute.nanos SA01" \
         -i "pandas.tseries.offsets.Minute.normalize GL08" \
         -i "pandas.tseries.offsets.Minute.rule_code GL08" \
@@ -825,7 +803,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.MonthBegin.kwds SA01" \
         -i "pandas.tseries.offsets.MonthBegin.n GL08" \
-        -i "pandas.tseries.offsets.MonthBegin.name SA01" \
         -i "pandas.tseries.offsets.MonthBegin.nanos GL08" \
         -i "pandas.tseries.offsets.MonthBegin.normalize GL08" \
         -i "pandas.tseries.offsets.MonthBegin.rule_code GL08" \
@@ -834,7 +811,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.MonthEnd.kwds SA01" \
         -i "pandas.tseries.offsets.MonthEnd.n GL08" \
-        -i "pandas.tseries.offsets.MonthEnd.name SA01" \
         -i "pandas.tseries.offsets.MonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.MonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.MonthEnd.rule_code GL08" \
@@ -843,7 +819,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Nano.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Nano.kwds SA01" \
         -i "pandas.tseries.offsets.Nano.n GL08" \
-        -i "pandas.tseries.offsets.Nano.name SA01" \
         -i "pandas.tseries.offsets.Nano.nanos SA01" \
         -i "pandas.tseries.offsets.Nano.normalize GL08" \
         -i "pandas.tseries.offsets.Nano.rule_code GL08" \
@@ -852,7 +827,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.QuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.kwds SA01" \
         -i "pandas.tseries.offsets.QuarterBegin.n GL08" \
-        -i "pandas.tseries.offsets.QuarterBegin.name SA01" \
         -i "pandas.tseries.offsets.QuarterBegin.nanos GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.normalize GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.rule_code GL08" \
@@ -862,7 +836,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.QuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.kwds SA01" \
         -i "pandas.tseries.offsets.QuarterEnd.n GL08" \
-        -i "pandas.tseries.offsets.QuarterEnd.name SA01" \
         -i "pandas.tseries.offsets.QuarterEnd.nanos GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.normalize GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.rule_code GL08" \
@@ -872,7 +845,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Second.kwds SA01" \
         -i "pandas.tseries.offsets.Second.n GL08" \
-        -i "pandas.tseries.offsets.Second.name SA01" \
         -i "pandas.tseries.offsets.Second.nanos SA01" \
         -i "pandas.tseries.offsets.Second.normalize GL08" \
         -i "pandas.tseries.offsets.Second.rule_code GL08" \
@@ -882,7 +854,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.kwds SA01" \
         -i "pandas.tseries.offsets.SemiMonthBegin.n GL08" \
-        -i "pandas.tseries.offsets.SemiMonthBegin.name SA01" \
         -i "pandas.tseries.offsets.SemiMonthBegin.nanos GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.normalize GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.rule_code GL08" \
@@ -892,7 +863,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthEnd.kwds SA01" \
         -i "pandas.tseries.offsets.SemiMonthEnd.n GL08" \
-        -i "pandas.tseries.offsets.SemiMonthEnd.name SA01" \
         -i "pandas.tseries.offsets.SemiMonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.SemiMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
@@ -901,7 +871,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Tick.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Tick.kwds SA01" \
         -i "pandas.tseries.offsets.Tick.n GL08" \
-        -i "pandas.tseries.offsets.Tick.name SA01" \
         -i "pandas.tseries.offsets.Tick.nanos SA01" \
         -i "pandas.tseries.offsets.Tick.normalize GL08" \
         -i "pandas.tseries.offsets.Tick.rule_code GL08" \
@@ -910,7 +879,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Week.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Week.kwds SA01" \
         -i "pandas.tseries.offsets.Week.n GL08" \
-        -i "pandas.tseries.offsets.Week.name SA01" \
         -i "pandas.tseries.offsets.Week.nanos GL08" \
         -i "pandas.tseries.offsets.Week.normalize GL08" \
         -i "pandas.tseries.offsets.Week.rule_code GL08" \
@@ -920,7 +888,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.kwds SA01" \
         -i "pandas.tseries.offsets.WeekOfMonth.n GL08" \
-        -i "pandas.tseries.offsets.WeekOfMonth.name SA01" \
         -i "pandas.tseries.offsets.WeekOfMonth.nanos GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.normalize GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.rule_code GL08" \
@@ -932,7 +899,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearBegin.kwds SA01" \
         -i "pandas.tseries.offsets.YearBegin.month GL08" \
         -i "pandas.tseries.offsets.YearBegin.n GL08" \
-        -i "pandas.tseries.offsets.YearBegin.name SA01" \
         -i "pandas.tseries.offsets.YearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.YearBegin.normalize GL08" \
         -i "pandas.tseries.offsets.YearBegin.rule_code GL08" \
@@ -942,7 +908,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.kwds SA01" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
         -i "pandas.tseries.offsets.YearEnd.n GL08" \
-        -i "pandas.tseries.offsets.YearEnd.name SA01" \
         -i "pandas.tseries.offsets.YearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.YearEnd.rule_code GL08" \
