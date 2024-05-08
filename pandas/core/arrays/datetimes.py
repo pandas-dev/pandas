@@ -1913,6 +1913,15 @@ default 'raise'
         """
         The number of days in the month.
 
+        See Also
+        --------
+        Series.dt.day : Return the day of the month.
+        Series.dt.is_month_end : Return a boolean indicating if the
+            date is the last day of the month.
+        Series.dt.is_month_start : Return a boolean indicating if the
+            date is the first day of the month.
+        Series.dt.month : Return the month as January=1 through December=12.
+
         Examples
         --------
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
