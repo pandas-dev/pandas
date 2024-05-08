@@ -240,20 +240,6 @@ parse_dates : bool, list-like, or dict, default False
     For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
-date_parser : function, optional
-    Function to use for converting a sequence of string columns to an array of
-    datetime instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. Pandas will try to call `date_parser` in three different ways,
-    advancing to the next if an exception occurs: 1) Pass one or more arrays
-    (as defined by `parse_dates`) as arguments; 2) concatenate (row-wise) the
-    string values from the columns defined by `parse_dates` into a single array
-    and pass that; and 3) call `date_parser` once for each row using one or
-    more strings (corresponding to the columns defined by `parse_dates`) as
-    arguments.
-
-    .. deprecated:: 2.0.0
-       Use ``date_format`` instead, or read in as ``object`` and then apply
-       :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -398,7 +384,6 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | lib.NoDefault = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -436,7 +421,6 @@ def read_excel(
     na_filter: bool = ...,
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
-    date_parser: Callable | lib.NoDefault = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -474,7 +458,6 @@ def read_excel(
     na_filter: bool = True,
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
@@ -521,7 +504,6 @@ def read_excel(
             na_filter=na_filter,
             verbose=verbose,
             parse_dates=parse_dates,
-            date_parser=date_parser,
             date_format=date_format,
             thousands=thousands,
             decimal=decimal,
@@ -726,7 +708,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
         na_values=None,
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -795,7 +776,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 false_values=false_values,
                 na_values=na_values,
                 parse_dates=parse_dates,
-                date_parser=date_parser,
                 date_format=date_format,
                 thousands=thousands,
                 decimal=decimal,
@@ -829,7 +809,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
         false_values: Iterable[Hashable] | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -942,7 +921,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 na_values=na_values,
                 skip_blank_lines=False,  # GH 39808
                 parse_dates=parse_dates,
-                date_parser=date_parser,
                 date_format=date_format,
                 thousands=thousands,
                 decimal=decimal,
@@ -1648,7 +1626,6 @@ class ExcelFile:
         nrows: int | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
-        date_parser: Callable | lib.NoDefault = lib.no_default,
         date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
@@ -1737,20 +1714,6 @@ class ExcelFile:
             ``pd.to_datetime`` after ``pd.read_excel``.
 
             Note: A fast-path exists for iso8601-formatted dates.
-        date_parser : function, optional
-            Function to use for converting a sequence of string columns to an array of
-            datetime instances. The default uses ``dateutil.parser.parser`` to do the
-            conversion. Pandas will try to call `date_parser` in three different ways,
-            advancing to the next if an exception occurs: 1) Pass one or more arrays
-            (as defined by `parse_dates`) as arguments; 2) concatenate (row-wise) the
-            string values from the columns defined by `parse_dates` into a single array
-            and pass that; and 3) call `date_parser` once for each row using one or
-            more strings (corresponding to the columns defined by `parse_dates`) as
-            arguments.
-
-            .. deprecated:: 2.0.0
-               Use ``date_format`` instead, or read in as ``object`` and then apply
-               :func:`to_datetime` as-needed.
         date_format : str or dict of column -> format, default ``None``
            If used in conjunction with ``parse_dates``, will parse dates
            according to this format. For anything more complex,
@@ -1810,7 +1773,6 @@ class ExcelFile:
             nrows=nrows,
             na_values=na_values,
             parse_dates=parse_dates,
-            date_parser=date_parser,
             date_format=date_format,
             thousands=thousands,
             comment=comment,
