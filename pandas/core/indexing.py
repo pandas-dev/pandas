@@ -1168,7 +1168,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH53533
         if self.name == "iloc" and callable(key) and isinstance(maybe_callable, tuple):
             raise ValueError(
-                "Returning a tuple from a callable with iloc " "is not allowed.",
+                "Returning a tuple from a callable with iloc is not allowed.",
             )
         return maybe_callable
 
