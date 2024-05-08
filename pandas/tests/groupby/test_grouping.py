@@ -844,7 +844,6 @@ class TestGrouping:
                 "category_string": list("aaabbbbcde"),
             }
         )
-        df = df[["category_tuple", "category_string", "num1", "num2", "num3"]]
         expected = df.sort_values(by=["category_tuple", "num1"])
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
