@@ -1832,7 +1832,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         FrozenList
-            A FrozenList containing the object's names, contains None if the object 
+            A FrozenList containing the object's names, contains None if the object
             does not have a name.
 
         See Also
