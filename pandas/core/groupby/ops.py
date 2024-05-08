@@ -45,12 +45,14 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
 
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -896,6 +898,72 @@ class BaseGrouper:
             ngroups=self.ngroups,
             **kwargs,
         )
+
+    @final
+    def transform_series(
+        self, obj: Series, func: Callable, preserve_dtype: bool = False
+    ) -> ArrayLike:
+        """
+        Parameters
+        ----------
+        obj : Series
+        func : function taking a Series and returning a Series
+        preserve_dtype : bool
+            Whether the aggregation is known to be dtype-preserving.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        # GH#58129
+        result = self._transform_series_pure_python(obj, func)
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+
+        if isinstance(obj._values, ArrowExtensionArray):
+            out = maybe_cast_pointwise_result(
+                npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
+            )
+            import pyarrow as pa
+
+            if isinstance(out.dtype, ArrowDtype) and pa.types.is_struct(
+                out.dtype.pyarrow_dtype
+            ):
+                out = npvalues
+
+        elif not isinstance(obj._values, np.ndarray):
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        else:
+            out = npvalues
+
+        return out
+
+    @final
+    def _transform_series_pure_python(
+        self, obj: Series, func: Callable
+    ) -> npt.NDArray[np.object_]:
+        splitter = self._get_splitter(obj)
+        res_by_group = []
+
+        for group in splitter:
+            res = func(group)
+            if hasattr(res, "_values"):
+                res = res._values
+
+            res_by_group.append(res)
+
+        res_by_group_pointers = np.zeros(self.ngroups, dtype=np.int64)
+        series_len = len(obj._values)
+        result = np.empty(series_len, dtype="O")
+
+        for i in range(series_len):
+            label = splitter.labels[i]
+            group_res = res_by_group[label]
+            pointer = res_by_group_pointers[label]
+            result[i] = group_res[pointer]
+
+            res_by_group_pointers[label] = pointer + 1
+
+        return result
 
     @final
     def agg_series(

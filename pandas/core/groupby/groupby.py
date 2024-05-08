@@ -4640,6 +4640,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._cython_transform(
             "rank",
             numeric_only=False,
+            alt=lambda x: Series(x, copy=False).rank(
+                method=method,
+                numeric_only=False,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            ),
             **kwargs,
         )
 
@@ -4700,7 +4707,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         bull    6   9
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
-        return self._cython_transform("cumprod", **kwargs)
+        return self._cython_transform("cumprod", alt=np.cumprod, **kwargs)
 
     @final
     @Substitution(name="groupby")
@@ -4759,7 +4766,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         lion      6   9
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
-        return self._cython_transform("cumsum", **kwargs)
+        return self._cython_transform("cumsum", alt=np.cumsum, **kwargs)
 
     @final
     @Substitution(name="groupby")
@@ -4829,7 +4836,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         skipna = kwargs.get("skipna", True)
         return self._cython_transform(
-            "cummin", numeric_only=numeric_only, skipna=skipna
+            "cummin",
+            numeric_only=numeric_only,
+            skipna=skipna,
+            alt=np.minimum.accumulate,
         )
 
     @final
@@ -4900,7 +4910,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         skipna = kwargs.get("skipna", True)
         return self._cython_transform(
-            "cummax", numeric_only=numeric_only, skipna=skipna
+            "cummax",
+            numeric_only=numeric_only,
+            skipna=skipna,
+            alt=np.maximum.accumulate,
         )
 
     @final

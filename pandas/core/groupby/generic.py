@@ -75,6 +75,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
     default_index,
 )
+from pandas.core.internals.blocks import ensure_block_shape
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index
 from pandas.core.util.numba_ import maybe_use_numba
@@ -535,17 +536,30 @@ class SeriesGroupBy(GroupBy[Series]):
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
-    def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
+    def _cython_transform(
+        self,
+        how: str,
+        alt: Callable | None = None,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
         obj = self._obj_with_exclusions
+        values = obj._values
 
         try:
             result = self._grouper._cython_operation(
-                "transform", obj._values, how, 0, **kwargs
+                "transform", values, how, 0, **kwargs
             )
         except NotImplementedError as err:
-            # e.g. test_groupby_raises_string
-            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
+            if alt is None:
+                raise TypeError(
+                    f"{how} is not supported for {obj.dtype} dtype"
+                ) from err
+        else:
+            return obj._constructor(result, index=self.obj.index, name=obj.name)
 
+        assert alt is not None
+        result = self._transform_py_fallback(how, values, alt=alt)
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
     def _transform_general(
@@ -582,6 +596,21 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result.name = self.obj.name
         return result
+
+    def _transform_py_fallback(
+        self, how: str, values: ArrayLike, alt: Callable
+    ) -> ArrayLike:
+        assert alt is not None
+
+        series = Series(values, copy=False)
+        try:
+            res_values = self._grouper.transform_series(series, alt)
+        except Exception as err:
+            raise TypeError(f"{how} is not supported for {series.dtype} dtype") from err
+
+        if series.dtype == object:
+            res_values = res_values.astype(object, copy=False)
+        return res_values
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
@@ -1742,6 +1771,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_transform(
         self,
         how: str,
+        alt: Callable | None = None,
         numeric_only: bool = False,
         **kwargs,
     ) -> DataFrame:
@@ -1753,9 +1783,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
-                "transform", bvalues, how, 1, **kwargs
-            )
+            try:
+                return self._grouper._cython_operation(
+                    "transform", bvalues, how, 1, **kwargs
+                )
+            except NotImplementedError:
+                if alt is None:
+                    raise
+
+            assert alt is not None
+            result = self._transform_py_fallback(how, bvalues, alt=alt)
+            return result
 
         res_mgr = mgr.apply(arr_func)
 
@@ -1865,6 +1903,25 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     5  5  9
     """
     )
+
+    def _transform_py_fallback(
+        self, how: str, values: ArrayLike, alt: Callable
+    ) -> ArrayLike:
+        print("IN TRANSFORM PY FALLBACK")
+        assert alt is not None
+
+        df = DataFrame(values.T, dtype=values.dtype)
+        assert df.shape[1] == 1
+        series = df.iloc[:, 0]
+
+        try:
+            res_values = self._grouper.transform_series(series, alt)
+        except Exception as err:
+            raise TypeError(f"{how} is not supported for {series.dtype} dtype") from err
+
+        if series.dtype == object:
+            res_values = res_values.astype(object, copy=False)
+        return ensure_block_shape(res_values, ndim=2)
 
     @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
     @Appender(_transform_template)
