@@ -846,14 +846,13 @@ class TestGrouping:
         )
         df = df[["category_tuple", "category_string", "num1", "num2", "num3"]]
         expected = df.sort_values(by=["category_tuple", "num1"])
-
+        
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = df.groupby("category_tuple").apply(
                 lambda x: x.sort_values(by="num1")
             )
         expected = expected[result.columns]
-
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
 
