@@ -1697,7 +1697,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             )
         raise ValueError("Trying to coerce float values to integers")
     if arr.dtype == object:
-        raise ValueError("Trying to coerce float values to integers")
+        raise ValueError("Trying to coerce object values to integers")
 
     if casted.dtype < arr.dtype:
         # TODO: Can this path be hit anymore with numpy > 2

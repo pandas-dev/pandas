@@ -299,23 +299,6 @@ class TestRoundTrip:
         expected["date_strings"] = expected["date_strings"].astype("M8[s]")
         tm.assert_frame_equal(res, expected)
 
-        date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="use 'date_format' instead",
-            raise_on_extra_warnings=False,
-        ):
-            res = pd.read_excel(
-                tmp_excel,
-                parse_dates=["date_strings"],
-                date_parser=date_parser,
-                index_col=0,
-            )
-
-        expected = df[:]
-        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
-        tm.assert_frame_equal(expected, res)
-
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )

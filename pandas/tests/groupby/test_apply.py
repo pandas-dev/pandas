@@ -315,7 +315,7 @@ def test_groupby_as_index_apply():
 
     # apply doesn't maintain the original ordering
     # changed in GH5610 as the as_index=False returns a MI here
-    exp_not_as_apply = MultiIndex.from_tuples([(0, 0), (0, 2), (1, 1), (2, 4)])
+    exp_not_as_apply = Index([0, 2, 1, 4])
     tp = [(1, 0), (1, 2), (2, 1), (3, 4)]
     exp_as_apply = MultiIndex.from_tuples(tp, names=["user_id", None])
 
