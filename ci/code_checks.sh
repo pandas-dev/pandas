@@ -333,6 +333,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzname SA01" \
         -i "pandas.Timestamp.unit SA01" \
         -i "pandas.Timestamp.utcfromtimestamp PR01,SA01" \
+        -i "pandas.Timestamp.utcnow SA01" \
         -i "pandas.Timestamp.utcoffset SA01" \
         -i "pandas.Timestamp.utctimetuple SA01" \
         -i "pandas.Timestamp.value GL08" \
