@@ -152,6 +152,22 @@ class TestDecimalArray(base.ExtensionTests):
         with pytest.raises(TypeError, match=msg):
             super().test_fillna_with_none(data_missing)
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_series(data_missing)
+
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]

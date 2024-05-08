@@ -19,7 +19,10 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    WASM,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -159,6 +162,7 @@ Look,a snake,🐍"""
             tm.assert_frame_equal(first, expected.iloc[[0]])
             tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -224,6 +228,7 @@ Look,a snake,🐍"""
         ):
             method(dummy_frame, path)
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -378,6 +383,7 @@ def mmap_file(datapath):
 
 
 class TestMMapWrapper:
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO("I am not a file")
         non_file.fileno = lambda: -1
@@ -400,6 +406,7 @@ class TestMMapWrapper:
         with pytest.raises(ValueError, match=msg):
             icom._maybe_memory_map(target, True)
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     def test_next(self, mmap_file):
         with open(mmap_file, encoding="utf-8") as target:
             lines = target.readlines()
@@ -583,6 +590,7 @@ def test_bad_encdoing_errors():
             icom.get_handle(path, "w", errors="bad")
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_errno_attribute():
     # GH 13872
     with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
