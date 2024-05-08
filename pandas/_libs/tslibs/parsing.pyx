@@ -7,7 +7,6 @@ import warnings
 
 from pandas.util._exceptions import find_stack_level
 
-cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -18,7 +17,6 @@ from cpython.datetime cimport (
 
 from datetime import timezone
 
-from cpython.object cimport PyObject_Str
 from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
@@ -28,10 +26,7 @@ import_datetime()
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    float64_t,
-    int64_t,
-)
+from numpy cimport int64_t
 
 cnp.import_array()
 
@@ -1088,41 +1083,6 @@ cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
-    """
-    Convert `item` to str.
-
-    Parameters
-    ----------
-    item : object
-    keep_trivial_numbers : bool
-        if True, then conversion (to string from integer/float zero)
-        is not performed
-
-    Returns
-    -------
-    str or int or float
-    """
-    cdef:
-        float64_t float_item
-
-    if keep_trivial_numbers:
-        if isinstance(item, int):
-            if <int>item == 0:
-                return item
-        elif isinstance(item, float):
-            float_item = item
-            if float_item == 0.0 or float_item != float_item:
-                return item
-
-    if not isinstance(item, str):
-        item = PyObject_Str(item)
-
-    return item
 
 
 cpdef str get_rule_month(str source):
