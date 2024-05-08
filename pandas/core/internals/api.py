@@ -102,10 +102,7 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    from pandas.core.internals.blocks import (
-        DatetimeTZBlock,
-        ExtensionBlock,
-    )
+    from pandas.core.internals.blocks import ExtensionBlock
 
     if klass is ExtensionBlock and isinstance(values.dtype, PeriodDtype):
         # GH-44681 changed PeriodArray to be stored in the 2D
@@ -116,16 +113,6 @@ def make_block(
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
-
-    elif klass is DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
-        # pyarrow calls get here
-        values = DatetimeArray._simple_new(
-            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
-            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
-            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
-            values,
-            dtype=dtype,  # type: ignore[arg-type]
-        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
@@ -156,47 +143,3 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
-
-
-def __getattr__(name: str):
-    # GH#55139
-
-    if name in [
-        "Block",
-        "ExtensionBlock",
-        "DatetimeTZBlock",
-        "create_block_manager_from_blocks",
-    ]:
-        # GH#33892
-        warnings.warn(
-            f"{name} is deprecated and will be removed in a future version. "
-            "Use public APIs instead.",
-            DeprecationWarning,
-            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
-            # on hard-coding stacklevel
-            stacklevel=2,
-        )
-
-        if name == "create_block_manager_from_blocks":
-            from pandas.core.internals.managers import create_block_manager_from_blocks
-
-            return create_block_manager_from_blocks
-
-        elif name == "Block":
-            from pandas.core.internals.blocks import Block
-
-            return Block
-
-        elif name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
-
-            return DatetimeTZBlock
-
-        elif name == "ExtensionBlock":
-            from pandas.core.internals.blocks import ExtensionBlock
-
-            return ExtensionBlock
-
-    raise AttributeError(
-        f"module 'pandas.core.internals.api' has no attribute '{name}'"
-    )
