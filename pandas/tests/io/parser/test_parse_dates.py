@@ -293,7 +293,6 @@ def test_bad_date_parse_with_warning(all_parsers, cache, value):
     )
 
 
-@xfail_pyarrow
 def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
