@@ -548,10 +548,10 @@ dtype: object
 Specific columns can be parsed as dates by using the `parse_dates` and
 `date_format` arguments.
 
->>> df = pd.read_csv(
-...    "tmp.csv",
+>>> df = pd.{func_name}(
+...    'tmp.csv',
 ...    parse_dates=[1, 2],
-...    date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
+...    date_format={"col 2": '%d/%m/%Y', 'col 3': '%a %d %b %Y'},
 ...)  # doctest: +SKIP
 
 >>> df.dtypes  # doctest: +SKIP
