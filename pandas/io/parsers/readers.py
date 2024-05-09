@@ -337,8 +337,6 @@ date_format : str or dict of column -> format, optional
     - "mixed", to infer the format for each element individually. This is risky,
         and you should probably use it along with `dayfirst`.
 
-    You can specify the format for each column by passing a dict
-    (e.g. ``{{"A": "%d/%m/%Y", "B": "%d/%m/%Y %H:%M"}}``).
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
@@ -527,13 +525,40 @@ as strings or lists of strings!
 1   NaN      2
 2  #baz      3
 
-Comment lines in the CSV input file can be skipped using the
-`comment` argument.
+Comment lines in the input file can be skipped using the `comment` argument.
 
 >>> pd.{func_name}('data.csv', comment='#')  # doctest: +SKIP
   Name  Value
 0  foo      1
 1  bar      2
+
+>>> df = pd.{func_name}('tmp.csv')  # doctest: +SKIP
+
+>>> df  # doctest: +SKIP
+   col 1       col 2            col 3
+0     10  10/04/2018  Sun 15 Jan 2023
+1     20  15/04/2018  Fri 12 May 2023
+
+>>> df.dtypes  # doctest: +SKIP
+col 1     int64
+col 2    object
+col 3    object
+dtype: object
+
+Specific columns can be parsed as dates by using the `parse_dates` and
+`date_format` arguments.
+
+>>> df = pd.read_csv(
+...    "tmp.csv",
+...    parse_dates=[1, 2],
+...    date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
+...)  # doctest: +SKIP
+
+>>> df.dtypes  # doctest: +SKIP
+col 1             int64
+col 2    datetime64[ns]
+col 3    datetime64[ns]
+dtype: object
 """
 )
 
