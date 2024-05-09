@@ -313,7 +313,7 @@ class ExpandingIndexer(BaseIndexer):
 
 class FixedForwardWindowIndexer(BaseIndexer):
     """
-    Creates window boundaries for fixed-length windows that include the current row.
+    Create window boundaries for fixed-length windows that include the current row.
 
     Examples
     --------
