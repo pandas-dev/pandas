@@ -587,7 +587,8 @@ cdef class _Timestamp(ABCTimestamp):
         val = self._maybe_convert_value_to_local()
 
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw, self._creso)
+                                  field, to_offset(freqstr).name ,
+                                  month_kw, self._creso)
         return out[0]
 
     @property
