@@ -291,7 +291,7 @@ cdef class Interval(IntervalMixin):
     """
     Immutable object implementing an Interval, a bounded slice-like interval.
 
-    Parameters
+    Attributes
     ----------
     left : orderable scalar
         Left bound for the interval.

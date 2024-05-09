@@ -77,7 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
-        -i "pandas.Interval PR02" \
         -i "pandas.IntervalIndex.get_loc PR07,RT03,SA01" \
         -i "pandas.IntervalIndex.is_non_overlapping_monotonic SA01" \
         -i "pandas.IntervalIndex.left GL08" \
