@@ -408,7 +408,7 @@ dialect : str or csv.Dialect, optional
     documentation for more details.
 on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
-    Allowed values are :
+    Allowed values are:
 
     - ``'error'``, raise an Exception when a bad line is encountered.
     - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
