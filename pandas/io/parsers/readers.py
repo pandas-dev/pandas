@@ -338,7 +338,7 @@ date_format : str or dict of column -> format, optional
         and you should probably use it along with `dayfirst`.
 
     You can specify the format for each column by passing a dict,
-    e.g. {"A": "%d/%m/%Y", "B": "%d/%m/%Y %H:%M"}
+    e.g. {{"A": "%d/%m/%Y", "B": "%d/%m/%Y %H:%M"}}
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
