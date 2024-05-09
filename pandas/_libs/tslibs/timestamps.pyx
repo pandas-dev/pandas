@@ -579,7 +579,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = freq.freqstr
+            freqstr = to_offset(freq.freqstr).name
         else:
             month_kw = 12
             freqstr = None
@@ -587,8 +587,7 @@ cdef class _Timestamp(ABCTimestamp):
         val = self._maybe_convert_value_to_local()
 
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, to_offset(freqstr).name ,
-                                  month_kw, self._creso)
+                                  field, freqstr, month_kw, self._creso)
         return out[0]
 
     @property
