@@ -1389,6 +1389,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Either ``left``, ``right``, ``both`` or ``neither``.
 
+        See Also
+        --------
+        IntervalArray.closed : Returns inclusive side of the IntervalArray.
+        Interval.closed : Returns inclusive side of the Interval.
+        IntervalIndex.closed : Returns inclusive side of the IntervalIndex.
+
         Examples
         --------
 
@@ -1747,22 +1753,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     """
     )
 
-    @Appender(
-        _interval_shared_docs["contains"]
-        % {
-            "klass": "IntervalArray",
-            "examples": textwrap.dedent(
-                """\
+    def contains(self, other):
+        """
+        Check elementwise if the Intervals contain the value.
+
+        Return a boolean mask whether the value is contained in the Intervals
+        of the IntervalArray.
+
+        Parameters
+        ----------
+        other : scalar
+            The value to check whether it is contained in the Intervals.
+
+        Returns
+        -------
+        boolean array
+            A boolean mask whether the value is contained in the Intervals.
+
+        See Also
+        --------
+        Interval.contains : Check whether Interval object contains value.
+        IntervalArray.overlaps : Check if an Interval overlaps the values in the
+            IntervalArray.
+
+        Examples
+        --------
         >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
         Length: 3, dtype: interval[int64, right]
+
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
         """
-            ),
-        }
-    )
-    def contains(self, other):
         if isinstance(other, Interval):
             raise NotImplementedError("contains not implemented for two intervals")
 
