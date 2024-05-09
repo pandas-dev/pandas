@@ -413,25 +413,27 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
     - ``'error'``, raise an Exception when a bad line is encountered.
     - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
     - ``'skip'``, skip bad lines without raising or warning when they are encountered.
-
+    - Callable, function that will process a single bad line.
+        - With ``engine='python'``, function with signature
+          ``(bad_line: list[str]) -> list[str] | None``.
+          ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None``, the bad line will be ignored.
+          If the function returns a new ``list`` of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+        - With ``engine='pyarrow'``, function with signature
+          as described in `pyarrow documentation
+          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+          #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
+    
     .. versionadded:: 1.3.0
 
     .. versionadded:: 1.4.0
 
-        - Callable, function with signature
-          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
-          bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None``, the bad line will be ignored.
-          If the function returns a new ``list`` of strings with more elements than
-          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
-          Only supported when ``engine='python'``
+        Callable
 
     .. versionchanged:: 2.2.0
 
-        - Callable, function with signature
-          as described in `pyarrow documentation
-          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
-          #pyarrow.csv.ParseOptions.invalid_row_handler>`_ when ``engine='pyarrow'``
+        Callable for ``engine='pyarrow'``
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
