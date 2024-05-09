@@ -337,6 +337,8 @@ date_format : str or dict of column -> format, optional
     - "mixed", to infer the format for each element individually. This is risky,
         and you should probably use it along with `dayfirst`.
 
+    You can specify the format for each column by passing a dict,
+    e.g. {"A": "%d/%m/%Y", "B": "%d/%m/%Y %H:%M"}
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
@@ -485,7 +487,53 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
 Examples
 --------
->>> pd.{func_name}('data.csv')  # doctest: +SKIP
+>>> pd.read_csv('data.csv')  # doctest: +SKIP
+   Name  Value
+0   foo      1
+1   bar      2
+2  #baz      3
+
+Index and header can be specified via the `index_col` and `header` arguments
+
+>>> pd.read_csv('data.csv', header=None)  # doctest: +SKIP
+      0      1
+0  Name  Value
+1   foo      1
+2   bar      2
+3  #baz      3
+
+>>> pd.read_csv('data.csv', index_col='Value')  # doctest: +SKIP
+       Name
+Value
+1       foo
+2       bar
+3      #baz
+
+Column types are inferred but can be explicitly specified using the dtype argument
+
+>>> pd.read_csv('data.csv', dtype={{'Value': float}})  # doctest: +SKIP
+   Name  Value
+0   foo    1.0
+1   bar    2.0
+2  #baz    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.read_csv('data.csv', na_values=['foo', 'bar'])  # doctest: +SKIP
+   Name  Value
+0   NaN      1
+1   NaN      2
+2  #baz      3
+
+Comment lines in the CSV input file can be skipped using the
+`comment` argument.
+
+>>> pd.read_csv('data.csv', comment='#')  # doctest: +SKIP
+  Name  Value
+0  foo      1
+1  bar      2
 """
 )
 
