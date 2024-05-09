@@ -832,6 +832,40 @@ class IntervalIndex(ExtensionIndex):
 
     @cache_readonly
     def right(self) -> Index:
+        """
+        Return an Index containing the right bounds of the intervals
+        in the IntervalIndex.
+
+        The right bounds of each interval in the IntervalIndex are
+        returned as an Index. The datatype of the right bounds is the
+        same as the datatype of the endpoints of the intervals.
+
+        Returns
+        -------
+        pandas.Index
+            An Index containing the right bounds of the intervals.
+
+        See Also
+        --------
+        IntervalIndex.left : Return the left bounds of the intervals
+            in the IntervalIndex.
+        IntervalIndex.mid : Return the mid-point of the intervals in
+            the IntervalIndex.
+        IntervalIndex.length : Return the length of the intervals in
+            the IntervalIndex.
+
+        Examples
+        --------
+        >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6], closed="right")
+        >>> iv_idx.right
+        Int64Index([4, 5, 6], dtype='int64')
+
+        >>> iv_idx = pd.IntervalIndex.from_tuples(
+        ...     [(1, 4), (2, 5), (3, 6)], closed="left"
+        ... )
+        >>> iv_idx.right
+        Int64Index([4, 5, 6], dtype='int64')
+        """
         return Index(self._data.right, copy=False)
 
     @cache_readonly
