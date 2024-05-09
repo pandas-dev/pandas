@@ -833,8 +833,7 @@ class IntervalIndex(ExtensionIndex):
     @cache_readonly
     def right(self) -> Index:
         """
-        Return an Index containing the right bounds of the intervals
-        in the IntervalIndex.
+        Return an Index having the right bounds of the intervals in the IntervalIndex.
 
         The right bounds of each interval in the IntervalIndex are
         returned as an Index. The datatype of the right bounds is the
