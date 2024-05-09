@@ -857,13 +857,13 @@ class IntervalIndex(ExtensionIndex):
         --------
         >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6], closed="right")
         >>> iv_idx.right
-        Int64Index([4, 5, 6], dtype='int64')
+        Index([4, 5, 6], dtype='int64')
 
         >>> iv_idx = pd.IntervalIndex.from_tuples(
         ...     [(1, 4), (2, 5), (3, 6)], closed="left"
         ... )
         >>> iv_idx.right
-        Int64Index([4, 5, 6], dtype='int64')
+        Index([4, 5, 6], dtype='int64')
         """
         return Index(self._data.right, copy=False)
 
@@ -900,11 +900,11 @@ class IntervalIndex(ExtensionIndex):
         --------
         >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6])
         >>> iv_idx.mid
-        Float64Index([2.5, 3.5, 4.5], dtype='float64')
+        Index([2.5, 3.5, 4.5], dtype='float64')
 
         >>> iv_idx = pd.IntervalIndex.from_tuples([(1, 4), (2, 5), (3, 6)])
         >>> iv_idx.mid
-        Float64Index([2.5, 3.5, 4.5], dtype='float64')
+        Index([2.5, 3.5, 4.5], dtype='float64')
         """
         return Index(self._data.mid, copy=False)
 
