@@ -579,7 +579,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = to_offset(freq.freqstr).name
+            freqstr = freq.name
         else:
             month_kw = 12
             freqstr = None
