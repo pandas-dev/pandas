@@ -146,11 +146,11 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 if freq is not None:
-                    freqstr = to_offset(freq.freqstr).name
+                    freq_name = to_offset(freq.freqstr).name
                 else:
-                    freqstr = freq
+                    freq_name = None
                 result = fields.get_start_end_field(
-                    values, field, freqstr, month_kw, reso=self._creso
+                    values, field, freq_name, month_kw, reso=self._creso
                 )
             else:
                 result = fields.get_date_field(values, field, reso=self._creso)
