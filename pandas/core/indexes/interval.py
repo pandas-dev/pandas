@@ -621,13 +621,27 @@ class IntervalIndex(ExtensionIndex):
         """
         Get integer location, slice or boolean mask for requested label.
 
+        The `get_loc` method is used to retrieve the integer index, a slice for
+        slicing objects, or a boolean mask indicating the presence of the label
+        in the `IntervalIndex`.
+
         Parameters
         ----------
         key : label
+            The value or range to find in the IntervalIndex.
 
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
+            The position or positions found. This could be a single
+            number, a range, or an array of true/false values
+            indicating the position(s) of the label.
+
+        See Also
+        --------
+        IntervalIndex.get_indexer_non_unique : Compute indexer and
+            mask for new index given the current index.
+        Index.get_loc : Similar method in the base Index class.
 
         Examples
         --------
