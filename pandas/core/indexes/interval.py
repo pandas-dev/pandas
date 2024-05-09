@@ -871,18 +871,55 @@ class IntervalIndex(ExtensionIndex):
         --------
         >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6], closed="right")
         >>> iv_idx.right
-        Int64Index([4, 5, 6], dtype='int64')
+        Index([4, 5, 6], dtype='int64')
 
         >>> iv_idx = pd.IntervalIndex.from_tuples(
         ...     [(1, 4), (2, 5), (3, 6)], closed="left"
         ... )
         >>> iv_idx.right
-        Int64Index([4, 5, 6], dtype='int64')
+        Index([4, 5, 6], dtype='int64')
         """
         return Index(self._data.right, copy=False)
 
     @cache_readonly
     def mid(self) -> Index:
+        """
+        Return the midpoint of each interval in the IntervalIndex as an Index.
+
+        Each midpoint is calculated as the average of the left and right bounds
+        of each interval. The midpoints are returned as a pandas Index object.
+
+        Returns
+        -------
+        pandas.Index
+            An Index containing the midpoints of each interval.
+
+        See Also
+        --------
+        IntervalIndex.left : Return the left bounds of the intervals
+            in the IntervalIndex.
+        IntervalIndex.right : Return the right bounds of the intervals
+            in the IntervalIndex.
+        IntervalIndex.length : Return the length of the intervals in
+            the IntervalIndex.
+
+        Notes
+        -----
+        The midpoint is the average of the interval bounds, potentially resulting
+        in a floating-point number even if bounds are integers. The returned Index
+        will have a dtype that accurately holds the midpoints. This computation is
+        the same regardless of whether intervals are open or closed.
+
+        Examples
+        --------
+        >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6])
+        >>> iv_idx.mid
+        Index([2.5, 3.5, 4.5], dtype='float64')
+
+        >>> iv_idx = pd.IntervalIndex.from_tuples([(1, 4), (2, 5), (3, 6)])
+        >>> iv_idx.mid
+        Index([2.5, 3.5, 4.5], dtype='float64')
+        """
         return Index(self._data.mid, copy=False)
 
     @property
