@@ -842,7 +842,7 @@ class IntervalIndex(ExtensionIndex):
 
         Returns
         -------
-        pandas.Index
+        Index
             An Index containing the right bounds of the intervals.
 
         See Also
