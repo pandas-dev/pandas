@@ -73,14 +73,6 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
-delim_whitespace : boolean, default False
-  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
-  will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
-  If this option is set to ``True``, nothing should be passed in for the
-  ``delimiter`` parameter.
-
-  .. deprecated: 2.2.0
-    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
