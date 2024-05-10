@@ -411,7 +411,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
           If the function returns a new ``list`` of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
         - With ``engine='pyarrow'``, function with signature
-          as described in `pyarrow documentation
+          as described in pyarrow documentation: `invalid_row_handler
           <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
           #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
