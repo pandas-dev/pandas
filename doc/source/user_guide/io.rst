@@ -73,14 +73,6 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
-delim_whitespace : boolean, default False
-  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
-  will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
-  If this option is set to ``True``, nothing should be passed in for the
-  ``delimiter`` parameter.
-
-  .. deprecated: 2.2.0
-    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -276,28 +268,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : boolean, default ``False``
-  If ``True`` and parse_dates is enabled for a column, attempt to infer the
-  datetime format to speed up the processing.
-
-  .. deprecated:: 2.0.0
-   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
-date_parser : function, default ``None``
-  Function to use for converting a sequence of string columns to an array of
-  datetime instances. The default uses ``dateutil.parser.parser`` to do the
-  conversion. pandas will try to call date_parser in three different ways,
-  advancing to the next if an exception occurs: 1) Pass one or more arrays (as
-  defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
-  values from the columns defined by parse_dates into a single array and pass
-  that; and 3) call date_parser once for each row using one or more strings
-  (corresponding to the columns defined by parse_dates) as arguments.
-
-  .. deprecated:: 2.0.0
-   Use ``date_format`` instead, or read in as ``object`` and then apply
-   :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -1639,7 +1612,6 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``decimal``
 * ``iterator``
 * ``dayfirst``
-* ``infer_datetime_format``
 * ``verbose``
 * ``skipinitialspace``
 * ``low_memory``

@@ -118,7 +118,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_boolean(self, mixed_float_frame, mixed_int_frame, datetime_frame):
         # boolean indexing
-        d = datetime_frame.index[10]
+        d = datetime_frame.index[len(datetime_frame) // 2]
         indexer = datetime_frame.index > d
         indexer_obj = indexer.astype(object)
 
@@ -1019,13 +1019,13 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
-    def test_iloc_callable_tuple_return_value(self):
-        # GH53769
+    def test_iloc_callable_tuple_return_value_raises(self):
+        # GH53769: Enforced pandas 3.0
         df = DataFrame(np.arange(40).reshape(10, 4), index=range(0, 20, 2))
-        msg = "callable with iloc"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Returning a tuple from"
+        with pytest.raises(ValueError, match=msg):
             df.iloc[lambda _: (0,)]
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.iloc[lambda _: (0,)] = 1
 
     def test_iloc_row(self):
