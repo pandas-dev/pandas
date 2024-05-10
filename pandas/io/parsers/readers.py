@@ -40,7 +40,6 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
-    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -118,7 +117,6 @@ if TYPE_CHECKING:
         na_filter: bool
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
-        keep_date_col: bool | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
         cache_dates: bool
@@ -300,18 +298,13 @@ na_filter : bool, default True
     performance of reading a large file.
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
-list}}, default None
+parse_dates : bool, None, list of Hashable, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
     * ``None``. Behaves like ``True`` if ``date_format`` is specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
-      as a single date column. Values are joined with a space before parsing.
-    * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
-      result 'foo'. Values are joined with a space before parsing.
 
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
@@ -320,9 +313,6 @@ list}}, default None
     :func:`~pandas.read_csv`.
 
     Note: A fast-path exists for iso8601-formatted dates.
-keep_date_col : bool, default False
-    If ``True`` and ``parse_dates`` specifies combining multiple columns then
-    keep the original columns.
 date_format : str or dict of column -> format, optional
     Format to use for parsing dates when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
@@ -806,7 +796,6 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -836,38 +825,6 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    if lib.is_list_like(parse_dates):
-        # GH#55569
-        depr = False
-        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
-        # attribute "__iter__" (not iterable)
-        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-            depr = True
-        elif isinstance(parse_dates, dict) and any(
-            lib.is_list_like(x) for x in parse_dates.values()
-        ):
-            depr = True
-        if depr:
-            warnings.warn(
-                "Support for nested sequences for 'parse_dates' in pd.read_csv "
-                "is deprecated. Combine the desired columns with pd.to_datetime "
-                "after parsing instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
@@ -984,7 +941,6 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -1014,29 +970,6 @@ def read_table(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
-    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-        # GH#55569
-        warnings.warn(
-            "Support for nested sequences for 'parse_dates' in pd.read_table "
-            "is deprecated. Combine the desired columns with pd.to_datetime "
-            "after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
@@ -1693,7 +1626,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
     comment : str, optional
         Comment out remainder of line
     parse_dates : bool, default False
-    keep_date_col : bool, default False
     date_format : str or dict of column -> format, default ``None``
 
         .. versionadded:: 2.0.0
