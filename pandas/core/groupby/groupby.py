@@ -1875,24 +1875,40 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         else:
             # i.e. func in base.reduction_kernels
+            if self.observed:
+                return self._reduction_kernel_transform(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
-            # GH#30918 Use _transform_fast only when we know func is an aggregation
-            # If func is a reduction, we need to broadcast the
-            # result to the whole group. Compute func result
-            # and deal with possible broadcasting below.
-            with com.temp_setattr(self, "as_index", True):
-                # GH#49834 - result needs groups in the index for
-                # _wrap_transform_fast_result
-                if func in ["idxmin", "idxmax"]:
-                    func = cast(Literal["idxmin", "idxmax"], func)
-                    result = self._idxmax_idxmin(func, True, *args, **kwargs)
-                else:
-                    if engine is not None:
-                        kwargs["engine"] = engine
-                        kwargs["engine_kwargs"] = engine_kwargs
-                    result = getattr(self, func)(*args, **kwargs)
+            with (
+                com.temp_setattr(self, "observed", True),
+                com.temp_setattr(self, "_grouper", self._grouper.observed_grouper),
+            ):
+                return self._reduction_kernel_transform(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
-            return self._wrap_transform_fast_result(result)
+    @final
+    def _reduction_kernel_transform(
+        self, func, *args, engine=None, engine_kwargs=None, **kwargs
+    ):
+        # GH#30918 Use _transform_fast only when we know func is an aggregation
+        # If func is a reduction, we need to broadcast the
+        # result to the whole group. Compute func result
+        # and deal with possible broadcasting below.
+        with com.temp_setattr(self, "as_index", True):
+            # GH#49834 - result needs groups in the index for
+            # _wrap_transform_fast_result
+            if func in ["idxmin", "idxmax"]:
+                func = cast(Literal["idxmin", "idxmax"], func)
+                result = self._idxmax_idxmin(func, True, *args, **kwargs)
+            else:
+                if engine is not None:
+                    kwargs["engine"] = engine
+                    kwargs["engine_kwargs"] = engine_kwargs
+                result = getattr(self, func)(*args, **kwargs)
+
+        return self._wrap_transform_fast_result(result)
 
     @final
     def _wrap_transform_fast_result(self, result: NDFrameT) -> NDFrameT:

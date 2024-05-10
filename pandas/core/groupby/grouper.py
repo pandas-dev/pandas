@@ -668,6 +668,28 @@ class Grouping:
         cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
 
+    @property
+    def observed_grouping(self) -> Grouping:
+        if self._observed:
+            return self
+
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
+        grouping = Grouping(
+            self._index,
+            self._orig_grouper,
+            obj=self.obj,
+            level=self.level,
+            sort=self._sort,
+            observed=True,
+            in_axis=self.in_axis,
+            dropna=self._dropna,
+            uniques=self._uniques,
+        )
+        return grouping
+
 
 def get_grouper(
     obj: NDFrameT,
