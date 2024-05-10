@@ -328,3 +328,11 @@ class TestDatetimeIndexOps:
         msg = "Custom business days is not supported by is_month_start"
         with pytest.raises(ValueError, match=msg):
             dti.is_month_start
+
+    def test_dti_is_year_quarter_start_doubledigit_freq(self):
+        # GH#58523
+        dr = date_range("2017-01-01", periods=2, freq="10YS")
+        assert all(dr.is_year_start)
+
+        dr = date_range("2017-01-01", periods=2, freq="10QS")
+        assert all(dr.is_quarter_start)
