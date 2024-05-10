@@ -491,7 +491,7 @@ Examples
 1   bar      2
 2  #baz      3
 
-Index and header can be specified via the `index_col` and `header` arguments
+Index and header can be specified via the `index_col` and `header` arguments.
 
 >>> pd.{func_name}('data.csv', header=None)  # doctest: +SKIP
       0      1
@@ -507,7 +507,7 @@ Value
 2       bar
 3      #baz
 
-Column types are inferred but can be explicitly specified using the dtype argument
+Column types are inferred but can be explicitly specified using the dtype argument.
 
 >>> pd.{func_name}('data.csv', dtype={{'Value': float}})  # doctest: +SKIP
    Name  Value
@@ -531,6 +531,8 @@ Comment lines in the input file can be skipped using the `comment` argument.
   Name  Value
 0  foo      1
 1  bar      2
+
+By default, columns with dates will be read as ``object`` rather than  ``datetime``.
 
 >>> df = pd.{func_name}('tmp.csv')  # doctest: +SKIP
 
