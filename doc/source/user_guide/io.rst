@@ -262,15 +262,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
-  * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
-    column.
-  * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
-keep_date_col : boolean, default ``False``
-  If ``True`` and parse_dates specifies combining multiple columns then keep the
-  original columns.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -802,71 +796,8 @@ The simplest case is to just pass in ``parse_dates=True``:
 
 It is often the case that we may want to store date and time data separately,
 or store various date fields separately. the ``parse_dates`` keyword can be
-used to specify a combination of columns to parse the dates and/or times from.
+used to specify columns to parse the dates and/or times.
 
-You can specify a list of column lists to ``parse_dates``, the resulting date
-columns will be prepended to the output (so as to not affect the existing column
-order) and the new column names will be the concatenation of the component
-column names:
-
-.. ipython:: python
-   :okwarning:
-
-   data = (
-       "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-       "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-       "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-       "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-       "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-       "KORD,19990127, 23:00:00, 22:56:00, -0.5900"
-   )
-
-   with open("tmp.csv", "w") as fh:
-       fh.write(data)
-
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-   df
-
-By default the parser removes the component date columns, but you can choose
-to retain them via the ``keep_date_col`` keyword:
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
-   )
-   df
-
-Note that if you wish to combine multiple columns into a single date column, a
-nested list must be used. In other words, ``parse_dates=[1, 2]`` indicates that
-the second and third columns should each be parsed as separate date columns
-while ``parse_dates=[[1, 2]]`` means the two columns should be parsed into a
-single column.
-
-You can also use a dict to specify custom name columns:
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
-   df
-
-It is important to remember that if multiple text columns are to be parsed into
-a single date column, then a new column is prepended to the data. The ``index_col``
-specification is based off of this new set of columns rather than the original
-data columns:
-
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=date_spec, index_col=0
-   )  # index is the nominal column
-   df
 
 .. note::
    If a column or index contains an unparsable date, the entire column or
@@ -879,10 +810,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-.. deprecated:: 2.2.0
-   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
-   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -897,12 +824,6 @@ Performance-wise, you should try these methods of parsing dates in order:
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
    then use ``to_datetime``.
-
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
 
 
 .. _io.csv.mixed_timezones:

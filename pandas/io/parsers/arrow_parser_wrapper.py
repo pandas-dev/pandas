@@ -174,8 +174,8 @@ class ArrowParserWrapper(ParserBase):
                 self.names = list(range(num_cols - len(self.names))) + self.names
                 multi_index_named = False
             frame.columns = self.names
-        # we only need the frame not the names
-        _, frame = self._do_date_conversions(frame.columns, frame)
+
+        frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):

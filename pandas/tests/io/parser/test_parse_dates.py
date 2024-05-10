@@ -14,8 +14,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import parsing
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -37,181 +35,6 @@ pytestmark = pytest.mark.filterwarnings(
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
-
-@xfail_pyarrow
-def test_separator_date_conflict(all_parsers):
-    # Regression test for gh-4678
-    #
-    # Make sure thousands separator and
-    # date parsing do not conflict.
-    parser = all_parsers
-    data = "06-02-2013;13:00;1-000.215"
-    expected = DataFrame(
-        [[datetime(2013, 6, 2, 13, 0, 0), 1000.215]], columns=["Date", 2]
-    )
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        df = parser.read_csv(
-            StringIO(data),
-            sep=";",
-            thousands="-",
-            parse_dates={"Date": [0, 1]},
-            header=None,
-        )
-    tm.assert_frame_equal(df, expected)
-
-
-@pytest.mark.parametrize("container", [list, tuple, Index, Series])
-@pytest.mark.parametrize("dim", [1, 2])
-def test_concat_date_col_fail(container, dim):
-    msg = "not all elements from date_cols are numpy arrays"
-    value = "19990127"
-
-    date_cols = tuple(container([value]) for _ in range(dim))
-
-    with pytest.raises(ValueError, match=msg):
-        parsing.concat_date_cols(date_cols)
-
-
-@pytest.mark.parametrize("keep_date_col", [True, False])
-def test_multiple_date_col(all_parsers, keep_date_col, request):
-    data = """\
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
-    parser = all_parsers
-
-    if keep_date_col and parser.engine == "pyarrow":
-        # For this to pass, we need to disable auto-inference on the date columns
-        # in parse_dates. We have no way of doing this though
-        mark = pytest.mark.xfail(
-            reason="pyarrow doesn't support disabling auto-inference on column numbers."
-        )
-        request.applymarker(mark)
-
-    depr_msg = "The 'keep_date_col' keyword in pd.read_csv is deprecated"
-
-    kwds = {
-        "header": None,
-        "parse_dates": [[1, 2], [1, 3]],
-        "keep_date_col": keep_date_col,
-        "names": ["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"],
-    }
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(StringIO(data), **kwds)
-
-    expected = DataFrame(
-        [
-            [
-                datetime(1999, 1, 27, 19, 0),
-                datetime(1999, 1, 27, 18, 56),
-                "KORD",
-                "19990127",
-                " 19:00:00",
-                " 18:56:00",
-                0.81,
-                2.81,
-                7.2,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 20, 0),
-                datetime(1999, 1, 27, 19, 56),
-                "KORD",
-                "19990127",
-                " 20:00:00",
-                " 19:56:00",
-                0.01,
-                2.21,
-                7.2,
-                0.0,
-                260.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                datetime(1999, 1, 27, 20, 56),
-                "KORD",
-                "19990127",
-                " 21:00:00",
-                " 20:56:00",
-                -0.59,
-                2.21,
-                5.7,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                datetime(1999, 1, 27, 21, 18),
-                "KORD",
-                "19990127",
-                " 21:00:00",
-                " 21:18:00",
-                -0.99,
-                2.01,
-                3.6,
-                0.0,
-                270.0,
-            ],
-            [
-                datetime(1999, 1, 27, 22, 0),
-                datetime(1999, 1, 27, 21, 56),
-                "KORD",
-                "19990127",
-                " 22:00:00",
-                " 21:56:00",
-                -0.59,
-                1.71,
-                5.1,
-                0.0,
-                290.0,
-            ],
-            [
-                datetime(1999, 1, 27, 23, 0),
-                datetime(1999, 1, 27, 22, 56),
-                "KORD",
-                "19990127",
-                " 23:00:00",
-                " 22:56:00",
-                -0.59,
-                1.71,
-                4.6,
-                0.0,
-                280.0,
-            ],
-        ],
-        columns=[
-            "X1_X2",
-            "X1_X3",
-            "X0",
-            "X1",
-            "X2",
-            "X3",
-            "X4",
-            "X5",
-            "X6",
-            "X7",
-            "X8",
-        ],
-    )
-
-    if not keep_date_col:
-        expected = expected.drop(["X1", "X2", "X3"], axis=1)
-
-    tm.assert_frame_equal(result, expected)
 
 
 def test_date_col_as_index_col(all_parsers):
@@ -258,136 +81,6 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         expected["X2"] = pd.to_datetime("1970-01-01" + expected["X2"]).dt.time
 
     tm.assert_frame_equal(result, expected)
-
-
-@xfail_pyarrow
-def test_multiple_date_cols_with_header(all_parsers):
-    parser = all_parsers
-    data = """\
-ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(StringIO(data), parse_dates={"nominal": [1, 2]})
-    expected = DataFrame(
-        [
-            [
-                datetime(1999, 1, 27, 19, 0),
-                "KORD",
-                " 18:56:00",
-                0.81,
-                2.81,
-                7.2,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 20, 0),
-                "KORD",
-                " 19:56:00",
-                0.01,
-                2.21,
-                7.2,
-                0.0,
-                260.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD",
-                " 20:56:00",
-                -0.59,
-                2.21,
-                5.7,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD",
-                " 21:18:00",
-                -0.99,
-                2.01,
-                3.6,
-                0.0,
-                270.0,
-            ],
-            [
-                datetime(1999, 1, 27, 22, 0),
-                "KORD",
-                " 21:56:00",
-                -0.59,
-                1.71,
-                5.1,
-                0.0,
-                290.0,
-            ],
-            [
-                datetime(1999, 1, 27, 23, 0),
-                "KORD",
-                " 22:56:00",
-                -0.59,
-                1.71,
-                4.6,
-                0.0,
-                280.0,
-            ],
-        ],
-        columns=[
-            "nominal",
-            "ID",
-            "ActualTime",
-            "TDew",
-            "TAir",
-            "Windspeed",
-            "Precip",
-            "WindDir",
-        ],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "data,parse_dates,msg",
-    [
-        (
-            """\
-date_NominalTime,date,NominalTime
-KORD1,19990127, 19:00:00
-KORD2,19990127, 20:00:00""",
-            [[1, 2]],
-            ("New date column already in dict date_NominalTime"),
-        ),
-        (
-            """\
-ID,date,nominalTime
-KORD,19990127, 19:00:00
-KORD,19990127, 20:00:00""",
-            {"ID": [1, 2]},
-            "Date column ID already in dict",
-        ),
-    ],
-)
-def test_multiple_date_col_name_collision(all_parsers, data, parse_dates, msg):
-    parser = all_parsers
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(
-            FutureWarning, match=depr_msg, check_stacklevel=False
-        ):
-            parser.read_csv(StringIO(data), parse_dates=parse_dates)
 
 
 @xfail_pyarrow
@@ -438,37 +131,6 @@ def test_parse_dates_string(all_parsers):
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
     )
-    tm.assert_frame_equal(result, expected)
-
-
-# Bug in https://github.com/dateutil/dateutil/issues/217
-# has been addressed, but we just don't pass in the `yearfirst`
-@pytest.mark.xfail(reason="yearfirst is not surfaced in read_*")
-@pytest.mark.parametrize("parse_dates", [[["date", "time"]], [[0, 1]]])
-def test_yy_format_with_year_first(all_parsers, parse_dates):
-    data = """date,time,B,C
-090131,0010,1,2
-090228,1020,3,4
-090331,0830,5,6
-"""
-    parser = all_parsers
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Could not infer format",
-        StringIO(data),
-        index_col=0,
-        parse_dates=parse_dates,
-    )
-    index = DatetimeIndex(
-        [
-            datetime(2009, 1, 31, 0, 10, 0),
-            datetime(2009, 2, 28, 10, 20, 0),
-            datetime(2009, 3, 31, 8, 30, 0),
-        ],
-        dtype=object,
-        name="date_time",
-    )
-    expected = DataFrame({"B": [1, 3, 5], "C": [2, 4, 6]}, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -561,282 +223,11 @@ def test_parse_tz_aware(all_parsers):
     assert result.index.tz is expected_tz
 
 
-@xfail_pyarrow
-@pytest.mark.parametrize(
-    "parse_dates,index_col",
-    [({"nominal": [1, 2]}, "nominal"), ({"nominal": [1, 2]}, 0), ([[1, 2]], 0)],
-)
-def test_multiple_date_cols_index(all_parsers, parse_dates, index_col):
-    parser = all_parsers
-    data = """
-ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
-KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
-    expected = DataFrame(
-        [
-            [
-                datetime(1999, 1, 27, 19, 0),
-                "KORD1",
-                " 18:56:00",
-                0.81,
-                2.81,
-                7.2,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 20, 0),
-                "KORD2",
-                " 19:56:00",
-                0.01,
-                2.21,
-                7.2,
-                0.0,
-                260.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD3",
-                " 20:56:00",
-                -0.59,
-                2.21,
-                5.7,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD4",
-                " 21:18:00",
-                -0.99,
-                2.01,
-                3.6,
-                0.0,
-                270.0,
-            ],
-            [
-                datetime(1999, 1, 27, 22, 0),
-                "KORD5",
-                " 21:56:00",
-                -0.59,
-                1.71,
-                5.1,
-                0.0,
-                290.0,
-            ],
-            [
-                datetime(1999, 1, 27, 23, 0),
-                "KORD6",
-                " 22:56:00",
-                -0.59,
-                1.71,
-                4.6,
-                0.0,
-                280.0,
-            ],
-        ],
-        columns=[
-            "nominal",
-            "ID",
-            "ActualTime",
-            "TDew",
-            "TAir",
-            "Windspeed",
-            "Precip",
-            "WindDir",
-        ],
-    )
-    expected = expected.set_index("nominal")
-
-    if not isinstance(parse_dates, dict):
-        expected.index.name = "date_NominalTime"
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data), parse_dates=parse_dates, index_col=index_col
-        )
-    tm.assert_frame_equal(result, expected)
-
-
-@xfail_pyarrow
-def test_multiple_date_cols_chunked(all_parsers):
-    parser = all_parsers
-    data = """\
-ID,date,nominalTime,actualTime,A,B,C,D,E
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
-
-    expected = DataFrame(
-        [
-            [
-                datetime(1999, 1, 27, 19, 0),
-                "KORD",
-                " 18:56:00",
-                0.81,
-                2.81,
-                7.2,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 20, 0),
-                "KORD",
-                " 19:56:00",
-                0.01,
-                2.21,
-                7.2,
-                0.0,
-                260.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD",
-                " 20:56:00",
-                -0.59,
-                2.21,
-                5.7,
-                0.0,
-                280.0,
-            ],
-            [
-                datetime(1999, 1, 27, 21, 0),
-                "KORD",
-                " 21:18:00",
-                -0.99,
-                2.01,
-                3.6,
-                0.0,
-                270.0,
-            ],
-            [
-                datetime(1999, 1, 27, 22, 0),
-                "KORD",
-                " 21:56:00",
-                -0.59,
-                1.71,
-                5.1,
-                0.0,
-                290.0,
-            ],
-            [
-                datetime(1999, 1, 27, 23, 0),
-                "KORD",
-                " 22:56:00",
-                -0.59,
-                1.71,
-                4.6,
-                0.0,
-                280.0,
-            ],
-        ],
-        columns=["nominal", "ID", "actualTime", "A", "B", "C", "D", "E"],
-    )
-    expected = expected.set_index("nominal")
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        with parser.read_csv(
-            StringIO(data),
-            parse_dates={"nominal": [1, 2]},
-            index_col="nominal",
-            chunksize=2,
-        ) as reader:
-            chunks = list(reader)
-
-    tm.assert_frame_equal(chunks[0], expected[:2])
-    tm.assert_frame_equal(chunks[1], expected[2:4])
-    tm.assert_frame_equal(chunks[2], expected[4:])
-
-
-def test_multiple_date_col_named_index_compat(all_parsers):
-    parser = all_parsers
-    data = """\
-ID,date,nominalTime,actualTime,A,B,C,D,E
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        with_indices = parser.read_csv(
-            StringIO(data), parse_dates={"nominal": [1, 2]}, index_col="nominal"
-        )
-
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        with_names = parser.read_csv(
-            StringIO(data),
-            index_col="nominal",
-            parse_dates={"nominal": ["date", "nominalTime"]},
-        )
-    tm.assert_frame_equal(with_indices, with_names)
-
-
-def test_multiple_date_col_multiple_index_compat(all_parsers):
-    parser = all_parsers
-    data = """\
-ID,date,nominalTime,actualTime,A,B,C,D,E
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data), index_col=["nominal", "ID"], parse_dates={"nominal": [1, 2]}
-        )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        expected = parser.read_csv(StringIO(data), parse_dates={"nominal": [1, 2]})
-
-    expected = expected.set_index(["nominal", "ID"])
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": "C"}])
 def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
     # see gh-5636
     parser = all_parsers
-    msg = (
-        "Only booleans, lists, and dictionaries "
-        "are accepted for the 'parse_dates' parameter"
-    )
+    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 
@@ -847,15 +238,12 @@ def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
 @pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3}])
 def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
     parser = all_parsers
-    msg = (
-        "Only booleans, lists, and dictionaries "
-        "are accepted for the 'parse_dates' parameter"
-    )
+    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 
     with pytest.raises(TypeError, match=msg):
-        parser.read_csv(StringIO(data), parse_dates=(1,))
+        parser.read_csv(StringIO(data), parse_dates=parse_dates)
 
 
 @pytest.mark.parametrize("value", ["nan", ""])
@@ -905,7 +293,6 @@ def test_bad_date_parse_with_warning(all_parsers, cache, value):
     )
 
 
-@xfail_pyarrow
 def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
@@ -1118,11 +505,6 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     [
         (None, ["val"], ["date", "time"], "date, time"),
         (None, ["val"], [0, "time"], "time"),
-        (None, ["val"], [["date", "time"]], "date, time"),
-        (None, ["val"], [[0, "time"]], "time"),
-        (None, ["val"], {"date": [0, "time"]}, "time"),
-        (None, ["val"], {"date": ["date", "time"]}, "date, time"),
-        (None, ["val"], [["date", "time"], "date"], "date, time"),
         (["date1", "time1", "temperature"], None, ["date", "time"], "date, time"),
         (
             ["date1", "time1", "temperature"],
@@ -1140,20 +522,10 @@ def test_missing_parse_dates_column_raises(
     content = StringIO("date,time,val\n2020-01-31,04:20:32,32\n")
     msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
 
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    warn = FutureWarning
-    if isinstance(parse_dates, list) and all(
-        isinstance(x, (int, str)) for x in parse_dates
-    ):
-        warn = None
-
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-            parser.read_csv(
-                content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
-            )
+        parser.read_csv(
+            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
+        )
 
 
 @xfail_pyarrow  # mismatched shape
@@ -1189,37 +561,6 @@ def test_date_parser_multiindex_columns(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
-@pytest.mark.parametrize(
-    "parse_spec, col_name",
-    [
-        ([[("a", "1"), ("b", "2")]], ("a_b", "1_2")),
-        ({("foo", "1"): [("a", "1"), ("b", "2")]}, ("foo", "1")),
-    ],
-)
-def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, col_name):
-    parser = all_parsers
-    data = """a,b,c
-1,2,3
-2019-12,-31,6"""
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data),
-            parse_dates=parse_spec,
-            header=[0, 1],
-        )
-    expected = DataFrame(
-        {col_name: Timestamp("2019-12-31").as_unit("ns"), ("c", "3"): [6]}
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -1250,26 +591,6 @@ def test_date_parser_usecols_thousands(all_parsers):
         thousands="-",
     )
     expected = DataFrame({"B": [3, 4], "C": [Timestamp("20-09-2001 01:00:00")] * 2})
-    tm.assert_frame_equal(result, expected)
-
-
-@xfail_pyarrow  # mismatched shape
-def test_parse_dates_and_keep_original_column(all_parsers):
-    # GH#13378
-    parser = all_parsers
-    data = """A
-20150908
-20150909
-"""
-    depr_msg = "The 'keep_date_col' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data), parse_dates={"date": ["A"]}, keep_date_col=True
-        )
-    expected_data = [Timestamp("2015-09-08"), Timestamp("2015-09-09")]
-    expected = DataFrame({"date": expected_data, "A": expected_data})
     tm.assert_frame_equal(result, expected)
 
 
@@ -1462,33 +783,6 @@ def test_parse_dates_dict_format(all_parsers):
         {
             "a": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
             "b": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
-        }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
-)
-def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
-    # GH#51240
-    parser = all_parsers
-    data = """a,b
-31-,12-2019
-31-,12-2020"""
-
-    depr_msg = (
-        "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
-    )
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
-        )
-    expected = DataFrame(
-        {
-            key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
         }
     )
     tm.assert_frame_equal(result, expected)
