@@ -2358,7 +2358,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)
-            result.freq = freq
+            result._freq = freq
 
         return result
 
