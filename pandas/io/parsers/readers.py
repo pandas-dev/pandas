@@ -424,7 +424,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
           as described in `pyarrow documentation
           <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
           #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
-    
+
     .. versionadded:: 1.3.0
 
     .. versionadded:: 1.4.0
