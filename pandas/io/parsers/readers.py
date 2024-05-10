@@ -486,6 +486,81 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 Examples
 --------
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
+   Name  Value
+0   foo      1
+1   bar      2
+2  #baz      3
+
+Index and header can be specified via the `index_col` and `header` arguments.
+
+>>> pd.{func_name}('data.csv', header=None)  # doctest: +SKIP
+      0      1
+0  Name  Value
+1   foo      1
+2   bar      2
+3  #baz      3
+
+>>> pd.{func_name}('data.csv', index_col='Value')  # doctest: +SKIP
+       Name
+Value
+1       foo
+2       bar
+3      #baz
+
+Column types are inferred but can be explicitly specified using the dtype argument.
+
+>>> pd.{func_name}('data.csv', dtype={{'Value': float}})  # doctest: +SKIP
+   Name  Value
+0   foo    1.0
+1   bar    2.0
+2  #baz    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.{func_name}('data.csv', na_values=['foo', 'bar'])  # doctest: +SKIP
+   Name  Value
+0   NaN      1
+1   NaN      2
+2  #baz      3
+
+Comment lines in the input file can be skipped using the `comment` argument.
+
+>>> pd.{func_name}('data.csv', comment='#')  # doctest: +SKIP
+  Name  Value
+0  foo      1
+1  bar      2
+
+By default, columns with dates will be read as ``object`` rather than  ``datetime``.
+
+>>> df = pd.{func_name}('tmp.csv')  # doctest: +SKIP
+
+>>> df  # doctest: +SKIP
+   col 1       col 2            col 3
+0     10  10/04/2018  Sun 15 Jan 2023
+1     20  15/04/2018  Fri 12 May 2023
+
+>>> df.dtypes  # doctest: +SKIP
+col 1     int64
+col 2    object
+col 3    object
+dtype: object
+
+Specific columns can be parsed as dates by using the `parse_dates` and
+`date_format` arguments.
+
+>>> df = pd.{func_name}(
+...     'tmp.csv',
+...     parse_dates=[1, 2],
+...     date_format={{'col 2': '%d/%m/%Y', 'col 3': '%a %d %b %Y'}},
+... )  # doctest: +SKIP
+
+>>> df.dtypes  # doctest: +SKIP
+col 1             int64
+col 2    datetime64[ns]
+col 3    datetime64[ns]
+dtype: object
 """
 )
 
