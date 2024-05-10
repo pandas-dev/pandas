@@ -682,6 +682,8 @@ def test_header_missing_rows(all_parsers):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
 
 
+# ValueError: the 'pyarrow' engine does not support regex separators
+@xfail_pyarrow
 def test_header_multiple_whitespaces(all_parsers):
     # GH#54931
     parser = all_parsers
@@ -693,6 +695,8 @@ def test_header_multiple_whitespaces(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# ValueError: the 'pyarrow' engine does not support regex separators
+@xfail_pyarrow
 def test_header_delim_whitespace(all_parsers):
     # GH#54918
     parser = all_parsers

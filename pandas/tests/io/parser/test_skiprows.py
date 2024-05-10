@@ -187,6 +187,7 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
     "lineterminator",
     ["\n", "\r\n", "\r"],  # "LF"  # "CRLF"  # "CR"
