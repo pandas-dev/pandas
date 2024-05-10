@@ -240,7 +240,7 @@ Removal of prior version deprecations/changes
 - Removed ``Block``, ``DatetimeTZBlock``, ``ExtensionBlock``, ``create_block_manager_from_blocks`` from ``pandas.core.internals`` and ``pandas.core.internals.api`` (:issue:`55139`)
 - Removed alias :class:`arrays.PandasArray` for :class:`arrays.NumpyExtensionArray` (:issue:`53694`)
 - Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
-- Removed deprecated the ``delim_whitespace`` keyword in :func:`read_csv` and :func:`read_table`, use ``sep="\\s+"`` instead (:issue:`55569`)
+- Removed deprecated the ``delim_whitespace`` keyword in :func:`read_csv` and :func:`read_table`, use ``sep=r"\s+"`` instead (:issue:`55569`)
 - Removed extension test classes ``BaseNoReduceTests``, ``BaseNumericReduceTests``, ``BaseBooleanReduceTests`` (:issue:`54663`)
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
 - Require :meth:`SparseDtype.fill_value` to be a valid value for the :meth:`SparseDtype.subtype` (:issue:`53043`)

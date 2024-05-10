@@ -1261,7 +1261,7 @@ class TextFileReader(abc.Iterator):
 
         if sep is not None and len(sep) > 1:
             if engine == "c" and sep == r"\s+":
-                # delim_whitespace passed on to TextReader
+                # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
                 del result["delimiter"]
             elif engine not in ("python", "python-fwf"):
