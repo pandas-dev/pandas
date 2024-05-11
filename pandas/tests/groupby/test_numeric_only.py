@@ -159,25 +159,35 @@ class TestNumericOnly:
 
         # object dtypes for transformations are not implemented in Cython and
         # have no Python fallback
-        exception = NotImplementedError if method.startswith("cum") else TypeError
+        exception = TypeError
 
-        if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
+        if method in ("min", "max"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
                 [
                     "Categorical is not ordered",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
-                    # cumsum/cummin/cummax/cumprod
-                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
-        elif method in ("sum", "mean", "median", "prod"):
+        elif method in (
+            "sum",
+            "mean",
+            "median",
+            "prod",
+            "cummin",
+            "cummax",
+            "cumsum",
+            "cumprod",
+        ):
             msg = "|".join(
                 [
-                    "category type does not support sum operations",
+                    re.escape(f"category type does not support {method} operations"),
+                    re.escape(
+                        f"transform function failed [how->{method},dtype->object]"
+                    ),
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
@@ -195,6 +205,9 @@ class TestNumericOnly:
                     "category type does not support",
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    re.escape(
+                        f"transform function failed [how->{method},dtype->object]"
+                    ),
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
@@ -276,9 +289,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
 
-        # object dtypes for transformations are not implemented in Cython and
-        # have no Python fallback
-        exception = NotImplementedError if kernel.startswith("cum") else TypeError
+        exception = TypeError
 
         msg = "|".join(
             [
@@ -289,6 +300,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 "unsupported operand type",
                 "function is not implemented for this dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
+                re.escape(f"transform function failed [how->{kernel},dtype->object]"),
             ]
         )
         if kernel == "idxmin":
