@@ -129,8 +129,8 @@ def test_groupby_raises_string(
         "cummax": (None, ""),
         "cummin": (None, ""),
         "cumprod": (
-            (NotImplementedError, TypeError),
-            "(function|cumprod) is not (implemented|supported) for (this|object) dtype",
+            TypeError,
+            re.escape("transform function failed [how->cumprod,dtype->object]"),
         ),
         "cumsum": (None, ""),
         "diff": (TypeError, "unsupported operand type"),
