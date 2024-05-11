@@ -902,6 +902,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week.
+        Timestamp.quarter : Return the quarter of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
