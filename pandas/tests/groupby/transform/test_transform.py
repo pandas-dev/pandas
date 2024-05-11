@@ -1,5 +1,7 @@
 """test with the .transform"""
 
+import re
+
 import numpy as np
 import pytest
 
@@ -797,6 +799,7 @@ def test_raises_typeerror(groupby, op):
             "does not support operation",
             ".* is not supported for object dtype",
             "is not implemented for this dtype",
+            re.escape(f"transform function failed [how->{op},dtype->object]"),
         ]
     )
     with pytest.raises(TypeError, match=msg):
