@@ -1668,39 +1668,51 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
     )
 
-    @Appender(
-        _interval_shared_docs["to_tuples"]
-        % {
-            "return_type": (
-                "ndarray (if self is IntervalArray) or Index (if self is IntervalIndex)"
-            ),
-            "examples": textwrap.dedent(
-                """\
-
-         Examples
-         --------
-         For :class:`pandas.IntervalArray`:
-
-         >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
-         >>> idx
-         <IntervalArray>
-         [(0, 1], (1, 2]]
-         Length: 2, dtype: interval[int64, right]
-         >>> idx.to_tuples()
-         array([(0, 1), (1, 2)], dtype=object)
-
-         For :class:`pandas.IntervalIndex`:
-
-         >>> idx = pd.interval_range(start=0, end=2)
-         >>> idx
-         IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
-         >>> idx.to_tuples()
-         Index([(0, 1), (1, 2)], dtype='object')
-         """
-            ),
-        }
-    )
     def to_tuples(self, na_tuple: bool = True) -> np.ndarray:
+        """
+        Return an ndarray (if self is IntervalArray) or Index \
+        (if self is IntervalIndex) of tuples of the form (left, right).
+
+        Parameters
+        ----------
+        na_tuple : bool, default True
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
+
+        Returns
+        -------
+        ndarray or Index
+            An ndarray of tuples representing the intervals
+                if `self` is an IntervalArray.
+            An Index of tuples representing the intervals
+                if `self` is an IntervalIndex.
+
+        See Also
+        --------
+        IntervalArray.to_list : Convert IntervalArray to a list of tuples.
+        IntervalArray.to_numpy : Convert IntervalArray to a numpy array.
+        IntervalArray.unique : Find unique intervals in an IntervalArray.
+
+        Examples
+        --------
+        For :class:`pandas.IntervalArray`:
+
+        >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
+        >>> idx
+        <IntervalArray>
+        [(0, 1], (1, 2]]
+        Length: 2, dtype: interval[int64, right]
+        >>> idx.to_tuples()
+        array([(0, 1), (1, 2)], dtype=object)
+
+        For :class:`pandas.IntervalIndex`:
+
+        >>> idx = pd.interval_range(start=0, end=2)
+        >>> idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> idx.to_tuples()
+        Index([(0, 1), (1, 2)], dtype='object')
+        """
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
         if not na_tuple:
             # GH 18756
