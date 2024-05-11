@@ -283,7 +283,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.hour GL08" \
         -i "pandas.Timestamp.is_leap_year SA01" \
         -i "pandas.Timestamp.isocalendar SA01" \
-        -i "pandas.Timestamp.isoformat SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
@@ -299,7 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.resolution PR02,PR07,SA01" \
         -i "pandas.Timestamp.round SA01" \
         -i "pandas.Timestamp.second GL08" \
-        -i "pandas.Timestamp.strftime SA01" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
         -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
