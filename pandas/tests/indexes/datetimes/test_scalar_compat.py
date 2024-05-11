@@ -336,3 +336,10 @@ class TestDatetimeIndexOps:
 
         dr = date_range("2017-01-01", periods=2, freq="10QS")
         assert all(dr.is_quarter_start)
+
+    def test_dti_is_year_start_freq_custom_business_day_with_digit(self):
+        # GH#58664
+        dr = date_range("2020-01-01", periods=2, freq="2C")
+        msg = "Custom business days is not supported by is_year_start"
+        with pytest.raises(ValueError, match=msg):
+            dr.is_year_start
