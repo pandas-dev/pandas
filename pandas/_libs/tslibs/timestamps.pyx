@@ -579,15 +579,15 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = freq.freqstr
+            freq_name = freq.name
         else:
             month_kw = 12
-            freqstr = None
+            freq_name = None
 
         val = self._maybe_convert_value_to_local()
 
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw, self._creso)
+                                  field, freq_name, month_kw, self._creso)
         return out[0]
 
     @property
@@ -1115,6 +1115,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         Timestamp
 
+        See Also
+        --------
+        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.to_pydatetime : Convert Timestamp object to a native
+            Python datetime object.
+        to_timedelta : Convert argument into timedelta object,
+            which can represent differences in times.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
@@ -1451,6 +1459,18 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        See Also
+        --------
+        Timestamp : Constructs an arbitrary datetime.
+        Timestamp.now : Return the current local date and time, which
+            can be timezone-aware.
+        Timestamp.today : Return the current local date and time with
+            timezone information set to None.
+        to_datetime : Convert argument to datetime.
+        date_range : Return a fixed frequency DatetimeIndex.
+        Timestamp.utctimetuple : Return UTC time tuple, compatible with
+            time.localtime().
 
         Examples
         --------

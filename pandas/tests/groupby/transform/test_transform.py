@@ -1267,9 +1267,9 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_frame_equal(result, expected_explicit)
 
     # Series case
-    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
-        "sum"
-    )
+    gb = df_with_categorical.groupby(["A", "C"], observed=observed)
+    gbp = gb["B"]
+    result = gbp.transform("sum")
     expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
     expected_explicit = Series([4, 2, 4], name="B")
@@ -1703,3 +1703,48 @@ def test_transform_float_pyarrow_dtype_cumprod_fallback():
         index=range(7),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int32", "float32"])
+def test_min_one_unobserved_category_no_type_coercion(dtype):
+    # GH#58084
+    df = DataFrame({"A": Categorical([1, 1, 2], categories=[1, 2, 3]), "B": [3, 4, 5]})
+    df["B"] = df["B"].astype(dtype)
+    gb = df.groupby("A", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"B": [3, 3, 5]}, dtype=dtype)
+    tm.assert_frame_equal(expected, result)
+
+
+def test_min_all_empty_data_no_type_coercion():
+    # GH#58084
+    df = DataFrame(
+        {
+            "X": Categorical(
+                [],
+                categories=[1, "randomcat", 100],
+            ),
+            "Y": [],
+        }
+    )
+    df["Y"] = df["Y"].astype("int32")
+
+    gb = df.groupby("X", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": []}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+
+
+def test_min_one_dim_no_type_coercion():
+    # GH#58084
+    df = DataFrame({"Y": [9435, -5465765, 5055, 0, 954960]})
+    df["Y"] = df["Y"].astype("int32")
+    categories = Categorical([1, 2, 2, 5, 1], categories=[1, 2, 3, 4, 5])
+
+    gb = df.groupby(categories, observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": [9435, -5465765, -5465765, 0, 9435]}, dtype="int32")
+    tm.assert_frame_equal(expected, result)

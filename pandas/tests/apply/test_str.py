@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
+
 from pandas.core.dtypes.common import is_number
 
 from pandas import (
@@ -54,6 +56,7 @@ def test_apply_np_reducer(op, how):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="No fp exception support in wasm")
 @pytest.mark.parametrize(
     "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
 )
