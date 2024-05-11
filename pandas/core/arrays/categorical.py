@@ -2847,6 +2847,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     Parameters
     ----------
     data : Series or CategoricalIndex
+        The object to which the categorical accessor is attached.
 
     See Also
     --------
