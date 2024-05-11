@@ -1150,6 +1150,12 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return numpy datetime64 format in nanoseconds.
 
+        See Also
+        --------
+        numpy.datetime64 : Numpy datatype for dates and times with high precision.
+        Timestamp.to_numpy : Convert the Timestamp to a NumPy datetime64.
+        to_datetime : Convert argument to datetime.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
