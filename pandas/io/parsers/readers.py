@@ -40,7 +40,6 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
-    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -118,7 +117,6 @@ if TYPE_CHECKING:
         na_filter: bool
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
-        keep_date_col: bool | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
         cache_dates: bool
@@ -300,18 +298,13 @@ na_filter : bool, default True
     performance of reading a large file.
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
-list}}, default None
+parse_dates : bool, None, list of Hashable, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
     * ``None``. Behaves like ``True`` if ``date_format`` is specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
-      as a single date column. Values are joined with a space before parsing.
-    * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
-      result 'foo'. Values are joined with a space before parsing.
 
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
@@ -320,9 +313,6 @@ list}}, default None
     :func:`~pandas.read_csv`.
 
     Note: A fast-path exists for iso8601-formatted dates.
-keep_date_col : bool, default False
-    If ``True`` and ``parse_dates`` specifies combining multiple columns then
-    keep the original columns.
 date_format : str or dict of column -> format, optional
     Format to use for parsing dates when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
@@ -408,30 +398,32 @@ dialect : str or csv.Dialect, optional
     documentation for more details.
 on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
-    Allowed values are :
+    Allowed values are:
 
     - ``'error'``, raise an Exception when a bad line is encountered.
     - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
     - ``'skip'``, skip bad lines without raising or warning when they are encountered.
+    - Callable, function that will process a single bad line.
+        - With ``engine='python'``, function with signature
+          ``(bad_line: list[str]) -> list[str] | None``.
+          ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None``, the bad line will be ignored.
+          If the function returns a new ``list`` of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+        - With ``engine='pyarrow'``, function with signature
+          as described in pyarrow documentation: `invalid_row_handler
+          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+          #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
     .. versionadded:: 1.3.0
 
     .. versionadded:: 1.4.0
 
-        - Callable, function with signature
-          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
-          bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None``, the bad line will be ignored.
-          If the function returns a new ``list`` of strings with more elements than
-          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
-          Only supported when ``engine='python'``
+        Callable
 
     .. versionchanged:: 2.2.0
 
-        - Callable, function with signature
-          as described in `pyarrow documentation
-          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
-          #pyarrow.csv.ParseOptions.invalid_row_handler>`_ when ``engine='pyarrow'``
+        Callable for ``engine='pyarrow'``
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
@@ -486,6 +478,81 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 Examples
 --------
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
+   Name  Value
+0   foo      1
+1   bar      2
+2  #baz      3
+
+Index and header can be specified via the `index_col` and `header` arguments.
+
+>>> pd.{func_name}('data.csv', header=None)  # doctest: +SKIP
+      0      1
+0  Name  Value
+1   foo      1
+2   bar      2
+3  #baz      3
+
+>>> pd.{func_name}('data.csv', index_col='Value')  # doctest: +SKIP
+       Name
+Value
+1       foo
+2       bar
+3      #baz
+
+Column types are inferred but can be explicitly specified using the dtype argument.
+
+>>> pd.{func_name}('data.csv', dtype={{'Value': float}})  # doctest: +SKIP
+   Name  Value
+0   foo    1.0
+1   bar    2.0
+2  #baz    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.{func_name}('data.csv', na_values=['foo', 'bar'])  # doctest: +SKIP
+   Name  Value
+0   NaN      1
+1   NaN      2
+2  #baz      3
+
+Comment lines in the input file can be skipped using the `comment` argument.
+
+>>> pd.{func_name}('data.csv', comment='#')  # doctest: +SKIP
+  Name  Value
+0  foo      1
+1  bar      2
+
+By default, columns with dates will be read as ``object`` rather than  ``datetime``.
+
+>>> df = pd.{func_name}('tmp.csv')  # doctest: +SKIP
+
+>>> df  # doctest: +SKIP
+   col 1       col 2            col 3
+0     10  10/04/2018  Sun 15 Jan 2023
+1     20  15/04/2018  Fri 12 May 2023
+
+>>> df.dtypes  # doctest: +SKIP
+col 1     int64
+col 2    object
+col 3    object
+dtype: object
+
+Specific columns can be parsed as dates by using the `parse_dates` and
+`date_format` arguments.
+
+>>> df = pd.{func_name}(
+...     'tmp.csv',
+...     parse_dates=[1, 2],
+...     date_format={{'col 2': '%d/%m/%Y', 'col 3': '%a %d %b %Y'}},
+... )  # doctest: +SKIP
+
+>>> df.dtypes  # doctest: +SKIP
+col 1             int64
+col 2    datetime64[ns]
+col 3    datetime64[ns]
+dtype: object
 """
 )
 
@@ -729,7 +796,6 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -759,38 +825,6 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    if lib.is_list_like(parse_dates):
-        # GH#55569
-        depr = False
-        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
-        # attribute "__iter__" (not iterable)
-        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-            depr = True
-        elif isinstance(parse_dates, dict) and any(
-            lib.is_list_like(x) for x in parse_dates.values()
-        ):
-            depr = True
-        if depr:
-            warnings.warn(
-                "Support for nested sequences for 'parse_dates' in pd.read_csv "
-                "is deprecated. Combine the desired columns with pd.to_datetime "
-                "after parsing instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
@@ -907,7 +941,6 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -937,29 +970,6 @@ def read_table(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
-    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-        # GH#55569
-        warnings.warn(
-            "Support for nested sequences for 'parse_dates' in pd.read_table "
-            "is deprecated. Combine the desired columns with pd.to_datetime "
-            "after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if delim_whitespace is not lib.no_default:
         # GH#55569
         warnings.warn(
@@ -1616,7 +1626,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
     comment : str, optional
         Comment out remainder of line
     parse_dates : bool, default False
-    keep_date_col : bool, default False
     date_format : str or dict of column -> format, default ``None``
 
         .. versionadded:: 2.0.0
