@@ -550,11 +550,9 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._grouper._cython_operation(
                 "transform", values, how, 0, **kwargs
             )
-        except NotImplementedError as err:
+        except NotImplementedError:
             if alt is None:
-                raise TypeError(
-                    f"{how} is not supported for {obj.dtype} dtype"
-                ) from err
+                raise
         else:
             return obj._constructor(result, index=self.obj.index, name=obj.name)
 
@@ -606,7 +604,9 @@ class SeriesGroupBy(GroupBy[Series]):
         try:
             res_values = self._grouper.transform_series(series, alt)
         except Exception as err:
-            raise TypeError(f"{how} is not supported for {series.dtype} dtype") from err
+            msg = f"transform function failed [how->{how},dtype->{series.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if series.dtype == object:
             res_values = res_values.astype(object, copy=False)
@@ -1917,7 +1917,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         try:
             res_values = self._grouper.transform_series(series, alt)
         except Exception as err:
-            raise TypeError(f"{how} is not supported for {series.dtype} dtype") from err
+            msg = f"transform function failed [how->{how},dtype->{series.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if series.dtype == object:
             res_values = res_values.astype(object, copy=False)
