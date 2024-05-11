@@ -44,6 +44,7 @@ Other enhancements
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
+- Cythonized transformations now supports python fallback (:issue:`49758`
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
