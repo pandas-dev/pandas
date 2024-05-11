@@ -146,7 +146,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.stop SA01" \
         -i "pandas.Series.add PR07" \
         -i "pandas.Series.case_when RT03" \
-        -i "pandas.Series.cat PR07" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
