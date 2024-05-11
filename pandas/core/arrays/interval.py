@@ -1509,10 +1509,54 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
 
     @property
-    @Appender(
-        _interval_shared_docs["is_non_overlapping_monotonic"] % _shared_docs_kwargs
-    )
     def is_non_overlapping_monotonic(self) -> bool:
+        """
+        Return a boolean whether the IntervalArray/IntervalIndex\
+        is non-overlapping and monotonic.
+
+        Non-overlapping means (no Intervals share points), and monotonic means
+        either monotonic increasing or monotonic decreasing.
+
+        See Also
+        --------
+        overlaps : Check if two IntervalIndex objects overlap.
+
+        Examples
+        --------
+        For arrays:
+
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+        >>> interv_arr
+        <IntervalArray>
+        [(0, 1], (1, 5]]
+        Length: 2, dtype: interval[int64, right]
+        >>> interv_arr.is_non_overlapping_monotonic
+        True
+
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(-1, 0.1)]
+        ... )
+        >>> interv_arr
+        <IntervalArray>
+        [(0.0, 1.0], (-1.0, 0.1]]
+        Length: 2, dtype: interval[float64, right]
+        >>> interv_arr.is_non_overlapping_monotonic
+        False
+
+        For Interval Index:
+
+        >>> interv_idx = pd.interval_range(start=0, end=2)
+        >>> interv_idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        True
+
+        >>> interv_idx = pd.interval_range(start=0, end=2, closed="both")
+        >>> interv_idx
+        IntervalIndex([[0, 1], [1, 2]], dtype='interval[int64, both]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        False
+        """
         # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
         # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
         # we already require left <= right

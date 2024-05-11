@@ -77,7 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
-        -i "pandas.IntervalIndex.is_non_overlapping_monotonic SA01" \
         -i "pandas.IntervalIndex.left GL08" \
         -i "pandas.IntervalIndex.length GL08" \
         -i "pandas.IntervalIndex.set_closed RT03,SA01" \
@@ -402,7 +401,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.DatetimeArray SA01" \
         -i "pandas.arrays.FloatingArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
-        -i "pandas.arrays.IntervalArray.is_non_overlapping_monotonic SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.IntervalArray.mid SA01" \
