@@ -2296,14 +2296,25 @@ def test_str_split_pat_none(method):
     tm.assert_series_equal(result, expected)
 
 
-def test_str_split_regex_none():
+def test_str_split_regex_explicit():
     # GH 58321
-    ser = pd.Series(["230/270/270", "240-290-290"], dtype=ArrowDtype(pa.string()))
-    result = ser.str.split(r"/|-", regex=None)
-    expected = pd.Series(
-        ArrowExtensionArray(pa.array([["230", "270", "270"], ["240", "290", "290"]]))
-    )
-    tm.assert_series_equal(result, expected)
+    # adapted from tests/strings/test_split_partition.py
+    values = pd.Series("xxxjpgzzz.jpg", dtype=ArrowDtype(pa.string()))
+
+    # explicit regex = False split
+    result = values.str.split(r"\.jpg", regex=False)
+    exp = pd.Series(ArrowExtensionArray(pa.array([["xxxjpgzzz.jpg"]])))
+    tm.assert_series_equal(result, exp)
+
+    # non explicit regex split, pattern length == 1
+    result = values.str.split(r".")
+    exp = pd.Series(ArrowExtensionArray(pa.array([["xxxjpgzzz", "jpg"]])))
+    tm.assert_series_equal(result, exp)
+
+    # non explicit regex split, pattern length != 1
+    result = values.str.split(r".jpg")
+    exp = pd.Series(ArrowExtensionArray(pa.array([["xx", "zzz", ""]])))
+    tm.assert_series_equal(result, exp)
 
 
 def test_str_split():
