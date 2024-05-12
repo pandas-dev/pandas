@@ -542,11 +542,6 @@ class ArrowExtensionArray(
                         )._pa_array
                     else:
                         raise
-                except pa.ArrowInvalid:
-                    if pa.types.is_decimal(pa_type) and pa.types.is_decimal(
-                        pa_array.type
-                    ):
-                        pass
 
         return pa_array
 

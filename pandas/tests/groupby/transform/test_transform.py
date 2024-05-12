@@ -1659,7 +1659,7 @@ def test_transform_binary_pyarrow_dtype_rank_fallback():
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_float_pyarrow_dtype_cumprod_fallback():
+def test_transform_decimal_pyarrow_dtype_cumprod_fallback():
     # GH#49758
     from decimal import Decimal
 
