@@ -484,7 +484,7 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-You can :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
+You can merge :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
 the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
 the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
 
