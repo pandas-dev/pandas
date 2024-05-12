@@ -245,7 +245,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.truediv PR07" \
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Series.var PR01,RT03,SA01" \
-        -i "pandas.SparseDtype SA01" \
         -i "pandas.Timedelta PR07,SA01" \
         -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
