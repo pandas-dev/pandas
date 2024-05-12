@@ -78,7 +78,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
         -i "pandas.IntervalIndex.left GL08" \
-        -i "pandas.IntervalIndex.set_closed RT03,SA01" \
         -i "pandas.MultiIndex PR01" \
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
@@ -396,7 +395,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.IntervalArray.mid SA01" \
         -i "pandas.arrays.IntervalArray.right SA01" \
-        -i "pandas.arrays.IntervalArray.set_closed RT03,SA01" \
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
