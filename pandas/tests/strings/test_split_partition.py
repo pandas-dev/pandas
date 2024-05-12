@@ -17,10 +17,6 @@ from pandas.tests.strings import (
     object_pyarrow_numpy,
 )
 
-pa = pytest.importorskip("pyarrow")
-
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
 def test_split(any_string_dtype, method):
@@ -63,39 +59,27 @@ def test_split_regex(any_string_dtype):
     tm.assert_series_equal(result, exp)
 
 
-def test_split_regex_explicit(any_string_dtype_2):
+def test_split_regex_explicit(any_string_dtype):
     # explicit regex = True split with compiled regex
     regex_pat = re.compile(r".jpg")
-    values = Series("xxxjpgzzz.jpg", dtype=any_string_dtype_2)
-
-    if not isinstance(any_string_dtype_2, pd.ArrowDtype):
-        # ArrowDtype does not support compiled regex
-        result = values.str.split(regex_pat)
-        exp = Series([["xx", "zzz", ""]])
-        tm.assert_series_equal(result, exp)
+    values = Series("xxxjpgzzz.jpg", dtype=any_string_dtype)
+    result = values.str.split(regex_pat)
+    exp = Series([["xx", "zzz", ""]])
+    tm.assert_series_equal(result, exp)
 
     # explicit regex = False split
     result = values.str.split(r"\.jpg", regex=False)
-    if not isinstance(any_string_dtype_2, pd.ArrowDtype):
-        exp = Series([["xxxjpgzzz.jpg"]])
-    else:
-        exp = Series(ArrowExtensionArray(pa.array([["xxxjpgzzz.jpg"]])))
+    exp = Series([["xxxjpgzzz.jpg"]])
     tm.assert_series_equal(result, exp)
 
     # non explicit regex split, pattern length == 1
     result = values.str.split(r".")
-    if not isinstance(any_string_dtype_2, pd.ArrowDtype):
-        exp = Series([["xxxjpgzzz", "jpg"]])
-    else:
-        exp = Series(ArrowExtensionArray(pa.array([["xxxjpgzzz", "jpg"]])))
+    exp = Series([["xxxjpgzzz", "jpg"]])
     tm.assert_series_equal(result, exp)
 
     # non explicit regex split, pattern length != 1
     result = values.str.split(r".jpg")
-    if not isinstance(any_string_dtype_2, pd.ArrowDtype):
-        exp = Series([["xx", "zzz", ""]])
-    else:
-        exp = Series(ArrowExtensionArray(pa.array([["xx", "zzz", ""]])))
+    exp = Series([["xx", "zzz", ""]])
     tm.assert_series_equal(result, exp)
 
     # regex=False with pattern compiled regex raises error
