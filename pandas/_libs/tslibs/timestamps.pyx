@@ -902,6 +902,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week.
+        Timestamp.quarter : Return the quarter of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -1007,6 +1012,12 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        See Also
+        --------
+        Timestamp.strftime : Return a formatted string.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number and
+            weekday.
 
         Examples
         --------
@@ -1149,6 +1160,12 @@ cdef class _Timestamp(ABCTimestamp):
     def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
+
+        See Also
+        --------
+        numpy.datetime64 : Numpy datatype for dates and times with high precision.
+        Timestamp.to_numpy : Convert the Timestamp to a NumPy datetime64.
+        to_datetime : Convert argument to datetime.
 
         Examples
         --------
@@ -1542,6 +1559,12 @@ class Timestamp(_Timestamp):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        See Also
+        --------
+        Timestamp.isoformat : Return the time formatted according to ISO 8601.
+        pd.to_datetime : Convert argument to datetime.
+        Period.strftime : Format a single Period.
 
         Examples
         --------

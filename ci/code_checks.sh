@@ -77,11 +77,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.Grouper PR02" \
         -i "pandas.Index PR07" \
-        -i "pandas.IntervalIndex.is_non_overlapping_monotonic SA01" \
         -i "pandas.IntervalIndex.left GL08" \
-        -i "pandas.IntervalIndex.length GL08" \
         -i "pandas.IntervalIndex.set_closed RT03,SA01" \
-        -i "pandas.IntervalIndex.to_tuples RT03,SA01" \
         -i "pandas.MultiIndex PR01" \
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
@@ -144,9 +141,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.add PR07" \
         -i "pandas.Series.case_when RT03" \
-        -i "pandas.Series.cat PR07" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
@@ -274,7 +269,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp.asm8 SA01" \
         -i "pandas.Timestamp.astimezone SA01" \
         -i "pandas.Timestamp.ceil SA01" \
         -i "pandas.Timestamp.combine PR01,SA01" \
@@ -289,7 +283,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.hour GL08" \
         -i "pandas.Timestamp.is_leap_year SA01" \
         -i "pandas.Timestamp.isocalendar SA01" \
-        -i "pandas.Timestamp.isoformat SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
@@ -305,7 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.resolution PR02,PR07,SA01" \
         -i "pandas.Timestamp.round SA01" \
         -i "pandas.Timestamp.second GL08" \
-        -i "pandas.Timestamp.strftime SA01" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
         -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
@@ -328,9 +320,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.utcoffset SA01" \
         -i "pandas.Timestamp.utctimetuple SA01" \
         -i "pandas.Timestamp.value GL08" \
-        -i "pandas.Timestamp.week SA01" \
         -i "pandas.Timestamp.weekday SA01" \
-        -i "pandas.Timestamp.weekofyear SA01" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \
         -i "pandas.api.extensions.ExtensionArray._hash_pandas_object RT03,SA01" \
@@ -402,13 +392,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.DatetimeArray SA01" \
         -i "pandas.arrays.FloatingArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
-        -i "pandas.arrays.IntervalArray.is_non_overlapping_monotonic SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
         -i "pandas.arrays.IntervalArray.mid SA01" \
         -i "pandas.arrays.IntervalArray.right SA01" \
         -i "pandas.arrays.IntervalArray.set_closed RT03,SA01" \
-        -i "pandas.arrays.IntervalArray.to_tuples RT03,SA01" \
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
