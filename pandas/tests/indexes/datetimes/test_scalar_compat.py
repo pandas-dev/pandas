@@ -345,6 +345,5 @@ class TestDatetimeIndexOps:
             dr.is_year_start
 
     def test_dti_is_year_start_freq_business_month_start_with(self):
-        dr = date_range("2020-01-01", periods=1, freq="CBMS")
-        print(dr.is_year_start)
-        # assert all(dr.is_year_start)
+        dr = date_range("2020-01-01", periods=1, freq="BMS")
+        assert all(dr.is_year_start)
