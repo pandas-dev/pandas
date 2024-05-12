@@ -579,15 +579,15 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = freq.freqstr
+            freq_name = freq.name
         else:
             month_kw = 12
-            freqstr = None
+            freq_name = None
 
         val = self._maybe_convert_value_to_local()
 
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw, self._creso)
+                                  field, freq_name, month_kw, self._creso)
         return out[0]
 
     @property
@@ -902,6 +902,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week.
+        Timestamp.quarter : Return the quarter of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -1007,6 +1012,12 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        See Also
+        --------
+        Timestamp.strftime : Return a formatted string.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number and
+            weekday.
 
         Examples
         --------
@@ -1115,6 +1126,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         Timestamp
 
+        See Also
+        --------
+        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.to_pydatetime : Convert Timestamp object to a native
+            Python datetime object.
+        to_timedelta : Convert argument into timedelta object,
+            which can represent differences in times.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
@@ -1141,6 +1160,12 @@ cdef class _Timestamp(ABCTimestamp):
     def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
+
+        See Also
+        --------
+        numpy.datetime64 : Numpy datatype for dates and times with high precision.
+        Timestamp.to_numpy : Convert the Timestamp to a NumPy datetime64.
+        to_datetime : Convert argument to datetime.
 
         Examples
         --------
@@ -1452,6 +1477,18 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp representing UTC day and time.
 
+        See Also
+        --------
+        Timestamp : Constructs an arbitrary datetime.
+        Timestamp.now : Return the current local date and time, which
+            can be timezone-aware.
+        Timestamp.today : Return the current local date and time with
+            timezone information set to None.
+        to_datetime : Convert argument to datetime.
+        date_range : Return a fixed frequency DatetimeIndex.
+        Timestamp.utctimetuple : Return UTC time tuple, compatible with
+            time.localtime().
+
         Examples
         --------
         >>> pd.Timestamp.utcnow()   # doctest: +SKIP
@@ -1522,6 +1559,12 @@ class Timestamp(_Timestamp):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        See Also
+        --------
+        Timestamp.isoformat : Return the time formatted according to ISO 8601.
+        pd.to_datetime : Convert argument to datetime.
+        Period.strftime : Format a single Period.
 
         Examples
         --------

@@ -44,6 +44,8 @@ Other enhancements
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
+- Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -223,6 +225,7 @@ Removal of prior version deprecations/changes
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Changed behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` to always treat integer keys as labels, never as positional, consistent with :class:`DataFrame` behavior (:issue:`50617`)
+- Disallow a callable argument to :meth:`Series.iloc` to return a ``tuple`` (:issue:`53769`)
 - Disallow allowing logical operations (``||``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``); wrap the objects in :class:`Series`, :class:`Index`, or ``np.array`` first instead (:issue:`52264`)
 - Disallow automatic casting to object in :class:`Series` logical operations (``&``, ``^``, ``||``) between series with mismatched indexes and dtypes other than ``object`` or ``bool`` (:issue:`52538`)
 - Disallow calling :meth:`Series.replace` or :meth:`DataFrame.replace` without a ``value`` and with non-dict-like ``to_replace`` (:issue:`33302`)
@@ -234,6 +237,7 @@ Removal of prior version deprecations/changes
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed 'fastpath' keyword in :class:`Categorical` constructor (:issue:`20110`)
 - Removed 'kind' keyword in :meth:`Series.resample` and :meth:`DataFrame.resample` (:issue:`58125`)
+- Removed ``Block``, ``DatetimeTZBlock``, ``ExtensionBlock``, ``create_block_manager_from_blocks`` from ``pandas.core.internals`` and ``pandas.core.internals.api`` (:issue:`55139`)
 - Removed alias :class:`arrays.PandasArray` for :class:`arrays.NumpyExtensionArray` (:issue:`53694`)
 - Removed deprecated "method" and "limit" keywords from :meth:`Series.replace` and :meth:`DataFrame.replace` (:issue:`53492`)
 - Removed extension test classes ``BaseNoReduceTests``, ``BaseNumericReduceTests``, ``BaseBooleanReduceTests`` (:issue:`54663`)
@@ -243,6 +247,7 @@ Removal of prior version deprecations/changes
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
 - All arguments in :meth:`Index.sort_values` are now keyword only (:issue:`56493`)
 - All arguments in :meth:`Series.to_dict` are now keyword only (:issue:`56493`)
+- Changed the default value of ``na_action`` in :meth:`Categorical.map` to ``None`` (:issue:`51645`)
 - Changed the default value of ``observed`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to ``True`` (:issue:`51811`)
 - Enforce deprecation in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with object dtype and mismatched null-like values, which are now considered not-equal (:issue:`18463`)
 - Enforced deprecation ``all`` and ``any`` reductions with ``datetime64``, :class:`DatetimeTZDtype`, and :class:`PeriodDtype` dtypes (:issue:`58029`)
@@ -254,6 +259,11 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of :meth:`offsets.Tick.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Enforced deprecation of ``axis=None`` acting the same as ``axis=0`` in the DataFrame reductions ``sum``, ``prod``, ``std``, ``var``, and ``sem``, passing ``axis=None`` will now reduce over both axes; this is particularly the case when doing e.g. ``numpy.sum(df)`` (:issue:`21597`)
 - Enforced deprecation of ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock`` (:issue:`58467`)
+- Enforced deprecation of ``date_parser`` in :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_excel` in favour of ``date_format`` (:issue:`50601`)
+- Enforced deprecation of ``keep_date_col`` keyword in :func:`read_csv` (:issue:`55569`)
+- Enforced deprecation of ``quantile`` keyword in :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile`, renamed to ``q`` instead. (:issue:`52550`)
+- Enforced deprecation of argument ``infer_datetime_format`` in :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
+- Enforced deprecation of combining parsed datetime columns in :func:`read_csv` in ``parse_dates`` (:issue:`55569`)
 - Enforced deprecation of non-standard (``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series`) argument to :func:`api.extensions.take` (:issue:`52981`)
 - Enforced deprecation of parsing system timezone strings to ``tzlocal``, which depended on system timezone, pass the 'tz' keyword instead (:issue:`50791`)
 - Enforced deprecation of passing a dictionary to :meth:`SeriesGroupBy.agg` (:issue:`52268`)
@@ -374,6 +384,8 @@ Datetimelike
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56382`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
+- Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
+- Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` returning ``False`` on double-digit frequencies (:issue:`58523`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
 Timedelta
@@ -452,6 +464,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` that was returning numpy dtype values when input values are pyarrow dtype values, instead of returning pyarrow dtype values. (:issue:`53030`)
 - Bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Bug in :meth:`DataFrameGroupBy.apply` with ``as_index=False`` that was returning :class:`MultiIndex` instead of returning :class:`Index`. (:issue:`58291`)
+- Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 
 
 Reshaping
@@ -466,6 +479,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 
 Styler
