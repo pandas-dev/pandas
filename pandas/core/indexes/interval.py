@@ -866,7 +866,7 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6], closed="right")
-        >>> iv_idx.right
+        >>> iv_idx.left
         Index([1, 2, 3], dtype='int64')
 
         >>> iv_idx = pd.IntervalIndex.from_tuples(
