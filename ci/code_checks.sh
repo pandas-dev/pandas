@@ -76,7 +76,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02,SA01" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.Index PR07" \
         -i "pandas.IntervalIndex.left GL08" \
         -i "pandas.IntervalIndex.set_closed RT03,SA01" \
         -i "pandas.MultiIndex PR01" \
