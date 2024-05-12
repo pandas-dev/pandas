@@ -28,6 +28,34 @@ def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
 
 
+def _test_apply_and_transform(gb, c, targop, op, args):
+    expected = gb[c].apply(targop)
+    expected.name = c
+    if c in ["string_missing", "string"]:
+        expected = expected.fillna(np.nan)
+
+    res = gb[c].transform(op, *args)
+    tm.assert_series_equal(expected, res)
+    res2 = getattr(gb[c], op)(*args)
+    tm.assert_series_equal(expected, res2)
+
+
+def _test_raises_typeerror(groupby, op):
+    msg = "|".join(
+        [
+            "does not support .* operations",
+            "does not support operation",
+            ".* is not supported for object dtype",
+            "is not implemented for this dtype",
+            re.escape(f"transform function failed [how->{op},dtype->object]"),
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        groupby.transform(op)
+    with pytest.raises(TypeError, match=msg):
+        getattr(groupby, op)()
+
+
 def test_transform():
     data = Series(np.arange(9) // 3, index=np.arange(9))
 
@@ -759,9 +787,9 @@ def test_cython_transform_frame_column(
             c in ["string", "string_missing"]
             and gb_target["id"] in single_element_groups[df_fix]
         ):
-            test_apply_and_transform(gb, c, targop, op, args)
+            _test_apply_and_transform(gb, c, targop, op, args)
         else:
-            test_raises_typeerror(gb[c], op)
+            _test_raises_typeerror(gb[c], op)
 
     elif op == "cumsum" and c not in [
         "float",
@@ -772,40 +800,12 @@ def test_cython_transform_frame_column(
     ]:
         # np.cumsum does not raise error is nan is in its own group only
         if c == "string_missing" and gb_target["id"] in nan_single_groups[df_fix]:
-            test_apply_and_transform(gb, c, targop, op, args)
+            _test_apply_and_transform(gb, c, targop, op, args)
         else:
-            test_raises_typeerror(gb[c], op)
+            _test_raises_typeerror(gb[c], op)
 
     else:
-        test_apply_and_transform(gb, c, targop, op, args)
-
-
-def test_apply_and_transform(gb, c, targop, op, args):
-    expected = gb[c].apply(targop)
-    expected.name = c
-    if c in ["string_missing", "string"]:
-        expected = expected.fillna(np.nan)
-
-    res = gb[c].transform(op, *args)
-    tm.assert_series_equal(expected, res)
-    res2 = getattr(gb[c], op)(*args)
-    tm.assert_series_equal(expected, res2)
-
-
-def test_raises_typeerror(groupby, op):
-    msg = "|".join(
-        [
-            "does not support .* operations",
-            "does not support operation",
-            ".* is not supported for object dtype",
-            "is not implemented for this dtype",
-            re.escape(f"transform function failed [how->{op},dtype->object]"),
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
-        groupby.transform(op)
-    with pytest.raises(TypeError, match=msg):
-        getattr(groupby, op)()
+        _test_apply_and_transform(gb, c, targop, op, args)
 
 
 @pytest.mark.parametrize(
