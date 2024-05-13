@@ -1216,7 +1216,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        datetime.datetime : The standard Python datetime class that this method returns.
+        datetime.datetime : The standard Python datetime class that this method
+            returns.
         Timestamp.timestamp : Convert a Timestamp object to POSIX timestamp.
         Timestamp.to_datetime64 : Convert a Timestamp object to numpy.datetime64.
 
