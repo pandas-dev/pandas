@@ -2302,7 +2302,8 @@ def test_api_read_sql_duplicate_columns(conn, request):
     if "adbc" in conn:
         pa = pytest.importorskip("pyarrow")
         if not (
-            Version(pa.__version__) >= Version("16.0") and conn == "sqlite_adbc_conn"
+            Version(pa.__version__) >= Version("16.0")
+            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
