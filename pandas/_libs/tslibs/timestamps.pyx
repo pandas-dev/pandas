@@ -2015,6 +2015,12 @@ class Timestamp(_Timestamp):
         """
         Round the Timestamp to the specified resolution.
 
+        This method rounds the given Timestamp down to a specified frequency
+        level. It is particularly useful in data analysis to normalize timestamps
+        to regular frequency intervals. For instance, rounding to the nearest
+        minute, hour, or day can help in time series comparisons or resampling
+        operations.
+
         Parameters
         ----------
         freq : str
@@ -2048,6 +2054,14 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        See Also
+        --------
+        datetime.round : Similar behavior in native Python datetime module.
+        Timestamp.floor : Round the Timestamp downward to the nearest multiple
+            of the specified frequency.
+        Timestamp.ceil : Round the Timestamp upward to the nearest multiple of
+            the specified frequency.
 
         Notes
         -----
