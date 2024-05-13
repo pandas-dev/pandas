@@ -21,8 +21,6 @@ This will give users a long-awaited proper string dtype for 3.0, while 1) not
 and 2) leaving room for future improvements (different missing value semantics,
 using NumPy 2.0, etc).
 
-# Dedicated string data type for pandas 3.0
-
 ## Background
 
 Currently, pandas by default stores text data in an `object`-dtype NumPy array.
@@ -86,7 +84,9 @@ that is still backed by PyArrow but follows the default missing values semantics
 pandas uses for all other default data types (and using `NaN` as the missing
 value sentinel) ([GH-54792](https://github.com/pandas-dev/pandas/issues/54792)).
 At the time, the `storage` option for this new variant was called
-`"pyarrow_numpy"` to disambiguate from the existing `"pyarrow"` option using `pd.NA`.
+`"pyarrow_numpy"` to disambiguate from the existing `"pyarrow"` option using
+`pd.NA` (but this PDEP proposes a better naming scheme, see the "Naming"
+subsection below).
 
 This last dtype variant is what you currently (pandas 2.2) get for string data
 when enabling the ``future.infer_string`` option (to enable the behaviour which
@@ -194,10 +194,49 @@ depends on whether PyArrow is installed or not).
 
 But for testing purposes and advanced use cases that want control over this, we
 need some way to specify this and distinguish them from the other string dtypes.
-Currently, the `StringDtype(storage="pyarrow_numpy")` is used, where
-"pyarrow_numpy" is a rather confusing option.
+In addition, users that want to continue using the original NA-variant of the
+dtype need a way to specify this.
 
-TODO see if we can come up with a better naming scheme
+Currently (pandas 2.2), `StringDtype(storage="pyarrow_numpy")` is used, where
+the `"pyarrow_numpy"` storage was used to disambiguate from the existing
+`"pyarrow"` option using `pd.NA`. However, "pyarrow_numpy" is a rather
+confusing option and doesn't generalize well. Therefore, this PDEP proposes
+a new naming scheme as outlined below, and we will deprecate and remove
+"pyarrow_numpy" before pandas 3.0.
+
+The `storage` keyword of `StringDtype` is kept to disambiguate the underlying
+storage of the string data (using pyarrow or python objects), but an additional
+`na_value` is introduced to disambiguate the the variants using NA semantics
+and NaN semantics.
+
+Overview of the different ways to specify a dtype and the resulting concrete
+dtype of the data:
+
+| User specification                     | Concrete dtype                                    | String alias            | Note |
+|----------------------------------------|---------------------------------------------------|-------------------------|------|
+| Unspecified (inference)                | `StringDtype(storage="pyarrow"|"python", na_value=np.nan)` | "string"                | (1)  |
+| `StringDtype()` or `"string"`              | `StringDtype(storage="pyarrow"|"python", na_value=np.nan)` | "string"                | (1), (2)  |
+| `StringDtype("pyarrow")`                 | `StringDtype(storage="pyarrow", na_value=np.nan)`           | "string"                | (2)     |
+| `StringDtype("python")`                  | `StringDtype(storage="python", na_value=np.nan)`            | "string"                | (2)     |
+| `StringDtype("pyarrow", na_value=pd.NA)` | `StringDtype(storage="pyarrow", na_value=pd.NA)`            | "string[pyarrow]"       |      |
+| `StringDtype("python", na_value=pd.NA)`  | `StringDtype(storage="pyarrow", na_value=pd.NA)`            | "string[python]"        |      |
+| `StringDtype(na_value=pd.NA)`            | `StringDtype(storage="pyarrow"|"python", na_value=pd.NA)` | "string[pyarrow]" or "string[python]" | (1)  |
+| `StringDtype("pyarrow_numpy")`           | `StringDtype(storage="pyarrow", na_value=np.nan)`           | "string[pyarrow_numpy]" | (3)  |
+
+Notes:
+
+- (1) You get "pyarrow" or "python" depending on pyarrow being installed.
+- (2) Those three rows are backwards incompatible (i.e. they work now but give
+  you the NA-variant), see the "Backward compatibility" section below.
+- (3) "pyarrow_numpy" is kept temporarily because this is already in a released
+  version, but we can deprecate it in 2.2.x and have it removed for 3.0.
+
+For the new default string dtype, only the `"string"` alias can be used to
+specify the dtype as a string, i.e. we would not provide a way to make the
+underlying storage (pyarrow or python) explicit through the string alias. This
+string alias is only a convenience shortcut and for most users `"string"` is
+sufficient (they don't need to specify the storage), and the explicit
+`pd.StringDtype(...)` is still available for more fine-grained control.
 
 ## Alternatives
 
@@ -237,6 +276,19 @@ With the proposed new variant of the StringDtype, this will ensure that for the
 _default_ experience, a user will only see only 1 kind of integer dtype, only
 kind of 1 bool dtype, etc. For now, a user should only get columns using `pd.NA`
 when explicitly opting into this.
+
+### Naming alternatives
+
+This PDEP now keeps the `pd.StringDtype` class constructor with the existing
+`storage` keyword and with an additional `na_value` keyword.
+
+During the discussion, several alternatives have been brought up. Both
+alternative keyword names as using a different constructor. This PDEP opted to
+keep using the existing `pd.StringDtype()` for now to keep the changes as
+minimal as possible, leaving a larger overhaul of the dtype system (potentially
+including different constructor functions or namespace) for a future discussion.
+See [GH-58613](https://github.com/pandas-dev/pandas/issues/58613) for the full
+discussion.
 
 ## Backward compatibility
 
