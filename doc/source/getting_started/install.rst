@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-See :ref:`python support policy <policies.python_support>`.
+See :ref:`Python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
