@@ -244,9 +244,10 @@ sufficient (they don't need to specify the storage), and the explicit
 
 To avoid introducing a new string dtype while other discussions and changes are
 in flux (eventually making pyarrow a required dependency? adopting `pd.NA` as
-the default missing value sentinel? using the new NumPy 2.0 capabilities?), we
-could also delay introducing a default string dtype until there is more clarity
-in those other discussions.
+the default missing value sentinel? using the new NumPy 2.0 capabilities?
+overhauling all our dtypes to use a logical data type system?), we could also
+delay introducing a default string dtype until there is more clarity in those
+other discussions.
 
 However:
 
@@ -257,6 +258,11 @@ However:
    sentinel, we will need a migration path for _all_ our data types, and thus
    the challenges around this will not be unique to the string dtype and
    therefore not a reason to delay this.
+
+Making this change now for 3.0 will benefit the majority of our users, while
+coming at a cost for a part of the users who already started using the
+`"string"` dtype (they will have to update their code to continue to the variant
+using `pd.NA`, see the "Backward compatibility" section below).
 
 ### Why not use the existing StringDtype with `pd.NA`?
 
@@ -294,22 +300,64 @@ discussion.
 
 The most visible backwards incompatible change will be that columns with string
 data will no longer have an `object` dtype. Therefore, code that assumes
-`object` dtype (such as `ser.dtype == object`) will need to be updated.
+`object` dtype (such as `ser.dtype == object`) will need to be updated. This
+change is done as a hard break in a major release, as warning in advance for the
+changed inference is deemed to noisy.
 
 To allow testing your code in advance, the
 `pd.options.future.infer_string = True` option is available.
 
 Otherwise, the actual string-specific functionality (such as the `.str` accessor
-methods) should all keep working as is. By preserving the current missing value
-semantics, this proposal is also backwards compatible on this aspect.
+methods) should generally all keep working as is. By preserving the current
+missing value semantics, this proposal is also backwards compatible on this
+aspect.
 
-One other backwards incompatible change is present for early adopters of the
-existing `StringDtype`. In pandas 3.0, calling `pd.StringDtype()` will start
-returning the new default string dtype, while up to now this returned the
-experimental string dtype using `pd.NA` introduced in pandas 1.0. Those users
-will need to start specifying a keyword in the dtype constructor if they want to
-keep using `pd.NA` (but if they just want to have a dedicated string dtype, they
-don't need to change their code).
+### For existing users of `StringDtype`
+
+Users of the existing `StringDtype` will see more backwards incompatible
+changes, though. In pandas 3.0, calling `pd.StringDtype()` (or specifying
+`dtype="string"`) will start returning the new default string dtype using `NaN`,
+while up to now this returned the string dtype using `pd.NA` introduced in
+pandas 1.0.
+
+For example, this code snippet returned the NA-variant of `StringDtype` with
+pandas 1.x and 2.x:
+
+```python
+>>> pd.Series(["a", "b", None], dtype="string")
+0      a
+1      b
+2   <NA>
+dtype: string
+```
+
+but will start returning the new default NaN-variant of `StringDtype` with
+pandas 3.0. This means that the missing value sentinel will change from `pd.NA`
+to `NaN`, and that operations will no longer return nullable dtypes but default
+numpy dtypes (see the "Missing value semantics" section above).
+
+While this change will be transparent in many cases (e.g. checking for missing
+values with `isna()`/`dropna()`/`fillna()` or filtering rows with the result of
+a string predicate method keeps working regardless of the sentinel), this can be
+a breaking change if you relied on the exact sentinel or resulting dtype. Since
+pandas 1.0, the string dtype has been promoted quite a bit, and so we expect
+that many users already have started using this dtype, even though officially
+still labeled as "experimental".
+
+To smooth the upgrade experience for those users, we propose to add a
+deprecation warning before 3.0 when such dtype is created, giving them two
+options:
+
+- If the user just wants to have a dedicated "string" dtype (or the better
+  performance when using pyarrow) but is fine with using the default NaN
+  semantics, they can add `pd.options.future.infer_string = True` to their code
+  to suppress the warning and already opt-in to the future behaviour of pandas
+  3.0.
+- If the user specifically wants the variant of the string dtype that uses
+  `pd.NA` (and returns nullable numeric/boolean dtypes in operations), they will
+  have to update their dtype specification from `"string"` / `pd.StringDtype()`
+  to `pd.StringDtype(na_value=pd.NA)` to suppress the warning and further keep
+  their code running as is.
 
 ## Timeline
 
