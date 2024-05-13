@@ -5324,6 +5324,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
+            A new Series with values replaced based on the provided conditions.
 
         See Also
         --------
