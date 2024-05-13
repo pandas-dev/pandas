@@ -724,6 +724,14 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
+    def test_getitem_float_label_positional(self):
+        # GH 53338
+        index = Index([1.5, 2])
+        df = DataFrame(range(2), index=index)
+        result = df[1:2]
+        expected = DataFrame([1], index=[2.0])
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
@@ -746,12 +754,6 @@ class TestDataFrameIndexing:
         # loc_float changes this to work properly
         result = df.loc[1:2]
         expected = df.iloc[0:2]
-        tm.assert_frame_equal(result, expected)
-
-        expected = df.iloc[0:2]
-        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df[1:2]
         tm.assert_frame_equal(result, expected)
 
         # #2727
