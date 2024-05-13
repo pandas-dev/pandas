@@ -50,7 +50,7 @@ Since its introduction, the `StringDtype` has always been opt-in, and has used
 the experimental `pd.NA` sentinel for missing values (which was also [introduced
 in pandas 1.0](https://pandas.pydata.org/docs/whatsnew/v1.0.0.html#experimental-na-scalar-to-denote-missing-values)).
 However, up to this date, pandas has not yet taken the step to use `pd.NA` by
-default, and thus the `StringDtype` deviates in missing value behaviour compared
+default for any dtype, and thus the `StringDtype` deviates in missing value behaviour compared
 to the default data types.
 
 In 2023, [PDEP-10](https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html)
@@ -116,7 +116,7 @@ By default, pandas will infer this new string dtype instead of object dtype for
 string data (when creating pandas objects, such as in constructors or IO
 functions).
 
-The existing `future.infer_string` option can be used to opt-in to the future
+In pandas 2.2, the existing `future.infer_string` option can be used to opt-in to the future
 default behaviour:
 
 ```python
@@ -202,9 +202,9 @@ dtype need a way to specify this.
 
 Currently (pandas 2.2), `StringDtype(storage="pyarrow_numpy")` is used, where
 the `"pyarrow_numpy"` storage was used to disambiguate from the existing
-`"pyarrow"` option using `pd.NA`. However, "pyarrow_numpy" is a rather confusing
+`"pyarrow"` option using `pd.NA`. However, `"pyarrow_numpy"` is a rather confusing
 option and doesn't generalize well. Therefore, this PDEP proposes a new naming
-scheme as outlined below, and "pyarrow_numpy" will be deprecated and removed
+scheme as outlined below, and `"pyarrow_numpy"` will be deprecated and removed
 before pandas 3.0.
 
 The `storage` keyword of `StringDtype` is kept to disambiguate the underlying
@@ -258,7 +258,7 @@ However:
    dtype that has massive benefits for users, both in usability as (for the
    significant part of the user base that has PyArrow installed) in performance.
 2. In case pandas eventually transitions to use `pd.NA` as the default missing value
-   sentinel,  a migration path for _all_ our data types will be needed, and thus
+   sentinel,  a migration path for _all_ pandas data types will be needed, and thus
    the challenges around this will not be unique to the string dtype and
    therefore not a reason to delay this.
 
