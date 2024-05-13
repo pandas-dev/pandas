@@ -610,6 +610,13 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
 
+        See Also
+        --------
+        numpy.ndarray.shape : Similar attribute which returns the shape of an array.
+        DataFrame.shape : Return a tuple representing the dimensionality of the
+            DataFrame.
+        Series.shape : Return a tuple representing the dimensionality of the Series.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
