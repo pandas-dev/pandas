@@ -161,7 +161,7 @@ the missing value sentinel, and:
 
 Because the original `StringDtype` implementations already use `pd.NA` and
 return masked integer and boolean arrays in operations, a new variant of the
-existing dtypes that uses `NaN` and default data types is needed. The original
+existing dtypes that uses `NaN` and default data types was needed. The original
 variant of `StringDtype` using `pd.NA` will still be available for those who
 want to keep using it (see below in the "Naming" subsection for how to specify
 this).
@@ -175,8 +175,8 @@ this (adding a new variant of the dtype) and a new `StringArray` subclass only
 needs minor changes to follow the above-mentioned missing value semantics
 ([GH-58451](https://github.com/pandas-dev/pandas/pull/58451)).
 
-For pandas 3.0, this is the most realistic option given this implementation is
-already available for a long time. Beyond 3.0, we can still explore further
+For pandas 3.0, this is the most realistic option given this implementation has
+already been available for a long time. Beyond 3.0, we can still explore further
 improvements such as using NumPy 2.0 ([GH-58503](https://github.com/pandas-dev/pandas/issues/58503))
 or nanoarrow ([GH-58552](https://github.com/pandas-dev/pandas/issues/58552)),
 but at that point that is an implementation detail that should not have a
@@ -362,16 +362,23 @@ options:
 ## Timeline
 
 The future PyArrow-backed string dtype was already made available behind a feature
-flag in pandas 2.1 (by `pd.options.future.infer_string = True`).
+flag in pandas 2.1 (enabled by `pd.options.future.infer_string = True`).
 
-Some small enhancements or fixes (or naming changes) might still be needed and
-can be backported to pandas 2.2.x.
+Some small enhancements or fixes might still be needed and can continue to be
+backported to pandas 2.2.x.
 
-The variant using numpy object-dtype could potentially also be backported to
-2.2.x to allow easier testing.
+The variant using numpy object-dtype can also be backported to the 2.2.x branch
+to allow easier testing. We would propose to release this as 2.3.0 (created from
+the 2.2.x branch, given that the main branch already includes many other changes
+targeted for 3.0), together with the deprecation warning when creating a dtype
+from `"string"` / `pd.StringDtype()`.
 
-For pandas 3.0, this flag becomes enabled by default.
+The 2.3.0 release would then have all future string functionality available
+(both the pyarrow and object-dtype based variants of the default string dtype),
+and warn existing users of the `StringDtype` in advance of 3.0 about how to
+update their code.
 
+For pandas 3.0, this `future.infer_string` flag becomes enabled by default.
 
 ## PDEP-XX History
 
