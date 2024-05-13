@@ -192,8 +192,8 @@ Check more options on ``describe`` in the user guide section about :ref:`aggrega
 .. note::
     This is just a starting point. Similar to spreadsheet
     software, pandas represents data as a table with columns and rows. Apart
-    from the representation, also the data manipulations and calculations
-    you would do in spreadsheet software are supported by pandas. Continue
+    from the representation, the data manipulations and calculations
+    you would do in spreadsheet software are also supported by pandas. Continue
     reading the next tutorials to get started!
 
 .. raw:: html
@@ -204,7 +204,7 @@ Check more options on ``describe`` in the user guide section about :ref:`aggrega
 -  Import the package, aka ``import pandas as pd``
 -  A table of data is stored as a pandas ``DataFrame``
 -  Each column in a ``DataFrame`` is a ``Series``
--  You can do things by applying a method to a ``DataFrame`` or ``Series``
+-  You can do things by applying a method on a ``DataFrame`` or ``Series``
 
 .. raw:: html
 
@@ -215,7 +215,7 @@ Check more options on ``describe`` in the user guide section about :ref:`aggrega
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A more extended explanation to ``DataFrame`` and ``Series`` is provided in the :ref:`introduction to data structures <dsintro>`.
+A more extended explanation of ``DataFrame`` and ``Series`` is provided in the :ref:`introduction to data structures <dsintro>` page.
 
 .. raw:: html
 
