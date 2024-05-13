@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__.
+See :ref:`python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
