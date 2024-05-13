@@ -138,7 +138,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.case_when RT03" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
         -i "pandas.Series.cat.as_unordered PR01" \
@@ -229,7 +228,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.strip RT03" \
         -i "pandas.Series.str.swapcase RT03" \
         -i "pandas.Series.str.title RT03" \
-        -i "pandas.Series.str.translate RT03,SA01" \
         -i "pandas.Series.str.upper RT03" \
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
@@ -324,7 +322,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray._reduce RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._values_for_factorize SA01" \
         -i "pandas.api.extensions.ExtensionArray.astype SA01" \
-        -i "pandas.api.extensions.ExtensionArray.copy RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.dropna RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.dtype SA01" \
         -i "pandas.api.extensions.ExtensionArray.duplicated RT03,SA01" \
@@ -337,7 +334,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.nbytes SA01" \
         -i "pandas.api.extensions.ExtensionArray.ndim SA01" \
         -i "pandas.api.extensions.ExtensionArray.ravel RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray.shape SA01" \
         -i "pandas.api.extensions.ExtensionArray.shift SA01" \
         -i "pandas.api.extensions.ExtensionArray.take RT03" \
         -i "pandas.api.extensions.ExtensionArray.tolist RT03,SA01" \
@@ -569,7 +565,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BYearBegin PR02" \
         -i "pandas.tseries.offsets.BYearBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.BYearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BYearBegin.month GL08" \
@@ -836,7 +831,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.WeekOfMonth.rule_code GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" \
-        -i "pandas.tseries.offsets.YearBegin PR02" \
         -i "pandas.tseries.offsets.YearBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.YearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearBegin.month GL08" \
