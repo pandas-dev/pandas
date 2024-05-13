@@ -179,12 +179,11 @@ needs minor changes to follow the above-mentioned missing value semantics
 ([GH-58451](https://github.com/pandas-dev/pandas/pull/58451)).
 
 For pandas 3.0, this is the most realistic option given this implementation has
-already been available for a long time. Beyond 3.0,  further
-improvements such as using NumPy 2.0 ([GH-58503](https://github.com/pandas-dev/pandas/issues/58503))
-or nanoarrow ([GH-58552](https://github.com/pandas-dev/pandas/issues/58552))
-can still be explored,
-but at that point that is an implementation detail that should not have a
-direct impact on users (except for performance).
+already been available for a long time. Beyond 3.0, further improvements such as
+using NumPy 2.0 ([GH-58503](https://github.com/pandas-dev/pandas/issues/58503))
+or nanoarrow ([GH-58552](https://github.com/pandas-dev/pandas/issues/58552)) can
+still be explored, but at that point that is an implementation detail that
+should not have a direct impact on users (except for performance).
 
 ### Naming
 
@@ -203,10 +202,10 @@ dtype need a way to specify this.
 
 Currently (pandas 2.2), `StringDtype(storage="pyarrow_numpy")` is used, where
 the `"pyarrow_numpy"` storage was used to disambiguate from the existing
-`"pyarrow"` option using `pd.NA`. However, "pyarrow_numpy" is a rather
-confusing option and doesn't generalize well. Therefore, this PDEP proposes
-a new naming scheme as outlined below, and 
-"pyarrow_numpy" will be deprecated and removed before pandas 3.0.
+`"pyarrow"` option using `pd.NA`. However, "pyarrow_numpy" is a rather confusing
+option and doesn't generalize well. Therefore, this PDEP proposes a new naming
+scheme as outlined below, and "pyarrow_numpy" will be deprecated and removed
+before pandas 3.0.
 
 The `storage` keyword of `StringDtype` is kept to disambiguate the underlying
 storage of the string data (using pyarrow or python objects), but an additional
@@ -249,8 +248,8 @@ sufficient (they don't need to specify the storage), and the explicit
 To avoid introducing a new string dtype while other discussions and changes are
 in flux (eventually making pyarrow a required dependency? adopting `pd.NA` as
 the default missing value sentinel? using the new NumPy 2.0 capabilities?
-overhauling all our dtypes to use a logical data type system?), 
-introducing a default string dtype could also be delayed until there is more clarity in those
+overhauling all our dtypes to use a logical data type system?), introducing a
+default string dtype could also be delayed until there is more clarity in those
 other discussions.
 
 However:
@@ -263,10 +262,10 @@ However:
    the challenges around this will not be unique to the string dtype and
    therefore not a reason to delay this.
 
-Making this change now for 3.0 will benefit the majority of users, while
-coming at a cost for a part of the users who already started using the
-`"string"` or `pd.StringDtype()` dtype (they will have to update their code to continue to the variant
-using `pd.NA`, see the "Backward compatibility" section below).
+Making this change now for 3.0 will benefit the majority of users, while coming
+at a cost for a part of the users who already started using the `"string"` or
+`pd.StringDtype()` dtype (they will have to update their code to continue to the
+variant using `pd.NA`, see the "Backward compatibility" section below).
 
 ### Why not use the existing StringDtype with `pd.NA`?
 
