@@ -228,7 +228,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.strip RT03" \
         -i "pandas.Series.str.swapcase RT03" \
         -i "pandas.Series.str.title RT03" \
-        -i "pandas.Series.str.translate RT03,SA01" \
         -i "pandas.Series.str.upper RT03" \
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
