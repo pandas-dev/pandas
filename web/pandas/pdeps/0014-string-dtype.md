@@ -1,4 +1,4 @@
-# PDEP-XX: Dedicated string data type for pandas 3.0
+# PDEP-14: Dedicated string data type for pandas 3.0
 
 - Created: May 3, 2024
 - Status: Under discussion
