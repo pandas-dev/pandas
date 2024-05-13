@@ -222,7 +222,7 @@ dtype of the data:
 | `StringDtype("pyarrow")`                 | `StringDtype(storage="pyarrow", na_value=np.nan)`           | "string"                | (2)     |
 | `StringDtype("python")`                  | `StringDtype(storage="python", na_value=np.nan)`            | "string"                | (2)     |
 | `StringDtype("pyarrow", na_value=pd.NA)` | `StringDtype(storage="pyarrow", na_value=pd.NA)`            | "string[pyarrow]"       |      |
-| `StringDtype("python", na_value=pd.NA)`  | `StringDtype(storage="pyarrow", na_value=pd.NA)`            | "string[python]"        |      |
+| `StringDtype("python", na_value=pd.NA)`  | `StringDtype(storage="python", na_value=pd.NA)`            | "string[python]"        |      |
 | `StringDtype(na_value=pd.NA)`            | `StringDtype(storage="pyarrow"|"python", na_value=pd.NA)` | "string[pyarrow]" or "string[python]" | (1)  |
 | `StringDtype("pyarrow_numpy")`           | `StringDtype(storage="pyarrow", na_value=np.nan)`           | "string[pyarrow_numpy]" | (3)  |
 
