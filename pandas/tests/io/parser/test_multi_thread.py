@@ -29,7 +29,7 @@ pytestmark = [
 def test_multi_thread_string_io_read_csv(all_parsers, request):
     # see gh-11786
     parser = all_parsers
-    if parser == "pyarrow":
+    if parser.engine == "pyarrow":
         pa = pytest.importorskip("pyarrow")
         if Version(pa.__version__) < Version("16.0"):
             request.applymarker(
