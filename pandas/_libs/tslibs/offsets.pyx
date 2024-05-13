@@ -2939,7 +2939,7 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3014,7 +3014,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3222,7 +3222,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3230,6 +3230,10 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -4517,7 +4521,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     Increments between end of month dates.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
