@@ -232,6 +232,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray.fillna)
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
+        if limit is not None and limit < len(self):
+            modify = mask.cumsum() > limit
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
 
         value = missing.check_value_size(value, mask, len(self))
 
@@ -1312,7 +1318,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
