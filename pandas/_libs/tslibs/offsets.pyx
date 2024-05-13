@@ -3231,10 +3231,6 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
 
-    See Also
-    --------
-    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
-
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 14)
