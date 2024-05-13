@@ -334,7 +334,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.nbytes SA01" \
         -i "pandas.api.extensions.ExtensionArray.ndim SA01" \
         -i "pandas.api.extensions.ExtensionArray.ravel RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray.shape SA01" \
         -i "pandas.api.extensions.ExtensionArray.shift SA01" \
         -i "pandas.api.extensions.ExtensionArray.take RT03" \
         -i "pandas.api.extensions.ExtensionArray.tolist RT03,SA01" \
