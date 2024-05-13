@@ -128,7 +128,10 @@ default behaviour:
 dtype: string
 ```
 
-This option will be expanded to also work when PyArrow is not installed.
+Right now (pandas 2.2), the existing option only enables the PyArrow-based
+future dtype. For the remaining 2.x releases, this option will be expanded to
+also work when PyArrow is not installed to enable the object-dtype fallback in
+that case.
 
 ### Missing value semantics
 
@@ -230,7 +233,7 @@ Notes:
 - (2) Those three rows are backwards incompatible (i.e. they work now but give
   the NA-variant), see the "Backward compatibility" section below.
 - (3) "pyarrow_numpy" is kept temporarily because this is already in a released
-  version, but we can deprecate it in 2.2.x and have it removed for 3.0.
+  version, but we can deprecate it in 2.x and have it removed for 3.0.
 
 For the new default string dtype, only the `"string"` alias can be used to
 specify the dtype as a string, i.e. a way would not be provided to make the
