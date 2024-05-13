@@ -101,8 +101,9 @@ To be able to move forward with a string data type in pandas 3.0, this PDEP prop
    (but slower) version.
 2. This default "string" dtype will follow the same behaviour for missing values
    as our other default data types, and use `NaN` as the missing value sentinel.
-3. The version that is not backed by PyArrow can reuse (with minor code additions) the existing numpy
-   object-dtype backed StringArray for its implementation.
+3. The version that is not backed by PyArrow can reuse (with minor code
+   additions) the existing numpy object-dtype backed StringArray for its
+   implementation.
 4. We update installation guidelines to clearly encourage users to install
    pyarrow for the default user experience.
 
@@ -111,8 +112,9 @@ experimental.
 
 ### Default inference of a string dtype
 
-By default, pandas will infer this new string dtype for string data (when
-creating pandas objects, such as in constructors or IO functions).
+By default, pandas will infer this new string dtype instead of object dtype for
+string data (when creating pandas objects, such as in constructors or IO
+functions).
 
 The existing `future.infer_string` option can be used to opt-in to the future
 default behaviour:
@@ -130,16 +132,39 @@ This option will be expanded to also work when PyArrow is not installed.
 
 ### Missing value semantics
 
-Given that all other default data types use NaN semantics for missing values,
-this proposal says that a new default string dtype should still use the same
-default semantics. Further, it should result in default data types when doing
-operations on the string column that result in a boolean or numeric data type
-(e.g., methods like `.str.startswith(..)` or `.str.len(..)`, or comparison
-operators like `==`, should result in default `int64` and `bool` data types).
+As mentioned in the background section, the original `StringDtype` has used
+the experimental `pd.NA` sentinel for missing values. In addition to using
+`pd.NA` as the scalar for a missing value, this essentially means
+that:
+
+- String columns follow ["NA-semantics"](https://pandas.pydata.org/docs/user_guide/missing_data.html#na-semantics)
+  for missing values, where `NA` propagates in boolean operations such as
+  comparisons or predicates.
+- Operations on the string column that give a numeric or boolean result use the
+  nullable Integer/Float/Boolean data types (e.g. `ser.str.len()` returns the
+  nullable `'Int64"` / `pd.Int64Dtype()` dtype instead of the numpy `int64`
+  dtype (or `float64` in case of missing values)).
+
+However, up to this date, all other default data types still use NaN semantics
+for missing values. Therefore, this proposal says that a new default string
+dtype should also still use the same default missing value semantics and return
+default data types when doing operations on the string column, to be consistent
+with the other default dtypes at this point.
+
+In practice, this means that the default `"string"` dtype will use `NaN` as
+the missing value sentinel, and:
+
+- String columns will follow NaN-semantics for missing values, where `NaN` gives
+  False in boolean operations such as comparisons or predicates.
+- Operations on the string column that give a numeric or boolean result will use
+  the default data types (i.e. numpy `int64`/`float64`/`bool`).
 
 Because the original `StringDtype` implementations already use `pd.NA` and
 return masked integer and boolean arrays in operations, a new variant of the
-existing dtypes that uses `NaN` and default data types is needed.
+existing dtypes that uses `NaN` and default data types is needed. The original
+variant of `StringDtype` using `pd.NA` will still be available for those who
+want to keep using it (see below in the "Naming" subsection for how to specify
+this).
 
 ### Object-dtype "fallback" implementation
 
@@ -196,7 +221,7 @@ However:
 
 ### Why not use the existing StringDtype with `pd.NA`?
 
-Wouldn't adding even more variants of the string dtype will make things only more
+Wouldn't adding even more variants of the string dtype make things only more
 confusing? Indeed, this proposal unfortunately introduces more variants of the
 string dtype. However, the reason for this is to ensure the actual default user
 experience is _less_ confusing, and the new string dtype fits better with the
@@ -210,8 +235,8 @@ bool, etc dtypes). This would lead to a very confusing default experience.
 
 With the proposed new variant of the StringDtype, this will ensure that for the
 _default_ experience, a user will only see only 1 kind of integer dtype, only
-kind of 1 bool dtype, etc. For now, a user should only get columns with an
-`ArrowDtype` and/or using `pd.NA` when explicitly opting into this.
+kind of 1 bool dtype, etc. For now, a user should only get columns using `pd.NA`
+when explicitly opting into this.
 
 ## Backward compatibility
 
