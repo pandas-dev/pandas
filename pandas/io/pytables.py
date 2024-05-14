@@ -125,8 +125,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.internals.blocks import Block
-
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
