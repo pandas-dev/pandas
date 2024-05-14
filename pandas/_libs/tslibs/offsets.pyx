@@ -2538,7 +2538,7 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2633,7 +2633,7 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.

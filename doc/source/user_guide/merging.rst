@@ -1073,7 +1073,7 @@ compare two :class:`DataFrame` or :class:`Series`, respectively, and summarize t
    df.compare(df2)
 
 By default, if two corresponding values are equal, they will be shown as ``NaN``.
-Furthermore, if all values in an entire row / column, the row / column will be
+Furthermore, if all values in an entire row / column are equal, that row / column will be
 omitted from the result. The remaining differences will be aligned on columns.
 
 Stack the differences on rows.
