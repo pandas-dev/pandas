@@ -615,6 +615,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.CBMonthBegin PR02" \
+        -i "pandas.tseries.offsets.CBMonthEnd PR02" \
         -i "pandas.tseries.offsets.CDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.calendar GL08" \
