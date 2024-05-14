@@ -146,7 +146,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.cat.rename_categories PR01,PR02" \
         -i "pandas.Series.cat.reorder_categories PR01,PR02" \
         -i "pandas.Series.cat.set_categories PR01,PR02" \
-        -i "pandas.Series.div PR07" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
@@ -239,7 +238,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
-        -i "pandas.Series.truediv PR07" \
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Series.var PR01,RT03,SA01" \
         -i "pandas.Timedelta PR07,SA01" \
