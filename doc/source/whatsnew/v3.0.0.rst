@@ -225,6 +225,7 @@ Removal of prior version deprecations/changes
 - All arguments except ``name`` in :meth:`Index.rename` are now keyword only (:issue:`56493`)
 - All arguments except the first ``path``-like argument in IO writers are now keyword only (:issue:`54229`)
 - Changed behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` to always treat integer keys as labels, never as positional, consistent with :class:`DataFrame` behavior (:issue:`50617`)
+- Changed behavior of :meth:`Series.__getitem__`, :meth:`Series.__setitem__`, :meth:`DataFrame.__getitem__`, :meth:`DataFrame.__setitem__` with an integer slice on objects with a floating-dtype index. This is now treated as *positional* indexing (:issue:`49612`)
 - Disallow a callable argument to :meth:`Series.iloc` to return a ``tuple`` (:issue:`53769`)
 - Disallow allowing logical operations (``||``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``); wrap the objects in :class:`Series`, :class:`Index`, or ``np.array`` first instead (:issue:`52264`)
 - Disallow automatic casting to object in :class:`Series` logical operations (``&``, ``^``, ``||``) between series with mismatched indexes and dtypes other than ``object`` or ``bool`` (:issue:`52538`)
