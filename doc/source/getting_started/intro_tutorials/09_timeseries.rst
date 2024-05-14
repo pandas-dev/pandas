@@ -77,9 +77,9 @@ I want to work with the dates in the column ``datetime`` as datetime objects ins
 
 Initially, the values in ``datetime`` are character strings and do not
 provide any datetime operations (e.g. extract the year, day of the
-week,…). By applying the ``to_datetime`` function, pandas interprets the
+week, …). By applying the ``to_datetime`` function, pandas interprets the
 strings and convert these to datetime (i.e. ``datetime64[ns, UTC]``)
-objects. In pandas we call these datetime objects similar to
+objects. In pandas we call these datetime objects that are similar to
 ``datetime.datetime`` from the standard library as :class:`pandas.Timestamp`.
 
 .. raw:: html
@@ -117,7 +117,7 @@ length of our time series:
     air_quality["datetime"].max() - air_quality["datetime"].min()
 
 The result is a :class:`pandas.Timedelta` object, similar to ``datetime.timedelta``
-from the standard Python library and defining a time duration.
+from the standard Python library which defines a time duration.
 
 .. raw:: html
 
@@ -257,7 +257,7 @@ the adapted time scale on plots. Let’s apply this on our data.
     <ul class="task-bullet">
         <li>
 
-Create a plot of the :math:`NO_2` values in the different stations from the 20th of May till the end of 21st of May
+Create a plot of the :math:`NO_2` values in the different stations from May 20th till the end of May 21st.
 
 .. ipython:: python
     :okwarning:
@@ -310,7 +310,7 @@ converting secondly data into 5-minutely data).
 The :meth:`~Series.resample` method is similar to a groupby operation:
 
 -  it provides a time-based grouping, by using a string (e.g. ``M``,
-   ``5H``,…) that defines the target frequency
+   ``5H``, …) that defines the target frequency
 -  it requires an aggregation function such as ``mean``, ``max``,…
 
 .. raw:: html
