@@ -301,7 +301,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.to_julian_date SA01" \
         -i "pandas.Timestamp.to_numpy PR01" \
         -i "pandas.Timestamp.to_period PR01,SA01" \
-        -i "pandas.Timestamp.to_pydatetime PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz SA01" \
