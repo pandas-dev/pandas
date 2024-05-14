@@ -46,7 +46,6 @@ def test_namespace():
     [
         "Block",
         "ExtensionBlock",
-        "DatetimeTZBlock",
     ],
 )
 def test_deprecations(name):

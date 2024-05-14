@@ -7,7 +7,6 @@ from pandas.core.internals.managers import (
 
 __all__ = [
     "Block",
-    "DatetimeTZBlock",
     "ExtensionBlock",
     "make_block",
     "BlockManager",
@@ -37,7 +36,6 @@ def __getattr__(name: str):
     if name in [
         "Block",
         "ExtensionBlock",
-        "DatetimeTZBlock",
     ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
@@ -47,11 +45,7 @@ def __getattr__(name: str):
             # on hard-coding stacklevel
             stacklevel=2,
         )
-        if name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
-
-            return DatetimeTZBlock
-        elif name == "ExtensionBlock":
+        if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 
             return ExtensionBlock
