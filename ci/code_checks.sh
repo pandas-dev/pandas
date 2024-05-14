@@ -290,7 +290,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02,PR07,SA01" \
-        -i "pandas.Timestamp.round SA01" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
         -i "pandas.Timestamp.time SA01" \
