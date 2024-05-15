@@ -165,33 +165,23 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.eq PR07,SA01" \
-        -i "pandas.Series.floordiv PR07" \
-        -i "pandas.Series.ge PR07,SA01" \
-        -i "pandas.Series.gt PR07,SA01" \
+        -i "pandas.Series.eq SA01" \
+        -i "pandas.Series.ge SA01" \
+        -i "pandas.Series.gt SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
-        -i "pandas.Series.le PR07,SA01" \
+        -i "pandas.Series.le SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
-        -i "pandas.Series.lt PR07,SA01" \
-        -i "pandas.Series.ne PR07,SA01" \
+        -i "pandas.Series.lt SA01" \
+        -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.plot PR02,SA01" \
         -i "pandas.Series.pop RT03,SA01" \
-        -i "pandas.Series.pow PR07" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
-        -i "pandas.Series.radd PR07" \
-        -i "pandas.Series.rdiv PR07" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
-        -i "pandas.Series.rfloordiv PR07" \
-        -i "pandas.Series.rmod PR07" \
-        -i "pandas.Series.rmul PR07" \
-        -i "pandas.Series.rpow PR07" \
-        -i "pandas.Series.rsub PR07" \
-        -i "pandas.Series.rtruediv PR07" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
         -i "pandas.Series.skew RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
@@ -231,7 +221,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
-        -i "pandas.Series.sub PR07" \
         -i "pandas.Series.sum RT03" \
         -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
