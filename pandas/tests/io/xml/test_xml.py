@@ -14,6 +14,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     EmptyDataError,
@@ -485,6 +486,7 @@ def test_empty_string_etree(val):
         read_xml(data, parser="etree")
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_wrong_file_path(parser):
     filename = os.path.join("does", "not", "exist", "books.xml")
 
