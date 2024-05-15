@@ -162,8 +162,6 @@ Bug Fixes
 
   This fix ensures reliable and consistent behavior of ``pd.merge`` when handling DataFrames with diverse data types, improving the stability and robustness of data merging operations in ``pandas``.
 
-
-
 .. _whatsnew_300.api_breaking.other:
 
 Other API changes
