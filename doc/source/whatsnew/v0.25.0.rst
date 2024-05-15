@@ -1082,7 +1082,7 @@ Numeric
 - Bug in :meth:`~pandas.eval` when comparing floats with scalar operators, for example: ``x < -0.1`` (:issue:`25928`)
 - Fixed bug where casting all-boolean array to integer extension array failed (:issue:`25211`)
 - Bug in ``divmod`` with a :class:`Series` object containing zeros incorrectly raising ``AttributeError`` (:issue:`26987`)
-- Inconsistency in :class:`Series` floor-division (`//`) and ``divmod`` filling positive//zero with ``NaN`` instead of ``Inf`` (:issue:`27321`)
+- Inconsistency in :class:`Series` floor-division (``//``) and ``divmod`` filling positive//zero with ``NaN`` instead of ``Inf`` (:issue:`27321`)
 -
 
 Conversion

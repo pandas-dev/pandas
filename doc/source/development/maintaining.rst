@@ -462,9 +462,9 @@ Post-Release
    the appropriate ones for the version you are releasing):
 
     - Log in to the server and use the correct user.
-    - `cd /var/www/html/pandas-docs/`
-    - `ln -sfn version/2.1 stable` (for a major or minor release)
-    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
+    - ``cd /var/www/html/pandas-docs/``
+    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation

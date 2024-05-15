@@ -445,7 +445,7 @@ Rolling/expanding moments improvements
      3    5
      dtype: float64
 
-- :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
+- :func:`rolling_window` now normalizes the weights properly in rolling mean mode (``mean=True``) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
   calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
