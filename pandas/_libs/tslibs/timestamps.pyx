@@ -1196,7 +1196,30 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert a Timestamp object to a native Python datetime object.
 
-        If warn=True, issue a warning if nanoseconds is nonzero.
+        This method is useful for when you need to utilize a pandas Timestamp
+        object in contexts where native Python datetime objects are expected
+        or required. The conversion discards the nanoseconds component, and a
+        warning can be issued in such cases if desired.
+
+        Parameters
+        ----------
+        warn : bool, default True
+            If True, issues a warning when the timestamp includes nonzero
+            nanoseconds, as these will be discarded during the conversion.
+
+        Returns
+        -------
+        datetime.datetime or NaT
+            Returns a datetime.datetime object representing the timestamp,
+            with year, month, day, hour, minute, second, and microsecond components.
+            If the timestamp is NaT (Not a Time), returns NaT.
+
+        See Also
+        --------
+        datetime.datetime : The standard Python datetime class that this method
+            returns.
+        Timestamp.timestamp : Convert a Timestamp object to POSIX timestamp.
+        Timestamp.to_datetime64 : Convert a Timestamp object to numpy.datetime64.
 
         Examples
         --------
@@ -2015,6 +2038,12 @@ class Timestamp(_Timestamp):
         """
         Round the Timestamp to the specified resolution.
 
+        This method rounds the given Timestamp down to a specified frequency
+        level. It is particularly useful in data analysis to normalize timestamps
+        to regular frequency intervals. For instance, rounding to the nearest
+        minute, hour, or day can help in time series comparisons or resampling
+        operations.
+
         Parameters
         ----------
         freq : str
@@ -2048,6 +2077,14 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        See Also
+        --------
+        datetime.round : Similar behavior in native Python datetime module.
+        Timestamp.floor : Round the Timestamp downward to the nearest multiple
+            of the specified frequency.
+        Timestamp.ceil : Round the Timestamp upward to the nearest multiple of
+            the specified frequency.
 
         Notes
         -----
