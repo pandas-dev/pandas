@@ -335,6 +335,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Eliminated circular reference in to original pandas object in accessor attributes (e.g. :attr:`Series.str`). However, accessor instantiation is no longer cached (:issue:`47667`, :issue:`41357`)
 - :attr:`Categorical.categories` returns a :class:`RangeIndex` columns instead of an :class:`Index` if the constructed ``values`` was a ``range``. (:issue:`57787`)
 - :class:`DataFrame` returns a :class:`RangeIndex` columns when possible when ``data`` is a ``dict`` (:issue:`57943`)
 - :class:`Series` returns a :class:`RangeIndex` index when possible when ``data`` is a ``dict`` (:issue:`58118`)
