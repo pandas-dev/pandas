@@ -5,6 +5,8 @@ import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
+from pandas.compat import WASM
+
 from pandas import Timestamp
 
 ts_no_ns = Timestamp(
@@ -95,6 +97,7 @@ class TestTimestampRendering:
     @pytest.mark.parametrize(
         "date", ["2014-03-07", "2014-01-01 09:00", "2014-01-01 00:00:00.000000001"]
     )
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_repr(self, date, freq, tz):
         # avoid to match with timezone name
         freq_repr = f"'{freq}'"

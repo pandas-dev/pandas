@@ -54,7 +54,7 @@ moto
 flask
 asv>=0.6.1
 flake8==6.1.0
-mypy==1.8.0
+mypy==1.9.0
 tokenize-rt
 pre-commit>=3.6.0
 gitpython
@@ -64,7 +64,6 @@ natsort
 numpydoc
 pydata-sphinx-theme==0.14
 pytest-cython
-docutils < 0.21
 sphinx
 sphinx-design
 sphinx-copybutton

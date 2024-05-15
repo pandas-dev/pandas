@@ -345,7 +345,6 @@ Float64Index API change
   .. ipython:: python
      :okwarning:
 
-     s[2:4]
      s.loc[2:4]
      s.iloc[2:4]
 
