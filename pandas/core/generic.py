@@ -4333,12 +4333,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
+            .. deprecated:: 3.0.0
+
             * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next
               valid
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap.
-            .. deprecated:: 3.0.0
 
         copy : bool, default False
             Return a new object, even if the passed indexes are the same.
