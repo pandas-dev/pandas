@@ -1187,7 +1187,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     if reduction_func == "corrwith":
         warn = FutureWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):

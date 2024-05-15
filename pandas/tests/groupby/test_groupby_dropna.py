@@ -546,7 +546,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
     if reduction_func == "corrwith":
         warn = FutureWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):
@@ -573,11 +573,11 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         expected = expected.rename(columns={0: "size"})
         if as_index:
             expected = expected["size"].rename(None)
-            
+
     if reduction_func == "corrwith":
         warn = FutureWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):

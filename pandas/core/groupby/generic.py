@@ -21,19 +21,19 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
-import warnings
 
 from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import SpecificationError
-from pandas.util._exceptions import find_stack_level
 from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,

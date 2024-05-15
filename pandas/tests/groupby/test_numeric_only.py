@@ -259,7 +259,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         if kernel == "corrwith":
             warn = FutureWarning
             msg = "DataFrameGroupBy.corrwith is deprecated"
-        else: 
+        else:
             warn = None
             msg = ""
         with tm.assert_produces_warning(warn, match=msg):
@@ -306,7 +306,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             if kernel == "corrwith":
                 warn = FutureWarning
                 msg = "DataFrameGroupBy.corrwith is deprecated"
-            else: 
+            else:
                 warn = None
                 msg = ""
             with tm.assert_produces_warning(warn, match=msg):

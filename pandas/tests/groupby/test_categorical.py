@@ -1453,7 +1453,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
     if reduction_func == "corrwith":
         warn = FutureWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         warn_msg = ""
     with tm.assert_produces_warning(warn, match=warn_msg):
@@ -1495,11 +1495,11 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         ):
             getattr(df_grp, reduction_func)(*args)
         return
-        
+
     if reduction_func == "corrwith":
         warn = FutureWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         warn_msg = ""
     with tm.assert_produces_warning(warn, match=warn_msg):
@@ -1898,7 +1898,7 @@ def test_category_order_reducer(
     if reduction_func == "corrwith":
         warn = FutureWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         warn_msg = ""
     with tm.assert_produces_warning(warn, match=warn_msg):

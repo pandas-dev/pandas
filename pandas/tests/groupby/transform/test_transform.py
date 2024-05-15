@@ -1481,7 +1481,7 @@ def test_as_index_no_change(keys, df, groupby_func):
     elif groupby_func == "corrwith":
         warn = FutureWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):

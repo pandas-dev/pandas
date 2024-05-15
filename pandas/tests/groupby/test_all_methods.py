@@ -31,7 +31,7 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     elif groupby_func == "corrwith":
         warn = FutureWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         warn_msg = ""
     with tm.assert_produces_warning(warn, match=warn_msg):
@@ -86,7 +86,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
     elif groupby_func == "corrwith":
         warn = FutureWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
-    else: 
+    else:
         warn = None
         warn_msg = ""
     with tm.assert_produces_warning(warn, match=warn_msg):
