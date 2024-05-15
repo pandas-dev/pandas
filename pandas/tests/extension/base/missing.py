@@ -27,7 +27,9 @@ class BaseMissingTests:
         expected = result.copy()
         mask = getattr(result, na_func)()
         if isinstance(mask.dtype, pd.SparseDtype):
+            # TODO: GH 57739
             mask = np.array(mask)
+            mask.flags.writeable = True
 
         mask[:] = True
         tm.assert_series_equal(result, expected)

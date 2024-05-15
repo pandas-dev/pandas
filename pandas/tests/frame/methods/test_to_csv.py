@@ -33,7 +33,7 @@ class TestDataFrameToCSV:
 
         return read_csv(path, **params)
 
-    def test_to_csv_from_csv1(self, temp_file, float_frame, datetime_frame):
+    def test_to_csv_from_csv1(self, temp_file, float_frame):
         path = str(temp_file)
         float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan
 
@@ -42,6 +42,8 @@ class TestDataFrameToCSV:
         float_frame.to_csv(path, header=False)
         float_frame.to_csv(path, index=False)
 
+    def test_to_csv_from_csv1_datetime(self, temp_file, datetime_frame):
+        path = str(temp_file)
         # test roundtrip
         # freq does not roundtrip
         datetime_frame.index = datetime_frame.index._with_freq(None)
@@ -59,7 +61,8 @@ class TestDataFrameToCSV:
         recons = self.read_csv(path, index_col=None, parse_dates=True)
         tm.assert_almost_equal(datetime_frame.values, recons.values)
 
-        # corner case
+    def test_to_csv_from_csv1_corner_case(self, temp_file):
+        path = str(temp_file)
         dm = DataFrame(
             {
                 "s1": Series(range(3), index=np.arange(3, dtype=np.int64)),
@@ -1167,9 +1170,16 @@ class TestDataFrameToCSV:
         result.index = to_datetime(result.index, utc=True).tz_convert("Europe/London")
         tm.assert_frame_equal(result, df)
 
-    def test_to_csv_with_dst_transitions_with_pickle(self, temp_file):
+    @pytest.mark.parametrize(
+        "start,end",
+        [
+            ["2015-03-29", "2015-03-30"],
+            ["2015-10-25", "2015-10-26"],
+        ],
+    )
+    def test_to_csv_with_dst_transitions_with_pickle(self, start, end, temp_file):
         # GH11619
-        idx = date_range("2015-01-01", "2015-12-31", freq="h", tz="Europe/Paris")
+        idx = date_range(start, end, freq="h", tz="Europe/Paris")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
