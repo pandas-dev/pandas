@@ -13045,6 +13045,7 @@ class DataFrame(NDFrame, OpsMixin):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
+        from pandas.core.dtypes.common import is_object_dtype
         validate_percentile(q)
         axis = self._get_axis_number(axis)
 
@@ -13064,7 +13065,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#41544 try to get an appropriate dtype
                 dtype = "float64"
                 cdtype = find_common_type(list(self.dtypes))
-                if needs_i8_conversion(cdtype):
+                if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
                     dtype = cdtype
                 return res.astype(dtype)
             return res
@@ -13083,7 +13084,7 @@ class DataFrame(NDFrame, OpsMixin):
             if axis == 1:
                 # GH#41544 try to get an appropriate dtype
                 cdtype = find_common_type(list(self.dtypes))
-                if needs_i8_conversion(cdtype):
+                if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
                     dtype = cdtype
 
             res = self._constructor([], index=q, columns=cols, dtype=dtype)
@@ -13094,6 +13095,18 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
+
+        # handle degenerate case
+        if len(data) == 0:
+            dtype = np.float64
+            if data.ndim == 2:
+                cdtype = find_common_type(list(self.dtypes))
+            else:
+                cdtype = self.dtype
+            if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
+                dtype = cdtype
+            return self._constructor([], index=q, columns=data.columns, dtype=dtype)
+
         if method == "single":
             res = data._mgr.quantile(qs=q, interpolation=interpolation)
         elif method == "table":
@@ -13103,13 +13116,6 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Invalid interpolation: {interpolation}. "
                     f"Interpolation must be in {valid_interpolation}"
                 )
-            # handle degenerate case
-            if len(data) == 0:
-                if data.ndim == 2:
-                    dtype = find_common_type(list(self.dtypes))
-                else:
-                    dtype = self.dtype
-                return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
             q_idx = np.quantile(np.arange(len(data)), q, method=interpolation)
 
