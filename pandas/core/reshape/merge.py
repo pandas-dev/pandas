@@ -124,6 +124,7 @@ _factorizers = {
     np.complex64: libhashtable.Complex64Factorizer,
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
+    np.uintc: libhashtable.UInt32Factorizer,
 }
 
 # See https://github.com/pandas-dev/pandas/issues/52451
