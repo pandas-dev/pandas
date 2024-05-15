@@ -171,6 +171,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
+- Deprecated :meth:`Groupby.corrwith` (:issue:`57158`)
+
 Copy keyword
 ^^^^^^^^^^^^
 

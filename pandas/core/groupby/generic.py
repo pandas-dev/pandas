@@ -23,10 +23,12 @@ from typing import (
 )
 
 import numpy as np
+import warnings
 
 from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import SpecificationError
+from pandas.util._exceptions import find_stack_level
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -2785,6 +2787,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2    0.755929  NaN
         3    0.576557  NaN
         """
+        warnings.warn(
+            "DataFrameGroupBy.corrwith is deprecated",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "corrwith",
             other=other,
