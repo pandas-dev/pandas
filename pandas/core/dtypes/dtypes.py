@@ -1665,7 +1665,10 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    This dtype implements the pandas ExtensionDtype interface.
+    `SparseDtype` is used as the data type for :class:`SparseArray`, enabling
+    more efficient storage of data that contains a significant number of
+    repetitive values typically represented by a fill value. It supports any
+    scalar dtype as the underlying data type of the non-fill values.
 
     Parameters
     ----------
@@ -1694,6 +1697,11 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    arrays.SparseArray : The array structure that uses SparseDtype
+        for data representation.
 
     Examples
     --------

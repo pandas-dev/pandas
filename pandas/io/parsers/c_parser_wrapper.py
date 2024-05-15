@@ -166,30 +166,28 @@ class CParserWrapper(ParserBase):
         # error: Cannot determine type of 'names'
         self.orig_names = self.names  # type: ignore[has-type]
 
-        if not self._has_complex_date_col:
-            # error: Cannot determine type of 'index_col'
-            if self._reader.leading_cols == 0 and is_index_col(
-                self.index_col  # type: ignore[has-type]
-            ):
-                self._name_processed = True
-                (
-                    index_names,
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
-                    self.index_col,
-                ) = self._clean_index_names(
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
-                    # error: Cannot determine type of 'index_col'
-                    self.index_col,  # type: ignore[has-type]
-                )
+        # error: Cannot determine type of 'index_col'
+        if self._reader.leading_cols == 0 and is_index_col(
+            self.index_col  # type: ignore[has-type]
+        ):
+            (
+                index_names,
+                # error: Cannot determine type of 'names'
+                self.names,  # type: ignore[has-type]
+                self.index_col,
+            ) = self._clean_index_names(
+                # error: Cannot determine type of 'names'
+                self.names,  # type: ignore[has-type]
+                # error: Cannot determine type of 'index_col'
+                self.index_col,  # type: ignore[has-type]
+            )
 
-                if self.index_names is None:
-                    self.index_names = index_names
+            if self.index_names is None:
+                self.index_names = index_names
 
-            if self._reader.header is None and not passed_names:
-                assert self.index_names is not None
-                self.index_names = [None] * len(self.index_names)
+        if self._reader.header is None and not passed_names:
+            assert self.index_names is not None
+            self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -274,9 +272,6 @@ class CParserWrapper(ParserBase):
         names = self.names  # type: ignore[has-type]
 
         if self._reader.leading_cols:
-            if self._has_complex_date_col:
-                raise NotImplementedError("file structure not yet supported")
-
             # implicit index, no index names
             arrays = []
 
@@ -307,12 +302,10 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            column_names, date_data = self._do_date_conversions(names, data)
+            date_data = self._do_date_conversions(names, data)
 
             # maybe create a mi on the columns
-            column_names = self._maybe_make_multi_index_columns(
-                column_names, self.col_names
-            )
+            column_names = self._maybe_make_multi_index_columns(names, self.col_names)
 
         else:
             # rename dict keys
@@ -335,7 +328,7 @@ class CParserWrapper(ParserBase):
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, date_data = self._do_date_conversions(names, data)
+            date_data = self._do_date_conversions(names, data)
             index, column_names = self._make_index(date_data, alldata, names)
 
         return index, column_names, date_data
