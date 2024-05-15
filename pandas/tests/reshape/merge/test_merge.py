@@ -1490,6 +1490,7 @@ class TestMergeDtypes:
         # categorical cols to object
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
+
     @pytest.mark.parametrize(
         "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
     )
