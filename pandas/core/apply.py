@@ -628,7 +628,8 @@ class Apply(metaclass=abc.ABCMeta):
 
             cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                raise KeyError(f"Column(s) {list(cols)} do not exist")
+                # GH 58474
+                raise KeyError(f"Label(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 

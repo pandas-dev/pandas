@@ -507,7 +507,7 @@ __all__ = [
 ]
 
 
-def set_module(module):
+def set_module(module) -> Callable[[F], F]:
     """Private decorator for overriding __module__ on a function or class.
 
     Example usage::
@@ -520,7 +520,7 @@ def set_module(module):
         assert example.__module__ == "pandas"
     """
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         if module is not None:
             func.__module__ = module
         return func

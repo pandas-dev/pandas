@@ -145,8 +145,12 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                     kwds = freq.kwds
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
+                if freq is not None:
+                    freq_name = freq.name
+                else:
+                    freq_name = None
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw, reso=self._creso
+                    values, field, freq_name, month_kw, reso=self._creso
                 )
             else:
                 result = fields.get_date_field(values, field, reso=self._creso)
@@ -867,6 +871,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         Returns
         -------
         Array or Index
+            Datetme Array/Index with target `tz`.
 
         Raises
         ------
@@ -1126,6 +1131,12 @@ default 'raise'
         Returns
         -------
         numpy.ndarray
+            An ndarray of ``datetime.datetime`` objects.
+
+        See Also
+        --------
+        DatetimeIndex.to_julian_date : Converts Datetime Array to float64 ndarray
+            of Julian Dates.
 
         Examples
         --------
@@ -1200,6 +1211,7 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
+            Immutable ndarray holding ordinal values at a particular frequency.
 
         Raises
         ------
@@ -1905,6 +1917,15 @@ default 'raise'
         """
         The number of days in the month.
 
+        See Also
+        --------
+        Series.dt.day : Return the day of the month.
+        Series.dt.is_month_end : Return a boolean indicating if the
+            date is the last day of the month.
+        Series.dt.is_month_start : Return a boolean indicating if the
+            date is the first day of the month.
+        Series.dt.month : Return the month as January=1 through December=12.
+
         Examples
         --------
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
@@ -2247,9 +2268,25 @@ default 'raise'
         axis : int, optional
             Axis for the function to be applied on. For :class:`pandas.Series`
             this parameter is unused and defaults to ``None``.
+        dtype : dtype, optional, default None
+            Type to use in computing the standard deviation. For arrays of
+            integer type the default is float64, for arrays of float types
+            it is the same as the array type.
+        out : ndarray, optional, default None
+            Alternative output array in which to place the result. It must have
+            the same shape as the expected output but the type (of the
+            calculated values) will be cast if necessary.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array. If the default
+            value is passed, then keepdims will not be passed through to the
+            std method of sub-classes of ndarray, however any non-default value
+            will be. If the sub-class method does not implement keepdims any
+            exceptions will be raised.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is ``NA``, the result
             will be ``NA``.
@@ -2257,6 +2294,7 @@ default 'raise'
         Returns
         -------
         Timedelta
+            Standard deviation over requested axis.
 
         See Also
         --------

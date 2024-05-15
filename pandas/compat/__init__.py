@@ -21,6 +21,7 @@ from pandas.compat._constants import (
     PY311,
     PY312,
     PYPY,
+    WASM,
 )
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
@@ -120,6 +121,18 @@ def is_platform_power() -> bool:
     return platform.machine() in ("ppc64", "ppc64le")
 
 
+def is_platform_riscv64() -> bool:
+    """
+    Checking if the running platform use riscv64 architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses riscv64 architecture.
+    """
+    return platform.machine() == "riscv64"
+
+
 def is_ci_environment() -> bool:
     """
     Checking if running in a continuous integration environment by checking
@@ -146,4 +159,5 @@ __all__ = [
     "PY311",
     "PY312",
     "PYPY",
+    "WASM",
 ]
