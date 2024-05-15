@@ -93,7 +93,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import doc
+from pandas.util._decorators import doc, deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -4301,11 +4301,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
+    # issue 58667
+    @deprecate_kwarg('method', None)
     @final
     def reindex_like(
         self,
         other,
         method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
+            
         copy: bool | lib.NoDefault = lib.no_default,
         limit: int | None = None,
         tolerance=None,
@@ -4333,6 +4336,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               valid
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap.
+            .. deprecated:: 3.0.0
 
         copy : bool, default False
             Return a new object, even if the passed indexes are the same.
