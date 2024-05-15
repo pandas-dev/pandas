@@ -1511,7 +1511,6 @@ Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
-* ``sep=None`` with ``delim_whitespace=False``
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
@@ -1526,7 +1525,6 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``memory_map``
 * ``dialect``
 * ``on_bad_lines``
-* ``delim_whitespace``
 * ``quoting``
 * ``lineterminator``
 * ``converters``

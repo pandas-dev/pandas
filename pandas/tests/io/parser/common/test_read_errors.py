@@ -250,19 +250,17 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(request, all_parsers):
+def test_open_file(all_parsers):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
-        err = ValueError
+        msg = "object of type 'NoneType' has no len"
+        err = TypeError
     elif parser.engine == "pyarrow":
-        msg = (
-            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
-        )
+        msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
     with tm.ensure_clean() as path:

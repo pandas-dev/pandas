@@ -113,9 +113,8 @@ def read_clipboard(
         if index_length != 0:
             kwargs.setdefault("index_col", list(range(index_length)))
 
-    # Edge case where sep is specified to be None, return to default
-    if sep is None and kwargs.get("delim_whitespace") is None:
-        sep = r"\s+"
+    elif not isinstance(sep, str):
+        raise ValueError(f"{sep=} must be a string")
 
     # Regex separator currently only works with python engine.
     # Default to python if separator is multi-character (regex)
