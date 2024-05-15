@@ -1491,7 +1491,7 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
     @pytest.mark.parametrize(
-        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
+        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8, np.uintc]
     )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, d1, d2):

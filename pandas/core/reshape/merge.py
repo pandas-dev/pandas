@@ -124,12 +124,15 @@ _factorizers = {
     np.complex64: libhashtable.Complex64Factorizer,
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
-    np.uintc: libhashtable.UInt32Factorizer,
+    
 }
 
 # See https://github.com/pandas-dev/pandas/issues/52451
 if np.intc is not np.int32:
     _factorizers[np.intc] = libhashtable.Int64Factorizer
+
+if np.uintc is not np.uint32:
+    _factorizers[np.uintc] = libhashtable.UInt32Factorizer
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
