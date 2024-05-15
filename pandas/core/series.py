@@ -246,7 +246,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ----------
     data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series. If data is a dict, argument order is
-        maintained.
+        maintained. Unordered sets are not supported.
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
