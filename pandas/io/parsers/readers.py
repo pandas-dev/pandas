@@ -322,9 +322,9 @@ date_format : str or dict of column -> format, optional
     You can also pass:
 
     - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
-        time string (not necessarily in exactly the same format);
+      time string (not necessarily in exactly the same format);
     - "mixed", to infer the format for each element individually. This is risky,
-        and you should probably use it along with `dayfirst`.
+      and you should probably use it along with `dayfirst`.
 
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
