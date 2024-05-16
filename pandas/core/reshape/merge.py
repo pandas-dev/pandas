@@ -130,7 +130,7 @@ _factorizers = {
 if np.intc is not np.int32:
     _factorizers[np.intc] = libhashtable.Int64Factorizer
 
-if np.uintc is not np.uint32:
+if np.uintc(0).itemsize == 8:
     _factorizers[np.uintc] = libhashtable.UInt64Factorizer
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
