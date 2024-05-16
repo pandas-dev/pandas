@@ -336,6 +336,7 @@ Removal of prior version deprecations/changes
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Eliminated circular reference in to original pandas object in accessor attributes (e.g. :attr:`Series.str`). However, accessor instantiation is no longer cached (:issue:`47667`, :issue:`41357`)
 - :attr:`Categorical.categories` returns a :class:`RangeIndex` columns instead of an :class:`Index` if the constructed ``values`` was a ``range``. (:issue:`57787`)
 - :class:`DataFrame` returns a :class:`RangeIndex` columns when possible when ``data`` is a ``dict`` (:issue:`57943`)
 - :class:`Series` returns a :class:`RangeIndex` index when possible when ``data`` is a ``dict`` (:issue:`58118`)
@@ -469,6 +470,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Bug in :meth:`DataFrameGroupBy.apply` with ``as_index=False`` that was returning :class:`MultiIndex` instead of returning :class:`Index`. (:issue:`58291`)
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
+- Bug in :meth:`.DataFrameGroupBy.__len__` and :meth:`.SeriesGroupBy.__len__` would raise when the grouping contained NA values and ``dropna=False`` (:issue:`58644`)
 
 
 Reshaping
