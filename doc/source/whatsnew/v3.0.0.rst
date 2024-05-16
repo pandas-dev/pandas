@@ -474,7 +474,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
-- Fixed issue in `pd.merge` (`#58713`) where merging DataFrames with `np.intc` or `np.uintc` data types caused unexpected behavior or errors. Comprehensive testing now ensures consistent behavior across diverse data type combinations, enhancing stability and robustness of data merging operations.
+- Bug in `pd.merge` on Windows where merging DataFrames with `np.intc` or `np.uintc` data types caused unexpected behavior or errors (:issue:`58713`)
 -
 
 Sparse

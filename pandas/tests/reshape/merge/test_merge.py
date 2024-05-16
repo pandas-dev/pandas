@@ -1523,9 +1523,11 @@ class TestMergeDtypes:
         expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_join_multi_dtypes_with_uintc(self, np.uintc, np.float64):
-        dtype1 = np.dtype(np.uintc)
-        dtype2 = np.dtype(np.float64)
+    def test_join_multi_dtypes_with_uintc(self, d1, d2):
+        d1 = np.uintc
+        d2 = np.float64
+        dtype1 = np.dtype(d1)
+        dtype2 = np.dtype(d2)
 
         left = DataFrame(
             {
