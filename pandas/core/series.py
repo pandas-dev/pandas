@@ -101,7 +101,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.arrow import (
@@ -5750,13 +5750,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Accessor Methods
     # ----------------------------------------------------------------------
-    str = CachedAccessor("str", StringMethods)
-    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
-    cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
-    sparse = CachedAccessor("sparse", SparseAccessor)
-    struct = CachedAccessor("struct", StructAccessor)
-    list = CachedAccessor("list", ListAccessor)
+    str = Accessor("str", StringMethods)
+    dt = Accessor("dt", CombinedDatetimelikeProperties)
+    cat = Accessor("cat", CategoricalAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
+    sparse = Accessor("sparse", SparseAccessor)
+    struct = Accessor("struct", StructAccessor)
+    list = Accessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
