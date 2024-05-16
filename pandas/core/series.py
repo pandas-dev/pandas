@@ -101,7 +101,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.arrow import (
@@ -3968,26 +3968,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """copy : bool, default True
-            Whether to copy underlying data.
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
+    ) -> Series:
+        """
+        Swap levels i and j in a :class:`MultiIndex`.
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+        Default is to swap the two innermost levels of the index.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
-        ),
-        examples=dedent(
-            """\
+        Parameters
+        ----------
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        copy : bool, default True
+                    Whether to copy underlying data.
+
+                    .. note::
+                        The `copy` keyword will change behavior in pandas 3.0.
+                        `Copy-on-Write
+                        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                        will be enabled by default, which means that all methods with a
+                        `copy` keyword will use a lazy copy mechanism to defer the copy
+                        and ignore the `copy` keyword. The `copy` keyword will be
+                        removed in a future version of pandas.
+
+                        You can already get the future behavior and improvements through
+                        enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+        Returns
+        -------
+        Series
+            Series with levels swapped in MultiIndex.
+
+        See Also
+        --------
+        DataFrame.swaplevel : Swap levels i and j in a :class:`DataFrame`.
+        Series.reorder_levels : Rearrange index levels using input order.
+        MultiIndex.swaplevel : Swap levels i and j in a :class:`MultiIndex`.
+
         Examples
         --------
         >>> s = pd.Series(
@@ -4037,29 +4055,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Geography   Final exam  February        B
         History     Coursework  March           A
         Geography   Coursework  April           C
-        dtype: object"""
-        ),
-    )
-    def swaplevel(
-        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
-    ) -> Series:
-        """
-        Swap levels i and j in a :class:`MultiIndex`.
-
-        Default is to swap the two innermost levels of the index.
-
-        Parameters
-        ----------
-        i, j : int or str
-            Levels of the indices to be swapped. Can pass level name as string.
-        {extra_params}
-
-        Returns
-        -------
-        {klass}
-            {klass} with levels swapped in MultiIndex.
-
-        {examples}
+        dtype: object
         """
         self._check_copy_deprecation(copy)
         assert isinstance(self.index, MultiIndex)
@@ -5754,13 +5750,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Accessor Methods
     # ----------------------------------------------------------------------
-    str = CachedAccessor("str", StringMethods)
-    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
-    cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
-    sparse = CachedAccessor("sparse", SparseAccessor)
-    struct = CachedAccessor("struct", StructAccessor)
-    list = CachedAccessor("list", ListAccessor)
+    str = Accessor("str", StringMethods)
+    dt = Accessor("dt", CombinedDatetimelikeProperties)
+    cat = Accessor("cat", CategoricalAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
+    sparse = Accessor("sparse", SparseAccessor)
+    struct = Accessor("struct", StructAccessor)
+    list = Accessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -6720,7 +6716,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
-    @doc(make_doc("var", ndim=1))
     def var(
         self,
         axis: Axis | None = None,
@@ -6729,6 +6724,75 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased variance over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.var with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs :
+            Additional keywords passed.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Unbiased variance over requested axis.
+
+        See Also
+        --------
+        numpy.var : Equivalent function in NumPy.
+        Series.std : Returns the standard deviation of the Series.
+        DataFrame.var : Returns the variance of the DataFrame.
+        DataFrame.std : Return standard deviation of the values over
+            the requested axis.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "person_id": [0, 1, 2, 3],
+        ...         "age": [21, 25, 62, 43],
+        ...         "height": [1.61, 1.87, 1.49, 2.01],
+        ...     }
+        ... ).set_index("person_id")
+        >>> df
+                   age  height
+        person_id
+        0           21    1.61
+        1           25    1.87
+        2           62    1.49
+        3           43    2.01
+
+        >>> df.var()
+        age       352.916667
+        height      0.056367
+        dtype: float64
+
+        Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
+
+        >>> df.var(ddof=0)
+        age       264.687500
+        height      0.042275
+        dtype: float64
+        """
         return NDFrame.var(
             self,
             axis=axis,
