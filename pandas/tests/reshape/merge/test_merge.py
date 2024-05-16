@@ -1495,7 +1495,7 @@ class TestMergeDtypes:
     def test_join_multi_dtypes(self, any_int_numpy_dtype, d2):
         dtype1 = np.dtype(any_int_numpy_dtype)
         dtype2 = np.dtype(d2)
-            
+
         left = DataFrame(
             {
                 "k1": np.array([0, 1, 2] * 8, dtype=dtype1),
@@ -1524,7 +1524,7 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
     def test_join_multi_dtypes_with_uintc(self):
     # Test case specifically for np.uintc as the dtype
-    self.test_join_multi_dtypes(np.uintc, d2)    
+    self.test_join_multi_dtypes(np.uintc, d2)
 
     @pytest.mark.parametrize(
         "int_vals, float_vals, exp_vals",
