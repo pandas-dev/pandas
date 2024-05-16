@@ -767,9 +767,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
                 if values.dtype != object:
                     return self.isin(values)
-
-            if "mixed" in lib.infer_dtype(values, skipna=False):
-                return isin(self.astype(object), values)
+                else:
+                    # TODO: Deprecate this case
+                    # https://github.com/pandas-dev/pandas/pull/58645/files#r1604055791
+                    return isin(self.astype(object), values)
             return np.zeros(self.shape, dtype=bool)
 
         if self.dtype.kind in "mM":
