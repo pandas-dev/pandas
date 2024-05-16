@@ -1522,6 +1522,7 @@ class TestMergeDtypes:
         result = left.join(right, on=["k1", "k2"], sort=True)
         expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
         tm.assert_frame_equal(result, expected)
+        
     def test_join_multi_dtypes_with_uintc(self):
     # Test case specifically for np.uintc as the dtype
     self.test_join_multi_dtypes(np.uintc, d2)
