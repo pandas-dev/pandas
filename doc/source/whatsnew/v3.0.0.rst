@@ -117,11 +117,6 @@ These improvements also fixed certain bugs in groupby:
 
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
-- Fixed an issue (`#58713 <https://github.com/pandas-dev/pandas/issues/58713>`_) where ``pd.merge`` failed to handle certain combinations of data types correctly. This issue caused unexpected behavior or errors when merging DataFrames with different data types, particularly when using ``np.intc`` or ``np.uintc`` data types.
-
-  To address this issue, comprehensive testing coverage has been added to ensure that ``pd.merge`` behaves consistently across different data type combinations. The tests include parameterized fixtures with various combinations of data types, including ``np.intc`` and ``np.uintc``, to verify correct behavior under different scenarios.
-
-  This fix ensures reliable and consistent behavior of ``pd.merge`` when handling DataFrames with diverse data types, improving the stability and robustness of data merging operations in ``pandas``.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.api_breaking:
@@ -478,6 +473,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Fixed issue in `pd.merge` (`#58713`) where merging DataFrames with `np.intc` or `np.uintc` data types caused unexpected behavior or errors. Comprehensive testing now ensures consistent behavior across diverse data type combinations, enhancing stability and robustness of data merging operations.
 -
 
 Sparse
