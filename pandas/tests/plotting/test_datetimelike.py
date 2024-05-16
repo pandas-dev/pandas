@@ -927,7 +927,7 @@ class TestTSPlot:
     @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
         # GH13341, using sharex=True
-        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)
@@ -1432,13 +1432,19 @@ class TestTSPlot:
         values1 = np.arange(10.0, 11.0, 0.5)
         values2 = np.arange(11.0, 12.0, 0.5)
 
-        kw = {"fmt": "-", "lw": 4}
-
         _, ax = mpl.pyplot.subplots()
-        ax.plot_date([x.toordinal() for x in dates], values1, **kw)
-        ax.plot_date([x.toordinal() for x in dates], values2, **kw)
-
-        line1, line2 = ax.get_lines()
+        (
+            line1,
+            line2,
+        ) = ax.plot(
+            [x.toordinal() for x in dates],
+            values1,
+            "-",
+            [x.toordinal() for x in dates],
+            values2,
+            "-",
+            linewidth=4,
+        )
 
         exp = np.array([x.toordinal() for x in dates], dtype=np.float64)
         tm.assert_numpy_array_equal(line1.get_xydata()[:, 0], exp)

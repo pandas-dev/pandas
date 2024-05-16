@@ -60,6 +60,16 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             rng.to_period()
 
+    @pytest.mark.parametrize("freq_depr", ["2T", "1l", "2U", "n"])
+    def test_period_index_T_L_U_N_raises(self, freq_depr):
+        # GH#9586
+        msg = f"Invalid frequency: {freq_depr}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq_depr)
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
+
 
 class TestPeriodIndex:
     def test_from_ordinals(self):
@@ -186,11 +196,9 @@ class TestPeriodIndex:
             )
 
     def test_period_range_fractional_period(self):
-        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = period_range("2007-01", periods=10.5, freq="M")
-        exp = period_range("2007-01", periods=10, freq="M")
-        tm.assert_index_equal(result, exp)
+        msg = "periods must be an integer, got 10.5"
+        with pytest.raises(TypeError, match=msg):
+            period_range("2007-01", periods=10.5, freq="M")
 
     def test_constructor_with_without_freq(self):
         # GH53687

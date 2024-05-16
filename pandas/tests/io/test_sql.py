@@ -1373,6 +1373,30 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
         pandasSQL.drop_table("test_insert_conflict")
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+def test_to_sql_on_public_schema(conn, request):
+    if "sqlite" in conn or "mysql" in conn:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="test for public schema only specific to postgresql"
+            )
+        )
+
+    conn = request.getfixturevalue(conn)
+
+    test_data = DataFrame([[1, 2.1, "a"], [2, 3.1, "b"]], columns=list("abc"))
+    test_data.to_sql(
+        name="test_public_schema",
+        con=conn,
+        if_exists="append",
+        index=False,
+        schema="public",
+    )
+
+    df_out = sql.read_sql_table("test_public_schema", conn, schema="public")
+    tm.assert_frame_equal(test_data, df_out)
+
+
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_insertion_method_on_conflict_update(conn, request):
     # GH 14553: Example in to_sql docstring
@@ -2276,9 +2300,16 @@ def test_api_escaped_table_name(conn, request):
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
     if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="pyarrow->pandas throws ValueError", strict=True)
-        )
+        pa = pytest.importorskip("pyarrow")
+        if not (
+            Version(pa.__version__) >= Version("16.0")
+            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyarrow->pandas throws ValueError", strict=True
+                )
+            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2322,18 +2353,15 @@ def test_read_table_index_col(conn, request, test_frame1):
     sql.to_sql(test_frame1, "test_frame", conn)
 
     result = sql.read_sql_table("test_frame", conn, index_col="index")
-    assert result.index.names == ("index",)
+    assert result.index.names == ["index"]
 
     result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
-    assert result.index.names == ("A", "B")
+    assert result.index.names == ["A", "B"]
 
     result = sql.read_sql_table(
         "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
     )
-    assert result.index.names == (
-        "A",
-        "B",
-    )
+    assert result.index.names == ["A", "B"]
     assert result.columns.tolist() == ["C", "D"]
 
 
@@ -2581,7 +2609,7 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
             self.conn.close()
 
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
             sql.read_sql("SELECT 1", conn)
 
 

@@ -113,8 +113,9 @@ def test_pass_args_kwargs(ts, tsframe):
         expected_seq = df_grouped.quantile([0.4, 0.8])
         if not as_index:
             # apply treats the op as a transform; .quantile knows it's a reduction
-            apply_result = apply_result.reset_index()
-            apply_result["level_0"] = [1, 1, 2, 2]
+            apply_result.index = range(4)
+            apply_result.insert(loc=0, column="level_0", value=[1, 1, 2, 2])
+            apply_result.insert(loc=1, column="level_1", value=[0.4, 0.8, 0.4, 0.8])
         tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
         agg_result = df_grouped.agg(f, q=80)
@@ -143,6 +144,15 @@ def test_len_nan_group():
     assert len(df.groupby("a")) == 0
     assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 0
+
+
+def test_groupby_timedelta_median():
+    # issue 57926
+    expected = Series(data=Timedelta("1d"), index=["foo"])
+    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
+    gb = df.groupby("label")["timedelta"]
+    actual = gb.median()
+    tm.assert_series_equal(actual, expected, check_names=False)
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
@@ -215,8 +225,6 @@ def test_indices_concatenation_order():
 
     df2 = DataFrame({"a": [3, 2, 2, 2], "b": range(4), "c": range(5, 9)})
 
-    depr_msg = "The behavior of array concatenation with empty entries is deprecated"
-
     # correct result
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
@@ -236,8 +244,7 @@ def test_indices_concatenation_order():
     with pytest.raises(AssertionError, match=msg):
         df.groupby("a").apply(f3)
     with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            df2.groupby("a").apply(f3)
+        df2.groupby("a").apply(f3)
 
 
 def test_attr_wrapper(ts):
@@ -513,9 +520,7 @@ def test_as_index_select_column():
     result = df.groupby("A", as_index=False, group_keys=True)["B"].apply(
         lambda x: x.cumsum()
     )
-    expected = Series(
-        [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
-    )
+    expected = Series([2, 6, 6], name="B", index=range(3))
     tm.assert_series_equal(result, expected)
 
 
@@ -665,7 +670,7 @@ def test_raises_on_nuisance(df):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support sum operations"
+    msg = "datetime64 type does not support operation 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
@@ -1788,7 +1793,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             else:
                 msg = "category type does not support"
             if op == "skew":
-                msg = "|".join([msg, "does not support reduction 'skew'"])
+                msg = "|".join([msg, "does not support operation 'skew'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
@@ -2946,6 +2951,37 @@ def test_groupby_dropna_with_nunique_unique():
     columns = MultiIndex.from_tuples([("partner", "nunique"), ("partner", "unique")])
     expected = DataFrame(
         [(1, ["A"]), (1, ["A"]), (1, ["A"]), (1, ["A"])], index=index, columns=columns
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_namedagg_with_duplicate_columns():
+    # GH#58446
+    df = DataFrame(
+        {
+            "col1": [2, 1, 1, 0, 2, 0],
+            "col2": [4, 5, 36, 7, 4, 5],
+            "col3": [3.1, 8.0, 12, 10, 4, 1.1],
+            "col4": [17, 3, 16, 15, 5, 6],
+            "col5": [-1, 3, -1, 3, -2, -1],
+        }
+    )
+
+    result = df.groupby(by=["col1", "col1", "col2"], as_index=False).agg(
+        new_col=pd.NamedAgg(column="col1", aggfunc="min"),
+        new_col1=pd.NamedAgg(column="col1", aggfunc="max"),
+        new_col2=pd.NamedAgg(column="col2", aggfunc="count"),
+    )
+
+    expected = DataFrame(
+        {
+            "col1": [0, 0, 1, 1, 2],
+            "col2": [5, 7, 5, 36, 4],
+            "new_col": [0, 0, 1, 1, 2],
+            "new_col1": [0, 0, 1, 1, 2],
+            "new_col2": [1, 1, 1, 1, 2],
+        }
     )
 
     tm.assert_frame_equal(result, expected)

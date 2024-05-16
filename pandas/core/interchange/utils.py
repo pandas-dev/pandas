@@ -144,6 +144,9 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     elif isinstance(dtype, DatetimeTZDtype):
         return ArrowCTypes.TIMESTAMP.format(resolution=dtype.unit[0], tz=dtype.tz)
 
+    elif isinstance(dtype, pd.BooleanDtype):
+        return ArrowCTypes.BOOL
+
     raise NotImplementedError(
         f"Conversion of {dtype} to Arrow C format string is not implemented."
     )

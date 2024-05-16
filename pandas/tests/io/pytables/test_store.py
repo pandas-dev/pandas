@@ -7,6 +7,8 @@ import time
 import numpy as np
 import pytest
 
+from pandas.compat import PY312
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -866,7 +868,7 @@ def test_start_stop_fixed(setup_path):
         df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(setup_path):
+def test_select_filter_corner(setup_path, request):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
@@ -874,6 +876,13 @@ def test_select_filter_corner(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="table")
 
+        request.applymarker(
+            pytest.mark.xfail(
+                PY312,
+                reason="AST change in PY312",
+                raises=ValueError,
+            )
+        )
         crit = "columns=df.columns[:75]"
         result = store.select("frame", [crit])
         tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])
@@ -1015,7 +1024,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
-    data_columns = list(df.index.names) + df.columns.tolist()
+    data_columns = df.index.names + df.columns.tolist()
     path = tmp_path / setup_path
     df.to_hdf(
         path,

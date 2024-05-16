@@ -397,7 +397,11 @@ def _generate_marginal_results(
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
-                        [all_key], names=piece.index.names + (None,)
+                        [all_key],
+                        names=piece.index.names
+                        + [
+                            None,
+                        ],
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -835,7 +839,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -844,7 +848,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin)
+            table = table._append(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index

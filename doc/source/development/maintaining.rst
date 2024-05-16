@@ -151,7 +151,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -159,7 +159,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python setup.py build_ext -j 4
+    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.
@@ -462,9 +462,9 @@ Post-Release
    the appropriate ones for the version you are releasing):
 
     - Log in to the server and use the correct user.
-    - `cd /var/www/html/pandas-docs/`
-    - `ln -sfn version/2.1 stable` (for a major or minor release)
-    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
+    - ``cd /var/www/html/pandas-docs/``
+    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
