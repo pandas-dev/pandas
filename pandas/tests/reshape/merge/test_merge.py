@@ -1528,7 +1528,6 @@ class TestMergeDtypes:
     )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes_with_uintc(self, d1, d2):
-    
         dtype1 = np.dtype(d1)
         dtype2 = np.dtype(d2)
 
