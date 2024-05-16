@@ -113,19 +113,15 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
-Bug Fixes
----------
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
 - Fixed an issue (`#58713 <https://github.com/pandas-dev/pandas/issues/58713>`_) where ``pd.merge`` failed to handle certain combinations of data types correctly. This issue caused unexpected behavior or errors when merging DataFrames with different data types, particularly when using ``np.intc`` or ``np.uintc`` data types.
 
   To address this issue, comprehensive testing coverage has been added to ensure that ``pd.merge`` behaves consistently across different data type combinations. The tests include parameterized fixtures with various combinations of data types, including ``np.intc`` and ``np.uintc``, to verify correct behavior under different scenarios.
 
   This fix ensures reliable and consistent behavior of ``pd.merge`` when handling DataFrames with diverse data types, improving the stability and robustness of data merging operations in ``pandas``.
-
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
-
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.api_breaking:
