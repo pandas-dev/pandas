@@ -484,7 +484,7 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-You can :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
+You can merge :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
 the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
 the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
 
@@ -1073,7 +1073,7 @@ compare two :class:`DataFrame` or :class:`Series`, respectively, and summarize t
    df.compare(df2)
 
 By default, if two corresponding values are equal, they will be shown as ``NaN``.
-Furthermore, if all values in an entire row / column, the row / column will be
+Furthermore, if all values in an entire row / column are equal, that row / column will be
 omitted from the result. The remaining differences will be aligned on columns.
 
 Stack the differences on rows.

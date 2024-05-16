@@ -93,7 +93,10 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -4301,6 +4304,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
+    # issue 58667
+    @deprecate_kwarg("method", None)
     @final
     def reindex_like(
         self,
@@ -4327,6 +4332,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+
+            .. deprecated:: 3.0.0
 
             * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next
@@ -5527,7 +5534,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         it returns an empty object. When ``n`` is negative, it returns
         all rows except the last ``|n|`` rows, mirroring the behavior of ``df[:n]``.
 
-        If n is larger than the number of rows, this function returns all rows.
+        If ``n`` is larger than the number of rows, this function returns all rows.
 
         Parameters
         ----------
@@ -5615,7 +5622,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For negative values of `n`, this function returns all rows except
         the first `|n|` rows, equivalent to ``df[|n|:]``.
 
-        If n is larger than the number of rows, this function returns all rows.
+        If ``n`` is larger than the number of rows, this function returns all rows.
 
         Parameters
         ----------
@@ -10052,7 +10059,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
             the default depends on the dtype of `self`.
-            For numeric data, ``np.nan`` is used.
+            For Boolean and numeric NumPy data types, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
         suffix : str, optional

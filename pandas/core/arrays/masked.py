@@ -1318,12 +1318,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         if self.dtype.na_value is libmissing.NA:
             return map_array(self, mapper, na_action=na_action)
         else:
             return map_array(self.to_numpy(), mapper, na_action=na_action)
-
+          
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs

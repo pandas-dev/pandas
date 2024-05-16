@@ -610,6 +610,13 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
 
+        See Also
+        --------
+        numpy.ndarray.shape : Similar attribute which returns the shape of an array.
+        DataFrame.shape : Return a tuple representing the dimensionality of the
+            DataFrame.
+        Series.shape : Return a tuple representing the dimensionality of the Series.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -1604,9 +1611,19 @@ class ExtensionArray:
         """
         Return a copy of the array.
 
+        This method creates a copy of the `ExtensionArray` where modifying the
+        data in the copy will not affect the original array. This is useful when
+        you want to manipulate data without altering the original dataset.
+
         Returns
         -------
         ExtensionArray
+            A new `ExtensionArray` object that is a copy of the current instance.
+
+        See Also
+        --------
+        DataFrame.copy : Return a copy of the DataFrame.
+        Series.copy : Return a copy of the Series.
 
         Examples
         --------
@@ -2270,7 +2287,7 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
