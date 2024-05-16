@@ -1,8 +1,8 @@
-name: Purge caches once a week
+name: Purge caches daily
 on:
   schedule:
-    # 4:10 UTC on Sunday
-    - cron: "10 4 * * 0"
+    # 4:10 UTC daily
+    - cron: "10 4 * * *"
 
 jobs:
   cleanup:
