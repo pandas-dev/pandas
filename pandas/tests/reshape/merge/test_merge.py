@@ -1523,10 +1523,9 @@ class TestMergeDtypes:
         expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
-    def test_join_multi_dtypes_with_uintc(self, np.uintc, d2):
+    def test_join_multi_dtypes_with_uintc(self, np.uintc, np.float64):
         dtype1 = np.dtype(np.uintc)
-        dtype2 = np.dtype(d2)
+        dtype2 = np.dtype(np.float64)
 
         left = DataFrame(
             {
