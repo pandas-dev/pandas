@@ -3968,26 +3968,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """copy : bool, default True
-            Whether to copy underlying data.
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
+    ) -> Series:
+        """
+        Swap levels i and j in a :class:`MultiIndex`.
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+        Default is to swap the two innermost levels of the index.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
-        ),
-        examples=dedent(
-            """\
+        Parameters
+        ----------
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        copy : bool, default True
+                    Whether to copy underlying data.
+
+                    .. note::
+                        The `copy` keyword will change behavior in pandas 3.0.
+                        `Copy-on-Write
+                        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                        will be enabled by default, which means that all methods with a
+                        `copy` keyword will use a lazy copy mechanism to defer the copy
+                        and ignore the `copy` keyword. The `copy` keyword will be
+                        removed in a future version of pandas.
+
+                        You can already get the future behavior and improvements through
+                        enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+        Returns
+        -------
+        Series
+            Series with levels swapped in MultiIndex.
+
+        See Also
+        --------
+        DataFrame.swaplevel : Swap levels i and j in a :class:`DataFrame`.
+        Series.reorder_levels : Rearrange index levels using input order.
+        MultiIndex.swaplevel : Swap levels i and j in a :class:`MultiIndex`.
+
         Examples
         --------
         >>> s = pd.Series(
@@ -4037,29 +4055,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Geography   Final exam  February        B
         History     Coursework  March           A
         Geography   Coursework  April           C
-        dtype: object"""
-        ),
-    )
-    def swaplevel(
-        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
-    ) -> Series:
-        """
-        Swap levels i and j in a :class:`MultiIndex`.
-
-        Default is to swap the two innermost levels of the index.
-
-        Parameters
-        ----------
-        i, j : int or str
-            Levels of the indices to be swapped. Can pass level name as string.
-        {extra_params}
-
-        Returns
-        -------
-        {klass}
-            {klass} with levels swapped in MultiIndex.
-
-        {examples}
+        dtype: object
         """
         self._check_copy_deprecation(copy)
         assert isinstance(self.index, MultiIndex)
