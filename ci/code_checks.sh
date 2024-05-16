@@ -222,7 +222,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
         -i "pandas.Series.sum RT03" \
-        -i "pandas.Series.swaplevel SA01" \
         -i "pandas.Series.to_dict SA01" \
         -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
