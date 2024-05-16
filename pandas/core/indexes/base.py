@@ -142,7 +142,7 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
@@ -462,7 +462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _accessors = {"str"}
 
-    str = CachedAccessor("str", StringMethods)
+    str = Accessor("str", StringMethods)
 
     _references = None
 

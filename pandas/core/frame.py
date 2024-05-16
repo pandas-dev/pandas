@@ -125,7 +125,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
@@ -13487,10 +13487,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
     hist = pandas.plotting.hist_frame
     boxplot = pandas.plotting.boxplot_frame
-    sparse = CachedAccessor("sparse", SparseFrameAccessor)
+    sparse = Accessor("sparse", SparseFrameAccessor)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
