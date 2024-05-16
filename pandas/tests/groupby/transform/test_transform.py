@@ -1475,10 +1475,7 @@ def test_as_index_no_change(keys, df, groupby_func):
     args = get_groupby_method_args(groupby_func, df)
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
-    if groupby_func == "fillna":
-        warn = FutureWarning
-        msg = "DataFrameGroupBy.fillna is deprecated"
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         warn = FutureWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:

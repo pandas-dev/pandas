@@ -2733,6 +2733,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         are first aligned along both axes before computing the
         correlations.
 
+        .. deprecated:: 3.0.0
+
         Parameters
         ----------
         other : DataFrame, Series

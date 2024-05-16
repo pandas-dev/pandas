@@ -1,4 +1,4 @@
-.. _install:
+    .. _install:
 
 {{ header }}
 
@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-See :ref:`Python support policy <policies.python_support>`.
+Officially Python 3.9, 3.10, 3.11 and 3.12.
 
 Installing pandas
 -----------------
