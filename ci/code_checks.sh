@@ -246,7 +246,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp.astimezone SA01" \
         -i "pandas.Timestamp.ceil SA01" \
         -i "pandas.Timestamp.combine PR01,SA01" \
         -i "pandas.Timestamp.ctime SA01" \
@@ -284,7 +283,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz SA01" \
-        -i "pandas.Timestamp.tz_convert SA01" \
         -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \
