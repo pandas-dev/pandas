@@ -1669,6 +1669,14 @@ class Timestamp(_Timestamp):
         """
         Return the daylight saving time (DST) adjustment.
 
+        This method returns the DST adjustment as a `datetime.timedelta` object
+        if the Timestamp is timezone-aware and DST is applicable.
+
+        See Also
+        --------
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
