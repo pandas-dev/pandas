@@ -2470,6 +2470,11 @@ default 'raise'
         """
         Convert timezone-aware Timestamp to another time zone.
 
+        This method is used to convert a timezone-aware Timestamp object to a
+        different time zone. The original UTC time remains the same; only the
+        time zone information is changed. If the Timestamp is timezone-naive, a
+        TypeError is raised.
+
         Parameters
         ----------
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
@@ -2484,6 +2489,13 @@ default 'raise'
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        See Also
+        --------
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        DatetimeIndex.tz_convert : Convert a DatetimeIndex to another time zone.
+        DatetimeIndex.tz_localize : Localize a DatetimeIndex to a specific time zone.
+        datetime.datetime.astimezone : Convert a datetime object to another time zone.
 
         Examples
         --------
