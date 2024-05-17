@@ -522,7 +522,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.testing.assert_index_equal PR07,SA01" \
         -i "pandas.testing.assert_series_equal PR07,SA01" \
         -i "pandas.timedelta_range SA01" \
-        -i "pandas.tseries.api.guess_datetime_format SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BMonthBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
