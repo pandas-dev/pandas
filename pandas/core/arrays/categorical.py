@@ -975,6 +975,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Set the Categorical to be ordered.
 
+        Parameters
+        ----------
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
         Returns
         -------
         Categorical
@@ -1009,6 +1015,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def as_unordered(self) -> Self:
         """
         Set the Categorical to be unordered.
+
+        Parameters
+        ----------
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1074,6 +1086,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         rename : bool, default False
            Whether or not the new_categories should be considered as a rename
            of the old categories or as reordered categories.
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1173,6 +1188,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
             * callable : a callable that is called on all items in the old
               categories and whose return values comprise the new categories.
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1239,6 +1257,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ordered : bool, optional
            Whether or not the categorical is treated as a ordered categorical.
            If not given, do not change the ordered information.
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1311,6 +1332,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         new_categories : category or list-like of category
             The new categories to be included.
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1380,6 +1404,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         removals : category or list of categories
            The categories which should be removed.
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------
@@ -1432,6 +1459,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def remove_unused_categories(self) -> Self:
         """
         Remove categories which are not used.
+
+        Parameters
+        ----------
+        *args, **kwargs : optional
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
 
         Returns
         -------

@@ -138,14 +138,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.RangeIndex.stop SA01" \
-        -i "pandas.Series.cat.add_categories PR01,PR02" \
-        -i "pandas.Series.cat.as_ordered PR01" \
-        -i "pandas.Series.cat.as_unordered PR01" \
-        -i "pandas.Series.cat.remove_categories PR01,PR02" \
-        -i "pandas.Series.cat.remove_unused_categories PR01" \
-        -i "pandas.Series.cat.rename_categories PR01,PR02" \
-        -i "pandas.Series.cat.reorder_categories PR01,PR02" \
-        -i "pandas.Series.cat.set_categories PR01,PR02" \
+        -i "pandas.Series.cat.add_categories PR02" \
+        -i "pandas.Series.cat.remove_categories PR02" \
+        -i "pandas.Series.cat.rename_categories PR02" \
+        -i "pandas.Series.cat.reorder_categories PR02" \
+        -i "pandas.Series.cat.set_categories PR02" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \
         -i "pandas.Series.dt.ceil PR01,PR02" \
         -i "pandas.Series.dt.components SA01" \
