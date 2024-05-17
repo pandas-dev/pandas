@@ -169,7 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.gt SA01" \
         -i "pandas.Series.kurt RT03,SA01" \
         -i "pandas.Series.kurtosis RT03,SA01" \
-        -i "pandas.Series.le SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
