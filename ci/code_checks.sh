@@ -259,7 +259,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
         -i "pandas.Timestamp.hour GL08" \
-        -i "pandas.Timestamp.is_leap_year SA01" \
         -i "pandas.Timestamp.isocalendar SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
         -i "pandas.Timestamp.max PR02" \
