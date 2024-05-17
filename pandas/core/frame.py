@@ -6999,7 +6999,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
@@ -7009,6 +7009,8 @@ class DataFrame(NDFrame, OpsMixin):
                     Series(k, name=name)  # type: ignore[misc]
                     for (k, name) in zip(keys, by)
                 ]
+            else:
+                keys = list(keys)
 
             indexer = lexsort_indexer(
                 keys, orders=ascending, na_position=na_position, key=key
