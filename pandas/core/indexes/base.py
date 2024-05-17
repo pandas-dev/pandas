@@ -142,7 +142,7 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
@@ -326,6 +326,8 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional)
+        An array-like structure containing the data for the index. This could be a
+        Python list, a NumPy array, or a pandas Series.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
@@ -460,7 +462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _accessors = {"str"}
 
-    str = CachedAccessor("str", StringMethods)
+    str = Accessor("str", StringMethods)
 
     _references = None
 
@@ -1021,7 +1023,13 @@ class Index(IndexOpsMixin, PandasObject):
 
     def view(self, cls=None):
         """
-        Return a view on self.
+        Return a view of the Index with the specified dtype or a new Index instance.
+
+        This method returns a view of the calling Index object if no arguments are
+        provided. If a dtype is specified through the `cls` argument, it attempts
+        to return a view of the Index with the specified dtype. Note that viewing
+        the Index as a different dtype reinterprets the underlying data, which can
+        lead to unexpected results for non-numeric or incompatible dtype conversions.
 
         Parameters
         ----------
@@ -1034,27 +1042,38 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        numpy.ndarray
-            A new view of the same data in memory.
+        Index or ndarray
+            A view of the Index. If `cls` is None, the returned object is an Index
+            view with the same dtype as the calling object. If a numeric `cls` is
+            specified an ndarray view with the new dtype is returned.
+
+        Raises
+        ------
+        ValueError
+            If attempting to change to a dtype in a way that is not compatible with
+            the original dtype's memory layout, for example, viewing an 'int64' Index
+            as 'str'.
 
         See Also
         --------
+        Index.copy : Returns a copy of the Index.
         numpy.ndarray.view : Returns a new view of array with the same data.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3], index=["1", "2", "3"])
-        >>> s.index.view("object")
-        array(['1', '2', '3'], dtype=object)
+        >>> idx = pd.Index([-1, 0, 1])
+        >>> idx.view()
+        Index([-1, 0, 1], dtype='int64')
 
-        >>> s = pd.Series([1, 2, 3], index=[-1, 0, 1])
-        >>> s.index.view(np.int64)
-        array([-1,  0,  1])
-        >>> s.index.view(np.float32)
-        array([   nan,    nan, 0.e+00, 0.e+00, 1.e-45, 0.e+00], dtype=float32)
-        >>> s.index.view(np.uint64)
+        >>> idx.view(np.uint64)
         array([18446744073709551615,                    0,                    1],
           dtype=uint64)
+
+        Viewing as 'int32' or 'float32' reinterprets the memory, which may lead to
+        unexpected behavior:
+
+        >>> idx.view("float32")
+        array([   nan,    nan, 0.e+00, 0.e+00, 1.e-45, 0.e+00], dtype=float32)
         """
         # we need to see if we are subclassing an
         # index type here
@@ -1809,9 +1828,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Get names on index.
 
+        This method returns a FrozenList containing the names of the object.
+        It's primarily intended for internal use.
+
+        Returns
+        -------
+        FrozenList
+            A FrozenList containing the object's names, contains None if the object
+            does not have a name.
+
         See Also
         --------
-        Index.name : Return Index or MultiIndex name.
+        Index.name : Index name as a string, or None for MultiIndex.
 
         Examples
         --------
@@ -1819,9 +1847,15 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.names
         FrozenList(['x'])
 
-        >>> idx = s = pd.Index([1, 2, 3], name=("x", "y"))
+        >>> idx = pd.Index([1, 2, 3], name=("x", "y"))
         >>> idx.names
         FrozenList([('x', 'y')])
+
+        If the index does not have a name set:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.names
+        FrozenList([None])
         """
         return FrozenList((self.name,))
 
@@ -3971,25 +4005,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
-        if lib.is_np_dtype(self.dtype, "f"):
-            # We always treat __getitem__ slicing as label-based
-            # translate to locations
-            if kind == "getitem" and is_index_slice and not start == stop and step != 0:
-                # exclude step=0 from the warning because it will raise anyway
-                # start/stop both None e.g. [:] or [::-1] won't change.
-                # exclude start==stop since it will be empty either way, or
-                # will be [:] or [::-1] which won't change
-                warnings.warn(
-                    # GH#49612
-                    "The behavior of obj[i:j] with a float-dtype index is "
-                    "deprecated. In a future version, this will be treated as "
-                    "positional instead of label-based. For label-based slicing, "
-                    "use obj.loc[i:j] instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return self.slice_indexer(start, stop, step)
-
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
             if is_index_slice:
