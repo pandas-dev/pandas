@@ -4746,7 +4746,7 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4   8  0
         4  5   2   7  3
 
-        Local variables shall be explicitely referenced using ``@``
+        Local variables shall be explicitly referenced using ``@``
         character in front of the name:
 
         >>> local_var = 2
