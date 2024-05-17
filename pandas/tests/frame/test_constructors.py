@@ -2280,7 +2280,7 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
-    def test_check_dtype_empty_string_column(self, request, dtype):
+    def test_check_dtype_empty_string_column(self, dtype):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
         data = DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)

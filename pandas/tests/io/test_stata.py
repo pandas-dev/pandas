@@ -189,11 +189,12 @@ class TestStata:
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
         path3 = datapath("io", "data", "stata", "stata2_117.dta")
 
-        with tm.assert_produces_warning(UserWarning):
+        msg = "Leaving in Stata Internal Format"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_114 = self.read_dta(path1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_115 = self.read_dta(path2)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
             # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
@@ -224,11 +225,9 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize(
-        "file", ["stata4_111", "stata4_113", "stata4_114", "stata4_115", "stata4_117"]
-    )
-    def test_read_dta4(self, file, datapath):
-        file = datapath("io", "data", "stata", f"{file}.dta")
+    @pytest.mark.parametrize("version", [110, 111, 113, 114, 115, 117])
+    def test_read_dta4(self, version, datapath):
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
@@ -270,11 +269,11 @@ class TestStata:
         # stata doesn't save .category metadata
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("file", ["stata4_105", "stata4_108"])
-    def test_readold_dta4(self, file, datapath):
+    @pytest.mark.parametrize("version", [105, 108])
+    def test_readold_dta4(self, version, datapath):
         # This test is the same as test_read_dta4 above except that the columns
         # had to be renamed to match the restrictions in older file format
-        file = datapath("io", "data", "stata", f"{file}.dta")
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
@@ -478,7 +477,8 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates=None)
 
         written_and_read_again = self.read_dta(path)
@@ -515,7 +515,8 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates=None, version=version)
             # should get a warning for that format.
 
@@ -612,7 +613,8 @@ class TestStata:
         original.index.name = "index"
         path = temp_file
         # should get a warning for that format.
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path)
 
         written_and_read_again = self.read_dta(path)
@@ -672,7 +674,7 @@ class TestStata:
         original = DataFrame({"s0": s0, "s1": s1, "s2": s2, "s3": s3})
         original.index.name = "index"
         path = temp_file
-        with tm.assert_produces_warning(PossiblePrecisionLoss):
+        with tm.assert_produces_warning(PossiblePrecisionLoss, match="from int64 to"):
             original.to_stata(path)
 
         written_and_read_again = self.read_dta(path)
@@ -687,7 +689,8 @@ class TestStata:
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
         original.index.name = "index"
         path = temp_file
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             original.to_stata(path, convert_dates={0: "tc"})
 
         written_and_read_again = self.read_dta(path)
@@ -1111,7 +1114,8 @@ class TestStata:
             [["a"], ["b"], ["c"], ["d"], [1]], columns=["Too_long"]
         ).astype("category")
 
-        with tm.assert_produces_warning(ValueLabelTypeMismatch):
+        msg = "data file created has not lost information due to duplicate labels"
+        with tm.assert_produces_warning(ValueLabelTypeMismatch, match=msg):
             original.to_stata(path)
             # should get a warning for mixed content
 
@@ -1732,7 +1736,8 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(InvalidColumnName):
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
             path = temp_file
             original.to_stata(path, convert_strl=["long", 1], version=117)
             reread = self.read_dta(path)
@@ -1962,7 +1967,7 @@ the string values returned are correct."""
         "dtype_backend",
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
-    def test_read_write_ea_dtypes(self, dtype_backend, temp_file):
+    def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
         df = DataFrame(
             {
                 "a": [1, 2, None],
@@ -1974,7 +1979,8 @@ the string values returned are correct."""
             index=pd.Index([0, 1, 2], name="index"),
         )
         df = df.convert_dtypes(dtype_backend=dtype_backend)
-        df.to_stata("test_stata.dta", version=118)
+        stata_path = tmp_path / "test_stata.dta"
+        df.to_stata(stata_path, version=118)
 
         df.to_stata(temp_file)
         written_and_read_again = self.read_dta(temp_file)
@@ -1994,7 +2000,7 @@ the string values returned are correct."""
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
 
-@pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
+@pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114])
 def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
@@ -2004,7 +2010,7 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("version", [105, 108, 111, 113, 114, 118])
+@pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114, 118])
 def test_bigendian(version, datapath):
     ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
     big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
@@ -2138,8 +2144,9 @@ def test_chunked_categorical(version, temp_file):
 def test_chunked_categorical_partial(datapath):
     dta_file = datapath("io", "data", "stata", "stata-dta-partially-labeled.dta")
     values = ["a", "b", "a", "b", 3.0]
+    msg = "series with value labels are not fully labeled"
     with StataReader(dta_file, chunksize=2) as reader:
-        with tm.assert_produces_warning(CategoricalConversionWarning):
+        with tm.assert_produces_warning(CategoricalConversionWarning, match=msg):
             for i, block in enumerate(reader):
                 assert list(block.cats) == values[2 * i : 2 * (i + 1)]
                 if i < 2:
@@ -2147,7 +2154,7 @@ def test_chunked_categorical_partial(datapath):
                 else:
                     idx = pd.Index([3.0], dtype="float64")
                 tm.assert_index_equal(block.cats.cat.categories, idx)
-    with tm.assert_produces_warning(CategoricalConversionWarning):
+    with tm.assert_produces_warning(CategoricalConversionWarning, match=msg):
         with StataReader(dta_file, chunksize=5) as reader:
             large_chunk = reader.__next__()
     direct = read_stata(dta_file)
@@ -2303,7 +2310,8 @@ def test_non_categorical_value_label_name_conversion(temp_file):
         "_1__2_": {3: "three"},
     }
 
-    with tm.assert_produces_warning(InvalidColumnName):
+    msg = "Not all pandas column names were valid Stata variable names"
+    with tm.assert_produces_warning(InvalidColumnName, match=msg):
         data.to_stata(temp_file, value_labels=value_labels)
 
     with StataReader(temp_file) as reader:
