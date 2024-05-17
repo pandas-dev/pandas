@@ -610,6 +610,13 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
 
+        See Also
+        --------
+        numpy.ndarray.shape : Similar attribute which returns the shape of an array.
+        DataFrame.shape : Return a tuple representing the dimensionality of the
+            DataFrame.
+        Series.shape : Return a tuple representing the dimensionality of the Series.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -1604,9 +1611,19 @@ class ExtensionArray:
         """
         Return a copy of the array.
 
+        This method creates a copy of the `ExtensionArray` where modifying the
+        data in the copy will not affect the original array. This is useful when
+        you want to manipulate data without altering the original dataset.
+
         Returns
         -------
         ExtensionArray
+            A new `ExtensionArray` object that is a copy of the current instance.
+
+        See Also
+        --------
+        DataFrame.copy : Return a copy of the DataFrame.
+        Series.copy : Return a copy of the Series.
 
         Examples
         --------
@@ -1916,12 +1933,6 @@ class ExtensionArray:
         keepdims : bool, default False
             If False, a scalar is returned.
             If True, the result has dimension with size one along the reduced axis.
-
-            .. versionadded:: 2.1
-
-               This parameter is not required in the _reduce signature to keep backward
-               compatibility, but will become required in the future. If the parameter
-               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.

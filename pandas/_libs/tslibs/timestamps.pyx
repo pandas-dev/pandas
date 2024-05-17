@@ -579,15 +579,15 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = freq.freqstr
+            freq_name = freq.name
         else:
             month_kw = 12
-            freqstr = None
+            freq_name = None
 
         val = self._maybe_convert_value_to_local()
 
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw, self._creso)
+                                  field, freq_name, month_kw, self._creso)
         return out[0]
 
     @property
@@ -902,6 +902,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week.
+        Timestamp.quarter : Return the quarter of the year.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
@@ -1007,6 +1012,12 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        See Also
+        --------
+        Timestamp.strftime : Return a formatted string.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number and
+            weekday.
 
         Examples
         --------
@@ -1150,6 +1161,12 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return numpy datetime64 format in nanoseconds.
 
+        See Also
+        --------
+        numpy.datetime64 : Numpy datatype for dates and times with high precision.
+        Timestamp.to_numpy : Convert the Timestamp to a NumPy datetime64.
+        to_datetime : Convert argument to datetime.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
@@ -1179,7 +1196,30 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert a Timestamp object to a native Python datetime object.
 
-        If warn=True, issue a warning if nanoseconds is nonzero.
+        This method is useful for when you need to utilize a pandas Timestamp
+        object in contexts where native Python datetime objects are expected
+        or required. The conversion discards the nanoseconds component, and a
+        warning can be issued in such cases if desired.
+
+        Parameters
+        ----------
+        warn : bool, default True
+            If True, issues a warning when the timestamp includes nonzero
+            nanoseconds, as these will be discarded during the conversion.
+
+        Returns
+        -------
+        datetime.datetime or NaT
+            Returns a datetime.datetime object representing the timestamp,
+            with year, month, day, hour, minute, second, and microsecond components.
+            If the timestamp is NaT (Not a Time), returns NaT.
+
+        See Also
+        --------
+        datetime.datetime : The standard Python datetime class that this method
+            returns.
+        Timestamp.timestamp : Convert a Timestamp object to POSIX timestamp.
+        Timestamp.to_datetime64 : Convert a Timestamp object to numpy.datetime64.
 
         Examples
         --------
@@ -1542,6 +1582,12 @@ class Timestamp(_Timestamp):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        See Also
+        --------
+        Timestamp.isoformat : Return the time formatted according to ISO 8601.
+        pd.to_datetime : Convert argument to datetime.
+        Period.strftime : Format a single Period.
 
         Examples
         --------
@@ -1992,6 +2038,12 @@ class Timestamp(_Timestamp):
         """
         Round the Timestamp to the specified resolution.
 
+        This method rounds the given Timestamp down to a specified frequency
+        level. It is particularly useful in data analysis to normalize timestamps
+        to regular frequency intervals. For instance, rounding to the nearest
+        minute, hour, or day can help in time series comparisons or resampling
+        operations.
+
         Parameters
         ----------
         freq : str
@@ -2025,6 +2077,14 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        See Also
+        --------
+        datetime.round : Similar behavior in native Python datetime module.
+        Timestamp.floor : Round the Timestamp downward to the nearest multiple
+            of the specified frequency.
+        Timestamp.ceil : Round the Timestamp upward to the nearest multiple of
+            the specified frequency.
 
         Notes
         -----

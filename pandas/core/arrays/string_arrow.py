@@ -629,28 +629,25 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                 na_value = np.nan
             else:
                 na_value = False
-            try:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                    dtype=np.dtype(cast(type, dtype)),
-                )
-                return result
 
-            except ValueError:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                )
-                if convert and result.dtype == object:
-                    result = lib.maybe_convert_objects(result)
-                return result
+            dtype = np.dtype(cast(type, dtype))
+            if mask.any():
+                # numpy int/bool dtypes cannot hold NaNs so we must convert to
+                # float64 for int (to match maybe_convert_objects) or
+                # object for bool (again to match maybe_convert_objects)
+                if is_integer_dtype(dtype):
+                    dtype = np.dtype("float64")
+                else:
+                    dtype = np.dtype(object)
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=dtype,
+            )
+            return result
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype

@@ -101,7 +101,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.arrow import (
@@ -246,7 +246,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ----------
     data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series. If data is a dict, argument order is
-        maintained.
+        maintained. Unordered sets are not supported.
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
@@ -3968,26 +3968,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """copy : bool, default True
-            Whether to copy underlying data.
+    def swaplevel(
+        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
+    ) -> Series:
+        """
+        Swap levels i and j in a :class:`MultiIndex`.
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+        Default is to swap the two innermost levels of the index.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
-        ),
-        examples=dedent(
-            """\
+        Parameters
+        ----------
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        copy : bool, default True
+                    Whether to copy underlying data.
+
+                    .. note::
+                        The `copy` keyword will change behavior in pandas 3.0.
+                        `Copy-on-Write
+                        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                        will be enabled by default, which means that all methods with a
+                        `copy` keyword will use a lazy copy mechanism to defer the copy
+                        and ignore the `copy` keyword. The `copy` keyword will be
+                        removed in a future version of pandas.
+
+                        You can already get the future behavior and improvements through
+                        enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+        Returns
+        -------
+        Series
+            Series with levels swapped in MultiIndex.
+
+        See Also
+        --------
+        DataFrame.swaplevel : Swap levels i and j in a :class:`DataFrame`.
+        Series.reorder_levels : Rearrange index levels using input order.
+        MultiIndex.swaplevel : Swap levels i and j in a :class:`MultiIndex`.
+
         Examples
         --------
         >>> s = pd.Series(
@@ -4037,29 +4055,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Geography   Final exam  February        B
         History     Coursework  March           A
         Geography   Coursework  April           C
-        dtype: object"""
-        ),
-    )
-    def swaplevel(
-        self, i: Level = -2, j: Level = -1, copy: bool | lib.NoDefault = lib.no_default
-    ) -> Series:
-        """
-        Swap levels i and j in a :class:`MultiIndex`.
-
-        Default is to swap the two innermost levels of the index.
-
-        Parameters
-        ----------
-        i, j : int or str
-            Levels of the indices to be swapped. Can pass level name as string.
-        {extra_params}
-
-        Returns
-        -------
-        {klass}
-            {klass} with levels swapped in MultiIndex.
-
-        {examples}
+        dtype: object
         """
         self._check_copy_deprecation(copy)
         assert isinstance(self.index, MultiIndex)
@@ -5324,6 +5320,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
+            A new Series with values replaced based on the provided conditions.
 
         See Also
         --------
@@ -5753,13 +5750,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Accessor Methods
     # ----------------------------------------------------------------------
-    str = CachedAccessor("str", StringMethods)
-    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
-    cat = CachedAccessor("cat", CategoricalAccessor)
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
-    sparse = CachedAccessor("sparse", SparseAccessor)
-    struct = CachedAccessor("struct", StructAccessor)
-    list = CachedAccessor("list", ListAccessor)
+    str = Accessor("str", StringMethods)
+    dt = Accessor("dt", CombinedDatetimelikeProperties)
+    cat = Accessor("cat", CategoricalAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
+    sparse = Accessor("sparse", SparseAccessor)
+    struct = Accessor("struct", StructAccessor)
+    list = Accessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -5957,8 +5954,64 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, operator.gt, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("add", "series"))
     def add(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        """
+        Return Addition of series and other, element-wise (binary operator `add`).
+
+        Equivalent to ``series + other``, but with support to substitute a fill_value
+        for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            With which to compute the addition.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.radd : Reverse of the Addition operator, see
+            `Python documentation
+            <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_
+            for more details.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        dtype: float64
+        >>> b = pd.Series([1, np.nan, 1, np.nan], index=["a", "b", "d", "e"])
+        >>> b
+        a    1.0
+        b    NaN
+        d    1.0
+        e    NaN
+        dtype: float64
+        >>> a.add(b, fill_value=0)
+        a    2.0
+        b    1.0
+        c    1.0
+        d    1.0
+        e    NaN
+        dtype: float64
+        """
         return self._flex_method(
             other, operator.add, level=level, fill_value=fill_value, axis=axis
         )
@@ -6065,8 +6118,65 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("truediv", "series"))
     def truediv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        """
+        Return Floating division of series and other, \
+        element-wise (binary operator `truediv`).
+
+        Equivalent to ``series / other``, but with support to substitute a
+        fill_value for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            Series with which to compute division.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.rtruediv : Reverse of the Floating division operator, see
+            `Python documentation
+            <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_
+            for more details.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        dtype: float64
+        >>> b = pd.Series([1, np.nan, 1, np.nan], index=["a", "b", "d", "e"])
+        >>> b
+        a    1.0
+        b    NaN
+        d    1.0
+        e    NaN
+        dtype: float64
+        >>> a.divide(b, fill_value=0)
+        a    1.0
+        b    inf
+        c    inf
+        d    0.0
+        e    NaN
+        dtype: float64
+        """
         return self._flex_method(
             other, operator.truediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -6606,7 +6716,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
-    @doc(make_doc("var", ndim=1))
     def var(
         self,
         axis: Axis | None = None,
@@ -6615,6 +6724,75 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased variance over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.var with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs :
+            Additional keywords passed.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Unbiased variance over requested axis.
+
+        See Also
+        --------
+        numpy.var : Equivalent function in NumPy.
+        Series.std : Returns the standard deviation of the Series.
+        DataFrame.var : Returns the variance of the DataFrame.
+        DataFrame.std : Return standard deviation of the values over
+            the requested axis.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "person_id": [0, 1, 2, 3],
+        ...         "age": [21, 25, 62, 43],
+        ...         "height": [1.61, 1.87, 1.49, 2.01],
+        ...     }
+        ... ).set_index("person_id")
+        >>> df
+                   age  height
+        person_id
+        0           21    1.61
+        1           25    1.87
+        2           62    1.49
+        3           43    2.01
+
+        >>> df.var()
+        age       352.916667
+        height      0.056367
+        dtype: float64
+
+        Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
+
+        >>> df.var(ddof=0)
+        age       264.687500
+        height      0.042275
+        dtype: float64
+        """
         return NDFrame.var(
             self,
             axis=axis,

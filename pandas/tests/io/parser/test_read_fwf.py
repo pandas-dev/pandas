@@ -580,10 +580,7 @@ DataCol1   DataCol2
 """.strip()
     skiprows = 2
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
-
+    expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
 
@@ -598,10 +595,7 @@ Once more to be skipped
 """.strip()
     skiprows = [0, 2]
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
-
+    expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
 
