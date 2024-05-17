@@ -820,9 +820,20 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
 
+        A leap year is a year, which has 366 days (instead of 365) including 29th of
+        February as an intercalary day. Leap years are years which are multiples of
+        four with the exception of years divisible by 100 but not by 400.
+
         Returns
         -------
         bool
+            True if year is a leap year, else False
+
+        See Also
+        --------
+        Period.is_leap_year : Return True if the period’s year is in a leap year.
+        DatetimeIndex.is_leap_year : Boolean indicator if the date belongs to a
+            leap year.
 
         Examples
         --------
