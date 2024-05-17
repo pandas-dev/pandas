@@ -256,7 +256,7 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
+        idx = period_range("20130101", periods=5, freq="D", name="xxx")
         ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
