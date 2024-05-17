@@ -625,9 +625,7 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif (
-            dtype.kind == "S" or issubclass(dtype.type, str) or is_numeric_dtype(dtype)
-        ):
+        elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
 
         raise NotImplementedError(dtype)
