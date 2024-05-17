@@ -247,6 +247,7 @@ Removal of prior version deprecations/changes
 - Removed the "closed" and "normalize" keywords in :meth:`DatetimeIndex.__new__` (:issue:`52628`)
 - Removed the deprecated ``delim_whitespace`` keyword in :func:`read_csv` and :func:`read_table`, use ``sep=r"\s+"`` instead (:issue:`55569`)
 - Require :meth:`SparseDtype.fill_value` to be a valid value for the :meth:`SparseDtype.subtype` (:issue:`53043`)
+- Stopped automatically casting non-datetimelike values (mainly strings) in :meth:`Series.isin` and :meth:`Index.isin` with ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` dtypes (:issue:`53111`)
 - Stopped performing dtype inference when setting a :class:`Index` into a :class:`DataFrame` (:issue:`56102`)
 - Stopped performing dtype inference with in :meth:`Index.insert` with object-dtype index; this often affects the index/columns that result when setting new entries into an empty :class:`Series` or :class:`DataFrame` (:issue:`51363`)
 - Removed the "closed" and "unit" keywords in :meth:`TimedeltaIndex.__new__` (:issue:`52628`, :issue:`55499`)
