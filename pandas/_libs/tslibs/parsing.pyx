@@ -861,8 +861,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     This function attempts to deduce the format of a given datetime string. It is
     useful for situations where the datetime format is unknown and needs to be
-    determined for proper parsing. The function handles various datetime components
-    including year, month, day, hour, minute, second, and timezone information.
+    determined for proper parsing. The function is not guaranteed to return a format.
 
     Parameters
     ----------
