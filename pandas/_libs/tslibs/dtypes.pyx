@@ -310,21 +310,7 @@ cdef dict c_DEPR_ABBREVS = {
 
 PERIOD_AND_OFFSET_ALIASES = {
     "W",
-    "W-SUN",
-    "W-MON",
-    "W-TUE",
-    "W-WED",
-    "W-THU",
-    "W-FRI",
-    "W-SAT",
-    "D",
-    "B",
-    "h",
     "min",
-    "s",
-    "ms",
-    "us",
-    "ns",
 }
 cdef set c_PERIOD_AND_OFFSET_ALIASES = PERIOD_AND_OFFSET_ALIASES
 
