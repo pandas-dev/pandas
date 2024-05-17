@@ -2693,21 +2693,14 @@ class TestDataFrameConstructors:
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
 
-    def test_inference_on_pandas_objects(self):
+    @pytest.mark.parametrize("klass", [Series, Index])
+    def test_inference_on_pandas_objects(self, klass):
         # GH#56012
-        idx = Index([Timestamp("2019-12-31")], dtype=object)
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = DataFrame(idx, columns=["a"])
-        assert result.dtypes.iloc[0] != np.object_
-        result = DataFrame({"a": idx})
+        obj = klass([Timestamp("2019-12-31")], dtype=object)
+        result = DataFrame(obj, columns=["a"])
         assert result.dtypes.iloc[0] == np.object_
 
-        ser = Series([Timestamp("2019-12-31")], dtype=object)
-
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = DataFrame(ser, columns=["a"])
-        assert result.dtypes.iloc[0] != np.object_
-        result = DataFrame({"a": ser})
+        result = DataFrame({"a": obj})
         assert result.dtypes.iloc[0] == np.object_
 
     def test_dict_keys_returns_rangeindex(self):
