@@ -1125,10 +1125,6 @@ class TestArrowArray(base.ExtensionTests):
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        pa_version_under11p0,
-        reason="Assignment of pyarrow arrays yield unexpected dtypes",
-    )
     def test_assign_column_in_dataframe(self, data):
         df = pd.DataFrame(data=data, columns=["A"], dtype=data.dtype)
         df["B"] = pa.array(data, type=data.dtype.pyarrow_dtype)
