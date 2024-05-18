@@ -365,6 +365,16 @@ class ExtensionArray:
         -------
         ExtensionArray
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence : Construct a new ExtensionArray
+            from a sequence of scalars.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
+            after factorization.
+        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
+            allowing only sequences of scalars that should be specifically inferred to
+            the given dtype.
+
         Examples
         --------
         >>> pd.arrays.IntegerArray._from_sequence_of_strings(
