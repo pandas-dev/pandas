@@ -591,6 +591,7 @@ Other Deprecations
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and ``skipna=True`` or any-NAs and ``skipna=False`` returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` and ``con`` (:issue:`54229`)
 - Deprecated silently ignoring ``fill_value`` when passing both ``freq`` and ``fill_value`` to :meth:`DataFrame.shift`, :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift`; in a future version this will raise ``ValueError`` (:issue:`53832`)
+- Deprecated no win32 wheels published for Pandas 2.1.0 or prerelease, although there were for 2.0.3 and the 2.0.0rc1 release
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
