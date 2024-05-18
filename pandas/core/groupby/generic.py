@@ -75,6 +75,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
     default_index,
 )
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index
 from pandas.core.util.numba_ import maybe_use_numba
@@ -1863,15 +1864,126 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  5  9
     4  5  8
     5  5  9
+
+    Using list-like arguments
+
+    >>> df = pd.DataFrame({"col": list("aab"), "val": range(3)})
+    >>> df.groupby("col").transform(["sum", "min"])
+        val
+       sum  min
+    0    1    0
+    1    1    0
+    2    2    2
+
+    .. versionchanged:: 3.0.0
+
+    Named aggregation
+
+    >>> df = pd.DataFrame({"A": list("aaabbbccc"), "B": range(9), "D": range(9, 18)})
+    >>> df.groupby("A").transform(
+    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
+    ...     c_sum=pd.NamedAgg(column="D", aggfunc="sum")
+    ... )
+       b_min  c_sum
+    0      0     30
+    1      0     30
+    2      0     30
+    3      3     39
+    4      3     39
+    5      3     39
+    6      6     48
+    7      6     48
+    8      6     48
+
+    .. versionchanged:: 3.0.0
     """
     )
 
     @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
     @Appender(_transform_template)
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+    def transform(
+        self,
+        func: None
+        | (Callable | str | list[Callable | str] | dict[str, NamedAgg]) = None,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        if func is None:
+            transformed_func = dict(kwargs.items())
+            return self._transform_multiple_funcs(
+                transformed_func, *args, engine=engine, engine_kwargs=engine_kwargs
+            )
+        else:
+            if isinstance(func, list):
+                func = maybe_mangle_lambdas(func)
+                return self._transform_multiple_funcs(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
+            else:
+                return self._transform(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
+
+    def _transform_multiple_funcs(
+        self,
+        func: Any,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        results = []
+        if isinstance(func, dict):
+            for name, named_agg in func.items():
+                column_name = named_agg.column
+                agg_func = named_agg.aggfunc
+                result = self._transform_single_column(
+                    column_name,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                result.name = name
+                results.append(result)
+            output = concat(results, axis=1)
+        elif isinstance(func, list):
+            col_names = []
+            columns = [com.get_callable_name(f) or f for f in func]
+            func_pairs = zip(columns, func)
+            for name, func_item in func_pairs:
+                result = self._transform(
+                    func_item,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                results.append(result)
+                col_names.extend([(col, name) for col in result.columns])
+            output = concat(results, ignore_index=True, axis=1)
+            arrays = [list(x) for x in zip(*col_names)]
+            output.columns = MultiIndex.from_arrays(arrays)
+
+        return output
+
+    def _transform_single_column(
+        self,
+        column_name: Hashable,
+        agg_func: Callable | str,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> Series:
+        data = self._gotitem(column_name, ndim=1)
+        result = data.transform(
+            agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
+        return result
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
