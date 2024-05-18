@@ -5912,7 +5912,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             return op(self, other)
 
-    @Appender(ops.make_flex_doc("eq", "series"))
     def eq(
         self,
         other,
@@ -5920,6 +5919,63 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value: float | None = None,
         axis: Axis = 0,
     ) -> Series:
+        """
+        Return Equal to of series and other, element-wise (binary operator `eq`).
+
+        Equivalent to ``series == other``, but with support to substitute a fill_value
+        for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            The second operand in this operation.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.ge : Return elementwise Greater than or equal to of series and other.
+        Series.le : Return elementwise Less than or equal to of series and other.
+        Series.gt : Return elementwise Greater than of series and other.
+        Series.lt : Return elementwise Less than of series and other.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        dtype: float64
+        >>> b = pd.Series([1, np.nan, 1, np.nan], index=["a", "b", "d", "e"])
+        >>> b
+        a    1.0
+        b    NaN
+        d    1.0
+        e    NaN
+        dtype: float64
+        >>> a.eq(b, fill_value=0)
+        a     True
+        b    False
+        c    False
+        d    False
+        e    False
+        dtype: bool
+        """
         return self._flex_method(
             other, operator.eq, level=level, fill_value=fill_value, axis=axis
         )

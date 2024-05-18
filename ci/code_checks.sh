@@ -164,7 +164,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.eq SA01" \
         -i "pandas.Series.ge SA01" \
         -i "pandas.Series.gt SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
