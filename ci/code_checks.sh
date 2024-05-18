@@ -644,7 +644,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.nanos GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
         -i "pandas.tseries.offsets.DateOffset.rule_code GL08" \
-        -i "pandas.tseries.offsets.Day PR02" \
         -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
