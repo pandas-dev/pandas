@@ -1577,6 +1577,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
+            group_keys = []
+
+            if isinstance(self.keys, Series):  # Ensure consistent namespace usage
+                group_keys.append(self.keys.name)
+                if self.keys.name not in result.columns:
+                    result.insert(0, self.keys.name, self.keys)
+            else:
+                group_keys.extend(key for key in self.keys if key in self.obj.columns)
+
+            if not result.index.equals(default_index(len(result))):
+                result.reset_index(drop=False, inplace=True)
+
+            if group_keys:
+                for key in group_keys:
+                    if key not in result.columns:
+                        result.insert(0, key, self.obj[key])
+
+        if not self.as_index and isinstance(
+            self.keys, Series
+        ):  # Ensure consistent namespace usage
+            # Remove any duplicate entries for series key
+            result = result.loc[:, ~result.columns.duplicated()]
 
         return result
 
