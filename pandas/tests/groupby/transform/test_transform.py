@@ -19,6 +19,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby import NamedAgg
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -81,6 +82,44 @@ def test_transform():
     df = DataFrame({"a": range(5, 10), "b": range(5)})
     result = df.groupby("a").transform(max)
     expected = DataFrame({"b": range(5)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_namedagg():
+    df = DataFrame({"A": list("aaabbbccc"), "B": range(9), "D": range(9, 18)})
+    result = df.groupby("A").transform(
+        b_min=NamedAgg(column="B", aggfunc="min"),
+        d_sum=NamedAgg(column="D", aggfunc="sum"),
+    )
+    expected = DataFrame(
+        {
+            "b_min": [0, 0, 0, 3, 3, 3, 6, 6, 6],
+            "d_sum": [30, 30, 30, 39, 39, 39, 48, 48, 48],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_list_like():
+    df = DataFrame({"col": list("aab"), "val": range(3)})
+    result = df.groupby("col").transform(["sum", "min"])
+    expected = DataFrame({"val_sum": [1, 1, 2], "val_min": [0, 0, 2]})
+    expected.columns = MultiIndex.from_tuples([("val", "sum"), ("val", "min")])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_duplicate_columns():
+    df = DataFrame({"A": list("aaabbbccc"), "B": range(9, 18)})
+    result = df.groupby("A").transform(
+        b_min=NamedAgg(column="B", aggfunc="min"),
+        b_max=NamedAgg(column="B", aggfunc="max"),
+    )
+    expected = DataFrame(
+        {
+            "b_min": [9, 9, 9, 12, 12, 12, 15, 15, 15],
+            "b_max": [11, 11, 11, 14, 14, 14, 17, 17, 17],
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 
