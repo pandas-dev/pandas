@@ -1724,9 +1724,11 @@ def test_numba_raw_apply_with_args(engine):
     if engine == "numba":
         # GH:58712
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        result = df.apply(lambda x, a, b: x + a + b, args=(1, 2), engine=engine, raw=True)
-        # note:
-        # result is always float dtype, see core._numba.executor.py:generate_apply_looper
+        result = df.apply(
+            lambda x, a, b: x + a + b, args=(1, 2), engine=engine, raw=True
+        )
+        # note: result is always float dtype,
+        # see core._numba.executor.py:generate_apply_looper
         expected = df + 3.0
         tm.assert_frame_equal(result, expected)
 
