@@ -64,7 +64,7 @@ def test_apply(float_frame, engine, request):
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 def test_apply_args(float_frame, axis, raw, engine, request):
-    if engine == "numba":
+    if engine == "numba" and raw is False:
         mark = pytest.mark.xfail(reason="numba engine doesn't support args")
         request.node.add_marker(mark)
     result = float_frame.apply(
