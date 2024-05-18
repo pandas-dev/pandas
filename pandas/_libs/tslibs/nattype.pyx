@@ -528,6 +528,12 @@ class NaTType(_NaT):
         """
         Return a named tuple containing ISO year, week number, and weekday.
 
+        See Also
+        --------
+        DatetimeIndex.isocalendar : Return a 3-tuple containing ISO year,
+            week number, and weekday for the given DatetimeIndex object.
+        datetime.date.isocalendar : The equivalent method for `datetime.date` objects.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')
