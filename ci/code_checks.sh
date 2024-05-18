@@ -522,7 +522,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.testing.assert_index_equal PR07,SA01" \
         -i "pandas.testing.assert_series_equal PR07,SA01" \
         -i "pandas.timedelta_range SA01" \
-        -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BMonthBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
@@ -555,7 +554,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BYearEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.freqstr SA01" \
         -i "pandas.tseries.offsets.BusinessDay.holidays GL08" \
