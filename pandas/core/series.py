@@ -6895,7 +6895,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
-    @doc(make_doc("kurt", ndim=1))
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -6903,6 +6902,54 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased kurtosis over requested axis.
+
+        Kurtosis obtained using Fisher's definition of
+        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar
+            Unbiased kurtosis.
+
+        See Also
+        --------
+        Series.skew : Return unbiased skew over requested axis.
+        Series.var : Return unbiased variance over requested axis.
+        Series.std : Return unbiased standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2, 3], index=["cat", "dog", "dog", "mouse"])
+        >>> s
+        cat    1
+        dog    2
+        dog    2
+        mouse  3
+        dtype: int64
+        >>> s.kurt()
+        1.5
+        """
         return NDFrame.kurt(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
