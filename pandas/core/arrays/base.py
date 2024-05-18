@@ -1317,12 +1317,23 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
 
+        See Also
+        --------
+        numpy.array_equal : Equivalent method for numpy array.
+        Series.equals : Equivalent method for Series.
+        DataFrame.equals : Equivalent method for DataFrame.
+
         Examples
         --------
         >>> arr1 = pd.array([1, 2, np.nan])
         >>> arr2 = pd.array([1, 2, np.nan])
         >>> arr1.equals(arr2)
         True
+
+        >>> arr1 = pd.array([1, 3, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        False
         """
         if type(self) != type(other):
             return False
