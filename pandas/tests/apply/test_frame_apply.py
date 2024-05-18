@@ -1718,3 +1718,19 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
+
+
+def test_numba_raw_apply_with_args():
+    # GH:58712
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    result = df.apply(lambda x, a, b: x + a + b, args=(1, 2), engine="numba", raw=True)
+    # note:
+    # result is always float dtype, see core._numba.executor.py:generate_apply_looper
+    expected = df + 3.0
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(
+        pd.errors.NumbaUtilError,
+        match="numba does not support kwargs with nopython=True",
+    ):
+        df.apply(lambda x, a, b: x + a + b, args=(1,), b=2, engine="numba", raw=True)
