@@ -302,7 +302,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.dropna RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.dtype SA01" \
         -i "pandas.api.extensions.ExtensionArray.duplicated RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray.equals SA01" \
         -i "pandas.api.extensions.ExtensionArray.fillna SA01" \
         -i "pandas.api.extensions.ExtensionArray.insert PR07,RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.interpolate PR01,SA01" \
