@@ -560,14 +560,16 @@ class _Concatenator:
 
             # combine as columns in a frame
             else:
-                data = dict(zip(range(len(self.objs)), self.objs))
-
                 # GH28330 Preserves subclassed objects through concat
                 cons = sample._constructor_expanddim
-
                 index, columns = self.new_axes
-                df = cons(data, index=index, copy=False)
-                df.columns = columns
+                if isinstance(cons, type):
+                    df = cons._from_arrays(self.objs, columns=columns, index=index)
+                else:
+                    # Branch removable after GH 51772 is enforced
+                    data = dict(enumerate(self.objs))
+                    df = cons(data, index=index, copy=False)
+                    df.columns = columns
                 return df.__finalize__(self, method="concat")
 
         # combine block managers
