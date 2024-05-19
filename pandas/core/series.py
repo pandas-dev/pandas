@@ -6647,7 +6647,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
-    @doc(make_doc("sum", ndim=1))
     def sum(
         self,
         axis: Axis | None = None,
@@ -6656,6 +6655,89 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
+        """
+        Return the sum of the values over the requested axis.
+
+        This is equivalent to the method ``numpy.sum``.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Median of the values for the requested axis.
+
+        See Also
+        --------
+        numpy.sum : Equivalent numpy function for computing sum.
+        Series.mean : Mean of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.sum()
+        14
+
+        By default, the sum of an empty or all-NA Series is ``0``.
+
+        >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+        0.0
+
+        This can be controlled with the ``min_count`` parameter. For example, if
+        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+        >>> pd.Series([], dtype="float64").sum(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).sum()
+        0.0
+
+        >>> pd.Series([np.nan]).sum(min_count=1)
+        nan
+        """
         return NDFrame.sum(
             self,
             axis=axis,
