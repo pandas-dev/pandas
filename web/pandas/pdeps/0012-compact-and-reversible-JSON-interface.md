@@ -8,36 +8,7 @@
 - Author: [Philippe THOMY](https://github.com/loco-philippe)
 - Revision: 3
 
-##### Summary
-
-- [Abstract](./0012-compact-and-reversible-JSON-interface.md/#Abstract)
-  - [Problem description](./0012-compact-and-reversible-JSON-interface.md/#Problem-description)
-  - [Feature Description](./0012-compact-and-reversible-JSON-interface.md/#Feature-Description)
-- [Scope](./0012-compact-and-reversible-JSON-interface.md/#Scope)
-- [Motivation](./0012-compact-and-reversible-JSON-interface.md/#Motivation)
-  - [Why is it important to have a compact and reversible JSON interface ?](./0012-compact-and-reversible-JSON-interface.md/#Why-is-it-important-to-have-a-compact-and-reversible-JSON-interface-?)
-  - [Is it relevant to take an extended type into account ?](./0012-compact-and-reversible-JSON-interface.md/#Is-it-relevant-to-take-an-extended-type-into-account-?)
-  - [Is this only useful for pandas ?](./0012-compact-and-reversible-JSON-interface.md/#Is-this-only-useful-for-pandas-?)
-- [Description](./0012-compact-and-reversible-JSON-interface.md/#Description)
-  - [Data typing](./0012-compact-and-reversible-JSON-interface.md/#Data-typing)
-  - [Correspondence between TableSchema and pandas](./panda0012-compact-and-reversible-JSON-interfaces_PDEP.md/#Correspondence-between-TableSchema-and-pandas)
-  - [JSON format](./0012-compact-and-reversible-JSON-interface.md/#JSON-format)
-  - [Conversion](./0012-compact-and-reversible-JSON-interface.md/#Conversion)
-- [Usage and impact](./0012-compact-and-reversible-JSON-interface.md/#Usage-and-impact)
-  - [Usage](./0012-compact-and-reversible-JSON-interface.md/#Usage)
-  - [Compatibility](./0012-compact-and-reversible-JSON-interface.md/#Compatibility)
-  - [Impacts on the pandas framework](./0012-compact-and-reversible-JSON-interface.md/#Impacts-on-the-pandas-framework)
-  - [Risk to do / risk not to do](./0012-compact-and-reversible-JSON-interface.md/#Risk-to-do-/-risk-not-to-do)
-- [Implementation](./0012-compact-and-reversible-JSON-interface.md/#Implementation)
-  - [Modules](./0012-compact-and-reversible-JSON-interface.md/#Modules)
-  - [Implementation options](./0012-compact-and-reversible-JSON-interface.md/#Implementation-options)
-- [F.A.Q.](./0012-compact-and-reversible-JSON-interface.md/#F.A.Q.)
-- [Synthesis](./0012-compact-and-reversible-JSON-interface.md/Synthesis)
-- [Core team decision](./0012-compact-and-reversible-JSON-interface.md/#Core-team-decision)
-- [Timeline](./0012-compact-and-reversible-JSON-interface.md/#Timeline)
-- [PDEP history](./0012-compact-and-reversible-JSON-interface.md/#PDEP-history)
-
--------------------------
+[TOC]
 
 ## Abstract
 
