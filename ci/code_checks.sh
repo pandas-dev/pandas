@@ -519,7 +519,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterBegin.normalize GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BQuarterEnd PR02" \
         -i "pandas.tseries.offsets.BQuarterEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.BQuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.n GL08" \
@@ -735,7 +734,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.QuarterBegin.normalize GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.QuarterEnd PR02" \
         -i "pandas.tseries.offsets.QuarterEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.QuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.n GL08" \
