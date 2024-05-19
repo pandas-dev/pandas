@@ -63,15 +63,22 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-def test_apply_args(float_frame, axis, raw, engine, request):
-    if engine == "numba" and raw is False:
-        mark = pytest.mark.xfail(reason="numba engine doesn't support args")
-        request.node.add_marker(mark)
+def test_apply_args(float_frame, axis, raw, engine):
+    # GH:58712
     result = float_frame.apply(
         lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
+
+    if engine == "numba":
+        with pytest.raises(
+            pd.errors.NumbaUtilError,
+            match="numba does not support kwargs with nopython=True",
+        ):
+            float_frame.apply(
+                lambda x, a, b: x + a + b, args=(1,), b=2, engine=engine, raw=raw
+            )
 
 
 def test_apply_categorical_func():
@@ -1718,22 +1725,3 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
-
-
-def test_numba_raw_apply_with_args(engine):
-    if engine == "numba":
-        # GH:58712
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        result = df.apply(
-            lambda x, a, b: x + a + b, args=(1, 2), engine=engine, raw=True
-        )
-        # note: result is always float dtype,
-        # see core._numba.executor.py:generate_apply_looper
-        expected = df + 3.0
-        tm.assert_frame_equal(result, expected)
-
-        with pytest.raises(
-            pd.errors.NumbaUtilError,
-            match="numba does not support kwargs with nopython=True",
-        ):
-            df.apply(lambda x, a, b: x + a + b, args=(1,), b=2, engine=engine, raw=True)

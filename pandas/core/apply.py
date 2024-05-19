@@ -1122,21 +1122,22 @@ class FrameRowApply(FrameApply):
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names, df_index):
+        def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
                 # Create the series
                 ser = Series(
                     values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
                 )
-                results[j] = jitted_udf(ser)
+                results[j] = jitted_udf(ser, *args)
             return results
 
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            cast(Callable, self.func),
+            **get_jit_arguments(self.engine_kwargs, self.kwargs),
         )
         from pandas.core._numba.extensions import set_numba_data
 
@@ -1151,7 +1152,7 @@ class FrameRowApply(FrameApply):
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         with set_numba_data(index) as index, set_numba_data(columns) as columns:
-            res = dict(nb_func(self.values, columns, index))
+            res = dict(nb_func(self.values, columns, index, *self.args))
         return res
 
     @property
@@ -1259,7 +1260,7 @@ class FrameColumnApply(FrameApply):
         jitted_udf = numba.extending.register_jitable(func)
 
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names_index, index):
+        def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
             # (it's disabled) since the dicts in numba aren't thread-safe.
@@ -1271,7 +1272,7 @@ class FrameColumnApply(FrameApply):
                     index=col_names_index,
                     name=maybe_cast_str(index[i]),
                 )
-                results[i] = jitted_udf(ser)
+                results[i] = jitted_udf(ser, *args)
 
             return results
 
@@ -1279,7 +1280,8 @@ class FrameColumnApply(FrameApply):
 
     def apply_with_numba(self) -> dict[int, Any]:
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            cast(Callable, self.func),
+            **get_jit_arguments(self.engine_kwargs, self.kwargs),
         )
 
         from pandas.core._numba.extensions import set_numba_data
@@ -1290,7 +1292,7 @@ class FrameColumnApply(FrameApply):
             set_numba_data(self.obj.index) as index,
             set_numba_data(self.columns) as columns,
         ):
-            res = dict(nb_func(self.values, columns, index))
+            res = dict(nb_func(self.values, columns, index, *self.args))
 
         return res
 
