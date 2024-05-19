@@ -411,17 +411,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         """
         value = self._validate_setitem_value(value)
 
-        # Note: For backwards compatibility purposes
-        # StringArray returns an object array in __array__
-        # when it is backed by a numpy StringDType
-        # We need to work around that here.
-        if hasattr(value, "_ndarray") and value._ndarray.dtype.kind == "T":
-            value = value._ndarray
-
-        # np.where will not preserve the StringDType
-        # TODO: ask Nathan about this
-        # also TODO: this is a mess
         if self._ndarray.dtype.kind == "T":
+            # Handling non-string values and numpy StringDtype
+            # explicitly since we don't want to end up with object
+            # and lose the string dtype
             if value is np.nan:
                 value = libmissing.NA
                 res_values = self._ndarray.copy()

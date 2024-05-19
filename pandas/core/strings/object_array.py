@@ -623,7 +623,9 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
     def _str_len(self) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_len()
-        result = np.strings.str_len(self._ndarray)
+        na_mask = isna(self._ndarray)
+        result = np.empty_like(self._ndarray, dtype="int64")
+        result[~na_mask] = np.strings.str_len(self._ndarray[~na_mask])
         return IntegerArray(result, isna(self._ndarray))
 
     def _str_lstrip(self, to_strip=None):

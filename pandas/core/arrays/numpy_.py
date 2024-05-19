@@ -166,7 +166,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         array = self._ndarray
-        # to_numpy on StringArray backed by StringDType should still return object dtype
+        # np.array on StringArray backed by StringDType should still return object dtype
         # for backwards compat
         if self._ndarray.dtype.kind == "T":
             array = array.astype(object)
@@ -516,8 +516,8 @@ class NumpyExtensionArray(  # type: ignore[misc]
         # to_numpy on StringArray backed by StringDType should still return object dtype
         # for backwards compat
         array = self._ndarray
-        if self._ndarray.dtype.kind == "T":
-            array = array.astype(object)
+        if dtype is None and self._ndarray.dtype.kind == "T":
+            dtype = object
         result = np.asarray(array, dtype=dtype)
         if na_value is not lib.no_default and mask.any():
             result = result.copy()

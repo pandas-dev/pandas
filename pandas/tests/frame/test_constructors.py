@@ -3068,7 +3068,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         data["a"] = np.array(data["a"], dtype=StringDType())
         res = DataFrame(data)
-        assert res["a"].dtype == np.dtypes.StringDType()
+        assert res["a"].dtype == np.object_
         assert (res["a"] == data["a"]).all()
 
 

@@ -103,19 +103,17 @@ def test_memory_usage(index_or_series_memory_obj, request):
     is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
         is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
     )
-    is_object_string = is_dtype_equal(obj, "string[python]") or (
+    is_string_array = is_dtype_equal(obj, "string[python]") or (
         is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
-    if is_object_string and np_version_gt2:
-        mark = pytest.mark.xfail(
-            True, reason="NumPy does not expose an API to get StringDType memory usage"
-        )
+    if is_string_array and np_version_gt2:
+        mark = pytest.mark.xfail(reason="NumPy does not expose an API to get StringDType memory usage")
         request.applymarker(mark)
 
     if len(obj) == 0:
         expected = 0
         assert res_deep == res == expected
-    elif is_object or is_categorical:
+    elif is_object or is_categorical or is_string_array:
         # only deep will pick them up
         assert res_deep > res
     else:
