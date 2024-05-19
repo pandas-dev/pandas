@@ -222,7 +222,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Timedelta PR07,SA01" \
         -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
