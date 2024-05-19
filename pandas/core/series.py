@@ -1491,6 +1491,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         str or None
             String representation of Series if ``buf=None``, otherwise None.
 
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
+        Series.to_frame : Convert Series to DataFrame object.
+        Series.to_markdown : Print Series in Markdown-friendly format.
+        Series.to_timestamp : Cast to DatetimeIndex of Timestamps.
+
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3]).to_string()
