@@ -1104,7 +1104,7 @@ cdef class Day(Tick):
     """
     Offset ``n`` days.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.

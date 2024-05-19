@@ -148,7 +148,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.cat.set_categories PR01,PR02" \
         -i "pandas.Series.dt.as_unit PR01,PR02" \
         -i "pandas.Series.dt.ceil PR01,PR02" \
-        -i "pandas.Series.dt.components SA01" \
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.floor PR01,PR02" \
         -i "pandas.Series.dt.freq GL08" \
@@ -165,12 +164,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.eq SA01" \
         -i "pandas.Series.ge SA01" \
         -i "pandas.Series.gt SA01" \
-        -i "pandas.Series.kurt RT03,SA01" \
-        -i "pandas.Series.kurtosis RT03,SA01" \
-        -i "pandas.Series.le SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
         -i "pandas.Series.list.len SA01" \
@@ -248,20 +243,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
-        -i "pandas.Timestamp.astimezone SA01" \
-        -i "pandas.Timestamp.ceil SA01" \
         -i "pandas.Timestamp.combine PR01,SA01" \
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.dst SA01" \
         -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
         -i "pandas.Timestamp.hour GL08" \
-        -i "pandas.Timestamp.is_leap_year SA01" \
-        -i "pandas.Timestamp.isocalendar SA01" \
         -i "pandas.Timestamp.isoweekday SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
@@ -288,7 +278,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz SA01" \
-        -i "pandas.Timestamp.tz_convert SA01" \
         -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \
@@ -299,7 +288,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.weekday SA01" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray._from_sequence_of_strings SA01" \
         -i "pandas.api.extensions.ExtensionArray._hash_pandas_object RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._reduce RT03,SA01" \
@@ -308,7 +296,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.dropna RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.dtype SA01" \
         -i "pandas.api.extensions.ExtensionArray.duplicated RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray.equals SA01" \
         -i "pandas.api.extensions.ExtensionArray.fillna SA01" \
         -i "pandas.api.extensions.ExtensionArray.insert PR07,RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.interpolate PR01,SA01" \
@@ -324,7 +311,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.view SA01" \
         -i "pandas.api.indexers.VariableOffsetWindowIndexer PR01,SA01" \
         -i "pandas.api.interchange.from_dataframe RT03,SA01" \
-        -i "pandas.api.types.infer_dtype PR07,SA01" \
         -i "pandas.api.types.is_any_real_numeric_dtype SA01" \
         -i "pandas.api.types.is_bool PR01,SA01" \
         -i "pandas.api.types.is_bool_dtype SA01" \
@@ -353,7 +339,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_period_dtype SA01" \
         -i "pandas.api.types.is_re PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
-        -i "pandas.api.types.is_scalar SA01" \
         -i "pandas.api.types.is_signed_integer_dtype SA01" \
         -i "pandas.api.types.is_sparse SA01" \
         -i "pandas.api.types.is_string_dtype SA01" \
@@ -528,7 +513,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.testing.assert_index_equal PR07,SA01" \
         -i "pandas.testing.assert_series_equal PR07,SA01" \
         -i "pandas.timedelta_range SA01" \
-        -i "pandas.tseries.api.guess_datetime_format SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BMonthBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
@@ -651,7 +635,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.nanos GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
         -i "pandas.tseries.offsets.DateOffset.rule_code GL08" \
-        -i "pandas.tseries.offsets.Day PR02" \
         -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
