@@ -222,16 +222,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.to_string SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Timedelta PR07,SA01" \
         -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
         -i "pandas.Timedelta.days SA01" \
         -i "pandas.Timedelta.floor SA01" \
-        -i "pandas.Timedelta.max PR02,PR07,SA01" \
-        -i "pandas.Timedelta.min PR02,PR07,SA01" \
-        -i "pandas.Timedelta.resolution PR02,PR07,SA01" \
+        -i "pandas.Timedelta.max PR02" \
+        -i "pandas.Timedelta.min PR02" \
+        -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timedelta.round SA01" \
         -i "pandas.Timedelta.to_numpy PR01" \
         -i "pandas.Timedelta.to_timedelta64 SA01" \
@@ -264,7 +263,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.now SA01" \
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
-        -i "pandas.Timestamp.resolution PR02,PR07,SA01" \
+        -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
         -i "pandas.Timestamp.time SA01" \
