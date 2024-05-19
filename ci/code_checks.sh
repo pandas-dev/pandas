@@ -317,7 +317,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_categorical_dtype SA01" \
         -i "pandas.api.types.is_complex PR01,SA01" \
         -i "pandas.api.types.is_complex_dtype SA01" \
-        -i "pandas.api.types.is_datetime64_any_dtype SA01" \
         -i "pandas.api.types.is_datetime64_dtype SA01" \
         -i "pandas.api.types.is_datetime64_ns_dtype SA01" \
         -i "pandas.api.types.is_datetime64tz_dtype SA01" \
