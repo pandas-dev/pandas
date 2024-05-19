@@ -1192,6 +1192,13 @@ class ExtensionArray:
         ExtensionArray
             Shifted.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.transpose : Return a transposed view on
+            this array.
+        api.extensions.ExtensionArray.factorize : Encode the extension array as an
+            enumerated type.
+
         Notes
         -----
         If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
