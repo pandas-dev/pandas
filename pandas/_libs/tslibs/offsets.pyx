@@ -3052,7 +3052,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
