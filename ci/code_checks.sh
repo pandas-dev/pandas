@@ -342,7 +342,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_signed_integer_dtype SA01" \
         -i "pandas.api.types.is_sparse SA01" \
         -i "pandas.api.types.is_string_dtype SA01" \
-        -i "pandas.api.types.is_timedelta64_dtype SA01" \
         -i "pandas.api.types.is_timedelta64_ns_dtype SA01" \
         -i "pandas.api.types.is_unsigned_integer_dtype SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
