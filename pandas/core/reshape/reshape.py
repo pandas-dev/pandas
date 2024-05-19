@@ -925,75 +925,28 @@ def _reorder_for_extension_array_stack(
 def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
-
-    # If we need to drop `level` from columns, it needs to be in descending order
     set_levels = set(level)
-    drop_levnums = sorted(level, reverse=True)
     stack_cols = frame.columns._drop_level_numbers(
         [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
     )
-    if len(level) > 1:
-        # Arrange columns in the order we want to take them, e.g. level=[2, 0, 1]
-        sorter = np.argsort(level)
-        assert isinstance(stack_cols, MultiIndex)
-        ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
-    else:
-        ordered_stack_cols = stack_cols
-
-    stack_cols_unique = stack_cols.unique()
-    ordered_stack_cols_unique = ordered_stack_cols.unique()
-
-    # Grab data for each unique index to be stacked
-    buf = []
-    for idx in stack_cols_unique:
-        if len(frame.columns) == 1:
-            data = frame.copy()
-        else:
-            if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
-                # GH#57750 - if the frame is an Index with tuples, .loc below will fail
-                column_indexer = idx
-            else:
-                # Take the data from frame corresponding to this idx value
-                if len(level) == 1:
-                    idx = (idx,)
-                gen = iter(idx)
-                column_indexer = tuple(
-                    next(gen) if k in set_levels else slice(None)
-                    for k in range(frame.columns.nlevels)
-                )
-            data = frame.loc[:, column_indexer]
-
-        if len(level) < frame.columns.nlevels:
-            data.columns = data.columns._drop_level_numbers(drop_levnums)
-        elif stack_cols.nlevels == 1:
-            if data.ndim == 1:
-                data.name = 0
-            else:
-                data.columns = RangeIndex(len(data.columns))
-        buf.append(data)
 
     result: Series | DataFrame
-    if len(buf) > 0 and not frame.empty:
-        result = concat(buf, ignore_index=True)
-        ratio = len(result) // len(frame)
-    else:
-        # input is empty
-        if len(level) < frame.columns.nlevels:
-            # concat column order may be different from dropping the levels
-            new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
+    if not isinstance(frame.columns, MultiIndex):
+        # Fast path when we're stacking the columns of a non-MultiIndex.
+        # When columns are homogeneous EAs, we pass through object
+        # dtype but this is still faster than the normal path.
+        if len(frame.columns) > 0 and frame._is_homogeneous_type:
+            dtype = frame._mgr.arrays[0].dtype
         else:
-            new_columns = [0]
-        result = DataFrame(columns=new_columns, dtype=frame._values.dtype)
-        ratio = 0
-
-    if len(level) < frame.columns.nlevels:
-        # concat column order may be different from dropping the levels
-        desired_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
-        if not result.columns.equals(desired_columns):
-            result = result[desired_columns]
+            dtype = None
+        result = Series(frame._values.ravel(order="F"), dtype=dtype)
+    else:
+        result = stack_reshape(frame, level, set_levels, stack_cols)
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
+    ratio = 0 if frame.empty else len(result) // len(frame)
+
     index_levels: list | FrozenList
     if isinstance(frame.index, MultiIndex):
         index_levels = frame.index.levels
@@ -1002,12 +955,22 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         codes, uniques = factorize(frame.index, use_na_sentinel=False)
         index_levels = [uniques]
         index_codes = list(np.tile(codes, (1, ratio)))
+
+    if len(level) > 1:
+        # Arrange columns in the order we want to take them, e.g. level=[2, 0, 1]
+        sorter = np.argsort(level)
+        assert isinstance(stack_cols, MultiIndex)
+        ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
+    else:
+        ordered_stack_cols = stack_cols
+    ordered_stack_cols_unique = ordered_stack_cols.unique()
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = [ordered_stack_cols.unique()]
+        column_levels = [ordered_stack_cols_unique]
         column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
+
     # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
     # dtype[Any]]]", variable has type "FrozenList")
     column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]  # type: ignore[assignment]
@@ -1033,5 +996,78 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
             result = result.iloc[:, 0]
     if result.ndim == 1:
         result.name = None
+
+    return result
+
+
+def stack_reshape(
+    frame: DataFrame, level: list[int], set_levels: set[int], stack_cols: Index
+) -> Series | DataFrame:
+    """Reshape the data of a frame for stack.
+
+    This function takes care of most of the work that stack needs to do. Caller
+    will sort the result once the appropriate index is set.
+
+    Parameters
+    ----------
+    frame: DataFrame
+        DataFrame that is to be stacked.
+    level: list of ints.
+        Levels of the columns to stack.
+    set_levels: set of ints.
+        Same as level, but as a set.
+    stack_cols: Index.
+        Columns of the result when the DataFrame is stacked.
+
+    Returns
+    -------
+    The data of behind the stacked DataFrame.
+    """
+    # non-MultIndex takes a fast path.
+    assert isinstance(frame.columns, MultiIndex)
+    # If we need to drop `level` from columns, it needs to be in descending order
+    drop_levnums = sorted(level, reverse=True)
+
+    # Grab data for each unique index to be stacked
+    buf = []
+    for idx in stack_cols.unique():
+        if len(frame.columns) == 1:
+            data = frame.copy()
+        else:
+            # Take the data from frame corresponding to this idx value
+            if len(level) == 1:
+                idx = (idx,)
+            gen = iter(idx)
+            column_indexer = tuple(
+                next(gen) if k in set_levels else slice(None)
+                for k in range(frame.columns.nlevels)
+            )
+            data = frame.loc[:, column_indexer]
+
+        if len(level) < frame.columns.nlevels:
+            data.columns = data.columns._drop_level_numbers(drop_levnums)
+        elif stack_cols.nlevels == 1:
+            if data.ndim == 1:
+                data.name = 0
+            else:
+                data.columns = RangeIndex(len(data.columns))
+        buf.append(data)
+
+    if len(buf) > 0 and not frame.empty:
+        result = concat(buf, ignore_index=True)
+    else:
+        # input is empty
+        if len(level) < frame.columns.nlevels:
+            # concat column order may be different from dropping the levels
+            new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
+        else:
+            new_columns = [0]
+        result = DataFrame(columns=new_columns, dtype=frame._values.dtype)
+
+    if len(level) < frame.columns.nlevels:
+        # concat column order may be different from dropping the levels
+        desired_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
+        if not result.columns.equals(desired_columns):
+            result = result[desired_columns]
 
     return result
