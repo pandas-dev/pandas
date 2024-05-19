@@ -2033,6 +2033,13 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[uint64]
+            An array of hashed values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._values_for_factorize : Return an array and
+            missing value suitable for factorization.
+        util.hash_array : Given a 1d array, return an array of hashed values.
 
         Examples
         --------
