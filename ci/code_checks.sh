@@ -510,7 +510,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.testing.assert_series_equal PR07,SA01" \
         -i "pandas.timedelta_range SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
-        -i "pandas.tseries.offsets.BMonthBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
@@ -563,7 +562,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessHour.rule_code GL08" \
         -i "pandas.tseries.offsets.BusinessHour.start GL08" \
         -i "pandas.tseries.offsets.BusinessHour.weekmask GL08" \
-        -i "pandas.tseries.offsets.BusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.n GL08" \
