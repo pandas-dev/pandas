@@ -362,6 +362,13 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the timedelta64 dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_period_dtype : Check whether an array-like or dtype is of the
+        Period dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_timedelta64_dtype
