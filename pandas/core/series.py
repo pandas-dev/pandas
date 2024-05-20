@@ -1491,6 +1491,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         str or None
             String representation of Series if ``buf=None``, otherwise None.
 
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
+        Series.to_frame : Convert Series to DataFrame object.
+        Series.to_markdown : Print Series in Markdown-friendly format.
+        Series.to_timestamp : Cast to DatetimeIndex of Timestamps.
+
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3]).to_string()
@@ -5912,7 +5919,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             return op(self, other)
 
-    @Appender(ops.make_flex_doc("eq", "series"))
     def eq(
         self,
         other,
@@ -5920,6 +5926,63 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value: float | None = None,
         axis: Axis = 0,
     ) -> Series:
+        """
+        Return Equal to of series and other, element-wise (binary operator `eq`).
+
+        Equivalent to ``series == other``, but with support to substitute a fill_value
+        for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            The second operand in this operation.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.ge : Return elementwise Greater than or equal to of series and other.
+        Series.le : Return elementwise Less than or equal to of series and other.
+        Series.gt : Return elementwise Greater than of series and other.
+        Series.lt : Return elementwise Less than of series and other.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        dtype: float64
+        >>> b = pd.Series([1, np.nan, 1, np.nan], index=["a", "b", "d", "e"])
+        >>> b
+        a    1.0
+        b    NaN
+        d    1.0
+        e    NaN
+        dtype: float64
+        >>> a.eq(b, fill_value=0)
+        a     True
+        b    False
+        c    False
+        d    False
+        e    False
+        dtype: bool
+        """
         return self._flex_method(
             other, operator.eq, level=level, fill_value=fill_value, axis=axis
         )
@@ -5930,8 +5993,68 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, operator.ne, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("le", "series"))
     def le(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+        """
+        Return Less than or equal to of series and other, \
+        element-wise (binary operator `le`).
+
+        Equivalent to ``series <= other``, but with support to substitute a
+        fill_value for missing data in either one of the inputs.
+
+        Parameters
+        ----------
+        other : Series or scalar value
+            The second operand in this operation.
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : None or float value, default None (NaN)
+            Fill existing missing (NaN) values, and any new element needed for
+            successful Series alignment, with this value before computation.
+            If data in both corresponding Series locations is missing
+            the result of filling (at that location) will be missing.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        Returns
+        -------
+        Series
+            The result of the operation.
+
+        See Also
+        --------
+        Series.ge : Return elementwise Greater than or equal to of series and other.
+        Series.lt : Return elementwise Less than of series and other.
+        Series.gt : Return elementwise Greater than of series and other.
+        Series.eq : Return elementwise equal to of series and other.
+
+        Examples
+        --------
+        >>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+        >>> a
+        a    1.0
+        b    1.0
+        c    1.0
+        d    NaN
+        e    1.0
+        dtype: float64
+        >>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+        >>> b
+        a    0.0
+        b    1.0
+        c    2.0
+        d    NaN
+        f    1.0
+        dtype: float64
+        >>> a.le(b, fill_value=0)
+        a    False
+        b     True
+        c     True
+        d    False
+        e    False
+        f     True
+        dtype: bool
+        """
         return self._flex_method(
             other, operator.le, level=level, fill_value=fill_value, axis=axis
         )
@@ -6524,7 +6647,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
-    @doc(make_doc("sum", ndim=1))
     def sum(
         self,
         axis: Axis | None = None,
@@ -6533,6 +6655,89 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
+        """
+        Return the sum of the values over the requested axis.
+
+        This is equivalent to the method ``numpy.sum``.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Median of the values for the requested axis.
+
+        See Also
+        --------
+        numpy.sum : Equivalent numpy function for computing sum.
+        Series.mean : Mean of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.sum()
+        14
+
+        By default, the sum of an empty or all-NA Series is ``0``.
+
+        >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+        0.0
+
+        This can be controlled with the ``min_count`` parameter. For example, if
+        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+        >>> pd.Series([], dtype="float64").sum(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).sum()
+        0.0
+
+        >>> pd.Series([np.nan]).sum(min_count=1)
+        nan
+        """
         return NDFrame.sum(
             self,
             axis=axis,
@@ -6835,7 +7040,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
-    @doc(make_doc("kurt", ndim=1))
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -6843,6 +7047,54 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased kurtosis over requested axis.
+
+        Kurtosis obtained using Fisher's definition of
+        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar
+            Unbiased kurtosis.
+
+        See Also
+        --------
+        Series.skew : Return unbiased skew over requested axis.
+        Series.var : Return unbiased variance over requested axis.
+        Series.std : Return unbiased standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2, 3], index=["cat", "dog", "dog", "mouse"])
+        >>> s
+        cat    1
+        dog    2
+        dog    2
+        mouse  3
+        dtype: int64
+        >>> s.kurt()
+        1.5
+        """
         return NDFrame.kurt(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
