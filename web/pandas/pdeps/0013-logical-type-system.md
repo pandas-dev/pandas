@@ -98,6 +98,7 @@ Derived from the hierarchical visual in the previous section, this PDEP proposes
   - Struct
   - Interval
   - Object
+  - Null
 
 One of the major problems this PDEP has tried to highlight is the historical tendency of our team to "create more types" to solve existing problems. To minimize the need for that, this PDEP proposes re-using our existing extension types where possible, and only adding new ones where they do not exist.
 
