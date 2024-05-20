@@ -32,6 +32,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
     is_complex,
@@ -155,7 +156,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
     # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
     if (
         dtype != object
-        and dtype != np.dtypes.StringDType(na_object=libmissing.NA)
+        and (np_version_gt2 and dtype != np.dtypes.StringDType(na_object=libmissing.NA))
         and not needs_i8_conversion(dtype)
     ):
         # GH 42878
