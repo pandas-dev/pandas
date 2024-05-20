@@ -12,7 +12,7 @@ This PDEP proposes to introduce a dedicated string dtype that will be used by
 default in pandas 3.0:
 
 * In pandas 3.0, enable a "string" dtype by default, using PyArrow if available
-  or otherwise the numpy object-dtype alternative.
+  or otherwise a string dtype using numpy object-dtype under the hood as fallback.
 * The default string dtype will use missing value semantics (using NaN) consistent
   with the other default data types.
 
@@ -69,11 +69,11 @@ data type in pandas that is not backed by Python objects.
 After acceptance of PDEP-10, two aspects of the proposal have been under
 reconsideration:
 
-- Based on user feedback (mostly around installation complexity and size), it
-  has been considered to relax the new `pyarrow` requirement to not be a _hard_
-  runtime dependency. In addition, NumPy 2.0 could in the future potentially
-  reduce the need to make PyArrow a required dependency specifically for a
-  dedicated pandas string dtype.
+- Based on feedback from users and maintainers from other packages (mostly
+  around installation complexity and size), it has been considered to relax the
+  new `pyarrow` requirement to not be a _hard_ runtime dependency. In addition,
+  NumPy 2.0 could in the future potentially reduce the need to make PyArrow a
+  required dependency specifically for a dedicated pandas string dtype.
 - PDEP-10 did not consider the usage of the experimental `pd.NA` as a
   consequence of adopting one of the existing implementations of the
   `StringDtype`.
@@ -250,13 +250,15 @@ in flux (eventually making pyarrow a required dependency? adopting `pd.NA` as
 the default missing value sentinel? using the new NumPy 2.0 capabilities?
 overhauling all our dtypes to use a logical data type system?), introducing a
 default string dtype could also be delayed until there is more clarity in those
-other discussions.
+other discussions. Specifically, it would avoid temporarily switching to use
+`NaN` for the string dtype, while in a future version we might switch back
+to `pd.NA` by default.
 
 However:
 
 1. Delaying has a cost: it further postpones introducing a dedicated string
    dtype that has massive benefits for users, both in usability as (for the
-   significant part of the user base that has PyArrow installed) in performance.
+   part of the user base that has PyArrow installed) in performance.
 2. In case pandas eventually transitions to use `pd.NA` as the default missing value
    sentinel,  a migration path for _all_ pandas data types will be needed, and thus
    the challenges around this will not be unique to the string dtype and
@@ -264,8 +266,8 @@ However:
 
 Making this change now for 3.0 will benefit the majority of users, while coming
 at a cost for a part of the users who already started using the `"string"` or
-`pd.StringDtype()` dtype (they will have to update their code to continue to the
-variant using `pd.NA`, see the "Backward compatibility" section below).
+`pd.StringDtype()` dtype (they will have to update their code to continue to use
+the variant using `pd.NA`, see the "Backward compatibility" section below).
 
 ### Why not use the existing StringDtype with `pd.NA`?
 
@@ -311,9 +313,14 @@ To allow testing code in advance, the
 `pd.options.future.infer_string = True` option is available for users.
 
 Otherwise, the actual string-specific functionality (such as the `.str` accessor
-methods) should generally all keep working as is. By preserving the current
-missing value semantics, this proposal is also backwards compatible on this
-aspect.
+methods) should generally all keep working as is.
+
+By preserving the current missing value semantics, this proposal is also mostly
+backwards compatible on this aspect. When storing strings in object dtype, pandas
+however did allow using `None` as the missing value indicator as well (and in
+certain cases such as the `shift` method, pandas even introduced this itself).
+For all the cases where currently `None` was used as the missing value sentinel,
+this will change to use `NaN` consistently.
 
 ### For existing users of `StringDtype`
 
@@ -359,16 +366,17 @@ options:
 - If the user specifically wants the variant of the string dtype that uses
   `pd.NA` (and returns nullable numeric/boolean dtypes in operations), they will
   have to update their dtype specification from `"string"` / `pd.StringDtype()`
-  to `pd.StringDtype(na_value=pd.NA)` to suppress the warning and further keep
-  their code running as is.
+  to `"String"` / `pd.StringDtype(na_value=pd.NA)` to suppress the warning and
+  further keep their code running as is.
+
+A `"String"` alias (capitalized) would be added to make it easier for users to
+continue using the variant using `pd.NA`, and such capitalized string alias is
+consistent with other nullable dtypes (`"float64`" vs `"Float64"`).
 
 ## Timeline
 
 The future PyArrow-backed string dtype was already made available behind a feature
 flag in pandas 2.1 (enabled by `pd.options.future.infer_string = True`).
-
-Some small enhancements or fixes might still be needed and can continue to be
-backported to pandas 2.2.x.
 
 The variant using numpy object-dtype can also be backported to the 2.2.x branch
 to allow easier testing. It is proposed to release this as 2.3.0 (created from
