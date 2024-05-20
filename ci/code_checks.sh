@@ -440,7 +440,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.UnsortedIndexError SA01" \
         -i "pandas.errors.UnsupportedFunctionCall SA01" \
         -i "pandas.errors.ValueLabelTypeMismatch SA01" \
-        -i "pandas.get_option SA01" \
         -i "pandas.infer_freq SA01" \
         -i "pandas.interval_range RT03" \
         -i "pandas.io.formats.style.Styler.apply RT03" \
