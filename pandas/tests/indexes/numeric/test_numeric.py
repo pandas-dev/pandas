@@ -397,7 +397,7 @@ class TestIntNumericIndex:
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
-        msg = "Trying to coerce float values to integers"
+        msg = "Trying to coerce object values to integers"
         with pytest.raises(ValueError, match=msg):
             index_cls(arr, dtype=dtype)
 
