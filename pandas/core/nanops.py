@@ -18,7 +18,6 @@ from pandas._libs import (
     NaTType,
     iNaT,
     lib,
-    missing as libmissing,
 )
 from pandas._typing import (
     ArrayLike,
@@ -32,7 +31,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
     is_complex,
@@ -153,12 +151,8 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
-    if (
-        dtype != object
-        and (np_version_gt2 and dtype != np.dtypes.StringDType(na_object=libmissing.NA))
-        and not needs_i8_conversion(dtype)
-    ):
+    # Bottleneck chokes on datetime64, numpy strins, PeriodDtype (or and EA)
+    if dtype != object and dtype.kind != "T" and not needs_i8_conversion(dtype):
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
         # unlike numpy which implements pairwise summation, which has O(log(n)) loss

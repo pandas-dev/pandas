@@ -516,12 +516,15 @@ class NumpyExtensionArray(  # type: ignore[misc]
         # to_numpy on StringArray backed by StringDType should still return object dtype
         # for backwards compat
         array = self._ndarray
-        if dtype is None and self._ndarray.dtype.kind == "T":
-            dtype = object
-        result = np.asarray(array, dtype=dtype)
+        if self._ndarray.dtype.kind == "T":
+            array = array.astype(object)
         if na_value is not lib.no_default and mask.any():
-            result = result.copy()
+            result = array.copy()
             result[mask] = na_value
+        else:
+            result = self._ndarray
+
+        result = np.asarray(result, dtype=dtype)
 
         if copy and result is self._ndarray:
             result = result.copy()
