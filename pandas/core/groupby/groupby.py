@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
+    Iterable,
     Iterator,
     Mapping,
     Sequence,
@@ -2645,7 +2646,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         }
         if isinstance(obj, Series):
             _name = obj.name
-            keys = [] if _name in in_axis_names else [obj]
+            keys: Iterable[Series] = [] if _name in in_axis_names else [obj]
         else:
             unique_cols = set(obj.columns)
             if subset is not None:

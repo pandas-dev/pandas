@@ -7003,17 +7003,15 @@ class DataFrame(NDFrame, OpsMixin):
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                # error: List comprehension has incompatible type List[Series];
-                # expected List[ndarray]
-                keys = [
-                    Series(k, name=name)  # type: ignore[misc]
-                    for (k, name) in zip(keys, by)
-                ]
+                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
             else:
-                keys = list(keys)
+                # error: Argument 1 to "list" has incompatible type
+                # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
+                # expected "Iterable[Series]"
+                keys_data = list(keys)  # type: ignore[arg-type]
 
             indexer = lexsort_indexer(
-                keys, orders=ascending, na_position=na_position, key=key
+                keys_data, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
             # len(by) == 1
