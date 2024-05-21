@@ -1062,7 +1062,7 @@ class DataFrame(NDFrame, OpsMixin):
         False
         """
         # The "<" part of "<=" here is for empty DataFrame cases
-        return len({arr.dtype for arr in self._mgr.arrays}) <= 1
+        return len({block.values.dtype for block in self._mgr.blocks}) <= 1
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -5702,7 +5702,6 @@ class DataFrame(NDFrame, OpsMixin):
         periods = cast(int, periods)
 
         ncols = len(self.columns)
-        arrays = self._mgr.arrays
         if axis == 1 and periods != 0 and ncols > 0 and freq is None:
             if fill_value is lib.no_default:
                 # We will infer fill_value to match the closest column
@@ -5728,12 +5727,12 @@ class DataFrame(NDFrame, OpsMixin):
 
                 result.columns = self.columns.copy()
                 return result
-            elif len(arrays) > 1 or (
+            elif len(self._mgr.blocks) > 1 or (
                 # If we only have one block and we know that we can't
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
                 #  (and avoid casting logic in the Block method).
-                not can_hold_element(arrays[0], fill_value)
+                not can_hold_element(self._mgr.blocks[0].values, fill_value)
             ):
                 # GH#35488 we need to watch out for multi-block cases
                 # We only get here with fill_value not-lib.no_default
@@ -11429,7 +11428,7 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
-            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+            dtype = find_common_type([block.values.dtype for block in df._mgr.blocks])
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
@@ -11454,7 +11453,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # kurtosis excluded since groupby does not implement it
             if df.shape[1] and name != "kurt":
-                dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+                dtype = find_common_type(
+                    [block.values.dtype for block in df._mgr.blocks]
+                )
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
                     # This flattens the frame into a single 1D array while keeping
@@ -11528,8 +11529,8 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
-        for arr in self._mgr.arrays:
-            middle = func(arr, axis=0, skipna=skipna)
+        for blocks in self._mgr.blocks:
+            middle = func(blocks.values, axis=0, skipna=skipna)
             result = ufunc(result, middle)
 
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
