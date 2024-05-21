@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_iterator,
+    is_list_like,
+)
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
@@ -219,7 +222,8 @@ def melt(
             ]
     elif is_list_like(var_name):
         if isinstance(frame.columns, MultiIndex):
-            var_name = list(var_name)
+            if is_iterator(var_name):
+                var_name = list(var_name)
             if len(var_name) > len(frame.columns):
                 raise ValueError(
                     f"{var_name=} has {len(var_name)} items, "
