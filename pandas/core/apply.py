@@ -74,7 +74,6 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-
 ResType = dict[int, Any]
 
 
@@ -976,7 +975,11 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
+            args, kwargs = prepare_function_arguments(
+                self.func,  # type: ignore[arg-type]
+                self.args,
+                self.kwargs,
+            )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
@@ -1139,10 +1142,10 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func),
-            **get_jit_arguments(self.engine_kwargs, kwargs),
+            func, **get_jit_arguments(self.engine_kwargs, kwargs)
         )
         from pandas.core._numba.extensions import set_numba_data
 
@@ -1284,10 +1287,10 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(func, self.args, self.kwargs)
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func),
-            **get_jit_arguments(self.engine_kwargs, kwargs),
+            func, **get_jit_arguments(self.engine_kwargs, kwargs)
         )
 
         from pandas.core._numba.extensions import set_numba_data
