@@ -14,7 +14,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    Pandas40DeprecationWarning,
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -218,7 +221,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             "in a future version this will return a Series containing python "
             "datetime.timedelta objects instead of an ndarray. To retain the "
             "old behavior, call `np.array` on the result",
-            FutureWarning,
+            Pandas40DeprecationWarning,
             stacklevel=find_stack_level(),
         )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
@@ -479,7 +482,7 @@ class TimedeltaProperties(Properties):
             "in a future version this will return a Series containing python "
             "datetime.timedelta objects instead of an ndarray. To retain the "
             "old behavior, call `np.array` on the result",
-            FutureWarning,
+            Pandas40DeprecationWarning,
             stacklevel=find_stack_level(),
         )
         return self._get_values().to_pytimedelta()

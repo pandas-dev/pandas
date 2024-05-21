@@ -101,7 +101,6 @@ from pandas.util._exceptions import (
     Pandas40DeprecationWarning,
     find_stack_level,
 )
-
 from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
@@ -2568,7 +2567,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
-                    FutureWarning,
+                    Pandas40DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
         elif date_format == "epoch":
@@ -2576,7 +2575,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
-                FutureWarning,
+                Pandas40DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
 

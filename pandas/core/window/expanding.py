@@ -706,7 +706,6 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-
     def quantile(
         self,
         q: float,
