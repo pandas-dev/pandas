@@ -196,6 +196,14 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "BQE-OCT": "Q-OCT",
     "BQE-NOV": "Q-NOV",
     "MS": "M",
+    "D": "D",
+    "B": "B",
+    "min": "min",
+    "s": "s",
+    "ms": "ms",
+    "us": "us",
+    "ns": "ns",
+    "h": "h",
     "QE": "Q",
     "QE-DEC": "Q-DEC",
     "QE-JAN": "Q-JAN",
@@ -222,6 +230,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YE-SEP": "Y-SEP",
     "YE-OCT": "Y-OCT",
     "YE-NOV": "Y-NOV",
+    "W": "W",
     "ME": "M",
     "BYE": "Y",
     "BYE-DEC": "Y-DEC",
@@ -239,7 +248,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
-cdef dict c_OFFSET_REMOVED_FREQSTR = {
+cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",
     "Q-DEC": "QE-DEC",
@@ -267,6 +276,35 @@ cdef dict c_OFFSET_REMOVED_FREQSTR = {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
+    "BY": "BYE",
+    "BY-DEC": "BYE-DEC",
+    "BY-JAN": "BYE-JAN",
+    "BY-FEB": "BYE-FEB",
+    "BY-MAR": "BYE-MAR",
+    "BY-APR": "BYE-APR",
+    "BY-MAY": "BYE-MAY",
+    "BY-JUN": "BYE-JUN",
+    "BY-JUL": "BYE-JUL",
+    "BY-AUG": "BYE-AUG",
+    "BY-SEP": "BYE-SEP",
+    "BY-OCT": "BYE-OCT",
+    "BY-NOV": "BYE-NOV",
+    "BM": "BME",
+    "CBM": "CBME",
+    "SM": "SME",
+    "BQ": "BQE",
+    "BQ-DEC": "BQE-DEC",
+    "BQ-JAN": "BQE-JAN",
+    "BQ-FEB": "BQE-FEB",
+    "BQ-MAR": "BQE-MAR",
+    "BQ-APR": "BQE-APR",
+    "BQ-MAY": "BQE-MAY",
+    "BQ-JUN": "BQE-JUN",
+    "BQ-JUL": "BQE-JUL",
+    "BQ-AUG": "BQE-AUG",
+    "BQ-SEP": "BQE-SEP",
+    "BQ-OCT": "BQE-OCT",
+    "BQ-NOV": "BQE-NOV",
 }
 PERIOD_TO_OFFSET_FREQSTR = {
     "M": "ME",
@@ -308,11 +346,10 @@ cdef dict c_DEPR_ABBREVS = {
     "S": "s",
 }
 
-PERIOD_AND_OFFSET_ALIASES = {
-    "W",
-    "min",
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
+    "w": "W",
+    "MIN": "min",
 }
-cdef set c_PERIOD_AND_OFFSET_ALIASES = PERIOD_AND_OFFSET_ALIASES
 
 
 class FreqGroup(Enum):

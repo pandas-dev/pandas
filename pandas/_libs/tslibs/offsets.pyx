@@ -57,9 +57,9 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
-    c_OFFSET_REMOVED_FREQSTR,
+    c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
-    c_PERIOD_AND_OFFSET_ALIASES,
+    c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4852,14 +4852,14 @@ cpdef to_offset(freq, bint is_period=False):
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
                 if not is_period:
-                    if name.upper() in c_OFFSET_REMOVED_FREQSTR:
+                    if name.upper() in c_OFFSET_RENAMED_FREQSTR:
                         raise ValueError(
                             f"\'{name}\' is no longer supported for offsets. Please "
-                            f"use \'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' "
+                            f"use \'{c_OFFSET_RENAMED_FREQSTR.get(name.upper())}\' "
                             f"instead."
                         )
                     if (name.upper() != name and
-                            name.lower() not in {"W-TUE", "s", "ms", "us", "ns"} and
+                            name.lower() not in {"s", "ms", "us", "ns"} and
                             name.upper().split("-")[0].endswith(("S", "E"))):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                 if (is_period and
@@ -4877,25 +4877,24 @@ cpdef to_offset(freq, bint is_period=False):
                             f"instead of \'{name}\'"
                         )
                 if is_period:
-                    if name.upper() in c_OFFSET_REMOVED_FREQSTR:
+                    if name.upper() in c_OFFSET_RENAMED_FREQSTR:
                         if name.upper() != name:
                             raise ValueError(
                                 f"\'{name}\' is no longer supported, "
                                 f"please use \'{name.upper()}\' instead.",
                             )
-                        name = c_OFFSET_REMOVED_FREQSTR.get(name.upper())
+                        name = c_OFFSET_RENAMED_FREQSTR.get(name.upper())
 
-                    if ((name.upper() in c_PERIOD_AND_OFFSET_ALIASES and
-                            name.upper() != name) or
-                            name == "MIN"):
-                        name_new = "min" if name == "MIN" else name.upper()
+                    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed "
-                            f"in a future version, please use \'{name_new}\' instead.",
+                            f"in a future version, please use "
+                            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f" instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
                             )
-                        name = name_new
+                        name = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
