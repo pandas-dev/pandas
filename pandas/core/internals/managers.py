@@ -819,11 +819,13 @@ class BaseBlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(
-                indexer,
-                fill_value=fill_value,
-                only_slice=only_slice,
-                use_na_proxy=use_na_proxy,
+            new_blocks = list(
+                self._slice_take_blocks_ax0(
+                    indexer,
+                    fill_value=fill_value,
+                    only_slice=only_slice,
+                    use_na_proxy=use_na_proxy,
+                )
             )
         else:
             new_blocks = [
@@ -855,7 +857,7 @@ class BaseBlockManager(PandasObject):
         *,
         use_na_proxy: bool = False,
         ref_inplace_op: bool = False,
-    ) -> list[Block]:
+    ) -> Generator[Block, None, None]:
         """
         Slice/take blocks along axis=0.
 
@@ -873,9 +875,9 @@ class BaseBlockManager(PandasObject):
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
-        Returns
-        -------
-        new_blocks : list of Block
+        Yields
+        ------
+        Block : New Block
         """
         allow_fill = fill_value is not lib.no_default
 
@@ -892,7 +894,8 @@ class BaseBlockManager(PandasObject):
                 if sllen == 0:
                     return []
                 bp = BlockPlacement(slice(0, sllen))
-                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
+                yield blk.getitem_block_columns(slobj, new_mgr_locs=bp)
+                return
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
@@ -900,25 +903,21 @@ class BaseBlockManager(PandasObject):
                 if not allow_fill and only_slice:
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
-                    blocks = [
-                        blk.getitem_block_columns(
+                    for i, ml in enumerate(slobj):
+                        yield blk.getitem_block_columns(
                             slice(ml, ml + 1),
                             new_mgr_locs=BlockPlacement(i),
                             ref_inplace_op=ref_inplace_op,
                         )
-                        for i, ml in enumerate(slobj)
-                    ]
-                    return blocks
                 else:
                     bp = BlockPlacement(slice(0, sllen))
-                    return [
-                        blk.take_nd(
-                            slobj,
-                            axis=0,
-                            new_mgr_locs=bp,
-                            fill_value=fill_value,
-                        )
-                    ]
+                    yield blk.take_nd(
+                        slobj,
+                        axis=0,
+                        new_mgr_locs=bp,
+                        fill_value=fill_value,
+                    )
+                return
 
         if sl_type == "slice":
             blknos = self.blknos[slobj]
@@ -933,18 +932,15 @@ class BaseBlockManager(PandasObject):
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
-        blocks = []
         group = not only_slice
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
-                blocks.append(
-                    self._make_na_block(
-                        placement=mgr_locs,
-                        fill_value=fill_value,
-                        use_na_proxy=use_na_proxy,
-                    )
+                yield self._make_na_block(
+                    placement=mgr_locs,
+                    fill_value=fill_value,
+                    use_na_proxy=use_na_proxy,
                 )
             else:
                 blk = self.blocks[blkno]
@@ -959,7 +955,7 @@ class BaseBlockManager(PandasObject):
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
-                        blocks.append(newblk)
+                        yield newblk
 
                 else:
                     # GH#32779 to avoid the performance penalty of copying,
@@ -970,7 +966,7 @@ class BaseBlockManager(PandasObject):
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
-                        blocks.append(nb)
+                        yield nb
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
@@ -979,12 +975,10 @@ class BaseBlockManager(PandasObject):
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
                             # We have np.shares_memory(nb.values, blk.values)
-                            blocks.append(nb)
+                            yield nb
                     else:
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
-                        blocks.append(nb)
-
-        return blocks
+                        yield nb
 
     def _make_na_block(
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
