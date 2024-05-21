@@ -168,6 +168,9 @@ class _Unstacker:
         v = self.level
 
         codes = list(self.index.codes)
+        if not self.sort:
+            # Create new codes considering that labels are already sorted
+            codes = [factorize(code)[0] for code in codes]
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
@@ -186,12 +189,9 @@ class _Unstacker:
         return to_sort
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        if self.sort:
-            indexer, _ = self._indexer_and_to_sort
-
-            sorted_values = algos.take_nd(values, indexer, axis=0)
-            return sorted_values
-        return values
+        indexer, _ = self._indexer_and_to_sort
+        sorted_values = algos.take_nd(values, indexer, axis=0)
+        return sorted_values
 
     def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
@@ -394,7 +394,13 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
-        result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
+        if self.sort:
+            labels = self.sorted_labels[:-1]
+        else:
+            v = self.level
+            codes = list(self.index.codes)
+            labels = codes[:v] + codes[v + 1 :]
+        result_codes = [lab.take(self.compressor) for lab in labels]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
