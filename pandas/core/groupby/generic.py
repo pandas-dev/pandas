@@ -387,7 +387,7 @@ class SeriesGroupBy(GroupBy[Series]):
             raise SpecificationError("nested renamer is not supported")
 
         if any(isinstance(x, (tuple, list)) for x in arg):
-            arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
+            arg = ((x, x) if not isinstance(x, (tuple, list)) else x for x in arg)
         else:
             # list of functions / function names
             columns = (com.get_callable_name(f) or f for f in arg)
@@ -2077,7 +2077,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
         columns = obj.columns
-        sgbs = [
+        sgbs = (
             SeriesGroupBy(
                 obj.iloc[:, i],
                 selection=colname,
@@ -2086,7 +2086,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
             )
             for i, colname in enumerate(obj.columns)
-        ]
+        )
         results = [func(sgb) for sgb in sgbs]
 
         if not len(results):

@@ -2299,9 +2299,16 @@ def test_api_escaped_table_name(conn, request):
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
     if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="pyarrow->pandas throws ValueError", strict=True)
-        )
+        pa = pytest.importorskip("pyarrow")
+        if not (
+            Version(pa.__version__) >= Version("16.0")
+            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyarrow->pandas throws ValueError", strict=True
+                )
+            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:

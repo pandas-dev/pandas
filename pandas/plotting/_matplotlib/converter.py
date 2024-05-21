@@ -430,7 +430,7 @@ class MilliSecondLocator(mdates.DateLocator):
         freq = f"{interval}ms"
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
-        ed = dmin.replace(tzinfo=None)
+        ed = dmax.replace(tzinfo=None)
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
         try:

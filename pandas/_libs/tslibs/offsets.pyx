@@ -1104,7 +1104,7 @@ cdef class Day(Tick):
     """
     Offset ``n`` days.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -2538,7 +2538,7 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2633,7 +2633,7 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2756,7 +2756,7 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2838,7 +2838,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2939,7 +2939,7 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3014,7 +3014,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3052,7 +3052,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3222,7 +3222,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
