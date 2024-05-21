@@ -64,20 +64,35 @@ def test_apply(float_frame, engine, request):
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 def test_apply_args(float_frame, axis, raw, engine):
-    # GH:58712
     result = float_frame.apply(
         lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 
+    # GH:58712
+    result = float_frame.apply(
+        lambda x, a, b: x + a + b, args=(1,), b=2, engine=engine, raw=raw
+    )
+    expected = float_frame + 3
+    tm.assert_frame_equal(result, expected)
+
     if engine == "numba":
+        # keyword-only arguments are not supported in numba
         with pytest.raises(
             pd.errors.NumbaUtilError,
             match="numba does not support kwargs with nopython=True",
         ):
             float_frame.apply(
-                lambda x, a, b: x + a + b, args=(1,), b=2, engine=engine, raw=raw
+                lambda x, a, *, b: x + a + b, args=(1,), b=2, engine=engine, raw=raw
+            )
+
+        with pytest.raises(
+            pd.errors.NumbaUtilError,
+            match="numba does not support kwargs with nopython=True",
+        ):
+            float_frame.apply(
+                lambda *x, b: x[0] + x[1] + b, args=(1,), b=2, engine=engine, raw=raw
             )
 
 

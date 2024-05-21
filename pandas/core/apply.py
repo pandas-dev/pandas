@@ -51,7 +51,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.util.numba_ import get_jit_arguments
+from pandas.core.util.numba_ import (
+    get_jit_arguments,
+    prepare_function_arguments,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -973,15 +976,16 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
+            args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
                 self.func,  # type: ignore[arg-type]
-                **get_jit_arguments(engine_kwargs, self.kwargs),
+                **get_jit_arguments(engine_kwargs, kwargs),
             )
-            result = nb_looper(self.values, self.axis, *self.args)
+            result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
@@ -1135,9 +1139,10 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func),
-            **get_jit_arguments(self.engine_kwargs, self.kwargs),
+            **get_jit_arguments(self.engine_kwargs, kwargs),
         )
         from pandas.core._numba.extensions import set_numba_data
 
@@ -1152,7 +1157,7 @@ class FrameRowApply(FrameApply):
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         with set_numba_data(index) as index, set_numba_data(columns) as columns:
-            res = dict(nb_func(self.values, columns, index, *self.args))
+            res = dict(nb_func(self.values, columns, index, *args))
         return res
 
     @property
@@ -1279,9 +1284,10 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        args, kwargs = prepare_function_arguments(self.func, self.args, self.kwargs)
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func),
-            **get_jit_arguments(self.engine_kwargs, self.kwargs),
+            **get_jit_arguments(self.engine_kwargs, kwargs),
         )
 
         from pandas.core._numba.extensions import set_numba_data
@@ -1292,7 +1298,7 @@ class FrameColumnApply(FrameApply):
             set_numba_data(self.obj.index) as index,
             set_numba_data(self.columns) as columns,
         ):
-            res = dict(nb_func(self.values, columns, index, *self.args))
+            res = dict(nb_func(self.values, columns, index, *args))
 
         return res
 

@@ -14,6 +14,8 @@ import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
+from pandas.core.util.numba_ import jit_user_function
+
 
 @functools.cache
 def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
@@ -21,7 +23,7 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         import numba
     else:
         numba = import_optional_dependency("numba")
-    nb_compat_func = numba.extending.register_jitable(func)
+    nb_compat_func = jit_user_function(func)
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def nb_looper(values, axis, *args):
