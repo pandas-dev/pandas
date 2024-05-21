@@ -4697,14 +4697,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": range(1, 6), "B": range(10, 0, -2)})
+        >>> df = pd.DataFrame(
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C C": range(10, 5, -1)}
+        ... )
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.eval("A + B")
         0    11
         1    10
@@ -4717,19 +4719,19 @@ class DataFrame(NDFrame, OpsMixin):
         modified.
 
         >>> df.eval("C = A + B")
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
+           A   B  C C   C
+        0  1  10   10  11
+        1  2   8    9  10
+        2  3   6    8   9
+        3  4   4    7   8
+        4  5   2    6   7
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
 
         Multiple columns can be assigned to using multi-line expressions:
 
@@ -4739,12 +4741,21 @@ class DataFrame(NDFrame, OpsMixin):
         ... D = A - B
         ... '''
         ... )
-           A   B   C  D
-        0  1  10  11 -9
-        1  2   8  10 -6
-        2  3   6   9 -3
-        3  4   4   8  0
-        4  5   2   7  3
+           A   B  C C   C  D
+        0  1  10   10  11 -9
+        1  2   8    9  10 -6
+        2  3   6    8   9 -3
+        3  4   4    7   8  0
+        4  5   2    6   7  3
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.eval("B * `C C`")
+        0    100
+        1     72
+        2     48
+        3     28
+        4     12
 
         Local variables shall be explicitly referenced using ``@``
         character in front of the name:
