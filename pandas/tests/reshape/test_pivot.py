@@ -2703,3 +2703,15 @@ class TestPivot:
             index=Index(["a", "b", "All"], name=0),
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("m", [1, 10])
+    def test_unstack_copy(self, m):
+        # GH#56633
+        levels = np.arange(m)
+        index = MultiIndex.from_product([levels] * 2)
+        values = np.arange(m * m * 100).reshape(m * m, 100)
+        df = DataFrame(values, index, np.arange(100))
+        df_orig = df.copy()
+        result = df.unstack(sort=False)
+        result.iloc[0, 0] = -1
+        tm.assert_frame_equal(df, df_orig)
