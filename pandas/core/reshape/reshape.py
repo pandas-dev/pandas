@@ -137,24 +137,24 @@ class _Unstacker:
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
-        # Bug fix GH 20601
-        # If the data frame is too big, the number of unique index combination
-        # will cause int32 overflow on windows environments.
-        # We want to check and raise an warning before this happens
-        num_rows = np.max([index_level.size for index_level in self.new_index_levels])
-        num_columns = self.removed_level.size
+        if get_option("performance_warnings"):
+            # Bug fix GH 20601
+            # If the data frame is too big, the number of unique index combination
+            # will cause int32 overflow on windows environments.
+            # We want to check and raise an warning before this happens
+            num_rows = max(index_level.size for index_level in self.new_index_levels)
+            num_columns = self.removed_level.size
 
-        # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = num_rows * num_columns
-
-        # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
-            warnings.warn(
-                f"The following operation may generate {num_cells} cells "
-                f"in the resulting pandas object.",
-                PerformanceWarning,
-                stacklevel=find_stack_level(),
-            )
+            # GH20601: This forces an overflow if the number of cells is too high.
+            # GH 26314: Previous ValueError raised was too restrictive for many users.
+            num_cells = num_rows * num_columns
+            if num_cells > np.iinfo(np.int32).max:
+                warnings.warn(
+                    f"The following operation may generate {num_cells} cells "
+                    f"in the resulting pandas object.",
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         self._make_selectors()
 
@@ -731,10 +731,10 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
 
-    levs = [
+    levs = (
         [lev[c] if c >= 0 else None for c in codes]
         for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
-    ]
+    )
 
     # Remove duplicate tuples in the MultiIndex.
     tuples = zip(*levs)
