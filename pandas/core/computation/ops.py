@@ -509,7 +509,9 @@ class BinOp(Op):
 
 
 def isnumeric(dtype) -> bool:
-    return getattr(dtype, '_is_numeric', False) or issubclass(np.dtype(dtype).type, np.number)
+    return getattr(dtype, "_is_numeric", False) or issubclass(
+        np.dtype(dtype).type, np.number
+    )
 
 
 class Div(BinOp):
