@@ -1346,18 +1346,18 @@ class MultiIndex(Index):
 
     # Cannot determine type of "memory_usage"
     @doc(Index.memory_usage)  # type: ignore[has-type]
-    def memory_usage(self, deep: bool = False) -> int:
+    def memory_usage(self, deep: bool = False, cache: bool = False) -> int:
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
         # a tuple representation unnecessarily
-        return self._nbytes(deep)
+        return self._nbytes(deep, cache)
 
     @cache_readonly
-    def nbytes(self) -> int:
+    def nbytes(self, cache: bool = False) -> int:
         """return the number of bytes in the underlying data"""
-        return self._nbytes(False)
+        return self._nbytes(False, cache)
 
-    def _nbytes(self, deep: bool = False) -> int:
+    def _nbytes(self, deep: bool = False, cache: bool = False) -> int:
         """
         return the number of bytes in the underlying data
         deeply introspect the level data if deep=True
@@ -1374,6 +1374,10 @@ class MultiIndex(Index):
         label_nbytes = sum(i.nbytes for i in self.codes)
         names_nbytes = sum(getsizeof(i, objsize) for i in self.names)
         result = level_nbytes + label_nbytes + names_nbytes
+
+        if cache:
+            result += self._values.nbytes
+            result += self.dtypes.memory_usage()
 
         # include our engine hashtable, only if it's already cached
         if "_engine" in self._cache:
