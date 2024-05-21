@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10, 3.11 and 3.12.
+See :ref:`Python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
@@ -268,6 +268,8 @@ Dependency                Minimum Version    pip extra       Notes
 SciPy                     1.10.0             computation     Miscellaneous statistical functions
 xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
+
+.. _install.excel_dependencies:
 
 Excel files
 ^^^^^^^^^^^

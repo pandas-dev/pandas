@@ -145,8 +145,12 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                     kwds = freq.kwds
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
+                if freq is not None:
+                    freq_name = freq.name
+                else:
+                    freq_name = None
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw, reso=self._creso
+                    values, field, freq_name, month_kw, reso=self._creso
                 )
             else:
                 result = fields.get_date_field(values, field, reso=self._creso)
@@ -539,7 +543,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit).asm8
+            return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -592,6 +596,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
+
+        See Also
+        --------
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
+        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+            one time zone to another.
 
         Examples
         --------
@@ -860,6 +871,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         Returns
         -------
         Array or Index
+            Datetme Array/Index with target `tz`.
 
         Raises
         ------
@@ -1119,6 +1131,12 @@ default 'raise'
         Returns
         -------
         numpy.ndarray
+            An ndarray of ``datetime.datetime`` objects.
+
+        See Also
+        --------
+        DatetimeIndex.to_julian_date : Converts Datetime Array to float64 ndarray
+            of Julian Dates.
 
         Examples
         --------
@@ -1193,6 +1211,7 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
+            Immutable ndarray holding ordinal values at a particular frequency.
 
         Raises
         ------
@@ -1279,6 +1298,10 @@ default 'raise'
         Series or Index
             Series or Index of month names.
 
+        See Also
+        --------
+        DatetimeIndex.day_name : Return the day names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01", freq="ME", periods=3))
@@ -1336,6 +1359,10 @@ default 'raise'
         Series or Index
             Series or Index of day names.
 
+        See Also
+        --------
+        DatetimeIndex.month_name : Return the month names with specified locale.
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range(start="2018-01-01", freq="D", periods=3))
@@ -1383,6 +1410,14 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
+            objects with timezones. The time part of the Timestamps.
+        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
+            objects. Namely, the date part of Timestamps without time and timezone
+            information.
+
         Examples
         --------
         For Series:
@@ -1420,6 +1455,12 @@ default 'raise'
 
         The time part of the Timestamps.
 
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.tz : Return the timezone.
+
         Examples
         --------
         For Series:
@@ -1453,6 +1494,14 @@ default 'raise'
 
         Namely, the date part of Timestamps without time and
         timezone information.
+
+        See Also
+        --------
+        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
+            The time part of the Timestamps.
+        DatetimeIndex.year : The year of the datetime.
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.day : The day of the datetime.
 
         Examples
         --------
@@ -1533,6 +1582,11 @@ default 'raise'
         """
         The year of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.day: The day of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1555,6 +1609,11 @@ default 'raise'
         "M",
         """
         The month as January=1, December=12.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.day: The day of the datetime.
 
         Examples
         --------
@@ -1579,6 +1638,12 @@ default 'raise'
         """
         The day of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.hour: The hours of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1601,6 +1666,12 @@ default 'raise'
         "h",
         """
         The hours of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.day: The day of the datetime.
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
 
         Examples
         --------
@@ -1625,6 +1696,11 @@ default 'raise'
         """
         The minutes of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.hour: The hours of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1647,6 +1723,12 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
 
         Examples
         --------
@@ -1671,6 +1753,11 @@ default 'raise'
         """
         The microseconds of the datetime.
 
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
+
         Examples
         --------
         >>> datetime_series = pd.Series(
@@ -1693,6 +1780,11 @@ default 'raise'
         "ns",
         """
         The nanoseconds of the datetime.
+
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
 
         Examples
         --------
@@ -1755,6 +1847,11 @@ default 'raise'
         """
         The ordinal day of the year.
 
+        See Also
+        --------
+        DatetimeIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        DatetimeIndex.day : The day of the datetime.
+
         Examples
         --------
         For Series:
@@ -1785,6 +1882,12 @@ default 'raise'
         """
         The quarter of the date.
 
+        See Also
+        --------
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+        DatetimeIndex.time : Returns numpy array of datetime.time objects.
+            The time part of the Timestamps.
+
         Examples
         --------
         For Series:
@@ -1813,6 +1916,15 @@ default 'raise'
         "dim",
         """
         The number of days in the month.
+
+        See Also
+        --------
+        Series.dt.day : Return the day of the month.
+        Series.dt.is_month_end : Return a boolean indicating if the
+            date is the last day of the month.
+        Series.dt.is_month_start : Return a boolean indicating if the
+            date is the first day of the month.
+        Series.dt.month : Return the month as January=1 through December=12.
 
         Examples
         --------
@@ -2069,6 +2181,13 @@ default 'raise'
         Series or ndarray
              Booleans indicating if dates belong to a leap year.
 
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Indicate whether the date is the
+            last day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
+
         Examples
         --------
         This method is available on Series with datetime values under
@@ -2149,9 +2268,25 @@ default 'raise'
         axis : int, optional
             Axis for the function to be applied on. For :class:`pandas.Series`
             this parameter is unused and defaults to ``None``.
+        dtype : dtype, optional, default None
+            Type to use in computing the standard deviation. For arrays of
+            integer type the default is float64, for arrays of float types
+            it is the same as the array type.
+        out : ndarray, optional, default None
+            Alternative output array in which to place the result. It must have
+            the same shape as the expected output but the type (of the
+            calculated values) will be cast if necessary.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array. If the default
+            value is passed, then keepdims will not be passed through to the
+            std method of sub-classes of ndarray, however any non-default value
+            will be. If the sub-class method does not implement keepdims any
+            exceptions will be raised.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is ``NA``, the result
             will be ``NA``.
@@ -2159,6 +2294,7 @@ default 'raise'
         Returns
         -------
         Timedelta
+            Standard deviation over requested axis.
 
         See Also
         --------

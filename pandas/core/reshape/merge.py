@@ -106,6 +106,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
+    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -1803,7 +1804,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[tuple, tuple, tuple]:
+) -> tuple[FrozenList, FrozenList, FrozenList]:
     """
     *this is an internal non-public method*
 
@@ -1835,7 +1836,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : tuple[Hashable]
+    names : List[Hashable]
         names of combined multiindex levels
 
     """
@@ -1877,11 +1878,12 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + (restore_levels,)
-        join_codes = join_codes + (restore_codes,)
-        join_names = join_names + (dropped_level_name,)
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
+        join_names = join_names + [dropped_level_name]
 
-    return tuple(join_levels), tuple(join_codes), tuple(join_names)
+    return join_levels, join_codes, join_names
 
 
 class _OrderedMerge(_MergeOperation):
@@ -2063,8 +2065,8 @@ class _AsOfMerge(_OrderedMerge):
             or is_string_dtype(ro_dtype)
         ):
             raise MergeError(
-                f"Incompatible merge dtype, {ro_dtype!r} and "
-                f"{lo_dtype!r}, both sides must have numeric dtype"
+                f"Incompatible merge dtype, {lo_dtype!r} and "
+                f"{ro_dtype!r}, both sides must have numeric dtype"
             )
 
         # add 'by' to our key-list so we can have it in the

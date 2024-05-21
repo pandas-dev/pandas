@@ -70,6 +70,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterator,
         Sequence,
@@ -706,7 +707,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=np.arange(len(result_index)))
+        categories = Categorical(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
@@ -822,6 +823,19 @@ class BaseGrouper:
 
         return result_index, ids
 
+    @property
+    def observed_grouper(self) -> BaseGrouper:
+        if all(ping._observed for ping in self.groupings):
+            return self
+
+        return self._observed_grouper
+
+    @cache_readonly
+    def _observed_grouper(self) -> BaseGrouper:
+        groupings = [ping.observed_grouping for ping in self.groupings]
+        grouper = BaseGrouper(self.axis, groupings, sort=self._sort, dropna=self.dropna)
+        return grouper
+
     def _ob_index_and_ids(
         self,
         levels: list[Index],
@@ -857,16 +871,15 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> list[Index]:
+    def get_group_levels(self) -> Generator[Index, None, None]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
         if len(self.groupings) == 1:
-            return [result_index]
-        return [
-            result_index.get_level_values(level)
-            for level in range(result_index.nlevels)
-        ]
+            yield result_index
+        else:
+            for level in range(result_index.nlevels - 1, -1, -1):
+                yield result_index.get_level_values(level)
 
     # ------------------------------------------------------------
     # Aggregation functions
@@ -1153,6 +1166,10 @@ class BinGrouper(BaseGrouper):
             labels, labels, in_axis=False, level=None, uniques=lev._values
         )
         return [ping]
+
+    @property
+    def observed_grouper(self) -> BinGrouper:
+        return self
 
 
 def _is_indexed_like(obj, axes) -> bool:

@@ -2176,6 +2176,25 @@ class TestSeriesConstructorIndexCoercion:
         multi = Series(data, index=indexes)
         assert isinstance(multi.index, MultiIndex)
 
+    # TODO: make this not cast to object in pandas 3.0
+    @pytest.mark.skipif(
+        not np_version_gt2, reason="StringDType only available in numpy 2 and above"
+    )
+    @pytest.mark.parametrize(
+        "data",
+        [
+            ["a", "b", "c"],
+            ["a", "b", np.nan],
+        ],
+    )
+    def test_np_string_array_object_cast(self, data):
+        from numpy.dtypes import StringDType
+
+        arr = np.array(data, dtype=StringDType())
+        res = Series(arr)
+        assert res.dtype == np.object_
+        assert (res == data).all()
+
 
 class TestSeriesConstructorInternals:
     def test_constructor_no_pandas_array(self):
@@ -2251,3 +2270,9 @@ def test_series_with_complex_nan(input_list):
     result = Series(ser.array)
     assert ser.dtype == "complex128"
     tm.assert_series_equal(ser, result)
+
+
+def test_dict_keys_rangeindex():
+    result = Series({0: 1, 1: 2})
+    expected = Series([1, 2], index=RangeIndex(2))
+    tm.assert_series_equal(result, expected, check_index_type=True)

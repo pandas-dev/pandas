@@ -3,9 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import copy
 import csv
-import datetime
 from enum import Enum
-import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,7 +22,6 @@ from pandas._libs import (
 )
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._libs.tslibs import parsing
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -34,7 +31,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
-    ensure_object,
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -43,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
     is_string_dtype,
     pandas_dtype,
 )
@@ -58,7 +53,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     StringDtype,
-    concat,
 )
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -111,7 +105,6 @@ class ParserBase:
     keep_default_na: bool
     dayfirst: bool
     cache_dates: bool
-    keep_date_col: bool
     usecols_dtype: str | None
 
     def __init__(self, kwds) -> None:
@@ -125,12 +118,19 @@ class ParserBase:
         self.index_names: Sequence[Hashable] | None = None
         self.col_names: Sequence[Hashable] | None = None
 
-        self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
-        self._parse_date_cols: Iterable = []
+        parse_dates = kwds.pop("parse_dates", False)
+        if parse_dates is None or lib.is_bool(parse_dates):
+            parse_dates = bool(parse_dates)
+        elif not isinstance(parse_dates, list):
+            raise TypeError(
+                "Only booleans and lists are accepted "
+                "for the 'parse_dates' parameter"
+            )
+        self.parse_dates: bool | list = parse_dates
+        self._parse_date_cols: set = set()
         self.date_parser = kwds.pop("date_parser", lib.no_default)
         self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
-        self.keep_date_col = kwds.pop("keep_date_col", False)
 
         self.na_values = kwds.get("na_values")
         self.na_fvalues = kwds.get("na_fvalues")
@@ -146,7 +146,6 @@ class ParserBase:
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
-            date_parser=self.date_parser,
             date_format=self.date_format,
             dayfirst=self.dayfirst,
             cache_dates=self.cache_dates,
@@ -180,8 +179,6 @@ class ParserBase:
                 else:
                     self.index_col = list(self.index_col)
 
-        self._name_processed = False
-
         self._first_chunk = True
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
@@ -190,7 +187,7 @@ class ParserBase:
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
+    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> set:
         """
         Check if parse_dates are in columns.
 
@@ -204,7 +201,7 @@ class ParserBase:
 
         Returns
         -------
-        The names of the columns which will get parsed later if a dict or list
+        The names of the columns which will get parsed later if a list
         is given as specification.
 
         Raises
@@ -213,30 +210,15 @@ class ParserBase:
             If column to parse_date is not in dataframe.
 
         """
-        cols_needed: Iterable
-        if is_dict_like(self.parse_dates):
-            cols_needed = itertools.chain(*self.parse_dates.values())
-        elif is_list_like(self.parse_dates):
-            # a column in parse_dates could be represented
-            # ColReference = Union[int, str]
-            # DateGroups = List[ColReference]
-            # ParseDates = Union[DateGroups, List[DateGroups],
-            #     Dict[ColReference, DateGroups]]
-            cols_needed = itertools.chain.from_iterable(
-                col if is_list_like(col) and not isinstance(col, tuple) else [col]
-                for col in self.parse_dates
-            )
-        else:
-            cols_needed = []
-
-        cols_needed = list(cols_needed)
+        if not isinstance(self.parse_dates, list):
+            return set()
 
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
             sorted(
                 {
                     col
-                    for col in cols_needed
+                    for col in self.parse_dates
                     if isinstance(col, str) and col not in columns
                 }
             )
@@ -246,27 +228,18 @@ class ParserBase:
                 f"Missing column provided to 'parse_dates': '{missing_cols}'"
             )
         # Convert positions to actual column names
-        return [
+        return {
             col if (isinstance(col, str) or col in columns) else columns[col]
-            for col in cols_needed
-        ]
+            for col in self.parse_dates
+        }
 
     def close(self) -> None:
         pass
 
     @final
-    @property
-    def _has_complex_date_col(self) -> bool:
-        return isinstance(self.parse_dates, dict) or (
-            isinstance(self.parse_dates, list)
-            and len(self.parse_dates) > 0
-            and isinstance(self.parse_dates[0], list)
-        )
-
-    @final
     def _should_parse_dates(self, i: int) -> bool:
-        if lib.is_bool(self.parse_dates):
-            return bool(self.parse_dates)
+        if isinstance(self.parse_dates, bool):
+            return self.parse_dates
         else:
             if self.index_names is not None:
                 name = self.index_names[i]
@@ -368,18 +341,9 @@ class ParserBase:
         index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
-
-        elif not self._has_complex_date_col:
+        else:
             simple_index = self._get_simple_index(alldata, columns)
             index = self._agg_index(simple_index)
-        elif self._has_complex_date_col:
-            if not self._name_processed:
-                (self.index_names, _, self.index_col) = self._clean_index_names(
-                    list(columns), self.index_col
-                )
-                self._name_processed = True
-            date_index = self._get_complex_date_index(data, columns)
-            index = self._agg_index(date_index, try_parse_dates=False)
 
         # add names for the index
         if indexnamerow:
@@ -412,34 +376,6 @@ class ParserBase:
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
-
-        return index
-
-    @final
-    def _get_complex_date_index(self, data, col_names):
-        def _get_name(icol):
-            if isinstance(icol, str):
-                return icol
-
-            if col_names is None:
-                raise ValueError(f"Must supply column order to use {icol!s} as index")
-
-            for i, c in enumerate(col_names):
-                if i == icol:
-                    return c
-
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            name = _get_name(idx)
-            to_remove.append(name)
-            index.append(data[name])
-
-        # remove index items from content and columns, don't pop in
-        # loop
-        for c in sorted(to_remove, reverse=True):
-            data.pop(c)
-            col_names.remove(c)
 
         return index
 
@@ -487,6 +423,8 @@ class ParserBase:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
+                else:
+                    col_na_values, col_na_fvalues = set(), set()
 
             clean_dtypes = self._clean_mapping(self.dtype)
 
@@ -643,19 +581,7 @@ class ParserBase:
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
-                if isinstance(val, list):
-                    for k in val:
-                        noconvert_columns.add(_set(k))
-                else:
-                    noconvert_columns.add(_set(val))
-
-        elif isinstance(self.parse_dates, dict):
-            for val in self.parse_dates.values():
-                if isinstance(val, list):
-                    for k in val:
-                        noconvert_columns.add(_set(k))
-                else:
-                    noconvert_columns.add(_set(val))
+                noconvert_columns.add(_set(val))
 
         elif self.parse_dates:
             if isinstance(self.index_col, list):
@@ -856,36 +782,33 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]: ...
+    ) -> DataFrame: ...
 
     @overload
     def _do_date_conversions(
         self,
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]: ...
+    ) -> Mapping[Hashable, ArrayLike]: ...
 
     @final
     def _do_date_conversions(
         self,
         names: Sequence[Hashable] | Index,
         data: Mapping[Hashable, ArrayLike] | DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, Mapping[Hashable, ArrayLike] | DataFrame]:
-        # returns data, columns
-
-        if self.parse_dates is not None:
-            data, names = _process_date_conversion(
+    ) -> Mapping[Hashable, ArrayLike] | DataFrame:
+        if isinstance(self.parse_dates, list):
+            return _process_date_conversion(
                 data,
                 self._date_conv,
                 self.parse_dates,
                 self.index_col,
                 self.index_names,
                 names,
-                keep_date_col=self.keep_date_col,
                 dtype_backend=self.dtype_backend,
             )
 
-        return names, data
+        return data
 
     @final
     def _check_data_length(
@@ -1118,84 +1041,37 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
     date_format: dict[Hashable, str] | str | None = None,
 ):
-    if date_parser is not lib.no_default:
-        warnings.warn(
-            "The argument 'date_parser' is deprecated and will "
-            "be removed in a future version. "
-            "Please use 'date_format' instead, or read your data in as 'object' dtype "
-            "and then call 'to_datetime'.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+    def converter(date_col, col: Hashable):
+        if date_col.dtype.kind in "Mm":
+            return date_col
+
+        date_fmt = (
+            date_format.get(col) if isinstance(date_format, dict) else date_format
         )
-    if date_parser is not lib.no_default and date_format is not None:
-        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
-    def unpack_if_single_element(arg):
-        # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-        if isinstance(arg, np.ndarray) and arg.ndim == 1 and len(arg) == 1:
-            return arg[0]
-        return arg
-
-    def converter(*date_cols, col: Hashable):
-        if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
-            return date_cols[0]
-
-        if date_parser is lib.no_default:
-            strs = parsing.concat_date_cols(date_cols)
-            date_fmt = (
-                date_format.get(col) if isinstance(date_format, dict) else date_format
+        str_objs = lib.ensure_string_array(date_col)
+        try:
+            result = tools.to_datetime(
+                str_objs,
+                format=date_fmt,
+                utc=False,
+                dayfirst=dayfirst,
+                cache=cache_dates,
             )
+        except (ValueError, TypeError):
+            # test_usecols_with_parse_dates4
+            # test_multi_index_parse_dates
+            return str_objs
 
-            str_objs = ensure_object(strs)
-            try:
-                result = tools.to_datetime(
-                    str_objs,
-                    format=date_fmt,
-                    utc=False,
-                    dayfirst=dayfirst,
-                    cache=cache_dates,
-                )
-            except (ValueError, TypeError):
-                # test_usecols_with_parse_dates4
-                return str_objs
-
-            if isinstance(result, DatetimeIndex):
-                arr = result.to_numpy()
-                arr.flags.writeable = True
-                return arr
-            return result._values
-        else:
-            try:
-                pre_parsed = date_parser(
-                    *(unpack_if_single_element(arg) for arg in date_cols)
-                )
-                try:
-                    result = tools.to_datetime(
-                        pre_parsed,
-                        cache=cache_dates,
-                    )
-                except (ValueError, TypeError):
-                    # test_read_csv_with_custom_date_parser
-                    result = pre_parsed
-                if isinstance(result, datetime.datetime):
-                    raise Exception("scalar parser")
-                return result
-            except Exception:
-                # e.g. test_datetime_fractional_seconds
-                pre_parsed = parsing.try_parse_dates(
-                    parsing.concat_date_cols(date_cols),
-                    parser=date_parser,
-                )
-                try:
-                    return tools.to_datetime(pre_parsed)
-                except (ValueError, TypeError):
-                    # TODO: not reached in tests 2023-10-27; needed?
-                    return pre_parsed
+        if isinstance(result, DatetimeIndex):
+            arr = result.to_numpy()
+            arr.flags.writeable = True
+            return arr
+        return result._values
 
     return converter
 
@@ -1226,9 +1102,7 @@ parser_defaults = {
     "decimal": ".",
     # 'engine': 'c',
     "parse_dates": False,
-    "keep_date_col": False,
     "dayfirst": False,
-    "date_parser": lib.no_default,
     "date_format": None,
     "usecols": None,
     # 'iterator': False,
@@ -1243,125 +1117,39 @@ parser_defaults = {
 
 
 def _process_date_conversion(
-    data_dict,
+    data_dict: Mapping[Hashable, ArrayLike] | DataFrame,
     converter: Callable,
-    parse_spec,
+    parse_spec: list,
     index_col,
     index_names,
-    columns,
-    keep_date_col: bool = False,
+    columns: Sequence[Hashable] | Index,
     dtype_backend=lib.no_default,
-) -> tuple[dict, list]:
-    def _isindex(colspec):
-        return (isinstance(index_col, list) and colspec in index_col) or (
+) -> Mapping[Hashable, ArrayLike] | DataFrame:
+    for colspec in parse_spec:
+        if isinstance(colspec, int) and colspec not in data_dict:
+            colspec = columns[colspec]
+        if (isinstance(index_col, list) and colspec in index_col) or (
             isinstance(index_names, list) and colspec in index_names
-        )
+        ):
+            continue
+        elif dtype_backend == "pyarrow":
+            import pyarrow as pa
 
-    new_cols = []
-    new_data = {}
+            dtype = data_dict[colspec].dtype
+            if isinstance(dtype, ArrowDtype) and (
+                pa.types.is_timestamp(dtype.pyarrow_dtype)
+                or pa.types.is_date(dtype.pyarrow_dtype)
+            ):
+                continue
 
-    orig_names = columns
-    columns = list(columns)
+        # Pyarrow engine returns Series which we need to convert to
+        # numpy array before converter, its a no-op for other parsers
+        result = converter(np.asarray(data_dict[colspec]), col=colspec)
+        # error: Unsupported target for indexed assignment
+        # ("Mapping[Hashable, ExtensionArray | ndarray[Any, Any]] | DataFrame")
+        data_dict[colspec] = result  # type: ignore[index]
 
-    date_cols = set()
-
-    if parse_spec is None or isinstance(parse_spec, bool):
-        return data_dict, columns
-
-    if isinstance(parse_spec, list):
-        # list of column lists
-        for colspec in parse_spec:
-            if is_scalar(colspec) or isinstance(colspec, tuple):
-                if isinstance(colspec, int) and colspec not in data_dict:
-                    colspec = orig_names[colspec]
-                if _isindex(colspec):
-                    continue
-                elif dtype_backend == "pyarrow":
-                    import pyarrow as pa
-
-                    dtype = data_dict[colspec].dtype
-                    if isinstance(dtype, ArrowDtype) and (
-                        pa.types.is_timestamp(dtype.pyarrow_dtype)
-                        or pa.types.is_date(dtype.pyarrow_dtype)
-                    ):
-                        continue
-
-                # Pyarrow engine returns Series which we need to convert to
-                # numpy array before converter, its a no-op for other parsers
-                data_dict[colspec] = converter(
-                    np.asarray(data_dict[colspec]), col=colspec
-                )
-            else:
-                new_name, col, old_names = _try_convert_dates(
-                    converter, colspec, data_dict, orig_names
-                )
-                if new_name in data_dict:
-                    raise ValueError(f"New date column already in dict {new_name}")
-                new_data[new_name] = col
-                new_cols.append(new_name)
-                date_cols.update(old_names)
-
-    elif isinstance(parse_spec, dict):
-        # dict of new name to column list
-        for new_name, colspec in parse_spec.items():
-            if new_name in data_dict:
-                raise ValueError(f"Date column {new_name} already in dict")
-
-            _, col, old_names = _try_convert_dates(
-                converter,
-                colspec,
-                data_dict,
-                orig_names,
-                target_name=new_name,
-            )
-
-            new_data[new_name] = col
-
-            # If original column can be converted to date we keep the converted values
-            # This can only happen if values are from single column
-            if len(colspec) == 1:
-                new_data[colspec[0]] = col
-
-            new_cols.append(new_name)
-            date_cols.update(old_names)
-
-    if isinstance(data_dict, DataFrame):
-        data_dict = concat([DataFrame(new_data), data_dict], axis=1)
-    else:
-        data_dict.update(new_data)
-    new_cols.extend(columns)
-
-    if not keep_date_col:
-        for c in list(date_cols):
-            data_dict.pop(c)
-            new_cols.remove(c)
-
-    return data_dict, new_cols
-
-
-def _try_convert_dates(
-    parser: Callable, colspec, data_dict, columns, target_name: str | None = None
-):
-    colset = set(columns)
-    colnames = []
-
-    for c in colspec:
-        if c in colset:
-            colnames.append(c)
-        elif isinstance(c, int) and c not in columns:
-            colnames.append(columns[c])
-        else:
-            colnames.append(c)
-
-    new_name: tuple | str
-    if all(isinstance(x, tuple) for x in colnames):
-        new_name = tuple(map("_".join, zip(*colnames)))
-    else:
-        new_name = "_".join([str(x) for x in colnames])
-    to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
-
-    new_col = parser(*to_parse, col=new_name if target_name is None else target_name)
-    return new_name, new_col, colnames
+    return data_dict
 
 
 def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
@@ -1397,27 +1185,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
             return set(), set()
     else:
         return na_values, na_fvalues
-
-
-def _validate_parse_dates_arg(parse_dates):
-    """
-    Check whether or not the 'parse_dates' parameter
-    is a non-boolean scalar. Raises a ValueError if
-    that is the case.
-    """
-    msg = (
-        "Only booleans, lists, and dictionaries are accepted "
-        "for the 'parse_dates' parameter"
-    )
-
-    if not (
-        parse_dates is None
-        or lib.is_bool(parse_dates)
-        or isinstance(parse_dates, (list, dict))
-    ):
-        raise TypeError(msg)
-
-    return parse_dates
 
 
 def is_index_col(col) -> bool:

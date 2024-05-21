@@ -628,7 +628,8 @@ class Apply(metaclass=abc.ABCMeta):
 
             cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                raise KeyError(f"Column(s) {list(cols)} do not exist")
+                # GH 58474
+                raise KeyError(f"Label(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
@@ -1710,9 +1711,9 @@ def normalize_keyword_aggregation(
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
     aggspec = defaultdict(list)
     order = []
-    columns, pairs = list(zip(*kwargs.items()))
+    columns = tuple(kwargs.keys())
 
-    for column, aggfunc in pairs:
+    for column, aggfunc in kwargs.values():
         aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 

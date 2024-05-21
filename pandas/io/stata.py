@@ -91,7 +91,7 @@ if TYPE_CHECKING:
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -1122,6 +1122,7 @@ class StataReader(StataParser, abc.Iterator):
         # State variables for the file
         self._close_file: Callable[[], None] | None = None
         self._column_selector_set = False
+        self._value_label_dict: dict[str, dict[int, str]] = {}
         self._value_labels_read = False
         self._dtype: np.dtype | None = None
         self._lines_read = 0
@@ -1376,7 +1377,7 @@ class StataReader(StataParser, abc.Iterator):
         elif self._format_version > 104:
             return self._decode(self._path_or_buf.read(18))
         else:
-            raise ValueError()
+            raise ValueError
 
     def _get_seek_variable_labels(self) -> int:
         if self._format_version == 117:
@@ -1388,11 +1389,11 @@ class StataReader(StataParser, abc.Iterator):
         elif self._format_version >= 118:
             return self._read_int64() + 17
         else:
-            raise ValueError()
+            raise ValueError
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [104, 105, 108, 111, 113, 114, 115]:
+        if self._format_version not in [104, 105, 108, 110, 111, 113, 114, 115]:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
         self._byteorder = ">" if self._read_int8() == 0x1 else "<"
@@ -1407,7 +1408,7 @@ class StataReader(StataParser, abc.Iterator):
         self._time_stamp = self._get_time_stamp()
 
         # descriptors
-        if self._format_version > 108:
+        if self._format_version >= 111:
             typlist = [int(c) for c in self._path_or_buf.read(self._nvar)]
         else:
             buf = self._path_or_buf.read(self._nvar)
@@ -1502,26 +1503,14 @@ the string values returned are correct."""
             )
             return s.decode("latin-1")
 
-    def _read_value_labels(self) -> None:
-        self._ensure_open()
-        if self._value_labels_read:
-            # Don't read twice
-            return
-        if self._format_version <= 108:
-            # Value labels are not supported in version 108 and earlier.
-            self._value_labels_read = True
-            self._value_label_dict: dict[str, dict[float, str]] = {}
-            return
-
+    def _read_new_value_labels(self) -> None:
+        """Reads value labels with variable length strings (108 and later format)"""
         if self._format_version >= 117:
             self._path_or_buf.seek(self._seek_value_labels)
         else:
             assert self._dtype is not None
             offset = self._nobs * self._dtype.itemsize
             self._path_or_buf.seek(self._data_location + offset)
-
-        self._value_labels_read = True
-        self._value_label_dict = {}
 
         while True:
             if self._format_version >= 117:
@@ -1530,8 +1519,10 @@ the string values returned are correct."""
 
             slength = self._path_or_buf.read(4)
             if not slength:
-                break  # end of value label table (format < 117)
-            if self._format_version <= 117:
+                break  # end of value label table (format < 117), or end-of-file
+            if self._format_version == 108:
+                labname = self._decode(self._path_or_buf.read(9))
+            elif self._format_version <= 117:
                 labname = self._decode(self._path_or_buf.read(33))
             else:
                 labname = self._decode(self._path_or_buf.read(129))
@@ -1555,8 +1546,45 @@ the string values returned are correct."""
                 self._value_label_dict[labname][val[i]] = self._decode(
                     txt[off[i] : end]
                 )
+
             if self._format_version >= 117:
                 self._path_or_buf.read(6)  # </lbl>
+
+    def _read_old_value_labels(self) -> None:
+        """Reads value labels with fixed-length strings (105 and earlier format)"""
+        assert self._dtype is not None
+        offset = self._nobs * self._dtype.itemsize
+        self._path_or_buf.seek(self._data_location + offset)
+
+        while True:
+            if not self._path_or_buf.read(2):
+                # end-of-file may have been reached, if so stop here
+                break
+
+            # otherwise back up and read again, taking byteorder into account
+            self._path_or_buf.seek(-2, os.SEEK_CUR)
+            n = self._read_uint16()
+            labname = self._decode(self._path_or_buf.read(9))
+            self._path_or_buf.read(1)  # padding
+            codes = np.frombuffer(
+                self._path_or_buf.read(2 * n), dtype=f"{self._byteorder}i2", count=n
+            )
+            self._value_label_dict[labname] = {}
+            for i in range(n):
+                self._value_label_dict[labname][codes[i]] = self._decode(
+                    self._path_or_buf.read(8)
+                )
+
+    def _read_value_labels(self) -> None:
+        self._ensure_open()
+        if self._value_labels_read:
+            # Don't read twice
+            return
+
+        if self._format_version >= 108:
+            self._read_new_value_labels()
+        else:
+            self._read_old_value_labels()
         self._value_labels_read = True
 
     def _read_strls(self) -> None:
@@ -1729,7 +1757,7 @@ the string values returned are correct."""
                         i, _stata_elapsed_date_to_datetime_vec(data.iloc[:, i], fmt)
                     )
 
-        if convert_categoricals and self._format_version > 108:
+        if convert_categoricals:
             data = self._do_convert_categoricals(
                 data, self._value_label_dict, self._lbllist, order_categoricals
             )
@@ -1845,7 +1873,7 @@ the string values returned are correct."""
     def _do_convert_categoricals(
         self,
         data: DataFrame,
-        value_label_dict: dict[str, dict[float, str]],
+        value_label_dict: dict[str, dict[int, str]],
         lbllist: Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
@@ -1983,7 +2011,7 @@ The repeated labels are:
         self._ensure_open()
         return dict(zip(self._varlist, self._variable_labels))
 
-    def value_labels(self) -> dict[str, dict[float, str]]:
+    def value_labels(self) -> dict[str, dict[int, str]]:
         """
         Return a nested dict associating each variable name to its value and label.
 

@@ -58,26 +58,26 @@ class TestCompat:
         result = df.query("A>0")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_None(self, df, expected1, expected2):
         result = df.query("A>0", engine=None)
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_python(self, df, expected1, expected2):
         result = df.query("A>0", engine="python")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_numexpr(self, df, expected1, expected2):
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, expected2, check_names=False)
+            tm.assert_series_equal(result, expected2)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -187,6 +187,20 @@ class TestDataFrameEval:
         res = df.eval("c = ((a1 == 'Y') & True)")
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
+
+    def test_using_numpy(self, engine, parser):
+        # GH 58041
+        skip_if_no_pandas_parser(parser)
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("@np.floor(a)", engine=engine, parser=parser)
+        expected = np.floor(df["a"])
+        tm.assert_series_equal(expected, res)
+
+    def test_eval_simple(self, engine, parser):
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("a", engine=engine, parser=parser)
+        expected = df["a"]
+        tm.assert_series_equal(expected, res)
 
 
 class TestDataFrameQueryWithMultiIndex:

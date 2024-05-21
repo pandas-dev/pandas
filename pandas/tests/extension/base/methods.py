@@ -191,10 +191,10 @@ class BaseMethodsTests:
         # GH#38733
         data = data_missing_for_sorting
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmin(skipna=False)
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
@@ -298,6 +298,20 @@ class BaseMethodsTests:
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        df = pd.DataFrame({"A": data_missing.take([0, 1, 0, 1])})
+        expected = pd.DataFrame({"A": data_missing.take([1, 1, 0, 1])})
+        result = df.fillna(value=data_missing[1], limit=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        ser = pd.Series(data_missing.take([0, 1, 0, 1]))
+        expected = pd.Series(data_missing.take([1, 1, 0, 1]))
+        result = ser.fillna(value=data_missing[1], limit=1)
+        tm.assert_series_equal(result, expected)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])

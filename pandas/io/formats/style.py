@@ -3038,7 +3038,7 @@ class Styler(StylerRenderer):
         return self.map(lambda x: values, subset=subset)
 
     @Substitution(subset=subset_args)
-    def bar(  # pylint: disable=disallowed-name
+    def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -3800,7 +3800,7 @@ def _validate_apply_axis_arg(
             f"operations is a Series with 'axis in [0,1]'"
         )
     if isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
-        arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
+        arg = arg.reindex_like(data).to_numpy(**dtype)
     else:
         arg = np.asarray(arg, **dtype)
         assert isinstance(arg, np.ndarray)  # mypy requirement
