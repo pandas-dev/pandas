@@ -892,7 +892,7 @@ class BaseBlockManager(PandasObject):
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
-                    return []
+                    return
                 bp = BlockPlacement(slice(0, sllen))
                 yield blk.getitem_block_columns(slobj, new_mgr_locs=bp)
                 return
