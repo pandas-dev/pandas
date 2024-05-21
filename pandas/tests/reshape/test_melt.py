@@ -544,6 +544,10 @@ class TestMelt:
         tm.assert_frame_equal(df.melt(var_name=["first", "second"]), expected)
         tm.assert_frame_equal(df.melt(var_name=["first"]), expected[["first", "value"]])
 
+    def test_melt_multiindex_columns_var_name_too_many(self):
+        # GH 58033
+        df = DataFrame({("A", "a"): [1], ("A", "b"): [2]})
+
         with pytest.raises(
             ValueError, match="but the dataframe columns only have 2 levels"
         ):
