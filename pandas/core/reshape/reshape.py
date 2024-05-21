@@ -939,7 +939,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
             dtype = frame._mgr.arrays[0].dtype
         else:
             dtype = None
-        result = Series(frame._values.ravel(order="F"), dtype=dtype)
+        result = frame._constructor_sliced(frame._values.ravel(order="F"), dtype=dtype)
     else:
         result = stack_reshape(frame, level, set_levels, stack_cols)
 
