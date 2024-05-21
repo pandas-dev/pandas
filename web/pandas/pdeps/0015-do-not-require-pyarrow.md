@@ -11,7 +11,7 @@
 
 ## Abstract
 
-This PDEP was supersedes PDEP-10, which stipulated that PyArrow should become a required dependency
+This PDEP supersedes PDEP-10, which stipulated that PyArrow should become a required dependency
 for pandas 3.0. After reviewing feedback posted
 on the feedback issue [#54466](https://github.com/pandas-dev/pandas/issues/54466), we, the members of
 the core team, have decided against moving forward with this PDEP for pandas 3.0.
@@ -26,7 +26,7 @@ such as AWS Lambda and WASM, due to its large size of around ~40 MB for a compil
 less widely used platforms such as Alpine Linux (and there is third party support for pandas in
 pyodide, a WASM distribution of pandas), both of which pyarrow does not provide wheels for.
 
-   While both of these reasons are mentioned in the drawbacks section of this PDEP, at the time of the writing
+   While both of these reasons are mentioned in the drawbacks section of PDEP-10, at the time of the writing
 of the PDEP, we underestimated the impact this would have on users, and also downstream developers.
 
 2) Many of the benefits presented in PDEP-10 can be materialized even with payrrow as an optional dependency.
