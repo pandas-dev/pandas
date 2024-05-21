@@ -29,13 +29,13 @@ pyodide, a WASM distribution of pandas), both of which pyarrow does not provide 
    While both of these reasons are mentioned in the drawbacks section of this PDEP, at the time of the writing
 of the PDEP, we underestimated the impact this would have on users, and also downstream developers.
 
-2) Many of the benefits presented in this PDEP can be materialized even with payrrow as an optional dependency.
+2) Many of the benefits presented in PDEP-10 can be materialized even with payrrow as an optional dependency.
 
    For example, as detailed in PDEP-14, it is possible to create a new string data type with the same semantics
    as our current default object string data type, but that allows users to experience faster performance and memory savings
    compared to the object strings (if pyarrow is installed).
 
-While we've decided to not move forward with requiring pyarrow in pandas 3.0, the rejection of this PDEP
+While we've decided to not move forward with requiring pyarrow in pandas 3.0, the rejection of PDEP-10
 does not mean that we are abandoning pyarrow support and integration in pandas. We, as the core team, still believe
 that adopting support for pyarrow arrays and data types in more of pandas will lead to greater interoperability with the
 ecosystem and better performance for users. Furthermore, a lot of the drawbacks, such as the large installation size of pyarrow
