@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
+    Iterable,
     Iterator,
     Mapping,
     Sequence,
@@ -758,7 +759,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     )
                     raise ValueError(msg) from err
 
-            converters = [get_converter(s) for s in index_sample]
+            converters = (get_converter(s) for s in index_sample)
             names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
 
         else:
@@ -2645,7 +2646,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         }
         if isinstance(obj, Series):
             _name = obj.name
-            keys = [] if _name in in_axis_names else [obj]
+            keys: Iterable[Series] = [] if _name in in_axis_names else [obj]
         else:
             unique_cols = set(obj.columns)
             if subset is not None:
@@ -2665,12 +2666,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 subsetted = unique_cols
 
-            keys = [
+            keys = (
                 # Can't use .values because the column label needs to be preserved
                 obj.iloc[:, idx]
                 for idx, _name in enumerate(obj.columns)
                 if _name not in in_axis_names and _name in subsetted
-            ]
+            )
 
         groupings = list(self._grouper.groupings)
         for key in keys:
