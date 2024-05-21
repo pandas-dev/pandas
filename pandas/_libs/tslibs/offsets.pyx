@@ -219,8 +219,7 @@ cdef _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64D(dt) for dt in holidays]
-    holidays = tuple(sorted(holidays))
+    holidays = tuple(sorted(_to_dt64D(dt) for dt in holidays))
 
     kwargs = {"weekmask": weekmask}
     if holidays:
@@ -419,17 +418,22 @@ cdef class BaseOffset:
 
         if "holidays" in all_paras and not all_paras["holidays"]:
             all_paras.pop("holidays")
-        exclude = ["kwds", "name", "calendar"]
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != "_")]
-        attrs = sorted(set(attrs))
-        params = tuple([str(type(self))] + attrs)
+        exclude = {"kwds", "name", "calendar"}
+        attrs = {(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != "_")}
+        params = tuple([str(type(self))] + sorted(attrs))
         return params
 
     @property
     def kwds(self) -> dict:
         """
         Return a dict of extra parameters for the offset.
+
+        See Also
+        --------
+        tseries.offsets.DateOffset : The base class for all pandas date offsets.
+        tseries.offsets.WeekOfMonth : Represents the week of the month.
+        tseries.offsets.LastWeekOfMonth : Represents the last week of the month.
 
         Examples
         --------
@@ -502,6 +506,13 @@ cdef class BaseOffset:
         """
         Return a copy of the frequency.
 
+        See Also
+        --------
+        tseries.offsets.Week.copy : Return a copy of Week offset.
+        tseries.offsets.DateOffset.copy : Return a copy of date offset.
+        tseries.offsets.MonthEnd.copy : Return a copy of MonthEnd offset.
+        tseries.offsets.YearBegin.copy : Return a copy of YearBegin offset.
+
         Examples
         --------
         >>> freq = pd.DateOffset(1)
@@ -552,6 +563,14 @@ cdef class BaseOffset:
     def name(self) -> str:
         """
         Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Week : Represents a weekly offset.
+        DateOffset : Base class for all other offset classes.
+        tseries.offsets.Day : Represents a single day offset.
+        tseries.offsets.MonthEnd : Represents a monthly offset that
+            snaps to the end of the month.
 
         Examples
         --------
@@ -1085,7 +1104,7 @@ cdef class Day(Tick):
     """
     Offset ``n`` days.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -2519,7 +2538,7 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2614,7 +2633,7 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2737,7 +2756,7 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2819,7 +2838,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2920,7 +2939,7 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -2995,7 +3014,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3033,7 +3052,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3203,7 +3222,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.

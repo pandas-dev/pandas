@@ -174,7 +174,7 @@ def concat(
     Parameters
     ----------
     objs : an iterable or mapping of Series or DataFrame objects
-        If a mapping is passed, the sorted keys will be used as the `keys`
+        If a mapping is passed, the keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
@@ -563,7 +563,7 @@ class _Concatenator:
 
             # combine as columns in a frame
             else:
-                data = dict(zip(range(len(self.objs)), self.objs))
+                data = dict(enumerate(self.objs))
 
                 # GH28330 Preserves subclassed objects through concat
                 cons = sample._constructor_expanddim
@@ -877,7 +877,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
-        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
+        new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
         new_levels.append(new_index.unique())
         single_codes = new_index.unique().get_indexer(new_index)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
+    Iterable,
     Iterator,
     Mapping,
     Sequence,
@@ -758,7 +759,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     )
                     raise ValueError(msg) from err
 
-            converters = [get_converter(s) for s in index_sample]
+            converters = (get_converter(s) for s in index_sample)
             names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
 
         else:
@@ -1202,10 +1203,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = RangeIndex(len(values))
-                result = concat(values, axis=0, keys=keys)
+                result = concat(values, axis=0)
 
         elif not not_indexed_same:
             result = concat(values, axis=0)
@@ -1286,11 +1284,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # zip in reverse so we can always insert at loc 0
-        for level, (name, lev, in_axis) in enumerate(
+        for level, (name, lev) in enumerate(
             zip(
                 reversed(self._grouper.names),
-                reversed(self._grouper.get_group_levels()),
-                reversed([grp.in_axis for grp in self._grouper.groupings]),
+                self._grouper.get_group_levels(),
             )
         ):
             if name is None:
@@ -1879,24 +1876,40 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         else:
             # i.e. func in base.reduction_kernels
+            if self.observed:
+                return self._reduction_kernel_transform(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
-            # GH#30918 Use _transform_fast only when we know func is an aggregation
-            # If func is a reduction, we need to broadcast the
-            # result to the whole group. Compute func result
-            # and deal with possible broadcasting below.
-            with com.temp_setattr(self, "as_index", True):
-                # GH#49834 - result needs groups in the index for
-                # _wrap_transform_fast_result
-                if func in ["idxmin", "idxmax"]:
-                    func = cast(Literal["idxmin", "idxmax"], func)
-                    result = self._idxmax_idxmin(func, True, *args, **kwargs)
-                else:
-                    if engine is not None:
-                        kwargs["engine"] = engine
-                        kwargs["engine_kwargs"] = engine_kwargs
-                    result = getattr(self, func)(*args, **kwargs)
+            with (
+                com.temp_setattr(self, "observed", True),
+                com.temp_setattr(self, "_grouper", self._grouper.observed_grouper),
+            ):
+                return self._reduction_kernel_transform(
+                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+                )
 
-            return self._wrap_transform_fast_result(result)
+    @final
+    def _reduction_kernel_transform(
+        self, func, *args, engine=None, engine_kwargs=None, **kwargs
+    ):
+        # GH#30918 Use _transform_fast only when we know func is an aggregation
+        # If func is a reduction, we need to broadcast the
+        # result to the whole group. Compute func result
+        # and deal with possible broadcasting below.
+        with com.temp_setattr(self, "as_index", True):
+            # GH#49834 - result needs groups in the index for
+            # _wrap_transform_fast_result
+            if func in ["idxmin", "idxmax"]:
+                func = cast(Literal["idxmin", "idxmax"], func)
+                result = self._idxmax_idxmin(func, True, *args, **kwargs)
+            else:
+                if engine is not None:
+                    kwargs["engine"] = engine
+                    kwargs["engine_kwargs"] = engine_kwargs
+                result = getattr(self, func)(*args, **kwargs)
+
+        return self._wrap_transform_fast_result(result)
 
     @final
     def _wrap_transform_fast_result(self, result: NDFrameT) -> NDFrameT:
@@ -2633,7 +2646,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         }
         if isinstance(obj, Series):
             _name = obj.name
-            keys = [] if _name in in_axis_names else [obj]
+            keys: Iterable[Series] = [] if _name in in_axis_names else [obj]
         else:
             unique_cols = set(obj.columns)
             if subset is not None:
@@ -2653,12 +2666,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 subsetted = unique_cols
 
-            keys = [
+            keys = (
                 # Can't use .values because the column label needs to be preserved
                 obj.iloc[:, idx]
                 for idx, _name in enumerate(obj.columns)
                 if _name not in in_axis_names and _name in subsetted
-            ]
+            )
 
         groupings = list(self._grouper.groupings)
         for key in keys:

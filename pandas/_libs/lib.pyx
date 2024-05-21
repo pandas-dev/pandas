@@ -53,6 +53,7 @@ from numpy cimport (
     PyArray_ITER_DATA,
     PyArray_ITER_NEXT,
     PyArray_IterNew,
+    PyArray_SETITEM,
     complex128_t,
     flatiter,
     float64_t,
@@ -75,7 +76,6 @@ cdef extern from "pandas/parser/pd_parser.h":
 PandasParser_IMPORT
 
 from pandas._libs cimport util
-from pandas._libs.dtypes cimport uint8_int64_object_t
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -183,6 +183,13 @@ def is_scalar(val: object) -> bool:
     -------
     bool
         Return True if given object is scalar.
+
+    See Also
+    --------
+    api.types.is_list_like : Check if the input is list-like.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
+    api.types.is_bool : Check if the input is a boolean.
 
     Examples
     --------
@@ -477,7 +484,7 @@ def has_infs(const floating[:] arr) -> bool:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def has_only_ints_or_nan(floating[:] arr) -> bool:
+def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
@@ -631,7 +638,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
+def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -652,7 +659,7 @@ def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_sequence_range(ndarray[int6432_t, ndim=1] sequence, int64_t step) -> bool:
+def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     Check if sequence is equivalent to a range with the specified step.
     """
@@ -1442,6 +1449,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
+        The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.
 
@@ -1475,6 +1483,14 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     ------
     TypeError
         If ndarray-like but cannot infer the dtype
+
+    See Also
+    --------
+    api.types.is_scalar : Check if the input is a scalar.
+    api.types.is_list_like : Check if the input is list-like.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
+    api.types.is_bool : Check if the input is a boolean.
 
     Notes
     -----
@@ -2628,7 +2644,11 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif val is C_NA:
-            seen.object_ = True
+            if convert_to_nullable_dtype:
+                seen.null_ = True
+                mask[i] = True
+            else:
+                seen.object_ = True
             continue
         else:
             seen.object_ = True
@@ -2691,6 +2711,12 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
+        elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype()
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
         seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
@@ -2734,12 +2760,12 @@ def maybe_convert_objects(ndarray[object] objects,
         return objects
 
     if seen.bool_:
-        if seen.is_bool:
-            # is_bool property rules out everything else
-            return bools.view(np.bool_)
-        elif convert_to_nullable_dtype and seen.is_bool_or_na:
+        if convert_to_nullable_dtype and seen.is_bool_or_na:
             from pandas.core.arrays import BooleanArray
             return BooleanArray(bools.view(np.bool_), mask)
+        elif seen.is_bool:
+            # is_bool property rules out everything else
+            return bools.view(np.bool_)
         seen.object_ = True
 
     if not seen.object_:
@@ -2752,11 +2778,11 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = floats
                 elif seen.int_ or seen.uint_:
                     if convert_to_nullable_dtype:
-                        from pandas.core.arrays import IntegerArray
+                        # Below we will wrap in IntegerArray
                         if seen.uint_:
-                            result = IntegerArray(uints, mask)
+                            result = uints
                         else:
-                            result = IntegerArray(ints, mask)
+                            result = ints
                     else:
                         result = floats
                 elif seen.nan_:
@@ -2771,7 +2797,6 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
-
         else:
             # don't cast int to float, etc.
             if seen.null_:
@@ -2793,6 +2818,22 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = uints
                     else:
                         result = ints
+
+        # TODO: do these after the itemsize check?
+        if (result is ints or result is uints) and convert_to_nullable_dtype:
+            from pandas.core.arrays import IntegerArray
+
+            # Set these values to 1 to be deterministic, match
+            #  IntegerDtype._internal_fill_value
+            result[mask] = 1
+            result = IntegerArray(result, mask)
+        elif result is floats and convert_to_nullable_dtype:
+            from pandas.core.arrays import FloatingArray
+
+            # Set these values to 1.0 to be deterministic, match
+            #  FloatingDtype._internal_fill_value
+            result[mask] = 1.0
+            result = FloatingArray(result, mask)
 
         if result is uints or result is ints or result is floats or result is complexes:
             # cast to the largest itemsize when all values are NumPy scalars
@@ -2820,14 +2861,16 @@ no_default = _NoDefault.no_default  # Sentinel indicating the default value.
 NoDefault = Literal[_NoDefault.no_default]
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def map_infer_mask(
-        ndarray[object] arr,
-        object f,
-        const uint8_t[:] mask,
-        *,
-        bint convert=True,
-        object na_value=no_default,
-        cnp.dtype dtype=np.dtype(object)
+    ndarray arr,
+    object f,
+    const uint8_t[:] mask,
+    *,
+    bint convert=True,
+    object na_value=no_default,
+    cnp.dtype dtype=np.dtype(object)
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2850,53 +2893,39 @@ def map_infer_mask(
     -------
     np.ndarray or an ExtensionArray
     """
-    cdef Py_ssize_t n = len(arr)
-    result = np.empty(n, dtype=dtype)
-
-    _map_infer_mask(
-        result,
-        arr,
-        f,
-        mask,
-        na_value,
-    )
-    if convert:
-        return maybe_convert_objects(result)
-    else:
-        return result
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def _map_infer_mask(
-        ndarray[uint8_int64_object_t] out,
-        ndarray[object] arr,
-        object f,
-        const uint8_t[:] mask,
-        object na_value=no_default,
-) -> None:
-    """
-    Helper for map_infer_mask, split off to use fused types based on the result.
-    """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t i
+        Py_ssize_t n = len(arr)
         object val
 
-    n = len(arr)
+        ndarray result = np.empty(n, dtype=dtype)
+
+        flatiter arr_it = PyArray_IterNew(arr)
+        flatiter result_it = PyArray_IterNew(result)
+
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
-                val = arr[i]
+                val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
             else:
                 val = na_value
         else:
-            val = f(arr[i])
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
+            val = f(val)
 
             if cnp.PyArray_IsZeroDim(val):
                 # unbox 0-dim arrays, GH#690
                 val = val.item()
 
-        out[i] = val
+        PyArray_SETITEM(result, PyArray_ITER_DATA(result_it), val)
+
+        PyArray_ITER_NEXT(arr_it)
+        PyArray_ITER_NEXT(result_it)
+
+    if convert:
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 @cython.boundscheck(False)
