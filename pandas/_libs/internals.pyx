@@ -445,21 +445,18 @@ def get_concat_blkno_indexers(list blknos_list not None):
     # we have the blknos for each of several BlockManagers
     # list[np.ndarray[int64_t]]
     cdef:
-        Py_ssize_t i, j, k, start, ncols
+        Py_ssize_t i, j, k, ncols, start = 0
         cnp.npy_intp n_mgrs
         ndarray[intp_t] blknos, cur_blknos, run_blknos
         BlockPlacement bp
-        list result = []
-
-    n_mgrs = len(blknos_list)
-    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
 
     blknos = blknos_list[0]
     ncols = len(blknos)
     if ncols == 0:
-        return []
+        return
 
-    start = 0
+    n_mgrs = len(blknos_list)
+    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
     for i in range(n_mgrs):
         blknos = blknos_list[i]
         cur_blknos[i] = blknos[0]
@@ -476,7 +473,7 @@ def get_concat_blkno_indexers(list blknos_list not None):
             if blknos[i] != blknos[i - 1]:
                 bp = BlockPlacement(slice(start, i))
                 run_blknos = cnp.PyArray_Copy(cur_blknos)
-                result.append((run_blknos, bp))
+                yield run_blknos, bp
 
                 start = i
                 for j in range(n_mgrs):
@@ -487,8 +484,7 @@ def get_concat_blkno_indexers(list blknos_list not None):
     if start != ncols:
         bp = BlockPlacement(slice(start, ncols))
         run_blknos = cnp.PyArray_Copy(cur_blknos)
-        result.append((run_blknos, bp))
-    return result
+        yield run_blknos, bp
 
 
 @cython.boundscheck(False)
