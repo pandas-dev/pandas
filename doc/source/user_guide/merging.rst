@@ -763,7 +763,7 @@ Joining a single Index to a MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can join a :class:`DataFrame` with a :class:`Index` to a :class:`DataFrame` with a :class:`MultiIndex` on a level.
-The ``name`` of the :class:`Index` with match the level name of the :class:`MultiIndex`.
+The ``name`` of the :class:`Index` will match the level name of the :class:`MultiIndex`.
 
 ..  ipython:: python
 
