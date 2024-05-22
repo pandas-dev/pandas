@@ -154,7 +154,8 @@ def test_mask_inplace_no_other():
 
 def test_mask_with_NA():
     df = DataFrame({"A": [0, 1, 2]})
-    cond = Series([-1, 1, None]).convert_dtypes() < 0
+    cond = Series([True, False, pd.NA], dtype=pd.BooleanDtype())
+
     result = df.mask(cond, other=100)
     expected = DataFrame({"A": [100, 1, 2]})
     tm.assert_frame_equal(result, expected)
