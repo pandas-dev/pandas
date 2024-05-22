@@ -4472,6 +4472,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
+        This method can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
+
         Parameters
         ----------
         expr : str
