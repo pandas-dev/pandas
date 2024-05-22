@@ -2942,15 +2942,7 @@ class TestDatetimeParsingWrappers:
 
         for res in [result1, result2]:
             assert res == expected
-        for res in [result3, result4]:
-            exp = DatetimeIndex([Timestamp(expected)])
-            exp = exp.as_unit(reso)
-            tm.assert_index_equal(res, exp)
-
-        for res in [result6, result8, result9]:
-            # These cases go through array_to_datetime, not array_to_strptime.
-            #  This means that as of GH#??? they do resolution inference
-            #  while the other cases do not.
+        for res in [result3, result4, result6, result8, result9]:
             exp = DatetimeIndex([Timestamp(expected)]).as_unit(reso)
             tm.assert_index_equal(res, exp)
 
