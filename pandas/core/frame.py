@@ -735,7 +735,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
-            if isinstance(data, dict):
+            if isinstance(data, Mapping):
                 # retain pre-GH#38939 default behavior
                 copy = True
             elif not isinstance(data, (Index, DataFrame, Series)):
@@ -754,7 +754,7 @@ class DataFrame(NDFrame, OpsMixin):
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
-        elif isinstance(data, dict):
+        elif isinstance(data, Mapping):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
