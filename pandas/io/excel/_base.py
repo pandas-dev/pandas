@@ -857,24 +857,23 @@ class BaseExcelReader(Generic[_WorkbookT]):
         # a row containing just the index name(s)
         has_index_names = False
         if is_list_header and not is_len_one_list_header and index_col is not None:
-            index_col_list: Sequence[int]
+            index_col_set: set[int]
             if isinstance(index_col, int):
-                index_col_list = [index_col]
+                index_col_set = {index_col}
             else:
                 assert isinstance(index_col, Sequence)
-                index_col_list = index_col
+                index_col_set = set(index_col)
 
             # We have to handle mi without names. If any of the entries in the data
             # columns are not empty, this is a regular row
             assert isinstance(header, Sequence)
             if len(header) < len(data):
                 potential_index_names = data[len(header)]
-                potential_data = [
-                    x
+                has_index_names = all(
+                    x == "" or x is None
                     for i, x in enumerate(potential_index_names)
-                    if not control_row[i] and i not in index_col_list
-                ]
-                has_index_names = all(x == "" or x is None for x in potential_data)
+                    if not control_row[i] and i not in index_col_set
+                )
 
         if is_list_like(index_col):
             # Forward fill values for MultiIndex index.
@@ -1457,9 +1456,9 @@ def inspect_excel_format(
         with zipfile.ZipFile(stream) as zf:
             # Workaround for some third party files that use forward slashes and
             # lower case names.
-            component_names = [
+            component_names = {
                 name.replace("\\", "/").lower() for name in zf.namelist()
-            ]
+            }
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"

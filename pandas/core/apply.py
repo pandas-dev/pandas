@@ -664,7 +664,7 @@ class Apply(metaclass=abc.ABCMeta):
             # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
+            assert not any(kwarg == "axis" for kwarg in kwargs)
             return f
         elif hasattr(np, func) and hasattr(obj, "__array__"):
             # in particular exclude Window
