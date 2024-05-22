@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -94,7 +93,7 @@ def make_block(
         "make_block is deprecated and will be removed in a future version. "
         "Use public APIs instead.",
         DeprecationWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=2,
     )
 
     if dtype is not None:
