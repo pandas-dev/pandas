@@ -157,7 +157,7 @@ def _convert_arrays_to_dataframe(
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
-    idx_len = content.shape[1]
+    idx_len = content.shape[0]
     arrays = convert_object_array(
         list(content.T),
         dtype=None,

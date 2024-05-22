@@ -360,7 +360,7 @@ def _concatenate_chunks(
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
     """
-    names = chunks[0].keys()
+    names = list(chunks[0].keys())
     warning_columns = []
 
     result: dict = {}
