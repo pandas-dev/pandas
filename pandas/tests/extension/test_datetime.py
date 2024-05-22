@@ -88,13 +88,6 @@ def na_cmp():
     return cmp
 
 
-@pytest.fixture
-def isnumeric(dtype):
-    return getattr(dtype, "is_numeric", False) or issubclass(
-        np.dtype(dtype).type, np.number
-    )
-
-
 # ----------------------------------------------------------------------------
 class TestDatetimeArray(base.ExtensionTests):
     def _get_expected_exception(self, op_name, obj, other):
