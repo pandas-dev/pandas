@@ -142,7 +142,7 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
@@ -462,7 +462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _accessors = {"str"}
 
-    str = CachedAccessor("str", StringMethods)
+    str = Accessor("str", StringMethods)
 
     _references = None
 
@@ -3140,7 +3140,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                value_list.extend([x for x in rvals if x not in value_set])
+                value_list.extend(x for x in rvals if x not in value_set)
                 # If objects are unorderable, we must have object dtype.
                 return np.array(value_list, dtype=object)
 
@@ -4005,25 +4005,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
-        if lib.is_np_dtype(self.dtype, "f"):
-            # We always treat __getitem__ slicing as label-based
-            # translate to locations
-            if kind == "getitem" and is_index_slice and not start == stop and step != 0:
-                # exclude step=0 from the warning because it will raise anyway
-                # start/stop both None e.g. [:] or [::-1] won't change.
-                # exclude start==stop since it will be empty either way, or
-                # will be [:] or [::-1] which won't change
-                warnings.warn(
-                    # GH#49612
-                    "The behavior of obj[i:j] with a float-dtype index is "
-                    "deprecated. In a future version, this will be treated as "
-                    "positional instead of label-based. For label-based slicing, "
-                    "use obj.loc[i:j] instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return self.slice_indexer(start, stop, step)
-
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
             if is_index_slice:
@@ -7639,8 +7620,8 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     list
         A list representing the unanimous 'names' found.
     """
-    name_tups = [tuple(i.names) for i in indexes]
-    name_sets = [{*ns} for ns in zip_longest(*name_tups)]
+    name_tups = (tuple(i.names) for i in indexes)
+    name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
 
