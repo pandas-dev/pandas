@@ -341,6 +341,20 @@ class BaseBlockManager(PandasObject):
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
+    @property
+    def arrays(self) -> list[ArrayLike]:
+        """
+        Quick access to the backing arrays of the Blocks.
+        Only for compatibility with ArrayManager for testing convenience.
+        Not to be used in actual code, and return value is not the same as the
+        ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
+        Warning! The returned arrays don't handle Copy-on-Write, so this should
+        be used with caution (only in read-mode).
+        """
+        # TODO: Deprecate, usage in Dask
+        # https://github.com/dask/dask/blob/484fc3f1136827308db133cd256ba74df7a38d8c/dask/base.py#L1312
+        return [blk.values for blk in self.blocks]
+
     def __repr__(self) -> str:
         output = type(self).__name__
         for i, ax in enumerate(self.axes):
