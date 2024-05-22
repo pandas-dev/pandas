@@ -19,7 +19,7 @@ from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
 )
 
 

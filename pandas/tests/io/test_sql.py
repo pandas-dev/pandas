@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
 )
 
 

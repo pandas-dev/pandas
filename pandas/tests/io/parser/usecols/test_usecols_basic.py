@@ -18,7 +18,7 @@ from pandas import (
 import pandas._testing as tm
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
 )
 
 _msg_validate_usecols_arg = (
@@ -38,7 +38,7 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame is deprecated:DeprecationWarning"
+    "ignore:Passing a BlockManager to DataFrame is deprecated:FutureWarning"
 )
 
 

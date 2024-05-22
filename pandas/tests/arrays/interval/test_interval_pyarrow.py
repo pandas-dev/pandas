@@ -80,9 +80,7 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager to DataFrame:FutureWarning")
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
@@ -116,9 +114,7 @@ def test_arrow_table_roundtrip(breaks):
     tm.assert_frame_equal(result, expected[0:0])
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager to DataFrame:FutureWarning")
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
