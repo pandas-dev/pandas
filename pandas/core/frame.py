@@ -4473,8 +4473,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
-        This function pass the `expr` parameter to :meth:`~pandas.DataFrame.eval`.
-        This allows `eval` to run arbitrary code, which can make you vulnerable to code
+        This method can run arbitrary code which can make you vulnerable to code
         injection if you pass user input to this function.
 
         Parameters
