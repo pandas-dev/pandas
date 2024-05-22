@@ -1753,6 +1753,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         first_other_axes = next(
             (ax for ax in range(self._AXIS_LEN) if ax != axis), None
         )
+        if first_other_axes is None:
+            raise ValueError("axis matched all axes")
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
@@ -1764,9 +1766,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # Check for duplicates
         if values.ndim > 1:
-            if first_other_axes is not None and isinstance(
-                self._get_axis(first_other_axes), MultiIndex
-            ):
+            if isinstance(self._get_axis(first_other_axes), MultiIndex):
                 multi_message = (
                     "\n"
                     "For a multi-index, the label must be a "
