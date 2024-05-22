@@ -1729,7 +1729,7 @@ class TestDataFrameConstructors:
 
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
             result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))

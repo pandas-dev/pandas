@@ -380,7 +380,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=2,
                 )
             data = data.copy(deep=False)
@@ -408,7 +408,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=2,
                 )
 
@@ -478,7 +478,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=2,
                 )
                 allow_mgr = True

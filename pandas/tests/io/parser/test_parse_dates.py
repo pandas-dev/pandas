@@ -30,7 +30,7 @@ from pandas.core.tools.datetimes import start_caching_at
 from pandas.io.parsers import read_csv
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")

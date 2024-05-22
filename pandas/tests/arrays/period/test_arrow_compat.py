@@ -12,7 +12,7 @@ from pandas.core.arrays import (
 )
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 

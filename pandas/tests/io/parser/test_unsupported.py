@@ -21,7 +21,7 @@ from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 

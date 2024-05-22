@@ -717,7 +717,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=2,
                 )
 

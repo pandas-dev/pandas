@@ -19,7 +19,7 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 
