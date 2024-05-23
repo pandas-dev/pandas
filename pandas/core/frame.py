@@ -4691,10 +4691,10 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C C": range(10, 5, -1)}
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
         ... )
         >>> df
-           A   B  C C
+           A   B  C&C
         0  1  10   10
         1  2   8    9
         2  3   6    8
@@ -4711,15 +4711,15 @@ class DataFrame(NDFrame, OpsMixin):
         Assignment is allowed though by default the original DataFrame is not
         modified.
 
-        >>> df.eval("C = A + B")
-           A   B  C C   C
+        >>> df.eval("D = A + B")
+           A   B  C&C   D
         0  1  10   10  11
         1  2   8    9  10
         2  3   6    8   9
         3  4   4    7   8
         4  5   2    6   7
         >>> df
-           A   B  C C
+           A   B  C&C
         0  1  10   10
         1  2   8    9
         2  3   6    8
@@ -4730,11 +4730,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.eval(
         ...     '''
-        ... C = A + B
-        ... D = A - B
+        ... D = A + B
+        ... E = A - B
         ... '''
         ... )
-           A   B  C C   C  D
+           A   B  C&C   D  E
         0  1  10   10  11 -9
         1  2   8    9  10 -6
         2  3   6    8   9 -3
@@ -4743,7 +4743,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         For columns with spaces in their name, you can use backtick quoting.
 
-        >>> df.eval("B * `C C`")
+        >>> df.eval("B * `C&C`")
         0    100
         1     72
         2     48
