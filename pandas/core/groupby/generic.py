@@ -1865,35 +1865,40 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     4  5  8
     5  5  9
 
-    Using list-like arguments
+    List-like arguments
 
-    >>> df = pd.DataFrame({"col": list("aab"), "val": range(3)})
+    >>> df = pd.DataFrame({"col": list("aab"), "val": range(3), "other_val": range(3)})
     >>> df.groupby("col").transform(["sum", "min"])
-        val
-       sum  min
-    0    1    0
-    1    1    0
-    2    2    2
+        val       other_val
+        sum min        sum min
+    0     1   0          1   0
+    1     1   0          1   0
+    2     2   2          2   2
+
+    .. versionchanged:: 3.0.0
+
+    Dictionary arguments
+
+    >>> df = pd.DataFrame({"col": list("aab"), "val": range(3), "other_val": range(3)})
+    >>> df.groupby("col").transform({"val": "sum", "other_val": "min"})
+       val    other_val
+    0    1            0
+    1    1            0
+    2    2            2
 
     .. versionchanged:: 3.0.0
 
     Named aggregation
 
-    >>> df = pd.DataFrame({"A": list("aaabbbccc"), "B": range(9), "D": range(9, 18)})
-    >>> df.groupby("A").transform(
-    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="D", aggfunc="sum")
+    >>> df = pd.DataFrame({"col": list("aab"), "val": range(3), "other_val": range(3)})
+    >>> df.groupby("col").transform(
+    ...     val_sum=pd.NamedAgg(column="val", aggfunc="sum"),
+    ...     other_min=pd.NamedAgg(column="other_val", aggfunc="min")
     ... )
-       b_min  c_sum
-    0      0     30
-    1      0     30
-    2      0     30
-    3      3     39
-    4      3     39
-    5      3     39
-    6      6     48
-    7      6     48
-    8      6     48
+       val_sum  other_min
+    0        1            0
+    1        1            0
+    2        2            2
 
     .. versionchanged:: 3.0.0
     """
@@ -1915,16 +1920,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._transform_multiple_funcs(
                 transformed_func, *args, engine=engine, engine_kwargs=engine_kwargs
             )
+        elif isinstance(func, dict):
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        elif isinstance(func, list):
+            func = maybe_mangle_lambdas(func)
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
         else:
-            if isinstance(func, list):
-                func = maybe_mangle_lambdas(func)
-                return self._transform_multiple_funcs(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
-            else:
-                return self._transform(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
+            return self._transform(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
 
     def _transform_multiple_funcs(
         self,
@@ -1934,11 +1942,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         engine_kwargs: dict | None = None,
         **kwargs,
     ) -> DataFrame:
-        results = []
         if isinstance(func, dict):
-            for name, named_agg in func.items():
-                column_name = named_agg.column
-                agg_func = named_agg.aggfunc
+            results = []
+            for name, agg in func.items():
+                if isinstance(agg, NamedAgg):
+                    column_name = agg.column
+                    agg_func = agg.aggfunc
+                else:
+                    column_name = name
+                    agg_func = agg
                 result = self._transform_single_column(
                     column_name,
                     agg_func,
@@ -1951,21 +1963,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 results.append(result)
             output = concat(results, axis=1)
         elif isinstance(func, list):
-            col_names = []
-            columns = [com.get_callable_name(f) or f for f in func]
-            func_pairs = zip(columns, func)
-            for name, func_item in func_pairs:
-                result = self._transform(
-                    func_item,
-                    *args,
-                    engine=engine,
-                    engine_kwargs=engine_kwargs,
-                    **kwargs,
-                )
-                results.append(result)
-                col_names.extend([(col, name) for col in result.columns])
-            output = concat(results, ignore_index=True, axis=1)
-            arrays = [list(x) for x in zip(*col_names)]
+            results = []
+            col_order = []
+            for column in self.obj.columns:
+                if column in self.keys:
+                    continue
+                column_results = [
+                    self._transform_single_column(
+                        column,
+                        agg_func,
+                        *args,
+                        engine=engine,
+                        engine_kwargs=engine_kwargs,
+                        **kwargs,
+                    ).rename((column, agg_func))
+                    for agg_func in func
+                ]
+                combined_result = concat(column_results, axis=1)
+                results.append(combined_result)
+                col_order.extend([(column, f) for f in func])
+            output = concat(results, axis=1)
+            arrays = [list(x) for x in zip(*col_order)]
             output.columns = MultiIndex.from_arrays(arrays)
 
         return output

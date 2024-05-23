@@ -85,6 +85,30 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_with_list_like():
+    df = DataFrame({"col": list("aab"), "val": range(3), "another": range(3)})
+    result = df.groupby("col").transform(["sum", "min"])
+    expected = DataFrame(
+        {
+            ("val", "sum"): [1, 1, 2],
+            ("val", "min"): [0, 0, 2],
+            ("another", "sum"): [1, 1, 2],
+            ("another", "min"): [0, 0, 2],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(
+        [("val", "sum"), ("val", "min"), ("another", "sum"), ("another", "min")]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_with_dict():
+    df = DataFrame({"col": list("aab"), "val": range(3), "another": range(3)})
+    result = df.groupby("col").transform({"val": "sum", "another": "min"})
+    expected = DataFrame({"val": [1, 1, 2], "another": [0, 0, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_with_namedagg():
     df = DataFrame({"A": list("aaabbbccc"), "B": range(9), "D": range(9, 18)})
     result = df.groupby("A").transform(
@@ -97,14 +121,6 @@ def test_transform_with_namedagg():
             "d_sum": [30, 30, 30, 39, 39, 39, 48, 48, 48],
         }
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_transform_with_list_like():
-    df = DataFrame({"col": list("aab"), "val": range(3)})
-    result = df.groupby("col").transform(["sum", "min"])
-    expected = DataFrame({"val_sum": [1, 1, 2], "val_min": [0, 0, 2]})
-    expected.columns = MultiIndex.from_tuples([("val", "sum"), ("val", "min")])
     tm.assert_frame_equal(result, expected)
 
 
