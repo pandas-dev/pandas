@@ -10,6 +10,8 @@ cpdef int64_t delta_to_nanoseconds(
     delta, NPY_DATETIMEUNIT reso=*, bint round_ok=*
 ) except? -1
 cdef convert_to_timedelta64(object ts, str unit)
+cdef create_timedelta_from_parts(int days=*, int hours=*, int minutes=*, int seconds=*,
+    int milliseconds=*, int microseconds=*, int nanoseconds=*)
 cdef bint is_any_td_scalar(object obj)
 
 

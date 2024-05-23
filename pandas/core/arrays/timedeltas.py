@@ -776,6 +776,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         pps = periods_per_second(self._creso)
         return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
+    
+        
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
