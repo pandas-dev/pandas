@@ -91,7 +91,8 @@ def make_block(
     warnings.warn(
         # GH#56815
         "make_block is deprecated and will be removed in a future version. "
-        "Use public APIs instead.",
+        "Use pd.api.internals.create_dataframe_from_blocks or "
+        "(recommended) higher-level public APIs instead.",
         DeprecationWarning,
         stacklevel=2,
     )
