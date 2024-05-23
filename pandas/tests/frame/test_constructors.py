@@ -8,6 +8,7 @@ from collections import (
 from collections.abc import (
     Iterator,
     Mapping,
+    Sequence,
 )
 from dataclasses import make_dataclass
 from datetime import (
@@ -92,6 +93,19 @@ class DictWrapper(Mapping):
 
     def __len__(self):
         return self._dict.__len__()
+
+
+class ListWrapper(Sequence):
+    _list: list
+
+    def __init__(self, lst: list) -> None:
+        self._list = lst
+
+    def __getitem__(self, i):
+        return self._list[i]
+
+    def __len__(self):
+        return self._list.__len__()
 
 
 class TestDataFrameConstructors:
@@ -2942,6 +2956,36 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         # construction
         df = DataFrame(DictWrapper({"A": idx, "B": dr}))
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_mappiog_list(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+        data = DataFrame({"A": idx, "B": dr})
+        mapping_list = [
+            DictWrapper(record) for record in data.to_dict(orient="records")
+        ]
+
+        # construction
+        df = DataFrame(mapping_list)
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_mappiog_sequence(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+        data = DataFrame({"A": idx, "B": dr})
+        mapping_list = ListWrapper(
+            [DictWrapper(record) for record in data.to_dict(orient="records")]
+        )
+
+        # construction
+        df = DataFrame(mapping_list)
         assert df["A"].dtype, "M8[ns, US/Eastern"
         assert df["A"].name == "A"
         tm.assert_series_equal(df["A"], Series(idx, name="A"))
