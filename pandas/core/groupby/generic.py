@@ -1983,7 +1983,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 for col_result in column_results:
                     results.append(col_result)
                     col_order.append(col_result.name)
-            output = concat(results, axis=1)
+            output = concat(results, ignore_index=True, axis=1)
             arrays = [list(x) for x in zip(*col_order)]
             output.columns = MultiIndex.from_arrays(arrays)
 
