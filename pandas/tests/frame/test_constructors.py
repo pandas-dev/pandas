@@ -5,7 +5,10 @@ from collections import (
     defaultdict,
     namedtuple,
 )
-from collections.abc import Iterator
+from collections.abc import (
+    Iterator,
+    Mapping,
+)
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -73,6 +76,22 @@ MIXED_INT_DTYPES = [
     "int32",
     "int64",
 ]
+
+
+class DictWrapper(Mapping):
+    _dict: dict
+
+    def __init__(self, d: dict) -> None:
+        self._dict = d
+
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __iter__(self):
+        return self._dict.__iter__()
+
+    def __len__(self):
+        return self._dict.__len__()
 
 
 class TestDataFrameConstructors:
@@ -2912,6 +2931,17 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         # construction
         df = DataFrame({"A": idx, "B": dr})
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_dict_with_mapping(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+
+        # construction
+        df = DataFrame(DictWrapper({"A": idx, "B": dr}))
         assert df["A"].dtype, "M8[ns, US/Eastern"
         assert df["A"].name == "A"
         tm.assert_series_equal(df["A"], Series(idx, name="A"))
