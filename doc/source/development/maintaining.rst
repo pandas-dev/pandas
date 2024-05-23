@@ -84,7 +84,7 @@ Here's a typical workflow for triaging a newly opened issue.
    example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
-   and example or simplify the provided one. Do acknowledge that writing
+   an example or simplify the provided one. Do acknowledge that writing
    minimal reproducible examples is hard work. If the reporter is struggling,
    you can try to write one yourself and we'll edit the original post to include it.
 
