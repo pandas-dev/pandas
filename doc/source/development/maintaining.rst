@@ -128,7 +128,8 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   If the issue is a regression report, add the next patch release milestone.
+   If the issue is a regression report, add the "Regression" label and the next patch
+   release milestone.
 
    Once you have completed the above, make sure to remove the "Needs Triage" label.
 
