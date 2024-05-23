@@ -1965,8 +1965,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif isinstance(func, list):
             results = []
             col_order = []
+            keys_list = list(self.keys) if isinstance(self.keys, list) else [self.keys]
             for column in self.obj.columns:
-                if column in self.keys:
+                if column in keys_list:
                     continue
                 column_results = [
                     self._transform_single_column(
@@ -1979,9 +1980,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     ).rename((column, agg_func))
                     for agg_func in func
                 ]
-                combined_result = concat(column_results, axis=1)
-                results.append(combined_result)
-                col_order.extend([(column, f) for f in func])
+                for col_result in column_results:
+                    results.append(col_result)
+                    col_order.append(col_result.name)
             output = concat(results, axis=1)
             arrays = [list(x) for x in zip(*col_order)]
             output.columns = MultiIndex.from_arrays(arrays)
