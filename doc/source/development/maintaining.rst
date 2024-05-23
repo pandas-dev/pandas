@@ -93,6 +93,9 @@ Here's a typical workflow for triaging a newly opened issue.
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
 
+   If this is a regression report, post the result of a ``git bisect`` run.
+   More info on this can be found in the :ref:`maintaining.regressions` section.
+
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
    until all steps have been completed. Add a comment to the issue once you have
    verified it exists on the main branch, so others know it has been confirmed.
@@ -125,7 +128,9 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Once you have completed the above, make sure to remove the "needs triage" label.
+   If the issue is a regression report, add the next patch release milestone.
+
+   Once you have completed the above, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
