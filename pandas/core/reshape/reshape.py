@@ -942,7 +942,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         # When columns are homogeneous EAs, we pass through object
         # dtype but this is still faster than the normal path.
         if len(frame.columns) > 0 and frame._is_homogeneous_type:
-            dtype = frame._mgr.arrays[0].dtype
+            dtype = frame._mgr.blocks[0].dtype
         else:
             dtype = None
         result = frame._constructor_sliced(
