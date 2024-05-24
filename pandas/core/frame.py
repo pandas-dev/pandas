@@ -20,6 +20,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import copy
 import functools
 from io import StringIO
 import itertools
@@ -1595,6 +1596,209 @@ class DataFrame(NDFrame, OpsMixin):
         Returns length of info axis, but here we use the index.
         """
         return len(self.index)
+
+    def det(self) -> float:
+        """
+        Compute the determinant of a square dataframe
+
+        This method computes the determinant of a Dataframe that must be square.
+        Every value in the DataFrame must be numeric.
+
+        Returns
+        -------
+        float that represents the determinant of the dataframe
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]])
+        >>> df.det()
+        -2
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4.0]])
+        >>> df.det()
+        -2.0
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        >>> df.det()
+        0
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 10], [11, 12, 13]])
+        >>> df.det()
+        ValueError: The DataFrame must be square
+
+        >>> df = pd.DataFrame([[1, 2], [3, "a"]])
+        >>> df.det()
+        ValueError: The DataFrame must contain only numeric values
+
+        >>> df = pd.DataFrame([[]])
+        >>> df.det()
+        ValueError: Empty Dataframe/matrix has no determinant
+
+
+        """
+
+        def _calculate_determinant(matrix) -> float:
+            total = 0
+            size = len(matrix)
+
+            # Store indices in a list for row referencing
+            indices = list(range(size))
+
+            # Define submatrix for focus column and call this function again
+            if size == 2 and len(matrix[0]) == 2:
+                val = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1]
+                return val
+
+            # Define submatrix for focus column and call this function again
+            for fc in indices:  # for each focus column
+                # construct submatrix for focus column
+                mat = copy.deepcopy(matrix)  # make a copy of matrix
+                mat = mat[1:]  # remove first row
+                height = len(mat)
+
+                for i in range(height):
+                    # for each remaining row of submatrix
+                    mat[i] = (
+                        mat[i][0:fc] + mat[i][fc + 1 :]
+                    )  # remove the focus column elements
+
+                sign = (-1) ** (
+                    fc % 2
+                )  # this assigns alternate signs for submatrix indices
+                # pass submatrix recursively
+                sub_det = _calculate_determinant(mat)
+                total += sign * matrix[0][fc] * sub_det
+
+            return total
+
+        if self.empty:
+            raise ValueError("Empty Dataframe/matrix has no determinant")
+
+        if self.shape[0] != self.shape[1]:
+            raise ValueError("The DataFrame must be square")
+
+        for dtype in self.dtypes:
+            if not np.issubdtype(dtype, np.number):
+                raise ValueError("The DataFrame must only contain numeric values")
+
+        matrix = self.values.tolist()
+
+        if self.shape[0] == 1 and self.shape[1] == 1:
+            return matrix[0][0]
+
+        original_matrix = copy.deepcopy(matrix)
+
+        # Perform Gaussian elimination
+        n = len(matrix)
+        for i in range(n):
+            # Find the maximum in this column
+            maxEl = abs(matrix[i][i])
+            maxRow = i
+            for k in range(i + 1, n):
+                if abs(matrix[k][i]) > maxEl:
+                    maxEl = abs(matrix[k][i])
+                    maxRow = k
+            # swap maximum row with current row
+            matrix[i], matrix[maxRow] = matrix[maxRow], matrix[i]
+
+            # Make all rows below this one 0 in current column
+            for k in range(i + 1, n):
+                if matrix[i][i] == 0:
+                    continue
+                c = -matrix[k][i] / matrix[i][i]
+                for j in range(i, n):
+                    if i == j:
+                        matrix[k][j] = 0
+                    else:
+                        matrix[k][j] += c * matrix[i][j]
+
+        # Check if any row is all zeros - if so determinant is 0
+        for row in matrix:
+            if all(x == 0 for x in row):
+                return 0
+
+        return _calculate_determinant(original_matrix)
+
+    def rref(self, copy=False) -> DataFrame:
+        """
+        Compute the reduced row echelon form of a DataFrame
+
+        This method computes the reduced row echelon form of a Dataframe.
+        Every value in the DataFrame must be numeric.
+
+        Parameters
+        ----------
+        copy : bool, default False
+            If True, create a copy of the DataFrame before modifying it.
+            Otherwise, modify the DataFrame in place.
+
+        Returns
+        -------
+        The modified DataFrame that is in reduced row echelon form
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]])
+        >>> df.rref()
+           0  1
+        0  1  0
+        1  0  1
+
+        >>> df = pd.DataFrame([[1, 2], [2, 7], [3, 4]])
+        >>> df.rref()
+            0  1
+        0   1  0
+        1   0  1
+        2   0  0
+
+        >>> df = pd.DataFrame([[1, 2], [3, "a"]])
+        >>> df.rref()
+        ValueError: The DataFrame must contain only numeric values
+
+        >>> df = pd.DataFrame([[]])
+        >>> df.rref()
+        ValueError: Empty Dataframe has no row reduced echelon form
+        """
+        if self.empty:
+            raise ValueError("Empty Dataframe has no row reduced echelon form")
+
+        for dtype in self.dtypes:
+            if not np.issubdtype(dtype, np.number):
+                raise ValueError("The DataFrame must only contain numeric values")
+        if copy:
+            self = self.copy()
+
+        n = len(self)
+        m = len(self.columns)
+
+        r = 0
+        for c in range(m):
+            # Find pivot
+            pivot_index = None
+            for i in range(r, n):
+                if self.iat[i, c] != 0:
+                    pivot_index = i
+                    break
+
+            if pivot_index is None:
+                continue
+
+            # Swap rows
+            self.iloc[[r, pivot_index]] = self.iloc[[pivot_index, r]]
+
+            # Normalize row
+            pivot = self.iat[r, c]
+            self.iloc[r] = self.iloc[r] / pivot
+
+            # Eliminate other rows
+            for i in range(n):
+                if i != r:
+                    factor = self.iat[i, c]
+                    self.iloc[i] = self.iloc[i] - factor * self.iloc[r]
+
+            r += 1
+
+        return self
 
     @overload
     def dot(self, other: Series) -> Series: ...
