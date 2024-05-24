@@ -310,8 +310,8 @@ def _hash_ndarray(
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
-        if not vals.dtype.char == 'O':
-            vals = vals.astype('object')
+        if not vals.dtype.char == "O":
+            vals = vals.astype("object")
         if categorize:
             from pandas import (
                 Categorical,

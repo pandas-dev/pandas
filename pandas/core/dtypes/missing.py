@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
-    get_numpy_string_dtype_instance,
     is_scalar,
     is_string_or_object_np_dtype,
 )
