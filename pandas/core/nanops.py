@@ -151,7 +151,7 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    if issubclass(dtype, np.generic):
+    if isinstance(dtype, type):
         dtype = np.dtype(dtype)
     # Bottleneck chokes on datetime64, numpy strings, PeriodDtype (or and EA)
     if dtype != object and dtype.kind != "T" and not needs_i8_conversion(dtype):
