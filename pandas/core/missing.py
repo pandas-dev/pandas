@@ -898,8 +898,8 @@ def _no_buffer_protocol_compat(func: F) -> F:
             if mask is None:
                 # This needs to occur before casting to int64
                 mask = isna(values)
-            result, mask = func(values.astype(object), limit=limit, limit_area=limit_area,
-                                mask=mask)
+            result, mask = func(values.astype(object), limit=limit,
+                                limit_area=limit_area, mask=mask)
             values[:] = result[:]
             return result.astype(values.dtype), mask
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
