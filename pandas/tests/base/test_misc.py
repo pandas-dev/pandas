@@ -108,7 +108,8 @@ def test_memory_usage(index_or_series_memory_obj, request):
     )
     if is_string_array and np_version_gt2:
         mark = pytest.mark.xfail(
-            reason="NumPy does not expose an API to get StringDType memory usage")
+            reason="NumPy does not expose an API to get StringDType memory usage"
+        )
         request.applymarker(mark)
 
     if len(obj) == 0:

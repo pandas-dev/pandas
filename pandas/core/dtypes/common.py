@@ -533,10 +533,9 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     return dtype == object or dtype.kind in "SUT"
 
+
 def get_numpy_string_dtype_instance(
-        na_object=libmissing.NA,
-        coerce=False,
-        possible_dtype=None
+    na_object=libmissing.NA, coerce=False, possible_dtype=None
 ):
     """Get a reference to a ``numpy.dtypes.StringDType`` instance.
 
@@ -559,6 +558,7 @@ def get_numpy_string_dtype_instance(
         if possible_coerce == coerce and possible_na is libmissing.NA:
             return possible_dtype
     return np.dtypes.StringDType(na_object=na_object, coerce=coerce)
+
 
 def is_string_dtype(arr_or_dtype) -> bool:
     """
