@@ -685,7 +685,7 @@ def convert_nans_to_NA(ndarray arr) -> ndarray:
     have already been validated as null.
     """
     cdef:
-        Py_ssize_t i, m
+        Py_ssize_t i
         Py_ssize_t n = len(arr)
         object val
         flatiter it = cnp.PyArray_IterNew(arr)
@@ -694,7 +694,6 @@ def convert_nans_to_NA(ndarray arr) -> ndarray:
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-
 
         # Not string so has to be null since they're already validated
         if not isinstance(val, str):
@@ -1572,8 +1571,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # Anything other than object-dtype should return here.
         return inferred
     elif values.dtype.kind == "T":
-         # NumPy StringDType
-         return values.dtype
+        # NumPy StringDType
+        return values.dtype
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
@@ -1589,7 +1588,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     it = PyArray_IterNew(values)
     for i in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
-        #  equivalents to `val = values[i]`
+        # equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
