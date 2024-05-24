@@ -137,24 +137,24 @@ class _Unstacker:
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
-        # Bug fix GH 20601
-        # If the data frame is too big, the number of unique index combination
-        # will cause int32 overflow on windows environments.
-        # We want to check and raise an warning before this happens
-        num_rows = np.max([index_level.size for index_level in self.new_index_levels])
-        num_columns = self.removed_level.size
+        if get_option("performance_warnings"):
+            # Bug fix GH 20601
+            # If the data frame is too big, the number of unique index combination
+            # will cause int32 overflow on windows environments.
+            # We want to check and raise an warning before this happens
+            num_rows = max(index_level.size for index_level in self.new_index_levels)
+            num_columns = self.removed_level.size
 
-        # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = num_rows * num_columns
-
-        # GH 26314: Previous ValueError raised was too restrictive for many users.
-        if get_option("performance_warnings") and num_cells > np.iinfo(np.int32).max:
-            warnings.warn(
-                f"The following operation may generate {num_cells} cells "
-                f"in the resulting pandas object.",
-                PerformanceWarning,
-                stacklevel=find_stack_level(),
-            )
+            # GH20601: This forces an overflow if the number of cells is too high.
+            # GH 26314: Previous ValueError raised was too restrictive for many users.
+            num_cells = num_rows * num_columns
+            if num_cells > np.iinfo(np.int32).max:
+                warnings.warn(
+                    f"The following operation may generate {num_cells} cells "
+                    f"in the resulting pandas object.",
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         self._make_selectors()
 
@@ -168,6 +168,9 @@ class _Unstacker:
         v = self.level
 
         codes = list(self.index.codes)
+        if not self.sort:
+            # Create new codes considering that labels are already sorted
+            codes = [factorize(code)[0] for code in codes]
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
@@ -186,12 +189,9 @@ class _Unstacker:
         return to_sort
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        if self.sort:
-            indexer, _ = self._indexer_and_to_sort
-
-            sorted_values = algos.take_nd(values, indexer, axis=0)
-            return sorted_values
-        return values
+        indexer, _ = self._indexer_and_to_sort
+        sorted_values = algos.take_nd(values, indexer, axis=0)
+        return sorted_values
 
     def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
@@ -394,7 +394,13 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
-        result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
+        if self.sort:
+            labels = self.sorted_labels[:-1]
+        else:
+            v = self.level
+            codes = list(self.index.codes)
+            labels = codes[:v] + codes[v + 1 :]
+        result_codes = [lab.take(self.compressor) for lab in labels]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
@@ -731,10 +737,10 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
     if len(columns.levels) <= 2:
         return columns.levels[0]._rename(name=columns.names[0])
 
-    levs = [
+    levs = (
         [lev[c] if c >= 0 else None for c in codes]
         for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
-    ]
+    )
 
     # Remove duplicate tuples in the MultiIndex.
     tuples = zip(*levs)
