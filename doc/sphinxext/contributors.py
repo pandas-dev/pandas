@@ -26,6 +26,26 @@ class ContributorsDirective(Directive):
     name = "contributors"
 
     def run(self):
+        """
+        Execute the ContributorsDirective directive.
+
+        This function retrieves information about code contributors and commits within
+        a specified version range and generates a list of contributors to include in the
+        documentation.
+
+        Returns
+        -------
+        List
+            List containing author message and contributors.
+
+        Examples
+        --------
+        >>> directive = ContributorsDirective()
+        >>> directive.arguments = ['v0.23.0..v0.23.1']
+        >>> nodes = directive.run()
+        >>> nodes
+        [<nodes.paragraph>, <nodes.bullet_list>]
+        """
         range_ = self.arguments[0]
         if range_.endswith("x..HEAD"):
             return [nodes.paragraph(), nodes.bullet_list()]
@@ -53,6 +73,29 @@ class ContributorsDirective(Directive):
 
 
 def setup(app):
+    """
+    Setup function for the Sphinx extension.
+
+    This function initializes the Sphinx extension, adding the 'contributors' directive
+    to the app.
+
+    Parameters
+    ----------
+    app : sphinx.application.Sphinx
+        The Sphinx application object.
+    
+    Returns
+    -------
+    dict
+        A dictionary containing version information and safety flags for the extension.
+
+    Examples
+    --------
+    >>> app = App()
+    >>> setup_info = setup(app)
+    >>> setup_info
+    {'version': '0.1', 'parallel_read_safe': True, 'parallel_write_safe': True}
+    """
     app.add_directive("contributors", ContributorsDirective)
 
     return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}
