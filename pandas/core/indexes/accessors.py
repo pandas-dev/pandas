@@ -12,6 +12,8 @@ from typing import (
 
 import numpy as np
 
+import pandas as pd
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.common import (
@@ -500,7 +502,35 @@ class TimedeltaProperties(Properties):
     @property
     def freq(self):
         return self._get_values().inferred_freq
+    
+    import pandas as pd
 
+    import pandas as pd
+
+    @property
+    def adjusted(self):
+
+        max_days_length = 1
+        max_nanoseconds_lenght = 2
+
+        for td in self._get_values():
+            aux = len(str(td.components.days))
+            if(aux > max_days_length):
+                max_days_length = aux
+            
+            aux = td.components.seconds*1000000000 + td.components.milliseconds * 1000000 + td.components.microseconds * 1000 + td.components.nanoseconds
+            if(len(str(aux)) > max_nanoseconds_lenght):
+                max_nanoseconds_lenght = aux
+
+        formatted_td = []
+        for td in self._get_values():
+            days = td.components.days
+            hours = td.components.hours
+            minutes = td.components.minutes
+            seconds = td.components.seconds*1000000000 + td.components.milliseconds * 1000000 + td.components.microseconds * 1000 + td.components.nanoseconds
+            formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}:{seconds:09d}")
+
+        return pd.Series(formatted_td)
 
 @delegate_names(
     delegate=PeriodArray, accessors=PeriodArray._datetimelike_ops, typ="property"
