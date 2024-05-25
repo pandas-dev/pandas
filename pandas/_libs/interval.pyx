@@ -620,6 +620,81 @@ cdef class Interval(IntervalMixin):
         # (simplifying the negation allows this to be done in less operations)
         return op1(self.left, other.right) and op2(other.left, self.right)
 
+    def intersection(self, other):
+        """
+        Return the intersection of two intervals.
+
+        The intersection of two intervals is the common points shared between both,
+        including closed endpoints. Open endpoints are not included.
+
+        Parameters
+        ----------
+        other : Interval
+            Interval to which to calculate the intersection.
+
+        Returns
+        -------
+        Interval or None
+            Interval containing the shared points and its closedness or None in
+            case there's no intersection.
+
+        See Also
+        --------
+        IntervalArray.intersection : The corresponding method for IntervalArray.
+
+        Examples
+        --------
+        >>> i0 = pd.Interval(0, 3, closed='right')
+        >>> i1 = pd.Interval(2, 4, closed='right')
+        >>> i0.intersection(i1)
+        Interval(2, 3, closed='right')
+
+        Intervals that have no intersection:
+
+        >>> i2 = pd.Interval(5, 8, closed='right')
+        >>> i0.intersection(i2)
+        None
+        """
+        if not isinstance(other, Interval):
+            raise TypeError("`other` must be an Interval, "
+                            f"got {type(other).__name__}")
+
+        # Define left limit
+        if self.left < other.left:
+            ileft = other.left
+            lclosed = other.closed_left
+        elif self.left > other.left:
+            ileft = self.left
+            lclosed = other.closed_left
+        else:
+            ileft = self.left
+            lclosed = self.closed_left and other.closed_left
+
+        # Define right limit
+        if self.right < other.right:
+            iright = self.right
+            rclosed = self.closed_right
+        elif self.right > other.right:
+            iright = other.right
+            rclosed = other.closed_right
+        else:
+            iright = self.right
+            rclosed = self.closed_right and other.closed_right
+
+        # No intersection if there is no overlap
+        if iright < ileft or (iright == ileft and not (lclosed and rclosed)):
+            return None
+
+        if lclosed and rclosed:
+            closed = "both"
+        elif lclosed:
+            closed = "left"
+        elif rclosed:
+            closed = "right"
+        else:
+            closed = "neither"
+        return Interval(ileft, iright, closed=closed)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
