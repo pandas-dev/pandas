@@ -533,6 +533,26 @@ class TestMelt:
         with pytest.raises(ValueError, match=r".* must be a scalar."):
             df.melt(id_vars=["a"], var_name=[1, 2])
 
+    def test_melt_multiindex_columns_var_name(self):
+        # GH 58033
+        df = DataFrame({("A", "a"): [1], ("A", "b"): [2]})
+
+        expected = DataFrame(
+            [("A", "a", 1), ("A", "b", 2)], columns=["first", "second", "value"]
+        )
+
+        tm.assert_frame_equal(df.melt(var_name=["first", "second"]), expected)
+        tm.assert_frame_equal(df.melt(var_name=["first"]), expected[["first", "value"]])
+
+    def test_melt_multiindex_columns_var_name_too_many(self):
+        # GH 58033
+        df = DataFrame({("A", "a"): [1], ("A", "b"): [2]})
+
+        with pytest.raises(
+            ValueError, match="but the dataframe columns only have 2 levels"
+        ):
+            df.melt(var_name=["first", "second", "third"])
+
 
 class TestLreshape:
     def test_pairs(self):
