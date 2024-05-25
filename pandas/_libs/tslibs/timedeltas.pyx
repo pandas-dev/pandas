@@ -151,6 +151,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def ints_to_pytimedelta(ndarray m8values, box=False):
@@ -370,12 +371,13 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 
 cdef create_timedelta_from_parts(
-    int days=0, int hours=0, int minutes=0, int seconds=0,
-    int milliseconds=0, int microseconds=0, int nanoseconds=0):
+    int64_t days=0, int64_t hours=0, int64_t minutes=0, int64_t seconds=0,
+    int64_t milliseconds=0, int64_t microseconds=0, int64_t nanoseconds=0):
     """
     Convenience routine to construct a Timedelta from its parts
     """
-    cdef int64_t total_nanoseconds = (
+
+    total_nanoseconds = (
         days * 24 * 3600 * 1_000_000_000 +
         hours * 3600 * 1_000_000_000 +
         minutes * 60 * 1_000_000_000 +
@@ -384,7 +386,7 @@ cdef create_timedelta_from_parts(
         microseconds * 1_000 +
         nanoseconds
     )
-    
+
     return _timedelta_from_value_and_reso(Timedelta, total_nanoseconds, NPY_FR_ns)
 
 
@@ -979,6 +981,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         _Timedelta td_base
 
     assert value != NPY_NAT
+
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -2139,8 +2142,6 @@ class Timedelta(_Timedelta):
         # Validate integer inputs
         def validate(k, v):
             """ validate integers """
-            print(k)
-            print("\nENTROU\n")
             if not is_integer_object(v):
                 raise ValueError(
                     f"value must be an integer, received {type(v)} for {k}"
