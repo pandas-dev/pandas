@@ -115,6 +115,8 @@ from pandas.tseries import offsets
 
 from pandas.core.computation.api import eval
 
+from pandas.core.array_algos.find_min_subset_sum import find_min_subset_sum
+
 from pandas.core.reshape.api import (
     concat,
     lreshape,
@@ -347,4 +349,5 @@ __all__ = [
     "tseries",
     "unique",
     "wide_to_long",
+    "find_min_subset_sum",
 ]
