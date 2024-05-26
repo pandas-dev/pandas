@@ -12,8 +12,6 @@ from typing import (
 
 import numpy as np
 
-import pandas as pd
-
 from pandas._libs import lib
 
 from pandas.core.dtypes.common import (
@@ -502,35 +500,46 @@ class TimedeltaProperties(Properties):
     @property
     def freq(self):
         return self._get_values().inferred_freq
-    
-    import pandas as pd
-
-    import pandas as pd
 
     @property
     def adjusted(self):
+        import pandas as pd
 
-        max_days_length = 1
-        max_nanoseconds_lenght = 2
+        max_days_length = 0
+        max_time_length = 0
 
         for td in self._get_values():
-            aux = len(str(td.components.days))
-            if(aux > max_days_length):
-                max_days_length = aux
-            
-            aux = td.components.seconds*1000000000 + td.components.milliseconds * 1000000 + td.components.microseconds * 1000 + td.components.nanoseconds
-            if(len(str(aux)) > max_nanoseconds_lenght):
-                max_nanoseconds_lenght = aux
-
+            days_length = len(str(td.components.days))
+            if days_length > max_days_length:
+                max_days_length = days_length
+                
+            total_ns = (
+                td.components.seconds * 1000000000 +
+                td.components.milliseconds * 1000000 +
+                td.components.microseconds * 1000 +
+                td.components.nanoseconds
+            )
+            time_str = f"{td.components.seconds:02d}.{td.components.milliseconds:03d}{td.components.microseconds:03d}{td.components.nanoseconds:03d}"
+            if len(time_str) > max_time_length:
+                max_time_length = len(time_str)
+        
         formatted_td = []
         for td in self._get_values():
             days = td.components.days
             hours = td.components.hours
             minutes = td.components.minutes
-            seconds = td.components.seconds*1000000000 + td.components.milliseconds * 1000000 + td.components.microseconds * 1000 + td.components.nanoseconds
-            formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}:{seconds:09d}")
+            seconds = td.components.seconds
+            milliseconds = td.components.milliseconds
+            microseconds = td.components.microseconds
+            nanoseconds = td.components.nanoseconds
+
+            combined_time_str = f"{seconds:02d}.{milliseconds:03d}{microseconds:03d}{nanoseconds:03d}"
+            combined_time_str = combined_time_str.ljust(max_time_length, '0')
+
+            formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}:{combined_time_str}")
 
         return pd.Series(formatted_td)
+
 
 @delegate_names(
     delegate=PeriodArray, accessors=PeriodArray._datetimelike_ops, typ="property"
