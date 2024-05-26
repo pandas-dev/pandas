@@ -78,6 +78,53 @@ class TestNonNano:
         result = (end_time - start_time).dt.total_seconds().values
         assert result == expected
 
+    def test_adjusted_timedelta(self):
+        cases = [
+            pd.Series(
+                pd.timedelta_range("1 day", periods=3),
+                name="xxx"
+            ),
+            pd.Series(
+                pd.timedelta_range("1 day 01:23:45", periods=3, freq="s"),
+                name="xxx"
+            ),
+            pd.Series(
+                pd.timedelta_range("2 days 01:23:45.012345", periods=3, freq="ms"),
+                name="xxx"
+            ),
+            pd.Series(
+                [pd.Timedelta('2 days 4 min 3 us 42 ns'),
+                pd.Timedelta('1 days 23 hours 59 min 59 sec 999 ms 999 us 999 ns'),
+                pd.Timedelta('10 days')],
+                name="xxx"
+            )
+        ]
+
+        expected_results = [
+            ['1 days 00:00:00.000000000', '2 days 00:00:00.000000000', '3 days 00:00:00.000000000'],
+            ['1 days 01:23:45.000000000', '1 days 01:23:46.000000000', '1 days 01:23:47.000000000'],
+            ['2 days 01:23:45.012345000', '2 days 01:23:45.013345000', '2 days 01:23:45.014345000'],
+            [' 2 days 00:04:00.000003042', ' 1 days 23:59:59.999999999', '10 days 00:00:00.000000000']
+        ]
+
+        for ser, expected in zip(cases, expected_results):
+            result_adjusted = ser.dt.adjusted
+            expected_adjusted = pd.Series(expected, name="xxx")
+            result_adjusted.name = "xxx"
+            tm.assert_series_equal(result_adjusted, expected_adjusted)
+        
+    def test_adjusted_single_timedelta(self):
+        tda = pd.Series([pd.Timedelta('2 days 4 min 3 us 42 ns'),
+                        pd.Timedelta('1 days 23 hours 59 min 59 sec 999 ms 999 us 999 ns'),
+                        pd.Timedelta('10 days')])
+        
+        expected = pd.Series([' 2 days 00:04:00.000003042', 
+                            ' 1 days 23:59:59.999999999', 
+                            '10 days 00:00:00.000000000'])
+        
+        result = tda.dt.adjusted
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )

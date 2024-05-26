@@ -200,6 +200,10 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, Series)
             assert result.dtype == "float64"
 
+            result = ser.dt.adjusted
+            assert isinstance(result, Series)
+            assert result.dtype == object
+
             freq_result = ser.dt.freq
             assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
 
