@@ -36,7 +36,7 @@ def assert_cannot_add(left, right, msg="cannot add"):
 
 def assert_invalid_addsub_type(left, right, msg=None):
     """
-    Helper function to assert that two objects can 
+    Helper function to assert that two objects can
     neither be added nor subtracted.
 
     Parameters
