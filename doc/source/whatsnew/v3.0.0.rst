@@ -47,6 +47,7 @@ Other enhancements
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - Added :meth:`Interval.intersection` and :meth:`IntervalArray.intersection` to calculate the intersection between interval-like objects (:issue:`21998`)
+- Added :meth:`Interval.union` and :meth:`IntervalArray.union` to calculate the union between interval-like objects (:issue:`21998`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 

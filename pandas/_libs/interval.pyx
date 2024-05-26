@@ -695,6 +695,94 @@ cdef class Interval(IntervalMixin):
             closed = "neither"
         return Interval(ileft, iright, closed=closed)
 
+    def union(self, other):
+        """
+        Return the union of two intervals.
+
+        The union of two intervals are all the values in both, including
+        closed endpoints.
+
+        Parameters
+        ----------
+        other : Interval
+            Interval with which to create a union.
+
+        Returns
+        -------
+        np.array
+            numpy array with one interval if there is overlap between
+            the two intervals, with two intervals if there is no overlap.
+
+        See Also
+        --------
+        IntervalArray.union : The corresponding method for IntervalArray.
+
+        Examples
+        --------
+        >>> i0 = pd.Interval(0, 3, closed='right')
+        >>> i1 = pd.Interval(2, 4, closed='right')
+        >>> i0.union(i1)
+        array([Interval(0, 4, closed='right')], dtype=object)
+
+        >>> i2 = pd.Interval(5, 8, closed='right')
+        >>> i0.union(i2)
+        array([Interval(0, 3, closed='right') Interval(5, 8, closed='right')],
+              dtype=object)
+
+        >>> i3 = pd.Interval(3, 5, closed='right')
+        >>> i0.union(i3)
+        array([Interval(0, 5, closed='right')], dtype=object)
+        """
+        if not isinstance(other, Interval):
+            raise TypeError("`other` must be an Interval, "
+                            f"got {type(other).__name__}")
+
+        # if there is no overlap return the two intervals
+        # except if the two intervals share an endpoint were one side is closed
+        if not self.overlaps(other):
+            if(not(
+                (self.left == other.right and
+                    (self.closed_left or other.closed_right))
+                or
+                (self.right == other.left and
+                    (self.closed_right or other.closed_left)))):
+                if self.left < other.left:
+                    return np.array([self, other], dtype=object)
+                else:
+                    return np.array([other, self], dtype=object)
+
+        # Define left limit
+        if self.left < other.left:
+            uleft = self.left
+            lclosed = self.closed_left
+        elif self.left > other.left:
+            uleft = other.left
+            lclosed = other.closed_left
+        else:
+            uleft = self.left
+            lclosed = self.closed_left or other.closed_left
+
+        # Define right limit
+        if self.right > other.right:
+            uright = self.right
+            rclosed = self.closed_right
+        elif self.right < other.right:
+            uright = other.right
+            rclosed = other.closed_right
+        else:
+            uright = self.right
+            rclosed = self.closed_right or other.closed_right
+
+        if lclosed and rclosed:
+            closed = "both"
+        elif lclosed:
+            closed = "left"
+        elif rclosed:
+            closed = "right"
+        else:
+            closed = "neither"
+        return np.array([Interval(uleft, uright, closed=closed)], dtype=object)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
