@@ -625,7 +625,6 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return dtype, fill_value
 
     if is_valid_na_for_dtype(fill_value, dtype) and dtype.kind in "iufcmM":
-        dtype = ensure_dtype_can_hold_na(dtype)
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
