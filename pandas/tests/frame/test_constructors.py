@@ -2932,6 +2932,31 @@ class TestDataFrameConstructorWithDatetimeTZ:
         tm.assert_series_equal(df["A"], Series(idx, name="A"))
         tm.assert_series_equal(df["B"], Series(dr, name="B"))
 
+    def test_from_mapping_of_dict(self):
+        data = {
+            "a": {"x": 1, "y": 2},
+            "b": {"x": 3, "y": 4},
+            "c": {"x": 5, "y": 6},
+        }
+        expected = DataFrame(data)
+
+        # construction
+        result = DataFrame(DictWrapper(data))
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_mapping_of_mapping(self):
+        data = {
+            "a": {"x": 1, "y": 2},
+            "b": {"x": 3, "y": 4},
+            "c": {"x": 5, "y": 6},
+        }
+        expected = DataFrame(data)
+
+        # construction
+        wrapped = DictWrapper({k: DictWrapper(v) for k, v in data.items()})
+        result = DataFrame(wrapped)
+        tm.assert_frame_equal(result, expected)
+
     def test_from_mapping_list(self):
         idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
         dr = date_range("20130110", periods=3)

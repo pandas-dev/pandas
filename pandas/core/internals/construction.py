@@ -77,7 +77,6 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
-        Mapping,
         Sequence,
     )
 
@@ -348,7 +347,7 @@ def _check_values_indices_shape_match(
 
 
 def dict_to_mgr(
-    data: Mapping,
+    data: abc.Mapping,
     index,
     columns,
     *,
@@ -537,7 +536,7 @@ def _homogenize(
             refs.append(val._references)
             val = val._values
         else:
-            if isinstance(val, dict):
+            if isinstance(val, abc.Mapping):
                 # GH#41785 this _should_ be equivalent to (but faster than)
                 #  val = Series(val, index=index)._values
                 if oindex is None:
@@ -579,7 +578,7 @@ def _extract_index(data) -> Index:
         if isinstance(val, ABCSeries):
             have_series = True
             indexes.append(val.index)
-        elif isinstance(val, dict):
+        elif isinstance(val, abc.Mapping):
             have_dicts = True
             indexes.append(list(val.keys()))
         elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
