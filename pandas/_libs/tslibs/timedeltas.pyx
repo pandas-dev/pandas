@@ -377,6 +377,7 @@ cdef create_timedelta_from_parts(
     Convenience routine to construct a Timedelta from its parts
     """
 
+    # Get total Timedelta time in nanoseconds
     total_nanoseconds = (
         days * 24 * 3600 * 1_000_000_000 +
         hours * 3600 * 1_000_000_000 +
@@ -388,7 +389,6 @@ cdef create_timedelta_from_parts(
     )
 
     return _timedelta_from_value_and_reso(Timedelta, total_nanoseconds, NPY_FR_ns)
-
 
 cdef _maybe_cast_from_unit(ts, str unit):
     # caller is responsible for checking
@@ -981,7 +981,6 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         _Timedelta td_base
 
     assert value != NPY_NAT
-
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -1310,7 +1309,6 @@ cdef class _Timedelta(timedelta):
             microseconds=microseconds,
             nanoseconds=nanoseconds
         )
-
 
     @property
     def unit(self) -> str:

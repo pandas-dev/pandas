@@ -506,7 +506,7 @@ class TimedeltaProperties(Properties):
         import pandas as pd
 
         max_days_length = 0
-        max_time_length = 0
+        max_seconds_length = 0
 
         for td in self._get_values():
             days_length = len(str(td.components.days))
@@ -521,8 +521,8 @@ class TimedeltaProperties(Properties):
             )
             time_str = f"{td.components.seconds:02d}.{td.components.milliseconds:03d}\
             {td.components.microseconds:03d}{td.components.nanoseconds:03d}"
-            if len(time_str) > max_time_length:
-                max_time_length = len(time_str)
+            if len(time_str) > max_seconds_length:
+                max_seconds_length = len(time_str)
         
         formatted_td = []
         for td in self._get_values():
@@ -534,15 +534,16 @@ class TimedeltaProperties(Properties):
             microseconds = td.components.microseconds
             nanoseconds = td.components.nanoseconds
 
-            combined_time_str = f"{seconds:02d}.{milliseconds:03d}{microseconds:03d}\
+            # Construct combined time string with leading zeros
+            seconds_str = f"{seconds:02d}.{milliseconds:03d}{microseconds:03d}\
             {nanoseconds:03d}"
-            combined_time_str = combined_time_str.ljust(max_time_length, '0')
+            seconds_str = seconds_str.ljust(max_seconds_length, '0')
 
+            # Format timedelta string with aligned days and padded time components
             formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}\
-            :{combined_time_str}")
+            :{seconds_str}")
 
         return pd.Series(formatted_td)
-
 
 @delegate_names(
     delegate=PeriodArray, accessors=PeriodArray._datetimelike_ops, typ="property"
