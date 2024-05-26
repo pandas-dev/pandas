@@ -682,6 +682,12 @@ class TestTimedeltas:
         td = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, 
             microseconds=125, nanoseconds=60)
 
+        # Test replacing only days
+        replaced = td.replace(days=2)
+        expected = Timedelta(days=2, hours=5, minutes=45, seconds=30, milliseconds=250, 
+            microseconds=125, nanoseconds=60)
+        assert replaced == expected, f"Expected {expected}, but got {replaced}"
+
         # Test replacing only seconds
         replaced = td.replace(seconds=45)
         expected = Timedelta(days=1, hours=5, minutes=45, seconds=45, milliseconds=250, 

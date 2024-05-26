@@ -369,7 +369,6 @@ cdef convert_to_timedelta64(object ts, str unit):
         raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
-
 cdef create_timedelta_from_parts(
     int64_t days=0, int64_t hours=0, int64_t minutes=0, int64_t seconds=0,
     int64_t milliseconds=0, int64_t microseconds=0, int64_t nanoseconds=0):
