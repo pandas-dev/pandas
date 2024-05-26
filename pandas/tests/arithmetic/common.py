@@ -20,7 +20,7 @@ from pandas.core.arrays import (
 
 def assert_cannot_add(left, right, msg="cannot add"):
     """
-    Helper to assert that left and right cannot be added.
+    Helper function to assert that two objects cannot be added.
 
     Parameters
     ----------
@@ -36,7 +36,8 @@ def assert_cannot_add(left, right, msg="cannot add"):
 
 def assert_invalid_addsub_type(left, right, msg=None):
     """
-    Helper to assert that left and right can be neither added nor subtracted.
+    Helper function to assert that two objects can 
+    neither be added nor subtracted.
 
     Parameters
     ----------
