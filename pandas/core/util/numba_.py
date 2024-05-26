@@ -55,10 +55,15 @@ def get_jit_arguments(
         engine_kwargs = {}
 
     nopython = engine_kwargs.get("nopython", True)
-    if kwargs and nopython:
+    if kwargs:
+        # Note: in case numba supports keyword-only arguments in
+        # a future version, we should remove this check. But this
+        # seems unlikely to happen soon.
+
         raise NumbaUtilError(
-            "numba does not support kwargs with nopython=True: "
-            "https://github.com/numba/numba/issues/2916"
+            "numba does not support keyword-only arguments"
+            "https://github.com/numba/numba/issues/2916, "
+            "https://github.com/numba/numba/issues/6846"
         )
     nogil = engine_kwargs.get("nogil", False)
     parallel = engine_kwargs.get("parallel", False)
