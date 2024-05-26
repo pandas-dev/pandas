@@ -519,7 +519,8 @@ class TimedeltaProperties(Properties):
                 td.components.microseconds * 1000 +
                 td.components.nanoseconds
             )
-            time_str = f"{td.components.seconds:02d}.{td.components.milliseconds:03d}{td.components.microseconds:03d}{td.components.nanoseconds:03d}"
+            time_str = f"{td.components.seconds:02d}.{td.components.milliseconds:03d}\
+            {td.components.microseconds:03d}{td.components.nanoseconds:03d}"
             if len(time_str) > max_time_length:
                 max_time_length = len(time_str)
         
@@ -533,10 +534,12 @@ class TimedeltaProperties(Properties):
             microseconds = td.components.microseconds
             nanoseconds = td.components.nanoseconds
 
-            combined_time_str = f"{seconds:02d}.{milliseconds:03d}{microseconds:03d}{nanoseconds:03d}"
+            combined_time_str = f"{seconds:02d}.{milliseconds:03d}{microseconds:03d}\
+            {nanoseconds:03d}"
             combined_time_str = combined_time_str.ljust(max_time_length, '0')
 
-            formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}:{combined_time_str}")
+            formatted_td.append(f"{days:>{max_days_length}} days {hours:02d}:{minutes:02d}\
+            :{combined_time_str}")
 
         return pd.Series(formatted_td)
 
