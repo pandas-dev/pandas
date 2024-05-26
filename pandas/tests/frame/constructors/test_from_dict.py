@@ -11,8 +11,10 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
+from pandas.tests.frame.common import DictWrapper
 
 
 class TestFromDict:
@@ -133,6 +135,15 @@ class TestFromDict:
         )
         expected = DataFrame.from_dict(a, orient="columns").T
         result = DataFrame.from_dict(a, orient="index")
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_from_mapping(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+
+        # construction
+        expected = DataFrame(DictWrapper({"A": idx, "B": dr}))
+        result = DataFrame.from_dict(DictWrapper({"A": idx, "B": dr}))
         tm.assert_frame_equal(result, expected)
 
     def test_from_dict_columns_parameter(self):

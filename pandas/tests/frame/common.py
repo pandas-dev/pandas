@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Mapping,
+    Sequence,
+)
 from typing import TYPE_CHECKING
 
 from pandas import (
@@ -9,6 +13,35 @@ from pandas import (
 
 if TYPE_CHECKING:
     from pandas._typing import AxisInt
+
+
+class DictWrapper(Mapping):
+    _dict: dict
+
+    def __init__(self, d: dict) -> None:
+        self._dict = d
+
+    def __getitem__(self, key):
+        return self._dict[key]
+
+    def __iter__(self):
+        return self._dict.__iter__()
+
+    def __len__(self):
+        return self._dict.__len__()
+
+
+class ListWrapper(Sequence):
+    _list: list
+
+    def __init__(self, lst: list) -> None:
+        self._list = lst
+
+    def __getitem__(self, i):
+        return self._list[i]
+
+    def __len__(self):
+        return self._list.__len__()
 
 
 def _check_mixed_float(df, dtype=None):
