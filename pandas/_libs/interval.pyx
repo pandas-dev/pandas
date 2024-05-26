@@ -783,6 +783,138 @@ cdef class Interval(IntervalMixin):
             closed = "neither"
         return np.array([Interval(uleft, uright, closed=closed)], dtype=object)
 
+    def difference(self, other):
+        """
+        Return the difference between an interval and another.
+
+        The difference between two intervals are the points in the first
+        interval that are not shared with the second interval.
+
+        Parameters
+        ----------
+        other : Interval
+            Interval to which to calculate the difference.
+
+        Returns
+        -------
+        np.array
+            numpy array with two intervals if the second interval is
+            contained within the first. Array with one interval if
+            the difference only shortens the limits of the interval.
+            Empty array if the first interval is contained in the second
+            and thus there are no points left after difference.
+
+        Examples
+        --------
+        >>> i0 = pd.Interval(0, 3, closed='right')
+        >>> i1 = pd.Interval(2, 4, closed='right')
+        >>> i0.difference(i1)
+        array([Interval(0, 2, closed='right')], dtype=object)
+
+        >>> i2 = pd.Interval(5, 8, closed='right')
+        >>> i0.intersection(i2)
+        array([Interval(0, 3, closed='right')], dtype=object)
+
+        >>> i3 = pd.Interval(3, 5, closed='left')
+        >>> i0.difference(i3)
+        array([Interval(0, 3, closed='neither')], dtype=object)
+
+        >>> i4 = pd.Interval(-2, 7, closed='left')
+        >>> i0.difference(i4)
+        array([], dtype=object)
+
+        >>> i4.difference(i0)
+        array([Interval(-2, 0, closed='both') Interval(3, 7, closed='neither')],
+              dtype=object)
+        """
+        if not isinstance(other, Interval):
+            raise TypeError("`other` must be an Interval, "
+                            f"got {type(other).__name__}")
+
+        # if there is no overlap then the difference is the interval
+        if not self.overlaps(other):
+            return np.array([self], dtype=object)
+
+        # if the first interval is contained inside the other then there's no points
+        # left after the difference is applied
+        if self.left > other.left and self.right < other.right:
+            return np.array([], dtype=object)
+
+        # if the intervals limits match but the other interval has closed limits then
+        # there are no points left after the difference is applied
+        if (self.left == other.left and self.right == other.right and
+           other.closed_left and other.closed_right):
+            return np.array([], dtype=object)
+
+        # if the first interval contains the other then the difference is a union of
+        # two intervals
+        if self.left < other.left and self.right > other.right:
+            if self.closed_left and not other.closed_left:
+                closed1 = "both"
+            elif self.closed_left:
+                closed1 = "left"
+            elif not other.closed_left:
+                closed1 = "right"
+            else:
+                closed1 = "neither"
+
+            if self.closed_right and not other.closed_right:
+                closed2 = "both"
+            elif self.closed_right:
+                closed2 = "right"
+            elif not other.closed_right:
+                closed2 = "left"
+            else:
+                closed2 = "neither"
+
+            return np.array([Interval(self.left, other.left, closed1),
+                            Interval(other.right, self.right, closed2)],
+                            dtype=object)
+
+        # Define left limit
+        if self.left < other.left:
+            dleft = self.left
+            lclosed = self.closed_left
+        elif self.left > other.left:
+            dleft = other.right
+            lclosed = not other.closed_right
+        else:
+            dleft = other.right if other.closed_left else self.left
+            lclosed = False if other.closed_left else self.closed_left
+
+        # Define right limit
+        if self.right > other.right:
+            dright = self.right
+            rclosed = self.closed_right
+        elif self.right < other.right:
+            dright = other.left
+            rclosed = not other.closed_left
+        else:
+            dright = self.left if other.closed_right else other.right
+            rclosed = False if other.closed_right else self.closed_right
+
+        # if the interval only contains one point then it must be closed
+        # on both sides
+        if dleft == dright:
+            if (lclosed and self.closed_left) or (rclosed and self.closed_right):
+                return np.array([Interval(dleft, dright, closed="both")],
+                                dtype=object)
+            elif not (lclosed and rclosed):
+                return np.array([], dtype=object)
+
+        if dleft > dright:
+            return np.array([], dtype=object)
+
+        if lclosed and rclosed:
+            closed = "both"
+        elif lclosed:
+            closed = "left"
+        elif rclosed:
+            closed = "right"
+        else:
+            closed = "neither"
+        return np.array([Interval(dleft, dright, closed=closed)], dtype=object)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

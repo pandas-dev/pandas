@@ -177,3 +177,47 @@ class TestUnion:
         msg = f"`other` must be Interval-like, got {type(other).__name__}"
         with pytest.raises(TypeError, match=msg):
             interval_container.union(other)
+
+
+class TestDifference:
+    def test_difference_interval_array(self):
+        interval = Interval(1, 8, "left")
+
+        tuples = [  # Intervals:
+            (1, 8),  # identical
+            (2, 4),  # nested
+            (0, 9),  # spanning
+            (4, 10),  # partial
+            (-5, 1),  # adjacent closed
+            (8, 10),  # adjacent open
+            (10, 15),  # disjoint
+        ]
+        interval_container = IntervalArray.from_tuples(tuples, "both")
+
+        expected = np.array(
+            [
+                np.array([Interval(8, 8, "both")], dtype=object),
+                np.array([], dtype=object),
+                np.array(
+                    [Interval(0, 1, "left"), Interval(8, 9, "both")], dtype=object
+                ),
+                np.array([Interval(8, 10, "both")], dtype=object),
+                np.array([Interval(-5, 1, "left")], dtype=object),
+                np.array([Interval(8, 10, "both")], dtype=object),
+                np.array([Interval(10, 15, "both")], dtype=object),
+            ],
+            dtype=object,
+        )
+        result = interval_container.difference(interval)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_difference_invalid_type(self, other):
+        interval_container = IntervalArray.from_breaks(range(5))
+        msg = f"`other` must be Interval-like, got {type(other).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            interval_container.difference(other)
