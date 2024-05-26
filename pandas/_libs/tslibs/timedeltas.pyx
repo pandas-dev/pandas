@@ -1210,6 +1210,81 @@ cdef class _Timedelta(timedelta):
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
+    def replace(
+        self,
+        days: int = None,
+        hours: int = None,
+        minutes: int = None,
+        seconds: int = None,
+        milliseconds: int = None,
+        microseconds: int = None,
+        nanoseconds: int = None,
+    ):
+        """
+        Return a Timedelta with new specified fields replacing the corresponding
+        fields of the current Timedelta.
+
+        Parameters
+        ----------
+        days : int, optional
+        hours : int, optional
+        minutes : int, optional
+        seconds : int, optional
+        milliseconds : int, optional
+        microseconds : int, optional
+        nanoseconds : int, optional
+
+        Returns
+        -------
+        Timedelta
+            New Timedelta with specified fields replaced.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(days=1, hours=5, minutes=45)
+        >>> td.replace(hours=10)
+        Timedelta('1 days 10:45:00')
+        """
+        # Validate integer inputs
+        def validate(k, v):
+            """ validate integers """
+            if not is_integer_object(v):
+                raise ValueError(
+                    f"value must be an integer, received {type(v)} for {k}"
+                )
+            return v
+
+        self._ensure_components()
+        
+        current_days = self._d
+        current_hours = self._h
+        current_minutes = self._m
+        current_seconds = self._s
+        current_milliseconds = self._ms
+        current_microseconds = self._us
+        current_nanoseconds = self._ns
+
+        # Replace specified components, keep existing values for unspecified components
+        days = validate("days", days) if days is not None else current_days
+        hours = validate("hours", hours) if hours is not None else current_hours
+        minutes = validate("minutes", minutes) if minutes is not None else current_minutes
+        seconds = validate("seconds", seconds) if seconds is not None else current_seconds
+        milliseconds = validate("milliseconds", milliseconds) if milliseconds is not None else current_milliseconds
+        microseconds = validate("microseconds", microseconds) if microseconds is not None else current_microseconds
+        nanoseconds = validate("nanoseconds", nanoseconds) if nanoseconds is not None else current_nanoseconds
+
+        # Create new Timedelta from parts
+        return create_timedelta_from_parts(
+            days=days,
+            hours=hours,
+            minutes=minutes,
+            seconds=seconds,
+            milliseconds=milliseconds,
+            microseconds=microseconds,
+            nanoseconds=nanoseconds
+        )
+
+
     @property
     def unit(self) -> str:
         """
@@ -2103,78 +2178,6 @@ class Timedelta(_Timedelta):
         Timedelta('0 days 00:00:02')
         """
         return self._round(freq, RoundTo.PLUS_INFTY)
-
-    def replace(
-        self,
-        days: int = None,
-        hours: int = None,
-        minutes: int = None,
-        seconds: int = None,
-        milliseconds: int = None,
-        microseconds: int = None,
-        nanoseconds: int = None,
-    ):
-        """
-        Return a Timedelta with new specified fields replacing the corresponding
-        fields of the current Timedelta.
-
-        Parameters
-        ----------
-        days : int, optional
-        hours : int, optional
-        minutes : int, optional
-        seconds : int, optional
-        milliseconds : int, optional
-        microseconds : int, optional
-        nanoseconds : int, optional
-
-        Returns
-        -------
-        Timedelta
-            New Timedelta with specified fields replaced.
-
-        Examples
-        --------
-        >>> td = pd.Timedelta(days=1, hours=5, minutes=45)
-        >>> td.replace(hours=10)
-        Timedelta('1 days 10:45:00')
-        """
-        # Validate integer inputs
-        def validate(k, v):
-            """ validate integers """
-            if not is_integer_object(v):
-                raise ValueError(
-                    f"value must be an integer, received {type(v)} for {k}"
-                )
-            return v
-
-        current_days = self._d
-        current_hours = self._h
-        current_minutes = self._m
-        current_seconds = self._s
-        current_milliseconds = self._ms
-        current_microseconds = self._us
-        current_nanoseconds = self._ns
-
-        # Replace specified components, keep existing values for unspecified components
-        days = validate("days", days) if days is not None else current_days
-        hours = validate("hours", hours) if hours is not None else current_hours
-        minutes = validate("minutes", minutes) if minutes is not None else current_minutes
-        seconds = validate("seconds", seconds) if seconds is not None else current_seconds
-        milliseconds = validate("milliseconds", milliseconds) if milliseconds is not None else current_milliseconds
-        microseconds = validate("microseconds", microseconds) if microseconds is not None else current_microseconds
-        nanoseconds = validate("nanoseconds", nanoseconds) if nanoseconds is not None else current_nanoseconds
-
-        # Create new Timedelta from parts
-        return create_timedelta_from_parts(
-            days=days,
-            hours=hours,
-            minutes=minutes,
-            seconds=seconds,
-            milliseconds=milliseconds,
-            microseconds=microseconds,
-            nanoseconds=nanoseconds
-        )
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
