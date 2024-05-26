@@ -1265,13 +1265,40 @@ cdef class _Timedelta(timedelta):
         current_nanoseconds = self._ns
 
         # Replace specified components, keep existing values for unspecified components
-        days = validate("days", days) if days is not None else current_days
-        hours = validate("hours", hours) if hours is not None else current_hours
-        minutes = validate("minutes", minutes) if minutes is not None else current_minutes
-        seconds = validate("seconds", seconds) if seconds is not None else current_seconds
-        milliseconds = validate("milliseconds", milliseconds) if milliseconds is not None else current_milliseconds
-        microseconds = validate("microseconds", microseconds) if microseconds is not None else current_microseconds
-        nanoseconds = validate("nanoseconds", nanoseconds) if nanoseconds is not None else current_nanoseconds
+        if days is not None:
+            days = validate("days", days)
+        else:
+            days = current_days
+
+        if hours is not None:
+            hours = validate("hours", hours)
+        else:
+            hours = current_hours
+
+        if minutes is not None:
+            minutes = validate("minutes", minutes)
+        else:
+            minutes = current_minutes
+
+        if seconds is not None:
+            seconds = validate("seconds", seconds)
+        else:
+            seconds = current_seconds
+
+        if milliseconds is not None:
+            milliseconds = validate("milliseconds", milliseconds)
+        else:
+            milliseconds = current_milliseconds
+
+        if microseconds is not None:
+            microseconds = validate("microseconds", microseconds)
+        else:
+            microseconds = current_microseconds
+
+        if nanoseconds is not None:
+            nanoseconds = validate("nanoseconds", nanoseconds)
+        else:
+            nanoseconds = current_nanoseconds
 
         # Create new Timedelta from parts
         return create_timedelta_from_parts(

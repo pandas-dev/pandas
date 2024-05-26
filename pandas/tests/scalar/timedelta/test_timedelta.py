@@ -666,38 +666,44 @@ class TestTimedeltas:
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
         # Test replacing with zero values
-        replaced = td.replace(days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0, nanoseconds=0)
+        replaced = td.replace(days=0, hours=0, minutes=0, seconds=0, milliseconds=0, 
+            microseconds=0, nanoseconds=0)
         expected = Timedelta(0)
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
         # Test invalid inputs
         with pytest.raises(TypeError):
-            td.replace(hours='10')  # invalid hours value
+            td.replace(hours='10')
 
         with pytest.raises(TypeError):
-            td.replace(days=2.5)  # invalid days value
+            td.replace(days=2.5)
 
     def test_replace_single_field(self):
-        td = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, microseconds=125, nanoseconds=60)
+        td = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, 
+            microseconds=125, nanoseconds=60)
 
         # Test replacing only seconds
         replaced = td.replace(seconds=45)
-        expected = Timedelta(days=1, hours=5, minutes=45, seconds=45, milliseconds=250, microseconds=125, nanoseconds=60)
+        expected = Timedelta(days=1, hours=5, minutes=45, seconds=45, milliseconds=250, 
+            microseconds=125, nanoseconds=60)
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
         # Test replacing only milliseconds
         replaced = td.replace(milliseconds=500)
-        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=500, microseconds=125, nanoseconds=60)
+        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=500, 
+            microseconds=125, nanoseconds=60)
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
         # Test replacing only microseconds
         replaced = td.replace(microseconds=300)
-        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, microseconds=300, nanoseconds=60)
+        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, 
+            microseconds=300, nanoseconds=60)
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
         # Test replacing only nanoseconds
         replaced = td.replace(nanoseconds=500)
-        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, microseconds=125, nanoseconds=500)
+        expected = Timedelta(days=1, hours=5, minutes=45, seconds=30, milliseconds=250, 
+            microseconds=125, nanoseconds=500)
         assert replaced == expected, f"Expected {expected}, but got {replaced}"
 
 @pytest.mark.parametrize(
