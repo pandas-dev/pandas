@@ -365,6 +365,16 @@ class ExtensionArray:
         -------
         ExtensionArray
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence : Construct a new ExtensionArray
+            from a sequence of scalars.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
+            after factorization.
+        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
+            allowing only sequences of scalars that should be specifically inferred to
+            the given dtype.
+
         Examples
         --------
         >>> pd.arrays.IntegerArray._from_sequence_of_strings(
@@ -1182,6 +1192,13 @@ class ExtensionArray:
         ExtensionArray
             Shifted.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.transpose : Return a transposed view on
+            this array.
+        api.extensions.ExtensionArray.factorize : Encode the extension array as an
+            enumerated type.
+
         Notes
         -----
         If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
@@ -1317,12 +1334,23 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
 
+        See Also
+        --------
+        numpy.array_equal : Equivalent method for numpy array.
+        Series.equals : Equivalent method for Series.
+        DataFrame.equals : Equivalent method for DataFrame.
+
         Examples
         --------
         >>> arr1 = pd.array([1, 2, np.nan])
         >>> arr2 = pd.array([1, 2, np.nan])
         >>> arr1.equals(arr2)
         True
+
+        >>> arr1 = pd.array([1, 3, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        False
         """
         if type(self) != type(other):
             return False
@@ -1933,12 +1961,6 @@ class ExtensionArray:
         keepdims : bool, default False
             If False, a scalar is returned.
             If True, the result has dimension with size one along the reduced axis.
-
-            .. versionadded:: 2.1
-
-               This parameter is not required in the _reduce signature to keep backward
-               compatibility, but will become required in the future. If the parameter
-               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -2011,6 +2033,13 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[uint64]
+            An array of hashed values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._values_for_factorize : Return an array and
+            missing value suitable for factorization.
+        util.hash_array : Given a 1d array, return an array of hashed values.
 
         Examples
         --------

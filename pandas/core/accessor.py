@@ -226,6 +226,11 @@ class Accessor:
         return self._accessor(obj)
 
 
+# Alias kept for downstream libraries
+# TODO: Deprecate as name is now misleading
+CachedAccessor = Accessor
+
+
 @doc(klass="", examples="", others="")
 def _register_accessor(
     name: str, cls: type[NDFrame | Index]
