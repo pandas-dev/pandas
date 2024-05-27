@@ -65,6 +65,25 @@ class ContributorsDirective(Directive):
 
 
 def setup(app):
+    """
+    Setup function for the Sphinx extension.
+
+    This function registers the `contributors` directive with the Sphinx application.
+
+    Parameters
+    ----------
+    app : sphinx.application.Sphinx
+        The Sphinx application object.
+
+    Returns
+    -------
+    dict
+        A dictionary containing metadata about the extension.
+
+    Notes
+    -----
+    - This function is typically called by Sphinx during the initialization phase.
+    """
     app.add_directive("contributors", ContributorsDirective)
 
     return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}
