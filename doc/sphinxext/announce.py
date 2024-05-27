@@ -227,6 +227,39 @@ def build_components(revision_range, heading="Contributors"):
 
 
 def build_string(revision_range, heading="Contributors"):
+    """
+    Build a formatted string of contributors for a given revision range.
+
+    This function constructs a formatted string listing the contributors within the specified
+    revision range, including a heading and a list of authors. The heading is underlined for
+    emphasis, and the authors are listed with bullet points.
+
+    Parameters
+    ----------
+    revision_range : str
+        The revision range to get the contributors from, specified in the format
+        'start_revision..end_revision'.
+    heading : str, optional
+        The heading for the contributors section. Default is "Contributors".
+
+    Returns
+    -------
+    str
+        A formatted string with the heading, underlined heading, a message, and a list of authors.
+
+    Notes
+    -----
+    - The function assumes that the `build_components` function is available and returns a dictionary
+      with keys "heading", "author_message", and "authors".
+    - The length of the underline is dynamically set to match the length of the heading.
+    - Authors are listed with bullet points, each preceded by an asterisk (*) and a newline character.
+    - The `textwrap.dedent` method is used to maintain proper formatting of the template string.
+
+    Examples
+    --------
+    >>> build_string('v1.0.0..v1.1.0')
+    'Contributors\n============\n\nList of authors who contributed:\n* Author One\n* Author Two'
+    """
     components = build_components(revision_range, heading=heading)
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
