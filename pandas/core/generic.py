@@ -114,6 +114,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_float_dtype,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -9205,17 +9206,64 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         keep_shape: bool = False,
         keep_equal: bool = False,
         result_names: Suffixes = ("self", "other"),
-    ):
+        check_exact: bool | lib.NoDefault = lib.no_default,
+        rtol: float | ListLike | dict | lib.NoDefault = lib.no_default,
+        atol: float | ListLike | dict | lib.NoDefault = lib.no_default,
+    ) -> DataFrame | Series:
+        if (
+            check_exact is lib.no_default
+            and rtol is lib.no_default
+            and atol is lib.no_default
+        ):
+            check_exact = True
+        elif check_exact is lib.no_default:  # tolerance is specified
+            check_exact = False
+
+        rtol = rtol if rtol is not lib.no_default else 1.0e-5
+        atol = atol if atol is not lib.no_default else 1.0e-8
+
         if type(self) is not type(other):
             cls_self, cls_other = type(self).__name__, type(other).__name__
             raise TypeError(
                 f"can only compare '{cls_self}' (not '{cls_other}') with '{cls_self}'"
             )
 
-        # error: Unsupported left operand type for & ("Self")
-        mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
-        mask.fillna(True, inplace=True)
+        if not check_exact:
+            if isinstance(self, ABCDataFrame):
+                mask = np.ones(self.shape, dtype=bool)
 
+                for i, col in enumerate(self.columns):
+                    if is_dict_like(rtol):
+                        r_tol = rtol.get(col, 1.0e-5)
+                    elif is_list_like(rtol):
+                        r_tol = rtol[i]
+                    else:
+                        r_tol = rtol
+
+                    if is_dict_like(atol):
+                        a_tol = atol.get(col, 1.0e-8)
+                    elif is_list_like(atol):
+                        a_tol = atol[i]
+                    else:
+                        a_tol = atol
+
+                    if is_float_dtype(self[col]) and is_float_dtype(other[col]):
+                        mask[:, self.columns.get_loc(col)] = np.isclose(
+                            self[col], other[col], rtol=r_tol, atol=a_tol
+                        )
+                    else:
+                        mask[:, self.columns.get_loc(col)] = self[col] == other[col]
+            # is series
+            else:
+                if is_float_dtype(self):
+                    mask = np.isclose(self, other, rtol=rtol, atol=atol)
+                else:
+                    mask = self == other
+        else:
+            mask = self == other
+
+        mask = ~(mask | (self.isna() & other.isna()))
+        mask.fillna(True, inplace=True)
         if not keep_equal:
             self = self.where(mask)
             other = other.where(mask)
@@ -9229,6 +9277,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 self = self[mask]
                 other = other[mask]
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "

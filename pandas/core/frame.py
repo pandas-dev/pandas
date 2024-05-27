@@ -101,6 +101,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_number,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -8460,6 +8461,20 @@ class DataFrame(NDFrame, OpsMixin):
         2    b     b  3.0   3.0  3.0   4.0
         3    b     b  NaN   NaN  4.0   4.0
         4    a     a  5.0   5.0  5.0   5.0
+
+        Compare dataframes with tolerance (float)
+
+        >>> df.compare(df2, atol=1)
+                col1
+          self other
+        0    a     c
+
+        Compare dataframes with tolerance (dict)
+
+        >>> df.compare(df2, atol={{"col3": 1}})
+                col1
+          self other
+        0    a     c
         """
         ),
         klass=_shared_doc_kwargs["klass"],
@@ -8471,13 +8486,31 @@ class DataFrame(NDFrame, OpsMixin):
         keep_shape: bool = False,
         keep_equal: bool = False,
         result_names: Suffixes = ("self", "other"),
+        check_exact: bool | lib.NoDefault = lib.no_default,
+        rtol: float | ListLike | dict | lib.NoDefault = lib.no_default,
+        atol: float | ListLike | dict | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
+        if rtol is not lib.no_default:
+            if not (is_number(rtol) or is_dict_like(rtol) or is_list_like(rtol)):
+                raise TypeError(
+                    f"rtol must be a number, list or dict, got {type(rtol)}"
+                )
+
+        if atol is not lib.no_default:
+            if not (is_number(atol) or is_dict_like(atol) or is_list_like(atol)):
+                raise TypeError(
+                    f"atol must be a number, list or dict, got {type(atol)}"
+                )
+
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
             result_names=result_names,
+            check_exact=check_exact,
+            rtol=rtol,
+            atol=atol,
         )
 
     def combine(

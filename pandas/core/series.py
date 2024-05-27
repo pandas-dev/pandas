@@ -71,6 +71,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_number,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -2986,6 +2987,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    c     c
         3    d     b
         4    e     e
+
+        Compare dataframes with tolerance
+
+
+        >>> s1 = pd.Series([1.0, 2.0])
+        >>> s2 = pd.Series([1.1, 2.2])
+        >>> s1.compare(s2, atol=0.1)
+                col1
+          self other
+        0  2.0   2.2
+
         """
         ),
         klass=_shared_doc_kwargs["klass"],
@@ -2997,13 +3009,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         keep_shape: bool = False,
         keep_equal: bool = False,
         result_names: Suffixes = ("self", "other"),
+        check_exact: bool | lib.NoDefault = lib.no_default,
+        rtol: int | float | lib.NoDefault = lib.no_default,
+        atol: int | float | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Series:
+        if rtol is not lib.no_default:
+            if not is_number(rtol):
+                raise TypeError(f"rtol must be a number, got {type(atol)}")
+
+        if atol is not lib.no_default:
+            if not is_number(atol):
+                raise TypeError(f"atol must be number, got {type(atol)}")
+
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
             result_names=result_names,
+            check_exact=check_exact,
+            rtol=rtol,
+            atol=atol,
         )
 
     def combine(

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -113,6 +115,41 @@ def test_compare_different_lengths():
     ser2 = pd.Series([1, 2, 3, 4])
     with pytest.raises(ValueError, match=msg):
         ser1.compare(ser2)
+
+
+@pytest.mark.parametrize(
+    "atol, rtol, check_exact, expected_self, expected_other",
+    [
+        (lib.no_default, lib.no_default, True, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0, 0, False, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0.5, 0, False, [1.0], [0.4]),
+        (0, 0.5, False, [1.0], [0.4]),
+        (0.5, 0.00000001, False, [1.0], [0.4]),
+        (0.00000001, 0.5, False, [1.0], [0.4]),
+        (lib.no_default, lib.no_default, False, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0.5, lib.no_default, False, [1.0], [0.4]),
+        (lib.no_default, 0.5, False, [1.0], [0.4]),
+        ("a", lib.no_default, False, None, None),
+    ],
+)
+def test_compare_tolerance_float(
+    atol, rtol, check_exact, expected_self, expected_other
+):
+    df1 = pd.Series([1.0, 2.0, 4])
+
+    df2 = pd.Series([0.4, 1.6, 3.5])
+
+    if expected_self is None:
+        with pytest.raises(TypeError):
+            df1.compare(df2, atol=atol, rtol=rtol, check_exact=check_exact)
+        return
+
+    result = df1.compare(df2, atol=atol, rtol=rtol, check_exact=check_exact)
+
+    expected_data = {"self": expected_self, "other": expected_other}
+    expected = pd.DataFrame(expected_data)
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_compare_datetime64_and_string():

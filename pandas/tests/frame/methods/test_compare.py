@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -211,6 +212,83 @@ def test_compare_result_names():
             ("col3", "right"): {0: np.nan, 2: np.nan},
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "atol, rtol, check_exact, expected_self, expected_other",
+    [
+        (lib.no_default, lib.no_default, True, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0, 0, False, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0.5, 0, False, [1.0], [0.4]),
+        (0, 0.5, False, [1.0], [0.4]),
+        (0.5, 0.00000001, False, [1.0], [0.4]),
+        (0.00000001, 0.5, False, [1.0], [0.4]),
+        (lib.no_default, lib.no_default, False, [1.0, 2.0, 4], [0.4, 1.6, 3.5]),
+        (0.5, lib.no_default, False, [1.0], [0.4]),
+        (lib.no_default, 0.5, False, [1.0], [0.4]),
+        ("a", lib.no_default, False, None, None),
+    ],
+)
+def test_compare_tolerance_float(
+    atol, rtol, check_exact, expected_self, expected_other
+):
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 4]}
+    )
+
+    df2 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [0.4, 1.6, 3.5]}
+    )
+
+    if expected_self is None:
+        with pytest.raises(TypeError):
+            df1.compare(df2, atol=atol, rtol=rtol, check_exact=check_exact)
+        return
+
+    result = df1.compare(df2, atol=atol, rtol=rtol, check_exact=check_exact)
+
+    expected_data = {
+        ("col3", "self"): pd.Series(expected_self),
+        ("col3", "other"): pd.Series(expected_other),
+    }
+
+    expected = pd.DataFrame(expected_data)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "atol, expected_self, expected_other",
+    [
+        ([0.1, 0.2], [1.0, 2.0], [1.2, 2.2]),
+        ((0.1, 0.2), [1.0, 2.0], [1.2, 2.2]),
+        ({"col1": 0.1, "col2": 0.2}, [1.0, 2.0], [1.2, 2.2]),
+        ({"col2": 0.2}, [1.0, 2.0], [1.2, 2.2]),
+        ({"col1": "a"}, None, None),
+        ((0.1, "a"), None, None),
+        ([0.1, "a"], None, None),
+    ],
+)
+def test_compare_tolerance_dict_or_list(atol, expected_self, expected_other):
+    df1 = pd.DataFrame({"col1": [1.0, 2.0], "col2": [3.0, 4.0]})
+
+    df2 = pd.DataFrame({"col1": [1.2, 2.2], "col2": [3.2, 4.2]})
+
+    if expected_self is None:
+        with pytest.raises(TypeError):
+            df1.compare(df2, atol=atol)
+        return
+
+    result = df1.compare(df2, atol=atol)
+
+    expected_data = {
+        ("col1", "self"): pd.Series(expected_self),
+        ("col1", "other"): pd.Series(expected_other),
+    }
+
+    expected = pd.DataFrame(expected_data)
+
     tm.assert_frame_equal(result, expected)
 
 
