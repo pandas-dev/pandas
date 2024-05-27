@@ -172,7 +172,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.lt SA01" \
         -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Series.plot PR02,SA01" \
+        -i "pandas.Series.plot PR02" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
