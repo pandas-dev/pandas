@@ -2693,6 +2693,12 @@ class Period(_Period):
     second : int, default 0
         Second value of the period.
 
+    See Also
+    --------
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Generates a fixed frequency range of timedeltas.
+
     Examples
     --------
     >>> period = pd.Period('2012-1-1', freq='D')
