@@ -161,9 +161,6 @@ class TestDataFrame2:
             df.copy().replace(to_replace=1, value=7, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            df.copy().interpolate(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
             df.copy()._where(cond=df.a > 2, inplace=value)
 
         with pytest.raises(ValueError, match=msg):

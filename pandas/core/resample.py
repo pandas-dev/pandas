@@ -762,7 +762,6 @@ class Resampler(BaseGroupBy, PandasObject):
         *,
         axis: Axis = 0,
         limit: int | None = None,
-        inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         downcast=lib.no_default,
@@ -909,6 +908,8 @@ class Resampler(BaseGroupBy, PandasObject):
         ``07:00:00`` and ``07:00:02``.
         """
         assert downcast is lib.no_default  # just checking coverage
+        if kwargs.get("inplace"):
+            raise ValueError("The argument 'inplace' is no longer supported.")
         result = self._upsample("asfreq")
 
         # If the original data has timestamps which are not aligned with the
@@ -942,7 +943,7 @@ class Resampler(BaseGroupBy, PandasObject):
             method=method,
             axis=axis,
             limit=limit,
-            inplace=inplace,
+            inplace=False,
             limit_direction=limit_direction,
             limit_area=limit_area,
             downcast=downcast,
