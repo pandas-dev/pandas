@@ -102,7 +102,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
-        -i "pandas.Period.is_leap_year SA01" \
         -i "pandas.Period.month SA01" \
         -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
