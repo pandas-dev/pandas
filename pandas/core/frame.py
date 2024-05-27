@@ -9292,6 +9292,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.3.0
 
+        **kwargs : dict
+            Optional keyword arguments to pass to ``aggfunc``.
+
         Returns
         -------
         DataFrame
@@ -9399,6 +9402,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins_name: Level = "All",
         observed: bool = True,
         sort: bool = True,
+        **kwargs,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
@@ -9414,6 +9418,7 @@ class DataFrame(NDFrame, OpsMixin):
             margins_name=margins_name,
             observed=observed,
             sort=sort,
+            **kwargs,
         )
 
     def stack(
