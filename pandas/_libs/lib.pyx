@@ -2925,7 +2925,13 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+    ndarray arr,
+    object f,
+    *,
+    bint convert=True,
+    bint ignore_na=False,
+    const uint8_t[:] mask=None,
+    object na_value=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2937,6 +2943,10 @@ def map_infer(
     convert : bint
     ignore_na : bint
         If True, NA values will not have f applied
+    mask : ndarray, optional
+        uint8 dtype ndarray indicating na_value to apply `f` to.
+    na_value : Any, optional
+        The input value to use for masked values.
 
     Returns
     -------
@@ -2953,7 +2963,10 @@ def map_infer(
         if ignore_na and checknull(arr[i]):
             result[i] = arr[i]
             continue
-        val = f(arr[i])
+        elif mask is not None and na_value is not None and mask[i]:
+            val = f(na_value)
+        else:
+            val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
