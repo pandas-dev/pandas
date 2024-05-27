@@ -367,7 +367,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.prod SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sum SA01" \
