@@ -88,6 +88,7 @@ def grouped_min_max(
     ngroups: int,
     min_periods: int,
     is_max: bool,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
     nobs = np.zeros(ngroups, dtype=np.int64)
@@ -102,6 +103,9 @@ def grouped_min_max(
 
         if values.dtype.kind == "i" or not np.isnan(val):
             nobs[lab] += 1
+        elif not skipna and np.isnan(val):
+            output[lab] = np.nan
+            continue
         else:
             # NaN value cannot be a min/max value
             continue

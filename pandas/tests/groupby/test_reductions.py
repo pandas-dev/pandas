@@ -1048,6 +1048,120 @@ def scipy_sem(*args, **kwargs):
 
 
 @pytest.mark.parametrize(
+    "reduction_method",
+    ["sum", "min", "max", "mean", "median", "prod", "sem", "std", "var"],
+)
+def test_skipna_reduction_ops_cython(reduction_method):
+    # GH15675
+    # Testing the skipna parameter against possible datatypes
+    df = DataFrame(
+        {
+            "l": ["A", "A", "A", "A", "B", "B", "B", "B"],
+            "int": [-1, 1, -1, 2, 1, 1, 1, np.nan],
+            "float": [-1.0, 1.2, -1.1, 1.5, -1.1, 1.5, np.nan, 1.0],
+            "t": [
+                Timestamp("2024-01-01"),
+                Timestamp("2024-01-02"),
+                Timestamp("2024-01-03"),
+                Timestamp("2024-01-04"),
+                Timestamp("2024-01-06"),
+                Timestamp("2024-01-07"),
+                Timestamp("2024-01-08"),
+                pd.NaT,
+            ],
+            "td": [
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=3),
+                pd.Timedelta(days=4),
+                pd.Timedelta(days=6),
+                pd.Timedelta(days=7),
+                pd.Timedelta(days=8),
+                pd.NaT,
+            ],
+        }
+    )
+
+    result_cython = getattr(df.groupby("l").int, reduction_method)(skipna=False)
+    expected = df.groupby("l").int.apply(
+        lambda x: getattr(x, reduction_method)(skipna=False)
+    )
+    tm.assert_series_equal(result_cython, expected, check_exact=False)
+
+    result_cython = getattr(df.groupby("l").float, reduction_method)(skipna=False)
+    expected = df.groupby("l").float.apply(
+        lambda x: getattr(x, reduction_method)(skipna=False)
+    )
+    tm.assert_series_equal(result_cython, expected, check_exact=False)
+
+    if reduction_method in ["min", "max", "mean", "median", "std"]:
+        result_ts = getattr(df.groupby("l").t, reduction_method)(skipna=False)
+        expected_ts = df.groupby("l").t.apply(
+            lambda x: getattr(x, reduction_method)(skipna=False)
+        )
+        tm.assert_series_equal(result_ts, expected_ts, check_exact=False)
+
+        result_td = getattr(df.groupby("l").td, reduction_method)(skipna=False)
+        expected_td = df.groupby("l").td.apply(
+            lambda x: getattr(x, reduction_method)(skipna=False)
+        )
+        tm.assert_series_equal(result_td, expected_td, check_exact=False)
+
+
+@pytest.mark.parametrize(
+    "reduction_method",
+    ["sum", "min", "max", "mean", "median", "prod", "sem", "std", "var"],
+)
+def test_skipna_reduction_ops_consistency(reduction_method):
+    # GH15675
+    # Testing if provinding skipna=True maintains the default functionality
+    df = DataFrame(
+        {
+            "l": ["A", "A", "A", "A", "B", "B", "B", "B"],
+            "int": [-1, 1, -1, 2, 1, 1, 1, np.nan],
+            "float": [-1.0, 1.2, -1.1, 1.5, -1.1, 1.5, np.nan, 1.0],
+            "t": [
+                Timestamp("2024-01-01"),
+                Timestamp("2024-01-02"),
+                Timestamp("2024-01-03"),
+                Timestamp("2024-01-04"),
+                Timestamp("2024-01-05"),
+                Timestamp("2024-01-06"),
+                pd.NaT,
+                Timestamp("2024-01-07"),
+            ],
+            "td": [
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=3),
+                pd.Timedelta(days=4),
+                pd.Timedelta(days=5),
+                pd.Timedelta(days=6),
+                pd.NaT,
+                pd.Timedelta(days=7),
+            ],
+        }
+    )
+
+    result_with_arg = getattr(df.groupby("l").int, reduction_method)(skipna=True)
+    result_default = getattr(df.groupby("l").int, reduction_method)()
+    tm.assert_series_equal(result_with_arg, result_default, check_exact=False)
+
+    result_with_arg = getattr(df.groupby("l").float, reduction_method)(skipna=True)
+    result_default = getattr(df.groupby("l").float, reduction_method)()
+    tm.assert_series_equal(result_with_arg, result_default, check_exact=False)
+
+    if reduction_method in ["min", "max", "mean", "median", "std"]:
+        result_ts_with_arg = getattr(df.groupby("l").t, reduction_method)(skipna=True)
+        result_ts_default = getattr(df.groupby("l").t, reduction_method)()
+        tm.assert_series_equal(result_ts_with_arg, result_ts_default, check_exact=False)
+
+        result_td_with_arg = getattr(df.groupby("l").td, reduction_method)(skipna=True)
+        result_td_default = getattr(df.groupby("l").td, reduction_method)()
+        tm.assert_series_equal(result_td_with_arg, result_td_default, check_exact=False)
+
+
+@pytest.mark.parametrize(
     "op,targop",
     [
         ("mean", np.mean),
@@ -1192,3 +1306,31 @@ def test_groupby_std_datetimelike():
     exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
     expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)
+
+
+def test_skipna_string_sum():
+    # GH15675
+    df = DataFrame(
+        {
+            "l": ["A", "A", "A", "B", "B", "B"],
+            "v": ["foo", "bar", "baz", "foo", pd.NA, "foo"],
+        }
+    )
+
+    result_cython = df.groupby("l").v.sum(skipna=False)
+    expected = df.groupby("l").v.apply(lambda x: x.sum(skipna=False))
+    tm.assert_series_equal(result_cython, expected, check_exact=False)
+
+
+def test_skipna_string_sum_consistency():
+    # GH15675
+    df = DataFrame(
+        {
+            "l": ["A", "A", "A", "B", "B", "B"],
+            "v": ["foo", "bar", "baz", "foo", pd.NA, "foo"],
+        }
+    )
+
+    result_cython = df.groupby("l").v.sum(skipna=True)
+    expected = df.groupby("l").v.sum()
+    tm.assert_series_equal(result_cython, expected, check_exact=False)
