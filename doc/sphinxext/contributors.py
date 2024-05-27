@@ -26,6 +26,18 @@ class ContributorsDirective(Directive):
     name = "contributors"
 
     def run(self):
+        """
+        Execute the contributors directive.
+
+        This method processes the provided revision range and generates the corresponding
+        list of contributors.
+
+        Returns
+        -------
+        list
+            A list of nodes representing the message indicating the number of contributors
+            and commits, and a bullet list containing each contributor individually.
+        """
         range_ = self.arguments[0]
         if range_.endswith("x..HEAD"):
             return [nodes.paragraph(), nodes.bullet_list()]
