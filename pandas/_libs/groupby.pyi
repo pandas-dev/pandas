@@ -13,7 +13,7 @@ def group_median_float64(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,  # bint
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
 ) -> None: ...
 def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -67,7 +67,7 @@ def group_sum(
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # int64float_t[:, ::1]
@@ -77,7 +77,7 @@ def group_prod(
     mask: np.ndarray | None,
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
 ) -> None: ...
 def group_var(
     out: np.ndarray,  # floating[:, ::1]
@@ -89,7 +89,7 @@ def group_var(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
     name: str = ...,
 ) -> None: ...
 def group_skew(
@@ -108,7 +108,7 @@ def group_mean(
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,  # Py_ssize_t
     is_datetimelike: bool = ...,  # bint
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
@@ -175,7 +175,7 @@ def group_max(
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
     is_datetimelike: bool = ...,
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
@@ -186,7 +186,7 @@ def group_min(
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
     is_datetimelike: bool = ...,
-    skipna: bool = ..., # bint
+    skipna: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...

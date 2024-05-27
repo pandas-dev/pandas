@@ -1194,7 +1194,11 @@ class Resampler(BaseGroupBy, PandasObject):
 
     @final
     @doc(GroupBy.median)
-    def median(self, numeric_only: bool = False, skipna: bool = True,):
+    def median(
+        self,
+        numeric_only: bool = False,
+        skipna: bool = True,
+    ):
         return self._downsample("median", numeric_only=numeric_only, skipna=skipna)
 
     @final
@@ -1355,7 +1359,9 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only: bool = False,
         skipna: bool = True,
     ):
-        return self._downsample("sem", ddof=ddof, numeric_only=numeric_only, skipna=skipna)
+        return self._downsample(
+            "sem", ddof=ddof, numeric_only=numeric_only, skipna=skipna
+        )
 
     @final
     @doc(GroupBy.ohlc)
