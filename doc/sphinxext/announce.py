@@ -155,6 +155,42 @@ def get_authors(revision_range):
 
 
 def get_pull_requests(repo, revision_range):
+    """
+    Retrieve a list of pull requests merged in a given revision range of a repository.
+
+    This function identifies pull requests from regular merges, Homu auto merges,
+    and fast forward squash-merges within the specified revision range, and returns
+    a list of pull request objects from the GitHub repository.
+
+    Parameters
+    ----------
+    repo : object
+        A GitHub repository object that provides the method `get_pull` to retrieve pull request data.
+    revision_range : str
+        The revision range to search for merged pull requests, specified in the format
+        'start_revision..end_revision'.
+
+    Returns
+    -------
+    list
+        A list of pull request objects corresponding to the pull request numbers found in the specified
+        revision range.
+
+    Notes
+    -----
+    - The function assumes that the `this_repo` object is an instance of a Git repository
+      and that it has a method `git.log` to fetch commit logs.
+    - Pull request numbers are identified from commit messages that follow specific patterns:
+      - "Merge pull request #<number>"
+      - "Auto merge of #<number>"
+      - "fast forward squash-merge (#<number>)"
+    - The function sorts the pull request numbers before retrieving the pull request objects.
+
+    Examples
+    --------
+    >>> get_pull_requests(repo, 'v1.0.0..v1.1.0')
+    [<PullRequest #123>, <PullRequest #124>, <PullRequest #125>]
+    """
     prnums = []
 
     # From regular merges
