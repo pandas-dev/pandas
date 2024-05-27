@@ -6949,7 +6949,15 @@ class Index(IndexOpsMixin, PandasObject):
             if errors != "ignore":
                 raise KeyError(f"{labels[mask].tolist()} not found in axis")
             indexer = indexer[~mask]
-        return self.delete(indexer)
+        new_index = self.delete(indexer)
+
+        # check if we need to set the freq attribute
+        from pandas import DatetimeIndex
+
+        if isinstance(self, DatetimeIndex):
+            new_index.freq = self.freq
+
+        return new_index
 
     @final
     def infer_objects(self, copy: bool = True) -> Index:

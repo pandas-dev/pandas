@@ -3,6 +3,7 @@ from copy import (
     deepcopy,
 )
 
+from datetime import datetime
 import numpy as np
 import pytest
 
@@ -12,6 +13,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm
@@ -483,3 +485,17 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+    @pytest.mark.parametrize("freq", ["Y", "M", "D"])
+    def test_drop_method_freq_preservation(self, freq):
+        start = "1970-01-01"
+        index = date_range(start=start, periods=10, freq=freq)
+        df = DataFrame((np.ones(len(index))), index=index)
+
+        # set inplace as false
+        test_df = df.drop(index=df.index[0], inplace=False)
+        tm.assert_equal(test_df.index.freq, index.freq)
+
+        # set inplace as true
+        df.drop(index=df.index[0], inplace=True)
+        tm.assert_equal(df.index.freq, index.freq)
