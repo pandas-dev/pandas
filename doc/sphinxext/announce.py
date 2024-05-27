@@ -216,6 +216,45 @@ def get_pull_requests(repo, revision_range):
 
 
 def build_components(revision_range, heading="Contributors"):
+    """
+    Build components for the contributors section based on a revision range.
+
+    This function generates the components needed for constructing a formatted
+    contributors section. It extracts the list of authors who contributed within
+    the specified revision range and prepares a dictionary with the heading, a
+    message about the authors, and the list of authors.
+
+    Parameters
+    ----------
+    revision_range : str
+        The revision range to get the contributors from, specified in the format
+        'start_revision..end_revision'.
+    heading : str, optional
+        The heading for the contributors section. Default is "Contributors".
+
+    Returns
+    -------
+    dict
+        A dictionary with the following keys:
+        - "heading" : str
+            The heading for the contributors section.
+        - "author_message" : str
+            A message about the number of authors.
+        - "authors" : list
+            A list of authors who contributed within the specified revision range.
+
+    Notes
+    -----
+    - The function assumes that the `get_authors` function is available and returns a list of authors
+      for the given revision range.
+    - The `author_msg` string is assumed to be a template string that takes a single integer, representing
+      the number of authors.
+
+    Examples
+    --------
+    >>> build_components('v1.0.0..v1.1.0')
+    {'heading': 'Contributors', 'author_message': 'There are 5 contributors:', 'authors': ['Author One', 'Author Two']}
+    """
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
 
