@@ -1716,8 +1716,5 @@ def map_array(
             return lib.map_infer(arr.astype(object, copy=False), mapper)
     else:
         return lib.map_infer_mask(
-            arr.astype(object, copy=False),
-            mapper,
-            mask=isna(values_as_object).view(np.uint8),
-            convert=True,
+            values_as_object, mapper, mask=isna(values_as_object).view(np.uint8)
         )
