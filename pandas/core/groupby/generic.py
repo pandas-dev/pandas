@@ -2726,9 +2726,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only: bool = False,
     ) -> DataFrame:
         """
-        .. deprecated:: 3.0.0
-
         Compute pairwise correlation.
+
+        .. deprecated:: 3.0.0
 
         Pairwise correlation is computed between rows or columns of
         DataFrame with rows or columns of Series or DataFrame. DataFrames
