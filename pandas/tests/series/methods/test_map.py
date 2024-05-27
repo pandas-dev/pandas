@@ -258,9 +258,9 @@ def test_map_int():
 
 
 def test_map_int_with_pd_na():
-    s = Series([pd.NA, 42], dtype="Int64")
-    result = s.map(lambda x: 1 if x is pd.NA else 2)
-    expected = Series([1, 2])
+    s = Series([pd.NA, 11, 22, pd.NA], dtype="Int64")
+    result = s.map(lambda x: 5 if x is pd.NA else 2 * x)
+    expected = Series([5, 22, 44, 5])
     tm.assert_series_equal(result, expected)
 
 
