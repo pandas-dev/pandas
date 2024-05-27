@@ -69,6 +69,7 @@ def sliding_sum(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool=True,
 ) -> tuple[np.ndarray, list[int]]:
     dtype = values.dtype
 

@@ -71,6 +71,7 @@ def sliding_mean(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
@@ -182,7 +183,7 @@ def grouped_mean(
         prev_value = prev_vals[lab]
         sum_x = output[lab]
         if nobs >= min_periods:
-            if num_consecutive_same_value >= nobs:
+            if (num_consecutive_same_value >= nobs):
                 result = prev_value * nobs
             else:
                 result = sum_x

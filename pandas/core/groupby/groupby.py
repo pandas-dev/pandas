@@ -181,6 +181,9 @@ min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
 
+skipna : bool, default {sn}
+    Exclude NA/null values when computing the result.
+
 Returns
 -------
 Series or DataFrame
@@ -206,6 +209,9 @@ numeric_only : bool, default {no}
 min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
+
+skipna : bool, default {sn}
+    Exclude NA/null values when computing the result.
 
 engine : str, default None {e}
     * ``'cython'`` : Runs rolling apply through C-extensions from cython.
@@ -2545,9 +2551,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         ddof: int = 1,
         engine: Literal["cython", "numba"] | None = None,
-        skipna: bool = True,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
+        skipna: bool = True,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2981,6 +2987,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="sum",
         no=False,
         mc=0,
+        sn=True,
         e=None,
         ek=None,
         example=dedent(
@@ -3057,6 +3064,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="prod",
         no=False,
         mc=0,
+        sn=True,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3109,6 +3117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="min",
         no=False,
         mc=-1,
+        sn=True,
         e=None,
         ek=None,
         example=dedent(
@@ -3180,6 +3189,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="max",
         no=False,
         mc=-1,
+        sn=True,
         e=None,
         ek=None,
         example=dedent(

@@ -25,6 +25,7 @@ def sliding_min_max(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool,
     is_max: bool,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)

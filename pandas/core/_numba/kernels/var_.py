@@ -78,6 +78,7 @@ def sliding_var(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool = True,
     ddof: int = 1,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)
@@ -197,7 +198,7 @@ def grouped_var(
         if not skipna and np.isnan(val):
             output[lab] = val
             nobs_arr[lab] = 0
-
+        
         else:
             mean_x = means[lab]
             ssqdm_x = output[lab]
