@@ -94,7 +94,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.set_levels RT03,SA01" \
         -i "pandas.MultiIndex.sortlevel PR07,SA01" \
         -i "pandas.MultiIndex.to_frame RT03" \
-        -i "pandas.MultiIndex.truncate SA01" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
         -i "pandas.NamedAgg SA01" \

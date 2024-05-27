@@ -3590,6 +3590,11 @@ class MultiIndex(Index):
         MultiIndex
             The truncated MultiIndex.
 
+        See Also
+        --------
+        DataFrame.truncate : Truncate a DataFrame before and after some index values.
+        Series.truncate : Truncate a Series before and after some index values.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
