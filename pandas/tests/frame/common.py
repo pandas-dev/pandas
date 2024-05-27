@@ -16,8 +16,6 @@ if TYPE_CHECKING:
 
 
 class DictWrapper(Mapping):
-    _dict: dict
-
     def __init__(self, d: dict) -> None:
         self._dict = d
 
@@ -32,8 +30,6 @@ class DictWrapper(Mapping):
 
 
 class ListWrapper(Sequence):
-    _list: list
-
     def __init__(self, lst: list) -> None:
         self._list = lst
 
