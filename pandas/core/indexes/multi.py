@@ -826,6 +826,12 @@ class MultiIndex(Index):
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
+        See Also
+        --------
+        MultiIndex.codes : The codes of the levels in the MultiIndex.
+        MultiIndex.get_level_values : Return vector of label values for requested
+            level.
+
         Examples
         --------
         >>> index = pd.MultiIndex.from_product(
