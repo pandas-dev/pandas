@@ -22,6 +22,7 @@ from pandas._libs import (
     hashtable as htable,
     iNaT,
     lib,
+    missing as libmissing,
 )
 from pandas._typing import (
     AnyArrayLike,
@@ -1698,8 +1699,25 @@ def map_array(
         return arr.copy()
 
     # we must convert to python types
-    values = arr.astype(object, copy=False)
+    values_as_object = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper)
+        if (
+            isinstance(arr, ABCExtensionArray)
+            and arr._hasna
+            and arr.dtype.na_value is libmissing.NA
+        ):
+            return lib.map_infer(
+                arr._data,
+                mapper,
+                mask=isna(values_as_object).view(np.uint8),
+                na_value=arr._na_value,
+            )
+        else:
+            return lib.map_infer(arr.astype(object, copy=False), mapper)
     else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+        return lib.map_infer_mask(
+            arr.astype(object, copy=False),
+            mapper,
+            mask=isna(values_as_object).view(np.uint8),
+            convert=True,
+        )
