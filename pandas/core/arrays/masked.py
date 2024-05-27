@@ -1323,7 +1323,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return map_array(self, mapper, na_action=na_action)
         else:
             return map_array(self.to_numpy(), mapper, na_action=na_action)
-          
+
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
