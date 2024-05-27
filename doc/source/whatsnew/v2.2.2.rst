@@ -30,7 +30,6 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
 - :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pyarrow nullable on with missing values (:issue:`57664`)
-- :meth:`Index.is_monotonic_decreasing`, :meth:`Index.is_monotonic_increasing`, and :meth:`Index.is_unique` could incorrectly be ``False`` for an ``Index`` created from a slice of another ``Index``. (:issue:`57911`)
 - Avoid issuing a spurious ``DeprecationWarning`` when a custom :class:`DataFrame` or :class:`Series` subclass method is called (:issue:`57553`)
 - Fixed regression in precision of :func:`to_datetime` with string and ``unit`` input (:issue:`57051`)
 
