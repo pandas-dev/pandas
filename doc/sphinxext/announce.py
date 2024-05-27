@@ -316,7 +316,41 @@ def build_string(revision_range, heading="Contributors"):
 
 
 def main(revision_range):
-    # document authors
+    """
+    Generate and print the contributors list for a given revision range.
+
+    This function builds a formatted string of contributors who have made changes
+    within the specified revision range and prints it to the standard output.
+
+    Parameters
+    ----------
+    revision_range : str
+        The revision range to get the contributors from, specified in the format
+        'start_revision..end_revision'.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    - The function relies on `build_string` to generate the formatted contributors list.
+    - The contributors list includes a heading, an underlined heading, a message about the authors,
+      and a list of authors with new contributors marked.
+
+    Examples
+    --------
+    >>> main('v1.0.0..v1.1.0')
+
+    Authors
+    ============
+    - TomAugspurger
+    - gfyoung
+    - datapythonista
+    - jreback
+    - jschendel
+    - ...
+    """
     text = build_string(revision_range)
     print(text)
 
