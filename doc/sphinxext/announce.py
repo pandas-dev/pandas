@@ -57,6 +57,52 @@ A total of %d pull requests were merged for this release.
 
 
 def get_authors(revision_range):
+    """
+    Get authors from git log.
+
+    This function retrieves the authors from the git log within the specified
+    revision range. It compares the authors from the current release to those
+    from the previous release to determine the authors for the current release.
+
+    Parameters
+    ----------
+    revision_range : str
+        The revision range to get the authors from, specified in the format
+        'previous_revision..current_revision'.
+
+    Returns
+    -------
+    authors : list
+        A list of authors sorted alphabetically, with new authors (not present
+        in the previous release) marked with a '+'.
+
+    See Also
+    --------
+    CONTRIBUTOR_MAPPING : dict
+        A mapping of contributors' names for renaming purposes.
+
+    Notes
+    -----
+    - The function assumes that the `this_repo` object is an instance of a Git
+      repository and that it has methods like `git.log` and `git.shortlog` to
+      fetch commit logs and short logs, respectively.
+    - The `revision_range` parameter should be a valid range in the format
+      'previous_revision..current_revision'. If the current revision includes
+      `HEAD`, it should be specified as 'previous_revision..current_revision|HEAD'.
+    - The function handles `Co-authored-by` commits separately to account for
+      backported changes, which are typically merged by bots.
+    - The function discards contributions by automated merge bots (e.g., 'Homu')
+      to provide a cleaner list of human contributors.
+    - Contributor names are updated according to the `CONTRIBUTOR_MAPPING` to
+      ensure consistent naming.
+
+    Examples
+    --------
+    >>> get_authors('v1.0.0..v1.0.1')
+    ['Joris Van den Bossche', 'Tom Augspurger', 'Jeff Reback', 'Philip Cloud', 'Stephan Hoyer']
+    >>> get_authors('v1.0.1..HEAD')
+    ['Joris Van den Bossche', 'Tom Augspurger', 'Jeff Reback', 'Philip Cloud', 'Stephan Hoyer', 'Simon Hawkins +']
+    """
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
 
