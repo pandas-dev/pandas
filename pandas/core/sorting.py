@@ -172,8 +172,6 @@ def get_group_index(
         for i, (lab, size) in enumerate(zip(labels, shape)):
             labels[i], lshape[i] = maybe_lift(lab, size)
 
-    labels = list(labels)
-
     # Iteratively process all the labels in chunks sized so less
     # than lib.i8max unique int ids will be required for each chunk
     while True:
@@ -577,7 +575,7 @@ def ensure_key_mapped(
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result)
+            result = Index(result, tupleize_cols=False)
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)

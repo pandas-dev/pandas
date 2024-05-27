@@ -16,26 +16,25 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 .. csv-table::
     :header: "Format Type", "Data Description", "Reader", "Writer"
     :widths: 30, 100, 60, 60
-    :delim: ;
 
-    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
-    text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
-    text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
-    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
-    text;`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__;;:ref:`Styler.to_latex<io.latex>`
-    text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
-    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
-    binary;`OpenDocument <http://opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
-    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
-    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
-    binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;:ref:`to_orc<io.orc>`
-    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
-    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
-    binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
-    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
-    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    text,`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__, :ref:`read_csv<io.read_csv_table>`, :ref:`to_csv<io.store_in_csv>`
+    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>` , NA
+    text,`JSON <https://www.json.org/>`__, :ref:`read_json<io.json_reader>`, :ref:`to_json<io.json_writer>`
+    text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.read_html>`, :ref:`to_html<io.html>`
+    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, :ref:`Styler.to_latex<io.latex>` , NA
+    text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.read_xml>`, :ref:`to_xml<io.xml>`
+    text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
+    binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`
+    binary,`OpenDocument <http://opendocumentformat.org>`__, :ref:`read_excel<io.ods>`, NA
+    binary,`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
+    binary,`Feather Format <https://github.com/wesm/feather>`__, :ref:`read_feather<io.feather>`, :ref:`to_feather<io.feather>`
+    binary,`Parquet Format <https://parquet.apache.org/>`__, :ref:`read_parquet<io.parquet>`, :ref:`to_parquet<io.parquet>`
+    binary,`ORC Format <https://orc.apache.org/>`__, :ref:`read_orc<io.orc>`, :ref:`to_orc<io.orc>`
+    binary,`Stata <https://en.wikipedia.org/wiki/Stata>`__, :ref:`read_stata<io.stata_reader>`, :ref:`to_stata<io.stata_writer>`
+    binary,`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, :ref:`read_sas<io.sas_reader>` , NA
+    binary,`SPSS <https://en.wikipedia.org/wiki/SPSS>`__, :ref:`read_spss<io.spss_reader>` , NA
+    binary,`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__, :ref:`read_pickle<io.pickle>`, :ref:`to_pickle<io.pickle>`
+    SQL,`SQL <https://en.wikipedia.org/wiki/SQL>`__, :ref:`read_sql<io.sql>`,:ref:`to_sql<io.sql>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -74,14 +73,6 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
-delim_whitespace : boolean, default False
-  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
-  will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
-  If this option is set to ``True``, nothing should be passed in for the
-  ``delimiter`` parameter.
-
-  .. deprecated: 2.2.0
-    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -271,34 +262,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
-  * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
-    column.
-  * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : boolean, default ``False``
-  If ``True`` and parse_dates is enabled for a column, attempt to infer the
-  datetime format to speed up the processing.
-
-  .. deprecated:: 2.0.0
-   A strict version of this argument is now the default, passing it has no effect.
-keep_date_col : boolean, default ``False``
-  If ``True`` and parse_dates specifies combining multiple columns then keep the
-  original columns.
-date_parser : function, default ``None``
-  Function to use for converting a sequence of string columns to an array of
-  datetime instances. The default uses ``dateutil.parser.parser`` to do the
-  conversion. pandas will try to call date_parser in three different ways,
-  advancing to the next if an exception occurs: 1) Pass one or more arrays (as
-  defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
-  values from the columns defined by parse_dates into a single array and pass
-  that; and 3) call date_parser once for each row using one or more strings
-  (corresponding to the columns defined by parse_dates) as arguments.
-
-  .. deprecated:: 2.0.0
-   Use ``date_format`` instead, or read in as ``object`` and then apply
-   :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -830,71 +796,8 @@ The simplest case is to just pass in ``parse_dates=True``:
 
 It is often the case that we may want to store date and time data separately,
 or store various date fields separately. the ``parse_dates`` keyword can be
-used to specify a combination of columns to parse the dates and/or times from.
+used to specify columns to parse the dates and/or times.
 
-You can specify a list of column lists to ``parse_dates``, the resulting date
-columns will be prepended to the output (so as to not affect the existing column
-order) and the new column names will be the concatenation of the component
-column names:
-
-.. ipython:: python
-   :okwarning:
-
-   data = (
-       "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-       "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-       "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-       "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-       "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-       "KORD,19990127, 23:00:00, 22:56:00, -0.5900"
-   )
-
-   with open("tmp.csv", "w") as fh:
-       fh.write(data)
-
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-   df
-
-By default the parser removes the component date columns, but you can choose
-to retain them via the ``keep_date_col`` keyword:
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
-   )
-   df
-
-Note that if you wish to combine multiple columns into a single date column, a
-nested list must be used. In other words, ``parse_dates=[1, 2]`` indicates that
-the second and third columns should each be parsed as separate date columns
-while ``parse_dates=[[1, 2]]`` means the two columns should be parsed into a
-single column.
-
-You can also use a dict to specify custom name columns:
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
-   df
-
-It is important to remember that if multiple text columns are to be parsed into
-a single date column, then a new column is prepended to the data. The ``index_col``
-specification is based off of this new set of columns rather than the original
-data columns:
-
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=date_spec, index_col=0
-   )  # index is the nominal column
-   df
 
 .. note::
    If a column or index contains an unparsable date, the entire column or
@@ -907,10 +810,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-.. deprecated:: 2.2.0
-   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
-   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -925,12 +824,6 @@ Performance-wise, you should try these methods of parsing dates in order:
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
    then use ``to_datetime``.
-
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
 
 
 .. _io.csv.mixed_timezones:
@@ -1618,7 +1511,6 @@ Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
-* ``sep=None`` with ``delim_whitespace=False``
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
@@ -1633,14 +1525,12 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``memory_map``
 * ``dialect``
 * ``on_bad_lines``
-* ``delim_whitespace``
 * ``quoting``
 * ``lineterminator``
 * ``converters``
 * ``decimal``
 * ``iterator``
 * ``dayfirst``
-* ``infer_datetime_format``
 * ``verbose``
 * ``skipinitialspace``
 * ``low_memory``
@@ -1837,14 +1727,13 @@ with optional parameters:
 
   .. csv-table::
      :widths: 20, 150
-     :delim: ;
 
-     ``split``; dict like {index -> [index], columns -> [columns], data -> [values]}
-     ``records``; list like [{column -> value}, ... , {column -> value}]
-     ``index``; dict like {index -> {column -> value}}
-     ``columns``; dict like {column -> {index -> value}}
-     ``values``; just the values array
-     ``table``; adhering to the JSON `Table Schema`_
+     ``split``, dict like {index -> [index]; columns -> [columns]; data -> [values]}
+     ``records``, list like [{column -> value}; ... ]
+     ``index``, dict like {index -> {column -> value}}
+     ``columns``, dict like {column -> {index -> value}}
+     ``values``, just the values array
+     ``table``, adhering to the JSON `Table Schema`_
 
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 * ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
@@ -1949,13 +1838,6 @@ Writing in ISO date format, with microseconds:
    json = dfd.to_json(date_format="iso", date_unit="us")
    json
 
-Epoch timestamps, in seconds:
-
-.. ipython:: python
-
-   json = dfd.to_json(date_format="epoch", date_unit="s")
-   json
-
 Writing to a file, with a date index and a date column:
 
 .. ipython:: python
@@ -1965,7 +1847,7 @@ Writing to a file, with a date index and a date column:
    dfj2["ints"] = list(range(5))
    dfj2["bools"] = True
    dfj2.index = pd.date_range("20130101", periods=5)
-   dfj2.to_json("test.json")
+   dfj2.to_json("test.json", date_format="iso")
 
    with open("test.json") as fh:
        print(fh.read())
@@ -2032,14 +1914,13 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
   .. csv-table::
      :widths: 20, 150
-     :delim: ;
 
-     ``split``; dict like {index -> [index], columns -> [columns], data -> [values]}
-     ``records``; list like [{column -> value}, ... , {column -> value}]
-     ``index``; dict like {index -> {column -> value}}
-     ``columns``; dict like {column -> {index -> value}}
-     ``values``; just the values array
-     ``table``; adhering to the JSON `Table Schema`_
+     ``split``, dict like {index -> [index]; columns -> [columns]; data -> [values]}
+     ``records``, list like [{column -> value} ...]
+     ``index``, dict like {index -> {column -> value}}
+     ``columns``, dict like {column -> {index -> value}}
+     ``values``, just the values array
+     ``table``, adhering to the JSON `Table Schema`_
 
 
 * ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if ``False``, then don't infer dtypes at all, default is True, apply only to the data.
@@ -2140,7 +2021,7 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 .. ipython:: python
 
    from io import StringIO
-   json = dfj2.to_json(date_unit="ns")
+   json = dfj2.to_json(date_format="iso", date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
    dfju = pd.read_json(StringIO(json), date_unit="ms")

@@ -178,7 +178,7 @@ class DtypeWarning(Warning):
     ... )  # doctest: +SKIP
     >>> df.to_csv("test.csv", index=False)  # doctest: +SKIP
     >>> df2 = pd.read_csv("test.csv")  # doctest: +SKIP
-    ... # DtypeWarning: Columns (0) have mixed types
+    ... # DtypeWarning: Columns (0: a) have mixed types
 
     Important to notice that ``df2`` will contain both `str` and `int` for the
     same input, '1'.
@@ -229,7 +229,6 @@ class ParserWarning(Warning):
 
     1. `sep` other than a single character (e.g. regex separators)
     2. `skipfooter` higher than 0
-    3. `sep=None` with `delim_whitespace=False`
 
     The warning can be avoided by adding `engine='python'` as a parameter in
     `pd.read_csv` and `pd.read_table` methods.

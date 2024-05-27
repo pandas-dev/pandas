@@ -41,7 +41,7 @@ class TestDataFrameSetItem:
     def test_setitem_str_subclass(self):
         # GH#37366
         class mystring(str):
-            pass
+            __slots__ = ()
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
@@ -711,7 +711,10 @@ class TestDataFrameSetItem:
         df["np-array"] = a
 
         # Instantiation of `np.matrix` gives PendingDeprecationWarning
-        with tm.assert_produces_warning(PendingDeprecationWarning):
+        with tm.assert_produces_warning(
+            PendingDeprecationWarning,
+            match="matrix subclass is not the recommended way to represent matrices",
+        ):
             df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)
@@ -779,20 +782,18 @@ class TestDataFrameSetItem:
         df.iloc[:, 0] = Series([11], dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_object_inferring(self):
+    def test_setitem_index_object_dtype_not_inferring(self):
         # GH#56102
         idx = Index([Timestamp("2019-12-31")], dtype=object)
         df = DataFrame({"a": [1]})
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df.loc[:, "b"] = idx
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df["c"] = idx
+        df.loc[:, "b"] = idx
+        df["c"] = idx
 
         expected = DataFrame(
             {
                 "a": [1],
-                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
-                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+                "b": idx,
+                "c": idx,
             }
         )
         tm.assert_frame_equal(df, expected)

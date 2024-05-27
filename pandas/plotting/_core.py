@@ -233,6 +233,7 @@ def hist_frame(
     Returns
     -------
     matplotlib.Axes or numpy.ndarray of them
+        Returns a AxesSubplot object a numpy array of AxesSubplot objects.
 
     See Also
     --------
@@ -1187,7 +1188,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(  # pylint: disable=disallowed-name
+    def bar(
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,

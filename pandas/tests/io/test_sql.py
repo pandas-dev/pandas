@@ -2300,9 +2300,16 @@ def test_api_escaped_table_name(conn, request):
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
     if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="pyarrow->pandas throws ValueError", strict=True)
-        )
+        pa = pytest.importorskip("pyarrow")
+        if not (
+            Version(pa.__version__) >= Version("16.0")
+            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyarrow->pandas throws ValueError", strict=True
+                )
+            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2346,18 +2353,15 @@ def test_read_table_index_col(conn, request, test_frame1):
     sql.to_sql(test_frame1, "test_frame", conn)
 
     result = sql.read_sql_table("test_frame", conn, index_col="index")
-    assert result.index.names == ("index",)
+    assert result.index.names == ["index"]
 
     result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
-    assert result.index.names == ("A", "B")
+    assert result.index.names == ["A", "B"]
 
     result = sql.read_sql_table(
         "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
     )
-    assert result.index.names == (
-        "A",
-        "B",
-    )
+    assert result.index.names == ["A", "B"]
     assert result.columns.tolist() == ["C", "D"]
 
 
@@ -2605,7 +2609,7 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
             self.conn.close()
 
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
             sql.read_sql("SELECT 1", conn)
 
 

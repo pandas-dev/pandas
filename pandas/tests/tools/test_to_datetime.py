@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas.compat import WASM
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -959,6 +960,7 @@ class TestToDatetime:
         assert actual == datetime(2008, 1, 15)
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
@@ -975,7 +977,8 @@ class TestToDatetime:
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
 
-    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    @td.skip_if_windows  # `tm.set_timezone` does not work on Windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize("tz", ["Pacific/Auckland", "US/Samoa"])
     def test_to_datetime_today(self, tz):
         # See GH#18666
@@ -1007,6 +1010,7 @@ class TestToDatetime:
         to_datetime([arg])
 
     @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize(
         "format, expected_ds",
         [
@@ -1705,22 +1709,24 @@ class TestToDatetimeUnit:
         # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with
         #  Y or M unit
-        warn_msg = "strings will be parsed as datetime strings"
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
         with pytest.raises(ValueError, match=msg):
             to_datetime(np.array([1.5]), unit=unit, errors="raise")
+
+        msg = r"Given date string \"1.5\" not likely a datetime, at position 0"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                to_datetime(["1.5"], unit=unit, errors="raise")
+            to_datetime(["1.5"], unit=unit, errors="raise")
 
         res = to_datetime([1.5], unit=unit, errors="coerce")
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            res = to_datetime(["1.5"], unit=unit, errors="coerce")
+        # In 3.0, the string "1.5" is parsed as as it would be without unit,
+        #  which fails. With errors="coerce" this becomes NaT.
+        res = to_datetime(["1.5"], unit=unit, errors="coerce")
+        expected = to_datetime([NaT])
         tm.assert_index_equal(res, expected)
 
         # round floats are OK
@@ -1734,14 +1740,6 @@ class TestToDatetimeUnit:
         msg = "cannot specify both format and unit"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
-
-    def test_unit_str(self, cache):
-        # GH 57051
-        # Test that strs aren't dropping precision to 32-bit accidentally.
-        with tm.assert_produces_warning(FutureWarning):
-            res = to_datetime(["1704660000"], unit="s", origin="unix")
-        expected = to_datetime([1704660000], unit="s", origin="unix")
-        tm.assert_index_equal(res, expected)
 
     def test_unit_array_mixed_nans(self, cache):
         values = [11111111111111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
@@ -1771,7 +1769,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_invalid_str_not_out_of_bounds_valuerror(self, cache):
         # if we have a string, then we raise a ValueError
         # and NOT an OutOfBoundsDatetime
-        msg = "non convertible value foo with the unit 's'"
+        msg = "Unknown datetime string format, unable to parse: foo, at position 0"
         with pytest.raises(ValueError, match=msg):
             to_datetime("foo", errors="raise", unit="s", cache=cache)
 
@@ -1906,7 +1904,13 @@ class TestToDatetimeUnit:
 
     @pytest.mark.parametrize("bad_val", ["foo", 111111111])
     def test_to_datetime_unit_invalid(self, bad_val):
-        msg = f"{bad_val} with the unit 'D'"
+        if bad_val == "foo":
+            msg = (
+                "Unknown datetime string format, unable to parse: "
+                f"{bad_val}, at position 2"
+            )
+        else:
+            msg = "cannot convert input 111111111 with the unit 'D', at position 2"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1, 2, bad_val], unit="D")
 
@@ -3545,19 +3549,27 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
     #  issued in _array_to_datetime_object
     both_strs = isinstance(aware_val, str) and isinstance(naive_val, str)
     has_numeric = isinstance(naive_val, (int, float))
+    both_datetime = isinstance(naive_val, datetime) and isinstance(aware_val, datetime)
+
+    mixed_msg = (
+        "Mixed timezones detected. Pass utc=True in to_datetime or tz='UTC' "
+        "in DatetimeIndex to convert to a common timezone"
+    )
 
     first_non_null = next(x for x in vec if x != "")
     # if first_non_null is a not a string, _guess_datetime_format_for_array
     #  doesn't guess a format so we don't go through array_strptime
     if not isinstance(first_non_null, str):
         # that case goes through array_strptime which has different behavior
-        msg = "Cannot mix tz-aware with tz-naive values"
+        msg = mixed_msg
         if naive_first and isinstance(aware_val, Timestamp):
             if isinstance(naive_val, Timestamp):
                 msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec)
         else:
+            if not naive_first and both_datetime:
+                msg = "Cannot mix tz-aware with tz-naive values"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec)
 
@@ -3586,7 +3598,7 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
             to_datetime(vec, utc=True)
 
     else:
-        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
+        msg = mixed_msg
         with pytest.raises(ValueError, match=msg):
             to_datetime(vec)
 
@@ -3594,13 +3606,13 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
         to_datetime(vec, utc=True)
 
     if both_strs:
-        msg = "Mixed timezones detected. Pass utc=True in to_datetime"
+        msg = mixed_msg
         with pytest.raises(ValueError, match=msg):
             to_datetime(vec, format="mixed")
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(vec)
     else:
-        msg = "Cannot mix tz-aware with tz-naive values"
+        msg = mixed_msg
         if naive_first and isinstance(aware_val, Timestamp):
             if isinstance(naive_val, Timestamp):
                 msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
@@ -3609,6 +3621,8 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
             with pytest.raises(ValueError, match=msg):
                 DatetimeIndex(vec)
         else:
+            if not naive_first and both_datetime:
+                msg = "Cannot mix tz-aware with tz-naive values"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(vec, format="mixed")
             with pytest.raises(ValueError, match=msg):
