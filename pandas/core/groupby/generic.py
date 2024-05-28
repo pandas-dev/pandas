@@ -147,7 +147,7 @@ class NamedAgg(_BaseNamedAgg):
         if not isinstance(aggfunc, str):
             aggfunc = cls._get_wrapped_aggfunc(aggfunc, *args, **kwargs)
 
-        self = super(_BaseNamedAgg, cls).__new__(cls, column, aggfunc)
+        self = _BaseNamedAgg.__new__(cls, column, aggfunc)
         self.original_aggfunc = original_aggfunc
         return self
 
