@@ -93,7 +93,10 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -1747,11 +1750,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if `key` matches multiple labels
         """
         axis = self._get_axis_number(axis)
-        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
+        first_other_axes = next(
+            (ax for ax in range(self._AXIS_LEN) if ax != axis), None
+        )
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
-            values = self.xs(key, axis=other_axes[0])._values
+            if first_other_axes is None:
+                raise ValueError("axis matched all axes")
+            values = self.xs(key, axis=first_other_axes)._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
         else:
@@ -1759,7 +1766,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # Check for duplicates
         if values.ndim > 1:
-            if other_axes and isinstance(self._get_axis(other_axes[0]), MultiIndex):
+            if first_other_axes is not None and isinstance(
+                self._get_axis(first_other_axes), MultiIndex
+            ):
                 multi_message = (
                     "\n"
                     "For a multi-index, the label must be a "
@@ -4301,6 +4310,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
+    # issue 58667
+    @deprecate_kwarg("method", None)
     @final
     def reindex_like(
         self,
@@ -4327,6 +4338,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+
+            .. deprecated:: 3.0.0
 
             * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next

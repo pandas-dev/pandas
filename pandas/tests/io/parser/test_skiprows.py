@@ -187,7 +187,7 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'delim_whitespace' option is not supported
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
     "lineterminator",
     ["\n", "\r\n", "\r"],  # "LF"  # "CRLF"  # "CR"
@@ -218,16 +218,12 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
 
     data = data.replace("\n", lineterminator)
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(
-            StringIO(data),
-            skiprows=1,
-            delim_whitespace=True,
-            names=["date", "time", "var", "flag", "oflag"],
-        )
+    result = parser.read_csv(
+        StringIO(data),
+        skiprows=1,
+        sep=r"\s+",
+        names=["date", "time", "var", "flag", "oflag"],
+    )
     tm.assert_frame_equal(result, expected)
 
 

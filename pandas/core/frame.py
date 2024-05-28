@@ -21,7 +21,6 @@ from collections.abc import (
     Sequence,
 )
 import functools
-from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -125,7 +124,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
@@ -4473,6 +4472,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
+        This method can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
+
         Parameters
         ----------
         expr : str
@@ -5059,22 +5061,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
-        if (
-            isinstance(value, Index)
-            and value.dtype == "object"
-            and arr.dtype != value.dtype
-        ):  #
-            # TODO: Remove kludge in sanitize_array for string mode when enforcing
-            # this deprecation
-            warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will stop "
-                "inferring another dtype in a future version. Cast the Index "
-                "explicitly before setting it into the DataFrame.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return arr, None
+        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
     def _series(self):
@@ -7015,19 +7002,19 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                # error: List comprehension has incompatible type List[Series];
-                # expected List[ndarray]
-                keys = [
-                    Series(k, name=name)  # type: ignore[misc]
-                    for (k, name) in zip(keys, by)
-                ]
+                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+            else:
+                # error: Argument 1 to "list" has incompatible type
+                # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
+                # expected "Iterable[Series]"
+                keys_data = list(keys)  # type: ignore[arg-type]
 
             indexer = lexsort_indexer(
-                keys, orders=ascending, na_position=na_position, key=key
+                keys_data, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
             # len(by) == 1
@@ -11423,28 +11410,11 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        dtype_has_keepdims: dict[ExtensionDtype, bool] = {}
-
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                has_keepdims = dtype_has_keepdims.get(values.dtype)
-                if has_keepdims is None:
-                    sign = signature(values._reduce)
-                    has_keepdims = "keepdims" in sign.parameters
-                    dtype_has_keepdims[values.dtype] = has_keepdims
-                if has_keepdims:
-                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
-                else:
-                    warnings.warn(
-                        f"{type(values)}._reduce will require a `keepdims` parameter "
-                        "in the future",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    result = values._reduce(name, skipna=skipna, **kwds)
-                    return np.array([result])
+                return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -13502,10 +13472,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
     hist = pandas.plotting.hist_frame
     boxplot = pandas.plotting.boxplot_frame
-    sparse = CachedAccessor("sparse", SparseFrameAccessor)
+    sparse = Accessor("sparse", SparseFrameAccessor)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
