@@ -58,7 +58,7 @@ A total of %d pull requests were merged for this release.
 
 def get_authors(revision_range):
     """
-    Extract authors from a range of revisions
+    Extract authors from a range of revisions.
 
     This designed to list the authors who contributed to a given range of revisions in a Git repository. 
     It identifies new contributors within range and distinguishes them with a "+" sign.
@@ -72,18 +72,6 @@ def get_authors(revision_range):
     -------
     List
         List of authors.
-    
-    Examples
-    -------
-    >>> authors = get_authors("v1.0.0..v1.1.0")
-    >>> print(authors)
-    ['Alice +', 'Bob', 'Charlie +']
-
-    Either between these ranges or latest commit.
-
-    >>> authors = get_authors("v1.0.0..v1.1.0|HEAD")
-    >>> print(authors)
-    ['Alice +', 'Bob', 'Charlie +', 'Dave +']
     """
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
@@ -154,13 +142,6 @@ def get_pull_requests(repo, revision_range):
     -------
     List
         List of pull requests.
-
-    Examples
-    --------
-    >>> repo = github.Github("<token>").get_repo("<owner>/<repo_name>")
-    >>> prs = get_pull_requests(repo, "v1.0.0..v1.1.0")
-    >>> print([pr.number for pr in prs])
-    [123, 124, 125]
     """
     prnums = []
 
@@ -204,16 +185,6 @@ def build_components(revision_range, heading="Contributors"):
     -------
     dict
         Dictionary containing the heading, author message, and list of authors.
-
-    Examples
-    --------
-    >>> components = build_components("v1.0.0..v1.1.0")
-    >>> print(components["heading"])
-    Contributors
-    >>> print(components["author_message"])
-    A total of 3 people contributed patches to this release.  People with a "+" by their names contributed a patch for the first time.
-    >>> print(components["authors"])
-    ['Alice +', 'Bob', 'Charlie +']
     """
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
@@ -243,17 +214,6 @@ def build_string(revision_range, heading="Contributors"):
     -------
     str
         Formatted release notes.
-
-    Examples
-    --------
-    >>> release_notes = build_string("v1.0.0..v1.1.0")
-    >>> print(release_notes)
-    Contributors
-    ============
-    A total of 3 people contributed patches to this release.  People with a "+" by their names contributed a patch for the first time.
-    * Alice +
-    * Bob
-    * Charlie +
     """
     components = build_components(revision_range, heading=heading)
     components["uline"] = "=" * len(components["heading"])
@@ -282,16 +242,6 @@ def main(revision_range):
     ----------
     revision_range : str
         The range of revisions to examine, in the format "<start_revision>..<end_revision>".
-
-    Examples
-    --------
-    >>> main("v1.0.0..v1.1.0")
-    Contributors
-    ============
-    A total of 3 people contributed patches to this release.  People with a "+" by their names contributed a patch for the first time.
-    * Alice +
-    * Bob
-    * Charlie +
     """
     # document authors
     text = build_string(revision_range)

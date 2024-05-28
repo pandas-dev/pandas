@@ -37,14 +37,6 @@ class ContributorsDirective(Directive):
         -------
         List
             List containing author message and contributors.
-
-        Examples
-        --------
-        >>> directive = ContributorsDirective()
-        >>> directive.arguments = ['v0.23.0..v0.23.1']
-        >>> nodes = directive.run()
-        >>> nodes
-        [<nodes.paragraph>, <nodes.bullet_list>]
         """
         range_ = self.arguments[0]
         if range_.endswith("x..HEAD"):
@@ -88,13 +80,6 @@ def setup(app):
     -------
     dict
         A dictionary containing version information and safety flags for the extension.
-
-    Examples
-    --------
-    >>> app = App()
-    >>> setup_info = setup(app)
-    >>> setup_info
-    {'version': '0.1', 'parallel_read_safe': True, 'parallel_write_safe': True}
     """
     app.add_directive("contributors", ContributorsDirective)
 
