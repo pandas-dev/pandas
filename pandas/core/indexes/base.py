@@ -6955,7 +6955,7 @@ class Index(IndexOpsMixin, PandasObject):
         # check if we need to set the freq attribute
         from pandas import DatetimeIndex
 
-        if isinstance(self, DatetimeIndex):
+        if isinstance(self, DatetimeIndex) and isinstance(new_index, DatetimeIndex):
             new_index.freq = to_offset(new_index.inferred_freq)
 
         return new_index
