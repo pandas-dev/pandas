@@ -202,10 +202,12 @@ class TestDataFrameEval:
         expected = df["a"]
         tm.assert_series_equal(expected, res)
 
-    def test_extension_array_eval():
+
+class TestDataFrameEvalWithMultiIndex:
+    def test_extension_array_eval(self, engine, parser):
         # GH#58748
         df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
-        result = df.eval("a / b")
+        result = df.eval("a / b", engine=engine, parser=parser)
         expected = Series([0.25, 0.40, 0.50])
         tm.assert_series_equal(result, expected)
 
