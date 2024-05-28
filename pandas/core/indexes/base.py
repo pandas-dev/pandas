@@ -39,6 +39,7 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
+    to_offset,
     tz_compare,
 )
 from pandas._typing import (
@@ -6955,7 +6956,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DatetimeIndex
 
         if isinstance(self, DatetimeIndex):
-            new_index.freq = self.freq
+            new_index.freq = to_offset(new_index.inferred_freq)
 
         return new_index
 
