@@ -143,12 +143,9 @@ class NamedAgg(_BaseNamedAgg):
     """
 
     def __new__(cls, column, aggfunc, *args, **kwargs):
-        original_aggfunc = aggfunc
         if not isinstance(aggfunc, str):
             aggfunc = cls._get_wrapped_aggfunc(aggfunc, *args, **kwargs)
-
         self = _BaseNamedAgg.__new__(cls, column, aggfunc)
-        self.original_aggfunc = original_aggfunc
         return self
 
     @staticmethod
@@ -161,7 +158,7 @@ class NamedAgg(_BaseNamedAgg):
         return wrapped_aggfunc
 
     def __repr__(self):
-        return f"NamedAgg(column='{self.column}', aggfunc={self.original_aggfunc})"
+        return f"NamedAgg(column='{self.column}', aggfunc={self.aggfunc})"
 
 
 class SeriesGroupBy(GroupBy[Series]):
