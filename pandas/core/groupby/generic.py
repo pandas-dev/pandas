@@ -113,7 +113,7 @@ class _BaseNamedAgg(NamedTuple):
     aggfunc: AggScalar
 
 
-def NamedAgg(column: Hashable, aggfunc: AggScalar, *args, **kwargs):
+class NamedAgg(_BaseNamedAgg):
     """
     Helper for column specific aggregation with control over output column names.
 
@@ -126,6 +126,9 @@ def NamedAgg(column: Hashable, aggfunc: AggScalar, *args, **kwargs):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+    *args : args passed to aggfunc
+    **kwargs : kwargs passed to aggfunc
+
 
     Examples
     --------
@@ -139,28 +142,26 @@ def NamedAgg(column: Hashable, aggfunc: AggScalar, *args, **kwargs):
     2           1      12.0
     """
 
-    class NamedAggWrapper(_BaseNamedAgg):
-        def __new__(cls, _column, _aggfunc, *_args, **_kwargs):
-            original_aggfunc = _aggfunc
-            if not isinstance(_aggfunc, str):
-                _aggfunc = cls._get_wrapped_aggfunc(_aggfunc, *_args, **_kwargs)
+    def __new__(cls, column, aggfunc, *args, **kwargs):
+        original_aggfunc = aggfunc
+        if not isinstance(aggfunc, str):
+            aggfunc = cls._get_wrapped_aggfunc(aggfunc, *args, **kwargs)
 
-            self = _BaseNamedAgg.__new__(cls, _column, _aggfunc)
-            self.original_aggfunc = original_aggfunc
-            return self
+        self = _BaseNamedAgg.__new__(cls, column, aggfunc)
+        self.original_aggfunc = original_aggfunc
+        return self
 
-        @staticmethod
-        def _get_wrapped_aggfunc(function, *initial_args, **initial_kwargs):
-            def wrapped_aggfunc(*new_args, **new_kwargs):
-                final_args = new_args + initial_args
-                final_kwargs = {**initial_kwargs, **new_kwargs}
-                return function(*final_args, **final_kwargs)
-            return wrapped_aggfunc
+    @staticmethod
+    def _get_wrapped_aggfunc(function, *initial_args, **initial_kwargs):
+        def wrapped_aggfunc(*new_args, **new_kwargs):
+            final_args = new_args + initial_args
+            final_kwargs = {**initial_kwargs, **new_kwargs}
+            return function(*final_args, **final_kwargs)
 
-        def __repr__(self):
-            return f"NamedAgg(column='{self.column}', aggfunc={self.original_aggfunc})"
+        return wrapped_aggfunc
 
-    return NamedAggWrapper(column, aggfunc, *args, **kwargs)
+    def __repr__(self):
+        return f"NamedAgg(column='{self.column}', aggfunc={self.original_aggfunc})"
 
 
 class SeriesGroupBy(GroupBy[Series]):
