@@ -145,7 +145,7 @@ def NamedAgg(column: Hashable, aggfunc: AggScalar, *args, **kwargs):
             if not isinstance(_aggfunc, str):
                 _aggfunc = cls._get_wrapped_aggfunc(_aggfunc, *_args, **_kwargs)
 
-            self = _BaseNamedAgg.__new__(_column, _aggfunc)
+            self = _BaseNamedAgg.__new__(cls, _column, _aggfunc)
             self.original_aggfunc = original_aggfunc
             return self
 
