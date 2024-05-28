@@ -827,6 +827,34 @@ class TestNamedAggregationDataFrame:
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
         tm.assert_frame_equal(result, expected)
 
+    def test_single_named_agg_with_args_and_kwargs(self):
+        df = DataFrame({"A": [0, 1, 2, 3], "B": [1, 2, 3, 4]})
+
+        def n_between(ser, low, high):
+            return ser.between(low, high).sum()
+
+        result = df.groupby("A").agg(n_between=pd.NamedAgg("B", n_between, 0, high=2))
+        expected = df.groupby("A").agg(n_between=("B", lambda x: x.between(0, 2).sum()))
+        tm.assert_frame_equal(result, expected)
+
+    def test_multiple_named_agg_with_args_and_kwargs(self):
+        df = DataFrame({"A": [0, 1, 2, 3], "B": [1, 2, 3, 4]})
+
+        def n_between(ser, low, high):
+            return ser.between(low, high).sum()
+
+        result = df.groupby("A").agg(
+            n_between01=pd.NamedAgg("B", n_between, 0, 1),
+            n_between13=pd.NamedAgg("B", n_between, 1, 3),
+            n_between02=pd.NamedAgg("B", n_between, 0, 2),
+        )
+        expected = df.groupby("A").agg(
+            n_between01=("B", lambda x: x.between(0, 1).sum()),
+            n_between13=("B", lambda x: x.between(0, 3).sum()),
+            n_between02=("B", lambda x: x.between(0, 2).sum()),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_mangled(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2], "C": [3, 4]})
         result = df.groupby("A").agg(b=("B", lambda x: 0), c=("C", lambda x: 1))
