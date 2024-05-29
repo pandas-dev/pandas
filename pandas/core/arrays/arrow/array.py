@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import operator
 import re
@@ -13,7 +14,7 @@ from typing import (
     overload,
 )
 import unicodedata
-import datetime
+
 import numpy as np
 
 from pandas._libs import lib
