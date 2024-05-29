@@ -25,8 +25,11 @@ def assert_cannot_add(left, right, msg="cannot add"):
     Parameters
     ----------
     left : object
+        The first operand.
     right : object
+        The second operand.
     msg : str, default "cannot add"
+        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right
@@ -42,8 +45,11 @@ def assert_invalid_addsub_type(left, right, msg=None):
     Parameters
     ----------
     left : object
+        The first operand.
     right : object
+        The second operand.
     msg : str or None, default None
+        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right
