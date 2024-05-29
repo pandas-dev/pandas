@@ -1683,7 +1683,7 @@ def map_array(
     values_as_object = arr.astype(object, copy=False)
     if na_action is None:
         if (
-            isinstance(arr, ABCExtensionArray)
+            isinstance(arr.dtype, BaseMaskedDtype)
             and arr._hasna
             and arr.dtype.na_value is libmissing.NA
         ):
@@ -1691,10 +1691,10 @@ def map_array(
                 arr._data,
                 mapper,
                 mask=isna(values_as_object).view(np.uint8),
-                na_value=arr._na_value,
+                na_value=arr.dtype.na_value,
             )
         else:
-            return lib.map_infer(arr.astype(object, copy=False), mapper)
+            return lib.map_infer(values_as_object, mapper)
     else:
         return lib.map_infer_mask(
             values_as_object, mapper, mask=isna(values_as_object).view(np.uint8)
