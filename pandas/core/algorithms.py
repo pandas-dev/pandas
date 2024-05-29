@@ -1710,6 +1710,8 @@ def map_array(
                     mask=isna(values_as_object).view(np.uint8),
                     na_value=arr.dtype.na_value,
                 )
+            else:
+                return lib.map_infer(arr._data, mapper)
         else:
             return lib.map_infer(values_as_object, mapper)
     else:
