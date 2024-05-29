@@ -259,8 +259,8 @@ class TestAstype:
         expected = Series(ser.astype(object), dtype=object)
         tm.assert_series_equal(result, expected)
 
-        result = Series(ser.values).dt.tz_localize("UTC").dt.tz_convert(ser.dt.tz)
-        tm.assert_series_equal(result, ser)
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            result = Series(ser.values).dt.tz_localize("UTC").dt.tz_convert(ser.dt.tz)
 
         # astype - object, preserves on construction
         result = Series(ser.astype(object))
@@ -271,11 +271,13 @@ class TestAstype:
         msg = "Cannot use .astype to convert from timezone-naive"
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype("datetime64[ns, US/Eastern]")
+            with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+                Series(ser.values).astype("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            Series(ser.values).astype(ser.dtype)
+            with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+                Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))

@@ -2349,11 +2349,21 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
+        warnings.warn(
+            "series.values will stop converting tz from dt64tz, interval to object and period to object",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
+        warnings.warn(
+            "series.values will stop converting tz from dt64tz, interval to object and period to object",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

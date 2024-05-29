@@ -19,7 +19,8 @@ class TestValues:
     )
     def test_values_object_extension_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/23995
-        result = Series(data).values
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            result = Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
 

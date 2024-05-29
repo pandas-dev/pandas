@@ -148,10 +148,11 @@ class TestDataFramePlotsSubplots:
             "text": ["This", "should", "fail"],
         }
         testdata = DataFrame(data)
-
-        ax = testdata.plot(y=col)
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        expected = testdata[col].values
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            expected = testdata[col].values
         assert (result == expected).all()
 
     def test_subplots_timeseries_y_text_error(self):

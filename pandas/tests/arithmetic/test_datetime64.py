@@ -2329,9 +2329,11 @@ class TestDatetimeIndexArithmetic:
         tm.assert_series_equal(result2, expected)
 
         expected = index + Timedelta(seconds=5)
-        result3 = ser.values + index
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            result3 = ser.values + index
         tm.assert_index_equal(result3, expected)
-        result4 = index + ser.values
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])

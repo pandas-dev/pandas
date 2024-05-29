@@ -700,8 +700,10 @@ class TestLocBaseIndependent:
             }
         )
 
-        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
-        df["expected"] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            df["expected"] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
         expected = Series(df.loc[:, "expected"], name=unit)
         tm.assert_series_equal(df.loc[:, unit], expected)
 

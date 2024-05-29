@@ -50,7 +50,8 @@ class TestSeriesIsIn:
         ser = Series(date_range("jan-01-2013", "jan-05-2013"))
 
         # fails on dtype conversion in the first place
-        day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
         result = ser.isin(day_values)
         tm.assert_series_equal(result, expected)
 
@@ -79,7 +80,8 @@ class TestSeriesIsIn:
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-        result = s.isin(s[0:2].values)
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            result = s.isin(s[0:2].values)
         tm.assert_series_equal(result, expected)
 
         result = s.isin([s[1]])

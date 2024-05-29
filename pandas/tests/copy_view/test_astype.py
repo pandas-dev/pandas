@@ -187,7 +187,8 @@ def test_astype_arrow_timestamp():
         },
         dtype="M8[ns]",
     )
-    result = df.astype("timestamp[ns][pyarrow]")
+    with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        result = df.astype("timestamp[ns][pyarrow]")
     assert not result._mgr._has_no_reference(0)
     if pa_version_under12p0:
         assert not np.shares_memory(

@@ -109,7 +109,8 @@ def test_frame_datetime64_duplicated():
     dates = date_range("2010-07-01", end="2010-08-05")
 
     tst = DataFrame({"symbol": "AAA", "date": dates})
-    result = tst.duplicated(["date", "symbol"])
+    with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        result = tst.duplicated(["date", "symbol"])
     assert (-result).all()
 
     tst = DataFrame({"date": dates})

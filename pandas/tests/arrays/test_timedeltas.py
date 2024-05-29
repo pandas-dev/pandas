@@ -74,7 +74,8 @@ class TestNonNano:
         # issue #48521
         start_time = pd.Series(["2145-11-02 06:00:00"]).astype("datetime64[ns]")
         end_time = pd.Series(["2145-11-02 07:06:00"]).astype("datetime64[ns]")
-        expected = (end_time - start_time).values / np.timedelta64(1, "s")
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            expected = (end_time - start_time).values / np.timedelta64(1, "s")
         result = (end_time - start_time).dt.total_seconds().values
         assert result == expected
 

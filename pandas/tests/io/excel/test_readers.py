@@ -623,13 +623,13 @@ class TestReaders:
             import pyarrow as pa
 
             from pandas.arrays import ArrowExtensionArray
-
-            expected = DataFrame(
-                {
-                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
-                    for col in df.columns
-                }
-            )
+            with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+                expected = DataFrame(
+                    {
+                        col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                        for col in df.columns
+                    }
+                )
             # pyarrow by default infers timestamp resolution as us, not ns
             expected["i"] = ArrowExtensionArray(
                 expected["i"].array._pa_array.cast(pa.timestamp(unit="us"))

@@ -119,20 +119,23 @@ class TestSeriesDatetimeValues:
         assert result.dtype == object
 
         result = ser.dt.tz_localize("US/Eastern")
-        exp_values = DatetimeIndex(ser.values).tz_localize("US/Eastern")
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            exp_values = DatetimeIndex(ser.values).tz_localize("US/Eastern")
         expected = Series(exp_values, index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
         assert str(tz_result) == "US/Eastern"
         freq_result = ser.dt.freq
-        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
         # let's localize, then convert
         result = ser.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
-        exp_values = (
-            DatetimeIndex(ser.values).tz_localize("UTC").tz_convert("US/Eastern")
-        )
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            exp_values = (
+                DatetimeIndex(ser.values).tz_localize("UTC").tz_convert("US/Eastern")
+            )
         expected = Series(exp_values, index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
@@ -162,7 +165,8 @@ class TestSeriesDatetimeValues:
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
         freq_result = ser.dt.freq
-        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -203,7 +207,8 @@ class TestSeriesDatetimeValues:
             assert result.dtype == "float64"
 
             freq_result = ser.dt.freq
-            assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
+            with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+                assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_period(self):
         # GH#7207, GH#11128
@@ -222,7 +227,9 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        assert freq_result == PeriodIndex(ser.values).freq
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            assert freq_result == PeriodIndex(ser.values).freq
+
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both

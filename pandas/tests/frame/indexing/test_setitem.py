@@ -305,7 +305,8 @@ class TestDataFrameSetItem:
         df[unit] = vals
 
         assert df[unit].dtype == ex_vals.dtype
-        assert (df[unit].values == ex_vals).all()
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            assert (df[unit].values == ex_vals).all()
 
     @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
     def test_frame_setitem_existing_datetime64_col_other_units(self, unit):
@@ -322,7 +323,8 @@ class TestDataFrameSetItem:
 
         # We overwrite existing dt64 column with new, non-nano dt64 vals
         df["dates"] = vals
-        assert (df["dates"].values == ex_vals).all()
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            assert (df["dates"].values == ex_vals).all()
 
     def test_setitem_dt64tz(self, timezone_frame):
         df = timezone_frame

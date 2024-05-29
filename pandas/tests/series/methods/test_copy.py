@@ -49,10 +49,11 @@ class TestCopy:
 
         # INFO(CoW) a shallow copy doesn't yet copy the data
         # but parent will not be modified (CoW)
-        if deep is None or deep is False:
-            assert np.may_share_memory(ser.values, ser2.values)
-        else:
-            assert not np.may_share_memory(ser.values, ser2.values)
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            if deep is None or deep is False:
+                assert np.may_share_memory(ser.values, ser2.values)
+            else:
+                assert not np.may_share_memory(ser.values, ser2.values)
 
         ser2[0] = Timestamp("1999/01/01", tz="UTC")
 

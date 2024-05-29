@@ -1507,12 +1507,13 @@ class TestOperations:
     def test_date_boolean(self, engine, parser):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["dates1"] = date_range("1/1/2012", periods=5)
-        res = self.eval(
-            "df.dates1 < 20130101",
-            local_dict={"df": df},
-            engine=engine,
-            parser=parser,
-        )
+        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+            res = self.eval(
+                "df.dates1 < 20130101",
+                local_dict={"df": df},
+                engine=engine,
+                parser=parser,
+            )
         expec = df.dates1 < "20130101"
         tm.assert_series_equal(res, expec)
 
