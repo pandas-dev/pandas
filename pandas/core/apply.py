@@ -1824,12 +1824,15 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
-            s = s.iloc[col_idx_order]
+            col_idx_order = list(Index(s.index).get_indexer(fun))
+            col_idx_order = [i for i in col_idx_order if 0 <= i < len(s)]
+            if col_idx_order:
+                s = s.iloc[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
-        s.index = reordered_indexes[idx : idx + len(fun)]
+        if len(s) > 0:
+            s.index = reordered_indexes[idx : idx + len(fun)]
         reordered_result_in_dict[col] = s.reindex(columns)
         idx = idx + len(fun)
     return reordered_result_in_dict
