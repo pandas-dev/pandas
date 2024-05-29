@@ -68,3 +68,10 @@ def test_inconsistent_usage_with_replace(content):
         "from pandas import Categorical\ncat_0 = Categorical()\ncat_1 = Categorical()"
     )
     assert result == expected
+
+@pytest.mark.parametrize("content", [EMPTY_FILE, COMMENT_ONLY_FILE, NON_PANDAS_FILE])
+@pytest.mark.parametrize("replace", [True, False])
+def test_edge_cases(content, replace):
+    # should not raise or modify content
+    result = check_for_inconsistent_pandas_namespace(content, PATH, replace=replace)
+    assert result is None or result == content
