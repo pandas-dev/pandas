@@ -148,10 +148,16 @@ class TestDataFramePlotsSubplots:
             "text": ["This", "should", "fail"],
         }
         testdata = DataFrame(data)
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             expected = testdata[col].values
         assert (result == expected).all()
 

@@ -293,14 +293,20 @@ class TestDataFrameBlockInternals:
         )
 
         ser_starting = df.starting
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             ser_starting.index = ser_starting.values
         ser_starting = ser_starting.tz_localize("US/Eastern")
         ser_starting = ser_starting.tz_convert("UTC")
         ser_starting.index.name = "starting"
 
         ser_ending = df.ending
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             ser_ending.index = ser_ending.values
         ser_ending = ser_ending.tz_localize("US/Eastern")
         ser_ending = ser_ending.tz_convert("UTC")

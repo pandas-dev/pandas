@@ -30,9 +30,11 @@ class TestSeriesFillNA:
         series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
 
         filled = series.ffill()
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             filled2 = series.fillna(value=series.values[2])
-
 
         expected = series.copy()
         expected.iloc[3] = expected.iloc[2]
@@ -42,7 +44,10 @@ class TestSeriesFillNA:
 
         df = DataFrame({"A": series})
         filled = df.ffill()
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             filled2 = df.fillna(value=series.values[2])
         expected = DataFrame({"A": expected})
         tm.assert_frame_equal(filled, expected)

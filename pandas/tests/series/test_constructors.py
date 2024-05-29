@@ -1107,7 +1107,10 @@ class TestSeriesConstructors:
         assert "datetime64[ns, US/Eastern]" in str(s)
 
         # export
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             result = s.values
         assert isinstance(result, np.ndarray)
         assert result.dtype == "datetime64[ns]"
@@ -1235,7 +1238,10 @@ class TestSeriesConstructors:
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
         assert result.dtype == "interval[int64, right]"
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -1272,19 +1278,31 @@ class TestSeriesConstructors:
 
         # Pre-2.0 dt64 values were treated as utc, which was inconsistent
         #  with DatetimeIndex, which treats them as wall times, see GH#33401
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             result = Series(ser.values, dtype=ser.dtype)
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             # one suggested alternative to the deprecated (changed in 2.0) usage
             middle = Series(ser.values).dt.tz_localize("UTC")
             result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
 
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             # the other suggested alternative to the deprecated usage
             result = Series(ser.values.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)

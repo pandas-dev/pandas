@@ -175,7 +175,10 @@ class TestDatetimeIndex:
     def test_getitem_pyarrow_index(self, frame_or_series):
         # GH 53644
         pytest.importorskip("pyarrow")
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             obj = frame_or_series(
                 range(5),
                 index=date_range("2020", freq="D", periods=5).astype(
@@ -183,7 +186,10 @@ class TestDatetimeIndex:
                 ),
             )
         result = obj.loc[obj.index[:-3]]
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             expected = frame_or_series(
                 range(2),
                 index=date_range("2020", freq="D", periods=2).astype(

@@ -61,7 +61,10 @@ class TestConvertDtypes:
                 "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.DataFrame(
             {
@@ -177,7 +180,10 @@ class TestConvertDtypes:
         # GH 54191
         pytest.importorskip("pyarrow")
         ser = pd.Series(pd.date_range("2020-01-01", "2020-01-02", freq="1min"))
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             expected = ser.astype("timestamp[ms][pyarrow]")
         result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, expected)

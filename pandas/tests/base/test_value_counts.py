@@ -254,7 +254,10 @@ def test_value_counts_datetime64(index_or_series, unit):
 
     # with NaT
     s = df["dt"].copy()
-    with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+    ):
         s = klass(list(s.values) + [pd.NaT] * 4)
     if klass is Series:
         s = s.dt.as_unit(unit)

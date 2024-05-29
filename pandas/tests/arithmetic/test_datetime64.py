@@ -2329,10 +2329,16 @@ class TestDatetimeIndexArithmetic:
         tm.assert_series_equal(result2, expected)
 
         expected = index + Timedelta(seconds=5)
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             result3 = ser.values + index
         tm.assert_index_equal(result3, expected)
-        with tm.assert_produces_warning(FutureWarning, match="series.values will stop converting tz from dt64tz, interval to object and period to object"):
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
             result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
