@@ -75,3 +75,10 @@ def test_edge_cases(content, replace):
     # should not raise or modify content
     result = check_for_inconsistent_pandas_namespace(content, PATH, replace=replace)
     assert result is None or result == content
+
+@pytest.mark.parametrize("content", [MIXED_GOOD_FILE])
+def test_mixed_good_file(content):
+    # should not raise
+    check_for_inconsistent_pandas_namespace(content, PATH, replace=False)
+    result = check_for_inconsistent_pandas_namespace(content, PATH, replace=True)
+    assert result == content
