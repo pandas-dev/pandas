@@ -13,7 +13,7 @@ from typing import (
     overload,
 )
 import unicodedata
-
+import datetime
 import numpy as np
 
 from pandas._libs import lib
@@ -427,6 +427,8 @@ class ArrowExtensionArray(
             pa_scalar = value
         elif isna(value):
             pa_scalar = pa.scalar(None, type=pa_type)
+        elif pa_type == pa.date32() and isinstance(value, datetime.datetime):
+            raise ValueError("Cannot convert datetime to date32")
         else:
             # Workaround https://github.com/apache/arrow/issues/37291
             if isinstance(value, Timedelta):
