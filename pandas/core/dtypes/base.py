@@ -206,7 +206,7 @@ class ExtensionDtype:
         """
         return None
 
-    def construct_array_type(cls) -> type_t[ExtensionArray]:
+    def construct_array_type(self, cls) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
