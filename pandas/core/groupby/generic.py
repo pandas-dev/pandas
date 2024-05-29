@@ -126,9 +126,10 @@ class NamedAgg(_BaseNamedAgg):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
-    *args : args passed to aggfunc
-    **kwargs : kwargs passed to aggfunc
-
+    *args : tuple, optional
+        args passed to aggfunc
+    **kwargs : dict, optional
+        kwargs passed to aggfunc
 
     Examples
     --------
