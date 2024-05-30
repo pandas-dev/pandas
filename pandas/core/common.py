@@ -335,11 +335,12 @@ def is_empty_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line) -> list[bool]:
+def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
     """
-    Find non-trivial slices in "line": return a list of booleans with same length.
+    Find non-trivial slices in "line": yields a bool.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
+    for k in line:
+        yield isinstance(k, slice) and not is_null_slice(k)
 
 
 # TODO: used only once in indexing; belongs elsewhere?

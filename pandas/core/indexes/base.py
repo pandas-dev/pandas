@@ -3140,7 +3140,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                value_list.extend([x for x in rvals if x not in value_set])
+                value_list.extend(x for x in rvals if x not in value_set)
                 # If objects are unorderable, we must have object dtype.
                 return np.array(value_list, dtype=object)
 
@@ -7620,8 +7620,8 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     list
         A list representing the unanimous 'names' found.
     """
-    name_tups = [tuple(i.names) for i in indexes]
-    name_sets = [{*ns} for ns in zip_longest(*name_tups)]
+    name_tups = (tuple(i.names) for i in indexes)
+    name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
 
