@@ -201,8 +201,9 @@ jobs:
           upload_wheels
 
   # Build Pyodide wheels and upload them to Anaconda.org
-  # NOTE: this job must be kept in sync with the emscripten job in unit-tests.yml.
-  # The difference is that this does not run the tests after building the wheels.
+  # NOTE: this job is similar to the one in unit-tests.yml except for that fact
+  # that this does not run the tests after building the wheels and uses cibuildwheel
+  # instead of a regular Pyodide setup.
   build_pyodide_wheels:
     name: Build Pyodide wheels
     # Run on schedule, manual (workflow dispatch), and push events
@@ -222,22 +223,14 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11.3'
+          python-version: '3.12'
 
-      - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v14
+      - name: Build WASM wheel for pandas
+        uses: pypa/cibuildwheel@main
         with:
-          version: '3.1.46'
-          actions-cache-folder: emsdk-cache
-
-      - name: Install pyodide-build
-        run: pip install "pyodide-build==0.25.1"
-
-      - name: Build pandas for Pyodide
-        # Here, upload_wheels.sh requires artifacts to be in ./wheelhouse/
-        run: |
-          mkdir -p wheelhouse
-          pyodide build --outdir wheelhouse
+          output-dir: ./wheelhouse
+        env:
+          CIBW_PLATFORM: pyodide
 
       - uses: actions/upload-artifact@v4
         with:
