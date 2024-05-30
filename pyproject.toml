@@ -156,6 +156,13 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
+[tool.cibuildwheel.pyodide]
+test-requires = "pytest>=7.3.2 hypothesis>=6.46.1"
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
+
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
