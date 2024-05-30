@@ -201,11 +201,10 @@ jobs:
           upload_wheels
 
   # Build Pyodide wheels and upload them to Anaconda.org
-  # NOTE: this job is similar to the one in unit-tests.yml except for that fact
-  # that this does not run the tests after building the wheels and uses cibuildwheel
-  # instead of a regular Pyodide setup.
+  # NOTE: this job is similar to the one in unit-tests.yml except for the fact
+  # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
   build_pyodide_wheels:
-    name: Build Pyodide wheels
+    name: Build wheel for cp312-pyodide_wasm32
     # Run on schedule, manual (workflow dispatch), and push events
     # Skip on PRs, because these are running in the unit tests job already
 
