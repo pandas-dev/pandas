@@ -74,7 +74,7 @@ def map_infer(
     *,
     convert: Literal[False],
     ignore_na: bool = ...,
-    mask: np.ndarray = ...,
+    mask: npt.NDArray[np.bool_] | None = ...,
     na_value: Any = ...,
 ) -> np.ndarray: ...
 @overload
@@ -84,7 +84,7 @@ def map_infer(
     *,
     convert: bool = ...,
     ignore_na: bool = ...,
-    mask: np.ndarray = ...,
+    mask: npt.NDArray[np.bool_] | None = ...,
     na_value: Any = ...,
 ) -> ArrayLike: ...
 @overload
