@@ -775,6 +775,11 @@ class MultiIndex(Index):
         """
         Return the dtypes as a Series for the underlying MultiIndex.
 
+        See Also
+        --------
+        Index.dtype : Return the dtype object of the underlying data.
+        Series.dtypes : Return the data type of the underlying Series.
+
         Examples
         --------
         >>> idx = pd.MultiIndex.from_product(
