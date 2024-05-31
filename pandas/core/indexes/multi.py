@@ -1149,6 +1149,12 @@ class MultiIndex(Index):
         new index (of same type and class...etc) or None
             The same type as the caller or None if ``inplace=True``.
 
+        See Also
+        --------
+        MultiIndex.set_levels : Set new levels on MultiIndex.
+        MultiIndex.codes : Get the codes of the levels in the MultiIndex.
+        MultiIndex.levels : Get the levels of the MultiIndex.
+
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples(
