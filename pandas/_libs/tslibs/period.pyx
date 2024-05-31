@@ -2443,6 +2443,12 @@ cdef class _Period(PeriodMixin):
         """
         Return True if the period's year is in a leap year.
 
+        See Also
+        --------
+        Timestamp.is_leap_year : Check if the year in a Timestamp is a leap year.
+        DatetimeIndex.is_leap_year : Boolean indicator if the date belongs to a
+            leap year.
+
         Examples
         --------
         >>> period = pd.Period('2022-01', 'M')
