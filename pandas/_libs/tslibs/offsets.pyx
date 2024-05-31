@@ -4883,7 +4883,7 @@ cpdef to_offset(freq, bint is_period=False):
                                 f"\'{name}\' is no longer supported, "
                                 f"please use \'{name.upper()}\' instead.",
                             )
-                        name = c_OFFSET_RENAMED_FREQSTR.get(name.upper())
+                        name = c_PERIOD_TO_OFFSET_FREQSTR.get(name.upper())
 
                     if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
                         warnings.warn(
