@@ -557,7 +557,8 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
     method = getattr(rs, how)
     result = method(skipna=skipna)
 
-    gb = df.groupby(df.shape[0] * [pd.to_datetime("2020-01-31")])
+    ts = pd.to_datetime("2020-01-31").as_unit("ns")
+    gb = df.groupby(df.shape[0] * [ts])
     expected = getattr(gb, how)(skipna=skipna)
     expected.index.freq = "ME"
     tm.assert_frame_equal(result, expected)

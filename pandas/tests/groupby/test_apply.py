@@ -799,7 +799,7 @@ def test_time_field_bug():
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
     dfg_conversion_expected = DataFrame(
-        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+        {"b": pd.Timestamp(2015, 1, 1), "c": 2}, index=[1]
     )
     dfg_conversion_expected.index.name = "a"
 
@@ -1019,7 +1019,7 @@ def test_groupby_apply_datetime_result_dtypes(using_infer_string):
         result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
     dtype = "string" if using_infer_string else object
     expected = Series(
-        [np.dtype("datetime64[ns]"), dtype, dtype, np.int64, dtype],
+        [np.dtype("datetime64[us]"), dtype, dtype, np.int64, dtype],
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)

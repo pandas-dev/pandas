@@ -2634,7 +2634,7 @@ class Index(IndexOpsMixin, PandasObject):
         ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[s]', freq=None)
         >>> idx.isna()
         array([False,  True,  True,  True])
         """

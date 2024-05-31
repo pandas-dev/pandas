@@ -1361,7 +1361,12 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-        msg = "cannot add PeriodArray and DatetimeArray"
+        if box_with_array is pd.DataFrame:
+            # TODO: before implementing resolution-inference we got the same
+            #  message with DataFrame and non-DataFrame.  Why did that change?
+            msg = "cannot add PeriodArray and Timestamp"
+        else:
+            msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
         with pytest.raises(TypeError, match=msg):

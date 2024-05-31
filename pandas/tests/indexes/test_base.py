@@ -186,7 +186,7 @@ class TestIndex:
         "klass,dtype,na_val",
         [
             (Index, np.float64, np.nan),
-            (DatetimeIndex, "datetime64[ns]", pd.NaT),
+            (DatetimeIndex, "datetime64[s]", pd.NaT),
         ],
     )
     def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):

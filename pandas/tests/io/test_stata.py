@@ -181,9 +181,7 @@ class TestStata:
         expected["monthly_date"] = expected["monthly_date"].astype("M8[s]")
         expected["quarterly_date"] = expected["quarterly_date"].astype("M8[s]")
         expected["half_yearly_date"] = expected["half_yearly_date"].astype("M8[s]")
-        expected["yearly_date"] = (
-            expected["yearly_date"].astype("Period[s]").array.view("M8[s]")
-        )
+        expected["yearly_date"] = expected["yearly_date"].astype("M8[s]")
 
         path1 = datapath("io", "data", "stata", "stata2_114.dta")
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
@@ -206,9 +204,9 @@ class TestStata:
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected, check_datetimelike_compat=True)
-        tm.assert_frame_equal(parsed_115, expected, check_datetimelike_compat=True)
-        tm.assert_frame_equal(parsed_117, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_114, expected)
+        tm.assert_frame_equal(parsed_115, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     @pytest.mark.parametrize(
         "file", ["stata3_113", "stata3_114", "stata3_115", "stata3_117"]
@@ -952,8 +950,8 @@ class TestStata:
 
         parsed_115 = read_stata(datapath("io", "data", "stata", "stata9_115.dta"))
         parsed_117 = read_stata(datapath("io", "data", "stata", "stata9_117.dta"))
-        tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)
-        tm.assert_frame_equal(expected, parsed_117, check_datetimelike_compat=True)
+        tm.assert_frame_equal(expected, parsed_115)
+        tm.assert_frame_equal(expected, parsed_117)
 
         date_conversion = {c: c[-2:] for c in columns}
         # {c : c[-2:] for c in columns}
@@ -965,7 +963,6 @@ class TestStata:
         tm.assert_frame_equal(
             written_and_read_again.set_index("index"),
             expected.set_index(expected.index.astype(np.int32)),
-            check_datetimelike_compat=True,
         )
 
     def test_dtype_conversion(self, datapath):
@@ -1252,7 +1249,9 @@ class TestStata:
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
-                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                    from_frame,
+                    chunk,
+                    check_dtype=False,
                 )
                 pos += chunksize
 
@@ -1344,7 +1343,9 @@ class TestStata:
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
-                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                    from_frame,
+                    chunk,
+                    check_dtype=False,
                 )
                 pos += chunksize
 

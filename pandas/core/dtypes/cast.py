@@ -1193,7 +1193,7 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         convert_numeric=False,
         convert_non_numeric=True,
-        dtype_if_all_nat=np.dtype("M8[ns]"),
+        dtype_if_all_nat=np.dtype("M8[s]"),
     )
 
 

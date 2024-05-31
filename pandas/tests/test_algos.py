@@ -1264,6 +1264,7 @@ class TestValueCounts:
             ],
             dtype=dtype,
         )
+
         res = ser.value_counts()
 
         exp_index = Index(

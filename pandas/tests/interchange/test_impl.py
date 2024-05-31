@@ -603,7 +603,8 @@ def test_empty_dataframe():
         ),
         (
             pd.Series(
-                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)],
+                dtype="M8[ns]",
             ),
             (DtypeKind.DATETIME, 64, "tsn:", "="),
             (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),

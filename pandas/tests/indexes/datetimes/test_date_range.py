@@ -803,7 +803,9 @@ class TestDateRanges:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = date_range("2010-01-01", periods=2, freq="m")
-        expected = DatetimeIndex(["2010-01-31", "2010-02-28"], freq="ME")
+        expected = DatetimeIndex(
+            ["2010-01-31", "2010-02-28"], dtype="M8[ns]", freq="ME"
+        )
         tm.assert_index_equal(result, expected)
 
     def test_date_range_bday(self):

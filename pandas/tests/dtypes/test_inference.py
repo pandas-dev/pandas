@@ -830,7 +830,11 @@ class TestInference:
 
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
-        tm.assert_numpy_array_equal(out, arr)
+        if dtype == "datetime64[ns]":
+            expected = np.array(["2363-10-04"], dtype="M8[us]")
+        else:
+            expected = arr
+        tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
         ts = Timestamp("now")

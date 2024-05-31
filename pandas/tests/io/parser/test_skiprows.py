@@ -42,7 +42,9 @@ def test_skip_rows_bug(all_parsers, skiprows):
         StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
     )
     index = Index(
-        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
+        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+        dtype="M8[s]",
+        name=0,
     )
 
     expected = DataFrame(
@@ -85,7 +87,9 @@ def test_skip_rows_blank(all_parsers):
         StringIO(text), skiprows=6, header=None, index_col=0, parse_dates=True
     )
     index = Index(
-        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
+        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+        dtype="M8[s]",
+        name=0,
     )
 
     expected = DataFrame(

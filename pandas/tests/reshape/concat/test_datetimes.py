@@ -213,7 +213,7 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
+    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101").as_unit("ns")])
     def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
         # GH 12396
 
@@ -358,7 +358,7 @@ class TestTimezoneConcat:
 
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y))
-        assert result.dtype == "datetime64[ns, tzlocal()]"
+        assert result.dtype == "datetime64[s, tzlocal()]"
 
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta

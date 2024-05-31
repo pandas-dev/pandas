@@ -40,9 +40,7 @@ def test_read_csv_local(all_parsers, csv1):
 
     fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result.index = result.index.as_unit("ns")
+
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -64,6 +62,7 @@ def test_read_csv_local(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
         ),
     )
@@ -144,9 +143,6 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -168,6 +164,7 @@ def test_read_csv_dataframe(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
         ),
     )

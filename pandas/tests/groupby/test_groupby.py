@@ -1235,7 +1235,7 @@ def test_groupby_nat_exclude():
         {"nan": [np.nan, np.nan, np.nan], "nat": [pd.NaT, pd.NaT, pd.NaT]}
     )
     assert nan_df["nan"].dtype == "float64"
-    assert nan_df["nat"].dtype == "datetime64[ns]"
+    assert nan_df["nat"].dtype == "datetime64[s]"
 
     for key in ["nan", "nat"]:
         grouped = nan_df.groupby(key)

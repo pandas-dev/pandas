@@ -411,7 +411,7 @@ class TestSeriesFillNA:
                 Timestamp("2011-01-02 10:00", tz=tz),
                 Timestamp("2011-01-03 10:00"),
                 Timestamp("2011-01-02 10:00", tz=tz),
-            ]
+            ],
         )
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)

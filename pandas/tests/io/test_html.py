@@ -1044,11 +1044,15 @@ class TestReadHtml:
 
     def test_parse_dates_list(self, flavor_read_html):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
-        expected = df.to_html()
-        res = flavor_read_html(StringIO(expected), parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = flavor_read_html(StringIO(expected), parse_dates=["date"], index_col=0)
-        tm.assert_frame_equal(df, res[0])
+
+        expected = df[:]
+        expected["date"] = expected["date"].dt.as_unit("s")
+
+        str_df = df.to_html()
+        res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
+        res = flavor_read_html(StringIO(str_df), parse_dates=["date"], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")

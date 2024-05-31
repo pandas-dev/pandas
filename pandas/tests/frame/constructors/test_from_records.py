@@ -39,7 +39,7 @@ class TestFromRecords:
         expected = DataFrame({"EXPIRY": [datetime(2005, 3, 1, 0, 0), None]})
 
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
-        dtypes = [("EXPIRY", "<M8[ns]")]
+        dtypes = [("EXPIRY", "<M8[us]")]
 
         recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
