@@ -57,6 +57,31 @@ A total of %d pull requests were merged for this release.
 
 
 def get_authors(revision_range):
+    """
+    Extracts a list of code authors within a specified revision range.
+
+    This function analyzes the git log for the given revision range and identifies
+    all the contributors who authored or co-authored commits. It considers both
+    regular commits and "Co-authored-by" commits used for backports.
+
+    Parameters
+    ----------
+    revision_range : str 
+        A string representing the revision range for analysis. The Expected format is: "<start-revision>..<end-revision>".
+
+    Returns
+    -------
+    list
+        A alphabetically sorted list of author names (strings) who contributed within the revision range. The new authors are marked with a '+'.
+
+    Examples
+    --------    
+    >>> get_authors("v1.0.0..v1.0.1")
+    ['Author1', 'Author2', 'Author3', 'Author4']
+
+    >>> get_authors('v1.0.0..HEAD')
+    ['Author1', 'Author2', 'Author3', 'Author4', 'Author5 +'] 
+    """
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
 
@@ -109,6 +134,39 @@ def get_authors(revision_range):
 
 
 def get_pull_requests(repo, revision_range):
+    """
+    Retrieve pull requests from a Git repository within a specified revision range.
+
+    This function extracts pull request numbers from various types of merge commits (regular merges, Homu auto merges, and fast-forward squash-merges) in a specified revision range of a repository. It then retrieves detailed pull request data from the GitHub repository based on these numbers.
+
+    Parameters
+    ----------
+    repo : Repository object
+        The GitHub repository object from which to retrieve pull request data.
+    revision_range : str
+        The range of revisions to search for pull request merges, specified in a 
+        format recognized by `git log`.
+
+    Returns
+    -------
+    list 
+        A sorted list of pull request objects corresponding to the pull request numbers found in the specified revision range.
+
+    See Also
+    --------
+    Repository.get_pull : Retrieve a pull request by number from the repository.
+
+    Examples
+    --------
+    >>> prs = get_pull_requests(repo, "v1.0.0...v2.0.0")
+    >>> prs
+    [<Pull Request 24>, <Pull Request 25>, <Pull Request 26>]
+    >>> for pr in prs:
+    ...     print(pr.number, pr.title)
+    1 Fix bug in feature X
+    2 Improve documentation
+    3 Add new feature Y
+    """
     prnums = []
 
     # From regular merges
@@ -134,6 +192,37 @@ def get_pull_requests(repo, revision_range):
 
 
 def build_components(revision_range, heading="Contributors"):
+    """
+    Build the components for a contributors section based on a revision range.
+
+    This function extracts the list of authors who contributed within a specified revision range and constructs the components needed for a contributors section, including a heading and an author message.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to search for authors, specified in a format recognized by `git log`.
+    heading : str, optional
+        The heading for the contributors section, default is "Contributors".
+
+    Returns
+    -------
+    dict
+        A dictionary containing the heading, author message, and list of authors who contributed within the specified revision range.
+
+    See Also
+    --------
+    get_authors : Retrieve a list of authors who contributed within a specified revision range.
+
+    Examples
+    --------
+    >>> components = build_components("v1.0.0...v2.0.0")
+    >>> components["heading"]
+    Contributors
+    >>> components["author_message"]
+    There are 10 contributors.
+    >>> components["authors"]
+    ['Author1', 'Author2', 'Author3', ...]
+    """
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
 
@@ -145,6 +234,40 @@ def build_components(revision_range, heading="Contributors"):
 
 
 def build_string(revision_range, heading="Contributors"):
+    """
+    Build a formatted string for the contributors section based on a revision range.
+
+    This function creates a formatted string that includes a heading, an author message, and a list of authors who contributed within a specified revision range. The formatting is designed to be suitable for inclusion in documentation.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to search for authors, specified in a format recognized by `git log`.
+    heading : str, optional
+        The heading for the contributors section, default is "Contributors".
+
+    Returns
+    -------
+    str
+        A formatted string containing the contributors section.
+
+    See Also
+    --------
+    build_components : Build the components for a contributors section.
+
+    Examples
+    --------
+    >>> contrib_string = build_string("v1.0.0...v2.0.0")
+    >>> contrib_string
+    Contributors
+    ============
+    
+    There are 10 contributors.
+    * Author1
+    * Author2
+    * Author3
+    ...
+    """
     components = build_components(revision_range, heading=heading)
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
@@ -162,6 +285,31 @@ def build_string(revision_range, heading="Contributors"):
 
 
 def main(revision_range):
+    """
+    Main function to document authors based on a revision range.
+
+    This function generates and prints a formatted contributors section for a specified 
+    revision range. It serves as the entry point for generating the contributors section 
+    output.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to search for authors, specified in a format recognized 
+        by `git log`.
+
+    Examples
+    --------
+    >>> main("v1.0.0...v2.0.0")
+    Contributors
+    ============
+    
+    There are 10 contributors.
+    * Author1
+    * Author2
+    * Author3
+    ...
+    """
     # document authors
     text = build_string(revision_range)
     print(text)
