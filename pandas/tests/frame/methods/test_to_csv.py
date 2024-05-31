@@ -49,7 +49,9 @@ class TestDataFrameToCSV:
         datetime_frame.index = datetime_frame.index._with_freq(None)
         datetime_frame.to_csv(path)
         recons = self.read_csv(path, parse_dates=True)
-        tm.assert_frame_equal(datetime_frame, recons)
+        expected = datetime_frame.copy()
+        expected.index = expected.index.as_unit("s")
+        tm.assert_frame_equal(expected, recons)
 
         datetime_frame.to_csv(path, index_label="index")
         recons = self.read_csv(path, index_col=None, parse_dates=True)
@@ -149,9 +151,11 @@ class TestDataFrameToCSV:
             lambda c: to_datetime(result[c])
             .dt.tz_convert("UTC")
             .dt.tz_convert(timezone_frame[c].dt.tz)
+            .dt.as_unit("ns")
         )
         result["B"] = converter("B")
         result["C"] = converter("C")
+        result["A"] = result["A"].dt.as_unit("ns")
         tm.assert_frame_equal(result, timezone_frame)
 
     def test_to_csv_cols_reordering(self, temp_file):
@@ -233,8 +237,12 @@ class TestDataFrameToCSV:
         df = DataFrame({"a": s1, "b": s2})
         df.to_csv(path, chunksize=chunksize)
 
-        recons = self.read_csv(path).apply(to_datetime)
-        tm.assert_frame_equal(df, recons, check_names=False)
+        result = self.read_csv(path).apply(to_datetime)
+
+        expected = df[:]
+        expected["a"] = expected["a"].astype("M8[s]")
+        expected["b"] = expected["b"].astype("M8[s]")
+        tm.assert_frame_equal(result, expected, check_names=False)
 
     def _return_result_expected(
         self,
@@ -352,6 +360,7 @@ class TestDataFrameToCSV:
             columns=Index(list("abcd"), dtype=object),
         )
         result, expected = self._return_result_expected(df, 1000, "dt", "s")
+        expected.index = expected.index.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
@@ -381,6 +390,10 @@ class TestDataFrameToCSV:
             r_idx_type,
             c_idx_type,
         )
+        if r_idx_type in ["dt", "p"]:
+            expected.index = expected.index.astype("M8[ns]")
+        if c_idx_type in ["dt", "p"]:
+            expected.columns = expected.columns.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
@@ -565,7 +578,9 @@ class TestDataFrameToCSV:
             recons = self.read_csv(path, index_col=[0, 1], parse_dates=True)
 
         # TODO to_csv drops column name
-        tm.assert_frame_equal(tsframe, recons, check_names=False)
+        expected = tsframe.copy()
+        expected.index = MultiIndex.from_arrays([old_index.as_unit("s"), new_index[1]])
+        tm.assert_frame_equal(recons, expected, check_names=False)
 
         # do not load index
         tsframe.to_csv(path)
@@ -741,7 +756,7 @@ class TestDataFrameToCSV:
             "foo", index=df_float.index, columns=create_cols("object")
         )
         df_dt = DataFrame(
-            Timestamp("20010101").as_unit("ns"),
+            Timestamp("20010101"),
             index=df_float.index,
             columns=create_cols("date"),
         )
@@ -789,9 +804,7 @@ class TestDataFrameToCSV:
         )
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
-        df_dt = DataFrame(
-            Timestamp("20010101").as_unit("ns"), index=df_float.index, columns=range(3)
-        )
+        df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
         df = pd.concat(
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
@@ -1167,7 +1180,11 @@ class TestDataFrameToCSV:
         # we have to reconvert the index as we
         # don't parse the tz's
         result = read_csv(path, index_col=0)
-        result.index = to_datetime(result.index, utc=True).tz_convert("Europe/London")
+        result.index = (
+            to_datetime(result.index, utc=True)
+            .tz_convert("Europe/London")
+            .as_unit("ns")
+        )
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
@@ -1186,8 +1203,10 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             df.to_csv(path, index=True)
             result = read_csv(path, index_col=0)
-            result.index = to_datetime(result.index, utc=True).tz_convert(
-                "Europe/Paris"
+            result.index = (
+                to_datetime(result.index, utc=True)
+                .tz_convert("Europe/Paris")
+                .as_unit("ns")
             )
             result["idx"] = to_datetime(result["idx"], utc=True).astype(
                 "datetime64[ns, Europe/Paris]"

@@ -157,6 +157,7 @@ def _convert_arrays_to_dataframe(
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
+    idx_len = content.shape[0]
     arrays = convert_object_array(
         list(content.T),
         dtype=None,
@@ -177,9 +178,9 @@ def _convert_arrays_to_dataframe(
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
-        df = DataFrame(dict(zip(range(len(columns)), arrays)))
-        df.columns = columns
-        return df
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=range(idx_len), verify_integrity=False
+        )
     else:
         return DataFrame(columns=columns)
 
