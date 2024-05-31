@@ -87,7 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.nlevels SA01" \
         -i "pandas.MultiIndex.remove_unused_levels RT03,SA01" \
         -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
-        -i "pandas.MultiIndex.set_codes SA01" \
         -i "pandas.MultiIndex.set_levels RT03,SA01" \
         -i "pandas.MultiIndex.sortlevel PR07,SA01" \
         -i "pandas.MultiIndex.to_frame RT03" \
