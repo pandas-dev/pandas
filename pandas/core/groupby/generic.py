@@ -158,9 +158,6 @@ class NamedAgg(_BaseNamedAgg):
 
         return wrapped_aggfunc
 
-    def __repr__(self):
-        return f"NamedAgg(column='{self.column}', aggfunc={self.aggfunc})"
-
 
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
