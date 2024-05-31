@@ -79,7 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
         -i "pandas.MultiIndex.drop PR07,RT03,SA01" \
-        -i "pandas.MultiIndex.dtypes SA01" \
         -i "pandas.MultiIndex.get_level_values SA01" \
         -i "pandas.MultiIndex.get_loc PR07" \
         -i "pandas.MultiIndex.get_loc_level PR07" \
