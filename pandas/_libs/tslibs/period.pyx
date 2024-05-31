@@ -2329,6 +2329,12 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        See Also
+        --------
+        Timestamp.quarter : Return the quarter of the Timestamp.
+        Period.year : Return the year of the period.
+        Period.month : Return the month of the period.
+
         Examples
         --------
         >>> period = pd.Period('2022-04', 'M')
