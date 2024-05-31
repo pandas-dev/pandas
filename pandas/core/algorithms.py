@@ -1679,7 +1679,8 @@ def map_array(
         return arr.copy()
 
     na_value = None
-    if isinstance(arr.dtype, BaseMaskedDtype):
+    mask = isna(arr)
+    if isinstance(arr.dtype, BaseMaskedDtype) and na_action is None:
         arr = cast("BaseMaskedArray", arr)
         values = arr._data
         if arr._hasna:
@@ -1687,7 +1688,7 @@ def map_array(
     else:
         # we must convert to python types
         values = arr.astype(object, copy=False)
-    mask = isna(arr)
+
     if na_action is None:
         return lib.map_infer(
             values,
