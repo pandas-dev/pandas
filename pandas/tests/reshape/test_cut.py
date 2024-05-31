@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -445,10 +447,16 @@ def test_datetime_bin(conv):
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
             ]
         )
-    ).astype(CategoricalDtype(ordered=True))
+    )
 
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
+
+    if type(bins[0]) is datetime:
+        # The bins have microsecond dtype -> so does result
+        expected = expected.astype("interval[datetime64[us]]")
+
+    expected = expected.astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -460,10 +468,6 @@ def test_datetime_cut(unit, box):
     data = to_datetime(["2013-01-01", "2013-01-02", "2013-01-03"]).astype(f"M8[{unit}]")
     data = box(data)
     result, _ = cut(data, 3, retbins=True)
-
-    if box is list:
-        # We don't (yet) do inference on these, so get nanos
-        unit = "ns"
 
     if unit == "s":
         # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
@@ -531,24 +535,26 @@ def test_datetime_tz_cut(bins, box):
         bins = box(bins)
 
     result = cut(ser, bins)
-    expected = Series(
-        IntervalIndex(
-            [
-                Interval(
-                    Timestamp("2012-12-31 23:57:07.200000", tz=tz),
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                ),
-                Interval(
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                ),
-                Interval(
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                    Timestamp("2013-01-03 00:00:00", tz=tz),
-                ),
-            ]
-        )
-    ).astype(CategoricalDtype(ordered=True))
+    ii = IntervalIndex(
+        [
+            Interval(
+                Timestamp("2012-12-31 23:57:07.200000", tz=tz),
+                Timestamp("2013-01-01 16:00:00", tz=tz),
+            ),
+            Interval(
+                Timestamp("2013-01-01 16:00:00", tz=tz),
+                Timestamp("2013-01-02 08:00:00", tz=tz),
+            ),
+            Interval(
+                Timestamp("2013-01-02 08:00:00", tz=tz),
+                Timestamp("2013-01-03 00:00:00", tz=tz),
+            ),
+        ]
+    )
+    if isinstance(bins, int):
+        # the dtype is inferred from ser, which has nanosecond unit
+        ii = ii.astype("interval[datetime64[ns, US/Eastern]]")
+    expected = Series(ii).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 

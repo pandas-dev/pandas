@@ -346,14 +346,15 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
 
     >>> pd.unique(
     ...     pd.Series(
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     <DatetimeArray>
@@ -365,7 +366,8 @@ def unique(values):
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],

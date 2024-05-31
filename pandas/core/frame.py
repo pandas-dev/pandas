@@ -13286,7 +13286,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[s]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
