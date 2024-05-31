@@ -82,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.get_level_values SA01" \
         -i "pandas.MultiIndex.get_loc PR07" \
         -i "pandas.MultiIndex.get_loc_level PR07" \
-        -i "pandas.MultiIndex.levels SA01" \
         -i "pandas.MultiIndex.levshape SA01" \
         -i "pandas.MultiIndex.names SA01" \
         -i "pandas.MultiIndex.nlevels SA01" \
