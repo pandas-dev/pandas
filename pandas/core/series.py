@@ -2060,14 +2060,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[ns]
+        Length: 1, dtype: datetime64[s]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[ns, US/Eastern]
+        Length: 1, dtype: datetime64[s, US/Eastern]
 
         An Categorical will return categories in the order of
         appearance and with the same dtype.
@@ -3175,6 +3175,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other = other.reindex(keep_other)
 
         if this.dtype.kind == "M" and other.dtype.kind != "M":
+            # TODO: try to match resos?
             other = to_datetime(other)
         combined = concat([this, other])
         combined = combined.reindex(new_index)
