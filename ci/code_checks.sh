@@ -74,7 +74,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.plot PR02,SA01" \
+        -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
@@ -165,7 +165,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.lt SA01" \
         -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Series.plot PR02,SA01" \
+        -i "pandas.Series.plot PR02" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
@@ -360,7 +360,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.prod SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sum SA01" \
@@ -378,7 +378,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.min SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.prod SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sum SA01" \
