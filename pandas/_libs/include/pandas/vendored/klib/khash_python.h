@@ -156,7 +156,7 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 
 // NaN-floats should be in the same equivalency class, see GH 22119
 static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
-  return (Py_IS_NAN(PyFloat_AS_DOUBLE(a)) && Py_IS_NAN(PyFloat_AS_DOUBLE(b))) ||
+  return (isnan(PyFloat_AS_DOUBLE(a)) && isnan(PyFloat_AS_DOUBLE(b))) ||
          (PyFloat_AS_DOUBLE(a) == PyFloat_AS_DOUBLE(b));
 }
 
@@ -164,12 +164,12 @@ static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
 // PyObject_RichCompareBool for complexobjects has a different behavior
 // needs to be replaced
 static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
-  return (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
-          Py_IS_NAN(a->cval.imag) && Py_IS_NAN(b->cval.imag)) ||
-         (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
+  return (isnan(a->cval.real) && isnan(b->cval.real) && isnan(a->cval.imag) &&
+          isnan(b->cval.imag)) ||
+         (isnan(a->cval.real) && isnan(b->cval.real) &&
           a->cval.imag == b->cval.imag) ||
-         (a->cval.real == b->cval.real && Py_IS_NAN(a->cval.imag) &&
-          Py_IS_NAN(b->cval.imag)) ||
+         (a->cval.real == b->cval.real && isnan(a->cval.imag) &&
+          isnan(b->cval.imag)) ||
          (a->cval.real == b->cval.real && a->cval.imag == b->cval.imag);
 }
 
@@ -223,7 +223,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
   // Since Python3.10, nan is no longer has hash 0
-  if (Py_IS_NAN(val)) {
+  if (isnan(val)) {
     return 0;
   }
 #if PY_VERSION_HEX < 0x030A0000
