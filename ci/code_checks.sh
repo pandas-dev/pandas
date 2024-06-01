@@ -482,8 +482,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
         -i "pandas.plotting.table PR07,RT03,SA01" \
         -i "pandas.qcut PR07,SA01" \
+        -i "pandas.read_feather SA01" \
         -i "pandas.read_orc SA01" \
-        -i "pandas.read_sas SA01" \
         -i "pandas.read_spss SA01" \
         -i "pandas.reset_option SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
