@@ -142,7 +142,7 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
@@ -462,7 +462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _accessors = {"str"}
 
-    str = CachedAccessor("str", StringMethods)
+    str = Accessor("str", StringMethods)
 
     _references = None
 
@@ -2634,7 +2634,7 @@ class Index(IndexOpsMixin, PandasObject):
         ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[s]', freq=None)
         >>> idx.isna()
         array([False,  True,  True,  True])
         """
@@ -3140,7 +3140,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
-                value_list.extend([x for x in rvals if x not in value_set])
+                value_list.extend(x for x in rvals if x not in value_set)
                 # If objects are unorderable, we must have object dtype.
                 return np.array(value_list, dtype=object)
 
@@ -7620,8 +7620,8 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     list
         A list representing the unanimous 'names' found.
     """
-    name_tups = [tuple(i.names) for i in indexes]
-    name_sets = [{*ns} for ns in zip_longest(*name_tups)]
+    name_tups = (tuple(i.names) for i in indexes)
+    name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
 

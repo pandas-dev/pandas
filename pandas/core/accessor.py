@@ -195,17 +195,11 @@ def delegate_names(
     return add_delegate_accessors
 
 
-# Ported with modifications from xarray; licence at LICENSES/XARRAY_LICENSE
-# https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
-# 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
-# 2. We use a UserWarning instead of a custom Warning
-
-
-class CachedAccessor:
+class Accessor:
     """
     Custom property-like object.
 
-    A descriptor for caching accessors.
+    A descriptor for accessors.
 
     Parameters
     ----------
@@ -229,13 +223,12 @@ class CachedAccessor:
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
-        accessor_obj = self._accessor(obj)
-        # Replace the property with the accessor object. Inspired by:
-        # https://www.pydanny.com/cached-property.html
-        # We need to use object.__setattr__ because we overwrite __setattr__ on
-        # NDFrame
-        object.__setattr__(obj, self._name, accessor_obj)
-        return accessor_obj
+        return self._accessor(obj)
+
+
+# Alias kept for downstream libraries
+# TODO: Deprecate as name is now misleading
+CachedAccessor = Accessor
 
 
 @doc(klass="", examples="", others="")
@@ -295,7 +288,7 @@ def _register_accessor(
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
-        setattr(cls, name, CachedAccessor(name, accessor))
+        setattr(cls, name, Accessor(name, accessor))
         cls._accessors.add(name)
         return accessor
 

@@ -759,14 +759,6 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         values = ensure_wrapped_if_datetimelike(values)
 
         if not isinstance(values, type(self)):
-            inferable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
             if values.dtype == object:
                 values = lib.maybe_convert_objects(
                     values,  # type: ignore[arg-type]
@@ -775,32 +767,11 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
                 if values.dtype != object:
                     return self.isin(values)
-
-                inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferable:
-                    if inferred == "string":
-                        pass
-
-                    elif "mixed" in inferred:
-                        return isin(self.astype(object), values)
-                    else:
-                        return np.zeros(self.shape, dtype=bool)
-
-            try:
-                values = type(self)._from_sequence(values)
-            except ValueError:
-                return isin(self.astype(object), values)
-            else:
-                warnings.warn(
-                    # GH#53111
-                    f"The behavior of 'isin' with dtype={self.dtype} and "
-                    "castable values (e.g. strings) is deprecated. In a "
-                    "future version, these will not be considered matching "
-                    "by isin. Explicitly cast to the appropriate dtype before "
-                    "calling isin instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+                else:
+                    # TODO: Deprecate this case
+                    # https://github.com/pandas-dev/pandas/pull/58645/files#r1604055791
+                    return isin(self.astype(object), values)
+            return np.zeros(self.shape, dtype=bool)
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
@@ -1878,11 +1849,11 @@ _round_example = """>>> rng.round('h')
 
     >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('h')
@@ -1905,11 +1876,11 @@ _floor_example = """>>> rng.floor('h')
 
     >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                 dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                 dtype='datetime64[s, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('h')
@@ -1932,11 +1903,11 @@ _ceil_example = """>>> rng.ceil('h')
 
     >>> rng_tz.ceil("h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.ceil("h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
     """
 
 

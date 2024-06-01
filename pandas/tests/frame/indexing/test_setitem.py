@@ -162,7 +162,7 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
+        df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
             [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
@@ -838,6 +838,7 @@ class TestSetitemTZAwareValues:
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
+        expected = expected.dt.as_unit("us")
         tm.assert_series_equal(result, expected)
 
 

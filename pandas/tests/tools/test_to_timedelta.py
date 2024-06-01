@@ -29,7 +29,7 @@ class TestTimedeltas:
         #  supported GH#29794
         msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
 
-        ser = Series([pd.NaT])
+        ser = Series([pd.NaT], dtype="M8[ns]")
         with pytest.raises(TypeError, match=msg):
             to_timedelta(ser)
         with pytest.raises(TypeError, match=msg):

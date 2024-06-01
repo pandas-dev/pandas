@@ -75,6 +75,5 @@ class TestIndexConstructor:
     def test_constructor_not_read_only(self):
         # GH#57130
         ser = Series([1, 2], dtype=object)
-        with pd.option_context("mode.copy_on_write", True):
-            idx = Index(ser)
-            assert idx._values.flags.writeable
+        idx = Index(ser)
+        assert idx._values.flags.writeable
