@@ -488,7 +488,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.read_spss SA01" \
         -i "pandas.reset_option SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
-        -i "pandas.set_option SA01" \
         -i "pandas.show_versions SA01" \
         -i "pandas.test SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
