@@ -107,6 +107,14 @@ def read_feather(
     type of object stored in file
         DataFrame object stored in the file.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_sas : Read SAS file into a pandas DataFrame.
+
     Examples
     --------
     >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
