@@ -2579,7 +2579,7 @@ cdef class YearEnd(YearOffset):
 
     YearEnd goes to the next date which is the end of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
