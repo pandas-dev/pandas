@@ -273,6 +273,11 @@ def timedelta_range(
     TimedeltaIndex
         Fixed frequency, with day as the default.
 
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
