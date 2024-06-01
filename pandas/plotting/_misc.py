@@ -617,6 +617,14 @@ class _Options(dict):
     the same as the plot function parameters, but is stored in a canonical
     format that makes it easy to breakdown into groups later.
 
+    See Also
+    --------
+    plotting.register_matplotlib_converters : Register pandas formatters and
+        converters with matplotlib.
+    plotting.bootstrap_plot : Bootstrap plot on mean, median and mid-range statistics.
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    plotting.lag_plot : Lag plot for time series.
+
     Examples
     --------
 
