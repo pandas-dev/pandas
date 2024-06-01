@@ -57,6 +57,22 @@ A total of %d pull requests were merged for this release.
 
 
 def get_authors(revision_range):
+    """
+    Extract authors from a range of revisions.
+
+    This designed to list the authors who contributed to a given range of revisions in a Git repository. 
+    It identifies new contributors within range and distinguishes them with a "+" sign.
+
+    Parameters
+    ----------
+    revision_range : str
+        Release dates.
+
+    Returns
+    -------
+    List
+        List of authors.
+    """
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
 
@@ -109,6 +125,24 @@ def get_authors(revision_range):
 
 
 def get_pull_requests(repo, revision_range):
+    """
+    Extract pull request numbers from a range of revisions
+
+    This function identifies pull requests merged in a given range of revisions
+    in a Git repository. It includes regular merges, auto merges, and squash-merges.
+
+    Parameters
+    ----------
+    repo : github.Repository.Repository
+        The GitHub repository object.
+    revision_range : str
+        The range of revisions to examine, in the format "<start_revision>..<end_revision>".
+
+    Returns
+    -------
+    List
+        List of pull requests.
+    """
     prnums = []
 
     # From regular merges
@@ -134,6 +168,24 @@ def get_pull_requests(repo, revision_range):
 
 
 def build_components(revision_range, heading="Contributors"):
+    """
+    Build components for the release notes
+
+    This function constructs the components required for generating the release notes,
+    including the heading, author message, and list of authors.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to examine, in the format "<start_revision>..<end_revision>".
+    heading : str, optional
+        The heading for the release notes, by default "Contributors".
+
+    Returns
+    -------
+    dict
+        Dictionary containing the heading, author message, and list of authors.
+    """
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
 
@@ -145,6 +197,24 @@ def build_components(revision_range, heading="Contributors"):
 
 
 def build_string(revision_range, heading="Contributors"):
+    """
+    Build the release notes string
+
+    This function formats the release notes as a string using the components generated
+    by build_components.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to examine, in the format "<start_revision>..<end_revision>".
+    heading : str, optional
+        The heading for the release notes, by default "Contributors".
+
+    Returns
+    -------
+    str
+        Formatted release notes.
+    """
     components = build_components(revision_range, heading=heading)
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
@@ -162,6 +232,17 @@ def build_string(revision_range, heading="Contributors"):
 
 
 def main(revision_range):
+    """
+    Main function to generate and print the release notes
+
+    This function generates the release notes for the given revision range
+    and prints them to the standard output.
+
+    Parameters
+    ----------
+    revision_range : str
+        The range of revisions to examine, in the format "<start_revision>..<end_revision>".
+    """
     # document authors
     text = build_string(revision_range)
     print(text)
