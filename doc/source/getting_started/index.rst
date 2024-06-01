@@ -134,7 +134,7 @@ to explore, clean, and process your data. In pandas, a data table is called a :c
             <div id="collapseTwo" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
+pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). The ability to import data from each of these
 data sources is provided by functions with the prefix, ``read_*``. Similarly, the ``to_*`` methods are used to store data.
 
 .. image:: ../_static/schemas/02_io_readwrite.svg
@@ -369,8 +369,8 @@ data set, a sliding window of the data, or grouped by categories. The latter is 
             <div id="collapseSeven" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Change the structure of your data table in a variety of ways. You can :func:`~pandas.melt` your data table from wide to long and tidy or :func:`~pandas.pivot`
-from long to wide format. With aggregations built-in, a pivot table is created with a single command.
+Change the structure of your data table in a variety of ways. You can use :func:`~pandas.melt` to reshape your data from a wide format to a long and tidy one. Use :func:`~pandas.pivot`
+ to go from long to wide format. With aggregations built-in, a pivot table can be created with a single command.
 
 .. image:: ../_static/schemas/07_melt.svg
    :align: center
@@ -505,7 +505,7 @@ pandas has great support for time series, as well as an extensive set of tools f
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets generally contain much more than numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
+Data sets often contain more than just numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 
