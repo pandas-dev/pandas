@@ -4713,6 +4713,34 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
+def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
+    if not is_period:
+        if alias.upper() in c_OFFSET_RENAMED_FREQSTR:
+            raise ValueError(
+                f"\'{alias}\' is no longer supported for offsets. Please "
+                f"use \'{c_OFFSET_RENAMED_FREQSTR.get(alias.upper())}\' "
+                f"instead."
+            )
+        if (alias.upper() != alias and
+                alias.lower() not in {"s", "ms", "us", "ns"} and
+                alias.upper().split("-")[0].endswith(("S", "E"))):
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+    if (is_period and
+            alias.upper() in c_OFFSET_TO_PERIOD_FREQSTR and
+            alias != "ms" and
+            alias.upper().split("-")[0].endswith(("S", "E"))):
+        if (alias.upper().startswith("B") or
+                alias.upper().startswith("S") or
+                alias.upper().startswith("C")):
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+        else:
+            alias_msg = "".join(alias.upper().split("E", 1))
+            raise ValueError(
+                f"for Period, please use \'{alias_msg}\' "
+                f"instead of \'{alias}\'"
+            )
+
+
 # TODO: better name?
 def _get_offset(name: str) -> BaseOffset:
     """
@@ -4852,33 +4880,9 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if not is_period:
-                    if name.upper() in c_OFFSET_RENAMED_FREQSTR:
-                        raise ValueError(
-                            f"\'{name}\' is no longer supported for offsets. Please "
-                            f"use \'{c_OFFSET_RENAMED_FREQSTR.get(name.upper())}\' "
-                            f"instead."
-                        )
-                    if (name.upper() != name and
-                            name.lower() not in {"s", "ms", "us", "ns"} and
-                            name.upper().split("-")[0].endswith(("S", "E"))):
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                if (is_period and
-                        name.upper() in c_OFFSET_TO_PERIOD_FREQSTR and
-                        name != "ms" and
-                        name.upper().split("-")[0].endswith(("S", "E"))):
-                    if (name.upper().startswith("B") or
-                            name.upper().startswith("S") or
-                            name.upper().startswith("C")):
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    else:
-                        name_msg = "".join(name.upper().split("E", 1))
-                        raise ValueError(
-                            f"for Period, please use \'{name_msg}\' "
-                            f"instead of \'{name}\'"
-                        )
+                _validate_to_offset_alias(name, is_period)
                 if is_period:
-                    if name.upper() in c_OFFSET_RENAMED_FREQSTR:
+                    if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
                         if name.upper() != name:
                             raise ValueError(
                                 f"\'{name}\' is no longer supported, "
