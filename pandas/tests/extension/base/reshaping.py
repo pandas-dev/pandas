@@ -269,7 +269,7 @@ class BaseReshapingTests:
 
         if isinstance(expected, pd.Series):
             if future_stack and isinstance(data.dtype, NumpyEADtype):
-                # future_stack=True constructs the result specifying the dtype
+                # GH#58817 future_stack=True constructs the result specifying the dtype
                 # using the dtype of the input; we thus get the underlying
                 # NumPy dtype as the result instead of the NumpyExtensionArray
                 assert result.dtype == df.iloc[:, 0].to_numpy().dtype
