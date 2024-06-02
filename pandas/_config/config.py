@@ -157,6 +157,12 @@ def get_option(pat: str) -> Any:
     ------
     OptionError : if no such option exists
 
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
+
     Notes
     -----
     For all available options, please view the :ref:`User Guide <options.available>`
@@ -204,6 +210,14 @@ def set_option(*args) -> None:
     ValueError if odd numbers of non-keyword arguments are provided
     TypeError if keyword arguments are provided
     OptionError if no such option exists
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
+    option_context : Context manager to temporarily set options in a ``with``
+        statement.
 
     Notes
     -----

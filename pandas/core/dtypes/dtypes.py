@@ -205,7 +205,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     by providing an empty index. As follows,
 
     >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
-    dtype('<M8[ns]')
+    dtype('<M8[s]')
     """
 
     # TODO: Document public vs. private API
@@ -680,10 +680,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
 
         # categorical is aware of Sparse -> extract sparse subdtypes
-        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        subtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
         # extract the categories' dtype
         non_cat_dtypes = [
-            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x
+            for x in subtypes
         ]
         # TODO should categorical always give an answer?
         from pandas.core.dtypes.cast import find_common_type
@@ -1665,7 +1666,10 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    This dtype implements the pandas ExtensionDtype interface.
+    `SparseDtype` is used as the data type for :class:`SparseArray`, enabling
+    more efficient storage of data that contains a significant number of
+    repetitive values typically represented by a fill value. It supports any
+    scalar dtype as the underlying data type of the non-fill values.
 
     Parameters
     ----------
@@ -1694,6 +1698,11 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    arrays.SparseArray : The array structure that uses SparseDtype
+        for data representation.
 
     Examples
     --------

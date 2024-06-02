@@ -21,7 +21,6 @@ from collections.abc import (
     Sequence,
 )
 import functools
-from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -126,7 +125,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
@@ -4474,6 +4473,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
+        This method can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
+
         Parameters
         ----------
         expr : str
@@ -4576,36 +4578,44 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C C": range(10, 5, -1)}
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
         ... )
         >>> df
-           A   B  C C
+           A   B  C&C
         0  1  10   10
         1  2   8    9
         2  3   6    8
         3  4   4    7
         4  5   2    6
         >>> df.query("A > B")
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         The previous expression is equivalent to
 
         >>> df[df.A > df.B]
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         For columns with spaces in their name, you can use backtick quoting.
 
-        >>> df.query("B == `C C`")
-           A   B  C C
+        >>> df.query("B == `C&C`")
+           A   B  C&C
         0  1  10   10
 
         The previous expression is equivalent to
 
-        >>> df[df.B == df["C C"]]
-           A   B  C C
+        >>> df[df.B == df["C&C"]]
+           A   B  C&C
         0  1  10   10
+
+        Using local variable:
+
+        >>> local_var = 2
+        >>> df.query("A <= @local_var")
+        A   B  C&C
+        0  1  10   10
+        1  2   8    9
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
@@ -4646,6 +4656,13 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         expr : str
             The expression string to evaluate.
+
+            You can refer to variables
+            in the environment by prefixing them with an '@' character like
+            ``@a + b``.
+
+            You can refer to column names that are not valid Python variable
+            names by surrounding them with backticks `````.
         inplace : bool, default False
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
@@ -4677,14 +4694,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": range(1, 6), "B": range(10, 0, -2)})
+        >>> df = pd.DataFrame(
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
+        ... )
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.eval("A + B")
         0    11
         1    10
@@ -4696,35 +4715,55 @@ class DataFrame(NDFrame, OpsMixin):
         Assignment is allowed though by default the original DataFrame is not
         modified.
 
-        >>> df.eval("C = A + B")
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
+        >>> df.eval("D = A + B")
+           A   B  C&C   D
+        0  1  10   10  11
+        1  2   8    9  10
+        2  3   6    8   9
+        3  4   4    7   8
+        4  5   2    6   7
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
 
         Multiple columns can be assigned to using multi-line expressions:
 
         >>> df.eval(
         ...     '''
-        ... C = A + B
-        ... D = A - B
+        ... D = A + B
+        ... E = A - B
         ... '''
         ... )
-           A   B   C  D
-        0  1  10  11 -9
-        1  2   8  10 -6
-        2  3   6   9 -3
-        3  4   4   8  0
-        4  5   2   7  3
+           A   B  C&C   D  E
+        0  1  10   10  11 -9
+        1  2   8    9  10 -6
+        2  3   6    8   9 -3
+        3  4   4    7   8  0
+        4  5   2    6   7  3
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.eval("B * `C&C`")
+        0    100
+        1     72
+        2     48
+        3     28
+        4     12
+
+        Local variables shall be explicitly referenced using ``@``
+        character in front of the name:
+
+        >>> local_var = 2
+        >>> df.eval("@local_var * A")
+        0     2
+        1     4
+        2     6
+        3     8
+        4    10
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -5060,22 +5099,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
-        if (
-            isinstance(value, Index)
-            and value.dtype == "object"
-            and arr.dtype != value.dtype
-        ):  #
-            # TODO: Remove kludge in sanitize_array for string mode when enforcing
-            # this deprecation
-            warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will stop "
-                "inferring another dtype in a future version. Cast the Index "
-                "explicitly before setting it into the DataFrame.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return arr, None
+        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
     def _series(self):
@@ -7016,19 +7040,19 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                # error: List comprehension has incompatible type List[Series];
-                # expected List[ndarray]
-                keys = [
-                    Series(k, name=name)  # type: ignore[misc]
-                    for (k, name) in zip(keys, by)
-                ]
+                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+            else:
+                # error: Argument 1 to "list" has incompatible type
+                # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
+                # expected "Iterable[Series]"
+                keys_data = list(keys)  # type: ignore[arg-type]
 
             indexer = lexsort_indexer(
-                keys, orders=ascending, na_position=na_position, key=key
+                keys_data, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
             # len(by) == 1
@@ -11424,28 +11448,11 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        dtype_has_keepdims: dict[ExtensionDtype, bool] = {}
-
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                has_keepdims = dtype_has_keepdims.get(values.dtype)
-                if has_keepdims is None:
-                    sign = signature(values._reduce)
-                    has_keepdims = "keepdims" in sign.parameters
-                    dtype_has_keepdims[values.dtype] = has_keepdims
-                if has_keepdims:
-                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
-                else:
-                    warnings.warn(
-                        f"{type(values)}._reduce will require a `keepdims` parameter "
-                        "in the future",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    result = values._reduce(name, skipna=skipna, **kwds)
-                    return np.array([result])
+                return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -13292,7 +13299,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[s]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
@@ -13515,10 +13522,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
     hist = pandas.plotting.hist_frame
     boxplot = pandas.plotting.boxplot_frame
-    sparse = CachedAccessor("sparse", SparseFrameAccessor)
+    sparse = Accessor("sparse", SparseFrameAccessor)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods

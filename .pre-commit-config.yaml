@@ -90,6 +90,7 @@ repos:
     rev: v0.9.1
     hooks:
     - id: sphinx-lint
+      args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v18.1.4
     hooks:

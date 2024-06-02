@@ -121,7 +121,7 @@ class TestCategoricalMissing:
     @pytest.mark.parametrize(
         "na_value, dtype",
         [
-            (pd.NaT, "datetime64[ns]"),
+            (pd.NaT, "datetime64[s]"),
             (None, "object"),
             (np.nan, "float64"),
             (pd.NA, "object"),
