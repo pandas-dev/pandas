@@ -319,12 +319,10 @@ class TestDataFrameQuantile:
         result = DataFrame({"x": [], "y": []}).quantile(
             [0.1, 0.9], axis=0, interpolation=interpolation, method=method
         )
-        # dtype = "float64" if method == "single" else "object"
-        dtype = "object"
         expected = DataFrame(
             {"x": [np.nan, np.nan], "y": [np.nan, np.nan]},
             index=[0.1, 0.9],
-            dtype=dtype,
+            dtype="object",
         )
         tm.assert_frame_equal(result, expected)
 
@@ -692,10 +690,8 @@ class TestDataFrameQuantile:
         res = df.quantile(
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = exp.astype(object)
-        if True or interpolation == "nearest":
-            # GH#18463 TODO: would we prefer NaTs here?
-            exp = exp.fillna(np.nan)
+        # GH#18463 TODO: would we prefer NaTs here?
+        exp = exp.astype(object).fillna(pd.NaT)
         tm.assert_series_equal(res, exp)
 
         # both dt64tz
@@ -912,7 +908,7 @@ class TestQuantileExtensionDtype:
     @pytest.mark.parametrize(
         "expected_data, expected_index, axis",
         [
-            [[pd.NaT, pd.NaT], range(2), 1],
+            [[np.nan, np.nan], range(2), 1],
             [[], [], 0],
         ],
     )
@@ -927,6 +923,6 @@ class TestQuantileExtensionDtype:
         )
         result = df[["a", "c"]].quantile(0.5, axis=axis, numeric_only=True)
         expected = Series(
-            expected_data, name=0.5, index=Index(expected_index)
+            expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
         )
         tm.assert_series_equal(result, expected)

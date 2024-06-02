@@ -83,6 +83,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
+    ensure_dtype_can_hold_na,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -13046,6 +13047,7 @@ class DataFrame(NDFrame, OpsMixin):
         Name: 0.5, dtype: object
         """
         from pandas.core.dtypes.common import is_object_dtype
+
         validate_percentile(q)
         axis = self._get_axis_number(axis)
 
@@ -13075,6 +13077,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if axis == 1:
             data = data.T
+            if data.shape[0] == 0:
+                # The transpose has no rows, so the original has no columns, meaning we
+                # have no dtype information. Since this is quantile, default to float64
+                data = data.astype("float64")
 
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
@@ -13098,14 +13104,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         # handle degenerate case
         if len(data) == 0:
-            dtype = np.float64
-            if data.ndim == 2:
-                cdtype = find_common_type(list(self.dtypes))
-            else:
-                cdtype = self.dtype
-            if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
-                dtype = cdtype
-            return self._constructor([], index=q, columns=data.columns, dtype=dtype)
+            from pandas import array
+
+            result = self._constructor(
+                {
+                    idx: array(len(q) * [np.nan], dtype=ensure_dtype_can_hold_na(dtype))
+                    for idx, dtype in enumerate(data.dtypes)
+                },
+                index=q,
+            )
+            result.columns = data.columns
+            return result
 
         if method == "single":
             res = data._mgr.quantile(qs=q, interpolation=interpolation)
