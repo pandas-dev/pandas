@@ -145,10 +145,9 @@ class TestTSPlot:
         color = (0.0, 0.0, 0.0, 1)
         assert color == ax.get_lines()[0].get_color()
 
-    def test_both_style_and_color(self):
-        ts = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
+    @pytest.mark.parametrize("index", [None, date_range("2020-01-01", periods=10)])
+    def test_both_style_and_color(self, index):
+        ts = Series(np.arange(10, dtype=np.float64), index=index)
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
             "keyword argument. Please use one or the other or pass 'style' "
@@ -156,10 +155,6 @@ class TestTSPlot:
         )
         with pytest.raises(ValueError, match=msg):
             ts.plot(style="b-", color="#000099")
-
-        s = ts.reset_index(drop=True)
-        with pytest.raises(ValueError, match=msg):
-            s.plot(style="b-", color="#000099")
 
     @pytest.mark.parametrize("freq", ["ms", "us"])
     def test_high_freq(self, freq):
