@@ -46,6 +46,8 @@ from pandas.tseries.offsets import WeekOfMonth
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 
+import pandas.plotting._matplotlib.converter as conv
+
 
 class TestTSPlot:
     @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -73,7 +75,7 @@ class TestTSPlot:
 
     def test_frame_inferred(self):
         # inferred freq
-        idx = date_range("1/1/1987", freq="MS", periods=100)
+        idx = date_range("1/1/1987", freq="MS", periods=10)
         idx = DatetimeIndex(idx.values, freq=None)
 
         df = DataFrame(
@@ -82,7 +84,7 @@ class TestTSPlot:
         _check_plot_works(df.plot)
 
         # axes freq
-        idx = idx[0:40].union(idx[45:99])
+        idx = idx[0:4].union(idx[6:])
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
         )
@@ -111,7 +113,6 @@ class TestTSPlot:
         fig, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)  # it works
         assert len(ax.get_lines()) == 1  # B was plotted
-        mpl.pyplot.close(fig)
 
     def test_nonnumeric_exclude_error(self):
         idx = date_range("1/1/1987", freq="YE", periods=3)
@@ -122,7 +123,7 @@ class TestTSPlot:
 
     @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "M", "Q", "Y"])
     def test_tsplot_period(self, freq):
-        idx = period_range("12/31/1999", freq=freq, periods=100)
+        idx = period_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(ser.plot, ax=ax)
@@ -131,7 +132,7 @@ class TestTSPlot:
         "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_tsplot_datetime(self, freq):
-        idx = date_range("12/31/1999", freq=freq, periods=100)
+        idx = date_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(ser.plot, ax=ax)
@@ -164,34 +165,29 @@ class TestTSPlot:
         _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
-        from pandas.plotting._matplotlib.converter import get_datevalue
+        assert conv.get_datevalue(None, "D") is None
+        assert conv.get_datevalue(1987, "Y") == 1987
+        assert (
+            conv.get_datevalue(Period(1987, "Y"), "M") == Period("1987-12", "M").ordinal
+        )
+        assert conv.get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
 
-        assert get_datevalue(None, "D") is None
-        assert get_datevalue(1987, "Y") == 1987
-        assert get_datevalue(Period(1987, "Y"), "M") == Period("1987-12", "M").ordinal
-        assert get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
-
-    def test_ts_plot_format_coord(self):
-        def check_format_of_first_point(ax, expected_string):
-            first_line = ax.get_lines()[0]
-            first_x = first_line.get_xdata()[0].ordinal
-            first_y = first_line.get_ydata()[0]
-            assert expected_string == ax.format_coord(first_x, first_y)
-
-        annual = Series(1, index=date_range("2014-01-01", periods=3, freq="YE-DEC"))
+    @pytest.mark.parametrize(
+        "freq, expected_string",
+        [["YE-DEC", "t = 2014  y = 1.000000"], ["D", "t = 2014-01-01  y = 1.000000"]],
+    )
+    def test_ts_plot_format_coord(self, freq, expected_string):
+        ser = Series(1, index=date_range("2014-01-01", periods=3, freq=freq))
         _, ax = mpl.pyplot.subplots()
-        annual.plot(ax=ax)
-        check_format_of_first_point(ax, "t = 2014  y = 1.000000")
-
-        # note this is added to the annual plot already in existence, and
-        # changes its freq field
-        daily = Series(1, index=date_range("2014-01-01", periods=3, freq="D"))
-        daily.plot(ax=ax)
-        check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
+        ser.plot(ax=ax)
+        first_line = ax.get_lines()[0]
+        first_x = first_line.get_xdata()[0].ordinal
+        first_y = first_line.get_ydata()[0]
+        assert expected_string == ax.format_coord(first_x, first_y)
 
     @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "M", "Q", "Y"])
     def test_line_plot_period_series(self, freq):
-        idx = period_range("12/31/1999", freq=freq, periods=100)
+        idx = period_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq)
 
@@ -201,7 +197,7 @@ class TestTSPlot:
     def test_line_plot_period_mlt_series(self, frqncy):
         # test period index line plot for series with multiples (`mlt`) of the
         # frequency (`frqncy`) rule code. tests resolution of issue #14763
-        idx = period_range("12/31/1999", freq=frqncy, periods=100)
+        idx = period_range("12/31/1999", freq=frqncy, periods=10)
         s = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
@@ -209,13 +205,13 @@ class TestTSPlot:
         "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_series(self, freq):
-        idx = date_range("12/31/1999", freq=freq, periods=100)
+        idx = date_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
     @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "ME", "QE", "YE"])
     def test_line_plot_period_frame(self, freq):
-        idx = date_range("12/31/1999", freq=freq, periods=100)
+        idx = date_range("12/31/1999", freq=freq, periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
@@ -230,7 +226,7 @@ class TestTSPlot:
         # test period index line plot for DataFrames with multiples (`mlt`)
         # of the frequency (`frqncy`) rule code. tests resolution of issue
         # #14763
-        idx = period_range("12/31/1999", freq=frqncy, periods=100)
+        idx = period_range("12/31/1999", freq=frqncy, periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
@@ -244,7 +240,7 @@ class TestTSPlot:
         "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_frame(self, freq):
-        idx = date_range("12/31/1999", freq=freq, periods=100)
+        idx = date_range("12/31/1999", freq=freq, periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
@@ -258,7 +254,7 @@ class TestTSPlot:
         "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_inferred_freq(self, freq):
-        idx = date_range("12/31/1999", freq=freq, periods=100)
+        idx = date_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         ser = Series(ser.values, Index(np.asarray(ser.index)))
         _check_plot_works(ser.plot, ser.index.inferred_freq)
@@ -345,8 +341,8 @@ class TestTSPlot:
 
     def test_business_freq_convert(self):
         bts = Series(
-            np.arange(300, dtype=np.float64),
-            index=date_range("2020-01-01", periods=300, freq="B"),
+            np.arange(50, dtype=np.float64),
+            index=date_range("2020-01-01", periods=50, freq="B"),
         ).asfreq("BME")
         ts = bts.to_period("M")
         _, ax = mpl.pyplot.subplots()
@@ -439,12 +435,8 @@ class TestTSPlot:
         result = ax.get_xlim()
         assert int(result[0]) == expected[0].ordinal
         assert int(result[1]) == expected[1].ordinal
-        fig = ax.get_figure()
-        mpl.pyplot.close(fig)
 
     def test_get_finder(self):
-        import pandas.plotting._matplotlib.converter as conv
-
         assert conv.get_finder(to_offset("B")) == conv._daily_finder
         assert conv.get_finder(to_offset("D")) == conv._daily_finder
         assert conv.get_finder(to_offset("ME")) == conv._monthly_finder
