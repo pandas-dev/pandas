@@ -1759,3 +1759,53 @@ class TestExcelFileRead:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:
                 pass
+
+    def test_mi_header_skiprows1(self, engine, read_ext):
+        if engine is None and read_ext == ".xlsx":
+            with open("test_mi_holes.xlsx", "rb") as f:
+                expected = pd.read_excel(f,
+                                         sheet_name='expected',
+                                         header=[0, 1],
+                                         index_col=[0, 1])
+
+            with open("test_mi_holes.xlsx", "rb") as f:
+                actual = pd.read_excel(f,
+                                       sheet_name='skiprows1',
+                                       skiprows=1,
+                                       header=[0, 1],
+                                       index_col=[0, 1])
+
+            tm.assert_frame_equal(expected, actual)
+
+    def test_mi_header_hole(self, engine, read_ext):
+        if engine is None and read_ext == ".xlsx":
+            with open("test_mi_holes.xlsx", "rb") as f:
+                expected = pd.read_excel(f,
+                                         sheet_name='expected',
+                                         header=[0, 1],
+                                         index_col=[0, 1])
+
+            with open("test_mi_holes.xlsx", "rb") as f:
+                actual = pd.read_excel(f,
+                                       sheet_name='header_hole',
+                                       skiprows=[1],
+                                       header=[0, 1],
+                                       index_col=[0, 1])
+
+            tm.assert_frame_equal(expected, actual)
+
+    def test_mi_header_and_index_holes(self, engine, read_ext):
+        if engine is None and read_ext == ".xlsx":
+            with open("test_mi_holes.xlsx", "rb") as f:
+                expected = pd.read_excel(f,
+                                         sheet_name='expected_index_hole',
+                                         header=[0, 1],
+                                         index_col=[0, 1])
+
+            with open("test_mi_holes.xlsx", "rb") as f:
+                actual = pd.read_excel(f,
+                                       sheet_name='index_hole',
+                                       header=[0, 2],
+                                       index_col=[0, 1])
+
+            tm.assert_frame_equal(expected, actual)
