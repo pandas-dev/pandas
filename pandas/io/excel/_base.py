@@ -817,95 +817,118 @@ class BaseExcelReader(Generic[_WorkbookT]):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ):
-        is_list_header = False
-        is_len_one_list_header = False
-        if is_list_like(header):
-            assert isinstance(header, Sequence)
-            is_list_header = True
-            if len(header) == 1:
-                is_len_one_list_header = True
+        try:
 
-        if is_len_one_list_header:
-            header = cast(Sequence[int], header)[0]
-
-        # forward fill and pull out names for MultiIndex column
-        header_names = None
-        if header is not None and is_list_like(header):
-            assert isinstance(header, Sequence)
-
-            header_names = []
-            control_row = [True] * len(data[0])
-
-            for row in header:
-                if is_integer(skiprows):
-                    assert isinstance(skiprows, int)
-                    row += skiprows
-
-                if row > len(data) - 1:
-                    raise ValueError(
-                        f"header index {row} exceeds maximum index "
-                        f"{len(data) - 1} of data.",
-                    )
-
-                data[row], control_row = fill_mi_header(data[row], control_row)
-
-                if index_col is not None:
-                    header_name, _ = pop_header_name(data[row], index_col)
-                    header_names.append(header_name)
-
-        # If there is a MultiIndex header and an index then there is also
-        # a row containing just the index name(s)
-        has_index_names = False
-        if is_list_header and not is_len_one_list_header and index_col is not None:
-            index_col_set: set[int]
-            if isinstance(index_col, int):
-                index_col_set = {index_col}
+            # header indexes reference rows after removing skiprows, so we
+            # create an index map from the without-skiprows to the
+            # original indexes.
+            if skiprows is None:
+                ixmap = list(range(len(data)))
+            elif is_integer(skiprows):
+                ixmap = list(range(skiprows, len(data)))
+            elif is_list_like(skiprows):
+                skiprows_set = set(cast(Sequence[int], skiprows))
+                ixmap = [ix for ix, _ in enumerate(data) if ix not in skiprows_set]
+            elif callable(skiprows):
+                ixmap = [ix for ix, _ in enumerate(data) if not skiprows(ix)]
             else:
-                assert isinstance(index_col, Sequence)
-                index_col_set = set(index_col)
+                raise ValueError(
+                    "skiprows must be an integer or a list of integers"
+                )
+            nixs = len(ixmap)
 
-            # We have to handle mi without names. If any of the entries in the data
-            # columns are not empty, this is a regular row
-            assert isinstance(header, Sequence)
-            if len(header) < len(data):
-                potential_index_names = data[len(header)]
-                has_index_names = all(
-                    x == "" or x is None
-                    for i, x in enumerate(potential_index_names)
-                    if not control_row[i] and i not in index_col_set
+            index_col_has_names = False
+            index_col_set: set[int]
+            if index_col is None:
+                index_col_set = set()
+            elif isinstance(index_col, str):
+                index_col_set = set()
+                index_col_has_names = True
+            elif isinstance(index_col, int):
+                index_col_set = {index_col}
+            elif is_list_like(index_col):
+                index_col_set = set(index_col)
+            else:
+                raise ValueError(
+                    "index_col must be a string, an integer or a list of integers"
+                )
+            has_index = len(index_col_set) > 0
+            has_index_names = False
+
+            header_list: Sequence[int]
+            if header is None:
+                header_list = []
+            elif isinstance(header, int):
+                header_list = [header]
+            elif is_list_like(header):
+                header_list = header
+            else:
+                raise ValueError(
+                    "header must be an integer or a list of integers"
                 )
 
-        if is_list_like(index_col):
-            # Forward fill values for MultiIndex index.
-            if header is None:
-                offset = 0
-            elif isinstance(header, int):
-                offset = 1 + header
-            else:
-                offset = 1 + max(header)
+            header_names = []
 
-            # GH34673: if MultiIndex names present and not defined in the header,
-            # offset needs to be incremented so that forward filling starts
-            # from the first MI value instead of the name
+            if len(header_list) == 0:
+                offset = 0
+            else:
+                max_header = max(header_list)
+                offset = max_header + 1
+
+                if max_header >= nixs:
+                    raise ValueError(
+                        f"header index {max_header} exceeds maximum index "
+                        f"{nixs - 1} of data.",
+                    )
+
+                if len(header_list) > 1:
+                    if index_col_has_names:
+                        raise ValueError(
+                            "named index_col can not be used together "
+                            "with multi-index header"
+                        )
+
+                    # Forward fill and pull out names for MultiIndex column
+                    control_row = [True] * len(data[0])
+                    for row in header_list:
+                        row1 = ixmap[row]
+                        data[row1], control_row = fill_mi_header(data[row1],
+                                                                 control_row)
+
+                        if has_index:
+                            header_name, _ = pop_header_name(data[row1],
+                                                             sorted(index_col_set))
+                            if header_name:
+                                header_names.append(header_name)
+
+                    # If there is a MultiIndex header and an index then
+                    # there may also be a row containing just the index
+                    # name(s)
+                    if has_index and offset < nixs:
+                        # We have to handle mi without names. If any
+                        # of the entries in the data columns are not
+                        # empty, this is a regular row.
+
+                        potential_index_names = data[ixmap[offset]]
+                        has_index_names = all(
+                            x == "" or x is None
+                            for i, x in enumerate(potential_index_names)
+                            if not control_row[i] and i not in index_col_set
+                        )
             if has_index_names:
                 offset += 1
 
-            # Check if we have an empty dataset
-            # before trying to collect data.
-            if offset < len(data):
-                assert isinstance(index_col, Sequence)
-
-                for col in index_col:
-                    last = data[offset][col]
-
-                    for row in range(offset + 1, len(data)):
-                        if data[row][col] == "" or data[row][col] is None:
-                            data[row][col] = last
+            # Forward fill index columns:
+            # TODO: forward fill also when index columns are selected by name!!!
+            if has_index and offset < nixs:
+                for col in index_col_set:
+                    last = data[ixmap[offset]][col]
+                    for row1 in ixmap[offset+1:]:
+                        if data[row1][col] == "" or data[row1][col] is None:
+                            data[row1][col] = last
                         else:
-                            last = data[row][col]
+                            last = data[row1][col]
 
-        # GH 12292 : error when read one empty column from excel file
-        try:
             parser = TextParser(
                 data,
                 names=names,
@@ -933,9 +956,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
             output[asheetname] = parser.read(nrows=nrows)
 
             if header_names:
-                output[asheetname].columns = output[asheetname].columns.set_names(
-                    header_names
-                )
+                output[asheetname].columns = \
+                    output[asheetname].columns.set_names(header_names)
 
         except EmptyDataError:
             # No Data, return an empty DataFrame
