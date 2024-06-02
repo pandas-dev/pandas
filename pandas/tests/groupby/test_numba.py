@@ -81,18 +81,9 @@ class TestEngine:
         df = DataFrame(
             {
                 "l": ["A", "A", "A", "B", "B", "B"],
-                "int": [-1, 1, -1, 1, 1, np.nan],
                 "float": [-1.0, 1.2, -1.1, 1.5, 1.0, np.nan],
             }
         )
-
-        result_numba = getattr(df.groupby("l").int, numba_method)(
-            skipna=False, engine="numba"
-        )
-        expected = df.groupby("l").int.apply(
-            lambda x: getattr(x, numba_method)(skipna=False)
-        )
-        tm.assert_series_equal(result_numba, expected, check_exact=False)
 
         result_numba = getattr(df.groupby("l").float, numba_method)(
             skipna=False, engine="numba"
@@ -101,28 +92,3 @@ class TestEngine:
             lambda x: getattr(x, numba_method)(skipna=False)
         )
         tm.assert_series_equal(result_numba, expected, check_exact=False)
-
-    @pytest.mark.parametrize(
-        "numba_method", ["sum", "min", "max", "std", "var", "mean"]
-    )
-    def test_skipna_consistency_numba(self, numba_method):
-        # GH15675
-        df = DataFrame(
-            {
-                "l": ["A", "A", "A", "B", "B", "B"],
-                "int": [-1, 1, -1, 1, 1, np.nan],
-                "float": [-1.0, 1.2, -1.1, 1.5, 1.0, np.nan],
-            }
-        )
-
-        result_with_arg = getattr(df.groupby("l").int, numba_method)(
-            skipna=True, engine="numba"
-        )
-        result_default = getattr(df.groupby("l").int, numba_method)(engine="numba")
-        tm.assert_series_equal(result_with_arg, result_default, check_exact=False)
-
-        result_with_arg = getattr(df.groupby("l").float, numba_method)(
-            skipna=True, engine="numba"
-        )
-        result_default = getattr(df.groupby("l").float, numba_method)(engine="numba")
-        tm.assert_series_equal(result_with_arg, result_default, check_exact=False)

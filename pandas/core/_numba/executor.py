@@ -81,8 +81,8 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
                     labels,
                     ngroups,
                     min_periods,
-                    *args,
                     skipna,
+                    *args,
                 )
                 result[i] = output
                 if len(na_pos) > 0:

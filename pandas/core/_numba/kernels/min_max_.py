@@ -88,8 +88,8 @@ def grouped_min_max(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool,
     is_max: bool,
-    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
     nobs = np.zeros(ngroups, dtype=np.int64)

@@ -746,7 +746,7 @@ def group_sum(
                     else:
                         sumx[lab, j] = val
                         compensation[lab, j] = 0
-                        break
+                        continue
 
                 nobs[lab, j] += 1
 
@@ -831,7 +831,7 @@ def group_prod(
                 elif not skipna:
                     prodx[lab, j] = val
                     nobs[lab, j] = 0
-                    break
+                    continue
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, prodx
@@ -900,7 +900,7 @@ def group_var(
                 if not skipna and isna_entry:
                     out[lab, j] = val
                     nobs[lab, j] = 0
-                    break
+                    continue
 
                 elif not isna_entry:
                     nobs[lab, j] += 1
@@ -1109,7 +1109,7 @@ def group_mean(
                 if not skipna and isna_entry:
                     sumx[lab, j] = nan_val
                     nobs[lab, j] = 0
-                    break
+                    continue
 
                 elif not isna_entry:
                     nobs[lab, j] += 1
@@ -1766,7 +1766,7 @@ cdef group_min_max(
                 if not skipna and isna_entry:
                     group_min_or_max[lab, j] = val
                     nobs[lab, j] = 0
-                    break
+                    continue
 
                 elif not isna_entry:
                     nobs[lab, j] += 1

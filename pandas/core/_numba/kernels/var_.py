@@ -176,8 +176,8 @@ def grouped_var(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
-    ddof: int = 1,
     skipna: bool = True,
+    ddof: int = 1,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
 
