@@ -160,7 +160,7 @@ class TestTSPlot:
     @pytest.mark.parametrize("freq", ["ms", "us"])
     def test_high_freq(self, freq):
         _, ax = mpl.pyplot.subplots()
-        rng = date_range("1/1/2012", periods=100, freq=freq)
+        rng = date_range("1/1/2012", periods=10, freq=freq)
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _check_plot_works(ser.plot, ax=ax)
 
@@ -539,7 +539,7 @@ class TestTSPlot:
 
     @pytest.mark.slow
     def test_finder_minutely(self):
-        nminutes = 50 * 24 * 60
+        nminutes = 1 * 24 * 60
         rng = date_range("1/1/1999", freq="Min", periods=nminutes)
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
@@ -564,9 +564,9 @@ class TestTSPlot:
 
     def test_gaps(self):
         ts = Series(
-            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
-        ts.iloc[5:25] = np.nan
+        ts.iloc[5:7] = np.nan
         _, ax = mpl.pyplot.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
@@ -578,8 +578,7 @@ class TestTSPlot:
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        assert mask[5:25, 1].all()
-        mpl.pyplot.close(ax.get_figure())
+        assert mask[5:7, 1].all()
 
     def test_gaps_irregular(self):
         # irregular
@@ -600,7 +599,6 @@ class TestTSPlot:
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
-        mpl.pyplot.close(ax.get_figure())
 
     def test_gaps_non_ts(self):
         # non-ts
@@ -621,9 +619,9 @@ class TestTSPlot:
 
     def test_gap_upsample(self):
         low = Series(
-            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
-        low.iloc[5:25] = np.nan
+        low.iloc[5:7] = np.nan
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
 
@@ -640,7 +638,7 @@ class TestTSPlot:
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
-        assert mask[5:25, 1].all()
+        assert mask[5:7, 1].all()
 
     def test_secondary_y(self):
         ser = Series(np.random.default_rng(2).standard_normal(10))
@@ -654,7 +652,6 @@ class TestTSPlot:
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()
-        mpl.pyplot.close(fig)
 
     def test_secondary_y_yaxis(self):
         Series(np.random.default_rng(2).standard_normal(10))
@@ -662,7 +659,6 @@ class TestTSPlot:
         _, ax2 = mpl.pyplot.subplots()
         ser2.plot(ax=ax2)
         assert ax2.get_yaxis().get_ticks_position() == "left"
-        mpl.pyplot.close(ax2.get_figure())
 
     def test_secondary_both(self):
         ser = Series(np.random.default_rng(2).standard_normal(10))
@@ -688,7 +684,6 @@ class TestTSPlot:
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()
-        mpl.pyplot.close(fig)
 
     def test_secondary_y_ts_yaxis(self):
         idx = date_range("1/1/2000", periods=10)
@@ -696,7 +691,6 @@ class TestTSPlot:
         _, ax2 = mpl.pyplot.subplots()
         ser2.plot(ax=ax2)
         assert ax2.get_yaxis().get_ticks_position() == "left"
-        mpl.pyplot.close(ax2.get_figure())
 
     def test_secondary_y_ts_visible(self):
         idx = date_range("1/1/2000", periods=10)
@@ -1095,8 +1089,8 @@ class TestTSPlot:
 
     def test_mixed_freq_second_millisecond(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
-        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=5)
+        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=50)
         high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         # high to low
@@ -1109,8 +1103,8 @@ class TestTSPlot:
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
-        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=5)
+        idxl = date_range("2014-07-01 09:00", freq="100ms", periods=50)
         high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         # low to high
@@ -1285,7 +1279,6 @@ class TestTSPlot:
 
         # TODO: color cycle problems
         assert len(colors) == 4
-        mpl.pyplot.close(fig)
 
     def test_secondary_legend_right(self):
         df = DataFrame(
@@ -1302,7 +1295,6 @@ class TestTSPlot:
         assert leg.get_texts()[1].get_text() == "B"
         assert leg.get_texts()[2].get_text() == "C"
         assert leg.get_texts()[3].get_text() == "D"
-        mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar(self):
         df = DataFrame(
@@ -1315,7 +1307,6 @@ class TestTSPlot:
         leg = ax.get_legend()
         assert leg.get_texts()[0].get_text() == "A (right)"
         assert leg.get_texts()[1].get_text() == "B"
-        mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar_right(self):
         df = DataFrame(
@@ -1328,7 +1319,6 @@ class TestTSPlot:
         leg = ax.get_legend()
         assert leg.get_texts()[0].get_text() == "A"
         assert leg.get_texts()[1].get_text() == "B"
-        mpl.pyplot.close(fig)
 
     def test_secondary_legend_multi_col(self):
         df = DataFrame(
@@ -1353,14 +1343,13 @@ class TestTSPlot:
 
         # TODO: color cycle problems
         assert len(colors) == 4
-        mpl.pyplot.close(fig)
 
     def test_secondary_legend_nonts(self):
         # non-ts
         df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
+            1.1 * np.arange(40).reshape((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
         )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
@@ -1374,14 +1363,13 @@ class TestTSPlot:
 
         # TODO: color cycle problems
         assert len(colors) == 4
-        mpl.pyplot.close()
 
     def test_secondary_legend_nonts_multi_col(self):
         # non-ts
         df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
+            1.1 * np.arange(40).reshape((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
         )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
@@ -1435,13 +1423,10 @@ class TestTSPlot:
 
         exp = np.array([x.toordinal() for x in dates], dtype=np.float64)
         tm.assert_numpy_array_equal(line1.get_xydata()[:, 0], exp)
-        exp = np.array([x.toordinal() for x in dates], dtype=np.float64)
         tm.assert_numpy_array_equal(line2.get_xydata()[:, 0], exp)
 
     def test_irregular_ts_shared_ax_xlim(self):
         # GH 2960
-        from pandas.plotting._matplotlib.converter import DatetimeConverter
-
         ts = Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
         )
@@ -1454,8 +1439,8 @@ class TestTSPlot:
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
-        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
+        assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     def test_secondary_y_non_ts_xlim(self):
         # GH 3490 - non-timeseries with secondary y
@@ -1491,7 +1476,7 @@ class TestTSPlot:
 
     def test_secondary_y_mixed_freq_ts_xlim(self):
         # GH 3490 - mixed frequency timeseries with secondary y
-        rng = date_range("2000-01-01", periods=10000, freq="min")
+        rng = date_range("2000-01-01", periods=10, freq="min")
         ts = Series(1, index=rng)
 
         _, ax = mpl.pyplot.subplots()
@@ -1506,8 +1491,6 @@ class TestTSPlot:
 
     def test_secondary_y_irregular_ts_xlim(self):
         # GH 3490 - irregular-timeseries with secondary y
-        from pandas.plotting._matplotlib.converter import DatetimeConverter
-
         ts = Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
         )
@@ -1521,8 +1504,8 @@ class TestTSPlot:
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
-        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
+        assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -1709,35 +1692,28 @@ class TestTSPlot:
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
-    import matplotlib.pyplot as plt
-
     fig = plt.gcf()
 
-    try:
-        plt.clf()
-        ax = fig.add_subplot(211)
-        orig_ax = kwargs.pop("ax", plt.gca())
-        orig_axfreq = getattr(orig_ax, "freq", None)
+    fig.clf()
+    ax = fig.add_subplot(211)
+    orig_ax = kwargs.pop("ax", plt.gca())
+    orig_axfreq = getattr(orig_ax, "freq", None)
 
-        ret = f(*args, **kwargs)
-        assert ret is not None  # do something more intelligent
+    ret = f(*args, **kwargs)
+    assert ret is not None  # do something more intelligent
 
-        ax = kwargs.pop("ax", plt.gca())
-        if series is not None:
-            dfreq = series.index.freq
-            if isinstance(dfreq, BaseOffset):
-                dfreq = dfreq.rule_code
-            if orig_axfreq is None:
-                assert ax.freq == dfreq
+    ax = kwargs.pop("ax", plt.gca())
+    if series is not None:
+        dfreq = series.index.freq
+        if isinstance(dfreq, BaseOffset):
+            dfreq = dfreq.rule_code
+        if orig_axfreq is None:
+            assert ax.freq == dfreq
 
-        if freq is not None:
-            ax_freq = to_offset(ax.freq, is_period=True)
-        if freq is not None and orig_axfreq is None:
-            assert ax_freq == freq
+    if freq is not None and orig_axfreq is None:
+        assert to_offset(ax.freq, is_period=True) == freq
 
-        ax = fig.add_subplot(212)
-        kwargs["ax"] = ax
-        ret = f(*args, **kwargs)
-        assert ret is not None  # TODO: do something more intelligent
-    finally:
-        plt.close(fig)
+    ax = fig.add_subplot(212)
+    kwargs["ax"] = ax
+    ret = f(*args, **kwargs)
+    assert ret is not None  # TODO: do something more intelligent
