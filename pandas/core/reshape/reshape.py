@@ -940,7 +940,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     if not isinstance(frame.columns, MultiIndex):
         # Fast path when we're stacking the columns of a non-MultiIndex.
         # When columns are homogeneous EAs, we pass through object
-        # dtype but this is still faster than the normal path.
+        # dtype but this is still slightly faster than the normal path.
         if len(frame.columns) > 0 and frame._is_homogeneous_type:
             dtype = frame._mgr.blocks[0].dtype
         else:
