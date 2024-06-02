@@ -1087,7 +1087,7 @@ def scipy_sem(*args, **kwargs):
         ("median", ["f", "t", "td"]),
         ("prod", ["f"]),
         ("sem", ["f"]),
-        ("std", ["f", "t", "td"]),
+        ("std", ["f"]),
         ("var", ["f"]),
         ("any", ["f"]),
         ("all", ["f"]),

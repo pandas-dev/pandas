@@ -1005,7 +1005,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("asfreq", fill_value=fill_value)
 
     @final
-    @doc(GroupBy.sum)
     def sum(
         self,
         numeric_only: bool = False,
@@ -1029,6 +1028,24 @@ class Resampler(BaseGroupBy, PandasObject):
         min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        engine : str, default None
+            * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+            * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+                Only available when ``raw`` is set to ``True``.
+            * ``None`` : Defaults to ``'cython'``
+                or globally setting ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+                and ``parallel`` dictionary keys. The values must either be ``True`` or
+                ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+                ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+                applied to both the ``func`` and the ``apply`` groupby aggregation.
 
         Returns
         -------
@@ -1064,7 +1081,6 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.prod)
     def prod(self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True):
         """
         Compute prod of group values.
@@ -1081,6 +1097,9 @@ class Resampler(BaseGroupBy, PandasObject):
         min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
 
         Returns
         -------
@@ -1111,7 +1130,6 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.min)
     def min(
         self,
         numeric_only: bool = False,
@@ -1156,7 +1174,6 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.max)
     def max(
         self,
         numeric_only: bool = False,
@@ -1234,17 +1251,6 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("median", numeric_only=numeric_only, skipna=skipna)
 
     @final
-    @doc(GroupBy.any)
-    def any(self, skipna: bool = True):
-        return self._downsample("any", skipna=skipna)
-
-    @final
-    @doc(GroupBy.all)
-    def all(self, skipna: bool = True):
-        return self._downsample("all", skipna=skipna)
-
-    @final
-    @doc(GroupBy.mean)
     def mean(
         self,
         numeric_only: bool = False,
@@ -1263,6 +1269,26 @@ class Resampler(BaseGroupBy, PandasObject):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1298,7 +1324,6 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.std)
     def std(
         self,
         ddof: int = 1,
@@ -1314,6 +1339,24 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         ddof : int, default 1
             Degrees of freedom.
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+              .. versionadded:: 1.4.0
+
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -1322,6 +1365,9 @@ class Resampler(BaseGroupBy, PandasObject):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
 
         Returns
         -------
@@ -1359,7 +1405,6 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
     @final
-    @doc(GroupBy.var)
     def var(
         self,
         ddof: int = 1,
@@ -1376,6 +1421,23 @@ class Resampler(BaseGroupBy, PandasObject):
         ddof : int, default 1
             Degrees of freedom.
 
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
+
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -1384,6 +1446,9 @@ class Resampler(BaseGroupBy, PandasObject):
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
 
         Returns
         -------
