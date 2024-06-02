@@ -473,7 +473,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.option_context SA01" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.pivot PR07" \
-        -i "pandas.pivot_table PR07" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.autocorrelation_plot RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
