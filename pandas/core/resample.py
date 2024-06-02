@@ -1202,6 +1202,97 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("median", numeric_only=numeric_only, skipna=skipna)
 
     @final
+    @doc(GroupBy.mean)
+    def mean(
+        self,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        return self._downsample(
+            "mean",
+            numeric_only=numeric_only,
+            skipna=skipna,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
+
+    @final
+    @doc(GroupBy.min)
+    def min(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        skipna: bool = True,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        return self._downsample(
+            "min",
+            numeric_only=numeric_only,
+            min_count=min_count,
+            skipna=skipna,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
+
+    @final
+    @doc(GroupBy.max)
+    def max(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        skipna: bool = True,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        return self._downsample(
+            "max",
+            numeric_only=numeric_only,
+            min_count=min_count,
+            skipna=skipna,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
+
+    @final
+    @doc(GroupBy.sum)
+    def sum(
+        self,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        skipna: bool = True,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        return self._downsample(
+            "sum",
+            numeric_only=numeric_only,
+            min_count=min_count,
+            skipna=skipna,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
+
+    @final
+    @doc(GroupBy.prod)
+    def prod(self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True):
+        return self._downsample(
+            "prod", numeric_only=numeric_only, min_count=min_count, skipna=skipna
+        )
+
+    @final
+    @doc(GroupBy.any)
+    def any(self, skipna: bool = True):
+        return self._downsample("any", skipna=skipna)
+
+    @final
+    @doc(GroupBy.all)
+    def all(self, skipna: bool = True):
+        return self._downsample("all", skipna=skipna)
+
+    @final
     def mean(
         self,
         numeric_only: bool = False,
@@ -1350,6 +1441,44 @@ class Resampler(BaseGroupBy, PandasObject):
         Freq: MS, dtype: float64
         """
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
+
+    @final
+    @doc(GroupBy.std)
+    def std(
+        self,
+        ddof: int = 1,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool = False,
+        skipna: bool = True,
+    ):
+        return self._downsample(
+            "std",
+            ddof=ddof,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            numeric_only=numeric_only,
+            skipna=skipna,
+        )
+
+    @final
+    @doc(GroupBy.var)
+    def var(
+        self,
+        ddof: int = 1,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool = False,
+        skipna: bool = True,
+    ):
+        return self._downsample(
+            "var",
+            ddof=ddof,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            numeric_only=numeric_only,
+            skipna=skipna,
+        )
 
     @final
     @doc(GroupBy.sem)
