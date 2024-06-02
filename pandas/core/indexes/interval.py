@@ -842,6 +842,39 @@ class IntervalIndex(ExtensionIndex):
 
     @cache_readonly
     def left(self) -> Index:
+        """
+        Return left bounds of the intervals in the IntervalIndex.
+
+        The left bounds of each interval in the IntervalIndex are
+        returned as an Index. The datatype of the left bounds is the
+        same as the datatype of the endpoints of the intervals.
+
+        Returns
+        -------
+        Index
+            An Index containing the left bounds of the intervals.
+
+        See Also
+        --------
+        IntervalIndex.right : Return the right bounds of the intervals
+            in the IntervalIndex.
+        IntervalIndex.mid : Return the mid-point of the intervals in
+            the IntervalIndex.
+        IntervalIndex.length : Return the length of the intervals in
+            the IntervalIndex.
+
+        Examples
+        --------
+        >>> iv_idx = pd.IntervalIndex.from_arrays([1, 2, 3], [4, 5, 6], closed="right")
+        >>> iv_idx.left
+        Index([1, 2, 3], dtype='int64')
+
+        >>> iv_idx = pd.IntervalIndex.from_tuples(
+        ...     [(1, 4), (2, 5), (3, 6)], closed="left"
+        ... )
+        >>> iv_idx.left
+        Index([1, 2, 3], dtype='int64')
+        """
         return Index(self._data.left, copy=False)
 
     @cache_readonly
@@ -1105,6 +1138,7 @@ def interval_range(
     Returns
     -------
     IntervalIndex
+        Object with a fixed frequency.
 
     See Also
     --------
