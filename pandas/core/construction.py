@@ -36,6 +36,8 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_float_dtype,
+    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     pandas_dtype,
@@ -510,11 +512,18 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     Convert numpy MaskedArray to ensure mask is softened.
     """
     mask = ma.getmaskarray(data)
+    original = data
+    original_dtype = data.dtype
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
+        if not mask.all():
+            idx = np.unravel_index(np.nanargmax(data, axis=None), data.shape)
+            if not mask[idx] and int(data[idx]) != original[idx]:
+                if is_integer_dtype(original_dtype) and is_float_dtype(data.dtype):
+                    data = ma.asarray(original, "object")
         data[mask] = fill_value
     else:
         data = data.copy()
