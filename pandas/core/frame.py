@@ -21,7 +21,6 @@ from collections.abc import (
     Sequence,
 )
 import functools
-from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -125,7 +124,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
@@ -2749,11 +2748,55 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> str | None: ...
 
-    @doc(
-        Series.to_markdown,
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples="""Examples
+    def to_markdown(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        mode: str = "wt",
+        index: bool = True,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> str | None:
+        """
+        Print DataFrame in Markdown-friendly format.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened, "wt" by default.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
+
+        **kwargs
+            These parameters will be passed to `tabulate <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            DataFrame in Markdown-friendly format.
+
+        See Also
+        --------
+        DataFrame.to_html : Render DataFrame to HTML-formatted table.
+        DataFrame.to_latex : Render DataFrame to LaTeX-formatted table.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2773,17 +2816,8 @@ class DataFrame(NDFrame, OpsMixin):
         |  0 | elk        | dog        |
         +----+------------+------------+
         |  1 | pig        | quetzal    |
-        +----+------------+------------+""",
-    )
-    def to_markdown(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        *,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
-    ) -> str | None:
+        +----+------------+------------+
+        """
         if "showindex" in kwargs:
             raise ValueError("Pass 'index' instead of 'showindex")
 
@@ -4438,6 +4472,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
+        This method can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
+
         Parameters
         ----------
         expr : str
@@ -4540,36 +4577,44 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C C": range(10, 5, -1)}
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
         ... )
         >>> df
-           A   B  C C
+           A   B  C&C
         0  1  10   10
         1  2   8    9
         2  3   6    8
         3  4   4    7
         4  5   2    6
         >>> df.query("A > B")
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         The previous expression is equivalent to
 
         >>> df[df.A > df.B]
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         For columns with spaces in their name, you can use backtick quoting.
 
-        >>> df.query("B == `C C`")
-           A   B  C C
+        >>> df.query("B == `C&C`")
+           A   B  C&C
         0  1  10   10
 
         The previous expression is equivalent to
 
-        >>> df[df.B == df["C C"]]
-           A   B  C C
+        >>> df[df.B == df["C&C"]]
+           A   B  C&C
         0  1  10   10
+
+        Using local variable:
+
+        >>> local_var = 2
+        >>> df.query("A <= @local_var")
+        A   B  C&C
+        0  1  10   10
+        1  2   8    9
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
@@ -4610,6 +4655,13 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         expr : str
             The expression string to evaluate.
+
+            You can refer to variables
+            in the environment by prefixing them with an '@' character like
+            ``@a + b``.
+
+            You can refer to column names that are not valid Python variable
+            names by surrounding them with backticks `````.
         inplace : bool, default False
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
@@ -4641,14 +4693,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": range(1, 6), "B": range(10, 0, -2)})
+        >>> df = pd.DataFrame(
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
+        ... )
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.eval("A + B")
         0    11
         1    10
@@ -4660,35 +4714,55 @@ class DataFrame(NDFrame, OpsMixin):
         Assignment is allowed though by default the original DataFrame is not
         modified.
 
-        >>> df.eval("C = A + B")
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
+        >>> df.eval("D = A + B")
+           A   B  C&C   D
+        0  1  10   10  11
+        1  2   8    9  10
+        2  3   6    8   9
+        3  4   4    7   8
+        4  5   2    6   7
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
 
         Multiple columns can be assigned to using multi-line expressions:
 
         >>> df.eval(
         ...     '''
-        ... C = A + B
-        ... D = A - B
+        ... D = A + B
+        ... E = A - B
         ... '''
         ... )
-           A   B   C  D
-        0  1  10  11 -9
-        1  2   8  10 -6
-        2  3   6   9 -3
-        3  4   4   8  0
-        4  5   2   7  3
+           A   B  C&C   D  E
+        0  1  10   10  11 -9
+        1  2   8    9  10 -6
+        2  3   6    8   9 -3
+        3  4   4    7   8  0
+        4  5   2    6   7  3
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.eval("B * `C&C`")
+        0    100
+        1     72
+        2     48
+        3     28
+        4     12
+
+        Local variables shall be explicitly referenced using ``@``
+        character in front of the name:
+
+        >>> local_var = 2
+        >>> df.eval("@local_var * A")
+        0     2
+        1     4
+        2     6
+        3     8
+        4    10
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -5024,22 +5098,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
-        if (
-            isinstance(value, Index)
-            and value.dtype == "object"
-            and arr.dtype != value.dtype
-        ):  #
-            # TODO: Remove kludge in sanitize_array for string mode when enforcing
-            # this deprecation
-            warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will stop "
-                "inferring another dtype in a future version. Cast the Index "
-                "explicitly before setting it into the DataFrame.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return arr, None
+        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
     def _series(self):
@@ -6980,19 +7039,19 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                # error: List comprehension has incompatible type List[Series];
-                # expected List[ndarray]
-                keys = [
-                    Series(k, name=name)  # type: ignore[misc]
-                    for (k, name) in zip(keys, by)
-                ]
+                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+            else:
+                # error: Argument 1 to "list" has incompatible type
+                # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
+                # expected "Iterable[Series]"
+                keys_data = list(keys)  # type: ignore[arg-type]
 
             indexer = lexsort_indexer(
-                keys, orders=ascending, na_position=na_position, key=key
+                keys_data, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
             # len(by) == 1
@@ -7607,16 +7666,30 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
-    @doc(
-        Series.swaplevel,
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
-            'columns' for column-wise."""
-        ),
-        examples=dedent(
-            """\
+    def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
+        """
+        Swap levels i and j in a :class:`MultiIndex`.
+
+        Default is to swap the two innermost levels of the index.
+
+        Parameters
+        ----------
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+                    The axis to swap levels on. 0 or 'index' for row-wise, 1 or
+                    'columns' for column-wise.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame with levels swapped in MultiIndex.
+
+        See Also
+        --------
+        DataFrame.reorder_levels: Reorder levels of MultiIndex.
+        DataFrame.sort_index: Sort MultiIndex.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -7666,10 +7739,8 @@ class DataFrame(NDFrame, OpsMixin):
         History     Final exam  January         A
         Geography   Final exam  February        B
         History     Coursework  March           A
-        Geography   Coursework  April           C"""
-        ),
-    )
-    def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
+        Geography   Coursework  April           C
+        """
         result = self.copy(deep=False)
 
         axis = self._get_axis_number(axis)
@@ -10322,7 +10393,7 @@ class DataFrame(NDFrame, OpsMixin):
         return op.apply().__finalize__(self, method="apply")
 
     def map(
-        self, func: PythonFuncType, na_action: str | None = None, **kwargs
+        self, func: PythonFuncType, na_action: Literal["ignore"] | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
@@ -11376,28 +11447,11 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        dtype_has_keepdims: dict[ExtensionDtype, bool] = {}
-
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                has_keepdims = dtype_has_keepdims.get(values.dtype)
-                if has_keepdims is None:
-                    sign = signature(values._reduce)
-                    has_keepdims = "keepdims" in sign.parameters
-                    dtype_has_keepdims[values.dtype] = has_keepdims
-                if has_keepdims:
-                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
-                else:
-                    warnings.warn(
-                        f"{type(values)}._reduce will require a `keepdims` parameter "
-                        "in the future",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    result = values._reduce(name, skipna=skipna, **kwds)
-                    return np.array([result])
+                return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -11709,7 +11763,6 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
-    @doc(make_doc("sum", ndim=2))
     def sum(
         self,
         axis: Axis | None = 0,
@@ -11718,6 +11771,87 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ) -> Series:
+        """
+        Return the sum of the values over the requested axis.
+
+        This is equivalent to the method ``numpy.sum``.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Sum over requested axis.
+
+        See Also
+        --------
+        Series.sum : Return the sum over Series values.
+        DataFrame.mean : Return the mean of the values over the requested axis.
+        DataFrame.median : Return the median of the values over the requested axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.std : Return the standard deviation of the values over the
+            requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.sum()
+        14
+
+        By default, the sum of an empty or all-NA Series is ``0``.
+
+        >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+        0.0
+
+        This can be controlled with the ``min_count`` parameter. For example, if
+        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+        >>> pd.Series([], dtype="float64").sum(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).sum()
+        0.0
+
+        >>> pd.Series([np.nan]).sum(min_count=1)
+        nan
+        """
         result = super().sum(
             axis=axis,
             skipna=skipna,
@@ -12065,7 +12199,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
-    @doc(make_doc("var", ndim=2))
     def var(
         self,
         axis: Axis | None = 0,
@@ -12074,6 +12207,75 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return unbiased variance over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.var with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs :
+            Additional keywords passed.
+
+        Returns
+        -------
+        Series or scalaer
+            Unbiased variance over requested axis.
+
+        See Also
+        --------
+        numpy.var : Equivalent function in NumPy.
+        Series.var : Return unbiased variance over Series values.
+        Series.std : Return standard deviation over Series values.
+        DataFrame.std : Return standard deviation of the values over
+            the requested axis.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "person_id": [0, 1, 2, 3],
+        ...         "age": [21, 25, 62, 43],
+        ...         "height": [1.61, 1.87, 1.49, 2.01],
+        ...     }
+        ... ).set_index("person_id")
+        >>> df
+                   age  height
+        person_id
+        0           21    1.61
+        1           25    1.87
+        2           62    1.49
+        3           43    2.01
+
+        >>> df.var()
+        age       352.916667
+        height      0.056367
+        dtype: float64
+
+        Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
+
+        >>> df.var(ddof=0)
+        age       264.687500
+        height      0.042275
+        dtype: float64
+        """
         result = super().var(
             axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
         )
@@ -12116,7 +12318,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
-    @doc(make_doc("std", ndim=2))
     def std(
         self,
         axis: Axis | None = 0,
@@ -12125,6 +12326,82 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return sample standard deviation over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.std with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs : dict
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Standard deviation over requested axis.
+
+        See Also
+        --------
+        Series.std : Return standard deviation over Series values.
+        DataFrame.mean : Return the mean of the values over the requested axis.
+        DataFrame.mediam : Return the mediam of the values over the requested axis.
+        DataFrame.mode : Get the mode(s) of each element along the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
+
+        Notes
+        -----
+        To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
+        default `ddof=1`)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "person_id": [0, 1, 2, 3],
+        ...         "age": [21, 25, 62, 43],
+        ...         "height": [1.61, 1.87, 1.49, 2.01],
+        ...     }
+        ... ).set_index("person_id")
+        >>> df
+                   age  height
+        person_id
+        0           21    1.61
+        1           25    1.87
+        2           62    1.49
+        3           43    2.01
+
+        The standard deviation of the columns can be found as follows:
+
+        >>> df.std()
+        age       18.786076
+        height     0.237417
+        dtype: float64
+
+        Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+
+        >>> df.std(ddof=0)
+        age       16.269219
+        height     0.205609
+        dtype: float64
+        """
         result = super().std(
             axis=axis, skipna=skipna, ddof=ddof, numeric_only=numeric_only, **kwargs
         )
@@ -13009,7 +13286,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[s]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
@@ -13232,10 +13509,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
+    plot = Accessor("plot", pandas.plotting.PlotAccessor)
     hist = pandas.plotting.hist_frame
     boxplot = pandas.plotting.boxplot_frame
-    sparse = CachedAccessor("sparse", SparseFrameAccessor)
+    sparse = Accessor("sparse", SparseFrameAccessor)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods

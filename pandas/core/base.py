@@ -342,6 +342,12 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        See Also
+        --------
+        Series.ndim : Number of dimensions of the underlying data.
+        Series.size : Return the number of elements in the underlying data.
+        Series.nbytes : Return the number of bytes in the underlying data.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -697,6 +703,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Indicator whether Index is empty.
 
+        An Index is considered empty if it has no elements. This property can be
+        useful for quickly checking the state of an Index, especially in data
+        processing and analysis workflows where handling of empty datasets might
+        be required.
+
         Returns
         -------
         bool
@@ -708,10 +719,10 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> idx_empty = pd.Index([1, 2, 3])
-        >>> idx_empty
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
         Index([1, 2, 3], dtype='int64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
 
         >>> idx_empty = pd.Index([])
@@ -722,10 +733,10 @@ class IndexOpsMixin(OpsMixin):
 
         If we only have NaNs in our DataFrame, it is not considered empty!
 
-        >>> idx_empty = pd.Index([np.nan, np.nan])
-        >>> idx_empty
+        >>> idx = pd.Index([np.nan, np.nan])
+        >>> idx
         Index([nan, nan], dtype='float64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
         """
         return not self.size
@@ -870,6 +881,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         iterator
+            An iterator yielding scalar values from the Series.
+
+        See Also
+        --------
+        Series.items : Lazily iterate over (index, value) tuples.
 
         Examples
         --------
@@ -897,6 +913,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.isna : Detect missing values.
+        Series.notna : Detect existing (non-missing) values.
 
         Examples
         --------
@@ -1097,6 +1118,12 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
 
+        See Also
+        --------
+        Series.unique : Return unique values of Series object.
+        Series.drop_duplicates : Return Series with duplicate values removed.
+        Series.duplicated : Indicate duplicate Series values.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -1117,6 +1144,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.is_monotonic_decreasing : Return boolean if values in the object are
+            monotonically decreasing.
 
         Examples
         --------
@@ -1140,6 +1172,11 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Series.is_monotonic_increasing : Return boolean if values in the object are
+            monotonically increasing.
 
         Examples
         --------
@@ -1297,7 +1334,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
         3
