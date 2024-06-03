@@ -543,7 +543,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
-    expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
     expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
         expected["x2"] = expected["x2"].cat.remove_categories([4])
@@ -567,7 +574,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         if as_index:
             expected = expected["size"].rename(None)
 
-    result = getattr(gb_keepna, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)

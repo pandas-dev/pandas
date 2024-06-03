@@ -1473,7 +1473,14 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
     df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
 
     args = get_groupby_method_args(reduction_func, df)
-    res = getattr(df_grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        res = getattr(df_grp, reduction_func)(*args)
 
     for cat in unobserved_cats:
         assert cat not in res.index
@@ -1512,7 +1519,14 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
             getattr(df_grp, reduction_func)(*args)
         return
 
-    res = getattr(df_grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
 
@@ -1904,8 +1918,14 @@ def test_category_order_reducer(
         ):
             getattr(gb, reduction_func)(*args)
         return
-
-    op_result = getattr(gb, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
     else:
