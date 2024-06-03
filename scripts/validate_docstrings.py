@@ -247,7 +247,7 @@ def pandas_validate(func_name: str):
         if "Series.cat" in func_name:
             return "pandas.core.arrays.categorical.Categorical." + method_name
         if "Series.dt" in func_name:
-            if method_name in ["as_unit", "ceil", "floor", "round",]:
+            if method_name in ["as_unit", "ceil", "floor", "round"]:
                 return "pandas.core.arrays.datetimelike.TimelikeOps." + method_name
             if method_name in [
                 "day_name",
@@ -255,12 +255,12 @@ def pandas_validate(func_name: str):
                 "normalize",
                 "to_period",
                 "tz_convert",
-                "tz_localize",
+                "tz_localize"
             ]:
                 return "pandas.core.arrays.datetimes.DatetimeArray." + method_name
-            if method_name in ["strftime",]:
+            if method_name in ["strftime"]:
                 return "pandas.core.arrays.datetimelike.DatelikeOps." + method_name
-            if method_name in ["total_seconds",]:
+            if method_name in ["total_seconds"]:
                 return "pandas.core.arrays.timedeltas.TimedeltaArray." + method_name
 
         return func_name
