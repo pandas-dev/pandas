@@ -477,7 +477,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.autocorrelation_plot RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
-        -i "pandas.plotting.parallel_coordinates PR07,RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
         -i "pandas.qcut PR07,SA01" \
         -i "pandas.read_spss SA01" \

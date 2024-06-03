@@ -479,6 +479,7 @@ def parallel_coordinates(
     Parameters
     ----------
     frame : DataFrame
+        The DataFrame to be plotted.
     class_column : str
         Column name containing class names.
     cols : list, optional
@@ -505,6 +506,13 @@ def parallel_coordinates(
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the parallel coordinates plot.
+
+    See Also
+    --------
+    plotting.andrews_curves : Generate a matplotlib plot for visualizing clusters
+        of multivariate data.
+    plotting.radviz : Plot a multidimensional dataset in 2D.
 
     Examples
     --------
