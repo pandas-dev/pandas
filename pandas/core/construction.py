@@ -554,7 +554,7 @@ def sanitize_array(
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
-    data_was_index = isinstance(data, ABCIndex)
+    infer_object = not isinstance(data, (ABCIndex, ABCSeries))
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
@@ -607,7 +607,7 @@ def sanitize_array(
 
         if dtype is None:
             subarr = data
-            if data.dtype == object and not data_was_index:
+            if data.dtype == object and infer_object:
                 subarr = maybe_infer_to_datetimelike(data)
             elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype

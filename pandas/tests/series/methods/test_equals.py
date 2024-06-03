@@ -82,15 +82,13 @@ def test_equals_matching_nas():
     left = Series([np.datetime64("NaT")], dtype=object)
     right = Series([np.datetime64("NaT")], dtype=object)
     assert left.equals(right)
-    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-        assert Index(left).equals(Index(right))
+    assert Index(left).equals(Index(right))
     assert left.array.equals(right.array)
 
     left = Series([np.timedelta64("NaT")], dtype=object)
     right = Series([np.timedelta64("NaT")], dtype=object)
     assert left.equals(right)
-    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-        assert Index(left).equals(Index(right))
+    assert Index(left).equals(Index(right))
     assert left.array.equals(right.array)
 
     left = Series([np.float64("NaN")], dtype=object)
