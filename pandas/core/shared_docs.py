@@ -78,7 +78,16 @@ keep_equal : bool, default False
 result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
 
-    .. versionadded:: 1.5.0
+check_exact : bool, default True
+            Whether to compare number exactly.
+
+rtol : float, list of float, dict of {column : float}, default 1e-5
+    Relative tolerance. Only used when check_exact is False.
+
+atol : float, list of float, dict of {column : float}, default 1e-8
+    Absolute tolerance. Only used when check_exact is False.
+
+    .. versionadded:: 1.5.0.
 """
 
 _shared_docs["groupby"] = """

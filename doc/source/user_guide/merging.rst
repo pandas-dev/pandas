@@ -1093,3 +1093,10 @@ Keep all the original values even if they are equal.
 .. ipython:: python
 
    df.compare(df2, keep_shape=True, keep_equal=True)
+
+Considers two values in the same position equal if their
+ absolute difference is less than 0.5
+
+.. ipython:: python
+
+   df.compare(df2, atol=0.5, check_exact=False)
