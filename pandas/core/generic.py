@@ -3209,7 +3209,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         <xarray.Dataset>
         Dimensions:  (date: 2, animal: 2)
         Coordinates:
-          * date     (date) datetime64[ns] 2018-01-01 2018-01-02
+          * date     (date) datetime64[s] 2018-01-01 2018-01-02
           * animal   (animal) object 'falcon' 'parrot'
         Data variables:
             speed    (date, animal) int64 350 18 361 15
@@ -6194,7 +6194,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dtypes
         float              float64
         int                  int64
-        datetime    datetime64[ns]
+        datetime    datetime64[s]
         string              object
         dtype: object
         """
@@ -10653,10 +10653,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dates forward or backward with a timedelta object or `'shift_forward'`
         or `'shift_backward'`.
 
-        >>> s = pd.Series(
-        ...     range(2),
-        ...     index=pd.DatetimeIndex(["2015-03-29 02:30:00", "2015-03-29 03:30:00"]),
+        >>> dti = pd.DatetimeIndex(
+        ...     ["2015-03-29 02:30:00", "2015-03-29 03:30:00"], dtype="M8[ns]"
         ... )
+        >>> s = pd.Series(range(2), index=dti)
         >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
         2015-03-29 03:00:00+02:00    0
         2015-03-29 03:30:00+02:00    1
