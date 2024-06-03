@@ -1300,7 +1300,8 @@ def test_resample_consistency(unit):
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
-    rl = s.reindex_like(s10, method="bfill", limit=2)
+    with tm.assert_produces_warning(FutureWarning):
+        rl = s.reindex_like(s10, method="bfill", limit=2)
     r10_2 = s.resample("10Min").bfill(limit=2)
     r10 = s.resample("10Min").bfill()
 

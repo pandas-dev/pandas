@@ -298,7 +298,8 @@ def test_fwf_regression():
                 "2009-06-13 20:40:00",
                 "2009-06-13 20:50:00",
                 "2009-06-13 21:00:00",
-            ]
+            ],
+            dtype="M8[us]",
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
     )
@@ -311,6 +312,7 @@ def test_fwf_regression():
         parse_dates=True,
         date_format="%Y%j%H%M%S",
     )
+    expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -580,10 +582,7 @@ DataCol1   DataCol2
 """.strip()
     skiprows = 2
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
-
+    expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
 
@@ -598,10 +597,7 @@ Once more to be skipped
 """.strip()
     skiprows = [0, 2]
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
-
+    expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
 

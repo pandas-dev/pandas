@@ -133,7 +133,13 @@ class TestPandasContainer:
             [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
         ],
     )
-    def test_frame_non_unique_columns(self, orient, data):
+    def test_frame_non_unique_columns(self, orient, data, request):
+        if isinstance(data[0][0], Timestamp) and orient == "split":
+            mark = pytest.mark.xfail(
+                reason="GH#55827 non-nanosecond dt64 fails to round-trip"
+            )
+            request.applymarker(mark)
+
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         expected_warning = None
@@ -141,7 +147,7 @@ class TestPandasContainer:
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
-        if df.iloc[:, 0].dtype == "datetime64[ns]":
+        if df.iloc[:, 0].dtype == "datetime64[s]":
             expected_warning = FutureWarning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
@@ -150,7 +156,7 @@ class TestPandasContainer:
             )
         if orient == "values":
             expected = DataFrame(data)
-            if expected.iloc[:, 0].dtype == "datetime64[ns]":
+            if expected.iloc[:, 0].dtype == "datetime64[s]":
                 # orient == "values" by default will write Timestamp objects out
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
@@ -856,6 +862,10 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
+        if not as_object:
+            ser = ser.astype("M8[ns]")
+            if isinstance(ser.index, DatetimeIndex):
+                ser.index = ser.index.as_unit("ns")
 
         expected_warning = None
         if date_format == "epoch":
@@ -897,6 +907,7 @@ class TestPandasContainer:
         expected = DataFrame(
             [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
         )
+        expected[infer_word] = expected[infer_word].astype("M8[ns]")
 
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
