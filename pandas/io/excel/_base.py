@@ -818,7 +818,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
         **kwds,
     ):
         try:
-
             # header indexes reference rows after removing skiprows, so we
             # create an index map from the without-skiprows to the
             # original indexes.
@@ -832,9 +831,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             elif callable(skiprows):
                 ixmap = [ix for ix, _ in enumerate(data) if not skiprows(ix)]
             else:
-                raise ValueError(
-                    "skiprows must be an integer or a list of integers"
-                )
+                raise ValueError("skiprows must be an integer or a list of integers")
             nixs = len(ixmap)
 
             index_col_has_names = False
@@ -863,9 +860,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             elif is_list_like(header):
                 header_list = header
             else:
-                raise ValueError(
-                    "header must be an integer or a list of integers"
-                )
+                raise ValueError("header must be an integer or a list of integers")
 
             header_names = []
 
@@ -892,12 +887,14 @@ class BaseExcelReader(Generic[_WorkbookT]):
                     control_row = [True] * len(data[0])
                     for row in header_list:
                         row1 = ixmap[row]
-                        data[row1], control_row = fill_mi_header(data[row1],
-                                                                 control_row)
+                        data[row1], control_row = fill_mi_header(
+                            data[row1], control_row
+                        )
 
                         if has_index:
-                            header_name, _ = pop_header_name(data[row1],
-                                                             sorted(index_col_set))
+                            header_name, _ = pop_header_name(
+                                data[row1], sorted(index_col_set)
+                            )
                             if header_name:
                                 header_names.append(header_name)
 
@@ -923,7 +920,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             if has_index and offset < nixs:
                 for col in index_col_set:
                     last = data[ixmap[offset]][col]
-                    for row1 in ixmap[offset+1:]:
+                    for row1 in ixmap[offset + 1 :]:
                         if data[row1][col] == "" or data[row1][col] is None:
                             data[row1][col] = last
                         else:
@@ -956,8 +953,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
             output[asheetname] = parser.read(nrows=nrows)
 
             if header_names:
-                output[asheetname].columns = \
-                    output[asheetname].columns.set_names(header_names)
+                output[asheetname].columns = output[asheetname].columns.set_names(
+                    header_names
+                )
 
         except EmptyDataError:
             # No Data, return an empty DataFrame
