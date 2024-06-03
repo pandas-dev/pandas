@@ -323,6 +323,12 @@ def reset_option(pat: str) -> None:
     None
         No return value.
 
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
+    describe_option : Print the description for one or more registered options.
+
     Notes
     -----
     For all available options, please view the
@@ -413,6 +419,13 @@ def option_context(*args) -> Generator[None, None, None]:
     -------
     None
         No return value.
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
 
     Notes
     -----
