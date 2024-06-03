@@ -857,7 +857,9 @@ def assert_series_equal(
     Parameters
     ----------
     left : Series
+        First Series to compare.
     right : Series
+        Second Series to compare.
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
     check_index_type : bool or {'equiv'}, default 'equiv'
@@ -907,6 +909,11 @@ def assert_series_equal(
         Note: same labels must be with the same data.
 
         .. versionadded:: 1.5.0
+
+    See Also
+    --------
+    testing.assert_index_equal : Check that two Indexes are equal.
+    testing.assert_frame_equal : Check that two DataFrames are equal.
 
     Examples
     --------

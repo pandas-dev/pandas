@@ -470,24 +470,16 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.merge PR07" \
         -i "pandas.merge_asof PR07,RT03" \
         -i "pandas.merge_ordered PR07" \
-        -i "pandas.option_context SA01" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.pivot PR07" \
         -i "pandas.pivot_table PR07" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
-        -i "pandas.plotting.autocorrelation_plot RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
-        -i "pandas.plotting.parallel_coordinates PR07,RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
-        -i "pandas.plotting.table PR07,RT03,SA01" \
         -i "pandas.qcut PR07,SA01" \
-        -i "pandas.read_orc SA01" \
         -i "pandas.read_spss SA01" \
-        -i "pandas.reset_option SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
-        -i "pandas.show_versions SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
-        -i "pandas.testing.assert_series_equal PR07,SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
@@ -779,7 +771,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.YearEnd.rule_code GL08" \
-        -i "pandas.unique PR07" \
         -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"

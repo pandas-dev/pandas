@@ -69,7 +69,7 @@ class BaseConstructorsTests:
         assert result.shape == (len(data), 1)
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
-        assert isinstance(result._mgr.arrays[0], ExtensionArray)
+        assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
     def test_dataframe_from_series(self, data):
         result = pd.DataFrame(pd.Series(data))
@@ -77,7 +77,7 @@ class BaseConstructorsTests:
         assert result.shape == (len(data), 1)
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
-        assert isinstance(result._mgr.arrays[0], ExtensionArray)
+        assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
     def test_series_given_mismatched_index_raises(self, data):
         msg = r"Length of values \(3\) does not match length of index \(5\)"
