@@ -23,6 +23,7 @@ jobs:
             MAMBA_DIR="$HOME/miniconda3"
             rm -rf $MAMBA_DIR
             ./minimamba.sh -b -p $MAMBA_DIR
+            export PATH=$MAMBA_DIR/bin:$PATH
             conda info -a
             conda create -q -n pandas-dev -f $ENV_FILE
             conda list -n pandas-dev
