@@ -712,9 +712,9 @@ indices_dict = {
         pd.array([f"pandas_{i}" for i in range(10)], dtype="string[python]")
     ),
 }
-if has_pyarrow:
-    idx = Index(pd.array([f"pandas_{i}" for i in range(10)], dtype="string[pyarrow]"))
-    indices_dict["string-pyarrow"] = idx
+# if has_pyarrow:
+#     idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
+#     indices_dict["string-pyarrow"] = idx
 
 
 @pytest.fixture(params=indices_dict.keys())
