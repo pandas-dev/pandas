@@ -606,6 +606,12 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the autocorrelation plot.
+
+    See Also
+    --------
+    Series.autocorr : Compute the lag-N autocorrelation for a Series.
+    plotting.lag_plot : Lag plot for time series.
 
     Examples
     --------
