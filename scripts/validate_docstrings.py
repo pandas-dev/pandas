@@ -240,6 +240,32 @@ def pandas_validate(func_name: str):
     dict
         Information about the docstring and the errors found.
     """
+
+    def _get_delegated_func_name(func_name: str) -> str:
+        method_name = func_name.rsplit(".", 1)[-1]
+
+        if "Series.cat" in func_name:
+            return "pandas.core.arrays.categorical.Categorical." + method_name
+        if "Series.dt" in func_name:
+            if method_name in ["as_unit", "ceil", "floor", "round",]:
+                return "pandas.core.arrays.datetimelike.TimelikeOps." + method_name
+            if method_name in [
+                "day_name",
+                "month_name",
+                "normalize",
+                "to_period",
+                "tz_convert",
+                "tz_localize",
+            ]:
+                return "pandas.core.arrays.datetimes.DatetimeArray." + method_name
+            if method_name in ["strftime",]:
+                return "pandas.core.arrays.datetimelike.DatelikeOps." + method_name
+            if method_name in ["total_seconds",]:
+                return "pandas.core.arrays.timedeltas.TimedeltaArray." + method_name
+
+        return func_name
+
+    func_name = _get_delegated_func_name(func_name)
     func_obj = Validator._load_obj(func_name)
     # Some objects are instances, e.g. IndexSlice, which numpydoc can't validate
     doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
