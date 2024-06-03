@@ -1825,7 +1825,7 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = list(Index(s.index).get_indexer(fun))
-            col_idx_order = [i for i in col_idx_order if 0 <= i < len(s)]
+            col_idx_order = [i for i in col_idx_order if i != -1]
             if col_idx_order:
                 s = s.iloc[col_idx_order]
 
