@@ -180,24 +180,24 @@ class TestDataFrameConstructors:
             arr = arr[:, 0]
 
         obj = frame_or_series(arr, dtype=object)
-        assert obj._mgr.arrays[0].dtype == object
-        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+        assert obj._mgr.blocks[0].values.dtype == object
+        assert isinstance(obj._mgr.blocks[0].values.ravel()[0], scalar_type)
 
         # go through a different path in internals.construction
         obj = frame_or_series(frame_or_series(arr), dtype=object)
-        assert obj._mgr.arrays[0].dtype == object
-        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+        assert obj._mgr.blocks[0].values.dtype == object
+        assert isinstance(obj._mgr.blocks[0].values.ravel()[0], scalar_type)
 
         obj = frame_or_series(frame_or_series(arr), dtype=NumpyEADtype(object))
-        assert obj._mgr.arrays[0].dtype == object
-        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+        assert obj._mgr.blocks[0].values.dtype == object
+        assert isinstance(obj._mgr.blocks[0].values.ravel()[0], scalar_type)
 
         if frame_or_series is DataFrame:
             # other paths through internals.construction
             sers = [Series(x) for x in arr]
             obj = frame_or_series(sers, dtype=object)
-            assert obj._mgr.arrays[0].dtype == object
-            assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+            assert obj._mgr.blocks[0].values.dtype == object
+            assert isinstance(obj._mgr.blocks[0].values.ravel()[0], scalar_type)
 
     def test_series_with_name_not_matching_column(self):
         # GH#9232
@@ -297,7 +297,7 @@ class TestDataFrameConstructors:
     def test_constructor_dtype_nocast_view_2d_array(self):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         df2 = DataFrame(df.values, dtype=df[0].dtype)
-        assert df2._mgr.arrays[0].flags.c_contiguous
+        assert df2._mgr.blocks[0].values.flags.c_contiguous
 
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
@@ -2493,9 +2493,9 @@ class TestDataFrameConstructors:
         def check_views(c_only: bool = False):
             # Check that the underlying data behind df["c"] is still `c`
             #  after setting with iloc.  Since we don't know which entry in
-            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  df._mgr.blocks corresponds to df["c"], we just check that exactly
             #  one of these arrays is `c`.  GH#38939
-            assert sum(x is c for x in df._mgr.arrays) == 1
+            assert sum(x.values is c for x in df._mgr.blocks) == 1
             if c_only:
                 # If we ever stop consolidating in setitem_with_indexer,
                 #  this will become unnecessary.
@@ -2503,17 +2503,17 @@ class TestDataFrameConstructors:
 
             assert (
                 sum(
-                    get_base(x) is a
-                    for x in df._mgr.arrays
-                    if isinstance(x.dtype, np.dtype)
+                    get_base(x.values) is a
+                    for x in df._mgr.blocks
+                    if isinstance(x.values.dtype, np.dtype)
                 )
                 == 1
             )
             assert (
                 sum(
-                    get_base(x) is b
-                    for x in df._mgr.arrays
-                    if isinstance(x.dtype, np.dtype)
+                    get_base(x.values) is b
+                    for x in df._mgr.blocks
+                    if isinstance(x.values.dtype, np.dtype)
                 )
                 == 1
             )
@@ -3045,7 +3045,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
         # constructed from 2D ndarray
         arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
         df = DataFrame(arr)
-        assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
+        assert all(isinstance(block.values, DatetimeArray) for block in df._mgr.blocks)
 
     def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
         arr = np.random.default_rng(2).standard_normal((10, 2))
