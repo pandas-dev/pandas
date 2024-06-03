@@ -125,14 +125,14 @@ workflows:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - test-arm
+      - test-linux-arm
   test-musl:
     # Don't run trigger this one when scheduled pipeline runs
     when:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - linux-musl
+      - test-linux-musl
   build-wheels:
     jobs:
       - build-aarch64:
