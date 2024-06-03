@@ -483,7 +483,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.qcut PR07,SA01" \
         -i "pandas.read_orc SA01" \
         -i "pandas.read_spss SA01" \
-        -i "pandas.reset_option SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
