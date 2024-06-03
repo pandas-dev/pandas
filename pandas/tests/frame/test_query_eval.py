@@ -421,9 +421,13 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
-        res = df.query(
-            "@df.dates1 < 20130101 < @df.dates3", engine=engine, parser=parser
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query(
+                "@df.dates1 < 20130101 < @df.dates3", engine=engine, parser=parser
+            )
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -432,7 +436,11 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
-        res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -444,7 +452,11 @@ class TestDataFrameQueryNumExprPandas:
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
-        res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -455,7 +467,11 @@ class TestDataFrameQueryNumExprPandas:
         df["dates3"] = date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -470,7 +486,11 @@ class TestDataFrameQueryNumExprPandas:
         df.iloc[0, 0] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -483,7 +503,11 @@ class TestDataFrameQueryNumExprPandas:
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index.to_series() < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -493,16 +517,28 @@ class TestDataFrameQueryNumExprPandas:
             {"dates": date_range("1/1/2012", periods=n), "nondate": np.arange(n)}
         )
 
-        result = df.query("dates == nondate", parser=parser, engine=engine)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            result = df.query("dates == nondate", parser=parser, engine=engine)
         assert len(result) == 0
 
-        result = df.query("dates != nondate", parser=parser, engine=engine)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            result = df.query("dates != nondate", parser=parser, engine=engine)
         tm.assert_frame_equal(result, df)
 
         msg = r"Invalid comparison between dtype=datetime64\[ns\] and ndarray"
         for op in ["<", ">", "<=", ">="]:
             with pytest.raises(TypeError, match=msg):
-                df.query(f"dates {op} nondate", parser=parser, engine=engine)
+                with tm.assert_produces_warning(
+                    FutureWarning,
+                    match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+                ):
+                    df.query(f"dates {op} nondate", parser=parser, engine=engine)
 
     def test_query_syntax_error(self, engine, parser):
         df = DataFrame({"i": range(10), "+": range(3, 13), "r": range(4, 14)})
@@ -748,11 +784,19 @@ class TestDataFrameQueryNumExprPandas:
         )
         expected = DataFrame(index=df_index)
         df = DataFrame(index=df_index)
-        result = df.query('"2018-01-03 00:00:00+00" < time')
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            result = df.query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(df_index)
-        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
     def test_method_calls_in_query(self, engine, parser):
@@ -798,9 +842,15 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
-        res = df.query(
-            "(dates1 < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query(
+                "(dates1 < 20130101) & (20130101 < dates3)",
+                engine=engine,
+                parser=parser,
+            )
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -812,9 +862,15 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
-        res = df.query(
-            "(dates1 < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query(
+                "(dates1 < 20130101) & (20130101 < dates3)",
+                engine=engine,
+                parser=parser,
+            )
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -825,9 +881,13 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates3"] = date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        res = df.query(
-            "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query(
+                "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
+            )
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -842,9 +902,13 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df.iloc[0, 0] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
-        res = df.query(
-            "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+        ):
+            res = df.query(
+                "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
+            )
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
@@ -858,7 +922,11 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         assert return_value is None
         msg = r"'BoolOp' nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
-            df.query("index < 20130101 < dates3", engine=engine, parser=parser)
+            with tm.assert_produces_warning(
+                FutureWarning,
+                match="series.values will stop converting tz from dt64tz, interval to object and period to object",
+            ):
+                df.query("index < 20130101 < dates3", engine=engine, parser=parser)
 
     def test_nested_scope(self, engine, parser):
         # smoke test
