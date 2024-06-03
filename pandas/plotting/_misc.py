@@ -33,6 +33,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Parameters
     ----------
     ax : Matplotlib axes object
+        The axes on which to draw the table.
     data : DataFrame or Series
         Data for table contents.
     **kwargs
@@ -43,6 +44,12 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Returns
     -------
     matplotlib table object
+        The created table as a matplotlib Table object.
+
+    See Also
+    --------
+    DataFrame.plot : Make plots of DataFrame using matplotlib.
+    matplotlib.pyplot.table : Create a table from data in a Matplotlib plot.
 
     Examples
     --------
