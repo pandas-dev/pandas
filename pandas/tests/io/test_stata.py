@@ -267,7 +267,7 @@ class TestStata:
         # stata doesn't save .category metadata
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("version", [105, 108])
+    @pytest.mark.parametrize("version", [103, 104, 105, 108])
     def test_readold_dta4(self, version, datapath):
         # This test is the same as test_read_dta4 above except that the columns
         # had to be renamed to match the restrictions in older file format
@@ -2011,12 +2011,35 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+@pytest.mark.parametrize("version", [103, 104])
+def test_backward_compat_nodateconversion(version, datapath):
+    # The Stata data format prior to 105 did not support a date format
+    # so read the raw values for comparison
+    data_base = datapath("io", "data", "stata")
+    ref = os.path.join(data_base, "stata-compat-118.dta")
+    old = os.path.join(data_base, f"stata-compat-{version}.dta")
+    expected = read_stata(ref, convert_dates=False)
+    old_dta = read_stata(old, convert_dates=False)
+    tm.assert_frame_equal(old_dta, expected, check_dtype=False)
+
+
 @pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114, 118])
 def test_bigendian(version, datapath):
     ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
     big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
     expected = read_stata(ref)
     big_dta = read_stata(big)
+    tm.assert_frame_equal(big_dta, expected)
+
+
+@pytest.mark.parametrize("version", [103, 104])
+def test_bigendian_nodateconversion(version, datapath):
+    # The Stata data format prior to 105 did not support a date format
+    # so read the raw values for comparison
+    ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
+    big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
+    expected = read_stata(ref, convert_dates=False)
+    big_dta = read_stata(big, convert_dates=False)
     tm.assert_frame_equal(big_dta, expected)
 
 

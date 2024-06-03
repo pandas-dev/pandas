@@ -91,7 +91,7 @@ if TYPE_CHECKING:
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -1393,7 +1393,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [104, 105, 108, 110, 111, 113, 114, 115]:
+        if self._format_version not in [103, 104, 105, 108, 110, 111, 113, 114, 115]:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
         self._byteorder = ">" if self._read_int8() == 0x1 else "<"
@@ -1405,7 +1405,8 @@ class StataReader(StataParser, abc.Iterator):
 
         self._data_label = self._get_data_label()
 
-        self._time_stamp = self._get_time_stamp()
+        if self._format_version >= 105:
+            self._time_stamp = self._get_time_stamp()
 
         # descriptors
         if self._format_version >= 111:
