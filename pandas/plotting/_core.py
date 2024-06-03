@@ -791,6 +791,21 @@ class PlotAccessor(PandasObject):
         If the backend is not the default matplotlib one, the return value
         will be the object returned by the backend.
 
+    See Also
+    --------
+    matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+    DataFrame.hist : Make a histogram.
+    DataFrame.boxplot : Make a box plot.
+    DataFrame.plot.scatter : Make a scatter plot with varying marker
+        point size and color.
+    DataFrame.plot.hexbin : Make a hexagonal binning plot of
+        two variables.
+    DataFrame.plot.kde : Make Kernel Density Estimate plot using
+        Gaussian kernels.
+    DataFrame.plot.area : Make a stacked area plot.
+    DataFrame.plot.bar : Make a bar plot.
+    DataFrame.plot.barh : Make a horizontal bar plot.
+
     Notes
     -----
     - See matplotlib documentation online for more on this subject

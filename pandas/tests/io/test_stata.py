@@ -181,9 +181,7 @@ class TestStata:
         expected["monthly_date"] = expected["monthly_date"].astype("M8[s]")
         expected["quarterly_date"] = expected["quarterly_date"].astype("M8[s]")
         expected["half_yearly_date"] = expected["half_yearly_date"].astype("M8[s]")
-        expected["yearly_date"] = (
-            expected["yearly_date"].astype("Period[s]").array.view("M8[s]")
-        )
+        expected["yearly_date"] = expected["yearly_date"].astype("M8[s]")
 
         path1 = datapath("io", "data", "stata", "stata2_114.dta")
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
@@ -206,9 +204,9 @@ class TestStata:
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected, check_datetimelike_compat=True)
-        tm.assert_frame_equal(parsed_115, expected, check_datetimelike_compat=True)
-        tm.assert_frame_equal(parsed_117, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_114, expected)
+        tm.assert_frame_equal(parsed_115, expected)
+        tm.assert_frame_equal(parsed_117, expected)
 
     @pytest.mark.parametrize(
         "file", ["stata3_113", "stata3_114", "stata3_115", "stata3_117"]
@@ -225,11 +223,9 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize(
-        "file", ["stata4_111", "stata4_113", "stata4_114", "stata4_115", "stata4_117"]
-    )
-    def test_read_dta4(self, file, datapath):
-        file = datapath("io", "data", "stata", f"{file}.dta")
+    @pytest.mark.parametrize("version", [110, 111, 113, 114, 115, 117])
+    def test_read_dta4(self, version, datapath):
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
@@ -271,11 +267,11 @@ class TestStata:
         # stata doesn't save .category metadata
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("file", ["stata4_105", "stata4_108"])
-    def test_readold_dta4(self, file, datapath):
+    @pytest.mark.parametrize("version", [105, 108])
+    def test_readold_dta4(self, version, datapath):
         # This test is the same as test_read_dta4 above except that the columns
         # had to be renamed to match the restrictions in older file format
-        file = datapath("io", "data", "stata", f"{file}.dta")
+        file = datapath("io", "data", "stata", f"stata4_{version}.dta")
         parsed = self.read_dta(file)
 
         expected = DataFrame.from_records(
@@ -975,8 +971,8 @@ class TestStata:
 
         parsed_115 = read_stata(datapath("io", "data", "stata", "stata9_115.dta"))
         parsed_117 = read_stata(datapath("io", "data", "stata", "stata9_117.dta"))
-        tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)
-        tm.assert_frame_equal(expected, parsed_117, check_datetimelike_compat=True)
+        tm.assert_frame_equal(expected, parsed_115)
+        tm.assert_frame_equal(expected, parsed_117)
 
         date_conversion = {c: c[-2:] for c in columns}
         # {c : c[-2:] for c in columns}
@@ -988,7 +984,6 @@ class TestStata:
         tm.assert_frame_equal(
             written_and_read_again.set_index("index"),
             expected.set_index(expected.index.astype(np.int32)),
-            check_datetimelike_compat=True,
         )
 
     def test_dtype_conversion(self, datapath):
@@ -1275,7 +1270,9 @@ class TestStata:
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
-                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                    from_frame,
+                    chunk,
+                    check_dtype=False,
                 )
                 pos += chunksize
 
@@ -1367,7 +1364,9 @@ class TestStata:
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
-                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                    from_frame,
+                    chunk,
+                    check_dtype=False,
                 )
                 pos += chunksize
 
@@ -2033,7 +2032,7 @@ the string values returned are correct."""
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
 
-@pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
+@pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114])
 def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
@@ -2043,7 +2042,7 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("version", [105, 108, 111, 113, 114, 118])
+@pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114, 118])
 def test_bigendian(version, datapath):
     ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
     big = datapath("io", "data", "stata", f"stata-compat-be-{version}.dta")
