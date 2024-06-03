@@ -25,7 +25,7 @@ jobs:
             ./minimamba.sh -b -p $MAMBA_DIR
             export PATH=$MAMBA_DIR/bin:$PATH
             conda info -a
-            conda create -q -n pandas-dev -f $ENV_FILE
+            conda env create -q -n pandas-dev -f $ENV_FILE
             conda list -n pandas-dev
             source activate pandas-dev
             if pip show pandas 1>/dev/null; then
