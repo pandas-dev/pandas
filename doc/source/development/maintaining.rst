@@ -84,7 +84,7 @@ Here's a typical workflow for triaging a newly opened issue.
    example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
-   and example or simplify the provided one. Do acknowledge that writing
+   an example or simplify the provided one. Do acknowledge that writing
    minimal reproducible examples is hard work. If the reporter is struggling,
    you can try to write one yourself and we'll edit the original post to include it.
 
@@ -92,6 +92,9 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
+
+   If this is a regression report, post the result of a ``git bisect`` run.
+   More info on this can be found in the :ref:`maintaining.regressions` section.
 
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
    until all steps have been completed. Add a comment to the issue once you have
@@ -125,7 +128,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Once you have completed the above, make sure to remove the "needs triage" label.
+   If the issue is a regression report, add the "Regression" label and the next patch
+   release milestone.
+
+   Once you have completed the above, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
