@@ -920,7 +920,7 @@ class StringMethods(NoNewAttributesMixin):
             )
         if is_re(pat):
             regex = True
-        elif pat is not None and regex is None:
+        elif isinstance(pat, str) and regex is None:
             # regex is None so link to old behavior #43563
             regex = len(pat) != 1
         result = self._data.array._str_split(pat, n, expand, regex)
