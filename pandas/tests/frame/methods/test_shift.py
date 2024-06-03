@@ -320,7 +320,7 @@ class TestDataFrameShift:
         def get_cat_values(ndframe):
             # For Series we could just do ._values; for DataFrame
             #  we may be able to do this if we ever have 2D Categoricals
-            return ndframe._mgr.arrays[0]
+            return ndframe._mgr.blocks[0].values
 
         cat = get_cat_values(obj)
 
@@ -560,7 +560,7 @@ class TestDataFrameShift:
         # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(1, axis=1, fill_value=0)
         tm.assert_frame_equal(result, expected)
 
@@ -621,7 +621,7 @@ class TestDataFrameShift:
         # same thing but not consolidated
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-1, axis=1, fill_value="foo")
         tm.assert_frame_equal(result, expected)
 
