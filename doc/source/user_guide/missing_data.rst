@@ -337,10 +337,8 @@ When taking the product, NA values or empty data will be treated as 1.
    pd.Series([], dtype="float64").prod()
 
 Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-ignore NA values by default preserve them in the result. This behavior can be changed
-with ``skipna``
-
-* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
+ignore NA values by default, but preserve them in the resulting array. To override
+this behaviour and include NA values in the calculation, use ``skipna=False``.
 
 
 .. ipython:: python
