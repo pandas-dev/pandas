@@ -5,6 +5,7 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
+import itertools
 
 import numpy as np
 import pytest
@@ -51,35 +52,39 @@ class TestConcatenate:
 
         # These are actual copies.
         result = concat([df, df2, df3], axis=1)
-        for arr in result._mgr.arrays:
-            assert arr.base is not None
+        for block in result._mgr.blocks:
+            assert block.values.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1)
 
-        for arr in result._mgr.arrays:
+        for block in result._mgr.blocks:
+            arr = block.values
             if arr.dtype.kind == "f":
-                assert arr.base is df._mgr.arrays[0].base
+                assert arr.base is df._mgr.blocks[0].values.base
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1)
-        for arr in result._mgr.arrays:
+        for blocks in result._mgr.blocks:
+            arr = blocks.values
             if arr.dtype.kind == "f":
                 # this is a view on some array in either df or df4
                 assert any(
-                    np.shares_memory(arr, other)
-                    for other in df._mgr.arrays + df4._mgr.arrays
+                    np.shares_memory(arr, block.values)
+                    for block in itertools.chain(df._mgr.blocks, df4._mgr.blocks)
                 )
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 # this is a view on df3
-                assert any(np.shares_memory(arr, other) for other in df3._mgr.arrays)
+                assert any(
+                    np.shares_memory(arr, block.values) for block in df3._mgr.blocks
+                )
 
     def test_concat_with_group_keys(self):
         # axis=0

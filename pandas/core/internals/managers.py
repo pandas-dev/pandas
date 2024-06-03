@@ -353,6 +353,8 @@ class BaseBlockManager(PandasObject):
         Warning! The returned arrays don't handle Copy-on-Write, so this should
         be used with caution (only in read-mode).
         """
+        # TODO: Deprecate, usage in Dask
+        # https://github.com/dask/dask/blob/484fc3f1136827308db133cd256ba74df7a38d8c/dask/base.py#L1312
         return [blk.values for blk in self.blocks]
 
     def __repr__(self) -> str:
@@ -2068,7 +2070,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         Quick access to the backing array of the Block.
         """
-        return self.arrays[0]
+        return self.blocks[0].values
 
     # error: Cannot override writeable attribute with read-only property
     @property

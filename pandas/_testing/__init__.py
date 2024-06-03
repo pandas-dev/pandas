@@ -531,8 +531,8 @@ def shares_memory(left, right) -> bool:
             left._mask, right._mask
         )
 
-    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
-        arr = left._mgr.arrays[0]
+    if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
+        arr = left._mgr.blocks[0].values
         return shares_memory(arr, right)
 
     raise NotImplementedError(type(left), type(right))

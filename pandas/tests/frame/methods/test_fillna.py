@@ -47,7 +47,7 @@ class TestFillNA:
         assert np.isnan(arr[:, 0]).all()
 
         # i.e. we didn't create a new 49-column block
-        assert len(df._mgr.arrays) == 1
+        assert len(df._mgr.blocks) == 1
         assert np.shares_memory(df.values, arr)
 
     def test_fillna_datetime(self, datetime_frame):

@@ -287,7 +287,7 @@ def test_transform_groupby_kernel_frame(request, float_frame, op):
     # same thing, but ensuring we have multiple blocks
     assert "E" not in float_frame.columns
     float_frame["E"] = float_frame["A"].copy()
-    assert len(float_frame._mgr.arrays) > 1
+    assert len(float_frame._mgr.blocks) > 1
 
     ones = np.ones(float_frame.shape[0])
     gb2 = float_frame.groupby(ones)

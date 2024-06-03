@@ -340,8 +340,8 @@ class TestDataFrameSetItem:
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
         # Note: This does not hold with Copy on Write (because of lazy copying)
-        v1 = df._mgr.arrays[1]
-        v2 = df._mgr.arrays[2]
+        v1 = df._mgr.blocks[1].values
+        v2 = df._mgr.blocks[2].values
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base

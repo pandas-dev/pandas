@@ -6373,7 +6373,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(EA2D): special case not needed with 2D EAs
             dtype = pandas_dtype(dtype)
             if isinstance(dtype, ExtensionDtype) and all(
-                arr.dtype == dtype for arr in self._mgr.arrays
+                block.values.dtype == dtype for block in self._mgr.blocks
             ):
                 return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -11148,9 +11148,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if (
             self.ndim > 1
             and axis == 1
-            and len(self._mgr.arrays) > 1
+            and len(self._mgr.blocks) > 1
             # TODO(EA2D): special-case not needed
-            and all(x.ndim == 2 for x in self._mgr.arrays)
+            and all(block.values.ndim == 2 for block in self._mgr.blocks)
             and not kwargs
         ):
             # Fastpath avoiding potentially expensive transpose
