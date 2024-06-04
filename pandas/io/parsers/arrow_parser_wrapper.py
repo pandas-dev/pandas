@@ -287,17 +287,23 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
-        if dtype_backend == "pyarrow":
-            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-        elif dtype_backend == "numpy_nullable":
-            # Modify the default mapping to also
-            # map null to Int64 (to match other engines)
-            dtype_mapping = _arrow_dtype_mapping()
-            dtype_mapping[pa.null()] = pd.Int64Dtype()
-            frame = table.to_pandas(types_mapper=dtype_mapping.get)
-        elif using_pyarrow_string_dtype():
-            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "make_block is deprecated",
+                DeprecationWarning,
+            )
+            if dtype_backend == "pyarrow":
+                frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+            elif dtype_backend == "numpy_nullable":
+                # Modify the default mapping to also
+                # map null to Int64 (to match other engines)
+                dtype_mapping = _arrow_dtype_mapping()
+                dtype_mapping[pa.null()] = pd.Int64Dtype()
+                frame = table.to_pandas(types_mapper=dtype_mapping.get)
+            elif using_pyarrow_string_dtype():
+                frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
 
-        else:
-            frame = table.to_pandas()
+            else:
+                frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

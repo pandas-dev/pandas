@@ -985,6 +985,7 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
 
