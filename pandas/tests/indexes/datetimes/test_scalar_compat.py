@@ -344,6 +344,11 @@ class TestDatetimeIndexOps:
         with pytest.raises(ValueError, match=msg):
             dr.is_year_start
 
-    def test_dti_is_year_start_freq_business_month_start_with(self):
-        dr = date_range("2020-01-01", periods=1, freq="BMS")
+    @pytest.mark.parametrize("freq", ["BMS", offsets.BusinessMonthBegin()])
+    def test_dti_is_year_quarter_start_freq_business_month_begin(self, freq):
+        # GH#58729
+        dr = date_range("2020-01-01", periods=1, freq=freq)
         assert all(dr.is_year_start)
+
+        dr = date_range("2020-01-01", periods=1, freq=freq)
+        assert all(dr.is_quarter_start)
