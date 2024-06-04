@@ -54,8 +54,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-# Note: We need to make sure `frame` is imported before `pivot`, otherwise
-# _shared_docs['pivot_table'] will not yet exist.  T
 def pivot_table(
     data: DataFrame,
     values=None,
