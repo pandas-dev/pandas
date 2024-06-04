@@ -1677,7 +1677,7 @@ class MultiIndex(Index):
     # (previously declared in base class "IndexOpsMixin")
     _duplicated = duplicated  # type: ignore[misc]
 
-    def fillna(self, value, downcast=None):
+    def fillna(self, value):
         """
         fillna is not implemented for MultiIndex
         """
