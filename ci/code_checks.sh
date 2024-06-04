@@ -343,7 +343,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.bdate_range RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.agg RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.aggregate RT03" \
@@ -404,7 +403,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.window.rolling.Window.std PR01" \
         -i "pandas.core.window.rolling.Window.var PR01" \
         -i "pandas.date_range RT03" \
-        -i "pandas.describe_option SA01" \
         -i "pandas.errors.AbstractMethodError PR01,SA01" \
         -i "pandas.errors.AttributeConflictWarning SA01" \
         -i "pandas.errors.CSSWarning SA01" \
@@ -472,7 +470,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.merge_ordered PR07" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.pivot PR07" \
-        -i "pandas.pivot_table PR07" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \

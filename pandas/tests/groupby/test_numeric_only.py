@@ -256,7 +256,14 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     method = getattr(gb, kernel)
     if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
-        result = method(*args, **kwargs)
+        if kernel == "corrwith":
+            warn = FutureWarning
+            msg = "DataFrameGroupBy.corrwith is deprecated"
+        else:
+            warn = None
+            msg = ""
+        with tm.assert_produces_warning(warn, match=msg):
+            result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
@@ -296,7 +303,14 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
-            method(*args, **kwargs)
+            if kernel == "corrwith":
+                warn = FutureWarning
+                msg = "DataFrameGroupBy.corrwith is deprecated"
+            else:
+                warn = None
+                msg = ""
+            with tm.assert_produces_warning(warn, match=msg):
+                method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
