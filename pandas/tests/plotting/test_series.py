@@ -33,8 +33,13 @@ from pandas.tests.plotting.common import (
     get_y_axis,
 )
 
+from pandas.tseries.offsets import CustomBusinessDay
+
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
+
+from pandas.plotting._matplotlib.converter import DatetimeConverter
+from pandas.plotting._matplotlib.style import get_standard_colors
 
 
 @pytest.fixture
@@ -49,7 +54,7 @@ def ts():
 @pytest.fixture
 def series():
     return Series(
-        range(20), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(20)]
+        range(10), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(10)]
     )
 
 
@@ -192,28 +197,24 @@ class TestSeriesPlots:
 
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
-        plt.close(fig)
 
     def test_label(self):
         s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(label="LABEL", legend=True, ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
-        mpl.pyplot.close("all")
 
     def test_label_none(self):
         s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=[""])
-        mpl.pyplot.close("all")
 
     def test_label_ser_name(self):
         s = Series([1, 2], name="NAME")
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=["NAME"])
-        mpl.pyplot.close("all")
 
     def test_label_ser_name_override(self):
         s = Series([1, 2], name="NAME")
@@ -221,7 +222,6 @@ class TestSeriesPlots:
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, label="LABEL", ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
-        mpl.pyplot.close("all")
 
     def test_label_ser_name_override_dont_draw(self):
         s = Series([1, 2], name="NAME")
@@ -231,7 +231,6 @@ class TestSeriesPlots:
         assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         _check_legend_labels(ax, labels=["LABEL"])
-        mpl.pyplot.close("all")
 
     def test_boolean(self):
         # GH 23719
@@ -344,9 +343,7 @@ class TestSeriesPlots:
         _check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
-        from pandas.plotting._matplotlib.converter import DatetimeConverter
-
-        rng = date_range("1/1/2000", "3/1/2000")
+        rng = date_range("1/1/2000", "1/15/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
@@ -453,9 +450,9 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
+        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
 
         # primary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
@@ -467,28 +464,12 @@ class TestSeriesPlots:
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
 
-    def test_df_series_secondary_legend_with_axes(self):
-        # GH 9779
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
-        )
-        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
-        # primary -> secondary (with passing ax)
-        _, ax = mpl.pyplot.subplots()
-        ax = df.plot(ax=ax)
-        s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are drawn on left ax
-        # left and right axis must be visible
-        _check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
-        assert ax.get_yaxis().get_visible()
-        assert ax.right_ax.get_yaxis().get_visible()
-
     def test_df_series_secondary_legend_both(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
+        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
         # secondary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -500,29 +481,12 @@ class TestSeriesPlots:
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
 
-    def test_df_series_secondary_legend_both_with_axis(self):
-        # GH 9779
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
-        )
-        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
-        # secondary -> secondary (with passing ax)
-        _, ax = mpl.pyplot.subplots()
-        ax = df.plot(secondary_y=True, ax=ax)
-        s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are drawn on left ax
-        # left axis must be invisible and right axis must be visible
-        expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
-        _check_legend_labels(ax.left_ax, expected)
-        assert not ax.left_ax.get_yaxis().get_visible()
-        assert ax.get_yaxis().get_visible()
-
     def test_df_series_secondary_legend_both_with_axis_2(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
-        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
+        s = Series(np.random.default_rng(2).standard_normal(10), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
@@ -537,17 +501,12 @@ class TestSeriesPlots:
     @pytest.mark.parametrize(
         "input_logy, expected_scale", [(True, "log"), ("sym", "symlog")]
     )
-    def test_secondary_logy(self, input_logy, expected_scale):
-        # GH 25545
-        s1 = Series(np.random.default_rng(2).standard_normal(100))
-        s2 = Series(np.random.default_rng(2).standard_normal(100))
-
-        # GH 24980
-        ax1 = s1.plot(logy=input_logy)
-        ax2 = s2.plot(secondary_y=True, logy=input_logy)
-
+    @pytest.mark.parametrize("secondary_kwarg", [{}, {"secondary_y": True}])
+    def test_secondary_logy(self, input_logy, expected_scale, secondary_kwarg):
+        # GH 25545, GH 24980
+        s1 = Series(np.random.default_rng(2).standard_normal(10))
+        ax1 = s1.plot(logy=input_logy, **secondary_kwarg)
         assert ax1.get_yscale() == expected_scale
-        assert ax2.get_yscale() == expected_scale
 
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(np.random.default_rng(2).standard_normal(2))
@@ -673,6 +632,9 @@ class TestSeriesPlots:
         expected = (err.T * np.array([-1, 1])) + s.to_numpy().reshape(-1, 1)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_errorbar_asymmetrical_error(self):
+        # GH9536
+        s = Series(np.arange(10), name="x")
         msg = (
             "Asymmetrical error bars should be provided "
             f"with the shape \\(2, {len(s)}\\)"
@@ -759,8 +721,6 @@ class TestSeriesPlots:
 
     @pytest.mark.parametrize("c", ["r", "red", "green", "#FF0000"])
     def test_standard_colors(self, c):
-        from pandas.plotting._matplotlib.style import get_standard_colors
-
         result = get_standard_colors(1, color=c)
         assert result == [c]
 
@@ -774,12 +734,8 @@ class TestSeriesPlots:
         assert result == [c] * 3
 
     def test_standard_colors_all(self):
-        from matplotlib import colors
-
-        from pandas.plotting._matplotlib.style import get_standard_colors
-
         # multiple colors like mediumaquamarine
-        for c in colors.cnames:
+        for c in mpl.colors.cnames:
             result = get_standard_colors(num_colors=1, color=c)
             assert result == [c]
 
@@ -793,7 +749,7 @@ class TestSeriesPlots:
             assert result == [c] * 3
 
         # single letter colors like k
-        for c in colors.ColorConverter.colors:
+        for c in mpl.colors.ColorConverter.colors:
             result = get_standard_colors(num_colors=1, color=c)
             assert result == [c]
 
@@ -821,8 +777,6 @@ class TestSeriesPlots:
         _check_colors(ax.get_lines(), linecolors=["green"])
 
     def test_time_series_plot_color_with_empty_kwargs(self):
-        import matplotlib as mpl
-
         def_colors = _unpack_cycler(mpl.rcParams)
         index = date_range("1/1/2000", periods=12)
         s = Series(np.arange(1, 13), index=index)
@@ -851,8 +805,6 @@ class TestSeriesPlots:
 
     def test_custom_business_day_freq(self):
         # GH7222
-        from pandas.tseries.offsets import CustomBusinessDay
-
         s = Series(
             range(100, 121),
             index=pd.bdate_range(
