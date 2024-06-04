@@ -27,6 +27,9 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
+
+from pandas.plotting._matplotlib.hist import _grouped_hist
 
 
 @pytest.fixture
@@ -119,18 +122,13 @@ class TestSeriesPlots:
         _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import (
-            gcf,
-            subplot,
-        )
-
         x = Series(np.random.default_rng(2).standard_normal(2))
         y = Series(np.random.default_rng(2).standard_normal(2))
-        subplot(121)
+        plt.subplot(121)
         x.hist()
-        subplot(122)
+        plt.subplot(122)
         y.hist()
-        fig = gcf()
+        fig = plt.gcf()
         axes = fig.axes
         assert len(axes) == 2
 
@@ -140,10 +138,8 @@ class TestSeriesPlots:
         assert len(mpl.pyplot.get_fignums()) == 1
 
     def test_plot_fails_when_ax_differs_from_figure(self, ts):
-        from pylab import figure
-
-        fig1 = figure()
-        fig2 = figure()
+        fig1 = plt.figure(1)
+        fig2 = plt.figure(2)
         ax1 = fig1.add_subplot(111)
         msg = "passed axis not bound to passed figure"
         with pytest.raises(AssertionError, match=msg):
@@ -169,8 +165,8 @@ class TestSeriesPlots:
     )
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
         # GH 6279 - Series histogram can have a legend
-        index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
+        index = 5 * ["1"] + 5 * ["2"]
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="a")
         s.index.name = "b"
 
         # Use default_axes=True when plotting method generate subplots itself
@@ -181,8 +177,8 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("by", [None, "b"])
     def test_hist_with_legend_raises(self, by):
         # GH 6279 - Series histogram with legend and label raises
-        index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
+        index = 5 * ["1"] + 5 * ["2"]
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="a")
         s.index.name = "b"
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
@@ -331,12 +327,10 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_rectangles(self):
-        from matplotlib.patches import Rectangle
-
         ser = Series(range(10))
         ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
-        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+        rects = [x for x in ax.get_children() if isinstance(x, mpl.patches.Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
     @pytest.mark.slow
@@ -431,12 +425,12 @@ class TestDataFramePlots:
 
     # GH 9351
     def test_tight_layout(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((100, 2)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df[2] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
-                size=100,
+                size=10,
                 dtype=np.int64,
             )
         )
@@ -504,7 +498,7 @@ class TestDataFramePlots:
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(
-            np.random.default_rng(2).integers(1, 10, size=(100, 2)), columns=["a", "b"]
+            np.random.default_rng(2).integers(1, 10, size=(10, 2)), columns=["a", "b"]
         )
         ax = df.hist(histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
@@ -519,9 +513,9 @@ class TestDataFramePlots:
         if by is not None:
             expected_labels = [expected_labels] * 2
 
-        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        index = Index(5 * ["1"] + 5 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 2)),
+            np.random.default_rng(2).standard_normal((10, 2)),
             index=index,
             columns=["a", "b"],
         )
@@ -545,9 +539,9 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("column", [None, "b"])
     def test_hist_with_legend_raises(self, by, column):
         # GH 6279 - DataFrame histogram with legend and label raises
-        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        index = Index(5 * ["1"] + 5 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 2)),
+            np.random.default_rng(2).standard_normal((10, 2)),
             index=index,
             columns=["a", "b"],
         )
@@ -586,7 +580,7 @@ class TestDataFramePlots:
     def test_hist_secondary_legend(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
 
         # primary -> secondary
@@ -602,7 +596,7 @@ class TestDataFramePlots:
     def test_hist_secondary_secondary(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
         # secondary -> secondary
         _, ax = mpl.pyplot.subplots()
@@ -617,7 +611,7 @@ class TestDataFramePlots:
     def test_hist_secondary_primary(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
         # secondary -> primary
         _, ax = mpl.pyplot.subplots()
@@ -632,7 +626,6 @@ class TestDataFramePlots:
 
     def test_hist_with_nans_and_weights(self):
         # GH 48884
-        mpl_patches = pytest.importorskip("matplotlib.patches")
         df = DataFrame(
             [[np.nan, 0.2, 0.3], [0.4, np.nan, np.nan], [0.7, 0.8, 0.9]],
             columns=list("abc"),
@@ -643,12 +636,12 @@ class TestDataFramePlots:
 
         _, ax0 = mpl.pyplot.subplots()
         df.plot.hist(ax=ax0, weights=weights)
-        rects = [x for x in ax0.get_children() if isinstance(x, mpl_patches.Rectangle)]
+        rects = [x for x in ax0.get_children() if isinstance(x, mpl.patches.Rectangle)]
         heights = [rect.get_height() for rect in rects]
         _, ax1 = mpl.pyplot.subplots()
         no_nan_df.plot.hist(ax=ax1, weights=no_nan_weights)
         no_nan_rects = [
-            x for x in ax1.get_children() if isinstance(x, mpl_patches.Rectangle)
+            x for x in ax1.get_children() if isinstance(x, mpl.patches.Rectangle)
         ]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
         assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
@@ -663,8 +656,6 @@ class TestDataFramePlots:
 
 class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
-        from pandas.plotting._matplotlib.hist import _grouped_hist
-
         rs = np.random.default_rng(10)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
@@ -716,10 +707,6 @@ class TestDataFrameGroupByPlots:
         _check_ticks_props(axes, xrot=30)
 
     def test_grouped_hist_legacy_grouped_hist_kwargs(self):
-        from matplotlib.patches import Rectangle
-
-        from pandas.plotting._matplotlib.hist import _grouped_hist
-
         rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
@@ -748,14 +735,14 @@ class TestDataFrameGroupByPlots:
         )
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
-            rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+            rects = [
+                x for x in ax.get_children() if isinstance(x, mpl.patches.Rectangle)
+            ]
             height = rects[-1].get_height()
             tm.assert_almost_equal(height, 1.0)
         _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
     def test_grouped_hist_legacy_grouped_hist(self):
-        from pandas.plotting._matplotlib.hist import _grouped_hist
-
         rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
@@ -773,8 +760,6 @@ class TestDataFrameGroupByPlots:
         _check_ax_scales(axes, yaxis="log")
 
     def test_grouped_hist_legacy_external_err(self):
-        from pandas.plotting._matplotlib.hist import _grouped_hist
-
         rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
