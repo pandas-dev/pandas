@@ -1070,6 +1070,13 @@ def bdate_range(
     Returns
     -------
     DatetimeIndex
+        Fixed frequency DatetimeIndex.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
 
     Notes
     -----

@@ -343,7 +343,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.NumpyExtensionArray SA01" \
         -i "pandas.arrays.SparseArray PR07,SA01" \
         -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.bdate_range RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.agg RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.aggregate RT03" \
