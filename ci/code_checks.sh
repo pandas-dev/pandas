@@ -403,7 +403,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.window.rolling.Window.std PR01" \
         -i "pandas.core.window.rolling.Window.var PR01" \
         -i "pandas.date_range RT03" \
-        -i "pandas.describe_option SA01" \
         -i "pandas.errors.AbstractMethodError PR01,SA01" \
         -i "pandas.errors.AttributeConflictWarning SA01" \
         -i "pandas.errors.CSSWarning SA01" \
