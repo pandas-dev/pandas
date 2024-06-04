@@ -490,8 +490,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        is_pandas_object = isinstance(data, (ABCSeries, Index, ExtensionArray))
-
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
@@ -508,7 +506,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
 
-        elif isinstance(data, (np.ndarray, Index, ABCSeries)):
+        elif isinstance(data, (np.ndarray, ABCMultiIndex)):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
@@ -518,7 +516,9 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-
+        elif isinstance(data, (ABCSeries, Index)):
+            # GH 56244: Avoid potential inference on object types
+            pass
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
@@ -571,19 +571,7 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        result = klass._simple_new(arr, name, refs=refs)
-        if dtype is None and is_pandas_object and data_dtype == np.object_:
-            if result.dtype != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Index "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old "
-                    "behavior.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-        return result  # type: ignore[return-value]
+        return klass._simple_new(arr, name, refs=refs)
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -2634,7 +2622,7 @@ class Index(IndexOpsMixin, PandasObject):
         ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[s]', freq=None)
         >>> idx.isna()
         array([False,  True,  True,  True])
         """

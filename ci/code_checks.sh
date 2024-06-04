@@ -74,39 +74,31 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.mean RT03,SA01" \
         -i "pandas.DataFrame.median RT03,SA01" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.plot PR02,SA01" \
+        -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
-        -i "pandas.MultiIndex PR01" \
         -i "pandas.MultiIndex.append PR07,SA01" \
         -i "pandas.MultiIndex.copy PR07,RT03,SA01" \
         -i "pandas.MultiIndex.drop PR07,RT03,SA01" \
-        -i "pandas.MultiIndex.dtypes SA01" \
         -i "pandas.MultiIndex.get_level_values SA01" \
         -i "pandas.MultiIndex.get_loc PR07" \
         -i "pandas.MultiIndex.get_loc_level PR07" \
-        -i "pandas.MultiIndex.levels SA01" \
         -i "pandas.MultiIndex.levshape SA01" \
         -i "pandas.MultiIndex.names SA01" \
         -i "pandas.MultiIndex.nlevels SA01" \
         -i "pandas.MultiIndex.remove_unused_levels RT03,SA01" \
         -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
-        -i "pandas.MultiIndex.set_codes SA01" \
         -i "pandas.MultiIndex.set_levels RT03,SA01" \
         -i "pandas.MultiIndex.sortlevel PR07,SA01" \
         -i "pandas.MultiIndex.to_frame RT03" \
-        -i "pandas.MultiIndex.truncate SA01" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
         -i "pandas.NamedAgg SA01" \
-        -i "pandas.Period SA01" \
         -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
-        -i "pandas.Period.is_leap_year SA01" \
         -i "pandas.Period.month SA01" \
         -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.Period.quarter SA01" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
         -i "pandas.Period.year SA01" \
@@ -172,7 +164,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.lt SA01" \
         -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Series.plot PR02,SA01" \
+        -i "pandas.Series.plot PR02" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
@@ -367,7 +359,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.prod SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sum SA01" \
@@ -385,7 +377,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.min SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.prod SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sum SA01" \
@@ -478,31 +470,16 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.merge PR07" \
         -i "pandas.merge_asof PR07,RT03" \
         -i "pandas.merge_ordered PR07" \
-        -i "pandas.option_context SA01" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.pivot PR07" \
         -i "pandas.pivot_table PR07" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
-        -i "pandas.plotting.autocorrelation_plot RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
-        -i "pandas.plotting.parallel_coordinates PR07,RT03,SA01" \
-        -i "pandas.plotting.plot_params SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
-        -i "pandas.plotting.table PR07,RT03,SA01" \
         -i "pandas.qcut PR07,SA01" \
-        -i "pandas.read_feather SA01" \
-        -i "pandas.read_orc SA01" \
-        -i "pandas.read_sas SA01" \
         -i "pandas.read_spss SA01" \
-        -i "pandas.reset_option SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
-        -i "pandas.set_option SA01" \
-        -i "pandas.show_versions SA01" \
-        -i "pandas.test SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
-        -i "pandas.testing.assert_index_equal PR07,SA01" \
-        -i "pandas.testing.assert_series_equal PR07,SA01" \
-        -i "pandas.timedelta_range SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin PR02" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
@@ -787,7 +764,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.YearBegin.normalize GL08" \
         -i "pandas.tseries.offsets.YearBegin.rule_code GL08" \
-        -i "pandas.tseries.offsets.YearEnd PR02" \
         -i "pandas.tseries.offsets.YearEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
@@ -795,8 +771,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.YearEnd.rule_code GL08" \
-        -i "pandas.unique PR07" \
-        -i "pandas.util.hash_array PR07,SA01" \
         -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"

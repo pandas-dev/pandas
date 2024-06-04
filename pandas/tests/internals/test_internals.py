@@ -1404,7 +1404,7 @@ def test_make_block_no_pandas_array(block_maker):
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
-        # new_block no longer taked dtype keyword
+        # new_block no longer accepts dtype keyword
         # ndarray, NumpyEADtype
         with tm.assert_produces_warning(warn, match=depr_msg):
             result = block_maker(

@@ -196,7 +196,9 @@ def assert_index_equal(
     Parameters
     ----------
     left : Index
+        The first index to compare.
     right : Index
+        The second index to compare.
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
@@ -218,6 +220,11 @@ def assert_index_equal(
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    See Also
+    --------
+    testing.assert_series_equal : Check that two Series are equal.
+    testing.assert_frame_equal : Check that two DataFrames are equal.
 
     Examples
     --------
@@ -850,7 +857,9 @@ def assert_series_equal(
     Parameters
     ----------
     left : Series
+        First Series to compare.
     right : Series
+        Second Series to compare.
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
     check_index_type : bool or {'equiv'}, default 'equiv'
@@ -900,6 +909,11 @@ def assert_series_equal(
         Note: same labels must be with the same data.
 
         .. versionadded:: 1.5.0
+
+    See Also
+    --------
+    testing.assert_index_equal : Check that two Indexes are equal.
+    testing.assert_frame_equal : Check that two DataFrames are equal.
 
     Examples
     --------
