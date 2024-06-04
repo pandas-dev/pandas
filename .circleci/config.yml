@@ -1,46 +1,64 @@
 version: 2.1
 
 jobs:
-  test-arm:
+  test-linux-arm:
     machine:
       image: default
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-310-arm64.yaml
+      ENV_FILE: ci/deps/circle-311-arm64.yaml
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
       PYTEST_TARGET: "pandas"
       PANDAS_CI: "1"
     steps:
       - checkout
-      - run: .circleci/setup_env.sh
-      - run: >
-          PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
-          LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD
-          ci/run_tests.sh
-  linux-musl:
+      - run:
+          name: Install Environment and Run Tests
+          shell: /bin/bash -exuo pipefail
+          command: |
+            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
+            wget -q $MAMBA_URL -O minimamba.sh
+            chmod +x minimamba.sh
+            MAMBA_DIR="$HOME/miniconda3"
+            rm -rf $MAMBA_DIR
+            ./minimamba.sh -b -p $MAMBA_DIR
+            export PATH=$MAMBA_DIR/bin:$PATH
+            conda info -a
+            conda env create -q -n pandas-dev -f $ENV_FILE
+            conda list -n pandas-dev
+            source activate pandas-dev
+            if pip show pandas 1>/dev/null; then
+                pip uninstall -y pandas
+            fi
+            python -m pip install --no-build-isolation -ve . --config-settings=setup-args="--werror"
+            PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
+            ci/run_tests.sh
+  test-linux-musl:
     docker:
       - image: quay.io/pypa/musllinux_1_1_aarch64
     resource_class: arm.large
     steps:
       # Install pkgs first to have git in the image
       # (needed for checkout)
-      - run: |
-          apk update
-          apk add git
-          apk add musl-locales
+      - run:
+          name: Install System Packages
+          command: |
+            apk update
+            apk add git
+            apk add musl-locales
       - checkout
-      - run: |
-          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
-          . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
-          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
-          python -m pip list --no-cache-dir
-      - run: |
-          . ~/virtualenvs/pandas-dev/bin/activate
-          export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+      - run:
+          name: Install Environment and Run Tests
+          command: |
+            /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+            . ~/virtualenvs/pandas-dev/bin/activate
+            python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
+            python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+            python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+            python -m pip list --no-cache-dir
+            export PANDAS_CI=1
+            python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
   build-aarch64:
     parameters:
       cibw-build:
@@ -71,7 +89,7 @@ jobs:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.15.0
+            pip3 install cibuildwheel==2.18.1
             cibuildwheel --prerelease-pythons --output-dir wheelhouse
 
           environment:
@@ -81,7 +99,7 @@ jobs:
           name: Install Anaconda Client & Upload Wheels
           command: |
             echo "Install Mambaforge"
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/23.1.0-0/Mambaforge-23.1.0-0-Linux-aarch64.sh"
+            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
             echo "Downloading $MAMBA_URL"
             wget -q $MAMBA_URL -O minimamba.sh
             chmod +x minimamba.sh
@@ -107,14 +125,14 @@ workflows:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - test-arm
+      - test-linux-arm
   test-musl:
     # Don't run trigger this one when scheduled pipeline runs
     when:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - linux-musl
+      - test-linux-musl
   build-wheels:
     jobs:
       - build-aarch64:
