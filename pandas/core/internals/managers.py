@@ -419,11 +419,10 @@ class BaseBlockManager(PandasObject):
         result_blocks: list[Block] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
-        aligned_args = {k: kwargs[k] for k in align_keys}
-
         for b in self.blocks:
-            if aligned_args:
-                for k, obj in aligned_args.items():
+            if align_keys:
+                for k in align_keys:
+                    obj = kwargs[k]
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
                         #  obj.axes[-1].equals(self.items)
