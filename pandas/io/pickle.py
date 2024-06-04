@@ -121,7 +121,7 @@ def read_pickle(
     storage_options: StorageOptions | None = None,
 ) -> DataFrame | Series:
     """
-    Load pickled pandas object (or any object) from file.
+    Load pickled pandas object (or any object) from file. Modified.
 
     .. warning::
 
