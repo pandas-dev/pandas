@@ -45,6 +45,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dts_to_iso_string,
     get_conversion_factor,
     get_datetime64_unit,
+    get_datetime64_unit_num,
     get_implementation_bounds,
     import_pandas_datetime,
     npy_datetime,
@@ -287,9 +288,10 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
         return NPY_NAT
 
     unit = get_datetime64_unit(val)
+    nums = get_datetime64_unit_num(val)
 
-    if unit != reso:
-        pandas_datetime_to_datetimestruct(ival, unit, &dts)
+    if unit != reso or nums != 1:
+        pandas_datetime_to_datetimestruct(ival * nums, unit, &dts)
         try:
             ival = npy_datetimestruct_to_datetime(reso, &dts)
         except OverflowError as err:

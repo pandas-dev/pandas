@@ -633,6 +633,12 @@ class TestNonNano:
         assert ts <= alt
         assert alt <= ts
 
+    def test_datetime64_unit_count(self):
+        # GH 39977
+        ts = Timestamp(np.datetime64("2000-01-01", "10ns"))
+
+        assert ts == Timestamp("2000-01-01")
+
     def test_cmp_cross_reso(self):
         # numpy gets this wrong because of silent overflow
         dt64 = np.datetime64(9223372800, "s")  # won't fit in M8[ns]

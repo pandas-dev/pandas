@@ -81,6 +81,7 @@ cdef int64_t pydate_to_dt64(
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
+cdef int get_datetime64_unit_num(object obj) noexcept nogil
 
 cdef int string_to_dts(
     str val,

@@ -78,6 +78,13 @@ cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil:
     return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
 
 
+cdef int get_datetime64_unit_num(object obj) noexcept nogil:
+    """
+    returns the number of units of the dtype for a numpy datetime64 object.
+    """
+    return (<PyDatetimeScalarObject*>obj).obmeta.num
+
+
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
     # NB: caller is responsible for ensuring this is *some* datetime64 or
     #  timedelta64 dtype, otherwise we can segfault
