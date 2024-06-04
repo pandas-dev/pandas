@@ -374,7 +374,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         "Sub",
         "Mult",
         "Div",
-        None,
         "Pow",
         "FloorDiv",
         "Mod",
