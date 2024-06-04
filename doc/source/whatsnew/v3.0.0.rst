@@ -263,6 +263,7 @@ starting with 3.0, so it can be safely removed from your code.
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 
+- Deprecated :func:`core.internals.api.make_block`, use public APIs instead (:issue:`56815`)
 - Deprecated :meth:`.DataFrameGroupby.corrwith` (:issue:`57158`)
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
@@ -272,7 +273,6 @@ Other Deprecations
 - Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:
