@@ -15,6 +15,7 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
+import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
@@ -221,7 +222,7 @@ class TimeFormatter(mpl.ticker.Formatter):
 # Period Conversion
 
 
-class PeriodConverter(mpl.dates.DateConverter):
+class PeriodConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
         if is_nested_list_like(values):
@@ -278,7 +279,7 @@ def get_datevalue(date, freq):
 
 
 # Datetime Conversion
-class DatetimeConverter(mpl.dates.DateConverter):
+class DatetimeConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, unit, axis):
         # values might be a 1-d array, or a list-like of arrays.
@@ -292,12 +293,12 @@ class DatetimeConverter(mpl.dates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return mpl.dates.date2num(tools.to_datetime(values))
+                return mdates.date2num(tools.to_datetime(values))
             except Exception:
                 return values
 
         if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
-            return mpl.dates.date2num(values)
+            return mdates.date2num(values)
         elif is_integer(values) or is_float(values):
             return values
         elif isinstance(values, str):
@@ -320,7 +321,7 @@ class DatetimeConverter(mpl.dates.DateConverter):
             except Exception:
                 pass
 
-            values = mpl.dates.date2num(values)
+            values = mdates.date2num(values)
 
         return values
 
@@ -344,12 +345,12 @@ class DatetimeConverter(mpl.dates.DateConverter):
         )
 
 
-class PandasAutoDateFormatter(mpl.dates.AutoDateFormatter):
+class PandasAutoDateFormatter(mdates.AutoDateFormatter):
     def __init__(self, locator, tz=None, defaultfmt: str = "%Y-%m-%d") -> None:
-        mpl.dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
+        mdates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
 
 
-class PandasAutoDateLocator(mpl.dates.AutoDateLocator):
+class PandasAutoDateLocator(mdates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
         """Pick the best locator based on a distance."""
         tot_sec = (dmax - dmin).total_seconds()
@@ -369,17 +370,17 @@ class PandasAutoDateLocator(mpl.dates.AutoDateLocator):
             )
             return locator
 
-        return mpl.dates.AutoDateLocator.get_locator(self, dmin, dmax)
+        return mdates.AutoDateLocator.get_locator(self, dmin, dmax)
 
     def _get_unit(self):
         return MilliSecondLocator.get_unit_generic(self._freq)
 
 
-class MilliSecondLocator(mpl.dates.DateLocator):
+class MilliSecondLocator(mdates.DateLocator):
     UNIT = 1.0 / (24 * 3600 * 1000)
 
     def __init__(self, tz) -> None:
-        mpl.dates.DateLocator.__init__(self, tz)
+        mdates.DateLocator.__init__(self, tz)
         self._interval = 1.0
 
     def _get_unit(self):
@@ -387,7 +388,7 @@ class MilliSecondLocator(mpl.dates.DateLocator):
 
     @staticmethod
     def get_unit_generic(freq):
-        unit = mpl.dates.RRuleLocator.get_unit_generic(freq)
+        unit = mdates.RRuleLocator.get_unit_generic(freq)
         if unit < 0:
             return MilliSecondLocator.UNIT
         return unit
@@ -400,7 +401,7 @@ class MilliSecondLocator(mpl.dates.DateLocator):
             return []
 
         # We need to cap at the endpoints of valid datetime
-        nmax, nmin = mpl.dates.date2num((dmax, dmin))
+        nmax, nmin = mdates.date2num((dmax, dmin))
 
         num = (nmax - nmin) * 86400 * 1000
         max_millis_ticks = 6
@@ -429,12 +430,12 @@ class MilliSecondLocator(mpl.dates.DateLocator):
 
         try:
             if len(all_dates) > 0:
-                locs = self.raise_if_exceeds(mpl.dates.date2num(all_dates))
+                locs = self.raise_if_exceeds(mdates.date2num(all_dates))
                 return locs
         except Exception:  # pragma: no cover
             pass
 
-        lims = mpl.dates.date2num([dmin, dmax])
+        lims = mdates.date2num([dmin, dmax])
         return lims
 
     def _get_interval(self):
@@ -447,8 +448,8 @@ class MilliSecondLocator(mpl.dates.DateLocator):
         # We need to cap at the endpoints of valid datetime
         dmin, dmax = self.datalim_to_dt()
 
-        vmin = mpl.dates.date2num(dmin)
-        vmax = mpl.dates.date2num(dmax)
+        vmin = mdates.date2num(dmin)
+        vmax = mdates.date2num(dmax)
 
         return self.nonsingular(vmin, vmax)
 
