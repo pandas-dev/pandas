@@ -132,7 +132,7 @@ def test_interpolate_object_convert_copies():
     arr_a = get_array(df, "a")
     msg = "Can not interpolate with method=pad"
     with pytest.raises(ValueError, match=msg):
-        df.interpolate(method="pad", inplace=False, downcast="infer")
+        df.interpolate(method="pad", inplace=True, downcast="infer")
 
     assert df._mgr._has_no_reference(0)
     assert np.shares_memory(arr_a, get_array(df, "a"))
