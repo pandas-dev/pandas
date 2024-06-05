@@ -9295,6 +9295,8 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs : dict
             Optional keyword arguments to pass to ``aggfunc``.
 
+            .. versionadded:: 3.0.0
+
         Returns
         -------
         DataFrame

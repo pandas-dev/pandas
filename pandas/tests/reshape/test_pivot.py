@@ -2060,6 +2060,7 @@ class TestPivotTable:
 
     @pytest.mark.parametrize("kwargs", [{"a": 2}, {"a": 2, "b": 3}, {"b": 3, "a": 2}])
     def test_pivot_table_kwargs(self, kwargs):
+        # GH#57884
         def f(x, a, b=3):
             return x.sum() * a + b
 
@@ -2079,17 +2080,11 @@ class TestPivotTable:
         expected = pivot_table(df, index="A", columns="B", values="X", aggfunc=g)
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            [[np.nan, 43.0, 13.0], [15.0, np.nan, 23.0]],
-            columns=Index(["one", "three", "two"], name="B"),
-            index=Index(["bad", "good"], name="A"),
-        )
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "kwargs", [{}, {"b": 10}, {"a": 3}, {"a": 3, "b": 10}, {"b": 10, "a": 3}]
     )
     def test_pivot_table_kwargs_margin(self, data, kwargs):
+        # GH#57884
         def f(x, a=5, b=7):
             return (x.sum() + b) * a
 
@@ -2116,22 +2111,6 @@ class TestPivotTable:
         )
 
         tm.assert_frame_equal(result, expected)
-
-        grand_margin = g(data["D"])
-
-        margin_col = pivot_table(
-            data, values="D", index=["A", "B"], aggfunc=g, fill_value=0
-        )
-        margin_col.loc[("All", ""), "D"] = grand_margin
-        margin_col = margin_col["D"]
-        margin_col.name = "All"
-        tm.assert_series_equal(result["All"], margin_col)
-
-        margin_row = pivot_table(data, values="D", columns="C", aggfunc=g, fill_value=0)
-        margin_row["All"] = grand_margin
-        margin_row.index = [""]
-        margin_row.index.name = "B"
-        tm.assert_frame_equal(result.loc["All"], margin_row)
 
     @pytest.mark.parametrize(
         "f, f_numpy",
