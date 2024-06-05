@@ -467,7 +467,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.json_normalize RT03,SA01" \
         -i "pandas.merge PR07" \
         -i "pandas.merge_asof PR07,RT03" \
-        -i "pandas.merge_ordered PR07" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
