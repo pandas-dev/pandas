@@ -125,6 +125,11 @@ def pivot_table(
 
         .. versionadded:: 1.3.0
 
+    **kwargs : dict
+        Optional keyword arguments to pass to ``aggfunc``.
+
+        .. versionadded:: 3.0.0
+
     Returns
     -------
     DataFrame
