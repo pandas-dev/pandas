@@ -5,6 +5,8 @@ import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
+from pandas.compat import WASM
+
 from pandas import Timestamp
 
 ts_no_ns = Timestamp(
@@ -95,6 +97,7 @@ class TestTimestampRendering:
     @pytest.mark.parametrize(
         "date", ["2014-03-07", "2014-01-01 09:00", "2014-01-01 00:00:00.000000001"]
     )
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_repr(self, date, freq, tz):
         # avoid to match with timezone name
         freq_repr = f"'{freq}'"
@@ -118,7 +121,7 @@ class TestTimestampRendering:
     def test_repr_utcoffset(self):
         # This can cause the tz field to be populated, but it's redundant to
         # include this information in the date-string.
-        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400", tz=None)
+        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400")
         assert "2014-03-13 00:00:00-0400" in repr(date_with_utc_offset)
         assert "tzoffset" not in repr(date_with_utc_offset)
         assert "UTC-04:00" in repr(date_with_utc_offset)

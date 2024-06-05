@@ -243,6 +243,15 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
+    Parameters
+    ----------
+    data : scipy.sparse.spmatrix
+        Must be convertible to csc format.
+
+    See Also
+    --------
+    DataFrame.sparse.density : Ratio of non-sparse points to total (dense) data points.
+
     Examples
     --------
     >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
@@ -273,6 +282,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame
             Each column of the DataFrame is stored as a
             :class:`arrays.SparseArray`.
+
+        See Also
+        --------
+        DataFrame.sparse.to_coo : Return the contents of the frame as a
+            sparse SciPy COO matrix.
 
         Examples
         --------
@@ -319,6 +333,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame
             A DataFrame with the same values stored as dense arrays.
 
+        See Also
+        --------
+        DataFrame.sparse.density : Ratio of non-sparse points to total
+            (dense) data points.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
@@ -342,6 +361,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
+
+        See Also
+        --------
+        DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
 
         Notes
         -----
@@ -387,6 +410,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
+
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+            scipy sparse matrix.
 
         Examples
         --------

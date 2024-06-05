@@ -62,34 +62,6 @@ class TestCategoricalMissing:
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
 
-    @pytest.mark.parametrize(
-        "fillna_kwargs, msg",
-        [
-            (
-                {"value": 1, "method": "ffill"},
-                "Cannot specify both 'value' and 'method'.",
-            ),
-            ({}, "Must specify a fill 'value' or 'method'."),
-            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
-            (
-                {"value": Series([1, 2, 3, 4, "a"])},
-                "Cannot setitem on a Categorical with a new category",
-            ),
-        ],
-    )
-    def test_fillna_raises(self, fillna_kwargs, msg):
-        # https://github.com/pandas-dev/pandas/issues/19682
-        # https://github.com/pandas-dev/pandas/issues/13628
-        cat = Categorical([1, 2, 3, None, None])
-
-        if len(fillna_kwargs) == 1 and "value" in fillna_kwargs:
-            err = TypeError
-        else:
-            err = ValueError
-
-        with pytest.raises(err, match=msg):
-            cat.fillna(**fillna_kwargs)
-
     @pytest.mark.parametrize("named", [True, False])
     def test_fillna_iterable_category(self, named):
         # https://github.com/pandas-dev/pandas/issues/21097
@@ -149,7 +121,7 @@ class TestCategoricalMissing:
     @pytest.mark.parametrize(
         "na_value, dtype",
         [
-            (pd.NaT, "datetime64[ns]"),
+            (pd.NaT, "datetime64[s]"),
             (None, "float64"),
             (np.nan, "float64"),
             (pd.NA, "float64"),

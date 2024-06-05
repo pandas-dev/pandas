@@ -711,7 +711,7 @@ class TestLocBaseIndependent:
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True)
+        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("ms")
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
@@ -865,6 +865,7 @@ class TestLocBaseIndependent:
                 "val": Series([0, 1, 0, 1, 2], dtype=np.int64),
             }
         )
+        expected["date"] = expected["date"].astype("M8[ns]")
         rhs = df.loc[0:2]
         rhs.index = df.index[2:5]
         df.loc[2:4] = rhs
@@ -1814,7 +1815,7 @@ class TestLocWithMultiIndex:
         result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
         expected = DataFrame(
             {"a": [0, 4], "b": [0, 4]},
-            index=DatetimeIndex(["2010-01-01", "2010-01-05"]),
+            index=DatetimeIndex(["2010-01-01", "2010-01-05"]).as_unit("ns"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2025,7 +2026,7 @@ class TestLocSetitemWithExpansion:
         ids=["self", "to_datetime64", "to_pydatetime", "np.datetime64"],
     )
     def test_loc_setitem_datetime_keys_cast(self, conv):
-        # GH#9516
+        # GH#9516, GH#51363 changed in 3.0 to not cast on Index.insert
         dt1 = Timestamp("20130101 09:00:00")
         dt2 = Timestamp("20130101 10:00:00")
         df = DataFrame()
@@ -2034,7 +2035,7 @@ class TestLocSetitemWithExpansion:
 
         expected = DataFrame(
             {"one": [100.0, 200.0]},
-            index=[dt1, dt2],
+            index=Index([conv(dt1), conv(dt2)], dtype=object),
             columns=Index(["one"], dtype=object),
         )
         tm.assert_frame_equal(df, expected)
@@ -2082,7 +2083,7 @@ class TestLocSetitemWithExpansion:
         expected = Series([v[0].tz_convert("UTC"), df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
 
-        v = df.loc[df.new_col == "new", "time"] + Timedelta("1s")
+        v = df.loc[df.new_col == "new", "time"] + Timedelta("1s").as_unit("s")
         df.loc[df.new_col == "new", "time"] = v
         tm.assert_series_equal(df.loc[df.new_col == "new", "time"], v)
 

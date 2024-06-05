@@ -192,7 +192,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, ser.index)
 
-            result = ser.dt.to_pytimedelta()
+            msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
@@ -254,9 +256,8 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            ser = Series(idx)
+        idx = period_range("20130101", periods=5, freq="D", name="xxx")
+        ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))

@@ -117,6 +117,11 @@ class Grouper:
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
 
+    See Also
+    --------
+    Series.groupby : Apply a function groupby to a Series.
+    DataFrame.groupby : Apply a function groupby.
+
     Examples
     --------
     ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
@@ -263,7 +268,6 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self._grouper_deprecated = None
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self.binner = None
         self._grouper = None
@@ -292,10 +296,6 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
-        # Without setting this, subsequent lookups to .groups raise
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
@@ -667,6 +667,28 @@ class Grouping:
         uniques = Index._with_infer(uniques, name=self.name)
         cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
+
+    @property
+    def observed_grouping(self) -> Grouping:
+        if self._observed:
+            return self
+
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
+        grouping = Grouping(
+            self._index,
+            self._orig_grouper,
+            obj=self.obj,
+            level=self.level,
+            sort=self._sort,
+            observed=True,
+            in_axis=self.in_axis,
+            dropna=self._dropna,
+            uniques=self._uniques,
+        )
+        return grouping
 
 
 def get_grouper(
