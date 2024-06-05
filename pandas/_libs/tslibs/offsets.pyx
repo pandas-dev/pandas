@@ -1163,6 +1163,17 @@ cdef class Day(SingleConstructorOffset):
 
     @cache_readonly
     def freqstr(self) -> str:
+        """
+        Return a string representing the frequency.
+
+        Examples
+        --------
+        >>> pd.Day(5).freqstr
+        '5D'
+
+        >>> pd.offsets.Day(1).freqstr
+        'D'
+        """
         if self.n != 1:
             return str(self.n) + "D"
         return "D"
