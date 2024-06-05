@@ -176,8 +176,6 @@ class MPLPlot(ABC):
         style=None,
         **kwds,
     ) -> None:
-        import matplotlib.pyplot as plt
-
         # if users assign an empty list or tuple, raise `ValueError`
         # similar to current `df.box` and `df.hist` APIs.
         if by in ([], ()):
@@ -238,7 +236,7 @@ class MPLPlot(ABC):
             self.rot = self._default_rot
 
         if grid is None:
-            grid = False if secondary_y else plt.rcParams["axes.grid"]
+            grid = False if secondary_y else mpl.rcParams["axes.grid"]
 
         self.grid = grid
         self.legend = legend
@@ -1386,7 +1384,7 @@ class ScatterPlot(PlanePlot):
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is None and color is None:
-            c_values = self.plt.rcParams["patch.facecolor"]
+            c_values = mpl.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
         elif color_by_categorical:
