@@ -14,14 +14,7 @@ from typing import (
 )
 import warnings
 
-import matplotlib.dates as mdates
-from matplotlib.ticker import (
-    AutoLocator,
-    Formatter,
-    Locator,
-)
-from matplotlib.transforms import nonsingular
-import matplotlib.units as munits
+import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
@@ -122,25 +115,27 @@ def register() -> None:
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
-        if type_ in munits.registry and not isinstance(munits.registry[type_], cls):
-            previous = munits.registry[type_]
+        if type_ in mpl.units.registry and not isinstance(
+            mpl.units.registry[type_], cls
+        ):
+            previous = mpl.units.registry[type_]
             _mpl_units[type_] = previous
         # Replace with pandas converter
-        munits.registry[type_] = cls()
+        mpl.units.registry[type_] = cls()
 
 
 def deregister() -> None:
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance
-        if type(munits.registry.get(type_)) is cls:
-            munits.registry.pop(type_)
+        if type(mpl.units.registry.get(type_)) is cls:
+            mpl.units.registry.pop(type_)
 
     # restore the old keys
     for unit, formatter in _mpl_units.items():
         if type(formatter) not in {DatetimeConverter, PeriodConverter, TimeConverter}:
             # make it idempotent by excluding ours.
-            munits.registry[unit] = formatter
+            mpl.units.registry[unit] = formatter
 
 
 def _to_ordinalf(tm: pydt.time) -> float:
@@ -157,7 +152,7 @@ def time2num(d):
     return d
 
 
-class TimeConverter(munits.ConversionInterface):
+class TimeConverter(mpl.units.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
@@ -170,13 +165,13 @@ class TimeConverter(munits.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis) -> munits.AxisInfo | None:
+    def axisinfo(unit, axis) -> mpl.units.AxisInfo | None:
         if unit != "time":
             return None
 
-        majloc = AutoLocator()
+        majloc = mpl.ticker.AutoLocator()
         majfmt = TimeFormatter(majloc)
-        return munits.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
+        return mpl.units.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
     @staticmethod
     def default_units(x, axis) -> str:
@@ -184,7 +179,7 @@ class TimeConverter(munits.ConversionInterface):
 
 
 # time formatter
-class TimeFormatter(Formatter):
+class TimeFormatter(mpl.ticker.Formatter):
     def __init__(self, locs) -> None:
         self.locs = locs
 
@@ -227,7 +222,7 @@ class TimeFormatter(Formatter):
 # Period Conversion
 
 
-class PeriodConverter(mdates.DateConverter):
+class PeriodConverter(mpl.dates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
         if is_nested_list_like(values):
@@ -284,7 +279,7 @@ def get_datevalue(date, freq):
 
 
 # Datetime Conversion
-class DatetimeConverter(mdates.DateConverter):
+class DatetimeConverter(mpl.dates.DateConverter):
     @staticmethod
     def convert(values, unit, axis):
         # values might be a 1-d array, or a list-like of arrays.
@@ -298,12 +293,12 @@ class DatetimeConverter(mdates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return mdates.date2num(tools.to_datetime(values))
+                return mpl.dates.date2num(tools.to_datetime(values))
             except Exception:
                 return values
 
         if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
-            return mdates.date2num(values)
+            return mpl.dates.date2num(values)
         elif is_integer(values) or is_float(values):
             return values
         elif isinstance(values, str):
@@ -326,12 +321,12 @@ class DatetimeConverter(mdates.DateConverter):
             except Exception:
                 pass
 
-            values = mdates.date2num(values)
+            values = mpl.dates.date2num(values)
 
         return values
 
     @staticmethod
-    def axisinfo(unit: tzinfo | None, axis) -> munits.AxisInfo:
+    def axisinfo(unit: tzinfo | None, axis) -> mpl.units.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -345,17 +340,17 @@ class DatetimeConverter(mdates.DateConverter):
         datemin = pydt.date(2000, 1, 1)
         datemax = pydt.date(2010, 1, 1)
 
-        return munits.AxisInfo(
+        return mpl.units.AxisInfo(
             majloc=majloc, majfmt=majfmt, label="", default_limits=(datemin, datemax)
         )
 
 
-class PandasAutoDateFormatter(mdates.AutoDateFormatter):
+class PandasAutoDateFormatter(mpl.dates.AutoDateFormatter):
     def __init__(self, locator, tz=None, defaultfmt: str = "%Y-%m-%d") -> None:
-        mdates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
+        mpl.dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
 
 
-class PandasAutoDateLocator(mdates.AutoDateLocator):
+class PandasAutoDateLocator(mpl.dates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
         """Pick the best locator based on a distance."""
         tot_sec = (dmax - dmin).total_seconds()
@@ -375,17 +370,17 @@ class PandasAutoDateLocator(mdates.AutoDateLocator):
             )
             return locator
 
-        return mdates.AutoDateLocator.get_locator(self, dmin, dmax)
+        return mpl.dates.AutoDateLocator.get_locator(self, dmin, dmax)
 
     def _get_unit(self):
         return MilliSecondLocator.get_unit_generic(self._freq)
 
 
-class MilliSecondLocator(mdates.DateLocator):
+class MilliSecondLocator(mpl.dates.DateLocator):
     UNIT = 1.0 / (24 * 3600 * 1000)
 
     def __init__(self, tz) -> None:
-        mdates.DateLocator.__init__(self, tz)
+        mpl.dates.DateLocator.__init__(self, tz)
         self._interval = 1.0
 
     def _get_unit(self):
@@ -393,7 +388,7 @@ class MilliSecondLocator(mdates.DateLocator):
 
     @staticmethod
     def get_unit_generic(freq):
-        unit = mdates.RRuleLocator.get_unit_generic(freq)
+        unit = mpl.dates.RRuleLocator.get_unit_generic(freq)
         if unit < 0:
             return MilliSecondLocator.UNIT
         return unit
@@ -406,7 +401,7 @@ class MilliSecondLocator(mdates.DateLocator):
             return []
 
         # We need to cap at the endpoints of valid datetime
-        nmax, nmin = mdates.date2num((dmax, dmin))
+        nmax, nmin = mpl.dates.date2num((dmax, dmin))
 
         num = (nmax - nmin) * 86400 * 1000
         max_millis_ticks = 6
@@ -435,12 +430,12 @@ class MilliSecondLocator(mdates.DateLocator):
 
         try:
             if len(all_dates) > 0:
-                locs = self.raise_if_exceeds(mdates.date2num(all_dates))
+                locs = self.raise_if_exceeds(mpl.dates.date2num(all_dates))
                 return locs
         except Exception:  # pragma: no cover
             pass
 
-        lims = mdates.date2num([dmin, dmax])
+        lims = mpl.dates.date2num([dmin, dmax])
         return lims
 
     def _get_interval(self):
@@ -453,8 +448,8 @@ class MilliSecondLocator(mdates.DateLocator):
         # We need to cap at the endpoints of valid datetime
         dmin, dmax = self.datalim_to_dt()
 
-        vmin = mdates.date2num(dmin)
-        vmax = mdates.date2num(dmax)
+        vmin = mpl.dates.date2num(dmin)
+        vmax = mpl.dates.date2num(dmax)
 
         return self.nonsingular(vmin, vmax)
 
@@ -917,7 +912,7 @@ def get_finder(freq: BaseOffset):
         raise NotImplementedError(f"Unsupported frequency: {dtype_code}")
 
 
-class TimeSeries_DateLocator(Locator):
+class TimeSeries_DateLocator(mpl.ticker.Locator):
     """
     Locates the ticks along an axis controlled by a :class:`Series`.
 
@@ -998,7 +993,7 @@ class TimeSeries_DateLocator(Locator):
         if vmin == vmax:
             vmin -= 1
             vmax += 1
-        return nonsingular(vmin, vmax)
+        return mpl.transforms.nonsingular(vmin, vmax)
 
 
 # -------------------------------------------------------------------------
@@ -1006,7 +1001,7 @@ class TimeSeries_DateLocator(Locator):
 # -------------------------------------------------------------------------
 
 
-class TimeSeries_DateFormatter(Formatter):
+class TimeSeries_DateFormatter(mpl.ticker.Formatter):
     """
     Formats the ticks along an axis controlled by a :class:`PeriodIndex`.
 
@@ -1082,7 +1077,7 @@ class TimeSeries_DateFormatter(Formatter):
             return period.strftime(fmt)
 
 
-class TimeSeries_TimedeltaFormatter(Formatter):
+class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):
     """
     Formats the ticks along an axis controlled by a :class:`TimedeltaIndex`.
     """

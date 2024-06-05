@@ -34,9 +34,8 @@ from pandas.tseries.offsets import (
     Second,
 )
 
+mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
-dates = pytest.importorskip("matplotlib.dates")
-units = pytest.importorskip("matplotlib.units")
 
 from pandas.plotting._matplotlib import converter
 
@@ -97,8 +96,8 @@ class TestRegistration:
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
             with cf.option_context("plotting.matplotlib.register_converters", False):
-                assert Timestamp not in units.registry
-            assert Timestamp in units.registry
+                assert Timestamp not in mpl.units.registry
+            assert Timestamp in mpl.units.registry
 
     def test_option_no_warning(self):
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -115,25 +114,25 @@ class TestRegistration:
 
     def test_registry_resets(self):
         # make a copy, to reset to
-        original = dict(units.registry)
+        original = dict(mpl.units.registry)
 
         try:
             # get to a known state
-            units.registry.clear()
-            date_converter = dates.DateConverter()
-            units.registry[datetime] = date_converter
-            units.registry[date] = date_converter
+            mpl.units.registry.clear()
+            date_converter = mpl.dates.DateConverter()
+            mpl.units.registry[datetime] = date_converter
+            mpl.units.registry[date] = date_converter
 
             register_matplotlib_converters()
-            assert units.registry[date] is not date_converter
+            assert mpl.units.registry[date] is not date_converter
             deregister_matplotlib_converters()
-            assert units.registry[date] is date_converter
+            assert mpl.units.registry[date] is date_converter
 
         finally:
             # restore original stater
-            units.registry.clear()
+            mpl.units.registry.clear()
             for k, v in original.items():
-                units.registry[k] = v
+                mpl.units.registry[k] = v
 
 
 class TestDateTimeConverter:
@@ -148,7 +147,7 @@ class TestDateTimeConverter:
 
     def test_conversion(self, dtc):
         rs = dtc.convert(["2012-1-1"], None, None)[0]
-        xp = dates.date2num(datetime(2012, 1, 1))
+        xp = mpl.dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
         rs = dtc.convert("2012-1-1", None, None)
@@ -196,7 +195,7 @@ class TestDateTimeConverter:
         rtol = 0.5 * 10**-9
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        xp = mpl.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
@@ -217,10 +216,10 @@ class TestDateTimeConverter:
     def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
         rs = dtc.convert(values, None, None)
-        xp = converter.mdates.date2num(values)
+        xp = mpl.dates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = converter.mdates.date2num(values[0])
+        xp = mpl.dates.date2num(values[0])
         assert rs == xp
 
     @pytest.mark.parametrize(
@@ -243,7 +242,7 @@ class TestDateTimeConverter:
         rtol = 10**-9
         dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
-        xp = converter.mdates.date2num(dateindex._mpl_repr())
+        xp = mpl.dates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])

@@ -107,9 +107,7 @@ def _color_in_style(style: str) -> bool:
     """
     Check if there is a color letter in the style string.
     """
-    from matplotlib.colors import BASE_COLORS
-
-    return not set(BASE_COLORS).isdisjoint(style)
+    return not set(mpl.colors.BASE_COLORS).isdisjoint(style)
 
 
 class MPLPlot(ABC):
@@ -496,10 +494,6 @@ class MPLPlot(ABC):
         return self._get_nseries(self.data)
 
     @final
-    def draw(self) -> None:
-        self.plt.draw_if_interactive()
-
-    @final
     def generate(self) -> None:
         self._compute_plot_data()
         fig = self.fig
@@ -568,6 +562,8 @@ class MPLPlot(ABC):
     @final
     @cache_readonly
     def _axes_and_fig(self) -> tuple[Sequence[Axes], Figure]:
+        import matplotlib.pyplot as plt
+
         if self.subplots:
             naxes = (
                 self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
@@ -582,7 +578,7 @@ class MPLPlot(ABC):
                 layout_type=self._layout_type,
             )
         elif self.ax is None:
-            fig = self.plt.figure(figsize=self.figsize)
+            fig = plt.figure(figsize=self.figsize)
             axes = fig.add_subplot(111)
         else:
             fig = self.ax.get_figure()
@@ -916,13 +912,6 @@ class MPLPlot(ABC):
             ax = other_ax
         return ax, leg
 
-    @final
-    @cache_readonly
-    def plt(self):
-        import matplotlib.pyplot as plt
-
-        return plt
-
     _need_to_set_index = False
 
     @final
@@ -1217,9 +1206,9 @@ class MPLPlot(ABC):
     @final
     def _get_subplots(self, fig: Figure) -> list[Axes]:
         if Version(mpl.__version__) < Version("3.8"):
-            from matplotlib.axes import Subplot as Klass
+            Klass = mpl.axes.Subplot
         else:
-            from matplotlib.axes import Axes as Klass
+            Klass = mpl.axes.Axes
 
         return [
             ax
@@ -1409,12 +1398,10 @@ class ScatterPlot(PlanePlot):
             cmap = None
 
         if color_by_categorical and cmap is not None:
-            from matplotlib import colors
-
             n_cats = len(self.data[c].cat.categories)
-            cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
+            cmap = mpl.colors.ListedColormap([cmap(i) for i in range(cmap.N)])
             bounds = np.linspace(0, n_cats, n_cats + 1)
-            norm = colors.BoundaryNorm(bounds, cmap.N)
+            norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
             # TODO: warn that we are ignoring self.norm if user specified it?
             #  Doesn't happen in any tests 2023-11-09
         else:
@@ -1674,8 +1661,6 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values  # type: ignore[attr-defined]
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
-        from matplotlib.ticker import FixedLocator
-
         def get_label(i):
             if is_float(i) and i.is_integer():
                 i = int(i)
@@ -1689,7 +1674,7 @@ class LinePlot(MPLPlot):
             xticklabels = [get_label(x) for x in xticks]
             # error: Argument 1 to "FixedLocator" has incompatible type "ndarray[Any,
             # Any]"; expected "Sequence[float]"
-            ax.xaxis.set_major_locator(FixedLocator(xticks))  # type: ignore[arg-type]
+            ax.xaxis.set_major_locator(mpl.ticker.FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
 
         # If the index is an irregular time series, then by default

@@ -1598,7 +1598,7 @@ class PlotAccessor(PandasObject):
 
         See Also
         --------
-        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
+        DataFrame.plot : Make plots of DataFrame using matplotlib.
 
         Examples
         --------
