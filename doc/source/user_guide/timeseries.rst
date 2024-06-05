@@ -1273,6 +1273,10 @@ frequencies. We will refer to these aliases as *offset aliases*.
    are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
+   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
+   ``YE``, ``ME``, ``QE``.
+
+
 .. note::
 
     When using the offset aliases above, it should be noted that functions

@@ -162,7 +162,7 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
+        df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
             [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
@@ -340,8 +340,8 @@ class TestDataFrameSetItem:
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
         # Note: This does not hold with Copy on Write (because of lazy copying)
-        v1 = df._mgr.arrays[1]
-        v2 = df._mgr.arrays[2]
+        v1 = df._mgr.blocks[1].values
+        v2 = df._mgr.blocks[2].values
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
@@ -838,6 +838,7 @@ class TestSetitemTZAwareValues:
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
+        expected = expected.dt.as_unit("us")
         tm.assert_series_equal(result, expected)
 
 
