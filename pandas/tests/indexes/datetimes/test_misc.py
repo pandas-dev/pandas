@@ -115,7 +115,7 @@ class TestDatetime64:
             exp = dti[[0, 90, 181, 273]]
             tm.assert_index_equal(res, exp)
             res = dti[dti.is_leap_year]
-            exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
+            exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name").as_unit("ns")
             tm.assert_index_equal(res, exp)
 
     def test_datetimeindex_accessors2(self):
@@ -198,7 +198,8 @@ class TestDatetime64:
     # GH 12806
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
+        "time_locale",
+        [None] + tm.get_locales(),  # type: ignore[operator]
     )
     def test_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
