@@ -39,7 +39,6 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
-    to_offset,
     tz_compare,
 )
 from pandas._typing import (
@@ -6950,15 +6949,7 @@ class Index(IndexOpsMixin, PandasObject):
             if errors != "ignore":
                 raise KeyError(f"{labels[mask].tolist()} not found in axis")
             indexer = indexer[~mask]
-        new_index = self.delete(indexer)
-
-        # check if we need to set the freq attribute
-        from pandas import DatetimeIndex
-
-        if isinstance(self, DatetimeIndex) and isinstance(new_index, DatetimeIndex):
-            new_index.freq = to_offset(new_index.inferred_freq)
-
-        return new_index
+        return self.delete(indexer)
 
     @final
     def infer_objects(self, copy: bool = True) -> Index:

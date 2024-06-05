@@ -486,10 +486,11 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("freq", ["YE", "ME", "D"])
     def test_drop_method_freq_preservation(self, freq):
+        # GH 58846
         start = "1970-01-01"
         periods = 10
 
-        index = date_range(start=start, periods=10, freq=freq)
+        index = date_range(start=start, periods=periods, freq=freq)
         df = DataFrame((np.ones(len(index))), index=index)
 
         # set inplace as false

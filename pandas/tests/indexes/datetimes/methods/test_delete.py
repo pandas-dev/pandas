@@ -132,9 +132,8 @@ class TestDelete:
         assert result.freq == expected.freq
         assert result.tz == expected.tz
 
-        # reset freq
         result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
-        expected = dti[::2]._with_freq("infer")
+        expected = dti[::2]
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
         assert result.freq == expected.freq

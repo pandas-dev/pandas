@@ -48,12 +48,13 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Hashable, Iterable
 
     from pandas._typing import (
         Dtype,
         DtypeObj,
         Frequency,
+        IgnoreRaise,
         IntervalClosedType,
         Self,
         TimeAmbiguous,
@@ -812,6 +813,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = join_op(lop(start_micros, time_micros), rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
+
+    # --------------------------------------------------------------------
+
+    def drop(
+        self,
+        labels: Index | np.ndarray | Iterable[Hashable],
+        errors: IgnoreRaise = "raise",
+    ) -> DatetimeIndex:
+        if self.freq is not None:
+            return Index.drop(self, labels, errors)._with_freq("infer")  # type: ignore[attr-defined]
+        else:
+            return Index.drop(self, labels, errors)  # type: ignore[return-value]
 
 
 def date_range(
