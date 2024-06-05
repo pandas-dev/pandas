@@ -36,7 +36,7 @@ from pandas.tseries.offsets import (
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
-munits = pytest.importorskip("matplotlib.units")
+units = pytest.importorskip("matplotlib.units")
 
 from pandas.plotting._matplotlib import converter
 
@@ -97,8 +97,8 @@ class TestRegistration:
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
             with cf.option_context("plotting.matplotlib.register_converters", False):
-                assert Timestamp not in munits.registry
-            assert Timestamp in munits.registry
+                assert Timestamp not in units.registry
+            assert Timestamp in units.registry
 
     def test_option_no_warning(self):
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -115,25 +115,25 @@ class TestRegistration:
 
     def test_registry_resets(self):
         # make a copy, to reset to
-        original = dict(munits.registry)
+        original = dict(units.registry)
 
         try:
             # get to a known state
-            munits.registry.clear()
+            units.registry.clear()
             date_converter = mpl.dates.DateConverter()
-            munits.registry[datetime] = date_converter
-            munits.registry[date] = date_converter
+            units.registry[datetime] = date_converter
+            units.registry[date] = date_converter
 
             register_matplotlib_converters()
-            assert munits.registry[date] is not date_converter
+            assert units.registry[date] is not date_converter
             deregister_matplotlib_converters()
-            assert munits.registry[date] is date_converter
+            assert units.registry[date] is date_converter
 
         finally:
             # restore original stater
-            munits.registry.clear()
+            units.registry.clear()
             for k, v in original.items():
-                munits.registry[k] = v
+                units.registry[k] = v
 
 
 class TestDateTimeConverter:
