@@ -51,6 +51,14 @@ def test_mode_nullable_dtype(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
+    # GH##58926
+    ser = Series([1, 1, 2, 3], dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    expected = Series([1], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_mode_infer_string():
     # GH#56183
     pytest.importorskip("pyarrow")

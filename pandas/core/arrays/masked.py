@@ -1093,7 +1093,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result = mode(self._data, dropna=dropna, mask=self._mask)
             res_mask = np.zeros(result.shape, dtype=np.bool_)
         else:
-            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+            res_tuple = mode(self._data, dropna=dropna, mask=self._mask)
+            if len(res_tuple) == 2:
+                result = res_tuple[0]
+                res_mask = res_tuple[1]
+            else:
+                result = res_tuple
+                res_mask = np.zeros(result.shape, dtype=np.bool_)
         result = type(self)(result, res_mask)  # type: ignore[arg-type]
         return result[result.argsort()]
 
