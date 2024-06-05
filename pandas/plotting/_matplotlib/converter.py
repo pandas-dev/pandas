@@ -15,6 +15,7 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
+import matplotlib.units as munits
 import numpy as np
 
 from pandas._libs import lib
@@ -115,27 +116,25 @@ def register() -> None:
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
-        if type_ in mpl.units.registry and not isinstance(
-            mpl.units.registry[type_], cls
-        ):
-            previous = mpl.units.registry[type_]
+        if type_ in munits.registry and not isinstance(munits.registry[type_], cls):
+            previous = munits.registry[type_]
             _mpl_units[type_] = previous
         # Replace with pandas converter
-        mpl.units.registry[type_] = cls()
+        munits.registry[type_] = cls()
 
 
 def deregister() -> None:
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance
-        if type(mpl.units.registry.get(type_)) is cls:
-            mpl.units.registry.pop(type_)
+        if type(munits.registry.get(type_)) is cls:
+            munits.registry.pop(type_)
 
     # restore the old keys
     for unit, formatter in _mpl_units.items():
         if type(formatter) not in {DatetimeConverter, PeriodConverter, TimeConverter}:
             # make it idempotent by excluding ours.
-            mpl.units.registry[unit] = formatter
+            munits.registry[unit] = formatter
 
 
 def _to_ordinalf(tm: pydt.time) -> float:
@@ -152,7 +151,7 @@ def time2num(d):
     return d
 
 
-class TimeConverter(mpl.units.ConversionInterface):
+class TimeConverter(munits.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
@@ -165,13 +164,13 @@ class TimeConverter(mpl.units.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis) -> mpl.units.AxisInfo | None:
+    def axisinfo(unit, axis) -> munits.AxisInfo | None:
         if unit != "time":
             return None
 
         majloc = mpl.ticker.AutoLocator()
         majfmt = TimeFormatter(majloc)
-        return mpl.units.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
+        return munits.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
     @staticmethod
     def default_units(x, axis) -> str:
@@ -326,7 +325,7 @@ class DatetimeConverter(mpl.dates.DateConverter):
         return values
 
     @staticmethod
-    def axisinfo(unit: tzinfo | None, axis) -> mpl.units.AxisInfo:
+    def axisinfo(unit: tzinfo | None, axis) -> munits.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -340,7 +339,7 @@ class DatetimeConverter(mpl.dates.DateConverter):
         datemin = pydt.date(2000, 1, 1)
         datemax = pydt.date(2010, 1, 1)
 
-        return mpl.units.AxisInfo(
+        return munits.AxisInfo(
             majloc=majloc, majfmt=majfmt, label="", default_limits=(datemin, datemax)
         )
 

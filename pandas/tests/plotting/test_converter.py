@@ -36,6 +36,7 @@ from pandas.tseries.offsets import (
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
+munits = pytest.importorskip("matplotlib.units")
 
 from pandas.plotting._matplotlib import converter
 
@@ -96,8 +97,8 @@ class TestRegistration:
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
             with cf.option_context("plotting.matplotlib.register_converters", False):
-                assert Timestamp not in mpl.units.registry
-            assert Timestamp in mpl.units.registry
+                assert Timestamp not in munits.registry
+            assert Timestamp in munits.registry
 
     def test_option_no_warning(self):
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -114,25 +115,25 @@ class TestRegistration:
 
     def test_registry_resets(self):
         # make a copy, to reset to
-        original = dict(mpl.units.registry)
+        original = dict(munits.registry)
 
         try:
             # get to a known state
-            mpl.units.registry.clear()
+            munits.registry.clear()
             date_converter = mpl.dates.DateConverter()
-            mpl.units.registry[datetime] = date_converter
-            mpl.units.registry[date] = date_converter
+            munits.registry[datetime] = date_converter
+            munits.registry[date] = date_converter
 
             register_matplotlib_converters()
-            assert mpl.units.registry[date] is not date_converter
+            assert munits.registry[date] is not date_converter
             deregister_matplotlib_converters()
-            assert mpl.units.registry[date] is date_converter
+            assert munits.registry[date] is date_converter
 
         finally:
             # restore original stater
-            mpl.units.registry.clear()
+            munits.registry.clear()
             for k, v in original.items():
-                mpl.units.registry[k] = v
+                munits.registry[k] = v
 
 
 class TestDateTimeConverter:
