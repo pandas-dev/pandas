@@ -319,6 +319,8 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
+        The input array-like object containing values from which to extract
+        unique values.
 
     Returns
     -------
