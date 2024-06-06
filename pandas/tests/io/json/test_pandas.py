@@ -151,7 +151,6 @@ class TestPandasContainer:
         if df.iloc[:, 0].dtype == "datetime64[s]":
             expected_warning = Pandas40DeprecationWarning
 
-
         with tm.assert_produces_warning(expected_warning, match=msg):
             result = read_json(
                 StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]

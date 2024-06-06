@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.util._exceptions import Pandas40DeprecationWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1198,7 +1200,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas40DeprecationWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
