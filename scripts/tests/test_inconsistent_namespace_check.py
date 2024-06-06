@@ -24,6 +24,15 @@ GOOD_FILE_0 = (
 )
 GOOD_FILE_1 = "cat_0 = pd.Categorical()\ncat_1 = pd.Categorical()"
 GOOD_FILE_2 = "from array import array\nimport pandas as pd\narr = pd.array([])"
+EMPTY_FILE = ""  # Edge case: empty file
+COMMENT_ONLY_FILE = "# This is a comment\n# Another comment"  # Edge case: file with only comments
+NON_PANDAS_FILE = "from numpy import array\narr = array([])"  # Edge case: file with no pandas references
+MIXED_GOOD_FILE = (
+    "from pandas import Categorical\n"
+    "from pandas import DataFrame\n"
+    "cat = Categorical()\n"
+    "df = DataFrame()\n"
+)  # Mixed good case: multiple correct imports from pandas
 PATH = "t.py"
 
 
@@ -59,3 +68,17 @@ def test_inconsistent_usage_with_replace(content):
         "from pandas import Categorical\ncat_0 = Categorical()\ncat_1 = Categorical()"
     )
     assert result == expected
+
+@pytest.mark.parametrize("content", [EMPTY_FILE, COMMENT_ONLY_FILE, NON_PANDAS_FILE])
+@pytest.mark.parametrize("replace", [True, False])
+def test_edge_cases(content, replace):
+    # should not raise or modify content
+    result = check_for_inconsistent_pandas_namespace(content, PATH, replace=replace)
+    assert result is None or result == content
+
+@pytest.mark.parametrize("content", [MIXED_GOOD_FILE])
+def test_mixed_good_file(content):
+    # should not raise
+    check_for_inconsistent_pandas_namespace(content, PATH, replace=False)
+    result = check_for_inconsistent_pandas_namespace(content, PATH, replace=True)
+    assert result == content
