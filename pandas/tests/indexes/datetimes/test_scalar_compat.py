@@ -11,6 +11,8 @@ from datetime import (
 import locale
 import unicodedata
 
+from hypothesis import given
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -421,3 +423,18 @@ class TestDatetimeIndexOps:
         msg = "Custom business days is not supported by is_year_start"
         with pytest.raises(ValueError, match=msg):
             dr.is_year_start
+
+
+@given(
+    dt=st.datetimes(min_value=datetime(1960, 1, 1), max_value=datetime(1980, 1, 1)),
+    n=st.integers(min_value=1, max_value=10),
+    freq=st.sampled_from(["MS", "QS", "YS"]),
+)
+@pytest.mark.slow
+def test_against_scalar_parametric(freq, dt, n):
+    # https://github.com/pandas-dev/pandas/issues/49606
+    freq = f"{n}{freq}"
+    d = date_range(dt, periods=3, freq=freq)
+    result = list(d.is_year_start)
+    expected = [x.is_year_start for x in d]
+    assert result == expected
