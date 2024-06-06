@@ -747,37 +747,36 @@ class TestDatetimeIndexComparisons:
         ],
         ids=lambda x: type(x).__name__,
     )
-def test_dti_cmp_tdi_tzawareness(self, other):
-    # GH#22074
-    # Reversion test that ensures we do not call _assert_tzawareness_compat
-    # when comparing a DatetimeIndex against a TimedeltaIndex
-
-    # Create a DatetimeIndex with a timezone 'Asia/Tokyo', spanning 10 periods
-    dti = date_range("2000-01-01", periods=10, tz="Asia/Tokyo")
-    result = dti == other
-    # Create an expected result array with False values for the '==' comparison
-    expected = np.array([False] * 10)
-    # Assert that the result matches the expected array
-    tm.assert_numpy_array_equal(result, expected)
-
-    # Test the '!=' comparison between DatetimeIndex and other object
-    result = dti != other
-    # Create an expected result array with True values for the '!=' comparison
-    expected = np.array([True] * 10)
-    # Assert that the result matches the expected array
-    tm.assert_numpy_array_equal(result, expected)
-
-    # Define the error message expected for invalid comparisons
-    msg = "Invalid comparison between"
-    # Check that invalid comparison operations raise a TypeError with the expected message
-    with pytest.raises(TypeError, match=msg):
-        dti < other
-    with pytest.raises(TypeError, match=msg):
-        dti <= other
-    with pytest.raises(TypeError, match=msg):
-        dti > other
-    with pytest.raises(TypeError, match=msg):
-        dti >= other
+    def test_dti_cmp_tdi_tzawareness(self, other):
+        # GH#22074
+        # Reversion test that ensures we do not call _assert_tzawareness_compat
+        # when comparing a DatetimeIndex against a TimedeltaIndex
+    
+        # Create a DatetimeIndex with a timezone 'Asia/Tokyo', spanning 10 periods
+        dti = date_range("2000-01-01", periods=10, tz="Asia/Tokyo")
+    
+        # Comparison operations and expected results
+        comparison_tests = {
+            '==': np.array([False] * 10),
+            '!=': np.array([True] * 10)
+        }
+    
+        # Loop through each comparison operation and expected result
+        for op, expected in comparison_tests.items():
+            # Perform the comparison dynamically
+            result = eval(f'dti {op} other')
+            # Assert that the result matches the expected array
+            tm.assert_numpy_array_equal(result, expected)
+    
+        # Define the error message expected for invalid comparisons
+        msg = "Invalid comparison between"
+        # List of comparison operators that should raise a TypeError
+        invalid_comparisons = ['<', '<=', '>', '>=']
+    
+        # Loop through invalid comparisons to assert TypeError is raised
+        for op in invalid_comparisons:
+            with pytest.raises(TypeError, match=msg):
+                eval(f'dti {op} other')
 
     def test_dti_cmp_object_dtype(self):
         # GH#22074
