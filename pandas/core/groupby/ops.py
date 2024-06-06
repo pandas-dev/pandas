@@ -703,7 +703,7 @@ class BaseGrouper:
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
         """dict {group name -> group labels}"""
-        if len(self.groupings) == 1:
+        if len(self.groupings) == 1 and not isinstance(self.shape, tuple):
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
