@@ -513,12 +513,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     Parameters
     ----------
-    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index. This alignment also
-        occurs if data is a Series or a DataFrame itself. Alignment is done on
-        Series/DataFrame inputs.
+    data : ndarray (structured or homogeneous), Iterable, Mapping, or DataFrame
+        Mapping can contain Series, arrays, constants, dataclass or list-like objects.
+        If data is a Mapping, column order follows insertion-order. If a Mapping
+        contains Series which have an index defined, it is aligned by its index. This
+        alignment also occurs if data is a Series or a DataFrame itself. Alignment is
+        done on Series/DataFrame inputs.
 
         If data is a list of dicts, column order follows insertion-order.
 
@@ -735,7 +735,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
-            if isinstance(data, dict):
+            if isinstance(data, Mapping):
                 # retain pre-GH#38939 default behavior
                 copy = True
             elif not isinstance(data, (Index, DataFrame, Series)):
@@ -754,7 +754,7 @@ class DataFrame(NDFrame, OpsMixin):
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
-        elif isinstance(data, dict):
+        elif isinstance(data, Mapping):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
@@ -1735,7 +1735,7 @@ class DataFrame(NDFrame, OpsMixin):
     @classmethod
     def from_dict(
         cls,
-        data: dict,
+        data: Mapping,
         orient: FromDictOrient = "columns",
         dtype: Dtype | None = None,
         columns: Axes | None = None,
@@ -1748,7 +1748,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : dict
+        data : Mapping
             Of the form {field : array-like} or {field : dict}.
         orient : {'columns', 'index', 'tight'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict

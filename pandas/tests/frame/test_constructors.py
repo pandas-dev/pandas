@@ -61,6 +61,10 @@ from pandas.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas.tests.frame.common import (
+    DictWrapper,
+    ListWrapper,
+)
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -2913,6 +2917,72 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         # construction
         df = DataFrame({"A": idx, "B": dr})
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_mapping(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+
+        # construction
+        df = DataFrame(DictWrapper({"A": idx, "B": dr}))
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_mapping_of_dict(self):
+        data = {
+            "a": {"x": 1, "y": 2},
+            "b": {"x": 3, "y": 4},
+            "c": {"x": 5, "y": 6},
+        }
+        expected = DataFrame(data)
+
+        # construction
+        result = DataFrame(DictWrapper(data))
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_mapping_of_mapping(self):
+        data = {
+            "a": {"x": 1, "y": 2},
+            "b": {"x": 3, "y": 4},
+            "c": {"x": 5, "y": 6},
+        }
+        expected = DataFrame(data)
+
+        # construction
+        wrapped = DictWrapper({k: DictWrapper(v) for k, v in data.items()})
+        result = DataFrame(wrapped)
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_mapping_list(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+        data = DataFrame({"A": idx, "B": dr})
+        mapping_list = [
+            DictWrapper(record) for record in data.to_dict(orient="records")
+        ]
+
+        # construction
+        df = DataFrame(mapping_list)
+        assert df["A"].dtype, "M8[ns, US/Eastern"
+        assert df["A"].name == "A"
+        tm.assert_series_equal(df["A"], Series(idx, name="A"))
+        tm.assert_series_equal(df["B"], Series(dr, name="B"))
+
+    def test_from_mapping_sequence(self):
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        dr = date_range("20130110", periods=3)
+        data = DataFrame({"A": idx, "B": dr})
+        mapping_list = ListWrapper(
+            [DictWrapper(record) for record in data.to_dict(orient="records")]
+        )
+
+        # construction
+        df = DataFrame(mapping_list)
         assert df["A"].dtype, "M8[ns, US/Eastern"
         assert df["A"].name == "A"
         tm.assert_series_equal(df["A"], Series(idx, name="A"))
