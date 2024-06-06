@@ -20,8 +20,6 @@ from pandas._typing import (
     npt,
 )
 
-from .timedeltas import Timedelta
-
 _BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 _TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
@@ -114,8 +112,6 @@ class Tick(SingleConstructorOffset):
     _prefix: str
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
     @property
-    def delta(self) -> Timedelta: ...
-    @property
     def nanos(self) -> int: ...
 
 def delta_to_tick(delta: timedelta) -> Tick: ...
@@ -196,7 +192,10 @@ class WeekOfMonth(WeekOfMonthMixin):
         self, n: int = ..., normalize: bool = ..., week: int = ..., weekday: int = ...
     ) -> None: ...
 
-class LastWeekOfMonth(WeekOfMonthMixin): ...
+class LastWeekOfMonth(WeekOfMonthMixin):
+    def __init__(
+        self, n: int = ..., normalize: bool = ..., weekday: int = ...
+    ) -> None: ...
 
 class FY5253Mixin(SingleConstructorOffset):
     def __init__(

@@ -8,10 +8,7 @@ from typing import (
     Literal,
 )
 
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -51,6 +48,9 @@ class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding window calculations.
 
+    An expanding window yields the value of an aggregation statistic with all the data
+    available up to that point in time.
+
     Parameters
     ----------
     min_periods : int, default 1
@@ -69,6 +69,8 @@ class Expanding(RollingAndExpandingMixin):
     Returns
     -------
     pandas.api.typing.Expanding
+        An instance of Expanding for further expanding window calculations,
+        e.g. using the ``sum`` method.
 
     See Also
     --------
@@ -704,7 +706,6 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,

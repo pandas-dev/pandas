@@ -551,8 +551,8 @@ def period_range(
     Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
     must be specified.
 
-    To learn more about the frequency strings, please see `this link
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    To learn more about the frequency strings, please see
+    :ref:`this link<timeseries.offset_aliases>`.
 
     Examples
     --------

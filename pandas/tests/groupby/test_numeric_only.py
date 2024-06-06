@@ -256,7 +256,14 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     method = getattr(gb, kernel)
     if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
-        result = method(*args, **kwargs)
+        if kernel == "corrwith":
+            warn = FutureWarning
+            msg = "DataFrameGroupBy.corrwith is deprecated"
+        else:
+            warn = None
+            msg = ""
+        with tm.assert_produces_warning(warn, match=msg):
+            result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
@@ -296,7 +303,14 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
-            method(*args, **kwargs)
+            if kernel == "corrwith":
+                warn = FutureWarning
+                msg = "DataFrameGroupBy.corrwith is deprecated"
+            else:
+                warn = None
+                msg = ""
+            with tm.assert_produces_warning(warn, match=msg):
+                method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
@@ -310,7 +324,6 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             method(*args, **kwargs)
 
 
-@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
@@ -368,18 +381,11 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             msg = "cannot be performed against 'object' dtypes"
         else:
             msg = "is not supported for object dtype"
-        warn = FutureWarning if groupby_func == "fillna" else None
-        warn_msg = "DataFrameGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            with pytest.raises(TypeError, match=msg):
-                method(*args)
+        with pytest.raises(TypeError, match=msg):
+            method(*args)
     elif dtype is object:
-        warn = FutureWarning if groupby_func == "fillna" else None
-        warn_msg = "SeriesGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            result = method(*args)
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            expected = expected_method(*args)
+        result = method(*args)
+        expected = expected_method(*args)
         if groupby_func in obj_result:
             expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
@@ -419,12 +425,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype == bool and groupby_func == "quantile":
-        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Cannot use quantile with bool dtype"
+        with pytest.raises(TypeError, match=msg):
             # GH#51424
-            result = method(*args, numeric_only=True)
-            expected = method(*args, numeric_only=False)
-        tm.assert_series_equal(result, expected)
+            method(*args, numeric_only=False)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)

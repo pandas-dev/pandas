@@ -1,4 +1,5 @@
-""" parquet compat """
+"""parquet compat"""
+
 from __future__ import annotations
 
 import io
@@ -9,7 +10,10 @@ from typing import (
     Any,
     Literal,
 )
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -270,7 +274,13 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -383,7 +393,15 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                return parquet_file.to_pandas(
+                    columns=columns, filters=filters, **kwargs
+                )
         finally:
             if handles is not None:
                 handles.close()

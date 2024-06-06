@@ -33,7 +33,7 @@ def _get_commit_hash() -> str | None:
     except ImportError:
         from pandas._version import get_versions
 
-        versions = get_versions()
+        versions = get_versions()  # type: ignore[no-untyped-call]
         return versions["full-revisionid"]
 
 
@@ -114,6 +114,11 @@ def show_versions(as_json: str | bool = False) -> None:
         * If str, it will be considered as a path to a file.
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
 
     Examples
     --------

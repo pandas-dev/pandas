@@ -44,7 +44,7 @@ class TestDataFrameAlign:
         af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
 
-        af, bf = float_frame.align(float_frame, copy=False)
+        af, bf = float_frame.align(float_frame)
         assert af._mgr is not float_frame._mgr
 
         # axis = 0

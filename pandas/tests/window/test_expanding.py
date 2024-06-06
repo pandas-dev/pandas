@@ -310,7 +310,7 @@ def test_expanding_corr_pairwise(frame):
 @pytest.mark.parametrize(
     "func,static_comp",
     [
-        ("sum", np.sum),
+        ("sum", lambda x: np.sum(x, axis=0)),
         ("mean", lambda x: np.mean(x, axis=0)),
         ("max", lambda x: np.max(x, axis=0)),
         ("min", lambda x: np.min(x, axis=0)),
@@ -324,12 +324,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     result = getattr(obj, func)()
     assert isinstance(result, frame_or_series)
 
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    warn = None
-    if frame_or_series is DataFrame and static_comp is np.sum:
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        expected = static_comp(data[:11])
+    expected = static_comp(data[:11])
     if frame_or_series is Series:
         tm.assert_almost_equal(result[10], expected)
     else:
@@ -555,7 +550,7 @@ def test_expanding_cov_pairwise_diff_length():
     df2a = DataFrame(
         [[5, 6], [2, 1]], index=[0, 2], columns=Index(["X", "Y"], name="foo")
     )
-    # TODO: xref gh-15826
+    # xref gh-15826
     # .loc is not preserving the names
     result1 = df1.expanding().cov(df2, pairwise=True).loc[2]
     result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
@@ -696,10 +691,3 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
-
-
-def test_keyword_quantile_deprecated():
-    # GH #52550
-    ser = Series([1, 2, 3, 4])
-    with tm.assert_produces_warning(FutureWarning):
-        ser.expanding().quantile(quantile=0.5)

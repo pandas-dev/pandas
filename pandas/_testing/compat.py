@@ -1,6 +1,7 @@
 """
 Helpers for sharing tests between DataFrame/Series
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

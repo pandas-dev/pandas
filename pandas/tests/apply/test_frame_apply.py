@@ -402,7 +402,7 @@ def test_apply_yield_list(float_frame):
 
 def test_apply_reduce_Series(float_frame):
     float_frame.iloc[::2, float_frame.columns.get_loc("A")] = np.nan
-    expected = float_frame.mean(1)
+    expected = float_frame.mean(axis=1)
     result = float_frame.apply(np.mean, axis=1)
     tm.assert_series_equal(result, expected)
 
@@ -1209,7 +1209,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1309,7 +1309,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1317,7 +1317,7 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 
@@ -1489,7 +1489,7 @@ def test_apply_dtype(col):
 
 def test_apply_mutating():
     # GH#35462 case where applied func pins a new BlockManager to a row
-    df = DataFrame({"a": range(100), "b": range(100, 200)})
+    df = DataFrame({"a": range(10), "b": range(10, 20)})
     df_orig = df.copy()
 
     def func(row):
@@ -1699,13 +1699,11 @@ def test_agg_mapping_func_deprecated():
 def test_agg_std():
     df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
 
-    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
-        result = df.agg(np.std)
+    result = df.agg(np.std, ddof=1)
     expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
-        result = df.agg([np.std])
+    result = df.agg([np.std], ddof=1)
     expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
     tm.assert_frame_equal(result, expected)
 

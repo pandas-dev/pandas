@@ -1,4 +1,5 @@
-""" public toolkit API """
+"""public toolkit API"""
+
 from pandas.api import (
     extensions,
     indexers,

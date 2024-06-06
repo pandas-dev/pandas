@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import re
 from urllib.error import URLError
+import uuid
 from zipfile import BadZipFile
 
 import numpy as np
@@ -18,7 +19,6 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -34,9 +34,6 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
-
-if is_platform_windows():
-    pytestmark = pytest.mark.single_cpu
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -127,6 +124,13 @@ def read_ext(engine_and_read_ext):
 
 
 @pytest.fixture
+def tmp_excel(read_ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{read_ext}"
+    tmp.touch()
+    return str(tmp)
+
+
+@pytest.fixture
 def df_ref(datapath):
     """
     Obtain the reference data from read_csv with the Python engine.
@@ -137,10 +141,13 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    return "ns"
+    unit = "us"
+    if (read_ext == ".ods") ^ (engine == "calamine"):
+        unit = "s"
+    return unit
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, engine: str) -> None:
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
@@ -592,7 +599,7 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
-    def test_dtype_backend(self, read_ext, dtype_backend, engine):
+    def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -611,11 +618,10 @@ class TestReaders:
                 "j": Series([pd.NA, pd.NA], dtype="Int64"),
             }
         )
-        with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, sheet_name="test", index=False)
-            result = pd.read_excel(
-                file_path, sheet_name="test", dtype_backend=dtype_backend
-            )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend=dtype_backend
+        )
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 
@@ -640,26 +646,25 @@ class TestReaders:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_backend_and_dtype(self, read_ext):
+    def test_dtype_backend_and_dtype(self, read_ext, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
-        with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, sheet_name="test", index=False)
-            result = pd.read_excel(
-                file_path,
-                sheet_name="test",
-                dtype_backend="numpy_nullable",
-                dtype="float64",
-            )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel,
+            sheet_name="test",
+            dtype_backend="numpy_nullable",
+            dtype="float64",
+        )
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.xfail(
         using_pyarrow_string_dtype(), reason="infer_string takes precedence"
     )
-    def test_dtype_backend_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -673,11 +678,10 @@ class TestReaders:
                     "b": np.array(["x", pd.NA], dtype=np.object_),
                 }
             )
-            with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, sheet_name="test", index=False)
-                result = pd.read_excel(
-                    file_path, sheet_name="test", dtype_backend="numpy_nullable"
-                )
+            df.to_excel(tmp_excel, sheet_name="test", index=False)
+            result = pd.read_excel(
+                tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+            )
 
             if string_storage == "python":
                 expected = DataFrame(
@@ -1116,7 +1120,6 @@ class TestReaders:
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
 
         unit = get_exp_unit(read_ext, engine)
-
         expected = DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -1674,6 +1677,7 @@ class TestExcelFileRead:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
 
         unit = get_exp_unit(read_ext, engine)
+
         dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
         expected_column_index = MultiIndex.from_arrays(
             [dti[:1], dti[1:]],
@@ -1705,7 +1709,7 @@ class TestExcelFileRead:
         with pd.ExcelFile("chartsheet" + read_ext) as excel:
             assert excel.sheet_names == ["Sheet1"]
 
-    def test_corrupt_files_closed(self, engine, read_ext):
+    def test_corrupt_files_closed(self, engine, tmp_excel):
         # GH41778
         errors = (BadZipFile,)
         if engine is None:
@@ -1719,10 +1723,9 @@ class TestExcelFileRead:
 
             errors = (CalamineError,)
 
-        with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt", encoding="utf-8")
-            with tm.assert_produces_warning(False):
-                try:
-                    pd.ExcelFile(file, engine=engine)
-                except errors:
-                    pass
+        Path(tmp_excel).write_text("corrupt", encoding="utf-8")
+        with tm.assert_produces_warning(False):
+            try:
+                pd.ExcelFile(tmp_excel, engine=engine)
+            except errors:
+                pass

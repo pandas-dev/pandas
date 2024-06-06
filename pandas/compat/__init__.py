@@ -7,6 +7,7 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+
 from __future__ import annotations
 
 import os
@@ -21,6 +22,7 @@ from pandas.compat._constants import (
     PY311,
     PY312,
     PYPY,
+    WASM,
 )
 import pandas.compat.compressors
 from pandas.compat.numpy import is_numpy_dev
@@ -30,6 +32,7 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under14p1,
+    pa_version_under16p0,
 )
 
 if TYPE_CHECKING:
@@ -120,6 +123,18 @@ def is_platform_power() -> bool:
     return platform.machine() in ("ppc64", "ppc64le")
 
 
+def is_platform_riscv64() -> bool:
+    """
+    Checking if the running platform use riscv64 architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses riscv64 architecture.
+    """
+    return platform.machine() == "riscv64"
+
+
 def is_ci_environment() -> bool:
     """
     Checking if running in a continuous integration environment by checking
@@ -186,10 +201,12 @@ __all__ = [
     "pa_version_under13p0",
     "pa_version_under14p0",
     "pa_version_under14p1",
+    "pa_version_under16p0",
     "IS64",
     "ISMUSL",
     "PY310",
     "PY311",
     "PY312",
     "PYPY",
+    "WASM",
 ]

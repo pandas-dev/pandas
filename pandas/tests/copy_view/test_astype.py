@@ -6,7 +6,6 @@ import pytest
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -79,8 +78,7 @@ def test_astype_different_target_dtype(dtype):
 
 def test_astype_numpy_to_ea():
     ser = Series([1, 2, 3])
-    with pd.option_context("mode.copy_on_write", True):
-        result = ser.astype("Int64")
+    result = ser.astype("Int64")
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
@@ -126,7 +124,7 @@ def test_astype_string_read_only_on_pickle_roundrip():
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy._values.flags.writeable = False
-    base_copy.astype("string[pyarrow]", copy=False)
+    base_copy.astype("string[pyarrow]")
     tm.assert_series_equal(base, base_copy)
 
 

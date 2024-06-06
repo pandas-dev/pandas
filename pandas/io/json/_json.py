@@ -16,7 +16,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -107,8 +106,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -127,8 +125,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> str:
-    ...
+) -> str: ...
 
 
 def to_json(
@@ -415,8 +412,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["frame"]]:
-    ...
+) -> JsonReader[Literal["frame"]]: ...
 
 
 @overload
@@ -440,8 +436,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["series"]]:
-    ...
+) -> JsonReader[Literal["series"]]: ...
 
 
 @overload
@@ -465,8 +460,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -490,8 +484,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @doc(
@@ -922,16 +915,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         )
 
     @overload
-    def read(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def read(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def read(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def read(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series: ...
 
     def read(self) -> DataFrame | Series:
         """
@@ -1016,16 +1006,15 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         return self
 
     @overload
-    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def __next__(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def __next__(
+        self: JsonReader[Literal["frame", "series"]],
+    ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
         if self.nrows and self.nrows_seen >= self.nrows:
@@ -1183,13 +1172,7 @@ class Parser:
                 if all(notna(data)):
                     return data, False
 
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Downcasting object dtype arrays",
-                        category=FutureWarning,
-                    )
-                    filled = data.fillna(np.nan)
+                filled = data.fillna(np.nan)
 
                 return filled, True
 
@@ -1211,6 +1194,7 @@ class Parser:
             if result:
                 return new_data, True
 
+        converted = False
         if self.dtype_backend is not lib.no_default and not is_axis:
             # Fall through for conversion later on
             return data, True
@@ -1218,16 +1202,17 @@ class Parser:
             # try float
             try:
                 data = data.astype("float64")
+                converted = True
             except (TypeError, ValueError):
                 pass
 
-        if data.dtype.kind == "f":
-            if data.dtype != "float64":
-                # coerce floats to 64
-                try:
-                    data = data.astype("float64")
-                except (TypeError, ValueError):
-                    pass
+        if data.dtype.kind == "f" and data.dtype != "float64":
+            # coerce floats to 64
+            try:
+                data = data.astype("float64")
+                converted = True
+            except (TypeError, ValueError):
+                pass
 
         # don't coerce 0-len data
         if len(data) and data.dtype in ("float", "object"):
@@ -1236,14 +1221,15 @@ class Parser:
                 new_data = data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
+                    converted = True
             except (TypeError, ValueError, OverflowError):
                 pass
 
-        # coerce ints to 64
-        if data.dtype == "int":
-            # coerce floats to 64
+        if data.dtype == "int" and data.dtype != "int64":
+            # coerce ints to 64
             try:
                 data = data.astype("int64")
+                converted = True
             except (TypeError, ValueError):
                 pass
 
@@ -1252,7 +1238,7 @@ class Parser:
             if self.orient == "split":
                 return data, False
 
-        return data, True
+        return data, converted
 
     @final
     def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:

@@ -166,7 +166,7 @@ class TestDataFrameToDict:
         # GH#16927: When converting to a dict, if a column has a non-unique name
         # it will be dropped, throwing a warning.
         df = DataFrame([[1, 2, 3]], columns=["a", "a", "b"])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="columns will be omitted"):
             df.to_dict()
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -512,6 +512,20 @@ class TestDataFrameToDict:
         df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
         result = df.to_dict(orient="records")
         assert isinstance(result[0]["a"], int)
+
+    def test_to_dict_tight_no_warning_with_duplicate_column(self):
+        # GH#58281
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "A"])
+        with tm.assert_produces_warning(None):
+            result = df.to_dict(orient="tight")
+        expected = {
+            "index": [0, 1, 2],
+            "columns": ["A", "A"],
+            "data": [[1, 2], [3, 4], [5, 6]],
+            "index_names": [None],
+            "column_names": [None],
+        }
+        assert result == expected
 
 
 @pytest.mark.parametrize(

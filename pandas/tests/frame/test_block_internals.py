@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -251,20 +249,19 @@ class TestDataFrameBlockInternals:
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = DataFrame()
-
+    def test_pickle_float_string_frame(self, float_string_frame):
         unpickled = tm.round_trip_pickle(float_string_frame)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-        # empty
+    def test_pickle_empty(self):
+        empty_frame = DataFrame()
         unpickled = tm.round_trip_pickle(empty_frame)
         repr(unpickled)
 
-        # tz frame
+    def test_pickle_empty_tz_frame(self, timezone_frame):
         unpickled = tm.round_trip_pickle(timezone_frame)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
@@ -334,14 +331,14 @@ class TestDataFrameBlockInternals:
             Y["g"].sum()
             assert not pd.isna(Y["g"]["c"])
 
-    def test_strange_column_corruption_issue(self):
+    def test_strange_column_corruption_issue(self, performance_warning):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
         with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):

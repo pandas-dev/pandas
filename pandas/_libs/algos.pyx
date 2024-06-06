@@ -180,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bool:
     n = len(list_of_arrays[0])
 
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
+    if vecs is NULL:
+        raise MemoryError()
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == "int64"
@@ -349,7 +351,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, xi, yi, N, K
         int64_t minpv
         float64_t[:, ::1] result
-        ndarray[uint8_t, ndim=2] mask
+        uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
@@ -405,7 +407,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         Py_ssize_t i, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[float64_t, ndim=1] rankedx, rankedy
+        float64_t[::1] rankedx, rankedy
         float64_t[::1] maskedx, maskedy
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -564,8 +566,8 @@ def get_fill_indexer(const uint8_t[:] mask, limit=None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
@@ -689,8 +691,8 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:  # -> ndarray[intp_t, ndim=1]
     """
@@ -784,7 +786,7 @@ def backfill_2d_inplace(numeric_object_t[:, :] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
+def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     """
     Returns
     -------
@@ -1087,8 +1089,7 @@ cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
-    # TODO(cython3): make const (https://github.com/cython/cython/issues/3222)
-    numeric_object_t[:] masked_vals,
+    const numeric_object_t[:] masked_vals,
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
@@ -1376,7 +1377,7 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    ndarray[diff_t, ndim=2] arr,  # TODO(cython3) update to "const diff_t[:, :] arr"
+    const diff_t[:, :] arr,
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
@@ -1384,8 +1385,7 @@ def diff_2d(
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython3) once arr is memoryview
+        bint f_contig = arr.is_f_contig()
         diff_t left, right
 
     # Disable for unsupported dtype combinations,

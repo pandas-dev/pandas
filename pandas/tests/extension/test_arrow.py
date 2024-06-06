@@ -10,6 +10,7 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -702,10 +703,6 @@ class TestArrowArray(base.ExtensionTests):
 
         valid = data[0]
         result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
-        result = data.fillna(method="backfill")
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
@@ -2267,9 +2264,11 @@ def test_str_partition():
     ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.partition("b")
     expected = pd.DataFrame(
-        [["a", "b", "cba"], [None, None, None]], dtype=ArrowDtype(pa.string())
+        [["a", "b", "cba"], [None, None, None]],
+        dtype=ArrowDtype(pa.string()),
+        columns=pd.RangeIndex(3),
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     result = ser.str.partition("b", expand=False)
     expected = pd.Series(ArrowExtensionArray(pa.array([["a", "b", "cba"], None])))
@@ -2277,9 +2276,11 @@ def test_str_partition():
 
     result = ser.str.rpartition("b")
     expected = pd.DataFrame(
-        [["abc", "b", "a"], [None, None, None]], dtype=ArrowDtype(pa.string())
+        [["abc", "b", "a"], [None, None, None]],
+        dtype=ArrowDtype(pa.string()),
+        columns=pd.RangeIndex(3),
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
     result = ser.str.rpartition("b", expand=False)
     expected = pd.Series(ArrowExtensionArray(pa.array([["abc", "b", "a"], None])))
@@ -2860,12 +2861,16 @@ def test_dt_to_pytimedelta():
     data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
-    result = ser.dt.to_pytimedelta()
+    msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
-    expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
+    msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -3440,7 +3445,7 @@ def test_arrow_floor_division_large_divisor(dtype):
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
-    result = pd.Series(string_dates, dtype="timestamp[ns][pyarrow]")
+    result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
     expected = pd.Series(
         ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
     )
@@ -3491,6 +3496,14 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("arrow_type", [pa.large_string(), pa.string()])
+def test_cast_dictionary_different_value_dtype(arrow_type):
+    df = pd.DataFrame({"a": ["x", "y"]}, dtype="string[pyarrow]")
+    data_type = ArrowDtype(pa.dictionary(pa.int32(), arrow_type))
+    result = df.astype({"a": data_type})
+    assert result.dtypes.iloc[0] == data_type
 
 
 def test_map_numeric_na_action():
