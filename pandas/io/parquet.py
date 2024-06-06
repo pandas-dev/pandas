@@ -21,6 +21,7 @@ from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import Pandas40DeprecationWarning
 from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
@@ -278,7 +279,7 @@ class PyArrowImpl(BaseImpl):
                 filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    DeprecationWarning,
+                    Pandas40DeprecationWarning,
                 )
                 result = pa_table.to_pandas(**to_pandas_kwargs)
 
@@ -397,7 +398,7 @@ class FastParquetImpl(BaseImpl):
                 filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    DeprecationWarning,
+                    Pandas40DeprecationWarning,
                 )
                 return parquet_file.to_pandas(
                     columns=columns, filters=filters, **kwargs

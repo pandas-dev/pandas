@@ -11,7 +11,10 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    Pandas40DeprecationWarning,
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.inference import is_integer
@@ -291,7 +294,7 @@ class ArrowParserWrapper(ParserBase):
             warnings.filterwarnings(
                 "ignore",
                 "make_block is deprecated",
-                DeprecationWarning,
+                Pandas40DeprecationWarning,
             )
             if dtype_backend == "pyarrow":
                 frame = table.to_pandas(types_mapper=pd.ArrowDtype)
