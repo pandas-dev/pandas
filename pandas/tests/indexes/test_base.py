@@ -104,16 +104,9 @@ class TestIndex:
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
-            with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-                result = Index(index.astype(object))
-        else:
-            result = Index(index)
-
-        tm.assert_index_equal(result, index)
-
-        if isinstance(index, DatetimeIndex):
-            assert result.tz == index.tz
-            if cast_as_obj:
+            result = Index(index.astype(object))
+            assert result.dtype == np.dtype(object)
+            if isinstance(index, DatetimeIndex):
                 # GH#23524 check that Index(dti, dtype=object) does not
                 #  incorrectly raise ValueError, and that nanoseconds are not
                 #  dropped
@@ -121,6 +114,10 @@ class TestIndex:
                 result = Index(index, dtype=object)
                 assert result.dtype == np.object_
                 assert list(result) == list(index)
+        else:
+            result = Index(index)
+
+            tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize(
         "index,has_tz",
@@ -186,7 +183,7 @@ class TestIndex:
         "klass,dtype,na_val",
         [
             (Index, np.float64, np.nan),
-            (DatetimeIndex, "datetime64[ns]", pd.NaT),
+            (DatetimeIndex, "datetime64[s]", pd.NaT),
         ],
     )
     def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):

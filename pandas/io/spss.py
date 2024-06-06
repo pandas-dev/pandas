@@ -52,6 +52,14 @@ def read_spss(
     DataFrame
         DataFrame based on the SPSS file.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_sas : Read an SAS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
+
     Examples
     --------
     >>> df = pd.read_spss("spss_data.sav")  # doctest: +SKIP
