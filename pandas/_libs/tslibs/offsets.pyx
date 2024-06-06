@@ -934,6 +934,20 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
+    """
+    Offset ``n`` ticks.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of ticks represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
