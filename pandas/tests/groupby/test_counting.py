@@ -321,19 +321,22 @@ def test_count_object():
     expected = Series([3, 3], index=Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
+
+def test_count_object_nan():
     df = DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
     expected = Series([1, 3], index=Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
-def test_count_cross_type():
+@pytest.mark.parametrize("typ", ["object", "float32"])
+def test_count_cross_type(typ):
     # GH8169
     # Set float64 dtype to avoid upcast when setting nan below
     vals = np.hstack(
         (
-            np.random.default_rng(2).integers(0, 5, (100, 2)),
-            np.random.default_rng(2).integers(0, 2, (100, 2)),
+            np.random.default_rng(2).integers(0, 5, (10, 2)),
+            np.random.default_rng(2).integers(0, 2, (10, 2)),
         )
     ).astype("float64")
 
@@ -341,11 +344,10 @@ def test_count_cross_type():
     df[df == 2] = np.nan
     expected = df.groupby(["c", "d"]).count()
 
-    for t in ["float32", "object"]:
-        df["a"] = df["a"].astype(t)
-        df["b"] = df["b"].astype(t)
-        result = df.groupby(["c", "d"]).count()
-        tm.assert_frame_equal(result, expected)
+    df["a"] = df["a"].astype(typ)
+    df["b"] = df["b"].astype(typ)
+    result = df.groupby(["c", "d"]).count()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_lower_int_prec_count():

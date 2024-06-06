@@ -21,6 +21,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -387,7 +389,7 @@ class SeriesGroupBy(GroupBy[Series]):
             raise SpecificationError("nested renamer is not supported")
 
         if any(isinstance(x, (tuple, list)) for x in arg):
-            arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
+            arg = ((x, x) if not isinstance(x, (tuple, list)) else x for x in arg)
         else:
             # list of functions / function names
             columns = (com.get_callable_name(f) or f for f in arg)
@@ -1206,7 +1208,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1259,7 +1261,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
@@ -2077,7 +2079,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
         columns = obj.columns
-        sgbs = [
+        sgbs = (
             SeriesGroupBy(
                 obj.iloc[:, i],
                 selection=colname,
@@ -2086,7 +2088,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
             )
             for i, colname in enumerate(obj.columns)
-        ]
+        )
         results = [func(sgb) for sgb in sgbs]
 
         if not len(results):
@@ -2726,6 +2728,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Compute pairwise correlation.
 
+        .. deprecated:: 3.0.0
+
         Pairwise correlation is computed between rows or columns of
         DataFrame with rows or columns of Series or DataFrame. DataFrames
         are first aligned along both axes before computing the
@@ -2785,6 +2789,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2    0.755929  NaN
         3    0.576557  NaN
         """
+        warnings.warn(
+            "DataFrameGroupBy.corrwith is deprecated",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "corrwith",
             other=other,

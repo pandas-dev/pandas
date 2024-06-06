@@ -326,7 +326,7 @@ which can be specified. These are computed from the starting point specified by 
 .. note::
 
    The ``unit`` parameter does not use the same strings as the ``format`` parameter
-   that was discussed :ref:`above<timeseries.converting.format>`). The
+   that was discussed :ref:`above<timeseries.converting.format>`. The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
@@ -1272,6 +1272,10 @@ frequencies. We will refer to these aliases as *offset aliases*.
    Aliases ``H``, ``BH``, ``CBH``, ``T``, ``S``, ``L``, ``U``, and ``N``
    are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+
+   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
+   ``YE``, ``ME``, ``QE``.
+
 
 .. note::
 
