@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from types import FrameType
 
 Pandas40DeprecationWarning = DeprecationWarning
+Pandas50DeprecationWarning = DeprecationWarning
 
 
 @contextlib.contextmanager
