@@ -31,7 +31,7 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 
 from pandas import (
     NaT,
@@ -270,7 +270,7 @@ class TestTimestamp:
 
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(Pandas40DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(CurrentDeprecationWarning, match=msg):
             assert Timestamp.utcnow().tz is timezone.utc
         assert Timestamp.now("UTC").tz is timezone.utc
         assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
@@ -315,13 +315,13 @@ class TestTimestamp:
         compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(Pandas40DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(CurrentDeprecationWarning, match=msg):
             compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(Pandas40DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(CurrentDeprecationWarning, match=msg):
             ts_utc = Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(

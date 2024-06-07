@@ -98,7 +98,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import (
-    Pandas40DeprecationWarning,
+    CurrentDeprecationWarning,
     find_stack_level,
 )
 from pandas.util._validators import (
@@ -2573,7 +2573,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
-                    Pandas40DeprecationWarning,
+                    CurrentDeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
         elif date_format == "epoch":
@@ -2581,7 +2581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
-                Pandas40DeprecationWarning,
+                CurrentDeprecationWarning,
                 stacklevel=find_stack_level(),
             )
 
@@ -4309,7 +4309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
                 "a lazy copy mechanism that defers copies until necessary. Use "
                 ".copy() to make an eager copy if necessary.",
-                Pandas40DeprecationWarning,
+                CurrentDeprecationWarning,
                 stacklevel=find_stack_level(),
             )
 

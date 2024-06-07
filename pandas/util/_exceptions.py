@@ -11,8 +11,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from types import FrameType
 
-Pandas40DeprecationWarning = DeprecationWarning
-Pandas50DeprecationWarning = DeprecationWarning
+Pandas4DeprecationWarning = DeprecationWarning
+Pandas5DeprecationWarning = DeprecationWarning
+CurrentDeprecationWarning = Pandas4DeprecationWarning
 
 
 @contextlib.contextmanager

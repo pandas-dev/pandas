@@ -13,7 +13,7 @@ from pandas._config import using_pyarrow_string_dtype
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
@@ -137,7 +137,7 @@ def read_feather(
                 warnings.filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    Pandas40DeprecationWarning,
+                    CurrentDeprecationWarning,
                 )
 
                 return feather.read_feather(

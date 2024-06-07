@@ -1,13 +1,13 @@
 import warnings
 
 from pandas.util._decorators import deprecate_kwarg
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 
 import pandas._testing as tm
 
 
 def f1():
-    warnings.warn("f1", Pandas40DeprecationWarning)
+    warnings.warn("f1", CurrentDeprecationWarning)
 
 
 def test_function_warns_pandas_deprecation_warning():

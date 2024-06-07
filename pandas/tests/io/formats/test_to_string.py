@@ -12,7 +12,7 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 
 from pandas import (
     CategoricalIndex,
@@ -44,7 +44,7 @@ class TestDataFrameToStringFormatters:
             "except for the argument 'buf' will be keyword-only."
         )
         s = Series(["a", "b"])
-        with tm.assert_produces_warning(Pandas40DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(CurrentDeprecationWarning, match=msg):
             s.to_string(None, "NaN")
 
     def test_to_string_masked_ea_with_formatter(self):

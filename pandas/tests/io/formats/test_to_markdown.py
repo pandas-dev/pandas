@@ -2,7 +2,7 @@ from io import StringIO
 
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -17,7 +17,7 @@ def test_keyword_deprecation():
         "except for the argument 'buf' will be keyword-only."
     )
     s = pd.Series()
-    with tm.assert_produces_warning(Pandas40DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(CurrentDeprecationWarning, match=msg):
         s.to_markdown(None, "wt")
 
 
