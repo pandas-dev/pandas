@@ -13,7 +13,7 @@ such as:
 
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import Pandas4DeprecationWarning
 
 import pandas as pd
 from pandas import DataFrame
@@ -28,7 +28,7 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     method = getattr(gb, groupby_func)
     args = get_groupby_method_args(groupby_func, df)
     if groupby_func == "corrwith":
-        warn = Pandas40DeprecationWarning
+        warn = Pandas4DeprecationWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -74,7 +74,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
     args = get_groupby_method_args(groupby_func, df)
     if groupby_func == "corrwith":
-        warn = Pandas40DeprecationWarning
+        warn = Pandas4DeprecationWarning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None

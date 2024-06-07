@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import Pandas4DeprecationWarning
 
 from pandas import (
     Categorical,
@@ -204,7 +204,7 @@ class TestCatAccessor:
                 warn_cls.append(UserWarning)
             elif func == "to_pytimedelta":
                 # GH 57463
-                warn_cls.append(Pandas40DeprecationWarning)
+                warn_cls.append(Pandas4DeprecationWarning)
             if warn_cls:
                 warn_cls = tuple(warn_cls)
             else:

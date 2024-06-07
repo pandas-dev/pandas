@@ -19,7 +19,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import (
-    Pandas40DeprecationWarning,
+    Pandas4DeprecationWarning,
     find_stack_level,
 )
 
@@ -385,7 +385,7 @@ def concat(
             "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
             "a lazy copy mechanism that defers copies until necessary. Use "
             ".copy() to make an eager copy if necessary.",
-            Pandas40DeprecationWarning,
+            Pandas4DeprecationWarning,
             stacklevel=find_stack_level(),
         )
 

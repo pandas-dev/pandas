@@ -7,7 +7,7 @@ import json
 import numpy as np
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import Pandas4DeprecationWarning
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -463,7 +463,7 @@ class TestTableOrient:
         )
         with pytest.raises(ValueError, match=error_msg):
             with tm.assert_produces_warning(
-                Pandas40DeprecationWarning, match=warning_msg
+                Pandas4DeprecationWarning, match=warning_msg
             ):
                 df_table.to_json(orient="table", date_format="epoch")
 

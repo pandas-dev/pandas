@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import Pandas4DeprecationWarning
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -24,10 +24,10 @@ class TestDataFrameReindexLike:
     def test_reindex_like_methods(self, method, expected_values):
         df = DataFrame({"x": list(range(5))})
 
-        with tm.assert_produces_warning(Pandas40DeprecationWarning):
+        with tm.assert_produces_warning(Pandas4DeprecationWarning):
             result = df.reindex_like(df, method=method, tolerance=0)
         tm.assert_frame_equal(df, result)
-        with tm.assert_produces_warning(Pandas40DeprecationWarning):
+        with tm.assert_produces_warning(Pandas4DeprecationWarning):
             result = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
         tm.assert_frame_equal(df, result)
 

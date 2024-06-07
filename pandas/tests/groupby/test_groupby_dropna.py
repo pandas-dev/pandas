@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under10p1
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import Pandas4DeprecationWarning
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -545,7 +545,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     if reduction_func == "corrwith":
-        warn = Pandas40DeprecationWarning
+        warn = Pandas4DeprecationWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -576,7 +576,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             expected = expected["size"].rename(None)
 
     if reduction_func == "corrwith":
-        warn = Pandas40DeprecationWarning
+        warn = Pandas4DeprecationWarning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
