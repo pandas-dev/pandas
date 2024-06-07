@@ -4965,7 +4965,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         C  2
         dtype: int64
 
-        Drop labels B en C
+        Drop labels B and C
 
         >>> s.drop(labels=["B", "C"])
         A  0
