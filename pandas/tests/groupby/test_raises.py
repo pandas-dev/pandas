@@ -8,7 +8,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.util._exceptions import Pandas40DeprecationWarning
+from pandas.util._exceptions import CurrentDeprecationWarning
 
 from pandas import (
     Categorical,
@@ -87,7 +87,7 @@ def df_with_cat_col():
 
 
 def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
-    warn_klass = None if warn_msg == "" else Pandas40DeprecationWarning
+    warn_klass = None if warn_msg == "" else CurrentDeprecationWarning
     with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
         if klass is None:
             if how == "method":

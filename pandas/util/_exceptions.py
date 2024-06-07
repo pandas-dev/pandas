@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 Pandas40DeprecationWarning = DeprecationWarning
 Pandas50DeprecationWarning = DeprecationWarning
+CurrentDeprecationWarning = Pandas40DeprecationWarning
 
 
 @contextlib.contextmanager

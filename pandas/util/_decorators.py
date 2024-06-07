@@ -17,7 +17,7 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import (
-    Pandas40DeprecationWarning,
+    CurrentDeprecationWarning,
     find_stack_level,
 )
 
@@ -61,7 +61,7 @@ def deprecate(
         Default is '{name} is deprecated. Use {alt_name} instead.'
     """
     alt_name = alt_name or alternative.__name__
-    klass = klass or Pandas40DeprecationWarning
+    klass = klass or CurrentDeprecationWarning
     warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
@@ -173,7 +173,7 @@ def deprecate_kwarg(
         raise TypeError(
             "mapping from old to new argument values must be dict or callable!"
         )
-    klass = klass or Pandas40DeprecationWarning
+    klass = klass or CurrentDeprecationWarning
 
     def _deprecate_kwarg(func: F) -> F:
         @wraps(func)
@@ -300,7 +300,7 @@ def deprecate_nonkeyword_arguments(
     klass : Warning, optional
         The warning class to use.
     """
-    klass = klass or Pandas40DeprecationWarning
+    klass = klass or CurrentDeprecationWarning
 
     def decorate(func):
         old_sig = inspect.signature(func)
