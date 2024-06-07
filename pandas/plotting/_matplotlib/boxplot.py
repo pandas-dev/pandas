@@ -7,7 +7,7 @@ from typing import (
 )
 import warnings
 
-from matplotlib.artist import setp
+import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
@@ -274,13 +274,13 @@ def maybe_color_bp(bp, color_tup, **kwds) -> None:
     # GH#30346, when users specifying those arguments explicitly, our defaults
     # for these four kwargs should be overridden; if not, use Pandas settings
     if not kwds.get("boxprops"):
-        setp(bp["boxes"], color=color_tup[0], alpha=1)
+        mpl.artist.setp(bp["boxes"], color=color_tup[0], alpha=1)
     if not kwds.get("whiskerprops"):
-        setp(bp["whiskers"], color=color_tup[1], alpha=1)
+        mpl.artist.setp(bp["whiskers"], color=color_tup[1], alpha=1)
     if not kwds.get("medianprops"):
-        setp(bp["medians"], color=color_tup[2], alpha=1)
+        mpl.artist.setp(bp["medians"], color=color_tup[2], alpha=1)
     if not kwds.get("capprops"):
-        setp(bp["caps"], color=color_tup[3], alpha=1)
+        mpl.artist.setp(bp["caps"], color=color_tup[3], alpha=1)
 
 
 def _grouped_plot_by_column(
@@ -455,7 +455,7 @@ def boxplot(
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}
-            with plt.rc_context(rc):
+            with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
         naxes = len(data.columns)
