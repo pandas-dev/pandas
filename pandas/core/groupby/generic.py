@@ -34,7 +34,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import (
-    CurrentDeprecationWarning,
+    Pandas40DeprecationWarning,
     find_stack_level,
 )
 
@@ -2794,7 +2794,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         warnings.warn(
             "DataFrameGroupBy.corrwith is deprecated",
-            CurrentDeprecationWarning,
+            Pandas40DeprecationWarning,
             stacklevel=find_stack_level(),
         )
         result = self._op_via_apply(

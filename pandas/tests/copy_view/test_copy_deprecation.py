@@ -1,6 +1,6 @@
 import pytest
 
-from pandas.util._exceptions import CurrentDeprecationWarning
+from pandas.util._exceptions import Pandas40DeprecationWarning
 
 import pandas as pd
 from pandas import (
@@ -40,11 +40,11 @@ def test_copy_deprecation(meth, kwargs):
         df = df.set_index(["b", "c"])
 
     if meth != "swaplevel":
-        with tm.assert_produces_warning(CurrentDeprecationWarning, match="copy"):
+        with tm.assert_produces_warning(Pandas40DeprecationWarning, match="copy"):
             getattr(df, meth)(copy=False, **kwargs)
 
     if meth != "transpose":
-        with tm.assert_produces_warning(CurrentDeprecationWarning, match="copy"):
+        with tm.assert_produces_warning(Pandas40DeprecationWarning, match="copy"):
             getattr(df.a, meth)(copy=False, **kwargs)
 
 
@@ -52,22 +52,22 @@ def test_copy_deprecation_reindex_like_align():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     # Somehow the stack level check is incorrect here
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.reindex_like(df, copy=False)
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.a.reindex_like(df.a, copy=False)
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.align(df, copy=False)
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.a.align(df.a, copy=False)
 
@@ -76,16 +76,16 @@ def test_copy_deprecation_merge_concat():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         df.merge(df, copy=False)
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         merge(df, df, copy=False)
 
     with tm.assert_produces_warning(
-        CurrentDeprecationWarning, match="copy", check_stacklevel=False
+        Pandas40DeprecationWarning, match="copy", check_stacklevel=False
     ):
         concat([df, df], copy=False)
