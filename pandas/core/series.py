@@ -389,10 +389,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
-        original_dtype = dtype
-
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
@@ -438,7 +434,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.astype(dtype)
 
             refs = data._references
-            data = data._values
             copy = False
 
         elif isinstance(data, np.ndarray):
@@ -511,17 +506,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index)
-
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtype != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Series "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old behavior.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
 
     def _init_dict(
         self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
@@ -1491,6 +1475,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         str or None
             String representation of Series if ``buf=None``, otherwise None.
 
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
+        Series.to_frame : Convert Series to DataFrame object.
+        Series.to_markdown : Print Series in Markdown-friendly format.
+        Series.to_timestamp : Cast to DatetimeIndex of Timestamps.
+
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3]).to_string()
@@ -2053,14 +2044,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[ns]
+        Length: 1, dtype: datetime64[s]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[ns, US/Eastern]
+        Length: 1, dtype: datetime64[s, US/Eastern]
 
         An Categorical will return categories in the order of
         appearance and with the same dtype.
@@ -3168,6 +3159,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other = other.reindex(keep_other)
 
         if this.dtype.kind == "M" and other.dtype.kind != "M":
+            # TODO: try to match resos?
             other = to_datetime(other)
         combined = concat([this, other])
         combined = combined.reindex(new_index)
@@ -4973,7 +4965,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         C  2
         dtype: int64
 
-        Drop labels B en C
+        Drop labels B and C
 
         >>> s.drop(labels=["B", "C"])
         A  0
@@ -6640,7 +6632,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
-    @doc(make_doc("sum", ndim=1))
     def sum(
         self,
         axis: Axis | None = None,
@@ -6649,6 +6640,89 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
+        """
+        Return the sum of the values over the requested axis.
+
+        This is equivalent to the method ``numpy.sum``.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+
+                The behavior of DataFrame.sum with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Median of the values for the requested axis.
+
+        See Also
+        --------
+        numpy.sum : Equivalent numpy function for computing sum.
+        Series.mean : Mean of the values.
+        Series.median : Median of the values.
+        Series.std : Standard deviation of the values.
+        Series.var : Variance of the values.
+        Series.min : Minimum value.
+        Series.max : Maximum value.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.sum()
+        14
+
+        By default, the sum of an empty or all-NA Series is ``0``.
+
+        >>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
+        0.0
+
+        This can be controlled with the ``min_count`` parameter. For example, if
+        you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+        >>> pd.Series([], dtype="float64").sum(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).sum()
+        0.0
+
+        >>> pd.Series([np.nan]).sum(min_count=1)
+        nan
+        """
         return NDFrame.sum(
             self,
             axis=axis,

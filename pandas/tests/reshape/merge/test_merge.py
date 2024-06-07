@@ -1451,8 +1451,8 @@ class TestMerge:
         )
 
         # make each underlying block array / column array read-only
-        for arr in data1._mgr.arrays:
-            arr.flags.writeable = False
+        for block in data1._mgr.blocks:
+            block.values.flags.writeable = False
 
         data1.merge(data2)  # no error
 

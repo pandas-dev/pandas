@@ -1192,6 +1192,13 @@ class ExtensionArray:
         ExtensionArray
             Shifted.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.transpose : Return a transposed view on
+            this array.
+        api.extensions.ExtensionArray.factorize : Encode the extension array as an
+            enumerated type.
+
         Notes
         -----
         If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
@@ -2026,6 +2033,13 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[uint64]
+            An array of hashed values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._values_for_factorize : Return an array and
+            missing value suitable for factorization.
+        util.hash_array : Given a 1d array, return an array of hashed values.
 
         Examples
         --------
