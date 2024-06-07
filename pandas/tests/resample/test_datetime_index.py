@@ -2014,46 +2014,22 @@ def test_resample_empty_series_with_tz():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq, freq_depr",
-    [
-        ("2ME", "2M"),
-        ("2QE", "2Q"),
-        ("2QE-SEP", "2Q-SEP"),
-        ("1YE", "1Y"),
-        ("2YE-MAR", "2Y-MAR"),
-    ],
-)
-def test_resample_M_Q_Y_deprecated(freq, freq_depr):
-    # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-    f"in a future version, please use '{freq[1:]}' instead."
+@pytest.mark.parametrize("freq", ["2M", "2m", "2Q", "2Q-SEP", "2q-sep", "1Y", "2Y-MAR"])
+def test_resample_M_Q_Y_raises(freq):
+    msg = f"Invalid frequency: {freq}"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample(freq).mean()
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample(freq_depr).mean()
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        s.resample(freq).mean()
 
 
-@pytest.mark.parametrize(
-    "freq, freq_depr",
-    [
-        ("2BME", "2BM"),
-        ("2BQE", "2BQ"),
-        ("2BQE-MAR", "2BQ-MAR"),
-    ],
-)
-def test_resample_BM_BQ_deprecated(freq, freq_depr):
-    # GH#52064
-    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-    f"in a future version, please use '{freq[1:]}' instead."
+@pytest.mark.parametrize("freq", ["2BM", "1bm", "1BQ", "2BQ-MAR", "2bq=-mar"])
+def test_resample_BM_BQ_raises(freq):
+    msg = f"Invalid frequency: {freq}"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample(freq).mean()
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample(freq_depr).mean()
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        s.resample(freq).mean()
 
 
 def test_resample_ms_closed_right(unit):

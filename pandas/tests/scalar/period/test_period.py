@@ -60,7 +60,7 @@ class TestPeriodDisallowedFreqs:
             Period("2012-01-02", freq="WOM-1MON")
 
     def test_invalid_frequency_period_error_message(self):
-        msg = "for Period, please use 'M' instead of 'ME'"
+        msg = "Invalid frequency: ME"
         with pytest.raises(ValueError, match=msg):
             Period("2012-01-02", freq="ME")
 

@@ -59,6 +59,7 @@ class TestFreqConversion:
 
     def test_conv_annual(self):
         # frequency conversion tests: from Annual Frequency
+        msg = INVALID_FREQ_ERR_MSG
 
         ival_A = Period(freq="Y", year=2007)
 
@@ -110,18 +111,17 @@ class TestFreqConversion:
             assert ival_A.asfreq("B", "E") == ival_A_to_B_end
         assert ival_A.asfreq("D", "s") == ival_A_to_D_start
         assert ival_A.asfreq("D", "E") == ival_A_to_D_end
-        msg = "'H' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg_depr = "'H' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg_depr):
             assert ival_A.asfreq("H", "s") == ival_A_to_H_start
             assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
-        msg = "Invalid frequency: T"
         with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("T", "s") == ival_A_to_T_start
             assert ival_A.asfreq("T", "E") == ival_A_to_T_end
-        msg = "'S' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg_depr = "'S' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg_depr):
             assert ival_A.asfreq("S", "S") == ival_A_to_S_start
             assert ival_A.asfreq("S", "E") == ival_A_to_S_end
 
@@ -820,7 +820,7 @@ class TestFreqConversion:
 
         assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
 
-        msg = "MS is not supported as period frequency"
+        msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 

@@ -90,24 +90,14 @@ class TestToPeriod:
         tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq_period))
 
     @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
-            ("2ME", "2M"),
-            ("2QE", "2Q"),
-            ("2QE-SEP", "2Q-SEP"),
-            ("1YE", "1Y"),
-            ("2YE-MAR", "2Y-MAR"),
-        ],
+        "freq", ["2ME", "1me", "2QE", "2QE-SEP", "1YE", "ye", "2YE-MAR"]
     )
-    def test_to_period_frequency_M_Q_Y_deprecated(self, freq, freq_depr):
-        # GH#9586
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    def test_to_period_frequency_M_Q_Y_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        rng = date_range("01-Jan-2012", periods=8, freq=freq)
-        prng = rng.to_period()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert prng.freq == freq_depr
+        rng = date_range("01-Jan-2012", periods=8, freq="ME")
+        with pytest.raises(ValueError, match=msg):
+            rng.to_period(freq)
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358
@@ -208,10 +198,16 @@ class TestToPeriod:
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
 
-    @pytest.mark.parametrize("freq", ["2BMS", "1SME-15"])
+    @pytest.mark.parametrize("freq", ["2BME", "SME-15", "2BMS"])
     def test_to_period_offsets_not_supported(self, freq):
         # GH#56243
-        msg = f"{freq[1:]} is not supported as period frequency"
+        msg = "|".join(
+            [
+                f"Invalid frequency: {freq}",
+                f"{freq} is not supported as period frequency",
+            ]
+        )
+
         ts = date_range("1/1/2012", periods=4, freq=freq)
         with pytest.raises(ValueError, match=msg):
             ts.to_period()
