@@ -471,7 +471,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
-        -i "pandas.qcut PR07,SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
