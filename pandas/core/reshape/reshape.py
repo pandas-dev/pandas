@@ -461,7 +461,7 @@ def _unstack_multiple(
         )
 
     if isinstance(data, Series):
-        dummy = data.copy()
+        dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
@@ -1025,7 +1025,7 @@ def stack_reshape(
     buf = []
     for idx in stack_cols.unique():
         if len(frame.columns) == 1:
-            data = frame.copy()
+            data = frame.copy(deep=False)
         else:
             if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
                 # GH#57750 - if the frame is an Index with tuples, .loc below will fail
