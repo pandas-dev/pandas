@@ -202,8 +202,6 @@ class TestDataFrameEval:
         expected = df["a"]
         tm.assert_series_equal(expected, res)
 
-
-class TestDataFrameEvalWithMultiIndex:
     def test_extension_array_eval(self, engine, parser):
         # GH#58748
         df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
