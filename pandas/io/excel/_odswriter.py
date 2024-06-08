@@ -27,6 +27,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+    from pandas.core.frame import DataFrame
+
     from pandas.io.formats.excel import ExcelCell
 
 
@@ -99,6 +101,7 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        notes: DataFrame | None = None,
     ) -> None:
         """
         Write the frame cells using odf
@@ -109,6 +112,14 @@ class ODSWriter(ExcelWriter):
             TableRow,
         )
         from odf.text import P
+
+        if notes is not None:
+            raise NotImplementedError(
+                """
+                Notes are not supported by the odswriter engine,
+                see https://github.com/eea/odfpy
+                """
+            )
 
         sheet_name = self._get_sheet_name(sheet_name)
         assert sheet_name is not None

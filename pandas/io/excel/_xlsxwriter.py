@@ -20,6 +20,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+    from pandas.core.frame import DataFrame
+
 
 class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
@@ -245,6 +247,7 @@ class XlsxWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        notes: DataFrame | None = None,
     ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -257,6 +260,10 @@ class XlsxWriter(ExcelWriter):
 
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
+
+        notes_col = None
+        if notes is not None and cells is not None:
+            notes_col = startcol + next(cells).col
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
@@ -282,3 +289,16 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
+
+        if notes is None or notes_col is None:
+            return
+
+        for row_idx, row in enumerate(notes.itertuples(index=False)):
+            for col_idx, note in enumerate(row):
+                if note == "":
+                    continue
+                wks.write_comment(
+                    row_idx + 1,  # first row has columns
+                    col_idx + notes_col,  # n columns with indexes
+                    str(note),
+                )

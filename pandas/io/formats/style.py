@@ -83,6 +83,7 @@ if TYPE_CHECKING:
 
     from pandas import ExcelWriter
 
+import textwrap
 
 ####
 # Shared Doc Strings
@@ -538,6 +539,19 @@ class Styler(StylerRenderer):
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
         extra_parameters="",
+        extra_examples=textwrap.dedent(
+            """\
+            If you wish to write excel notes to the workbook, you can do so by
+            passing a DataFrame to ``set_tooltips``. This process is independent
+            from writing data to the workbook, therefore both DataFrames can have
+            different dimensions.
+
+            >>> notes = pd.DataFrame(
+            ...     [["cell 1", "cell 2"], ["cell 3", "cell 4"]],
+            ... )  # doctest: +SKIP
+            >>> df1.style.set_tooltips(notes).to_excel("output.xlsx")  # doctest: +SKIP
+            """
+        ),
     )
     def to_excel(
         self,

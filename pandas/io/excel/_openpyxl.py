@@ -37,6 +37,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+    from pandas.core.frame import DataFrame
+
 
 class OpenpyxlWriter(ExcelWriter):
     _engine = "openpyxl"
@@ -447,7 +449,10 @@ class OpenpyxlWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        notes: DataFrame | None = None,
     ) -> None:
+        from openpyxl.comments import Comment
+
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -483,6 +488,10 @@ class OpenpyxlWriter(ExcelWriter):
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
+
+        notes_col = None
+        if notes is not None and cells is not None:
+            notes_col = startcol + next(cells).col + 1
 
         for cell in cells:
             xcell = wks.cell(
@@ -529,6 +538,20 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+        if notes is None or notes_col is None:
+            return
+
+        for row_idx, val in enumerate(notes.itertuples(index=False)):
+            for col_idx, note in enumerate(val):
+                xcell = wks.cell(
+                    # first row has columns and openpyxl starts counting at 1, not 0
+                    row=row_idx + 2,
+                    column=col_idx + notes_col,  # n columns with indexes
+                )
+                if note:
+                    comment = Comment(str(note), "")
+                    xcell.comment = comment
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
