@@ -12715,7 +12715,7 @@ def make_doc(name: str, ndim: int) -> str:
             dtype: float64"""
         see_also = ""
         kwargs = {"notes": ""}
-        
+
     elif name == "skew":
         base_doc = _num_doc
         desc = "Return unbiased skew over requested axis.\n\nNormalized by N-1."
@@ -12760,6 +12760,7 @@ def make_doc(name: str, ndim: int) -> str:
             a   0.0
             dtype: float64"""
         kwargs = {"min_count": ""}
+
     elif name == "kurt":
         base_doc = _num_doc
         desc = (
