@@ -424,6 +424,17 @@ class TestDatetimeIndexOps:
         with pytest.raises(ValueError, match=msg):
             dr.is_year_start
 
+    @pytest.mark.parametrize("freq", ["3BMS", offsets.BusinessMonthBegin(3)])
+    def test_dti_is_year_quarter_start_freq_business_month_begin(self, freq):
+        # GH#58729
+        dr = date_range("2020-01-01", periods=5, freq=freq)
+        result = [x.is_year_start for x in dr]
+        assert result == [True, False, False, False, True]
+
+        dr = date_range("2020-01-01", periods=4, freq=freq)
+        result = [x.is_quarter_start for x in dr]
+        assert all(dr.is_quarter_start)
+
 
 @given(
     dt=st.datetimes(min_value=datetime(1960, 1, 1), max_value=datetime(1980, 1, 1)),
