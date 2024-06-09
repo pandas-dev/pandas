@@ -1048,63 +1048,122 @@ def scipy_sem(*args, **kwargs):
 
 
 @pytest.mark.parametrize(
-    "data",
+    "reduction_method, values",
     [
-        {
-            "l": ["A", "A", "A", "A", "B", "B", "B", "B"],
-            "f": [-1.0, 1.2, -1.1, 1.5, -1.1, 1.5, np.nan, 1.0],
-            "s": ["foo", "bar", "baz", "foo", "foo", "foo", pd.NA, "foo"],
-            "t": [
+        ("sum", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("sum", ["foo", "bar", "baz", "foo", pd.NA, "foo"]),
+        ("min", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "min",
+            [
                 Timestamp("2024-01-01"),
                 Timestamp("2024-01-02"),
                 Timestamp("2024-01-03"),
-                Timestamp("2024-01-04"),
-                Timestamp("2024-01-06"),
                 Timestamp("2024-01-07"),
                 Timestamp("2024-01-08"),
                 pd.NaT,
             ],
-            "td": [
+        ),
+        (
+            "min",
+            [
                 pd.Timedelta(days=1),
                 pd.Timedelta(days=2),
                 pd.Timedelta(days=3),
-                pd.Timedelta(days=4),
-                pd.Timedelta(days=6),
                 pd.Timedelta(days=7),
                 pd.Timedelta(days=8),
                 pd.NaT,
             ],
-        }
+        ),
+        ("max", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "max",
+            [
+                Timestamp("2024-01-01"),
+                Timestamp("2024-01-02"),
+                Timestamp("2024-01-03"),
+                Timestamp("2024-01-07"),
+                Timestamp("2024-01-08"),
+                pd.NaT,
+            ],
+        ),
+        (
+            "max",
+            [
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=3),
+                pd.Timedelta(days=7),
+                pd.Timedelta(days=8),
+                pd.NaT,
+            ],
+        ),
+        ("mean", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "mean",
+            [
+                Timestamp("2024-01-01"),
+                Timestamp("2024-01-02"),
+                Timestamp("2024-01-03"),
+                Timestamp("2024-01-07"),
+                Timestamp("2024-01-08"),
+                pd.NaT,
+            ],
+        ),
+        (
+            "mean",
+            [
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=3),
+                pd.Timedelta(days=7),
+                pd.Timedelta(days=8),
+                pd.NaT,
+            ],
+        ),
+        ("median", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "median",
+            [
+                Timestamp("2024-01-01"),
+                Timestamp("2024-01-02"),
+                Timestamp("2024-01-03"),
+                Timestamp("2024-01-07"),
+                Timestamp("2024-01-08"),
+                pd.NaT,
+            ],
+        ),
+        (
+            "median",
+            [
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=3),
+                pd.Timedelta(days=7),
+                pd.Timedelta(days=8),
+                pd.NaT,
+            ],
+        ),
+        ("prod", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("sem", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("std", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("var", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("any", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("all", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        ("skew", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
     ],
 )
-@pytest.mark.parametrize(
-    "reduction_method,columns",
-    [
-        ("sum", ["f", "s"]),
-        ("min", ["f", "t", "td"]),
-        ("max", ["f", "t", "td"]),
-        ("mean", ["f", "t", "td"]),
-        ("median", ["f", "t", "td"]),
-        ("prod", ["f"]),
-        ("sem", ["f"]),
-        ("std", ["f"]),
-        ("var", ["f"]),
-        ("any", ["f"]),
-        ("all", ["f"]),
-        ("skew", ["f"]),
-    ],
-)
-def test_skipna_reduction_ops_cython(reduction_method, columns, data):
+def test_skipna_reduction_ops_cython(reduction_method, values):
     # GH15675
     # Testing the skipna parameter against possible datatypes
-    df = DataFrame(data)
+    df = DataFrame({"key": [1, 1, 1, 2, 2, 2], "values": values})
+    gb = df.groupby("key")
 
-    for column in columns:
-        result_cython = getattr(df.groupby("l")[column], reduction_method)(skipna=False)
-        expected = df.groupby("l")[column].apply(
-            lambda x: getattr(x, reduction_method)(skipna=False)
-        )
-        tm.assert_series_equal(result_cython, expected, check_exact=False)
+    result_cython = getattr(gb, reduction_method)(skipna=False)
+    expected = gb.apply(
+        lambda x: getattr(x, reduction_method)(skipna=False), include_groups=False
+    )
+    tm.assert_frame_equal(result_cython, expected, check_exact=False)
 
 
 @pytest.mark.parametrize(
