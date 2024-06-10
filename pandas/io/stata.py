@@ -1600,14 +1600,13 @@ the string values returned are correct."""
                 v_o = self._read_uint64()
             else:
                 buf = self._path_or_buf.read(12)
-                # Only tested on little endian file on little endian machine.
+                # Only tested on little endian machine.
                 v_size = 2 if self._format_version == 118 else 3
                 if self._byteorder == "<":
                     buf = buf[0:v_size] + buf[4 : (12 - v_size)]
                 else:
-                    # This path may not be correct, impossible to test
-                    buf = buf[0:v_size] + buf[(4 + v_size) :]
-                v_o = struct.unpack("Q", buf)[0]
+                    buf = buf[4 - v_size : 4] + buf[(4 + v_size) :]
+                v_o = struct.unpack(f"{self._byteorder}Q", buf)[0]
             typ = self._read_uint8()
             length = self._read_uint32()
             va = self._path_or_buf.read(length)
