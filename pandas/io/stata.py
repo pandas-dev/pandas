@@ -3037,6 +3037,8 @@ class StataStrLWriter:
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
+        # Flag whether chosen byteorder matches the system on which we're running
+        self._native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
 
         gso_v_type = "I"  # uint32
         gso_o_type = "Q"  # uint64
@@ -3049,8 +3051,7 @@ class StataStrLWriter:
             o_size = 6
         else:  # version == 119
             o_size = 5
-        native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
-        if native_byteorder:
+        if self._native_byteorder:
             self._o_offet = 2 ** (8 * (8 - o_size))
         else:
             self._o_offet = 2 ** (8 * o_size)
@@ -3059,8 +3060,7 @@ class StataStrLWriter:
 
     def _convert_key(self, key: tuple[int, int]) -> int:
         v, o = key
-        native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
-        if native_byteorder:
+        if self._native_byteorder:
             return v + self._o_offet * o
         else:
             # v, o will be swapped when applying byteorder
