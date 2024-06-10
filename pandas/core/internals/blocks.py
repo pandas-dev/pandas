@@ -659,9 +659,8 @@ class Block(PandasObject, libinternals.Block):
     # Copy-on-Write Helpers
 
     def _maybe_copy(self, inplace: bool) -> Self:
-        if inplace:
-            deep = self.refs.has_reference()
-            return self.copy(deep=deep)
+        if inplace and not self.refs.has_reference():
+            return self
         return self.copy()
 
     @final
