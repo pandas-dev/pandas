@@ -295,7 +295,7 @@ Aggregate the current hourly time series values to the monthly maximum value in 
 
 .. ipython:: python
 
-    monthly_max = no_2.resample("ME").max()
+    monthly_max = no_2.resample("MS").max()
     monthly_max
 
 A very powerful method on time series data with a datetime index, is the

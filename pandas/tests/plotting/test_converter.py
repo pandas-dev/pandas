@@ -196,7 +196,7 @@ class TestDateTimeConverter:
         rtol = 0.5 * 10**-9
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        xp = dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
@@ -217,10 +217,10 @@ class TestDateTimeConverter:
     def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
         rs = dtc.convert(values, None, None)
-        xp = converter.mdates.date2num(values)
+        xp = dates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = converter.mdates.date2num(values[0])
+        xp = dates.date2num(values[0])
         assert rs == xp
 
     @pytest.mark.parametrize(
@@ -243,7 +243,7 @@ class TestDateTimeConverter:
         rtol = 10**-9
         dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
-        xp = converter.mdates.date2num(dateindex._mpl_repr())
+        xp = dates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
