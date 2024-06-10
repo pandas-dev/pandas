@@ -96,12 +96,11 @@ class HistPlot(LinePlot):
         """Calculate bins given data"""
         nd_values = data.infer_objects()._get_numeric_data()
         values = nd_values.values
-        if nd_values.ndim == 1:
+        if nd_values.ndim == 2:
             values = values.reshape(-1)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
-        return bins
+        return np.histogram_bin_edges(values, bins=bins, range=self._bin_range)
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
