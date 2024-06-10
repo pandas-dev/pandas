@@ -1678,7 +1678,8 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
-    def test_writer_117(self, temp_file):
+    @pytest.mark.parametrize("byteorder", ["little", "big"])
+    def test_writer_117(self, byteorder, temp_file):
         original = DataFrame(
             data=[
                 [
@@ -1736,6 +1737,7 @@ The repeated labels are:\n-+\nwolof
         original.to_stata(
             path,
             convert_dates={"datetime": "tc"},
+            byteorder=byteorder,
             convert_strl=["forced_strl"],
             version=117,
         )
@@ -1940,7 +1942,8 @@ the string values returned are correct."""
                 assert reader._nvar == 32999
 
     @pytest.mark.parametrize("version", [118, 119, None])
-    def test_utf8_writer(self, version, temp_file):
+    @pytest.mark.parametrize("byteorder", ["little", "big"])
+    def test_utf8_writer(self, version, byteorder, temp_file):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
         data = DataFrame(
             [
@@ -1968,6 +1971,7 @@ the string values returned are correct."""
             convert_strl=["strls"],
             variable_labels=variable_labels,
             write_index=False,
+            byteorder=byteorder,
             version=version,
             value_labels=value_labels,
         )
