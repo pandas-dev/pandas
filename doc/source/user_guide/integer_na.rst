@@ -84,6 +84,19 @@ with the dtype.
    In the future, we may provide an option for :class:`Series` to infer a
    nullable-integer dtype.
 
+If you create a column of ``NA`` values (for example to fill them later)
+with ``df['new_col'] = pd.NA``, the ``dtype`` would be set to ``object`` in the
+new column. The performance on this column will be worse than with
+the appropriate type. It's better to use
+``df['new_col'] = pd.Series(pd.NA, dtype="Int64")``
+(or another ``dtype`` that supports ``NA``).
+
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df['objects'] = pd.NA
+   df.dtypes
+
 Operations
 ----------
 

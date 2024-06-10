@@ -389,10 +389,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
-        original_dtype = dtype
-
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
@@ -438,7 +434,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.astype(dtype)
 
             refs = data._references
-            data = data._values
             copy = False
 
         elif isinstance(data, np.ndarray):
@@ -511,17 +506,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index)
-
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtype != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Series "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old behavior.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
 
     def _init_dict(
         self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
@@ -2060,14 +2044,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[ns]
+        Length: 1, dtype: datetime64[s]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[ns, US/Eastern]
+        Length: 1, dtype: datetime64[s, US/Eastern]
 
         An Categorical will return categories in the order of
         appearance and with the same dtype.
@@ -3175,6 +3159,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other = other.reindex(keep_other)
 
         if this.dtype.kind == "M" and other.dtype.kind != "M":
+            # TODO: try to match resos?
             other = to_datetime(other)
         combined = concat([this, other])
         combined = combined.reindex(new_index)
@@ -4980,7 +4965,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         C  2
         dtype: int64
 
-        Drop labels B en C
+        Drop labels B and C
 
         >>> s.drop(labels=["B", "C"])
         A  0

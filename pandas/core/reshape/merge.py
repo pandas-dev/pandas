@@ -316,7 +316,9 @@ def merge_ordered(
     Parameters
     ----------
     left : DataFrame or named Series
+        First pandas object to merge.
     right : DataFrame or named Series
+        Second pandas object to merge.
     on : label or list
         Field names to join on. Must be found in both DataFrames.
     left_on : label or list, or array-like
