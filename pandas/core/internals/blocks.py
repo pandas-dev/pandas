@@ -651,6 +651,7 @@ class Block(PandasObject, libinternals.Block):
             values = values.copy()
             refs = None
         else:
+            values = values.view()
             refs = self.refs
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim, refs=refs)
 
