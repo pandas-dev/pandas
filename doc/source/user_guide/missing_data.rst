@@ -353,7 +353,7 @@ this behaviour and include NA values in the calculation, use ``skipna=False``.
 Dropping missing data
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.dropna` dropa rows or columns with missing data.
+:meth:`~DataFrame.dropna` drops rows or columns with missing data.
 
 .. ipython:: python
 
