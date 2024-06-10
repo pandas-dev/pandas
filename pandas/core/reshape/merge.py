@@ -106,6 +106,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
+    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -145,11 +146,12 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    copy: bool | None = None,
+    copy: bool | lib.NoDefault = lib.no_default,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     left_df = _validate_operand(left)
+    left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
     if how == "cross":
         return _cross_merge(
@@ -314,7 +316,9 @@ def merge_ordered(
     Parameters
     ----------
     left : DataFrame or named Series
+        First pandas object to merge.
     right : DataFrame or named Series
+        Second pandas object to merge.
     on : label or list
         Field names to join on. Must be found in both DataFrames.
     left_on : label or list, or array-like
@@ -1780,7 +1784,10 @@ def get_join_indexers_non_unique(
     np.ndarray[np.intp]
         Indexer into right.
     """
-    lkey, rkey, count = _factorize_keys(left, right, sort=sort)
+    lkey, rkey, count = _factorize_keys(left, right, sort=sort, how=how)
+    if count == -1:
+        # hash join
+        return lkey, rkey
     if how == "left":
         lidx, ridx = libjoin.left_outer_join(lkey, rkey, count, sort=sort)
     elif how == "right":
@@ -1799,7 +1806,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[tuple, tuple, tuple]:
+) -> tuple[FrozenList, FrozenList, FrozenList]:
     """
     *this is an internal non-public method*
 
@@ -1831,7 +1838,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : tuple[Hashable]
+    names : List[Hashable]
         names of combined multiindex levels
 
     """
@@ -1873,11 +1880,12 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + (restore_levels,)
-        join_codes = join_codes + (restore_codes,)
-        join_names = join_names + (dropped_level_name,)
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
+        join_names = join_names + [dropped_level_name]
 
-    return tuple(join_levels), tuple(join_codes), tuple(join_names)
+    return join_levels, join_codes, join_names
 
 
 class _OrderedMerge(_MergeOperation):
@@ -2059,8 +2067,8 @@ class _AsOfMerge(_OrderedMerge):
             or is_string_dtype(ro_dtype)
         ):
             raise MergeError(
-                f"Incompatible merge dtype, {ro_dtype!r} and "
-                f"{lo_dtype!r}, both sides must have numeric dtype"
+                f"Incompatible merge dtype, {lo_dtype!r} and "
+                f"{ro_dtype!r}, both sides must have numeric dtype"
             )
 
         # add 'by' to our key-list so we can have it in the
@@ -2385,7 +2393,10 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True
+    lk: ArrayLike,
+    rk: ArrayLike,
+    sort: bool = True,
+    how: str | None = None,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
@@ -2401,6 +2412,9 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
+    how: str, optional
+        Used to determine if we can use hash-join. If not given, then just factorize
+        keys.
 
     Returns
     -------
@@ -2409,7 +2423,8 @@ def _factorize_keys(
     np.ndarray[np.intp]
         Right (resp. left if called with `key='right'`) labels, as enumerated type.
     int
-        Number of unique elements in union of left and right labels.
+        Number of unique elements in union of left and right labels. -1 if we used
+        a hash-join.
 
     See Also
     --------
@@ -2527,28 +2542,41 @@ def _factorize_keys(
 
     klass, lk, rk = _convert_arrays_and_get_rizer_klass(lk, rk)
 
-    rizer = klass(max(len(lk), len(rk)))
+    rizer = klass(
+        max(len(lk), len(rk)),
+        uses_mask=isinstance(rk, (BaseMaskedArray, ArrowExtensionArray)),
+    )
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=rk._mask)
+        lk_data, lk_mask = lk._data, lk._mask
+        rk_data, rk_mask = rk._data, rk._mask
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
-        llab = rizer.factorize(
-            lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
-        )
-        rlab = rizer.factorize(
-            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
-        )
+        lk_data = lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype)
+        rk_data = rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype)
+        lk_mask, rk_mask = lk.isna(), rk.isna()
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
         # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-        llab = rizer.factorize(lk)  # type: ignore[arg-type]
-        rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+        lk_data, rk_data = lk, rk  # type: ignore[assignment]
+        lk_mask, rk_mask = None, None
+
+    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufb"
+    if hash_join_available:
+        rlab = rizer.factorize(rk_data, mask=rk_mask)
+        if rizer.get_count() == len(rlab):
+            ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
+            return lidx, ridx, -1
+        else:
+            llab = rizer.factorize(lk_data, mask=lk_mask)
+    else:
+        llab = rizer.factorize(lk_data, mask=lk_mask)
+        rlab = rizer.factorize(rk_data, mask=rk_mask)
+
     assert llab.dtype == np.dtype(np.intp), llab.dtype
     assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 

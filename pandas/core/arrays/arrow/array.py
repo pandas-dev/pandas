@@ -29,7 +29,6 @@ from pandas.compat import (
     pa_version_under13p0,
 )
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -526,6 +525,8 @@ class ArrowExtensionArray(
         if pa_type is not None and pa_array.type != pa_type:
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
+                if pa_array.type != pa_type:
+                    pa_array = pa_array.cast(pa_type)
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)
@@ -1051,8 +1052,7 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
-            return self.copy()
+            return self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -1068,6 +1068,7 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
+        # TODO: Why do we no longer need the above cases?
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
         return super()._pad_or_backfill(
@@ -1077,22 +1078,15 @@ class ArrowExtensionArray(
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
-        value: object | ArrayLike | None = None,
-        method: FillnaOptions | None = None,
+        value: object | ArrayLike,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
-        value, method = validate_fillna_kwargs(value, method)
-
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
         if limit is not None:
-            return super().fillna(value=value, method=method, limit=limit, copy=copy)
-
-        if method is not None:
-            return super().fillna(method=method, limit=limit, copy=copy)
+            return super().fillna(value=value, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -1118,7 +1112,7 @@ class ArrowExtensionArray(
             #   a kernel for duration types.
             pass
 
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
+        return super().fillna(value=value, limit=limit, copy=copy)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
@@ -1429,7 +1423,7 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
@@ -1703,7 +1697,7 @@ class ArrowExtensionArray(
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
                 f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}' with pyarrow "
+                f"does not support operation '{name}' with pyarrow "
                 f"version {pa.__version__}. '{name}' may be supported by "
                 f"upgrading pyarrow."
             )
@@ -1884,7 +1878,8 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             if len(indices) == 0:
                 return
-            argsort = np.argsort(indices)
+            # GH#58530 wrong item assignment by repeated key
+            _, argsort = np.unique(indices, return_index=True)
             indices = indices[argsort]
             value = value.take(argsort)
             mask = np.zeros(len(self), dtype=np.bool_)

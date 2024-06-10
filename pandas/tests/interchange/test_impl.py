@@ -459,6 +459,7 @@ def test_non_str_names_w_duplicates():
         ),
         ([1.0, 2.25, None], "Float32", "float32"),
         ([1.0, 2.25, None], "Float32[pyarrow]", "float32"),
+        ([True, False, None], "boolean", "bool"),
         ([True, False, None], "boolean[pyarrow]", "bool"),
         (["much ado", "about", None], "string[pyarrow_numpy]", "large_string"),
         (["much ado", "about", None], "string[pyarrow]", "large_string"),
@@ -521,6 +522,7 @@ def test_pandas_nullable_with_missing_values(
         ),
         ([1.0, 2.25, 5.0], "Float32", "float32"),
         ([1.0, 2.25, 5.0], "Float32[pyarrow]", "float32"),
+        ([True, False, False], "boolean", "bool"),
         ([True, False, False], "boolean[pyarrow]", "bool"),
         (["much ado", "about", "nothing"], "string[pyarrow_numpy]", "large_string"),
         (["much ado", "about", "nothing"], "string[pyarrow]", "large_string"),
@@ -601,7 +603,8 @@ def test_empty_dataframe():
         ),
         (
             pd.Series(
-                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)],
+                dtype="M8[ns]",
             ),
             (DtypeKind.DATETIME, 64, "tsn:", "="),
             (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),

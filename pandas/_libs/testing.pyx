@@ -1,6 +1,5 @@
 import cmath
 import math
-import warnings
 
 import numpy as np
 
@@ -18,7 +17,6 @@ from pandas._libs.util cimport (
     is_real_number_object,
 )
 
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -188,15 +186,7 @@ cpdef assert_almost_equal(a, b,
             return True
         elif checknull(b):
             # GH#18463
-            warnings.warn(
-                f"Mismatched null-like values {a} and {b} found. In a future "
-                "version, pandas equality-testing functions "
-                "(e.g. assert_frame_equal) will consider these not-matching "
-                "and raise.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return True
+            raise AssertionError(f"Mismatched null-like values {a} != {b}")
         raise AssertionError(f"{a} != {b}")
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")

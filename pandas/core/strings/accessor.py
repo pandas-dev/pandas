@@ -162,6 +162,16 @@ class StringMethods(NoNewAttributesMixin):
     Patterned after Python's string methods, with some inspiration from
     R's stringr package.
 
+    Parameters
+    ----------
+    data : Series or Index
+        The content of the Series or Index.
+
+    See Also
+    --------
+    Series.str : Vectorized string functions for Series.
+    Index.str : Vectorized string functions for Index.
+
     Examples
     --------
     >>> s = pd.Series(["A_Str_Series"])
@@ -2398,7 +2408,11 @@ class StringMethods(NoNewAttributesMixin):
         """
         Map all characters in the string through the given mapping table.
 
-        Equivalent to standard :meth:`str.translate`.
+        This method is equivalent to the standard :meth:`str.translate`
+        method for strings. It maps each character in the string to a new
+        character according to the translation table provided. Unmapped
+        characters are left unchanged, while characters mapped to None
+        are removed.
 
         Parameters
         ----------
@@ -2411,6 +2425,14 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            A new Series or Index with translated strings.
+
+        See Also
+        --------
+        Series.str.replace : Replace occurrences of pattern/regex in the
+            Series with some other string.
+        Index.str.replace : Replace occurrences of pattern/regex in the
+            Index with some other string.
 
         Examples
         --------
@@ -3608,7 +3630,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ("match",))
+    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

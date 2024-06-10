@@ -27,10 +27,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -820,12 +817,12 @@ class BaseWindowGroupby(BaseWindow):
         else:
             idx_codes, idx_levels = factorize(result.index)
             result_codes = [idx_codes]
-            result_levels = [idx_levels]  # type: ignore[list-item]
+            result_levels = [idx_levels]
             result_names = [result.index.name]
 
-        # 3) Create the resulting index by combining 1) + 2)
+            # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
-        result_levels = groupby_levels + result_levels  # type: ignore[assignment]
+        result_levels = groupby_levels + result_levels
         result_names = self._grouper.names + result_names
 
         result_index = MultiIndex(
@@ -2556,7 +2553,6 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,
