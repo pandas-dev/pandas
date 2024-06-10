@@ -71,8 +71,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03,SA01" \
-        -i "pandas.DataFrame.median RT03,SA01" \
+        -i "pandas.DataFrame.mean RT03" \
+        -i "pandas.DataFrame.median RT03" \
         -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
@@ -471,7 +471,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
-        -i "pandas.qcut PR07,SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
@@ -596,7 +595,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
-        -i "pandas.tseries.offsets.Day.nanos SA01" \
+        -i "pandas.tseries.offsets.Day.nanos GL08" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \
         -i "pandas.tseries.offsets.Day.rule_code GL08" \
         -i "pandas.tseries.offsets.Easter PR02" \

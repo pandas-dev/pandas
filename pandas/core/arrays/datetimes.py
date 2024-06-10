@@ -143,7 +143,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                 month_kw = 12
                 if freq:
                     kwds = freq.kwds
-                    month_kw = kwds.get("startingMonth", kwds.get("month", 12))
+                    month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
 
                 if freq is not None:
                     freq_name = freq.name
