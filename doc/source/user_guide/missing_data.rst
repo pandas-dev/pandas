@@ -32,7 +32,7 @@ use :class:`api.typing.NaTType`.
 :class:`NA` for :class:`StringDtype`, :class:`Int64Dtype` (and other bit widths),
 :class:`Float64Dtype` (and other bit widths), :class:`BooleanDtype` and :class:`ArrowDtype`.
 These types will maintain the original data type of the data.
-For typing applications, use :class:`api.types.NAType`.
+For typing applications, use :class:`api.typing.NAType`.
 
 .. ipython:: python
 
@@ -337,10 +337,8 @@ When taking the product, NA values or empty data will be treated as 1.
    pd.Series([], dtype="float64").prod()
 
 Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-ignore NA values by default preserve them in the result. This behavior can be changed
-with ``skipna``
-
-* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
+ignore NA values by default, but preserve them in the resulting array. To override
+this behaviour and include NA values in the calculation, use ``skipna=False``.
 
 
 .. ipython:: python
@@ -355,7 +353,7 @@ with ``skipna``
 Dropping missing data
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.dropna` dropa rows or columns with missing data.
+:meth:`~DataFrame.dropna` drops rows or columns with missing data.
 
 .. ipython:: python
 

@@ -270,7 +270,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(arr, attr, index_or_series, request):
+def test_array(arr, attr, index_or_series):
     box = index_or_series
 
     result = box(arr, copy=False).array
@@ -383,7 +383,7 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
 
 @pytest.mark.parametrize("as_series", [True, False])
-def test_to_numpy_dtype(as_series, unit):
+def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
@@ -412,7 +412,7 @@ def test_to_numpy_dtype(as_series, unit):
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -454,7 +454,7 @@ def test_to_numpy_na_value_numpy_dtype(
             [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )

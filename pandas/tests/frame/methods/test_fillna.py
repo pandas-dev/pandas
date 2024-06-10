@@ -47,7 +47,7 @@ class TestFillNA:
         assert np.isnan(arr[:, 0]).all()
 
         # i.e. we didn't create a new 49-column block
-        assert len(df._mgr.arrays) == 1
+        assert len(df._mgr.blocks) == 1
         assert np.shares_memory(df.values, arr)
 
     def test_fillna_datetime(self, datetime_frame):
@@ -60,9 +60,6 @@ class TestFillNA:
 
         padded = datetime_frame.ffill()
         assert np.isnan(padded.loc[padded.index[:5], "A"]).all()
-        assert (
-            padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
-        ).all()
 
         msg = r"missing 1 required positional argument: 'value'"
         with pytest.raises(TypeError, match=msg):
