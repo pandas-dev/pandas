@@ -444,11 +444,11 @@ def handle_shared_axes(
 
 def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes, None, None]:
     if not is_list_like(axes):
-        yield axes
+        yield axes  # type: ignore[misc]
     elif isinstance(axes, (np.ndarray, ABCIndex)):
         yield from np.asarray(axes).reshape(-1)
     else:
-        yield from axes
+        yield from axes  # type: ignore[misc]
 
 
 def set_ticks_props(
@@ -460,13 +460,13 @@ def set_ticks_props(
 ):
     for ax in flatten_axes(axes):
         if xlabelsize is not None:
-            mpl.artist.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+            mpl.artist.setp(ax.get_xticklabels(), fontsize=xlabelsize)  # type: ignore[arg-type]
         if xrot is not None:
-            mpl.artist.setp(ax.get_xticklabels(), rotation=xrot)
+            mpl.artist.setp(ax.get_xticklabels(), rotation=xrot)  # type: ignore[arg-type]
         if ylabelsize is not None:
-            mpl.artist.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+            mpl.artist.setp(ax.get_yticklabels(), fontsize=ylabelsize)  # type: ignore[arg-type]
         if yrot is not None:
-            mpl.artist.setp(ax.get_yticklabels(), rotation=yrot)
+            mpl.artist.setp(ax.get_yticklabels(), rotation=yrot)  # type: ignore[arg-type]
     return axes
 
 
