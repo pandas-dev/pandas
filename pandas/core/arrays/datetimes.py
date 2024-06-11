@@ -2144,7 +2144,7 @@ default 'raise'
                       dtype='datetime64[ns]', freq='BYS-JAN')
 
         >>> idx.is_year_start
-        array([True, True,  True, True]
+        array([True, True,  True, True])
         """,
     )
     is_year_end = _field_accessor(
