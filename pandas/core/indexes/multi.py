@@ -1031,6 +1031,13 @@ class MultiIndex(Index):
         """
         Integer number of levels in this MultiIndex.
 
+        See Also
+        --------
+        MultiIndex.levels : Get the levels of the MultiIndex.
+        MultiIndex.codes : Get the codes of the MultiIndex.
+        MultiIndex.from_arrays : Convert arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
