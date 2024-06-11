@@ -2215,9 +2215,7 @@ class ArrowExtensionArray(
     def _to_masked(self):
         pa_dtype = self._pa_array.type
 
-        if pa.types.is_floating(pa_dtype):
-            na_value = np.nan
-        elif pa.types.is_integer(pa_dtype):
+        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
             na_value = 1
         elif pa.types.is_boolean(pa_dtype):
             na_value = True
@@ -2239,6 +2237,12 @@ class ArrowExtensionArray(
         ids: npt.NDArray[np.intp],
         **kwargs,
     ):
+        if how in ["sum", "prod", "mean", "median", "var", "sem", "std", "nim", "max"]:
+            if "skipna" in kwargs and not kwargs["skipna"]:
+                raise NotImplementedError(
+                    f"method '{how}' with skipna=False not implemented for Arrow dtypes"
+                )
+
         if isinstance(self.dtype, StringDtype):
             return super()._groupby_op(
                 how=how,
