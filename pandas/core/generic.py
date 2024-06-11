@@ -2387,7 +2387,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index : bool or None, default None
             The index is only used when 'orient' is 'split', 'index', 'column',
             or 'table'. Of these, 'index' and 'column' do not support
-            `index=False`.
+            `index=False`. The string 'index' as a column name with empty :class:`Index`
+            or if it is 'index' will raise a ``ValueError``.
 
         indent : int, optional
            Length of whitespace used to indent each record.
