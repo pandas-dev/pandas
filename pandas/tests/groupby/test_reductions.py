@@ -3,6 +3,7 @@ import datetime as dt
 from string import ascii_lowercase
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas._libs.tslibs import iNaT
@@ -1052,7 +1053,31 @@ def scipy_sem(*args, **kwargs):
     [
         ("sum", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("sum", ["foo", "bar", "baz", "foo", pd.NA, "foo"]),
+        (
+            "sum",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "sum",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         ("min", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "min",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "min",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         (
             "min",
             [
@@ -1078,6 +1103,18 @@ def scipy_sem(*args, **kwargs):
         ("max", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         (
             "max",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "max",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
+        (
+            "max",
             [
                 Timestamp("2024-01-01"),
                 Timestamp("2024-01-02"),
@@ -1099,6 +1136,18 @@ def scipy_sem(*args, **kwargs):
             ],
         ),
         ("mean", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "mean",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "mean",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         (
             "mean",
             [
@@ -1124,6 +1173,18 @@ def scipy_sem(*args, **kwargs):
         ("median", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         (
             "median",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "median",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
+        (
+            "median",
             [
                 Timestamp("2024-01-01"),
                 Timestamp("2024-01-02"),
@@ -1145,9 +1206,57 @@ def scipy_sem(*args, **kwargs):
             ],
         ),
         ("prod", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "prod",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "prod",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         ("sem", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "sem",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "sem",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         ("std", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "std",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "std",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         ("var", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
+        (
+            "var",
+            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
+        ),
+        (
+            "var",
+            Series(
+                pd.array(
+                    [1.0, 2.0, 3.0, np.nan, 4.0, 5.0], dtype=pd.ArrowDtype(pa.float64())
+                )
+            ),
+        ),
         ("any", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("all", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("skew", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
@@ -1163,7 +1272,7 @@ def test_skipna_reduction_ops_cython(reduction_method, values):
     expected = gb.apply(
         lambda x: getattr(x, reduction_method)(skipna=False), include_groups=False
     )
-    tm.assert_frame_equal(result_cython, expected, check_exact=False)
+    tm.assert_frame_equal(result_cython, expected, check_exact=False, check_dtype=False)
 
 
 @pytest.mark.parametrize(

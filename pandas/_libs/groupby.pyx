@@ -735,6 +735,9 @@ def group_sum(
             for j in range(K):
                 val = values[i, j]
 
+                if _treat_as_na(sumx[lab, j], is_datetimelike):
+                    continue
+
                 if uses_mask:
                     isna_entry = mask[i, j]
                 else:
@@ -1107,7 +1110,7 @@ def group_mean(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna and isna_entry:
-                    sumx[lab, j] = nan_val
+                    sumx[lab, j] = val
                     nobs[lab, j] = 0
                     continue
 
