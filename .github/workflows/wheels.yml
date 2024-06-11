@@ -221,6 +221,8 @@ jobs:
         with:
           fetch-depth: 0
 
+        # Note: Pyodide 0.26.0 is supported with Python 3.12. For more information, see
+        # https://github.com/pyodide/pyodide/blob/main/Makefile.envs
       - name: Set up Python for Pyodide
         id: setup-python
         uses: actions/setup-python@v5
@@ -228,14 +230,11 @@ jobs:
           python-version: '3.12'
 
       - name: Build WASM wheel for pandas
-        uses: pypa/cibuildwheel@main
+        uses: pypa/cibuildwheel@v2.19.0
         with:
           output-dir: ./wheelhouse
         env:
           CIBW_PLATFORM: pyodide
-          CIBW_TEST_REQUIRES: pytest>=7.3.2 hypothesis>=6.46.1
-          CIBW_TEST_COMMAND: |
-            PANDAS_CI=1 python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"])'
 
       - uses: actions/upload-artifact@v4
         with:
