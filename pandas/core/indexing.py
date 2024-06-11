@@ -2352,7 +2352,7 @@ class _iLocIndexer(_LocationIndexer):
             def ravel(i):
                 return i.ravel() if isinstance(i, np.ndarray) else i
 
-            indexer = map(ravel, indexer)
+            indexer = tuple(map(ravel, indexer))
 
             aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
