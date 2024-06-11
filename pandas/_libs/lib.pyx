@@ -2932,6 +2932,7 @@ def map_infer(
     bint ignore_na=False,
     const uint8_t[:] mask=None,
     object na_value=None,
+    bint convert_to_nullable_dtype=False,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2947,6 +2948,9 @@ def map_infer(
         uint8 dtype ndarray indicating na_value to apply `f` to.
     na_value : Any, optional
         The input value to use for masked values.
+    convert_to_nullable_dtype : bool, default False
+        If an array-like object contains only integer or boolean values (and NaN) is
+        encountered, whether to convert and return an Boolean/IntegerArray.
 
     Returns
     -------
@@ -2975,7 +2979,10 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype
+        )
     else:
         return result
 
