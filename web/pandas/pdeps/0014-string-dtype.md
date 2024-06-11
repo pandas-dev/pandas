@@ -185,8 +185,8 @@ should not have a direct impact on users (except for performance).
 
 For the original variant of `StringDtype` using `pd.NA`, currently the default
 storage is `"python"` (the object-dtype based implementation). Also for this
-variant, it is proposed follow the same logic for determining the default
-storage, i.e. the default to `"pyarrow"` if available, and otherwise
+variant, it is proposed to follow the same logic for determining the default
+storage, i.e. default to `"pyarrow"` if available, and otherwise
 fall back to `"python"`.
 
 ### Naming
@@ -214,8 +214,8 @@ Currently (pandas 2.2), `StringDtype(storage="pyarrow_numpy")` is used for the n
 where the `"pyarrow_numpy"` storage was used to disambiguate from the existing
 `"pyarrow"` option using `pd.NA`. However, `"pyarrow_numpy"` is a rather confusing
 option and doesn't generalize well. Therefore, this PDEP proposes a new naming
-scheme as outlined below, and `"pyarrow_numpy"` will be deprecated and removed
-before pandas 3.0.
+scheme as outlined below, and `"pyarrow_numpy"` will be deprecated as an alias
+in pandas 2.3 and removed in pandas 3.0.
 
 The `storage` keyword of `StringDtype` is kept to disambiguate the underlying
 storage of the string data (using pyarrow or python objects), but an additional
@@ -240,7 +240,7 @@ Notes:
 
 - (1) You get "pyarrow" or "python" depending on pyarrow being installed.
 - (2) "pyarrow_numpy" is kept temporarily because this is already in a released
-  version, but we can deprecate it in 2.x and have it removed for 3.0.
+  version, but it will be deprecated it in 2.x and removed for 3.0.
 
 For the new default string dtype, only the `"str"` alias can be used to
 specify the dtype as a string, i.e. pandas would not provide a way to make the
@@ -304,7 +304,8 @@ when explicitly opting into this.
 An initial version of this PDEP proposed to use the `"string"` alias and the
 default `pd.StringDtype()` class constructor for the new default dtype.
 However, that caused a lot of discussion around backwards compatibility for
-existing users of the `StringDtype` using `pd.NA`.
+existing users of `dtype=pd.StringDtype()` and `dtype="string"`, that uses
+`pd.NA` to represent missing values.
 
 During the discussion, several alternatives have been brought up. Both
 alternative keyword names as using a different constructor. In the end,
@@ -340,7 +341,7 @@ backwards compatible on this aspect. When storing strings in object dtype, panda
 however did allow using `None` as the missing value indicator as well (and in
 certain cases such as the `shift` method, pandas even introduced this itself).
 For all the cases where currently `None` was used as the missing value sentinel,
-this will change to use `NaN` consistently.
+this will change to consistently use `NaN`.
 
 ### For existing users of `StringDtype`
 
@@ -350,8 +351,8 @@ the behaviour of `dtype="string"` or `dtype=pd.StringDtype()` to mean the
 `pd.NA` variant of the dtype.
 
 It does propose the change the default storage to `"pyarrow"` (if available) for
-the opt-in `pd.NA` variant as well, but this should not have much user-visible
-impact.
+the opt-in `pd.NA` variant as well, but this should have limited, if any,
+user-visible impact.
 
 ## Timeline
 
