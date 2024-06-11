@@ -1704,6 +1704,11 @@ def map_array(
         values = arr._data
         if arr._hasna:
             na_value = arr.dtype.na_value
+    elif isinstance(arr.dtype, ExtensionDtype) and na_action is None:
+        arr = cast("ExtensionArray", arr)
+        values = np.asarray(arr)
+        if arr._hasna:
+            na_value = arr.dtype.na_value
     else:
         # we must convert to python types
         values = arr.astype(object, copy=False)
@@ -1714,6 +1719,7 @@ def map_array(
             mapper,
             mask=mask,
             na_value=na_value,
+            convert_to_nullable_dtype=True,
         )
     else:
         return lib.map_infer_mask(values, mapper, mask=mask)
