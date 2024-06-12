@@ -3141,6 +3141,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.concat import concat
 
+        # Change None values to NaN
+        self.fillna(value=np.nan, inplace=True)
+        other.fillna(value=np.nan, inplace=True)
+
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
                 return self.mask(self.isna(), other)
