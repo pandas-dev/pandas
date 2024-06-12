@@ -278,6 +278,7 @@ def qcut(
     retbins: bool = False,
     precision: int = 3,
     duplicates: str = "raise",
+    right: bool = True,
 ):
     """
     Quantile-based discretization function.
@@ -304,6 +305,8 @@ def qcut(
         The precision at which to store and display the bins labels.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
+    right : bool, default True
+        Indicates whether bins includes the rightmost edge or not.
 
     Returns
     -------
@@ -346,6 +349,21 @@ def qcut(
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
+    if isinstance(bins[0], (np.datetime64, Timestamp)):
+        time_delta = np.timedelta64(1, 's')
+        bins = np.array(bins, dtype='datetime64[s]')
+        if not right:
+            bins[-1] = bins[-1] + 4 * time_delta
+        else:
+            bins[1:] = bins[1:] + 4 * time_delta
+    else:
+        eps = np.finfo(bins.dtype).eps
+        bins = np.array(bins)
+        if not right:
+            bins[-1] = bins[-1] + 4 * eps
+        else:
+            bins[1:] = bins[1:] + 4 * eps
+
     fac, bins = _bins_to_cuts(
         x_idx,
         Index(bins),
@@ -353,6 +371,7 @@ def qcut(
         precision=precision,
         include_lowest=True,
         duplicates=duplicates,
+        right=right,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, original)
