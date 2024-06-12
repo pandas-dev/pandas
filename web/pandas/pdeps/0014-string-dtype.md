@@ -96,14 +96,15 @@ is intended to become the default in pandas 3.0).
 
 To be able to move forward with a string data type in pandas 3.0, this PDEP proposes:
 
-1. For pandas 3.0, a `"str"` string dtype is enabled by default, which will use PyArrow
-   if installed, and otherwise falls back to an in-house functionally-equivalent
-   (but slower) version.
+1. For pandas 3.0, a `"str"` string dtype is enabled by default, i.e. this
+   string dtype will be used as the default dtype for text data when creating
+   pandas objects (e.g. inference in constructors, I/O functions).
 2. This default string dtype will follow the same behaviour for missing values
    as other default data types, and use `NaN` as the missing value sentinel.
-3. The version that is not backed by PyArrow can reuse (with minor code
-   additions) the existing numpy object-dtype backed StringArray for its
-   implementation.
+3. The string dtype will use PyArrow if installed, and otherwise falls back to
+   an in-house functionally-equivalent (but slower) version. This fallback can
+   reuse (with minor code additions) the existing numpy object-dtype backed
+   StringArray for its implementation.
 4. Installation guidelines are updated to clearly encourage users to install
    pyarrow for the default user experience.
 
