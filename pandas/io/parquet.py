@@ -245,6 +245,7 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
@@ -280,7 +281,7 @@ class PyArrowImpl(BaseImpl):
                     "make_block is deprecated",
                     DeprecationWarning,
                 )
-                result = pa_table.to_pandas(**to_pandas_kwargs)
+                result = pa_table.to_pandas(**(to_pandas_kwargs or {}))
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -505,6 +506,7 @@ def read_parquet(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -539,6 +541,11 @@ def read_parquet(
     columns : list, default=None
         If not None, only these columns will be read from the file.
     {storage_options}
+
+     to_pandas_kwargs : dict, default None
+     Additional keyword arguments passed to :meth:`pyarrow.Table.to_pandas`
+       to control how the pyarrow Table is converted to a pandas DataFrame.
+   This is only used when `engine="pyarrow"`.
 
         .. versionadded:: 1.3.0
 
@@ -649,5 +656,6 @@ def read_parquet(
         storage_options=storage_options,
         dtype_backend=dtype_backend,
         filesystem=filesystem,
+        to_pandas_kwargs=to_pandas_kwargs,
         **kwargs,
     )
