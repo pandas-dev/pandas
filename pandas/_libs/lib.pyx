@@ -2864,6 +2864,7 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
+    bint convert_to_nullable_dtype=False,
     cnp.dtype dtype=np.dtype(object)
 ) -> "ArrayLike":
     """
@@ -2917,7 +2918,10 @@ def map_infer_mask(
         PyArray_ITER_NEXT(result_it)
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype
+        )
     else:
         return result
 
