@@ -1704,9 +1704,9 @@ def map_array(
             mapper,
             mask=mask,
             na_value=na_value,
-            convert_to_nullable_dtype=True,
+            convert_to_nullable_dtype=na_value is not None,
         )
     else:
         return lib.map_infer_mask(
-            values, mapper, mask=mask, convert_to_nullable_dtype=True
+            values, mapper, mask=mask, convert_to_nullable_dtype=na_value is not None
         )
