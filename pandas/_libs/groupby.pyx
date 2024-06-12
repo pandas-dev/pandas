@@ -406,9 +406,7 @@ def group_cumsum(
                 continue
 
             for j in range(K):
-
                 val = values[i, j]
-
                 if uses_mask:
                     isna_entry = mask[i, j]
                 else:
