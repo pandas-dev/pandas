@@ -53,7 +53,6 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -1424,10 +1423,8 @@ class ArrowExtensionArray(
         return result
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=na_action)
-        else:
-            return super().map(mapper, na_action)
+        result = super().map(mapper, na_action)
+        return ArrowExtensionArray._from_sequence(result, dtype=result.dtype.type)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
