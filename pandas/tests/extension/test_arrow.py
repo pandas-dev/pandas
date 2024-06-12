@@ -278,16 +278,12 @@ class TestArrowArray(base.ExtensionTests):
     def test_map(self, data_missing, na_action):
         if data_missing.dtype.kind in "mM":
             result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
-            tm.assert_numpy_array_equal(result, expected)
+            expected = data_missing
+            tm.assert_extension_array_equal(result, expected, check_dtype=False)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]":
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
-            tm.assert_numpy_array_equal(result, expected)
+            expected = data_missing
+            tm.assert_extension_array_equal(result, expected, check_dtype=False)
 
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
