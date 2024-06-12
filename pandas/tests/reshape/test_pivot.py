@@ -2058,6 +2058,60 @@ class TestPivotTable:
         ).rename_axis("A")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("kwargs", [{"a": 2}, {"a": 2, "b": 3}, {"b": 3, "a": 2}])
+    def test_pivot_table_kwargs(self, kwargs):
+        # GH#57884
+        def f(x, a, b=3):
+            return x.sum() * a + b
+
+        def g(x):
+            return f(x, **kwargs)
+
+        df = DataFrame(
+            {
+                "A": ["good", "bad", "good", "bad", "good"],
+                "B": ["one", "two", "one", "three", "two"],
+                "X": [2, 5, 4, 20, 10],
+            }
+        )
+        result = pivot_table(
+            df, index="A", columns="B", values="X", aggfunc=f, **kwargs
+        )
+        expected = pivot_table(df, index="A", columns="B", values="X", aggfunc=g)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs", [{}, {"b": 10}, {"a": 3}, {"a": 3, "b": 10}, {"b": 10, "a": 3}]
+    )
+    def test_pivot_table_kwargs_margin(self, data, kwargs):
+        # GH#57884
+        def f(x, a=5, b=7):
+            return (x.sum() + b) * a
+
+        def g(x):
+            return f(x, **kwargs)
+
+        result = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=f,
+            margins=True,
+            fill_value=0,
+            **kwargs,
+        )
+
+        expected = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=g,
+            margins=True,
+            fill_value=0,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "f, f_numpy",
         [

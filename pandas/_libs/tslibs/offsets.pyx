@@ -57,8 +57,10 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
-    c_OFFSET_DEPR_FREQSTR,
-    c_REVERSE_OFFSET_DEPR_FREQSTR,
+    c_OFFSET_RENAMED_FREQSTR,
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
+    c_PERIOD_TO_OFFSET_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -2579,7 +2581,7 @@ cdef class YearEnd(YearOffset):
 
     YearEnd goes to the next date which is the end of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -4711,6 +4713,34 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
+def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
+    if not is_period:
+        if alias.upper() in c_OFFSET_RENAMED_FREQSTR:
+            raise ValueError(
+                f"\'{alias}\' is no longer supported for offsets. Please "
+                f"use \'{c_OFFSET_RENAMED_FREQSTR.get(alias.upper())}\' "
+                f"instead."
+            )
+        if (alias.upper() != alias and
+                alias.lower() not in {"s", "ms", "us", "ns"} and
+                alias.upper().split("-")[0].endswith(("S", "E"))):
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+    if (is_period and
+            alias.upper() in c_OFFSET_TO_PERIOD_FREQSTR and
+            alias != "ms" and
+            alias.upper().split("-")[0].endswith(("S", "E"))):
+        if (alias.upper().startswith("B") or
+                alias.upper().startswith("S") or
+                alias.upper().startswith("C")):
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+        else:
+            alias_msg = "".join(alias.upper().split("E", 1))
+            raise ValueError(
+                f"for Period, please use \'{alias_msg}\' "
+                f"instead of \'{alias}\'"
+            )
+
+
 # TODO: better name?
 def _get_offset(name: str) -> BaseOffset:
     """
@@ -4850,54 +4880,26 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if not is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    warnings.warn(
-                        f"\'{name}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = c_OFFSET_DEPR_FREQSTR[name.upper()]
-                if (not is_period and
-                        name != name.upper() and
-                        name.lower() not in {"s", "ms", "us", "ns"} and
-                        name.upper().split("-")[0].endswith(("S", "E"))):
-                    warnings.warn(
-                        f"\'{name}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{name.upper()}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = name.upper()
-                if is_period and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    if name.upper().startswith("Y"):
-                        raise ValueError(
-                            f"for Period, please use \'Y{name.upper()[2:]}\' "
-                            f"instead of \'{name}\'"
-                        )
-                    if (name.upper().startswith("B") or
-                            name.upper().startswith("S") or
-                            name.upper().startswith("C")):
-                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    else:
-                        raise ValueError(
-                            f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name.upper())}\' "
-                            f"instead of \'{name}\'"
-                        )
-                elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name.upper() != name:
+                _validate_to_offset_alias(name, is_period)
+                if is_period:
+                    if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
+                        if name.upper() != name:
+                            raise ValueError(
+                                f"\'{name}\' is no longer supported, "
+                                f"please use \'{name.upper()}\' instead.",
+                            )
+                        name = c_PERIOD_TO_OFFSET_FREQSTR.get(name.upper())
+
+                    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
                         warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in "
-                            f"a future version, please use \'{name.upper()}\' "
-                            f"instead.",
+                            f"\'{name}\' is deprecated and will be removed "
+                            f"in a future version, please use "
+                            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f" instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
-                        )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
-
+                            )
+                        name = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name

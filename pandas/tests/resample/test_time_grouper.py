@@ -421,11 +421,13 @@ def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df)
     )
 
     volume = [50, 50, 60]
-    week_starting = [
-        Timestamp("2018-01-07"),
-        Timestamp("2018-01-18 01:00:00"),
-        Timestamp("2018-01-14"),
-    ]
+    week_starting = pd.DatetimeIndex(
+        [
+            Timestamp("2018-01-07"),
+            Timestamp("2018-01-18 01:00:00"),
+            Timestamp("2018-01-14"),
+        ]
+    ).as_unit("ns")
     expected_ind = pd.MultiIndex.from_arrays(
         [volume, week_starting],
         names=["volume", "week_starting"],
