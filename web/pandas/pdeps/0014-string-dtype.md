@@ -240,7 +240,7 @@ Notes:
 
 - (1) You get "pyarrow" or "python" depending on pyarrow being installed.
 - (2) "pyarrow_numpy" is kept temporarily because this is already in a released
-  version, but it will be deprecated it in 2.x and removed for 3.0.
+  version, but it will be deprecated in 2.x and removed for 3.0.
 
 For the new default string dtype, only the `"str"` alias can be used to
 specify the dtype as a string, i.e. pandas would not provide a way to make the
