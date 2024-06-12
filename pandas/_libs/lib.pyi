@@ -184,6 +184,7 @@ def map_infer_mask(
     convert: Literal[False],
     na_value: Any = ...,
     dtype: np.dtype = ...,
+    convert_to_nullable_dtype: bool = ...,
 ) -> np.ndarray: ...
 @overload
 def map_infer_mask(
@@ -194,6 +195,7 @@ def map_infer_mask(
     convert: bool = ...,
     na_value: Any = ...,
     dtype: np.dtype = ...,
+    convert_to_nullable_dtype: bool = ...,
 ) -> ArrayLike: ...
 def indices_fast(
     index: npt.NDArray[np.intp],

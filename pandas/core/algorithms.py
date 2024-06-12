@@ -1703,4 +1703,6 @@ def map_array(
             convert_to_nullable_dtype=True,
         )
     else:
-        return lib.map_infer_mask(values, mapper, mask=mask)
+        return lib.map_infer_mask(
+            values, mapper, mask=mask, convert_to_nullable_dtype=True
+        )
