@@ -399,7 +399,7 @@ def group_cumsum(
             lab = labels[i]
 
             if lab < 0:
-                # GH 58811
+                # GH#58811
                 if uses_mask:
                     result_mask[i, :] = True
                     out[i, :] = 0
