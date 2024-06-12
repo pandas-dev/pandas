@@ -261,10 +261,41 @@ def test_map_int():
     assert not isna(merged["c"])
 
 
-def test_map_int_with_pd_na():
-    s = Series([pd.NA, 11, 22, pd.NA], dtype="Int64")
-    result = s.map(lambda x: 5 if x is pd.NA else 2 * x)
-    expected = Series([5, 22, 44, 5])
+@pytest.mark.parametrize(
+    "ser",
+    [
+        Series([pd.NA, 11], dtype="Int64"),
+        Series([pd.NA, 11.0], dtype="Float64"),
+        Series([pd.NA, True], dtype="boolean"),
+    ],
+)
+def test_map_with_pd_na_input(ser):
+    func_return_values_only = (
+        lambda x: ser.dtype.type(1) if x is pd.NA else ser.dtype.type(2 * x)
+    )
+    result = ser.map(func_return_values_only)
+    expected = Series(
+        [func_return_values_only(ser[0]), func_return_values_only(ser[1])],
+        dtype=ser.dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        Series([pd.NA, 11], dtype="Int64"),
+        Series([pd.NA, 11.0], dtype="Float64"),
+        Series([pd.NA, True], dtype="boolean"),
+    ],
+)
+def test_map_with_pd_na_output(ser):
+    func_return_value_and_na = lambda x: x if x is pd.NA else ser.dtype.type(2 * x)
+    result = ser.map(func_return_value_and_na)
+    expected = Series(
+        [func_return_value_and_na(ser[0]), func_return_value_and_na(ser[1])],
+        dtype=ser.dtype,
+    )
     tm.assert_series_equal(result, expected)
 
 
