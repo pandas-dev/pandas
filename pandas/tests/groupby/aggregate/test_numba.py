@@ -48,12 +48,12 @@ def test_check_nopython_kwargs():
     expected = data.groupby("key").sum() * 2.7
 
     # py signature binding
-    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+    with pytest.raises(TypeError, match="missing a required (keyword-only argument|argument): 'a'"):
         data.groupby("key").agg(incorrect_function, engine="numba", b=1)
     with pytest.raises(TypeError, match="missing a required argument: 'a'"):
         data.groupby("key").agg(correct_function, engine="numba", b=1)
 
-    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+    with pytest.raises(TypeError, match="missing a required (keyword-only argument|argument): 'a'"):
         data.groupby("key")["data"].agg(incorrect_function, engine="numba", b=1)
     with pytest.raises(TypeError, match="missing a required argument: 'a'"):
         data.groupby("key")["data"].agg(correct_function, engine="numba", b=1)
