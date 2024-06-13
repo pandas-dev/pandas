@@ -107,7 +107,11 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df1.to_markdown(path)
         df2 = df1
 
-    tm.assert_frame_equal(df1, df2)
+    expected = df1[:]
+    if format in ["csv", "excel"]:
+        expected["dt"] = expected["dt"].dt.as_unit("s")
+
+    tm.assert_frame_equal(df2, expected)
 
 
 def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):

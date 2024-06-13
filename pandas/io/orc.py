@@ -85,6 +85,14 @@ def read_orc(
     DataFrame
         DataFrame based on the ORC file.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_sas : Load a SAS file into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
+
     Notes
     -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`

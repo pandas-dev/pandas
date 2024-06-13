@@ -1334,7 +1334,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
         3

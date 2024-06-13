@@ -176,6 +176,10 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "EOM": "M",
     "BME": "M",
     "SME": "M",
+    "BMS": "M",
+    "CBME": "M",
+    "CBMS": "M",
+    "SMS": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQE": "Q",
@@ -228,7 +232,6 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YE-NOV": "Y-NOV",
     "W": "W",
     "ME": "M",
-    "Y": "Y",
     "BYE": "Y",
     "BYE-DEC": "Y-DEC",
     "BYE-JAN": "Y-JAN",
@@ -245,7 +248,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
-cdef dict c_OFFSET_DEPR_FREQSTR = {
+cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",
     "Q-DEC": "QE-DEC",
@@ -303,10 +306,37 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BQ-OCT": "BQE-OCT",
     "BQ-NOV": "BQE-NOV",
 }
-cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
-    v: k for k, v in c_OFFSET_DEPR_FREQSTR.items()
+PERIOD_TO_OFFSET_FREQSTR = {
+    "M": "ME",
+    "Q": "QE",
+    "Q-DEC": "QE-DEC",
+    "Q-JAN": "QE-JAN",
+    "Q-FEB": "QE-FEB",
+    "Q-MAR": "QE-MAR",
+    "Q-APR": "QE-APR",
+    "Q-MAY": "QE-MAY",
+    "Q-JUN": "QE-JUN",
+    "Q-JUL": "QE-JUL",
+    "Q-AUG": "QE-AUG",
+    "Q-SEP": "QE-SEP",
+    "Q-OCT": "QE-OCT",
+    "Q-NOV": "QE-NOV",
+    "Y": "YE",
+    "Y-DEC": "YE-DEC",
+    "Y-JAN": "YE-JAN",
+    "Y-FEB": "YE-FEB",
+    "Y-MAR": "YE-MAR",
+    "Y-APR": "YE-APR",
+    "Y-MAY": "YE-MAY",
+    "Y-JUN": "YE-JUN",
+    "Y-JUL": "YE-JUL",
+    "Y-AUG": "YE-AUG",
+    "Y-SEP": "YE-SEP",
+    "Y-OCT": "YE-OCT",
+    "Y-NOV": "YE-NOV",
 }
+cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
@@ -314,6 +344,11 @@ cdef dict c_DEPR_ABBREVS = {
     "BH": "bh",
     "CBH": "cbh",
     "S": "s",
+}
+
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
+    "w": "W",
+    "MIN": "min",
 }
 
 

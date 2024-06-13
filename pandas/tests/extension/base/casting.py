@@ -30,8 +30,9 @@ class BaseCastingTests:
             blk = result._mgr.blocks[0]
             assert isinstance(blk, NumpyBlock), type(blk)
             assert blk.is_object
-        assert isinstance(result._mgr.arrays[0], np.ndarray)
-        assert result._mgr.arrays[0].dtype == np.dtype(object)
+        arr = result._mgr.blocks[0].values
+        assert isinstance(arr, np.ndarray)
+        assert arr.dtype == np.dtype(object)
 
         # check that we can compare the dtypes
         comp = result.dtypes == df.dtypes
