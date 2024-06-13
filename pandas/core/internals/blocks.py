@@ -467,14 +467,7 @@ class Block(PandasObject, libinternals.Block):
             warn_on_upcast = False
 
         if warn_on_upcast:
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                "and will raise an error in a future version of pandas. "
-                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
-                "please explicitly cast to a compatible dtype first.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
         if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "
