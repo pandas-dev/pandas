@@ -47,6 +47,8 @@ Other enhancements
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+- numba apply now supports positional arguments passed as kwargs (:issue:`58995`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
