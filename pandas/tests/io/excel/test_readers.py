@@ -163,15 +163,18 @@ def xfail_datetimes_with_pyxlsb(engine, request):
         )
 
 
-def test_read_excel_type_check():
-    # GH 58159
-    df = DataFrame({"bool_column": [True]}, dtype=pd.BooleanDtype.name)
-    df.to_excel("test-file.xlsx", index=False)
-    df2 = pd.read_excel("test-file.xlsx", dtype={"bool_column": pd.BooleanDtype.name})
-    assert all(isinstance(val, bool) for val in df2["bool_column"])
-
-
 class TestReaders:
+    def test_read_excel_type_check(self):
+        # GH 58159
+        df = DataFrame({"bool_column": [True]}, dtype=pd.BooleanDtype.name)
+        df.to_excel("test-type.xlsx", index=False)
+        df2 = pd.read_excel(
+            "test-type.xlsx",
+            dtype={"bool_column": pd.BooleanDtype.name},
+            engine="openpyxl",
+        )
+        assert all(isinstance(val, bool) for val in df2["bool_column"])
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
