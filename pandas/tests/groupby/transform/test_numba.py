@@ -57,11 +57,15 @@ def test_check_nopython_kwargs():
     # numba signature check after binding
     with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key").transform(incorrect_function, engine="numba", a=1)
-    data.groupby("key").transform(correct_function, engine="numba", a=1)
+    actual = data.groupby("key").transform(correct_function, engine="numba", a=1)
+    tm.assert_frame_equal(data[["data"]] + 1, actual)
 
     with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", a=1)
-    data.groupby("key")["data"].transform(correct_function, engine="numba", a=1)
+    actual = data.groupby("key")["data"].transform(
+        correct_function, engine="numba", a=1
+    )
+    tm.assert_series_equal(data["data"] + 1, actual)
 
 
 @pytest.mark.filterwarnings("ignore")
