@@ -73,15 +73,12 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("W", "w"),
-            ("D", "d"),
-        ],
-    )
+    @pytest.mark.parametrize("freq,freq_depr", [("2W", "2w"), ("2D", "2d")])
     def test_period_index_depr_lowercase_frequency(self, freq, freq_depr):
-        msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
+        # GH#58998
+        msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)

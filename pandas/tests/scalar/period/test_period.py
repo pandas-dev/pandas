@@ -117,7 +117,9 @@ class TestPeriodConstruction:
         i2 = Period("3/1/2005", freq="D")
         assert i1 == i2
 
-        i3 = Period(year=2005, month=3, day=1, freq="d")
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
         i1 = Period("2007-01-01 09:00:00.001")
