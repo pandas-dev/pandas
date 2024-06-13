@@ -221,16 +221,8 @@ jobs:
         with:
           fetch-depth: 0
 
-        # Note: Pyodide 0.26.0 is supported with Python 3.12. For more information, see
-        # https://github.com/pyodide/pyodide/blob/main/Makefile.envs
-      - name: Set up Python for Pyodide
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Build WASM wheel for pandas
-        uses: pypa/cibuildwheel@v2.19.0
+        uses: pypa/cibuildwheel@v2.19.1
         with:
           output-dir: ./wheelhouse
         env:
