@@ -44,12 +44,16 @@ def test_check_nopython_kwargs():
         columns=["key", "data"],
     )
     # py signature binding
-    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+    with pytest.raises(
+        TypeError, match="missing a required (keyword-only argument|argument): 'a'"
+    ):
         data.groupby("key").transform(incorrect_function, engine="numba", b=1)
     with pytest.raises(TypeError, match="missing a required argument: 'a'"):
         data.groupby("key").transform(correct_function, engine="numba", b=1)
 
-    with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+    with pytest.raises(
+        TypeError, match="missing a required (keyword-only argument|argument): 'a'"
+    ):
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", b=1)
     with pytest.raises(TypeError, match="missing a required argument: 'a'"):
         data.groupby("key")["data"].transform(correct_function, engine="numba", b=1)
