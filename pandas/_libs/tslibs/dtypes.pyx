@@ -348,7 +348,15 @@ cdef dict c_DEPR_ABBREVS = {
 
 cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w": "W",
+    "w-mon": "W-MON",
+    "w-tue": "W-TUE",
+    "w-wed": "W-WED",
+    "w-thu": "W-THU",
+    "w-fri": "W-FRI",
+    "w-sat": "W-SAT",
+    "w-sun": "W-SUN",
     "d": "D",
+    "b": "B",
     "MIN": "min",
 }
 

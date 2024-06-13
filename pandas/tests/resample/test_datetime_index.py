@@ -336,7 +336,9 @@ def test_resample_basic_from_daily(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
-    result = s.resample("w-sun").last()
+    msg = "'w-sun' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample("w-sun").last()
 
     assert len(result) == 3
     assert (result.index.dayofweek == [6, 6, 6]).all()
@@ -2038,7 +2040,11 @@ def test_resample_BM_BQ_raises(freq):
 
 @pytest.mark.parametrize(
     "freq,freq_depr,data",
-    [("1W-SUN", "1w", ["2013-01-06"]), ("1D", "1d", ["2013-01-01"])],
+    [
+        ("1W-SUN", "1w-sun", ["2013-01-06"]),
+        ("1D", "1d", ["2013-01-01"]),
+        ("1B", "1b", ["2013-01-01"]),
+    ],
 )
 def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."

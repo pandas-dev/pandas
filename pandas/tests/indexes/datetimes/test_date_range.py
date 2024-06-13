@@ -792,6 +792,8 @@ class TestDateRanges:
         "freq,freq_depr",
         [
             ("2W", "2w"),
+            ("2W-WED", "2w-wed"),
+            ("2B", "2b"),
             ("2D", "2d"),
         ],
     )
