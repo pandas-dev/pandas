@@ -348,6 +348,7 @@ cdef dict c_DEPR_ABBREVS = {
 
 cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w": "W",
+    "d": "D",
     "MIN": "min",
 }
 
