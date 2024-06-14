@@ -42,6 +42,7 @@ Bug fixes
 - :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
 - :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
 - :meth:`DataFrame.to_sql` was failing to find the right table when using the schema argument (:issue:`57539`)
+- :meth:`HDFStore.get` was failing to save data of dtype datetime64[s] correctly (:issue:`59004`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.other:
