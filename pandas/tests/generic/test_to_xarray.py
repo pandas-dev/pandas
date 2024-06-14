@@ -37,7 +37,7 @@ class TestDataFrameToXArray:
             pytest.skip("Test doesn't make sense for empty index")
         import xarray
 
-        if Version(xarray.__version__) >= Version("2024.5"):
+        if Version(xarray.__version__) == Version("2024.5"):
             request.applymarker(
                 pytest.mark.xfail(reason="https://github.com/pydata/xarray/issues/9026")
             )
