@@ -319,12 +319,12 @@ def test_read_infer_string(tmp_path, setup_path):
     tm.assert_frame_equal(result, expected)
 
 
-def test_hdfstore_read_datetime64_unit_s():
+def test_hdfstore_read_datetime64_unit_s(tmp_path, setup_path):
     # Fix issue 59004: HDFStore doesn't save datetime64[s] right
     df_s = DataFrame(["2001-01-01", "2002-02-02"], dtype="datetime64[s]")
-    with HDFStore("deleteme.h5", mode="w") as store:
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
         store.put("df_s", df_s)
-    with HDFStore("deleteme.h5", mode="r") as store:
+    with HDFStore(path, mode="r") as store:
         df_fromstore = store.get("df_s")
     tm.assert_frame_equal(df_s, df_fromstore)
-    Path("deleteme.h5").unlink()  # Delete created file
