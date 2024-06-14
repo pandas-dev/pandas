@@ -9271,7 +9271,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # reorder axis to keep things organized
         indices = (
-            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+            np.arange(diff.shape[axis])
+            .reshape([2, diff.shape[axis] // 2])
+            .T.reshape(-1)
         )
         diff = diff.take(indices, axis=axis)
 
@@ -12571,7 +12573,7 @@ def make_doc(name: str, ndim: int) -> str:
     elif name == "median":
         base_doc = _num_doc
         desc = "Return the median of the values over the requested axis."
-        see_also = ""
+        see_also = _stat_func_see_also
         examples = """
 
             Examples
@@ -12612,7 +12614,7 @@ def make_doc(name: str, ndim: int) -> str:
     elif name == "mean":
         base_doc = _num_doc
         desc = "Return the mean of the values over the requested axis."
-        see_also = ""
+        see_also = _stat_func_see_also
         examples = """
 
             Examples
@@ -12760,6 +12762,7 @@ def make_doc(name: str, ndim: int) -> str:
             a   0.0
             dtype: float64"""
         kwargs = {"min_count": ""}
+
     elif name == "kurt":
         base_doc = _num_doc
         desc = (

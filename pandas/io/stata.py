@@ -3037,6 +3037,8 @@ class StataStrLWriter:
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
+        # Flag whether chosen byteorder matches the system on which we're running
+        self._native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
 
         gso_v_type = "I"  # uint32
         gso_o_type = "Q"  # uint64
@@ -3049,13 +3051,20 @@ class StataStrLWriter:
             o_size = 6
         else:  # version == 119
             o_size = 5
-        self._o_offet = 2 ** (8 * (8 - o_size))
+        if self._native_byteorder:
+            self._o_offet = 2 ** (8 * (8 - o_size))
+        else:
+            self._o_offet = 2 ** (8 * o_size)
         self._gso_o_type = gso_o_type
         self._gso_v_type = gso_v_type
 
     def _convert_key(self, key: tuple[int, int]) -> int:
         v, o = key
-        return v + self._o_offet * o
+        if self._native_byteorder:
+            return v + self._o_offet * o
+        else:
+            # v, o will be swapped when applying byteorder
+            return o + self._o_offet * v
 
     def generate_table(self) -> tuple[dict[str, tuple[int, int]], DataFrame]:
         """
@@ -3532,7 +3541,9 @@ class StataWriter117(StataWriter):
         ]
 
         if convert_cols:
-            ssw = StataStrLWriter(data, convert_cols, version=self._dta_version)
+            ssw = StataStrLWriter(
+                data, convert_cols, version=self._dta_version, byteorder=self._byteorder
+            )
             tab, new_data = ssw.generate_table()
             data = new_data
             self._strl_blob = ssw.generate_blob(tab)
