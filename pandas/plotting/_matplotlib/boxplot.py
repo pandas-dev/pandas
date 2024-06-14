@@ -311,8 +311,6 @@ def _grouped_plot_by_column(
         layout=layout,
     )
 
-    _axes = flatten_axes(axes)
-
     # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
     if kwargs.get("vert", True):
@@ -322,8 +320,7 @@ def _grouped_plot_by_column(
 
     ax_values = []
 
-    for i, col in enumerate(columns):
-        ax = _axes[i]
+    for ax, col in zip(flatten_axes(axes), columns):
         gp_col = grouped[col]
         keys, values = zip(*gp_col)
         re_plotf = plotf(keys, values, ax, xlabel=xlabel, ylabel=ylabel, **kwargs)
@@ -531,10 +528,8 @@ def boxplot_frame_groupby(
             figsize=figsize,
             layout=layout,
         )
-        axes = flatten_axes(axes)
-
         data = {}
-        for (key, group), ax in zip(grouped, axes):
+        for (key, group), ax in zip(grouped, flatten_axes(axes)):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
