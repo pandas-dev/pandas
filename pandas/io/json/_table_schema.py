@@ -114,7 +114,7 @@ def set_default_names(data):
             )
         return data
 
-    data = data.copy()
+    data = data.copy(deep=False)
     if data.index.nlevels > 1:
         data.index.names = com.fill_missing_names(data.index.names)
     else:

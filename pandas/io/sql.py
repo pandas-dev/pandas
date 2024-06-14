@@ -1014,7 +1014,7 @@ class SQLTable(PandasObject):
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
         if self.index is not None:
-            temp = self.frame.copy()
+            temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
                 temp.reset_index(inplace=True)
