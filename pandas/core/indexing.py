@@ -2440,7 +2440,7 @@ class _iLocIndexer(_LocationIndexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
                     if isinstance(ix, np.ndarray):
-                        ix = ix.ravel()
+                        ix = ix.reshape(-1)
                     if idx is None:
                         idx = ax[ix]
                     elif cols is None:
