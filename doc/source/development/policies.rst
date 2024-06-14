@@ -51,7 +51,7 @@ pandas may change the behavior of experimental features at any time.
 Python support
 ~~~~~~~~~~~~~~
 
-pandas mirrors the `NumPy guidelines for Python support <https://scientific-python.org/specs/spec-0000/#description>`__.
+pandas mirrors the `SPEC 0 guideline for Python support <https://scientific-python.org/specs/spec-0000>`__.
 
 Security policy
 ~~~~~~~~~~~~~~~
