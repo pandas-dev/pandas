@@ -314,8 +314,19 @@ class TestStata:
         tm.assert_frame_equal(parsed, expected)
 
     # File containing strls
-    def test_read_dta12(self, datapath):
-        parsed_117 = self.read_dta(datapath("io", "data", "stata", "stata12_117.dta"))
+    @pytest.mark.parametrize(
+        "file",
+        [
+            "stata12_117",
+            "stata12_be_117",
+            "stata12_118",
+            "stata12_be_118",
+            "stata12_119",
+            "stata12_be_119",
+        ],
+    )
+    def test_read_dta_strl(self, file, datapath):
+        parsed = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
         expected = DataFrame.from_records(
             [
                 [1, "abc", "abcdefghi"],
@@ -325,10 +336,20 @@ class TestStata:
             columns=["x", "y", "z"],
         )
 
-        tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
+        tm.assert_frame_equal(parsed, expected, check_dtype=False)
 
-    def test_read_dta18(self, datapath):
-        parsed_118 = self.read_dta(datapath("io", "data", "stata", "stata14_118.dta"))
+    # 117 is not included in this list as it uses ASCII strings
+    @pytest.mark.parametrize(
+        "file",
+        [
+            "stata14_118",
+            "stata14_be_118",
+            "stata14_119",
+            "stata14_be_119",
+        ],
+    )
+    def test_read_dta118_119(self, file, datapath):
+        parsed_118 = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
         parsed_118["Bytes"] = parsed_118["Bytes"].astype("O")
         expected = DataFrame.from_records(
             [
@@ -352,7 +373,7 @@ class TestStata:
         for col in parsed_118.columns:
             tm.assert_almost_equal(parsed_118[col], expected[col])
 
-        with StataReader(datapath("io", "data", "stata", "stata14_118.dta")) as rdr:
+        with StataReader(datapath("io", "data", "stata", f"{file}.dta")) as rdr:
             vl = rdr.variable_labels()
             vl_expected = {
                 "Unicode_Cities_Strl": "Here are some strls with Ünicode chars",
@@ -1657,7 +1678,8 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
-    def test_writer_117(self, temp_file):
+    @pytest.mark.parametrize("byteorder", ["little", "big"])
+    def test_writer_117(self, byteorder, temp_file):
         original = DataFrame(
             data=[
                 [
@@ -1715,6 +1737,7 @@ The repeated labels are:\n-+\nwolof
         original.to_stata(
             path,
             convert_dates={"datetime": "tc"},
+            byteorder=byteorder,
             convert_strl=["forced_strl"],
             version=117,
         )
@@ -1799,8 +1822,18 @@ The repeated labels are:\n-+\nwolof
             reread = read_stata(gz, index_col="index")
         tm.assert_frame_equal(df, reread)
 
-    def test_unicode_dta_118(self, datapath):
-        unicode_df = self.read_dta(datapath("io", "data", "stata", "stata16_118.dta"))
+    # 117 is not included in this list as it uses ASCII strings
+    @pytest.mark.parametrize(
+        "file",
+        [
+            "stata16_118",
+            "stata16_be_118",
+            "stata16_119",
+            "stata16_be_119",
+        ],
+    )
+    def test_unicode_dta_118_119(self, file, datapath):
+        unicode_df = self.read_dta(datapath("io", "data", "stata", f"{file}.dta"))
 
         columns = ["utf8", "latin1", "ascii", "utf8_strl", "ascii_strl"]
         values = [
@@ -1909,7 +1942,8 @@ the string values returned are correct."""
                 assert reader._nvar == 32999
 
     @pytest.mark.parametrize("version", [118, 119, None])
-    def test_utf8_writer(self, version, temp_file):
+    @pytest.mark.parametrize("byteorder", ["little", "big"])
+    def test_utf8_writer(self, version, byteorder, temp_file):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
         data = DataFrame(
             [
@@ -1937,6 +1971,7 @@ the string values returned are correct."""
             convert_strl=["strls"],
             variable_labels=variable_labels,
             write_index=False,
+            byteorder=byteorder,
             version=version,
             value_labels=value_labels,
         )

@@ -319,7 +319,9 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
-    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
+    with pytest.raises(
+        NumbaUtilError, match="numba does not support keyword-only arguments"
+    ):
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )
