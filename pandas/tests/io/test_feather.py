@@ -96,7 +96,7 @@ class TestFeather:
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
-        assert df.dttz.dtype.tz.zone == "US/Eastern"
+        assert df.dttz.dtype.tz.key == "US/Eastern"
 
         expected = df.copy()
         expected.loc[1, "bool_with_null"] = None

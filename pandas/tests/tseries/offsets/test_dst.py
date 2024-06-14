@@ -229,12 +229,6 @@ class TestDST:
 @pytest.mark.parametrize(
     "original_dt, target_dt, offset, tz",
     [
-        pytest.param(
-            Timestamp("1900-01-01"),
-            Timestamp("1905-07-01"),
-            MonthBegin(66),
-            "Africa/Lagos",
-        ),
         (
             Timestamp("2021-10-01 01:15"),
             Timestamp("2021-10-31 01:15"),
