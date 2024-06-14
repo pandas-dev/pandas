@@ -2044,6 +2044,7 @@ def test_resample_BM_BQ_raises(freq):
         ("1W-SUN", "1w-sun", ["2013-01-06"]),
         ("1D", "1d", ["2013-01-01"]),
         ("1B", "1b", ["2013-01-01"]),
+        ("1C", "1c", ["2013-01-01"]),
     ],
 )
 def test_resample_depr_lowercase_frequency(freq, freq_depr, data):

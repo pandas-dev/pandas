@@ -795,6 +795,7 @@ class TestDateRanges:
             ("2W-WED", "2w-wed"),
             ("2B", "2b"),
             ("2D", "2d"),
+            ("2C", "2c"),
         ],
     )
     def test_date_range_depr_lowercase_frequency(self, freq, freq_depr):

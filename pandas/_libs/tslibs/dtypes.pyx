@@ -357,6 +357,7 @@ cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w-sun": "W-SUN",
     "d": "D",
     "b": "B",
+    "c": "C",
     "MIN": "min",
 }
 
