@@ -2237,12 +2237,6 @@ class ArrowExtensionArray(
         ids: npt.NDArray[np.intp],
         **kwargs,
     ):
-        if how in ["sum", "prod", "mean", "median", "var", "sem", "std", "nim", "max"]:
-            if "skipna" in kwargs and not kwargs["skipna"]:
-                raise NotImplementedError(
-                    f"method '{how}' with skipna=False not implemented for Arrow dtypes"
-                )
-
         if isinstance(self.dtype, StringDtype):
             return super()._groupby_op(
                 how=how,
@@ -2308,16 +2302,15 @@ class ArrowExtensionArray(
     def _str_startswith(self, pat: str | tuple[str, ...], na=None) -> Self:
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple, pd.StringDtype() returns null for missing values
+            # and false for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
+            result = pc.starts_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
@@ -2325,16 +2318,15 @@ class ArrowExtensionArray(
     def _str_endswith(self, pat: str | tuple[str, ...], na=None) -> Self:
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple, pd.StringDtype() returns null for missing values
+            # and false for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)

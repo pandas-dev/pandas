@@ -62,7 +62,12 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
+cdef float64_t median_linear_mask(
+    float64_t* a,
+    int n,
+    uint8_t* mask,
+    bint skipna=True
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -74,6 +79,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
     # count NAs
     for i in range(n):
         if mask[i]:
+            if not skipna:
+                return NaN
             na_count += 1
 
     if na_count:
@@ -235,7 +242,7 @@ def group_median_float64(
 
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    result = median_linear_mask(ptr, size, ptr_mask)
+                    result = median_linear_mask(ptr, size, ptr_mask, skipna)
                     out[j, i] = result
 
                     if result != result:
@@ -739,6 +746,8 @@ def group_sum(
                     continue
 
                 if uses_mask:
+                    if result_mask[lab, j]:
+                        continue
                     isna_entry = mask[i, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
@@ -747,7 +756,10 @@ def group_sum(
                     if skipna:
                         continue
                     else:
-                        sumx[lab, j] = val
+                        if uses_mask:
+                            result_mask[lab, j] = True
+                        else:
+                            sumx[lab, j] = val
                         compensation[lab, j] = 0
                         continue
 
@@ -824,6 +836,8 @@ def group_prod(
                 val = values[i, j]
 
                 if uses_mask:
+                    if result_mask[lab, j]:
+                        continue
                     isna_entry = mask[i, j]
                 else:
                     isna_entry = _treat_as_na(val, False)
@@ -832,7 +846,10 @@ def group_prod(
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
                 elif not skipna:
-                    prodx[lab, j] = val
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        prodx[lab, j] = val
                     nobs[lab, j] = 0
                     continue
 
@@ -891,6 +908,8 @@ def group_var(
                 val = values[i, j]
 
                 if uses_mask:
+                    if result_mask[lab, j]:
+                        continue
                     isna_entry = mask[i, j]
                 elif is_datetimelike:
                     # With group_var, we cannot just use _treat_as_na bc
@@ -901,7 +920,10 @@ def group_var(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna and isna_entry:
-                    out[lab, j] = val
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        out[lab, j] = val
                     nobs[lab, j] = 0
                     continue
 
@@ -1100,6 +1122,8 @@ def group_mean(
                 val = values[i, j]
 
                 if uses_mask:
+                    if result_mask[lab, j]:
+                        continue
                     isna_entry = mask[i, j]
                 elif is_datetimelike:
                     # With group_mean, we cannot just use _treat_as_na bc
@@ -1110,7 +1134,10 @@ def group_mean(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna and isna_entry:
-                    sumx[lab, j] = val
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        sumx[lab, j] = val
                     nobs[lab, j] = 0
                     continue
 
@@ -1762,12 +1789,17 @@ cdef group_min_max(
                 val = values[i, j]
 
                 if uses_mask:
+                    if result_mask[lab, j]:
+                        continue
                     isna_entry = mask[i, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna and isna_entry:
-                    group_min_or_max[lab, j] = val
+                    if uses_mask:
+                        result_mask[lab, j] = True
+                    else:
+                        group_min_or_max[lab, j] = val
                     nobs[lab, j] = 0
                     continue
 

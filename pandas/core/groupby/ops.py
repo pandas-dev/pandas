@@ -392,13 +392,6 @@ class WrappedCythonOp:
                         values[mask] = True
             values = values.astype(bool, copy=False).view(np.int8)
             is_numeric = True
-        elif (
-            self.how in ["median", "sem", "std", "var"]
-            and "skipna" in kwargs
-            and not kwargs["skipna"]
-        ):
-            # if skipna=False we don't want to use masks created for Nullable dtypes
-            mask = None
 
         values = values.T
         if mask is not None:
