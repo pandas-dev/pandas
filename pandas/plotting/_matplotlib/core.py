@@ -586,7 +586,7 @@ class MPLPlot(ABC):
                 fig.set_size_inches(self.figsize)
             axes = self.ax
 
-        axes = flatten_axes(axes)
+        axes = np.fromiter(flatten_axes(axes), dtype=object)
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
