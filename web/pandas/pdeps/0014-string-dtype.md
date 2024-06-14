@@ -49,9 +49,9 @@ This could be specified with the `storage` keyword in the opt-in string dtype
 Since its introduction, the `StringDtype` has always been opt-in, and has used
 the experimental `pd.NA` sentinel for missing values (which was also [introduced
 in pandas 1.0](https://pandas.pydata.org/docs/whatsnew/v1.0.0.html#experimental-na-scalar-to-denote-missing-values)).
-However, up to this date, pandas has not yet taken the step to use `pd.NA` by
-default for any dtype, and thus the `StringDtype` deviates in missing value behaviour compared
-to the default data types.
+However, up to this date, pandas has not yet taken the step to use `pd.NA` for
+for any default dtype, and thus the `StringDtype` deviates in missing value
+behaviour compared to the default data types.
 
 In 2023, [PDEP-10](https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html)
 proposed to start using a PyArrow-backed string dtype by default in pandas 3.0
@@ -370,6 +370,6 @@ The 2.3.0 release would then have all future string functionality available
 
 For pandas 3.0, this `future.infer_string` flag becomes enabled by default.
 
-## PDEP-XX History
+## PDEP-14 History
 
 - 3 May 2024: Initial version
