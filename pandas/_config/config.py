@@ -279,6 +279,12 @@ def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
     str
         If the description(s) as a string if ``_print_desc=False``.
 
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
+
     Notes
     -----
     For all available options, please view the
