@@ -1,5 +1,7 @@
 """test feather-format compat"""
 
+import zoneinfo
+
 import numpy as np
 import pytest
 
@@ -62,6 +64,7 @@ class TestFeather:
             self.check_error_on_write(obj, ValueError, msg)
 
     def test_basic(self):
+        tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
             {
                 "string": list("abc"),
@@ -76,7 +79,7 @@ class TestFeather:
                     list(pd.date_range("20130101", periods=3)), freq=None
                 ),
                 "dttz": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    list(pd.date_range("20130101", periods=3, tz=tz)),
                     freq=None,
                 ),
                 "dt_with_null": [

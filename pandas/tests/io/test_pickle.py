@@ -111,6 +111,7 @@ def test_flatten_buffer(data):
 
 
 def test_pickles(datapath):
+    pytest.importorskip("pytz")
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
