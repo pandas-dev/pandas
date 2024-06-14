@@ -145,7 +145,7 @@ used the experimental `pd.NA` sentinel for missing values. In addition to using
   comparisons or predicates.
 - Operations on the string column that give a numeric or boolean result use the
   nullable Integer/Float/Boolean data types (e.g. `ser.str.len()` returns the
-  nullable `'Int64"` / `pd.Int64Dtype()` dtype instead of the numpy `int64`
+  nullable `"Int64"` / `pd.Int64Dtype()` dtype instead of the numpy `int64`
   dtype (or `float64` in case of missing values)).
 
 However, up to this date, all other default data types still use `NaN` semantics
