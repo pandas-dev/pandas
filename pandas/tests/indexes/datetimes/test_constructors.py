@@ -984,7 +984,6 @@ class TestDatetimeIndex:
         # GH#47471 check that we get the same raising behavior in the DTI
         # constructor and Timestamp constructor
         if isinstance(tz, str) and tz.startswith("pytz/"):
-            pytz = pytest.importorskip(tz)
             tz = pytz.timezone(tz.removeprefix("pytz/"))
         dtstr = "2013-11-03 01:59:59.999999"
         item = dtstr

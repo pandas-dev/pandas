@@ -21,7 +21,7 @@ def test_is_utc(utc_fixture):
     assert timezones.is_utc(tz)
 
 
-def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
+def test_cache_keys_are_distinct_for_pytz_vs_dateutil():
     pytz = pytest.importorskip("pytz")
     for tz_name in pytz.common_timezones:
         tz_p = timezones.maybe_get_tz(tz_name)

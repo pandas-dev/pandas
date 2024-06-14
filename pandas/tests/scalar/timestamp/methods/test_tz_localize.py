@@ -54,7 +54,6 @@ class TestTimestampTZLocalize:
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
         if isinstance(tz, str) and tz.startswith("pytz/"):
-            pytz = pytest.importorskip("pytz")
             tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts = Timestamp("2015-11-01 01:00:03").as_unit(unit)
         expected0 = Timestamp("2015-11-01 01:00:03-0500", tz=tz)
