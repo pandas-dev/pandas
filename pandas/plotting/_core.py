@@ -982,10 +982,7 @@ class PlotAccessor(PandasObject):
                 f"Valid plot kinds: {self._all_kinds}"
             )
 
-        # The original data structured can be transformed before passed to the
-        # backend. For example, for DataFrame is common to set the index as the
-        # `x` parameter, and return a Series with the parameter `y` as values.
-        data = self._parent.copy()
+        data = self._parent
 
         if isinstance(data, ABCSeries):
             kwargs["reuse_plot"] = True
@@ -1005,7 +1002,7 @@ class PlotAccessor(PandasObject):
                     if is_integer(y) and not holds_integer(data.columns):
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
-                    data = data[y].copy()
+                    data = data[y].copy(deep=False)
                     data.index.name = y
         elif isinstance(data, ABCDataFrame):
             data_cols = data.columns
@@ -1032,8 +1029,7 @@ class PlotAccessor(PandasObject):
                         except (IndexError, KeyError, TypeError):
                             pass
 
-                # don't overwrite
-                data = data[y].copy()
+                data = data[y]
 
                 if isinstance(data, ABCSeries):
                     label_name = label_kw or y
