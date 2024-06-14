@@ -3036,10 +3036,8 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                if dtype == "datetime64[s]":
-                    ret = _set_tz(ret, tz, unit="s")
-                else:
-                    ret = _set_tz(ret, tz)  # default unit is ns
+                # set time zone with parsed datetime64 unit
+                ret = _set_tz(ret, tz, unit=dtype.split("[")[1].strip("]"))
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
