@@ -19,12 +19,12 @@ import pandas._testing as tm
             "float64": [1.1, np.nan, 3.3],
             "category": Categorical(["X", "Y", "Z"]),
             "object": ["a", "b", "c"],
-            "datetime64[ns]": [
+            "datetime64[s]": [
                 pd.Timestamp("2011-01-01"),
                 pd.Timestamp("2011-01-02"),
                 pd.Timestamp("2011-01-03"),
             ],
-            "datetime64[ns, US/Eastern]": [
+            "datetime64[s, US/Eastern]": [
                 pd.Timestamp("2011-01-01", tz="US/Eastern"),
                 pd.Timestamp("2011-01-02", tz="US/Eastern"),
                 pd.Timestamp("2011-01-03", tz="US/Eastern"),

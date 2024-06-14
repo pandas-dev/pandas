@@ -23,6 +23,8 @@ class IntegerDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = 1
     _default_np_dtype = np.dtype(np.int64)
     _checker = is_integer_dtype
 
@@ -128,14 +130,6 @@ class IntegerArray(NumericArray):
 
     _dtype_cls = IntegerDtype
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = 1
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "int", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = 1  # type: ignore[assignment]
-    _falsey_value = 0  # type: ignore[assignment]
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
@@ -149,6 +143,13 @@ None
 Methods
 -------
 None
+
+See Also
+--------
+Int8Dtype : 8-bit nullable integer type.
+Int16Dtype : 16-bit nullable integer type.
+Int32Dtype : 32-bit nullable integer type.
+Int64Dtype : 64-bit nullable integer type.
 
 Examples
 --------

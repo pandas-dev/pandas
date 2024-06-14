@@ -525,6 +525,8 @@ class ArrowExtensionArray(
         if pa_type is not None and pa_array.type != pa_type:
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
+                if pa_array.type != pa_type:
+                    pa_array = pa_array.cast(pa_type)
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)
@@ -1050,8 +1052,7 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
-            return self.copy()
+            return self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -1082,7 +1083,6 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
         if limit is not None:
@@ -1423,7 +1423,7 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
@@ -1878,7 +1878,8 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             if len(indices) == 0:
                 return
-            argsort = np.argsort(indices)
+            # GH#58530 wrong item assignment by repeated key
+            _, argsort = np.unique(indices, return_index=True)
             indices = indices[argsort]
             value = value.take(argsort)
             mask = np.zeros(len(self), dtype=np.bool_)
@@ -2969,7 +2970,7 @@ def transpose_homogeneous_pyarrow(
     """
     arrays = list(arrays)
     nrows, ncols = len(arrays[0]), len(arrays)
-    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.reshape(-1)
     arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
     arr = arr.take(indices)
     return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]

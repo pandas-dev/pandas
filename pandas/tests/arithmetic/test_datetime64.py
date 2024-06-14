@@ -1080,7 +1080,7 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["h", "D", "W", "2ME", "MS", "QE", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
+        self, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         # GH#55860 use index_or_series_or_array instead of box_with_array

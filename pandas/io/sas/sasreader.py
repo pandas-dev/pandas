@@ -124,6 +124,14 @@ def read_sas(
         DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
         or XportReader, file format is inferred from file extension.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
+
     Examples
     --------
     >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP

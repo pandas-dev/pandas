@@ -378,58 +378,6 @@ def test_parse_dates_true(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_parse_dates_dictionary(parser):
-    xml = """<?xml version='1.0' encoding='utf-8'?>
-<data>
-  <row>
-    <shape>square</shape>
-    <degrees>360</degrees>
-    <sides>4.0</sides>
-    <year>2020</year>
-    <month>12</month>
-    <day>31</day>
-   </row>
-  <row>
-    <shape>circle</shape>
-    <degrees>360</degrees>
-    <sides/>
-    <year>2021</year>
-    <month>12</month>
-    <day>31</day>
-  </row>
-  <row>
-    <shape>triangle</shape>
-    <degrees>180</degrees>
-    <sides>3.0</sides>
-    <year>2022</year>
-    <month>12</month>
-    <day>31</day>
-  </row>
-</data>"""
-
-    df_result = read_xml(
-        StringIO(xml), parse_dates={"date_end": ["year", "month", "day"]}, parser=parser
-    )
-    df_iter = read_xml_iterparse(
-        xml,
-        parser=parser,
-        parse_dates={"date_end": ["year", "month", "day"]},
-        iterparse={"row": ["shape", "degrees", "sides", "year", "month", "day"]},
-    )
-
-    df_expected = DataFrame(
-        {
-            "date_end": to_datetime(["2020-12-31", "2021-12-31", "2022-12-31"]),
-            "shape": ["square", "circle", "triangle"],
-            "degrees": [360, 360, 180],
-            "sides": [4.0, float("nan"), 3.0],
-        }
-    )
-
-    tm.assert_frame_equal(df_result, df_expected)
-    tm.assert_frame_equal(df_iter, df_expected)
-
-
 def test_day_first_parse_dates(parser):
     xml = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -479,7 +427,5 @@ def test_day_first_parse_dates(parser):
 
 
 def test_wrong_parse_dates_type(xml_books, parser, iterparse):
-    with pytest.raises(
-        TypeError, match=("Only booleans, lists, and dictionaries are accepted")
-    ):
+    with pytest.raises(TypeError, match="Only booleans and lists are accepted"):
         read_xml(xml_books, parse_dates={"date"}, parser=parser, iterparse=iterparse)

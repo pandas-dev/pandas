@@ -73,7 +73,7 @@ def read_orc(
         .. versionadded:: 2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
-        Filesystem object to use when reading the parquet file.
+        Filesystem object to use when reading the orc file.
 
         .. versionadded:: 2.1.0
 
@@ -84,6 +84,14 @@ def read_orc(
     -------
     DataFrame
         DataFrame based on the ORC file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_sas : Load a SAS file into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Notes
     -----
@@ -99,7 +107,7 @@ def read_orc(
     --------
     >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
-    # we require a newer version of pyarrow than we support for parquet
+    # we require a newer version of pyarrow than we support for orc
 
     orc = import_optional_dependency("pyarrow.orc")
 

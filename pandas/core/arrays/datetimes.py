@@ -143,10 +143,14 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                 month_kw = 12
                 if freq:
                     kwds = freq.kwds
-                    month_kw = kwds.get("startingMonth", kwds.get("month", 12))
+                    month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
 
+                if freq is not None:
+                    freq_name = freq.name
+                else:
+                    freq_name = None
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw, reso=self._creso
+                    values, field, freq_name, month_kw, reso=self._creso
                 )
             else:
                 result = fields.get_date_field(values, field, reso=self._creso)
@@ -214,7 +218,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
-    Length: 2, dtype: datetime64[ns]
+    Length: 2, dtype: datetime64[s]
     """
 
     _typ = "datetimearray"
@@ -609,7 +613,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.tz
         datetime.timezone.utc
 
@@ -867,6 +871,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         Returns
         -------
         Array or Index
+            Datetme Array/Index with target `tz`.
 
         Raises
         ------
@@ -1042,7 +1047,7 @@ default 'raise'
         4   2018-10-28 02:30:00+01:00
         5   2018-10-28 03:00:00+01:00
         6   2018-10-28 03:30:00+01:00
-        dtype: datetime64[ns, CET]
+        dtype: datetime64[s, CET]
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
@@ -1054,14 +1059,14 @@ default 'raise'
         0   2018-10-28 01:20:00+02:00
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[ns, CET]
+        dtype: datetime64[s, CET]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
         or `'shift_backwards'`.
 
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
-        ...                               '2015-03-29 03:30:00']))
+        ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         0   2015-03-29 03:00:00+02:00
         1   2015-03-29 03:30:00+02:00
@@ -1126,6 +1131,12 @@ default 'raise'
         Returns
         -------
         numpy.ndarray
+            An ndarray of ``datetime.datetime`` objects.
+
+        See Also
+        --------
+        DatetimeIndex.to_julian_date : Converts Datetime Array to float64 ndarray
+            of Julian Dates.
 
         Examples
         --------
@@ -1200,6 +1211,7 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
+            Immutable ndarray holding ordinal values at a particular frequency.
 
         Raises
         ------
@@ -1415,7 +1427,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.time
         0    10:00:00
         1    11:00:00
@@ -1458,7 +1470,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.timetz
         0    10:00:00+00:00
         1    11:00:00+00:00
@@ -1500,7 +1512,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.date
         0    2020-01-01
         1    2020-02-01
@@ -1835,6 +1847,11 @@ default 'raise'
         """
         The ordinal day of the year.
 
+        See Also
+        --------
+        DatetimeIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        DatetimeIndex.day : The day of the datetime.
+
         Examples
         --------
         For Series:
@@ -1844,7 +1861,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.dayofyear
         0    1
         1   32
@@ -1880,7 +1897,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-04-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.quarter
         0    1
         1    2
@@ -1900,6 +1917,15 @@ default 'raise'
         """
         The number of days in the month.
 
+        See Also
+        --------
+        Series.dt.day : Return the day of the month.
+        Series.dt.is_month_end : Return a boolean indicating if the
+            date is the last day of the month.
+        Series.dt.is_month_start : Return a boolean indicating if the
+            date is the first day of the month.
+        Series.dt.month : Return the month as January=1 through December=12.
+
         Examples
         --------
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
@@ -1907,7 +1933,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.daysinmonth
         0    31
         1    29
@@ -2093,6 +2119,32 @@ default 'raise'
 
         >>> idx.is_year_start
         array([False, False,  True])
+
+        This method, when applied to Series with datetime values under
+        the ``.dt`` accessor, will lose information about Business offsets.
+
+        >>> dates = pd.Series(pd.date_range("2020-10-30", periods=4, freq="BYS"))
+        >>> dates
+        0   2021-01-01
+        1   2022-01-03
+        2   2023-01-02
+        3   2024-01-01
+        dtype: datetime64[ns]
+
+        >>> dates.dt.is_year_start
+        0    True
+        1    False
+        2    False
+        3    True
+        dtype: bool
+
+        >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
+        >>> idx
+        DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
+                      dtype='datetime64[ns]', freq='BYS-JAN')
+
+        >>> idx.is_year_start
+        array([ True,  True,  True,  True])
         """,
     )
     is_year_end = _field_accessor(
@@ -2154,6 +2206,13 @@ default 'raise'
         -------
         Series or ndarray
              Booleans indicating if dates belong to a leap year.
+
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Indicate whether the date is the
+            last day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
 
         Examples
         --------
@@ -2235,9 +2294,25 @@ default 'raise'
         axis : int, optional
             Axis for the function to be applied on. For :class:`pandas.Series`
             this parameter is unused and defaults to ``None``.
+        dtype : dtype, optional, default None
+            Type to use in computing the standard deviation. For arrays of
+            integer type the default is float64, for arrays of float types
+            it is the same as the array type.
+        out : ndarray, optional, default None
+            Alternative output array in which to place the result. It must have
+            the same shape as the expected output but the type (of the
+            calculated values) will be cast if necessary.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array. If the default
+            value is passed, then keepdims will not be passed through to the
+            std method of sub-classes of ndarray, however any non-default value
+            will be. If the sub-class method does not implement keepdims any
+            exceptions will be raised.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is ``NA``, the result
             will be ``NA``.
@@ -2245,6 +2320,7 @@ default 'raise'
         Returns
         -------
         Timedelta
+            Standard deviation over requested axis.
 
         See Also
         --------
@@ -2322,9 +2398,9 @@ def _sequence_to_dt64(
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
 
-    if out_unit is None:
-        out_unit = "ns"
-    out_dtype = np.dtype(f"M8[{out_unit}]")
+    out_dtype = DT64NS_DTYPE
+    if out_unit is not None:
+        out_dtype = np.dtype(f"M8[{out_unit}]")
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
@@ -2350,7 +2426,7 @@ def _sequence_to_dt64(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
-                out_unit=out_unit or "ns",
+                out_unit=out_unit,
             )
             copy = False
             if tz and inferred_tz:
@@ -2458,7 +2534,7 @@ def objects_to_datetime64(
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
-    out_unit: str = "ns",
+    out_unit: str | None = None,
 ) -> tuple[np.ndarray, tzinfo | None]:
     """
     Convert data to array of timestamps.
@@ -2474,7 +2550,8 @@ def objects_to_datetime64(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
-    out_unit : str, default "ns"
+    out_unit : str or None, default None
+        None indicates we should do resolution inference.
 
     Returns
     -------

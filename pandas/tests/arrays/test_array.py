@@ -125,7 +125,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             ["2000", "2001"],
@@ -220,6 +220,14 @@ def test_dt64_array(dtype_unit):
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            None,
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
         # Boolean
         (
             [True, None],
@@ -246,6 +254,14 @@ def test_dt64_array(dtype_unit):
             period_array(["2000", "2001"], freq="D"),
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
+        ),
+        # Complex
+        (
+            np.array([complex(1), complex(2)], dtype=np.complex128),
+            None,
+            NumpyExtensionArray(
+                np.array([complex(1), complex(2)], dtype=np.complex128)
+            ),
         ),
     ],
 )
@@ -282,11 +298,11 @@ def test_array_copy():
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -302,7 +318,7 @@ def test_array_copy():
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
         ),
         (

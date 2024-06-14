@@ -231,7 +231,6 @@ class ParserWarning(Warning):
 
     1. `sep` other than a single character (e.g. regex separators)
     2. `skipfooter` higher than 0
-    3. `sep=None` with `delim_whitespace=False`
 
     The warning can be avoided by adding `engine='python'` as a parameter in
     `pd.read_csv` and `pd.read_table` methods.
