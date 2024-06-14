@@ -842,7 +842,7 @@ def _stack_multi_columns(
                     [x._values.astype(dtype, copy=False) for _, x in subset.items()]
                 )
                 N, K = subset.shape
-                idx = np.arange(N * K).reshape(K, N).T.ravel()
+                idx = np.arange(N * K).reshape(K, N).T.reshape(-1)
                 value_slice = value_slice.take(idx)
             else:
                 value_slice = subset.values
@@ -924,7 +924,7 @@ def _reorder_for_extension_array_stack(
     # idx is an indexer like
     # [c0r0, c1r0, c2r0, ...,
     #  c0r1, c1r1, c2r1, ...]
-    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.ravel()
+    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.reshape(-1)
     return arr.take(idx)
 
 
