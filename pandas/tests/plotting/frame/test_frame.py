@@ -1120,7 +1120,7 @@ class TestDataFramePlots:
 
     def test_kde_df(self):
         pytest.importorskip("scipy")
-        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ax = _check_plot_works(df.plot, kind="kde")
         expected = [pprint_thing(c) for c in df.columns]
         _check_legend_labels(ax, labels=expected)
