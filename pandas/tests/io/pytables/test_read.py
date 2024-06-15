@@ -320,7 +320,7 @@ def test_read_infer_string(tmp_path, setup_path):
 
 
 def test_hdfstore_read_datetime64_unit_s(tmp_path, setup_path):
-    # Fix issue 59004: HDFStore doesn't save datetime64[s] right
+    # GH 59004
     df_s = DataFrame(["2001-01-01", "2002-02-02"], dtype="datetime64[s]")
     path = tmp_path / setup_path
     with HDFStore(path, mode="w") as store:
