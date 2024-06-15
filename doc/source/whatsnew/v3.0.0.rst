@@ -586,6 +586,7 @@ Sparse
 -
 
 ExtensionArray
+^^^^^^^^^^^^^^
 - A default, unoptimised :meth:`ExtensionArray.round` method is now provided for numeric ExtensionArrays (:issue:`49387`)
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
