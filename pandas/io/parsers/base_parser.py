@@ -742,22 +742,18 @@ class ParserBase:
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
-                if isinstance(cast_type, BooleanDtype) and all(
-                    isinstance(value, str) for value in values
-                ):
+                if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
+                    values_str = [str(val) for val in values]
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
-                        values,
+                        values_str,
                         dtype=cast_type,
                         true_values=self.true_values,
                         false_values=self.false_values,
                     )
                 else:
-                    values_str = [str(val) for val in values]
-                    return array_type._from_sequence_of_strings(
-                        values_str, dtype=cast_type
-                    )
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
