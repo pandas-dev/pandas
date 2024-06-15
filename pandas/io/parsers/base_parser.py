@@ -753,18 +753,11 @@ class ParserBase:
                         true_values=self.true_values,
                         false_values=self.false_values,
                     )
-                elif isinstance(cast_type, BooleanDtype) and all(
-                    isinstance(value, bool) for value in values
-                ):
-                    values = [str(val) for val in values]
-                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
-                        values,
-                        dtype=cast_type,
-                        true_values=self.true_values,
-                        false_values=self.false_values,
-                    )
                 else:
-                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
+                    values_str = [str(val) for val in values]
+                    return array_type._from_sequence_of_strings(
+                        values_str, dtype=cast_type
+                    )
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
