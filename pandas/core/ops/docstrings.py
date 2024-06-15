@@ -1,6 +1,7 @@
 """
 Templating for ops docstrings
 """
+
 from __future__ import annotations
 
 
@@ -419,12 +420,12 @@ for key in _op_names:
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
         _op_descriptions[reverse_op]["reverse"] = key
-        _op_descriptions[key][
-            "see_also_desc"
-        ] = f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
-        _op_descriptions[reverse_op][
-            "see_also_desc"
-        ] = f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
+        _op_descriptions[key]["see_also_desc"] = (
+            f"Reverse of the {_op_descriptions[key]['desc']} operator, {_py_num_ref}"
+        )
+        _op_descriptions[reverse_op]["see_also_desc"] = (
+            f"Element-wise {_op_descriptions[key]['desc']}, {_py_num_ref}"
+        )
 
 _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
@@ -435,6 +436,7 @@ missing data in either one of the inputs.
 Parameters
 ----------
 other : Series or scalar value
+    The second operand in this operation.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.

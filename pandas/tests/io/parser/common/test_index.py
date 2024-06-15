@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from datetime import datetime
 from io import StringIO
 import os
@@ -259,7 +260,8 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
                 datetime(2000, 1, 5),
                 datetime(2000, 1, 6),
                 datetime(2000, 1, 7),
-            ]
+            ],
+            dtype="M8[s]",
         ),
     )
     tm.assert_frame_equal(result, expected)

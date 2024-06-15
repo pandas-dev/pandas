@@ -1376,7 +1376,10 @@ cdef class _Timedelta(timedelta):
         datetime.timedelta(days=3)
         """
         if self._creso == NPY_FR_ns:
-            return timedelta(microseconds=int(self._value) / 1000)
+            us, remainder = divmod(self._value, 1000)
+            if remainder >= 500:
+                us += 1
+            return timedelta(microseconds=us)
 
         # TODO(@WillAyd): is this the right way to use components?
         self._ensure_components()
@@ -1782,6 +1785,7 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, or int
+        Input value.
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
@@ -1806,6 +1810,15 @@ class Timedelta(_Timedelta):
         milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
+
+    See Also
+    --------
+    Timestamp : Represents a single timestamp in time.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    DateOffset : Standard kind of date increment used for a date range.
+    to_timedelta : Convert argument to timedelta.
+    datetime.timedelta : Represents a duration in the datetime module.
+    numpy.timedelta64 : Represents a duration compatible with NumPy.
 
     Notes
     -----

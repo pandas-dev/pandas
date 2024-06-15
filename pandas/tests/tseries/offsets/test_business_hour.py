@@ -1,6 +1,7 @@
 """
 Tests for offsets.BusinessHour
 """
+
 from __future__ import annotations
 
 from datetime import (

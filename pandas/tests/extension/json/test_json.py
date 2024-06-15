@@ -149,6 +149,23 @@ class TestJSONArray(base.ExtensionTests):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_frame()
 
+    def test_fillna_with_none(self, data_missing):
+        # GH#57723
+        # EAs that don't have special logic for None will raise, unlike pandas'
+        # which interpret None as the NA value for the dtype.
+        with pytest.raises(AssertionError):
+            super().test_fillna_with_none(data_missing)
+
+    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        super().test_fillna_limit_frame(data_missing)
+
+    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        super().test_fillna_limit_frame(data_missing)
+
     @pytest.mark.parametrize(
         "limit_area, input_ilocs, expected_ilocs",
         [

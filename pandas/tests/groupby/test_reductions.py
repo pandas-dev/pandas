@@ -65,16 +65,6 @@ def test_basic_aggregations(dtype):
     with pytest.raises(pd.errors.SpecificationError, match=msg):
         grouped.aggregate({"one": np.mean, "two": np.std})
 
-    group_constants = {0: 10, 1: 20, 2: 30}
-    msg = (
-        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
-        "and cases that relied on it will raise in a future version"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#41090
-        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
-    assert agged[1] == 21
-
     # corner cases
     msg = "Must produce aggregated value"
     # exception raised is type Exception
@@ -301,16 +291,14 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     )
     gb = df.groupby("a")
 
-    warn = None if skipna else FutureWarning
-    msg = f"The behavior of DataFrameGroupBy.{how} with all-NA values"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(gb, how)(skipna=skipna)
-    if skipna:
-        values = [1, 3, 4, 6, np.nan]
-    else:
-        values = np.nan
+    if not skipna:
+        msg = f"DataFrameGroupBy.{how} with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            getattr(gb, how)(skipna=skipna)
+        return
+    result = getattr(gb, how)(skipna=skipna)
     expected = DataFrame(
-        {"b": values}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+        {"b": [1, 3, 4, 6, np.nan]}, index=pd.Index(range(1, 6), name="a", dtype="intp")
     )
     tm.assert_frame_equal(result, expected)
 

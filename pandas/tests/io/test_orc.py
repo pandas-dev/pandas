@@ -1,4 +1,5 @@
-""" test orc compat """
+"""test orc compat"""
+
 import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -320,6 +321,8 @@ def test_orc_dtype_backend_pyarrow():
             ],
         }
     )
+    # FIXME: without casting to ns we do not round-trip correctly
+    df["datetime_with_nat"] = df["datetime_with_nat"].astype("M8[ns]")
 
     bytes_data = df.copy().to_orc()
     result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")

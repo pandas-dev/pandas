@@ -805,7 +805,7 @@ class TestDataFrameReshape:
                 [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
-        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ("i2", "i1")
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
 
     def test_unstack_multi_level_rows_and_cols(self):
         # PH 28306: Unstack df with multi level cols and rows
@@ -1223,7 +1223,6 @@ class TestDataFrameReshape:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "index",
         [
@@ -1322,6 +1321,21 @@ def test_unstack_sort_false(frame_or_series, dtype):
         [("two", "z", "b"), ("two", "y", "a"), ("one", "z", "b"), ("one", "y", "a")]
     )
     obj = frame_or_series(np.arange(1.0, 5.0), index=index, dtype=dtype)
+
+    result = obj.unstack(level=0, sort=False)
+
+    if frame_or_series is DataFrame:
+        expected_columns = MultiIndex.from_tuples([(0, "two"), (0, "one")])
+    else:
+        expected_columns = ["two", "one"]
+    expected = DataFrame(
+        [[1.0, 3.0], [2.0, 4.0]],
+        index=MultiIndex.from_tuples([("z", "b"), ("y", "a")]),
+        columns=expected_columns,
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
     result = obj.unstack(level=-1, sort=False)
 
     if frame_or_series is DataFrame:
@@ -1849,7 +1863,7 @@ class TestStackUnstackMultiLevel:
 
         unstacked = frame.unstack()
         assert unstacked.index.name == "first"
-        assert unstacked.columns.names == ("exp", "second")
+        assert unstacked.columns.names == ["exp", "second"]
 
         restacked = unstacked.stack(future_stack=future_stack)
         assert restacked.index.names == frame.index.names

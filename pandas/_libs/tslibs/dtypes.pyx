@@ -176,6 +176,10 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "EOM": "M",
     "BME": "M",
     "SME": "M",
+    "BMS": "M",
+    "CBME": "M",
+    "CBMS": "M",
+    "SMS": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQE": "Q",
@@ -228,7 +232,6 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YE-NOV": "Y-NOV",
     "W": "W",
     "ME": "M",
-    "Y": "Y",
     "BYE": "Y",
     "BYE-DEC": "Y-DEC",
     "BYE-JAN": "Y-JAN",
@@ -245,7 +248,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "YS": "Y",
     "BYS": "Y",
 }
-cdef dict c_OFFSET_DEPR_FREQSTR = {
+cdef dict c_OFFSET_RENAMED_FREQSTR = {
     "M": "ME",
     "Q": "QE",
     "Q-DEC": "QE-DEC",
@@ -273,19 +276,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
-    "A": "YE",
-    "A-DEC": "YE-DEC",
-    "A-JAN": "YE-JAN",
-    "A-FEB": "YE-FEB",
-    "A-MAR": "YE-MAR",
-    "A-APR": "YE-APR",
-    "A-MAY": "YE-MAY",
-    "A-JUN": "YE-JUN",
-    "A-JUL": "YE-JUL",
-    "A-AUG": "YE-AUG",
-    "A-SEP": "YE-SEP",
-    "A-OCT": "YE-OCT",
-    "A-NOV": "YE-NOV",
     "BY": "BYE",
     "BY-DEC": "BYE-DEC",
     "BY-JAN": "BYE-JAN",
@@ -299,19 +289,6 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BY-SEP": "BYE-SEP",
     "BY-OCT": "BYE-OCT",
     "BY-NOV": "BYE-NOV",
-    "BA": "BYE",
-    "BA-DEC": "BYE-DEC",
-    "BA-JAN": "BYE-JAN",
-    "BA-FEB": "BYE-FEB",
-    "BA-MAR": "BYE-MAR",
-    "BA-APR": "BYE-APR",
-    "BA-MAY": "BYE-MAY",
-    "BA-JUN": "BYE-JUN",
-    "BA-JUL": "BYE-JUL",
-    "BA-AUG": "BYE-AUG",
-    "BA-SEP": "BYE-SEP",
-    "BA-OCT": "BYE-OCT",
-    "BA-NOV": "BYE-NOV",
     "BM": "BME",
     "CBM": "CBME",
     "SM": "SME",
@@ -329,78 +306,49 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "BQ-OCT": "BQE-OCT",
     "BQ-NOV": "BQE-NOV",
 }
-cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {
-    v: k for k, v in c_OFFSET_DEPR_FREQSTR.items()
+PERIOD_TO_OFFSET_FREQSTR = {
+    "M": "ME",
+    "Q": "QE",
+    "Q-DEC": "QE-DEC",
+    "Q-JAN": "QE-JAN",
+    "Q-FEB": "QE-FEB",
+    "Q-MAR": "QE-MAR",
+    "Q-APR": "QE-APR",
+    "Q-MAY": "QE-MAY",
+    "Q-JUN": "QE-JUN",
+    "Q-JUL": "QE-JUL",
+    "Q-AUG": "QE-AUG",
+    "Q-SEP": "QE-SEP",
+    "Q-OCT": "QE-OCT",
+    "Q-NOV": "QE-NOV",
+    "Y": "YE",
+    "Y-DEC": "YE-DEC",
+    "Y-JAN": "YE-JAN",
+    "Y-FEB": "YE-FEB",
+    "Y-MAR": "YE-MAR",
+    "Y-APR": "YE-APR",
+    "Y-MAY": "YE-MAY",
+    "Y-JUN": "YE-JUN",
+    "Y-JUL": "YE-JUL",
+    "Y-AUG": "YE-AUG",
+    "Y-SEP": "YE-SEP",
+    "Y-OCT": "YE-OCT",
+    "Y-NOV": "YE-NOV",
 }
+cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 cdef dict c_DEPR_ABBREVS = {
-    "A": "Y",
-    "a": "Y",
-    "A-DEC": "Y-DEC",
-    "A-JAN": "Y-JAN",
-    "A-FEB": "Y-FEB",
-    "A-MAR": "Y-MAR",
-    "A-APR": "Y-APR",
-    "A-MAY": "Y-MAY",
-    "A-JUN": "Y-JUN",
-    "A-JUL": "Y-JUL",
-    "A-AUG": "Y-AUG",
-    "A-SEP": "Y-SEP",
-    "A-OCT": "Y-OCT",
-    "A-NOV": "Y-NOV",
-    "BA": "BY",
-    "BA-DEC": "BY-DEC",
-    "BA-JAN": "BY-JAN",
-    "BA-FEB": "BY-FEB",
-    "BA-MAR": "BY-MAR",
-    "BA-APR": "BY-APR",
-    "BA-MAY": "BY-MAY",
-    "BA-JUN": "BY-JUN",
-    "BA-JUL": "BY-JUL",
-    "BA-AUG": "BY-AUG",
-    "BA-SEP": "BY-SEP",
-    "BA-OCT": "BY-OCT",
-    "BA-NOV": "BY-NOV",
-    "AS": "YS",
-    "AS-DEC": "YS-DEC",
-    "AS-JAN": "YS-JAN",
-    "AS-FEB": "YS-FEB",
-    "AS-MAR": "YS-MAR",
-    "AS-APR": "YS-APR",
-    "AS-MAY": "YS-MAY",
-    "AS-JUN": "YS-JUN",
-    "AS-JUL": "YS-JUL",
-    "AS-AUG": "YS-AUG",
-    "AS-SEP": "YS-SEP",
-    "AS-OCT": "YS-OCT",
-    "AS-NOV": "YS-NOV",
-    "BAS": "BYS",
-    "BAS-DEC": "BYS-DEC",
-    "BAS-JAN": "BYS-JAN",
-    "BAS-FEB": "BYS-FEB",
-    "BAS-MAR": "BYS-MAR",
-    "BAS-APR": "BYS-APR",
-    "BAS-MAY": "BYS-MAY",
-    "BAS-JUN": "BYS-JUN",
-    "BAS-JUL": "BYS-JUL",
-    "BAS-AUG": "BYS-AUG",
-    "BAS-SEP": "BYS-SEP",
-    "BAS-OCT": "BYS-OCT",
-    "BAS-NOV": "BYS-NOV",
     "H": "h",
     "BH": "bh",
     "CBH": "cbh",
-    "T": "min",
-    "t": "min",
     "S": "s",
-    "L": "ms",
-    "l": "ms",
-    "U": "us",
-    "u": "us",
-    "N": "ns",
-    "n": "ns",
+}
+
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
+    "w": "W",
+    "MIN": "min",
 }
 
 
@@ -494,13 +442,17 @@ class Resolution(Enum):
         """
         cdef:
             str abbrev
+        if freq in {"T", "t", "L", "l", "U", "u", "N", "n"}:
+            raise ValueError(
+                f"Frequency \'{freq}\' is no longer supported."
+            )
         try:
             if freq in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[freq]
                 warnings.warn(
                     f"\'{freq}\' is deprecated and will be removed in a future "
                     f"version. Please use \'{abbrev}\' "
-                    "instead of \'{freq}\'.",
+                    f"instead of \'{freq}\'.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

@@ -5,6 +5,7 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -62,10 +63,7 @@ from pandas.core.apply import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import (
-    base,
-    ops,
-)
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -244,6 +242,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series or DataFrame
+            A pandas object with the result of applying ``func`` to each group.
 
         See Also
         --------
@@ -373,32 +372,7 @@ class SeriesGroupBy(GroupBy[Series]):
                     index=self._grouper.result_index,
                     dtype=obj.dtype,
                 )
-
-            if self._grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
-
-            try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except KeyError:
-                # KeyError raised in test_groupby.test_basic is bc the func does
-                #  a dictionary lookup on group.name, but group name is not
-                #  pinned in _python_agg_general, only in _aggregate_named
-                result = self._aggregate_named(func, *args, **kwargs)
-
-                warnings.warn(
-                    "Pinning the groupby key to each group in "
-                    f"{type(self).__name__}.agg is deprecated, and cases that "
-                    "relied on it will raise in a future version. "
-                    "If your operation requires utilizing the groupby keys, "
-                    "iterate over the groupby object instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-                # result is a dict whose keys are the elements of result_index
-                result = Series(result, index=self._grouper.result_index)
-                result = self._wrap_aggregated_output(result)
-                return result
+            return self._python_agg_general(func, *args, **kwargs)
 
     agg = aggregate
 
@@ -412,24 +386,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         if isinstance(arg, dict):
-            if self.as_index:
-                # GH 15931
-                raise SpecificationError("nested renamer is not supported")
-            else:
-                # GH#50684 - This accidentally worked in 1.x
-                msg = (
-                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
-                    "and will raise in a future version of pandas. Pass a list "
-                    "of aggregations instead."
-                )
-                warnings.warn(
-                    message=msg,
-                    category=FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                arg = list(arg.items())
-        elif any(isinstance(x, (tuple, list)) for x in arg):
-            arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
+            raise SpecificationError("nested renamer is not supported")
+
+        if any(isinstance(x, (tuple, list)) for x in arg):
+            arg = ((x, x) if not isinstance(x, (tuple, list)) else x for x in arg)
         else:
             # list of functions / function names
             columns = (com.get_callable_name(f) or f for f in arg)
@@ -527,26 +487,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.index = default_index(len(result))
             return result
 
-    def _aggregate_named(self, func, *args, **kwargs):
-        # Note: this is very similar to _aggregate_series_pure_python,
-        #  but that does not pin group.name
-        result = {}
-        initialized = False
-
-        for name, group in self._grouper.get_iterator(self._obj_with_exclusions):
-            # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
-            object.__setattr__(group, "name", name)
-
-            output = func(group, *args, **kwargs)
-            output = ops.extract_result(output)
-            if not initialized:
-                # We only do this validation on the first iteration
-                ops.check_result_array(output, group.dtype)
-                initialized = True
-            result[name] = output
-
-        return result
-
     __examples_series_doc = dedent(
         """
     >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
@@ -637,7 +577,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if results:
             from pandas.core.reshape.concat import concat
 
-            concatenated = concat(results)
+            concatenated = concat(results, ignore_index=True)
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
@@ -663,6 +603,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+            The filtered subset of the original Series.
 
         Notes
         -----
@@ -1141,6 +1082,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+            Unbiased skew within groups.
 
         See Also
         --------
@@ -1227,8 +1169,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1238,7 +1179,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -1267,7 +1208,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1281,8 +1222,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, the result
-            will be NA.
+            Exclude NA values.
 
         Returns
         -------
@@ -1292,7 +1232,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Raises
         ------
         ValueError
-            If the Series is empty.
+            If the Series is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -1321,7 +1261,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
@@ -1707,8 +1647,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
-            # GH9684 - All values are None, return an empty frame.
-            return self.obj._constructor()
+            # GH9684 - All values are None, return an empty frame
+            # GH57775 - Ensure that columns and dtypes from original frame are kept.
+            result = self.obj._constructor(columns=data.columns)
+            result = result.astype(data.dtypes)
+            return result
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(
                 values,
@@ -1865,7 +1808,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied.append(res)
 
         concat_index = obj.columns
-        concatenated = concat(applied, axis=0, verify_integrity=False)
+        concatenated = concat(
+            applied, axis=0, verify_integrity=False, ignore_index=True
+        )
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
@@ -2001,6 +1946,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
+            The filtered subset of the original DataFrame.
 
         Notes
         -----
@@ -2133,7 +2079,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
         columns = obj.columns
-        sgbs = [
+        sgbs = (
             SeriesGroupBy(
                 obj.iloc[:, i],
                 selection=colname,
@@ -2142,7 +2088,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
             )
             for i, colname in enumerate(obj.columns)
-        ]
+        )
         results = [func(sgb) for sgb in sgbs]
 
         if not len(results):
@@ -2168,6 +2114,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         nunique: DataFrame
+            Counts of unique elements in each position.
 
         Examples
         --------
@@ -2213,13 +2160,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of maximum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2233,7 +2177,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2278,13 +2222,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of minimum in each group.
 
-        NA/null values are excluded.
-
         Parameters
         ----------
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
+            Exclude NA values.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -2298,7 +2239,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Raises
         ------
         ValueError
-            * If the row/column is empty
+            * If a column is empty or skipna=False and any value is NA.
 
         See Also
         --------
@@ -2572,6 +2513,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
+            Unbiased skew within groups.
 
         See Also
         --------
@@ -2776,22 +2718,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @property
-    @doc(DataFrame.dtypes.__doc__)
-    def dtypes(self) -> Series:
-        # GH#51045
-        warnings.warn(
-            f"{type(self).__name__}.dtypes is deprecated and will be removed in "
-            "a future version. Check the dtypes on the base object instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self._python_apply_general(  # type: ignore[return-value]
-            lambda df: df.dtypes, self._selected_obj
-        )
-
     def corrwith(
         self,
         other: DataFrame | Series,
@@ -2801,6 +2727,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Compute pairwise correlation.
+
+        .. deprecated:: 3.0.0
 
         Pairwise correlation is computed between rows or columns of
         DataFrame with rows or columns of Series or DataFrame. DataFrames
@@ -2861,6 +2789,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2    0.755929  NaN
         3    0.576557  NaN
         """
+        warnings.warn(
+            "DataFrameGroupBy.corrwith is deprecated",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "corrwith",
             other=other,
@@ -2881,7 +2814,7 @@ def _wrap_transform_general_frame(
         # other dimension; this will preserve dtypes
         # GH14457
         if res.index.is_(obj.index):
-            res_frame = concat([res] * len(group.columns), axis=1)
+            res_frame = concat([res] * len(group.columns), axis=1, ignore_index=True)
             res_frame.columns = group.columns
             res_frame.index = group.index
         else:

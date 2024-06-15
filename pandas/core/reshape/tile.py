@@ -1,6 +1,7 @@
 """
 Quantilization functions and related stuff
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -288,6 +289,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
+        Input Numpy array or pandas Series object to be discretized.
     q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
@@ -311,6 +313,11 @@ def qcut(
         represented as categories when categorical data is returned.
     bins : ndarray of floats
         Returned only if `retbins` is True.
+
+    See Also
+    --------
+    cut : Bin values into discrete intervals.
+    Series.quantile : Return value at the given quantile.
 
     Notes
     -----

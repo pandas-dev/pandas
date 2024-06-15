@@ -19,6 +19,7 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
 )
 
@@ -45,6 +46,7 @@ REDUCTIONS = ("sum", "prod", "min", "max")
 _unary_math_ops = (
     "sin",
     "cos",
+    "tan",
     "exp",
     "log",
     "expm1",
@@ -115,7 +117,7 @@ class Term:
         res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
-        if hasattr(res, "ndim") and res.ndim > 2:
+        if hasattr(res, "ndim") and isinstance(res.ndim, int) and res.ndim > 2:
             raise NotImplementedError(
                 "N-dimensional objects, where N > 2, are not supported with eval"
             )
@@ -320,12 +322,6 @@ _arith_ops_funcs = (
 )
 _arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs))
 
-SPECIAL_CASE_ARITH_OPS_SYMS = ("**", "//", "%")
-_special_case_arith_ops_funcs = (operator.pow, operator.floordiv, operator.mod)
-_special_case_arith_ops_dict = dict(
-    zip(SPECIAL_CASE_ARITH_OPS_SYMS, _special_case_arith_ops_funcs)
-)
-
 _binary_ops_dict = {}
 
 for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
@@ -513,10 +509,6 @@ class BinOp(Op):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
-def isnumeric(dtype) -> bool:
-    return issubclass(np.dtype(dtype).type, np.number)
-
-
 class Div(BinOp):
     """
     Div operator to special case casting.
@@ -530,7 +522,9 @@ class Div(BinOp):
     def __init__(self, lhs, rhs) -> None:
         super().__init__("/", lhs, rhs)
 
-        if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
+        if not is_numeric_dtype(lhs.return_type) or not is_numeric_dtype(
+            rhs.return_type
+        ):
             raise TypeError(
                 f"unsupported operand type(s) for {self.op}: "
                 f"'{lhs.return_type}' and '{rhs.return_type}'"

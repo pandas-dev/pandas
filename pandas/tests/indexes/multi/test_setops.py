@@ -121,7 +121,7 @@ def test_multiindex_symmetric_difference():
 
     idx2 = idx.copy().rename(["A", "B"])
     result = idx.symmetric_difference(idx2)
-    assert result.names == (None, None)
+    assert result.names == [None, None]
 
 
 def test_empty(idx):
@@ -382,7 +382,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning):
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 

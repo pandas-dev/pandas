@@ -1,6 +1,7 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -1179,5 +1180,5 @@ def test_ops_error_str():
         with pytest.raises(TypeError, match=msg):
             left > right
 
-        assert not left == right  # pylint: disable=unneeded-not
+        assert not left == right
         assert left != right

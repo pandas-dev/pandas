@@ -16,7 +16,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -107,8 +106,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -127,8 +125,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> str:
-    ...
+) -> str: ...
 
 
 def to_json(
@@ -372,18 +369,22 @@ class JSONTableWriter(FrameWriter):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)
 
-        obj = obj.copy()
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
+        copied = False
         if len(timedeltas):
+            obj = obj.copy()
+            copied = True
             obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serializing
-        if isinstance(obj.index.dtype, PeriodDtype):
-            obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
         if not self.index:
             self.obj = obj.reset_index(drop=True)
         else:
+            # Convert PeriodIndex to datetimes before serializing
+            if isinstance(obj.index.dtype, PeriodDtype):
+                if not copied:
+                    obj = obj.copy(deep=False)
+                obj.index = obj.index.to_timestamp()
             self.obj = obj.reset_index(drop=False)
         self.date_format = "iso"
         self.orient = "records"
@@ -415,8 +416,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["frame"]]:
-    ...
+) -> JsonReader[Literal["frame"]]: ...
 
 
 @overload
@@ -440,8 +440,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["series"]]:
-    ...
+) -> JsonReader[Literal["series"]]: ...
 
 
 @overload
@@ -465,8 +464,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -490,8 +488,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> DataFrame:
-    ...
+) -> DataFrame: ...
 
 
 @doc(
@@ -922,16 +919,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         )
 
     @overload
-    def read(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def read(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def read(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def read(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series: ...
 
     def read(self) -> DataFrame | Series:
         """
@@ -1016,16 +1010,15 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         return self
 
     @overload
-    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame:
-        ...
+    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["series"]]) -> Series:
-        ...
+    def __next__(self: JsonReader[Literal["series"]]) -> Series: ...
 
     @overload
-    def __next__(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
-        ...
+    def __next__(
+        self: JsonReader[Literal["frame", "series"]],
+    ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
         if self.nrows and self.nrows_seen >= self.nrows:
@@ -1183,13 +1176,7 @@ class Parser:
                 if all(notna(data)):
                     return data, False
 
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "Downcasting object dtype arrays",
-                        category=FutureWarning,
-                    )
-                    filled = data.fillna(np.nan)
+                filled = data.fillna(np.nan)
 
                 return filled, True
 

@@ -169,8 +169,8 @@ class BaseMethodsTests:
             ("idxmin", True, 2),
             ("argmax", True, 0),
             ("argmin", True, 2),
-            ("idxmax", False, np.nan),
-            ("idxmin", False, np.nan),
+            ("idxmax", False, -1),
+            ("idxmin", False, -1),
             ("argmax", False, -1),
             ("argmin", False, -1),
         ],
@@ -179,26 +179,22 @@ class BaseMethodsTests:
         self, data_missing_for_sorting, op_name, skipna, expected
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
-        warn = None
-        msg = "The behavior of Series.argmax/argmin"
-        if op_name.startswith("arg") and expected == -1:
-            warn = FutureWarning
-        if op_name.startswith("idx") and np.isnan(expected):
-            warn = FutureWarning
-            msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
-        with tm.assert_produces_warning(warn, match=msg):
+        if expected == -1:
+            with pytest.raises(ValueError, match="Encountered an NA value"):
+                getattr(ser, op_name)(skipna=skipna)
+        else:
             result = getattr(ser, op_name)(skipna=skipna)
-        tm.assert_almost_equal(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
         # GH#38733
         data = data_missing_for_sorting
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmin(skipna=False)
 
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
@@ -302,6 +298,20 @@ class BaseMethodsTests:
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        df = pd.DataFrame({"A": data_missing.take([0, 1, 0, 1])})
+        expected = pd.DataFrame({"A": data_missing.take([1, 1, 0, 1])})
+        result = df.fillna(value=data_missing[1], limit=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        ser = pd.Series(data_missing.take([0, 1, 0, 1]))
+        expected = pd.Series(data_missing.take([1, 1, 0, 1]))
+        result = ser.fillna(value=data_missing[1], limit=1)
+        tm.assert_series_equal(result, expected)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
