@@ -64,6 +64,7 @@ def to_numeric(
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
         Argument to be converted.
+
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
@@ -88,7 +89,8 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default not nullable numpy
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
