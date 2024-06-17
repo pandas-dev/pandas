@@ -710,14 +710,14 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([], index=[], name=0.5, dtype=np.float64)
+        expected = Series([], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 
         result = df.quantile(
             [0.5], numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = DataFrame([], index=[0.5], columns=[])
+        expected = DataFrame([], index=[0.5])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 

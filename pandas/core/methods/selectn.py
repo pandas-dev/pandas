@@ -29,6 +29,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
+from pandas.core.indexes.api import default_index
+
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
@@ -38,6 +40,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 else:
@@ -199,11 +202,6 @@ class SelectNFrame(SelectN[DataFrame]):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
-        from pandas.core.api import (
-            Index,
-            default_index,
-        )
-
         n = self.n
         frame = self.obj
         columns = self.columns
