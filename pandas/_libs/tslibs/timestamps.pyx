@@ -1378,7 +1378,7 @@ class Timestamp(_Timestamp):
         Time zone for time which Timestamp will have.
     unit : str
         Unit used for conversion if ts_input is of type int or float. The
-        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
 
         For float inputs, the result will be stored in nanoseconds, and
@@ -1416,6 +1416,11 @@ class Timestamp(_Timestamp):
 
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
+
+    This converts an int representing a Unix-epoch in units of weeks
+
+    >>> pd.Timestamp(1535, unit='W')
+    Timestamp('1999-06-03 00:00:00')
 
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
