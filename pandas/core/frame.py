@@ -13078,7 +13078,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
-            cols = Index([], name=self.columns.name)
+            cols = self.columns[:0]
 
             dtype = np.float64
             if axis == 1:

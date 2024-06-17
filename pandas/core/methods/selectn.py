@@ -199,7 +199,10 @@ class SelectNFrame(SelectN[DataFrame]):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
-        from pandas.core.api import Index
+        from pandas.core.api import (
+            Index,
+            default_index,
+        )
 
         n = self.n
         frame = self.obj
@@ -227,7 +230,7 @@ class SelectNFrame(SelectN[DataFrame]):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer = Index([], dtype=np.int64)
+        indexer = default_index(0)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].
