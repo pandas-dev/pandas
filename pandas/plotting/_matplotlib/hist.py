@@ -95,11 +95,12 @@ class HistPlot(LinePlot):
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects()._get_numeric_data()
-        values = np.ravel(nd_values)
+        values = nd_values.values
+        if nd_values.ndim == 2:
+            values = values.reshape(-1)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
-        return bins
+        return np.histogram_bin_edges(values, bins=bins, range=self._bin_range)
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
@@ -322,10 +323,7 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    _axes = flatten_axes(axes)
-
-    for i, (key, group) in enumerate(grouped):
-        ax = _axes[i]
+    for ax, (key, group) in zip(flatten_axes(axes), grouped):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
@@ -557,12 +555,9 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
     )
-    _axes = flatten_axes(axes)
-
     can_set_label = "label" not in kwds
 
-    for i, col in enumerate(data.columns):
-        ax = _axes[i]
+    for ax, col in zip(flatten_axes(axes), data.columns):
         if legend and can_set_label:
             kwds["label"] = col
         ax.hist(data[col].dropna().values, bins=bins, **kwds)

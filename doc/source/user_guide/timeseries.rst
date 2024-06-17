@@ -1864,7 +1864,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("ME", on="date")[["a"]].sum()
+   df.resample("MS", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1872,7 +1872,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("ME", level="d")[["a"]].sum()
+   df.resample("MS", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 

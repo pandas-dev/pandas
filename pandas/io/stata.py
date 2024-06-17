@@ -91,7 +91,7 @@ if TYPE_CHECKING:
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -1393,7 +1393,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [104, 105, 108, 110, 111, 113, 114, 115]:
+        if self._format_version not in [103, 104, 105, 108, 110, 111, 113, 114, 115]:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
         self._byteorder = ">" if self._read_int8() == 0x1 else "<"
@@ -1405,7 +1405,8 @@ class StataReader(StataParser, abc.Iterator):
 
         self._data_label = self._get_data_label()
 
-        self._time_stamp = self._get_time_stamp()
+        if self._format_version >= 105:
+            self._time_stamp = self._get_time_stamp()
 
         # descriptors
         if self._format_version >= 111:
@@ -1599,14 +1600,13 @@ the string values returned are correct."""
                 v_o = self._read_uint64()
             else:
                 buf = self._path_or_buf.read(12)
-                # Only tested on little endian file on little endian machine.
+                # Only tested on little endian machine.
                 v_size = 2 if self._format_version == 118 else 3
                 if self._byteorder == "<":
                     buf = buf[0:v_size] + buf[4 : (12 - v_size)]
                 else:
-                    # This path may not be correct, impossible to test
-                    buf = buf[0:v_size] + buf[(4 + v_size) :]
-                v_o = struct.unpack("Q", buf)[0]
+                    buf = buf[4 - v_size : 4] + buf[(4 + v_size) :]
+                v_o = struct.unpack(f"{self._byteorder}Q", buf)[0]
             typ = self._read_uint8()
             length = self._read_uint32()
             va = self._path_or_buf.read(length)
@@ -3037,6 +3037,8 @@ class StataStrLWriter:
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
+        # Flag whether chosen byteorder matches the system on which we're running
+        self._native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
 
         gso_v_type = "I"  # uint32
         gso_o_type = "Q"  # uint64
@@ -3049,13 +3051,20 @@ class StataStrLWriter:
             o_size = 6
         else:  # version == 119
             o_size = 5
-        self._o_offet = 2 ** (8 * (8 - o_size))
+        if self._native_byteorder:
+            self._o_offet = 2 ** (8 * (8 - o_size))
+        else:
+            self._o_offet = 2 ** (8 * o_size)
         self._gso_o_type = gso_o_type
         self._gso_v_type = gso_v_type
 
     def _convert_key(self, key: tuple[int, int]) -> int:
         v, o = key
-        return v + self._o_offet * o
+        if self._native_byteorder:
+            return v + self._o_offet * o
+        else:
+            # v, o will be swapped when applying byteorder
+            return o + self._o_offet * v
 
     def generate_table(self) -> tuple[dict[str, tuple[int, int]], DataFrame]:
         """
@@ -3532,7 +3541,9 @@ class StataWriter117(StataWriter):
         ]
 
         if convert_cols:
-            ssw = StataStrLWriter(data, convert_cols, version=self._dta_version)
+            ssw = StataStrLWriter(
+                data, convert_cols, version=self._dta_version, byteorder=self._byteorder
+            )
             tab, new_data = ssw.generate_table()
             data = new_data
             self._strl_blob = ssw.generate_blob(tab)
