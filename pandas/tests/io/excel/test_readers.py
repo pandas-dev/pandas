@@ -176,6 +176,23 @@ class TestReaders:
         )
         tm.assert_frame_equal(df, df2)
 
+    def test_pass_none_type(self):
+        # GH 58159
+        with pd.ExcelFile("test7.xlsx") as excel:
+            parsed = pd.read_excel(
+                excel,
+                sheet_name="Sheet1",
+                keep_default_na=True,
+                na_values=["nan", "None", "abcd"],
+                dtype=pd.BooleanDtype.name,
+                engine="openpyxl",
+            )
+        expected = DataFrame(
+            {"Test": [True, None, False, None, False, None, True]},
+            dtype=pd.BooleanDtype.name,
+        )
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """

@@ -304,7 +304,6 @@ class BooleanArray(BaseMaskedArray):
         "0",
         "0.0",
     }
-    _NONE_VALUES = {"nan"}
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
@@ -340,14 +339,16 @@ class BooleanArray(BaseMaskedArray):
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
-        none_values_union = cls._NONE_VALUES.union(none_values or [])
+
+        if none_values is None:
+            none_values = []
 
         def map_string(s) -> bool | None:
             if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
-            elif s in none_values_union:
+            elif s in none_values:
                 return None
             else:
                 raise ValueError(f"{s} cannot be cast to bool")

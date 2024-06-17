@@ -751,6 +751,7 @@ class ParserBase:
                         dtype=cast_type,
                         true_values=self.true_values,
                         false_values=self.false_values,
+                        none_values=self.na_values,
                     )
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)
