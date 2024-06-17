@@ -399,6 +399,7 @@ def group_cumsum(
             lab = labels[i]
 
             if uses_mask and lab < 0:
+                # # GH#58811
                 result_mask[i, :] = True
                 out[i, :] = 0
                 continue
