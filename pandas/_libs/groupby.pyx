@@ -398,11 +398,12 @@ def group_cumsum(
         for i in range(N):
             lab = labels[i]
 
-            if lab < 0:
+            if uses_mask and lab < 0:
                 # GH#58811
-                if uses_mask:
-                    result_mask[i, :] = True
-                    out[i, :] = 0
+                result_mask[i, :] = True
+                out[i, :] = 0
+                continue
+            elif lab < 0:
                 continue
 
             for j in range(K):
