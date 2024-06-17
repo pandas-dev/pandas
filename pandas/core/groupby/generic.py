@@ -686,7 +686,8 @@ class SeriesGroupBy(GroupBy[Series]):
         b    1
         dtype: int64
         """
-        ids, ngroups = self._grouper.group_info
+        ids = self._grouper.ids
+        ngroups = self._grouper.ngroups
         val = self.obj._values
         codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
