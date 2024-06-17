@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.to_frame RT03" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
-        -i "pandas.NamedAgg SA01" \
         -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
@@ -211,7 +210,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
