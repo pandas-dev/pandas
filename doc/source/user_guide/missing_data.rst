@@ -319,7 +319,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.
@@ -337,10 +337,8 @@ When taking the product, NA values or empty data will be treated as 1.
    pd.Series([], dtype="float64").prod()
 
 Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
-ignore NA values by default preserve them in the result. This behavior can be changed
-with ``skipna``
-
-* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
+ignore NA values by default, but preserve them in the resulting array. To override
+this behaviour and include NA values in the calculation, use ``skipna=False``.
 
 
 .. ipython:: python
@@ -355,7 +353,7 @@ with ``skipna``
 Dropping missing data
 ~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.dropna` dropa rows or columns with missing data.
+:meth:`~DataFrame.dropna` drops rows or columns with missing data.
 
 .. ipython:: python
 
