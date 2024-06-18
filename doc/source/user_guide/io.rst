@@ -5847,10 +5847,10 @@ You can check if a table exists using :func:`~pandas.io.sql.has_table`
 Schema support
 ''''''''''''''
 
-Reading from and writing to different schema's is supported through the ``schema``
+Reading from and writing to different schemas is supported through the ``schema``
 keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
 functions. Note however that this depends on the database flavor (sqlite does not
-have schema's). For example:
+have schemas). For example:
 
 .. code-block:: python
 
