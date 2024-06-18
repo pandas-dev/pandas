@@ -249,7 +249,7 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [Index([])] + self.axes[1:]
+            axes = [default_index(0)] + self.axes[1:]
 
         # preserve dtype if possible
         if self.ndim == 1:

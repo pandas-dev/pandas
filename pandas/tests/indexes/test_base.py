@@ -1558,7 +1558,7 @@ class TestIndexUtils:
 
     def test_get_combined_index(self):
         result = _get_combined_index([])
-        expected = Index([])
+        expected = RangeIndex(0)
         tm.assert_index_equal(result, expected)
 
 

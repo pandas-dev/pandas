@@ -42,7 +42,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
-    RangeIndex,
+    default_index,
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
@@ -1047,7 +1047,7 @@ def stack_reshape(
             if data.ndim == 1:
                 data.name = 0
             else:
-                data.columns = RangeIndex(len(data.columns))
+                data.columns = default_index(len(data.columns))
         buf.append(data)
 
     if len(buf) > 0 and not frame.empty:

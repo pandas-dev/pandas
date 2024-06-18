@@ -130,7 +130,7 @@ def _get_combined_index(
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
-        index = Index([])
+        index: Index = default_index(0)
     elif len(indexes) == 1:
         index = indexes[0]
     elif intersect:

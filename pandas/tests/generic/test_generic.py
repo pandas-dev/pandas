@@ -93,14 +93,18 @@ class TestGeneric:
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        # https://github.com/pandas-dev/pandas/issues/50862
-        tm.assert_equal(result.reset_index(drop=True), expected)
+        tm.assert_equal(result, expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
         o = construct(frame_or_series, n, value=arr, **kwargs)
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
+
+    def test_get_bool_data_empty_preserve_index(self):
+        expected = Series([], dtype="bool")
+        result = expected._get_bool_data()
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_nonzero(self, frame_or_series):
         # GH 4633
