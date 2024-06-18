@@ -319,7 +319,7 @@ Missing values propagate through arithmetic operations between pandas objects.
 
 The descriptive statistics and computational methods discussed in the
 :ref:`data structure overview <basics.stats>` (and listed :ref:`here
-<api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all
+<api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
 When summing data, NA values or empty data will be treated as zero.

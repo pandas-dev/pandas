@@ -1606,7 +1606,7 @@ For instance:
 This method does not convert the row to a Series object; it merely
 returns the values inside a namedtuple. Therefore,
 :meth:`~DataFrame.itertuples` preserves the data type of the values
-and is generally faster as :meth:`~DataFrame.iterrows`.
+and is generally faster than :meth:`~DataFrame.iterrows`.
 
 .. note::
 
