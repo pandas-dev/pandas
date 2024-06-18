@@ -536,7 +536,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # RangeIndex defaults to step=1, which we don't want.
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
-            new_freq = to_offset(Timedelta(res_i8.step, unit=self.unit))
+            new_freq = to_offset(
+                Timedelta(res_i8.step, unit=self.unit).as_unit(self.unit)
+            )
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
