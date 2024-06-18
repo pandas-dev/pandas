@@ -3003,7 +3003,7 @@ However, if XPath does not reference node names such as default, ``/*``, then
 .. note::
 
    Since ``xpath`` identifies the parent of content to be parsed, only immediate
-   desendants which include child nodes or current attributes are parsed.
+   descendants which include child nodes or current attributes are parsed.
    Therefore, ``read_xml`` will not parse the text of grandchildren or other
    descendants and will not parse attributes of any descendant. To retrieve
    lower level content, adjust xpath to lower level. For example,
@@ -3535,7 +3535,7 @@ For example, to read in a ``MultiIndex`` index without names:
    df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
    df
 
-If the index has level names, they will parsed as well, using the same
+If the index has level names, they will be parsed as well, using the same
 parameters.
 
 .. ipython:: python
@@ -5847,10 +5847,10 @@ You can check if a table exists using :func:`~pandas.io.sql.has_table`
 Schema support
 ''''''''''''''
 
-Reading from and writing to different schema's is supported through the ``schema``
+Reading from and writing to different schemas is supported through the ``schema``
 keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
 functions. Note however that this depends on the database flavor (sqlite does not
-have schema's). For example:
+have schemas). For example:
 
 .. code-block:: python
 
