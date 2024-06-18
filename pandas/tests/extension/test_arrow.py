@@ -2905,6 +2905,31 @@ def test_dt_components():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_components_large_values():
+    ser = pd.Series(
+        [
+            pd.Timedelta("365 days 23:59:59.999000"),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        columns=[
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "milliseconds",
+            "microseconds",
+            "nanoseconds",
+        ],
+        dtype="int32[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
