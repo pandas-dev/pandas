@@ -22,10 +22,21 @@ import git
 
 
 class ContributorsDirective(Directive):
+    """
+    Directive to list contributors to a release.
+    """
     required_arguments = 1
     name = "contributors"
 
     def run(self):
+        """
+        Run the directive.
+
+        Returns
+        -------
+        list[docutils.nodes.Node]
+            List of nodes to include in the document.
+        """
         range_ = self.arguments[0]
         if range_.endswith("x..HEAD"):
             return [nodes.paragraph(), nodes.bullet_list()]
@@ -53,6 +64,19 @@ class ContributorsDirective(Directive):
 
 
 def setup(app):
+    """
+    Set up the extension.
+
+    Parameters
+    ----------
+    app : Sphinx
+        The Sphinx application.
+
+    Returns
+    -------
+    dict
+        Metadata for the extension.
+    """
     app.add_directive("contributors", ContributorsDirective)
 
     return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}

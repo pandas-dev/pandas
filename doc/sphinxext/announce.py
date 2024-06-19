@@ -57,6 +57,21 @@ A total of %d pull requests were merged for this release.
 
 
 def get_authors(revision_range):
+    """
+    Finds and returns authors within the revision range.
+
+    Parameters
+    -----------
+    revision_range : str
+        Revision range to search for authors.
+
+    Returns
+    -------
+    list[str]
+        List of authors in the revision range.
+
+
+    """
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
 
@@ -109,6 +124,22 @@ def get_authors(revision_range):
 
 
 def get_pull_requests(repo, revision_range):
+    """
+    Finds and returns pull requests within the revision range.
+
+    Parameters
+    -----------
+    repo : github.Repository.Repository
+        GitHub repository object.
+    revision_range : str
+        Revision range to search for pull requests.
+
+    Returns
+    -------
+    list[github.PullRequest.PullRequest]
+        List of pull requests in the revision range.
+    """
+
     prnums = []
 
     # From regular merges
@@ -134,6 +165,21 @@ def get_pull_requests(repo, revision_range):
 
 
 def build_components(revision_range, heading="Contributors"):
+    """
+    Builds components for the release announcement.
+
+    Parameters
+    -----------
+    revision_range : str
+        Revision range to search for authors.
+    heading : str
+        Heading for the announcement.
+
+    Returns
+    -------
+    dict[str, str]
+        Dictionary containing the components for the announcement.
+    """
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
 
@@ -145,6 +191,21 @@ def build_components(revision_range, heading="Contributors"):
 
 
 def build_string(revision_range, heading="Contributors"):
+    """
+    Builds a string for the release announcement.
+
+    Parameters
+    -----------
+    revision_range : str
+        Revision range to search for authors.
+    heading : str
+        Heading for the announcement.
+
+    Returns
+    -------
+    str
+        String for the release announcement.
+    """
     components = build_components(revision_range, heading=heading)
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
@@ -162,6 +223,18 @@ def build_string(revision_range, heading="Contributors"):
 
 
 def main(revision_range):
+    """
+    Main function for generating author lists for release.
+
+    Parameters
+    -----------
+    revision_range : str
+        Revision range to search for authors.
+
+    Returns
+    -------
+    None
+    """
     # document authors
     text = build_string(revision_range)
     print(text)
