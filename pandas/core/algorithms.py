@@ -1684,6 +1684,7 @@ def map_array(
 
     na_value = None
     mask = isna(arr)
+    storage = None
     if isinstance(arr.dtype, BaseMaskedDtype) and na_action is None:
         arr = cast("BaseMaskedArray", arr)
         values = arr._data
@@ -1691,7 +1692,15 @@ def map_array(
             na_value = arr.dtype.na_value
     elif isinstance(arr.dtype, ExtensionDtype) and na_action is None:
         arr = cast("ExtensionArray", arr)
-        values = np.asarray(arr)
+        arr_dtype = arr.dtype.__repr__()
+        if "pyarrow" in arr_dtype:
+            if "date" in arr_dtype or "time" in arr_dtype:
+                values = arr.astype(object, copy=False)
+            else:
+                values = arr._pa_array.to_numpy()
+            storage = "pyarrow"
+        else:
+            values = np.asarray(arr)
         if arr._hasna:
             na_value = arr.dtype.na_value
     else:
@@ -1705,6 +1714,7 @@ def map_array(
             mask=mask,
             na_value=na_value,
             convert_to_nullable_dtype=na_value is not None,
+            storage=storage,
         )
     else:
         return lib.map_infer_mask(
