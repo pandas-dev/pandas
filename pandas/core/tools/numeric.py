@@ -97,8 +97,7 @@ def to_numeric(
         is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`.
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-        DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame.
 
         .. versionadded:: 2.0
 
