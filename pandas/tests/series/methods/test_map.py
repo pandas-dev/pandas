@@ -236,7 +236,15 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    expected = Series(np.nan, index=s.index)
+    na_value = np.nan
+    dtype = "float64"
+
+    # In pyarrow double is the equivalent of float64
+    # Cf: https://arrow.apache.org/docs/python/pandas.html#pandas-arrow-conversion
+    if "pyarrow" in s.dtype.__repr__():
+        dtype = "double[pyarrow]"
+        na_value = pd.NA
+    expected = Series(na_value, index=s.index, dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -287,6 +295,8 @@ def test_map_with_pd_na_input(ser):
         Series([pd.NA, 11], dtype="Int64"),
         Series([pd.NA, 11.0], dtype="Float64"),
         Series([pd.NA, True], dtype="boolean"),
+        Series([pd.NA, "AAA"], dtype="string"),
+        Series([pd.NA, "AAA"], dtype="string[pyarrow]"),
     ],
 )
 def test_map_with_pd_na_output(ser):
