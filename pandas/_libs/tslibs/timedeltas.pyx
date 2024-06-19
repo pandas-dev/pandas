@@ -1731,6 +1731,12 @@ cdef class _Timedelta(timedelta):
         -------
         Timedelta
 
+        See Also
+        --------
+        Timedelta : Represents a duration, the difference between two dates or times.
+        to_timedelta : Convert argument to timedelta.
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
