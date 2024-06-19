@@ -37,7 +37,7 @@ from cython cimport (
     floating,
 )
 
-from pandas._config import using_string_dtype
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
 
