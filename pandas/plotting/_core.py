@@ -791,6 +791,21 @@ class PlotAccessor(PandasObject):
         If the backend is not the default matplotlib one, the return value
         will be the object returned by the backend.
 
+    See Also
+    --------
+    matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+    DataFrame.hist : Make a histogram.
+    DataFrame.boxplot : Make a box plot.
+    DataFrame.plot.scatter : Make a scatter plot with varying marker
+        point size and color.
+    DataFrame.plot.hexbin : Make a hexagonal binning plot of
+        two variables.
+    DataFrame.plot.kde : Make Kernel Density Estimate plot using
+        Gaussian kernels.
+    DataFrame.plot.area : Make a stacked area plot.
+    DataFrame.plot.bar : Make a bar plot.
+    DataFrame.plot.barh : Make a horizontal bar plot.
+
     Notes
     -----
     - See matplotlib documentation online for more on this subject
@@ -967,10 +982,7 @@ class PlotAccessor(PandasObject):
                 f"Valid plot kinds: {self._all_kinds}"
             )
 
-        # The original data structured can be transformed before passed to the
-        # backend. For example, for DataFrame is common to set the index as the
-        # `x` parameter, and return a Series with the parameter `y` as values.
-        data = self._parent.copy()
+        data = self._parent
 
         if isinstance(data, ABCSeries):
             kwargs["reuse_plot"] = True
@@ -990,7 +1002,7 @@ class PlotAccessor(PandasObject):
                     if is_integer(y) and not holds_integer(data.columns):
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
-                    data = data[y].copy()
+                    data = data[y].copy(deep=False)
                     data.index.name = y
         elif isinstance(data, ABCDataFrame):
             data_cols = data.columns
@@ -1017,8 +1029,7 @@ class PlotAccessor(PandasObject):
                         except (IndexError, KeyError, TypeError):
                             pass
 
-                # don't overwrite
-                data = data[y].copy()
+                data = data[y]
 
                 if isinstance(data, ABCSeries):
                     label_name = label_kw or y
@@ -1583,7 +1594,7 @@ class PlotAccessor(PandasObject):
 
         See Also
         --------
-        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
+        DataFrame.plot : Make plots of DataFrame using matplotlib.
 
         Examples
         --------

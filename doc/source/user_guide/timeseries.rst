@@ -326,7 +326,7 @@ which can be specified. These are computed from the starting point specified by 
 .. note::
 
    The ``unit`` parameter does not use the same strings as the ``format`` parameter
-   that was discussed :ref:`above<timeseries.converting.format>`). The
+   that was discussed :ref:`above<timeseries.converting.format>`. The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
@@ -1273,6 +1273,10 @@ frequencies. We will refer to these aliases as *offset aliases*.
    are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
+   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
+   ``YE``, ``ME``, ``QE``.
+
+
 .. note::
 
     When using the offset aliases above, it should be noted that functions
@@ -1475,7 +1479,7 @@ or some other non-observed day.  Defined observance rules are:
     "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"
     "sunday_to_monday", "move Sunday to following Monday"
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
-    "previous_friday", move Saturday and Sunday to previous Friday"
+    "previous_friday", "move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
     "weekend_to_monday", "same as ``next_monday``"
 
@@ -1860,7 +1864,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("ME", on="date")[["a"]].sum()
+   df.resample("MS", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1868,7 +1872,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("ME", level="d")[["a"]].sum()
+   df.resample("MS", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 

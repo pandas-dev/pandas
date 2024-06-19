@@ -6,7 +6,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    WASM,
+)
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -26,7 +29,7 @@ class TestTimedeltas:
         #  supported GH#29794
         msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
 
-        ser = Series([pd.NaT])
+        ser = Series([pd.NaT], dtype="M8[ns]")
         with pytest.raises(TypeError, match=msg):
             to_timedelta(ser)
         with pytest.raises(TypeError, match=msg):
@@ -214,6 +217,7 @@ class TestTimedeltas:
         actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
+    @pytest.mark.skipif(WASM, reason="No fp exception support in WASM")
     @pytest.mark.xfail(not IS64, reason="Floating point error")
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077

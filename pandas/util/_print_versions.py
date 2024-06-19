@@ -115,6 +115,11 @@ def show_versions(as_json: str | bool = False) -> None:
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
 
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
+
     Examples
     --------
     >>> pd.show_versions()  # doctest: +SKIP

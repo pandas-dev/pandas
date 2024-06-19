@@ -1193,7 +1193,7 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         convert_numeric=False,
         convert_non_numeric=True,
-        dtype_if_all_nat=np.dtype("M8[ns]"),
+        dtype_if_all_nat=np.dtype("M8[s]"),
     )
 
 
@@ -1697,7 +1697,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             )
         raise ValueError("Trying to coerce float values to integers")
     if arr.dtype == object:
-        raise ValueError("Trying to coerce float values to integers")
+        raise ValueError("Trying to coerce object values to integers")
 
     if casted.dtype < arr.dtype:
         # TODO: Can this path be hit anymore with numpy > 2

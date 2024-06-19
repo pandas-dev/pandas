@@ -1731,6 +1731,12 @@ cdef class _Timedelta(timedelta):
         -------
         Timedelta
 
+        See Also
+        --------
+        Timedelta : Represents a duration, the difference between two dates or times.
+        to_timedelta : Convert argument to timedelta.
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -1785,6 +1791,7 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, or int
+        Input value.
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
@@ -1809,6 +1816,15 @@ class Timedelta(_Timedelta):
         milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
+
+    See Also
+    --------
+    Timestamp : Represents a single timestamp in time.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    DateOffset : Standard kind of date increment used for a date range.
+    to_timedelta : Convert argument to timedelta.
+    datetime.timedelta : Represents a duration in the datetime module.
+    numpy.timedelta64 : Represents a duration compatible with NumPy.
 
     Notes
     -----
