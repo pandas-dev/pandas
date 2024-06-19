@@ -18,7 +18,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
-    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -2617,17 +2616,19 @@ class ArrowExtensionArray(
     @property
     def _dt_days(self) -> Self:
         return type(self)(
-            pa.array(self._to_timedeltaarray().days, from_pandas=True, type=pa.int32())
+            pa.array(
+                self._to_timedeltaarray().components.days,
+                from_pandas=True,
+                type=pa.int32(),
+            )
         )
 
     @property
     def _dt_hours(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.hours if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.hours,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2636,10 +2637,8 @@ class ArrowExtensionArray(
     def _dt_minutes(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.minutes if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.minutes,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2648,7 +2647,9 @@ class ArrowExtensionArray(
     def _dt_seconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().seconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.seconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2656,10 +2657,8 @@ class ArrowExtensionArray(
     def _dt_milliseconds(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.milliseconds if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.milliseconds,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2668,7 +2667,7 @@ class ArrowExtensionArray(
     def _dt_microseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().microseconds,
+                self._to_timedeltaarray().components.microseconds,
                 from_pandas=True,
                 type=pa.int32(),
             )
@@ -2678,7 +2677,9 @@ class ArrowExtensionArray(
     def _dt_nanoseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().nanoseconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.nanoseconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2975,7 +2976,7 @@ def transpose_homogeneous_pyarrow(
     """
     arrays = list(arrays)
     nrows, ncols = len(arrays[0]), len(arrays)
-    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.reshape(-1)
     arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
     arr = arr.take(indices)
     return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]
