@@ -668,6 +668,26 @@ class TestTimedeltas:
         result = Timedelta.resolution
         assert result == Timedelta(nanoseconds=1)
 
+    @pytest.mark.parametrize(
+        "unit,unit_depr",
+        [
+            ("W", "w"),
+            ("D", "d"),
+            ("min", "MIN"),
+            ("s", "S"),
+            ("h", "H"),
+            ("ms", "MS"),
+            ("us", "US"),
+        ],
+    )
+    def test_unit_deprecated(self, unit, unit_depr):
+        # GH#59051
+        msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Timedelta(1, unit_depr)
+        assert result == Timedelta(1, unit)
+
 
 @pytest.mark.parametrize(
     "value, expected",

@@ -239,3 +239,28 @@ class TestTimedeltaIndex:
         ci = pd.CategoricalIndex(tdi)
         result = TimedeltaIndex(ci)
         tm.assert_index_equal(result, tdi)
+
+    @pytest.mark.parametrize(
+        "unit,unit_depr",
+        [
+            ("W", "w"),
+            ("D", "d"),
+            ("min", "MIN"),
+            ("s", "S"),
+            ("h", "H"),
+            ("ms", "MS"),
+            ("us", "US"),
+        ],
+    )
+    def test_unit_deprecated(self, unit, unit_depr):
+        # GH#52536, GH#59051
+        msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+
+        expected = TimedeltaIndex([f"1{unit}", f"2{unit}"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = TimedeltaIndex([f"1{unit_depr}", f"2{unit_depr}"])
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tdi = to_timedelta([1, 2], unit=unit_depr)
+        tm.assert_index_equal(tdi, expected)

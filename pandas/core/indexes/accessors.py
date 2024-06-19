@@ -459,7 +459,7 @@ class TimedeltaProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="d"))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="D"))
         >>> s
         0   0 days
         1   1 days

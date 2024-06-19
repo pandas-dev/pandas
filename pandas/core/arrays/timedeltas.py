@@ -809,7 +809,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='D'))
     >>> ser
     0   1 days
     1   2 days
