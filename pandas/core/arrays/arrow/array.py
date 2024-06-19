@@ -338,7 +338,12 @@ class ArrowExtensionArray(
         elif pa.types.is_date(pa_type):
             from pandas.core.tools.datetimes import to_datetime
 
-            scalars = to_datetime(strings, errors="raise").date
+            if isinstance(strings, ExtensionArray) and isinstance(
+                strings.dtype, ArrowDtype
+            ):
+                scalars = to_datetime(strings._pa_array, errors="raise").date
+            else:
+                scalars = to_datetime(strings, errors="raise").date
         elif pa.types.is_duration(pa_type):
             from pandas.core.tools.timedeltas import to_timedelta
 
@@ -1424,7 +1429,10 @@ class ArrowExtensionArray(
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = super().map(mapper, na_action)
-        return ArrowExtensionArray._from_sequence(result, dtype=result.dtype.type)
+        if isinstance(result.dtype, StringDtype):
+            return result
+        else:
+            return ArrowExtensionArray._from_sequence(result, dtype=result.dtype.type)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
