@@ -1178,7 +1178,7 @@ def read_html(
     **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*
-    it will fail, e.g., it will *not* return an empty list.
+    it will fail, i.e., it will *not* return an empty list.
 
     Examples
     --------
