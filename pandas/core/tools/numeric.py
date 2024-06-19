@@ -90,14 +90,15 @@ def to_numeric(
         checked satisfy that specification, no downcasting will be
         performed on the data.
 
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default not nullable numpy
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`.
         * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        DataFrame.
 
         .. versionadded:: 2.0
 
