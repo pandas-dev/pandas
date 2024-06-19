@@ -25,6 +25,7 @@ class ContributorsDirective(Directive):
     """
     Directive to list contributors to a release.
     """
+
     required_arguments = 1
     name = "contributors"
 
