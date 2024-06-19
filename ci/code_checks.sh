@@ -462,7 +462,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.stata.StataReader.variable_labels RT03,SA01" \
         -i "pandas.io.stata.StataWriter.write_file SA01" \
         -i "pandas.json_normalize RT03,SA01" \
-        -i "pandas.merge_asof PR07,RT03" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \
