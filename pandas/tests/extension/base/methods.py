@@ -100,8 +100,8 @@ class BaseMethodsTests:
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
-        expected = data_missing.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
+        expected = data_missing
+        tm.assert_extension_array_equal(result, expected)
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
