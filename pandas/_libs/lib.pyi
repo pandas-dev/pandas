@@ -77,6 +77,7 @@ def map_infer(
     mask: npt.NDArray[np.bool_] | None = ...,
     na_value: Any = ...,
     convert_to_nullable_dtype: Literal[False] = ...,
+    storage: str | None = ...,
 ) -> np.ndarray: ...
 @overload
 def map_infer(
@@ -88,6 +89,7 @@ def map_infer(
     mask: npt.NDArray[np.bool_] | None = ...,
     na_value: Any = ...,
     convert_to_nullable_dtype: Literal[False] = ...,
+    storage: str | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -99,6 +101,7 @@ def maybe_convert_objects(
     convert_non_numeric: Literal[False] = ...,
     convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
 @overload
 def maybe_convert_objects(
@@ -110,6 +113,7 @@ def maybe_convert_objects(
     convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -121,6 +125,7 @@ def maybe_convert_objects(
     convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
+    storage: str | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_numeric(
