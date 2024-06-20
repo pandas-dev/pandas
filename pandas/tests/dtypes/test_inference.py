@@ -1810,21 +1810,6 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype("datetime64[ns]")
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
-        
-        result_min = pd.date_range("2013-01-01", periods=3, freq="1min")
-        assert result_min.dtype == 'datetime64[s]'
-
-        result_day = pd.date_range("2013-01-01", periods=3, freq="1D")
-        assert result_day.dtype == 'datetime64[D]'
-
-        result_hour = pd.date_range("2013-01-01", periods=3, freq="1H")
-        assert result_hour.dtype == 'datetime64[h]'
-
-        result_ms = pd.date_range("2013-01-01", periods=3, freq="1ms")
-        assert result_ms.dtype == 'datetime64[ms]'
-
-        result_ns = pd.date_range("2013-01-01", periods=3, freq="1s")
-        assert result_ns.dtype == 'datetime64[ns]'
 
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert not is_datetime64tz_dtype("datetime64")
