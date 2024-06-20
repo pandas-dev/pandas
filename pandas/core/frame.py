@@ -5082,7 +5082,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-
         return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
