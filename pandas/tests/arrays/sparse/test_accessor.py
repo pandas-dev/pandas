@@ -112,7 +112,9 @@ class TestFrameAccessor:
         sp_dtype = SparseDtype(dtype, np.array(0, dtype=dtype).item())
 
         mat = sp_sparse.eye(10, format=format, dtype=dtype)
-        result = pd.DataFrame.sparse.from_spmatrix(mat, index=labels, columns=labels)
+        result = pd.DataFrame.sparse.from_spmatrix(
+            mat, index=labels, columns=labels, fill_value=0
+        )
         expected = pd.DataFrame(
             np.eye(10, dtype=dtype), index=labels, columns=labels
         ).astype(sp_dtype)
@@ -124,7 +126,7 @@ class TestFrameAccessor:
 
         mat = sp_sparse.random(10, 2, density=0.5, format=format)
         mat.data[0] = 0
-        result = pd.DataFrame.sparse.from_spmatrix(mat)
+        result = pd.DataFrame.sparse.from_spmatrix(mat, fill_value=0)
         dtype = SparseDtype("float64", 0.0)
         expected = pd.DataFrame(mat.todense()).astype(dtype)
         tm.assert_frame_equal(result, expected)
@@ -139,7 +141,7 @@ class TestFrameAccessor:
         dtype = SparseDtype("float64", 0.0)
 
         mat = sp_sparse.random(10, 2, density=0.5)
-        result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns)
+        result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns, fill_value=0)
         expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
