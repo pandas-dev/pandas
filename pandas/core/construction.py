@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.compat import pa_version_under10p1
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -40,7 +41,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -50,6 +54,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
+
+if not pa_version_under10p1:
+    import pyarrow as pa
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -553,6 +560,9 @@ def sanitize_array(
     if isinstance(dtype, NumpyEADtype):
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
+
+    elif not pa_version_under10p1 and isinstance(data, (pa.ChunkedArray, pa.Array)):
+        dtype = ArrowDtype(data.type)
 
     infer_object = not isinstance(data, (ABCIndex, ABCSeries))
 
