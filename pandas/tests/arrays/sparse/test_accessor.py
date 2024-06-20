@@ -105,7 +105,7 @@ class TestFrameAccessor:
 
     @pytest.mark.parametrize("format", ["csc", "csr", "coo"])
     @pytest.mark.parametrize("labels", [None, list(string.ascii_letters[:10])])
-    @pytest.mark.parametrize("dtype", ["float64", "int64"])
+    @pytest.mark.parametrize("dtype", ["complex128", "float64", "int64"])
     def test_from_spmatrix(self, format, labels, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
@@ -143,6 +143,24 @@ class TestFrameAccessor:
         mat = sp_sparse.random(10, 2, density=0.5)
         result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns, fill_value=0)
         expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, fill_value",
+        [("bool", False), ("float64", np.nan), ("complex128", np.nan)],
+    )
+    @pytest.mark.parametrize("format", ["csc", "csr", "coo"])
+    def test_from_spmatrix_fill_value(self, format, dtype, fill_value):
+        sp_sparse = pytest.importorskip("scipy.sparse")
+
+        sp_dtype = SparseDtype(dtype, fill_value)
+
+        sp_mat = sp_sparse.eye(10, format=format, dtype=dtype)
+        result = pd.DataFrame.sparse.from_spmatrix(sp_mat, fill_value=fill_value)
+        mat = np.eye(10, dtype=dtype)
+        expected = pd.DataFrame(
+            np.ma.array(mat, mask=(mat == 0)).filled(fill_value)
+        ).astype(sp_dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
