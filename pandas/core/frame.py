@@ -48,17 +48,10 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import (
-    PYPY,
-    pa_version_under10p1,
-)
+from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-
-if not pa_version_under10p1:
-    import pyarrow as pa
-
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -5090,11 +5083,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_list_like(value):
             com.require_length_match(value, self.index)
 
-        if not pa_version_under10p1 and isinstance(value, pa.lib._PandasConvertible):
-            dtype = ArrowDtype(value.type)
-        else:
-            dtype = None
-        return sanitize_array(value, self.index, dtype, copy=True, allow_2d=True), None
+        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
     def _series(self):
