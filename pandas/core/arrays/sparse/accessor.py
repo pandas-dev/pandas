@@ -286,6 +286,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype       na_value
             =========== ==========
             float       ``np.nan``
+            complex     ``np.nan``
             int         ``0``
             bool        ``False``
             datetime64  ``pd.NaT``
