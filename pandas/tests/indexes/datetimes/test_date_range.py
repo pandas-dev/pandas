@@ -144,24 +144,12 @@ class TestDateRanges:
         with pytest.raises(TypeError, match=msg):
             date_range("1/1/2000", periods=10.5)
 
-    @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("2ME", "2M"),
-            ("2SME", "2SM"),
-            ("2BQE", "2BQ"),
-            ("2BYE", "2BY"),
-        ],
-    )
-    def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
-        # GH#52064
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    @pytest.mark.parametrize("freq", ["2M", "1m", "2SM", "2BQ", "1bq", "2BY"])
+    def test_date_range_frequency_M_SM_BQ_BY_raises(self, freq):
+        msg = f"Invalid frequency: {freq}"
 
-        expected = date_range("1/1/2000", periods=4, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = date_range("1/1/2000", periods=4, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=4, freq=freq)
 
     def test_date_range_tuple_freq_raises(self):
         # GH#34703
@@ -777,34 +765,13 @@ class TestDateRanges:
             date_range("1/1/2000", periods=2, freq=freq)
 
     @pytest.mark.parametrize(
-        "freq,freq_depr",
-        [
-            ("YE", "Y"),
-            ("YE-MAY", "Y-MAY"),
-        ],
+        "freq_depr", ["m", "bm", "CBM", "SM", "BQ", "q-feb", "y-may", "Y-MAY"]
     )
-    def test_frequencies_Y_renamed(self, freq, freq_depr):
-        # GH#9586, GH#54275
-        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
-        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' is deprecated and will be removed "
-        f"in a future version, please use '{freq_msg}' instead."
+    def test_frequency_raises(self, freq_depr):
+        msg = f"Invalid frequency: {freq_depr}"
 
-        expected = date_range("1/1/2000", periods=2, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("1/1/2000", periods=2, freq=freq_depr)
-        tm.assert_index_equal(result, expected)
-
-    def test_to_offset_with_lowercase_deprecated_freq(self) -> None:
-        # https://github.com/pandas-dev/pandas/issues/56847
-        msg = (
-            "'m' is deprecated and will be removed in a future version, please use "
-            "'ME' instead."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("2010-01-01", periods=2, freq="m")
-        expected = DatetimeIndex(["2010-01-31", "2010-02-28"], freq="ME")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq_depr)
 
     def test_date_range_bday(self):
         sdate = datetime(1999, 12, 25)

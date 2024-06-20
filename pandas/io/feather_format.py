@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -107,6 +108,14 @@ def read_feather(
     type of object stored in file
         DataFrame object stored in the file.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_sas : Read SAS file into a pandas DataFrame.
+
     Examples
     --------
     >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
@@ -123,9 +132,16 @@ def read_feather(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
         if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
-            return feather.read_feather(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+
+                return feather.read_feather(
+                    handles.handle, columns=columns, use_threads=bool(use_threads)
+                )
 
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)

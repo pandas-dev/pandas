@@ -2913,6 +2913,31 @@ def test_dt_components():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_components_large_values():
+    ser = pd.Series(
+        [
+            pd.Timedelta("365 days 23:59:59.999000"),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        columns=[
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "milliseconds",
+            "microseconds",
+            "nanoseconds",
+        ],
+        dtype="int32[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
@@ -3453,7 +3478,7 @@ def test_arrow_floor_division_large_divisor(dtype):
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
-    result = pd.Series(string_dates, dtype="timestamp[ns][pyarrow]")
+    result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
     expected = pd.Series(
         ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
     )

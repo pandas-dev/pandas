@@ -419,6 +419,12 @@ class NaTType(_NaT):
 
         Monday == 0 ... Sunday == 6.
 
+        See Also
+        --------
+        Timestamp.dayofweek : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isoweekday : Return the day of the week with Monday=1, Sunday=7.
+        datetime.date.weekday : Equivalent method in datetime module.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01')
@@ -527,6 +533,12 @@ class NaTType(_NaT):
         "isocalendar",
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        See Also
+        --------
+        DatetimeIndex.isocalendar : Return a 3-tuple containing ISO year,
+            week number, and weekday for the given DatetimeIndex object.
+        datetime.date.isocalendar : The equivalent method for `datetime.date` objects.
 
         Examples
         --------
@@ -1215,6 +1227,12 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        See Also
+        --------
+        Timestamp.floor : Round down a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.ceil : Ceil the datetime values in a Series.
 
         Notes
         -----

@@ -2655,7 +2655,7 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
-            converted = _set_tz(converted, tz)
+            converted = _set_tz(converted, tz, dtype)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -3036,7 +3036,7 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                ret = _set_tz(ret, tz)
+                ret = _set_tz(ret, tz, dtype)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -4964,7 +4964,9 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
-def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeArray:
+def _set_tz(
+    values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
+) -> DatetimeArray:
     """
     Coerce the values to a DatetimeArray with appropriate tz.
 
@@ -4972,11 +4974,13 @@ def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeA
     ----------
     values : ndarray[int64]
     tz : str, tzinfo, or None
+    datetime64_dtype : str, e.g. "datetime64[ns]", "datetime64[25s]"
     """
     assert values.dtype == "i8", values.dtype
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
-    dtype = tz_to_dtype(tz=tz, unit="ns")  # type: ignore[arg-type]
+    unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
 

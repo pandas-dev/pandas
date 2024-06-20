@@ -1378,7 +1378,7 @@ class Timestamp(_Timestamp):
         Time zone for time which Timestamp will have.
     unit : str
         Unit used for conversion if ts_input is of type int or float. The
-        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
 
         For float inputs, the result will be stored in nanoseconds, and
@@ -1416,6 +1416,11 @@ class Timestamp(_Timestamp):
 
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
+
+    This converts an int representing a Unix-epoch in units of weeks
+
+    >>> pd.Timestamp(1535, unit='W')
+    Timestamp('1999-06-03 00:00:00')
 
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
@@ -1690,6 +1695,12 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        See Also
+        --------
+        DatetimeIndex.isocalendar : Return a 3-tuple containing ISO year,
+            week number, and weekday for the given DatetimeIndex object.
+        datetime.date.isocalendar : The equivalent method for `datetime.date` objects.
 
         Examples
         --------
@@ -2285,6 +2296,12 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        See Also
+        --------
+        Timestamp.floor : Round down a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.ceil : Ceil the datetime values in a Series.
+
         Notes
         -----
         If the Timestamp has a timezone, ceiling will take place relative to the
@@ -2739,6 +2756,12 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        See Also
+        --------
+        Timestamp.dayofweek : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isoweekday : Return the day of the week with Monday=1, Sunday=7.
+        datetime.date.weekday : Equivalent method in datetime module.
 
         Examples
         --------
