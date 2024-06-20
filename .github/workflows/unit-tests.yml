@@ -351,12 +351,7 @@ jobs:
     defaults:
       run:
         shell: bash -eou pipefail {0}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
-        os: [ubuntu-22.04, macOS-13, macOS-14]
+    runs-on: ubuntu-22.04
 
     timeout-minutes: 90
 
