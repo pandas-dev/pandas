@@ -1816,7 +1816,6 @@ class TestNumberScalar:
             assert not is_datetime64tz_dtype("datetime64[ns]")
             assert not is_datetime64tz_dtype(ts)
             assert is_datetime64tz_dtype(tsa)
-        
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
     def test_is_datetime_dtypes_with_tz(self, tz):
