@@ -60,7 +60,7 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   Equality comparisons between ``np.nan``, :class:`NaT`, and :class:`NA`
    do not act like ``None``
 
    .. ipython:: python
