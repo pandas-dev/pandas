@@ -30,9 +30,9 @@ def data_test_ix(request, dirpath):
     fname = os.path.join(dirpath, f"test_sas7bdat_{i}.csv")
     df = pd.read_csv(fname)
     epoch = datetime(1960, 1, 1)
-    t1 = pd.to_timedelta(df["Column4"], unit="d")
+    t1 = pd.to_timedelta(df["Column4"], unit="D")
     df["Column4"] = (epoch + t1).astype("M8[s]")
-    t2 = pd.to_timedelta(df["Column12"], unit="d")
+    t2 = pd.to_timedelta(df["Column12"], unit="D")
     df["Column12"] = (epoch + t2).astype("M8[s]")
     for k in range(df.shape[1]):
         col = df.iloc[:, k]

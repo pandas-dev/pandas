@@ -511,13 +511,13 @@ class TestCategoricalIndex:
             # pandas scalars
             [Interval(1, 4), Interval(4, 6), Interval(6, 9)],
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
-            [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
+            [Timedelta(1, "D"), Timedelta(2, "D"), Timedelta(3, "D")],
             # pandas Integer arrays
             *(pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES),
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
-            pd.timedelta_range(start="1d", periods=3).array,
+            pd.timedelta_range(start="1D", periods=3).array,
         ],
     )
     def test_loc_getitem_with_non_string_categories(self, idx_values, ordered):

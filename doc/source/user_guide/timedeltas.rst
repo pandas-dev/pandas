@@ -35,7 +35,7 @@ You can construct a ``Timedelta`` scalar through various arguments, including `I
    pd.Timedelta(days=1, seconds=1)
 
    # integers with a unit
-   pd.Timedelta(1, unit="d")
+   pd.Timedelta(1, unit="D")
 
    # from a datetime.timedelta/np.timedelta64
    pd.Timedelta(datetime.timedelta(days=1, seconds=1))
@@ -94,7 +94,7 @@ is numeric:
 .. ipython:: python
 
    pd.to_timedelta(np.arange(5), unit="s")
-   pd.to_timedelta(np.arange(5), unit="d")
+   pd.to_timedelta(np.arange(5), unit="D")
 
 .. warning::
     If a string or array of strings is passed as an input then the ``unit`` keyword

@@ -346,6 +346,17 @@ cdef dict c_DEPR_ABBREVS = {
     "S": "s",
 }
 
+cdef dict c_DEPR_UNITS = {
+    "w": "W",
+    "d": "D",
+    "H": "h",
+    "MIN": "min",
+    "S": "s",
+    "MS": "ms",
+    "US": "us",
+    "NS": "ns",
+}
+
 cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w": "W",
     "MIN": "min",

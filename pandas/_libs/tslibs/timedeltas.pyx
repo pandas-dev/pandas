@@ -43,7 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
+    c_DEPR_UNITS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -719,15 +719,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
-    elif unit in c_DEPR_ABBREVS:
+    elif unit in c_DEPR_UNITS:
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
-            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        unit = c_DEPR_ABBREVS[unit]
+        unit = c_DEPR_UNITS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -1822,6 +1822,11 @@ class Timedelta(_Timedelta):
 
             Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
             of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
+
+        .. deprecated:: 3.0.0
+
+            Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
+            are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,

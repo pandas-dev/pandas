@@ -148,8 +148,8 @@ def test_len_nan_group():
 
 def test_groupby_timedelta_median():
     # issue 57926
-    expected = Series(data=Timedelta("1d"), index=["foo"])
-    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
+    expected = Series(data=Timedelta("1D"), index=["foo"])
+    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1D")]})
     gb = df.groupby("label")["timedelta"]
     actual = gb.median()
     tm.assert_series_equal(actual, expected, check_names=False)
