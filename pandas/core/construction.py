@@ -554,19 +554,19 @@ def sanitize_array(
     np.ndarray or ExtensionArray
     """
     original_dtype = dtype
+    if (
+        not pa_version_under10p1
+        and isinstance(data, (pa.ChunkedArray, pa.Array))
+        and dtype is None
+    ):
+        dtype = ArrowDtype(data.type)
+
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
     if isinstance(dtype, NumpyEADtype):
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
-
-    elif (
-        not pa_version_under10p1
-        and isinstance(data, (pa.ChunkedArray, pa.Array))
-        and dtype is None
-    ):
-        dtype = ArrowDtype(data.type)
 
     infer_object = not isinstance(data, (ABCIndex, ABCSeries))
 
