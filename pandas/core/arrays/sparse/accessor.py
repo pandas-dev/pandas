@@ -280,7 +280,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             Defaults to a RangeIndex.
         fill_value : scalar, optional
             The scalar value not stored in the columns. By default, this
-            depends on the dtype of `data`.
+            depends on the dtype of ``data``.
 
             =========== ==========
             dtype       na_value
@@ -293,7 +293,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             timedelta64 ``pd.NaT``
             =========== ==========
 
-            The default value may be overridden by specifying a `fill_value`.
+            The default value may be overridden by specifying a ``fill_value``.
 
         Returns
         -------

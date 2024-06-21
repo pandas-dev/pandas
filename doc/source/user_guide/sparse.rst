@@ -188,7 +188,7 @@ Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with s
    sp_arr = csr_matrix(arr)
    sp_arr
 
-   sdf = pd.DataFrame.sparse.from_spmatrix(sp_arr)
+   sdf = pd.DataFrame.sparse.from_spmatrix(sp_arr, fill_value=0)
    sdf.head()
    sdf.dtypes
 
