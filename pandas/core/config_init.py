@@ -12,8 +12,8 @@ module is imported, register them here rather than in the module.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
-from typing import Callable
 
 import pandas._config.config as cf
 from pandas._config.config import (

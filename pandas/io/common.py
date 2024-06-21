@@ -55,10 +55,6 @@ from pandas._typing import (
     BaseBuffer,
     ReadCsvBuffer,
 )
-from pandas.compat import (
-    get_bz2_file,
-    get_lzma_file,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -784,9 +780,11 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
+            import bz2
+
             # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = get_bz2_file()(  # type: ignore[call-overload]
+            handle = bz2.BZ2File(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
@@ -849,7 +847,9 @@ def get_handle(
             # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
             # PathLike[bytes]], IO[bytes]], None]"
-            handle = get_lzma_file()(
+            import lzma
+
+            handle = lzma.LZMAFile(
                 handle,  # type: ignore[arg-type]
                 ioargs.mode,
                 **compression_args,

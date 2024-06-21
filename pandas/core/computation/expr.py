@@ -12,7 +12,7 @@ from functools import (
 from keyword import iskeyword
 import tokenize
 from typing import (
-    Callable,
+    TYPE_CHECKING,
     ClassVar,
     TypeVar,
 )
@@ -46,6 +46,9 @@ from pandas.core.computation.parsing import (
 from pandas.core.computation.scope import Scope
 
 from pandas.io.formats import printing
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:

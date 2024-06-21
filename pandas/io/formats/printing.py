@@ -5,6 +5,7 @@ Printing tools.
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Iterable,
     Mapping,
     Sequence,
@@ -13,7 +14,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     TypeVar,
     Union,
 )

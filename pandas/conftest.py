@@ -32,10 +32,7 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 import uuid
 
 from dateutil.tz import (
@@ -83,6 +80,7 @@ from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )

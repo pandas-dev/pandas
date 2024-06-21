@@ -6,7 +6,6 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     overload,
@@ -94,6 +93,7 @@ from pandas.io.formats import console
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,

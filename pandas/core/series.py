@@ -5,6 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -17,7 +18,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,

@@ -7,7 +7,6 @@ from __future__ import annotations
 from inspect import signature
 from typing import (
     TYPE_CHECKING,
-    Callable,
     TypeVar,
 )
 
@@ -18,6 +17,8 @@ from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
     from pandas._typing import (

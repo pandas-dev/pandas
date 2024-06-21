@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _arrow_dtype_mapping() -> dict:

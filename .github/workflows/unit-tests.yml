@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
@@ -35,7 +35,7 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
           - name: "Minimum Versions"
-            env_file: actions-39-minimum_versions.yaml
+            env_file: actions-310-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
           - name: "Locale: it_IT"
             env_file: actions-311.yaml
@@ -146,6 +146,8 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
+      if: ${{ matrix.name != 'Pypy' }}
       with:
         meson_args: ${{ matrix.meson_args }}
         cflags_adds: ${{ matrix.cflags_adds }}
@@ -170,7 +172,7 @@ jobs:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
         os: [macos-13, macos-14, windows-latest]
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}

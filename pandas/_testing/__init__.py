@@ -6,7 +6,6 @@ import os
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
-    Callable,
     ContextManager,
     cast,
 )
@@ -85,6 +84,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         Dtype,
         NpDtype,

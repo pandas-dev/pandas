@@ -9,7 +9,6 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -65,6 +64,7 @@ from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
     )

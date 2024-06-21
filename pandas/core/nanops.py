@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -47,6 +47,9 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
