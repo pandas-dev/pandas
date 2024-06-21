@@ -90,7 +90,7 @@ def pivot_table(
         hierarchical columns whose top level are the function names
         (inferred from the function objects themselves).
         If a dict is passed, the key is column to aggregate and the value is
-        function or list of functions. If ``margin=True``, aggfunc will be
+        function or list of functions. If ``margins=True``, aggfunc will be
         used to calculate the partial aggregates.
     fill_value : scalar, default None
         Value to replace missing values with (in the resulting pivot table,
