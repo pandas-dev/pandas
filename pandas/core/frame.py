@@ -9695,7 +9695,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Multi-column explode.
 
-        >>> df.explode(list("AC"))
+        >>> df.explode(list("A", "C"))
              A  B    C
         0    0  1    a
         0    1  1    b
