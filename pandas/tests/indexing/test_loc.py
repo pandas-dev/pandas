@@ -1292,7 +1292,7 @@ class TestLocBaseIndependent:
         # diagonal cells are ones, meaning the last two columns are purely sparse.
         rows, cols = 5, 7
         spmatrix = spmatrix_t(np.eye(rows, cols, dtype=dtype), dtype=dtype)
-        df = DataFrame.sparse.from_spmatrix(spmatrix)
+        df = DataFrame.sparse.from_spmatrix(spmatrix, fill_value=0)
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
@@ -1314,7 +1314,7 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
+        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5), fill_value=0)
         result = df.loc[range(2)]
         expected = DataFrame(
             [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
