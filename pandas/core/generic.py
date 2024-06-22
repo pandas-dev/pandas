@@ -6650,14 +6650,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether, if possible, conversion can be done to floating extension types.
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
-            Back-end data type applied to the resultant :class:`DataFrame` or
-            :class:`Series` (still experimental). Behaviour is as follows:
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
-            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              or :class:`Series` (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame or Series.
+            * ``"numpy_nullable"``: returns with nullable-dtype-backed
+            * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
             .. versionadded:: 2.0
 
