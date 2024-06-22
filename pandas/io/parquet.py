@@ -542,7 +542,7 @@ def read_parquet(
 
         .. versionadded:: 1.3.0
 
-    dtype_backend : {'numpy_nullable', 'pyarrow'}
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
