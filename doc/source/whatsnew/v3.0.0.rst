@@ -473,7 +473,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :meth:`Timestamp.replace` where it would not reflect changes into :meth:`Timestamp.unit`. (:issue:`57749`)
 
 Categorical
 ^^^^^^^^^^^
@@ -490,6 +489,7 @@ Datetimelike
 - Bug in :meth:`Dataframe.agg` with df with missing values resulting in IndexError (:issue:`58810`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` returning ``False`` on double-digit frequencies (:issue:`58523`)
+- Bug in :meth:`Timestamp.replace` where it would not reflect changes into :meth:`Timestamp.unit`. (:issue:`57749`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
 
 Timedelta

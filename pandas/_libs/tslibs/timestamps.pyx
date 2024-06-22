@@ -2633,6 +2633,8 @@ default 'raise'
         pandas_datetime_to_datetimestruct(value, self._creso, &dts)
         dts.ps = self.nanosecond * 1000
 
+        zero_set = False
+
         # replace
         def validate(k, v):
             """ validate integers """
@@ -2666,13 +2668,32 @@ default 'raise'
                 rep_reso = NPY_DATETIMEUNIT.NPY_FR_us
             else:
                 rep_reso = NPY_DATETIMEUNIT.NPY_FR_ms
+                if microsecond == 0:
+                    zero_set = True
         if nanosecond is not None:
             dts.ps = validate("nanosecond", nanosecond) * 1000
             rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+            if nanosecond == 0:
+                zero_set = True
         if tzinfo is not object:
             tzobj = tzinfo
 
-        if rep_reso < self._creso:
+        # Recalculate the replacement resolution if a unit was replaced with 0
+        if zero_set:
+            if dts.ps != 0:
+                if dts.ps % 1000 != 0:
+                    rep_reso = NPY_DATETIMEUNIT.NPY_FR_ps
+                else:
+                    rep_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+            elif dts.us != 0:
+                if dts.us % 1000 != 0:
+                    rep_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                else:
+                    rep_reso = NPY_DATETIMEUNIT.NPY_FR_ms
+            else:
+                rep_reso = NPY_DATETIMEUNIT.NPY_FR_s
+
+        if rep_reso < self._creso and not zero_set:
             rep_reso = self._creso
 
         # reconstruct & check bounds

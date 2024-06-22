@@ -206,3 +206,19 @@ class TestTimestampReplace:
         ts = ts.replace(nanosecond=ts2.nanosecond)
         assert ts.unit == "ns"
         assert ts == ts2
+
+    def test_replace_resets_to_more_precise_s(self):
+        # GH#57749
+        ts = Timestamp(year=2023, month=1, day=1, nanosecond=5)
+        result = ts.replace(nanosecond=0)
+        assert result.unit == "s"
+
+    def test_replace_resets_to_more_precise_ms(self):
+        ts = Timestamp(year=2020, month=1, day=1, microsecond=5, nanosecond=5)
+        result = ts.replace(nanosecond=0)
+        assert result.unit == "us"
+
+    def test_replace_resets_to_more_precise_us(self):
+        ts = Timestamp(year=2020, month=1, day=1, microsecond=2000, nanosecond=5)
+        result = ts.replace(nanosecond=0)
+        assert result.unit == "ms"
