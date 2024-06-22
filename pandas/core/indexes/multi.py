@@ -3906,8 +3906,11 @@ class MultiIndex(Index):
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
                 # other codes
-                lev_loc = len(level)
-                level = level.insert(lev_loc, k)
+                if k is None:  # GH 59003
+                    lev_loc = -1
+                else:
+                    lev_loc = len(level)
+                    level = level.insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

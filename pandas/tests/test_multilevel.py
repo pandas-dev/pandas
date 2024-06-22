@@ -6,6 +6,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
 )
@@ -287,6 +288,14 @@ class TestMultiLevel:
         ).set_index(["pivot_0", "pivot_1"])
 
         tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_insert_level_with_na(self):
+        # GH 59003
+        indices = [["one"], ["a"], ["yes"]]
+        df = DataFrame([0], index=indices).T
+        df["one", None, "yes"] = 1
+        expected = DataFrame([1], index=Index(["yes"])).T
+        tm.assert_frame_equal(df["one"][None], expected)
 
 
 class TestSorted:
