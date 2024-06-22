@@ -297,13 +297,7 @@ class BooleanArray(BaseMaskedArray):
     """
 
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
-    _FALSE_VALUES = {
-        "False",
-        "FALSE",
-        "false",
-        "0",
-        "0.0",
-    }
+    _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:

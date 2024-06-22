@@ -165,15 +165,15 @@ def xfail_datetimes_with_pyxlsb(engine, request):
 
 class TestReaders:
     @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
-    def test_read_excel_type_check(self, col):
+    def test_read_excel_type_check(self, col, datapath):
         # GH 58159
-        df = DataFrame({"bool_column": col}, dtype=pd.BooleanDtype.name)
-        df.to_excel("test-type.xlsx", index=False)
-        df2 = pd.read_excel(
-            "test-type.xlsx",
-            dtype={"bool_column": pd.BooleanDtype.name},
-            engine="openpyxl",
+        df = DataFrame({"bool_column": col}, dtype="boolean")
+        df.to_excel("test_boolean_types.xlsx", index=False)
+        f_path = os.path.join(
+            datapath("io", "data", "excel"), "test_boolean_types.xlsx"
         )
+
+        df2 = pd.read_excel(f_path, dtype={"bool_column": "boolean"}, engine="openpyxl")
         tm.assert_frame_equal(df, df2)
 
     def test_pass_none_type(self):
