@@ -2207,6 +2207,12 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        See Also
+        --------
+        Timestamp.ceil : Round up a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.floor : Round down the datetime values in a Series.
+
         Notes
         -----
         If the Timestamp has a timezone, flooring will take place relative to the
