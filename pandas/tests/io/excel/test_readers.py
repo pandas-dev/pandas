@@ -168,11 +168,11 @@ class TestReaders:
     def test_read_excel_type_check(self, col, datapath):
         # GH 58159
         df = DataFrame({"bool_column": col}, dtype="boolean")
-        df.to_excel("test_boolean_types.xlsx", index=False)
         f_path = os.path.join(
             datapath("io", "data", "excel"), "test_boolean_types.xlsx"
         )
 
+        df.to_excel(f_path, index=False)
         df2 = pd.read_excel(f_path, dtype={"bool_column": "boolean"}, engine="openpyxl")
         tm.assert_frame_equal(df, df2)
 
