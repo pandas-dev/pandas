@@ -1728,7 +1728,7 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {'numpy_nullable', 'pyarrow'}
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
             Back-end data type applied to the resultant :class:`DataFrame`
             (still experimental). If not specified, the default behavior
             is to not use nullable data types. If specified, the behavior
