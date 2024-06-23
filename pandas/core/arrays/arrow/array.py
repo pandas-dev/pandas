@@ -61,6 +61,7 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
+from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -1434,7 +1435,7 @@ class ArrowExtensionArray(
         if isinstance(result.dtype, StringDtype):
             return result
         else:
-            return ArrowExtensionArray._from_sequence(result, dtype=result.dtype.type)
+            return pd_array(result, dtype=result.dtype)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
