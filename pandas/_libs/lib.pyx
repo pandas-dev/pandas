@@ -2874,7 +2874,8 @@ def map_infer_mask(
     bint convert=True,
     object na_value=no_default,
     bint convert_to_nullable_dtype=False,
-    cnp.dtype dtype=np.dtype(object)
+    cnp.dtype dtype=np.dtype(object),
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2892,6 +2893,8 @@ def map_infer_mask(
         input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
+    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+        Backend storage
 
     Returns
     -------
@@ -2929,7 +2932,8 @@ def map_infer_mask(
     if convert:
         return maybe_convert_objects(
             result,
-            convert_to_nullable_dtype=convert_to_nullable_dtype
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            storage=storage,
         )
     else:
         return result
