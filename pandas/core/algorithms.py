@@ -23,6 +23,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1700,16 +1701,18 @@ def map_array(
     na_value = None
     mask = isna(arr)
     storage = None
-    if isinstance(arr.dtype, BaseMaskedDtype) and na_action is None:
+    if isinstance(arr.dtype, BaseMaskedDtype):
         arr = cast("BaseMaskedArray", arr)
         values = arr._data
         if arr._hasna:
             na_value = arr.dtype.na_value
-    elif isinstance(arr.dtype, ExtensionDtype) and na_action is None:
+    elif isinstance(arr.dtype, ExtensionDtype):
         arr = cast("ExtensionArray", arr)
         arr_dtype = arr.dtype.__repr__()
         if "pyarrow" in arr_dtype:
-            if "date" in arr_dtype or "time" in arr_dtype:
+            if any(
+                time_type in arr_dtype for time_type in ["date", "time", "duration"]
+            ):
                 values = arr.astype(object, copy=False)
             else:
                 values = arr._pa_array.to_numpy()
@@ -1728,10 +1731,14 @@ def map_array(
             mapper,
             mask=mask,
             na_value=na_value,
-            convert_to_nullable_dtype=na_value is not None,
+            convert_to_nullable_dtype=na_value is NA,
             storage=storage,
         )
     else:
         return lib.map_infer_mask(
-            values, mapper, mask=mask, convert_to_nullable_dtype=na_value is not None
+            values,
+            mapper,
+            mask=mask,
+            convert_to_nullable_dtype=na_value is NA,
+            storage=storage,
         )
