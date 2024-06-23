@@ -141,11 +141,9 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp39-manylinux_aarch64",
-                           "cp310-manylinux_aarch64",
+              cibw-build: ["cp310-manylinux_aarch64",
                            "cp311-manylinux_aarch64",
                            "cp312-manylinux_aarch64",
-                           "cp39-musllinux_aarch64",
                            "cp310-musllinux_aarch64",
                            "cp311-musllinux_aarch64",
                            "cp312-musllinux_aarch64",]
