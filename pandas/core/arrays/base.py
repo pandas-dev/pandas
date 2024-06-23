@@ -47,7 +47,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -70,6 +73,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.construction import array as pd_array
 from pandas.core.missing import _fill_limit_area_1d
 from pandas.core.sorting import (
     nargminmax,
@@ -2336,7 +2340,13 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=na_action)
+        if isinstance(self.dtype, NumpyEADtype):
+            return pd_array(result, dtype=NumpyEADtype(result.dtype))
+        elif isinstance(result, np.ndarray):
+            return pd_array(result)
+        else:
+            return result
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
