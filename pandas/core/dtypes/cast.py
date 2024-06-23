@@ -1011,11 +1011,9 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). If not specified, the default behavior
-        is to not use nullable data types. If specified, the behavior
-        is as follows:
+        (still experimental). If specified, the behavior is as follows:
 
         * ``"numpy_nullable"``: returns with nullable-dtype-backed
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
