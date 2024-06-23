@@ -176,21 +176,24 @@ class TestReaders:
         df2 = pd.read_excel(f_path, dtype={"bool_column": "boolean"}, engine="openpyxl")
         tm.assert_frame_equal(df, df2)
 
-    def test_pass_none_type(self):
+    def test_pass_none_type(self, datapath):
         # GH 58159
-        with pd.ExcelFile("test7.xlsx") as excel:
+        f_path = os.path.join(datapath("io", "data", "excel"), "test_none_type.xlsx")
+
+        with pd.ExcelFile(f_path) as excel:
             parsed = pd.read_excel(
                 excel,
                 sheet_name="Sheet1",
                 keep_default_na=True,
                 na_values=["nan", "None", "abcd"],
-                dtype=pd.BooleanDtype.name,
+                dtype="boolean",
                 engine="openpyxl",
             )
         expected = DataFrame(
             {"Test": [True, None, False, None, False, None, True]},
-            dtype=pd.BooleanDtype.name,
+            dtype="boolean",
         )
+
         tm.assert_frame_equal(parsed, expected)
 
     @pytest.fixture(autouse=True)
