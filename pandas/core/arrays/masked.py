@@ -1320,7 +1320,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = map_array(self, mapper, na_action=na_action)
-        return type(self)._from_sequence(result)
+        return pd_array(result, dtype=result.dtype)
 
     @overload
     def any(
