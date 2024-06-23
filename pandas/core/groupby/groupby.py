@@ -5404,6 +5404,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         DataFrame.sample: Generate random samples from a DataFrame object.
+        Series.sample: Generate random samples from a Series object.
         numpy.random.choice: Generate a random sample from a given 1-D numpy
             array.
 
