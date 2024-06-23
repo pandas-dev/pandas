@@ -2,6 +2,7 @@
 Core eval alignment algorithms.
 """
 
+import pandas as pd
 from __future__ import annotations
 
 from functools import (
@@ -144,8 +145,6 @@ def _align_core(terms):
                 obj = ti.reindex(reindexer, axis=axis)
                 terms[i].update(obj)
 
-        terms[i].update(terms[i].value.values)
-
     return typ, _zip_axes_from_type(typ, axes)
 
 
@@ -218,3 +217,12 @@ def reconstruct_object(typ, obj, axes, dtype):
             ret_value = np.array([ret_value]).astype(res_t)
 
     return ret_value
+
+# Test with the DataFrame and multiline expression
+df = pd.DataFrame({"first": [9.76, 9.76, 9.76], "last": [9.76, 9.76, 9.76], "pre": [9.75, 9.76, 9.76]})
+
+expr = """first_ret = first / pre.fillna(first) - 1.0
+last_ret = last / pre.fillna(first) - 1.0"""
+
+# Now this should work
+df.eval(expr)
