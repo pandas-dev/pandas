@@ -1413,6 +1413,13 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
+        
+        errors = self.options.get("encoding_errors", "strict")
+        if not isinstance(errors, str):
+            raise ValueError(
+                f"encoding_errors must be a string, got {type(errors).__name__}"
+            )
+        
         if not isinstance(f, list):
             # open file here
             is_text = True
@@ -1437,7 +1444,7 @@ class TextFileReader(abc.Iterator):
                 compression=self.options.get("compression", None),
                 memory_map=self.options.get("memory_map", False),
                 is_text=is_text,
-                errors=self.options.get("encoding_errors", "strict"),
+                errors=errors,
                 storage_options=self.options.get("storage_options", None),
             )
             assert self.handles is not None
