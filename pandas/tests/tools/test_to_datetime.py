@@ -3407,7 +3407,18 @@ class TestOrigin:
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
-    def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
+    @pytest.mark.parametrize(
+        "epochs",
+        [
+            Timestamp(1960, 1, 1),
+            datetime(1960, 1, 1),
+            "1960-01-01",
+            np.datetime64("1960-01-01"),
+        ],
+    )
+    def test_epoch(self, units, epochs):
+        epoch_1960 = Timestamp(1960, 1, 1)
+        units_from_epochs = np.arange(5, dtype=np.int64)
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
         )
