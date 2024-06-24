@@ -88,7 +88,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8.0.33
+        image: mysql:8
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
@@ -101,7 +101,7 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres:13
+        image: postgres:16
         env:
           PGUSER: postgres
           POSTGRES_USER: postgres
@@ -116,7 +116,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:4.1.13
+        image: motoserver/moto:5.0.9
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
