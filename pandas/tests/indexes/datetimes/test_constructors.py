@@ -7,6 +7,7 @@ from datetime import (
 )
 from functools import partial
 from operator import attrgetter
+import zoneinfo
 
 import dateutil
 import dateutil.tz
@@ -152,7 +153,9 @@ class TestDatetimeIndex:
         df = pd.DataFrame(
             {
                 "dt": date_range("20130101", periods=3),
-                "dttz": date_range("20130101", periods=3, tz="US/Eastern"),
+                "dttz": date_range(
+                    "20130101", periods=3, tz=zoneinfo.ZoneInfo("US/Eastern")
+                ),
                 "dt_with_null": [
                     Timestamp("20130101"),
                     pd.NaT,
@@ -161,7 +164,7 @@ class TestDatetimeIndex:
                 "dtns": date_range("20130101", periods=3, freq="ns"),
             }
         )
-        assert df.dttz.dtype.tz.zone == "US/Eastern"
+        assert df.dttz.dtype.tz.key == "US/Eastern"
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -198,7 +201,11 @@ class TestDatetimeIndex:
         # incompat tz/dtype
         msg = "cannot supply both a tz and a dtype with a tz"
         with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype, tz="US/Pacific")
+            DatetimeIndex(
+                i.tz_localize(None).asi8,
+                dtype=i.dtype,
+                tz=zoneinfo.ZoneInfo("US/Hawaii"),
+            )
 
     def test_construction_index_with_mixed_timezones(self):
         # gh-11488: no tz results in DatetimeIndex
@@ -736,7 +743,7 @@ class TestDatetimeIndex:
         dti = DatetimeIndex(["2010"], tz="UTC")
         msg = "Cannot directly set timezone"
         with pytest.raises(AttributeError, match=msg):
-            dti.tz = pytz.timezone("US/Pacific")
+            dti.tz = zoneinfo.ZoneInfo("US/Pacific")
 
     @pytest.mark.parametrize(
         "tz",
@@ -764,7 +771,9 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("tz", ["US/Pacific", "US/Eastern", "Asia/Tokyo"])
     def test_constructor_with_non_normalized_pytz(self, tz):
         # GH 18595
-        non_norm_tz = Timestamp("2010", tz=tz).tz
+        pytz = pytest.importorskip("pytz")
+        tz_in = pytz.timezone(tz)
+        non_norm_tz = Timestamp("2010", tz=tz_in).tz
         result = DatetimeIndex(["2010"], tz=non_norm_tz)
         assert pytz.timezone(tz) is result.tz
 
@@ -914,7 +923,9 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([Timestamp("2019", tz="UTC"), pd.NaT])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    @pytest.mark.parametrize(
+        "tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")]
+    )
     def test_dti_from_tzaware_datetime(self, tz):
         d = [datetime(2012, 8, 19, tzinfo=tz)]
 
@@ -963,7 +974,7 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("US/Eastern"),
+            "pytz/US/Eastern",
             gettz("US/Eastern"),
         ],
     )
@@ -972,6 +983,8 @@ class TestDatetimeIndex:
     def test_dti_ambiguous_matches_timestamp(self, tz, use_str, box_cls, request):
         # GH#47471 check that we get the same raising behavior in the DTI
         # constructor and Timestamp constructor
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         dtstr = "2013-11-03 01:59:59.999999"
         item = dtstr
         if not use_str:
