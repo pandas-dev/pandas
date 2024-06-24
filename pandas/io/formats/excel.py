@@ -527,7 +527,7 @@ class ExcelFormatter:
     merge_cells : bool or 'columns', default False
         Format MultiIndex column headers and Hierarchical Rows as mergedcells
         if True. Merge MultiIndex column headers only if 'columns'.
-        .. versionchanged:: :ref: 3.0.0
+        .. versionchanged:: 3.0.0
             Added the 'columns' option.
     inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
