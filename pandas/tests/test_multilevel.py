@@ -296,6 +296,9 @@ class TestMultiLevel:
         df["one", None, "yes"] = 1
         expected = DataFrame([1], index=Index(["yes"])).T
         tm.assert_frame_equal(df["one"][None], expected)
+        df["one", np.nan, "yes"] = 1
+        expected = DataFrame([1], index=Index(["yes"])).T
+        tm.assert_frame_equal(df["one"][np.nan], expected)
 
 
 class TestSorted:
