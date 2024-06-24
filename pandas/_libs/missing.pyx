@@ -1,3 +1,4 @@
+from collections import UserDict
 from decimal import Decimal
 import numbers
 from sys import maxsize
@@ -148,7 +149,7 @@ cpdef bint checknull(object val):
      - np.timedelta64 representation of NaT
      - NA
      - Decimal("NaN")
-     - {} empty dict
+     - {} empty dict or UserDict
 
     Parameters
     ----------
@@ -158,7 +159,12 @@ cpdef bint checknull(object val):
     -------
     bool
     """
-    if val is None or val is NaT or val is C_NA or val == {}:
+    if (
+        val is None
+        or val is NaT
+        or val is C_NA
+        or (isinstance(val, (dict, UserDict)) and not val)
+    ):
         return True
     elif util.is_float_object(val) or util.is_complex_object(val):
         if val != val:
@@ -192,7 +198,7 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
      - np.timedelta64 representation of NaT
      - NA
      - Decimal("NaN")
-    - {} empty dict
+    - {} empty dict or UserDict
 
     Parameters
     ----------
