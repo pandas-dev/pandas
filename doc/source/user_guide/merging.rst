@@ -911,7 +911,7 @@ to join them together on their indexes.
 
 .. ipython:: python
 
-   right2 = pd.DataFrame({"v": [7, 8, 9]}, index=["K1", "K1", "K2"])
+   right2 = pd.DataFrame({"v": [7, 8, 9]}, index=pd.Index(["K1", "K1", "K2"], name="key1"))
    result = left.join([right, right2])
 
 .. ipython:: python
