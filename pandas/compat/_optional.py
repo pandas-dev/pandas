@@ -43,6 +43,7 @@ VERSIONS = {
     "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
     "python-calamine": "0.1.7",
+    "pytz": "2023.4",
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",
     "scipy": "1.10.0",

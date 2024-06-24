@@ -20,7 +20,6 @@ dependencies:
   # required dependencies
   - python-dateutil
   - numpy
-  - pytz
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
@@ -46,6 +45,7 @@ dependencies:
   - pyreadstat>=1.2.0
   - pytables>=3.8.0
   - python-calamine>=0.1.7
+  - pytz>=2023.4
   - pyxlsb>=1.0.10
   - s3fs>=2022.11.0
   - scipy>=1.10.0

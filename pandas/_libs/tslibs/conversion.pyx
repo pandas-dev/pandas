@@ -69,6 +69,7 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
+    treat_tz_as_pytz,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
@@ -742,11 +743,11 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    try:
+    if treat_tz_as_pytz(tz):
         # datetime.replace with pytz may be incorrect result
         # TODO: try to respect `fold` attribute
         return tz.localize(dt, is_dst=None)
-    except AttributeError:
+    else:
         return dt.replace(tzinfo=tz)
 
 
