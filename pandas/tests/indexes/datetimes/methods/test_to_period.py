@@ -1,7 +1,8 @@
+from datetime import timezone
+
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
-import pytz
 
 from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs.offsets import MonthEnd
@@ -155,7 +156,13 @@ class TestToPeriod:
 
     @pytest.mark.parametrize(
         "tz",
-        ["US/Eastern", pytz.utc, tzlocal(), "dateutil/US/Eastern", dateutil.tz.tzutc()],
+        [
+            "US/Eastern",
+            timezone.utc,
+            tzlocal(),
+            "dateutil/US/Eastern",
+            dateutil.tz.tzutc(),
+        ],
     )
     def test_to_period_tz(self, tz):
         ts = date_range("1/1/2000", "2/1/2000", tz=tz)

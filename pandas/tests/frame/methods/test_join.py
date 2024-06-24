@@ -1,4 +1,5 @@
 from datetime import datetime
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -543,17 +544,14 @@ class TestDataFrameJoin:
             df1.join(df2, on="a")
 
     def test_frame_join_tzaware(self):
+        tz = zoneinfo.ZoneInfo("US/Central")
         test1 = DataFrame(
             np.zeros((6, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=6, freq="100ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=6, freq="100ms", tz=tz),
         )
         test2 = DataFrame(
             np.zeros((3, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=3, freq="250ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=3, freq="250ms", tz=tz),
             columns=range(3, 6),
         )
 
@@ -561,4 +559,4 @@ class TestDataFrameJoin:
         expected = test1.index.union(test2.index)
 
         tm.assert_index_equal(result.index, expected)
-        assert result.index.tz.zone == "US/Central"
+        assert result.index.tz.key == "US/Central"

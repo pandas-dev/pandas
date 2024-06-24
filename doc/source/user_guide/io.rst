@@ -4990,7 +4990,7 @@ Caveats
   convenience you can use ``store.flush(fsync=True)`` to do this for you.
 * Once a ``table`` is created columns (DataFrame)
   are fixed; only exactly the same columns can be appended
-* Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``)
+* Be aware that timezones (e.g., ``zoneinfo.ZoneInfo('US/Eastern')``)
   are not necessarily equal across timezone versions.  So if data is
   localized to a specific timezone in the HDFStore using one version
   of a timezone library and that data is updated with another version, the data
@@ -5169,6 +5169,8 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
 
+   import pytz
+
    df = pd.DataFrame(
        {
            "a": list("abc"),
@@ -5178,7 +5180,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
            "e": [True, False, True],
            "f": pd.Categorical(list("abc")),
            "g": pd.date_range("20130101", periods=3),
-           "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "h": pd.date_range("20130101", periods=3, tz=pytz.timezone("US/Eastern")),
            "i": pd.date_range("20130101", periods=3, freq="ns"),
        }
    )

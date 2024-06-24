@@ -1,8 +1,8 @@
 from datetime import datetime
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -114,11 +114,11 @@ def test_append_index():
     result = idx1.append(midx_lv2)
 
     # see gh-7112
-    tz = pytz.timezone("Asia/Tokyo")
+    tz = zoneinfo.ZoneInfo("Asia/Tokyo")
     expected_tuples = [
-        (1.1, tz.localize(datetime(2011, 1, 1))),
-        (1.2, tz.localize(datetime(2011, 1, 2))),
-        (1.3, tz.localize(datetime(2011, 1, 3))),
+        (1.1, datetime(2011, 1, 1, tzinfo=tz)),
+        (1.2, datetime(2011, 1, 2, tzinfo=tz)),
+        (1.3, datetime(2011, 1, 3, tzinfo=tz)),
     ]
     expected = Index([1.1, 1.2, 1.3] + expected_tuples)
     tm.assert_index_equal(result, expected)
@@ -138,9 +138,9 @@ def test_append_index():
     expected = Index._simple_new(
         np.array(
             [
-                (1.1, tz.localize(datetime(2011, 1, 1)), "A"),
-                (1.2, tz.localize(datetime(2011, 1, 2)), "B"),
-                (1.3, tz.localize(datetime(2011, 1, 3)), "C"),
+                (1.1, datetime(2011, 1, 1, tzinfo=tz), "A"),
+                (1.2, datetime(2011, 1, 2, tzinfo=tz), "B"),
+                (1.3, datetime(2011, 1, 3, tzinfo=tz), "C"),
             ]
             + expected_tuples,
             dtype=object,

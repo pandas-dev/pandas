@@ -2,7 +2,6 @@ import datetime
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -2071,7 +2070,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -2083,7 +2082,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-01"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value2": list("ABCDE"),
@@ -2097,7 +2096,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value1": np.arange(5),

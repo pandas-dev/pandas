@@ -5,7 +5,6 @@ Tests for DateOffset additions over Daylight Savings Time
 from datetime import timedelta
 
 import pytest
-import pytz
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
@@ -33,10 +32,8 @@ from pandas._libs.tslibs.offsets import (
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.util.version import Version
 
-# error: Module has no attribute "__version__"
-pytz_version = Version(pytz.__version__)  # type: ignore[attr-defined]
+pytz = pytest.importorskip("pytz")
 
 
 def get_utc_offset_hours(ts):
@@ -52,7 +49,10 @@ class TestDST:
 
     # test both basic names and dateutil timezones
     timezone_utc_offsets = {
-        "US/Eastern": {"utc_offset_daylight": -4, "utc_offset_standard": -5},
+        pytz.timezone("US/Eastern"): {
+            "utc_offset_daylight": -4,
+            "utc_offset_standard": -5,
+        },
         "dateutil/US/Pacific": {"utc_offset_daylight": -7, "utc_offset_standard": -8},
     }
     valid_date_offsets_singular = [
@@ -96,7 +96,10 @@ class TestDST:
         if (
             offset_name in ["hour", "minute", "second", "microsecond"]
             and offset_n == 1
-            and tstart == Timestamp("2013-11-03 01:59:59.999999-0500", tz="US/Eastern")
+            and tstart
+            == Timestamp(
+                "2013-11-03 01:59:59.999999-0500", tz=pytz.timezone("US/Eastern")
+            )
         ):
             # This addition results in an ambiguous wall time
             err_msg = {
@@ -147,7 +150,9 @@ class TestDST:
             assert datepart_offset == offset.kwds[offset_name]
         else:
             # the offset should be the same as if it was done in UTC
-            assert t == (tstart.tz_convert("UTC") + offset).tz_convert("US/Pacific")
+            assert t == (tstart.tz_convert("UTC") + offset).tz_convert(
+                pytz.timezone("US/Pacific")
+            )
 
     def _make_timestamp(self, string, hrs_offset, tz):
         if hrs_offset >= 0:
@@ -224,16 +229,6 @@ class TestDST:
 @pytest.mark.parametrize(
     "original_dt, target_dt, offset, tz",
     [
-        pytest.param(
-            Timestamp("1900-01-01"),
-            Timestamp("1905-07-01"),
-            MonthBegin(66),
-            "Africa/Lagos",
-            marks=pytest.mark.xfail(
-                pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
-                reason="GH#41906: pytz utc transition dates changed",
-            ),
-        ),
         (
             Timestamp("2021-10-01 01:15"),
             Timestamp("2021-10-31 01:15"),
@@ -263,7 +258,7 @@ class TestDST:
 def test_nontick_offset_with_ambiguous_time_error(original_dt, target_dt, offset, tz):
     # .apply for non-Tick offsets throws AmbiguousTimeError when the target dt
     # is dst-ambiguous
-    localized_dt = original_dt.tz_localize(tz)
+    localized_dt = original_dt.tz_localize(pytz.timezone(tz))
 
     msg = f"Cannot infer dst time from {target_dt}, try using the 'ambiguous' argument"
     with pytest.raises(pytz.AmbiguousTimeError, match=msg):

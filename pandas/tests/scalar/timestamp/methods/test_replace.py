@@ -1,9 +1,9 @@
 from datetime import datetime
+import zoneinfo
 
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
@@ -111,8 +111,8 @@ class TestTimestampReplace:
     @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_replace_tzinfo(self):
         # GH#15683
-        dt = datetime(2016, 3, 27, 1)
-        tzinfo = pytz.timezone("CET").localize(dt, is_dst=False).tzinfo
+        dt = datetime(2016, 3, 27, 1, fold=1)
+        tzinfo = dt.astimezone(zoneinfo.ZoneInfo("Europe/Berlin")).tzinfo
 
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
@@ -137,13 +137,16 @@ class TestTimestampReplace:
     @pytest.mark.parametrize(
         "tz, normalize",
         [
-            (pytz.timezone("US/Eastern"), lambda x: x.tzinfo.normalize(x)),
+            ("pytz/US/Eastern", lambda x: x.tzinfo.normalize(x)),
             (gettz("US/Eastern"), lambda x: x),
         ],
     )
     def test_replace_across_dst(self, tz, normalize):
         # GH#18319 check that 1) timezone is correctly normalized and
         # 2) that hour is not incorrectly changed by this normalization
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts_naive = Timestamp("2017-12-03 16:03:30")
         ts_aware = conversion.localize_pydatetime(ts_naive, tz)
 

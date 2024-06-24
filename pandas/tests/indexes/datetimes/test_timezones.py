@@ -8,11 +8,11 @@ from datetime import (
     timezone,
     tzinfo,
 )
+import zoneinfo
 
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     conversion,
@@ -184,8 +184,11 @@ class TestDatetimeIndexTimezones:
         assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
-    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    @pytest.mark.parametrize("tzstr", ["pytz/US/Eastern", "dateutil/US/Eastern"])
     def test_utc_box_timestamp_and_localize(self, tzstr):
+        if tzstr.startswith("pytz/"):
+            pytest.importorskip("pytz")
+            tzstr = tzstr.removeprefix("pytz/")
         tz = timezones.maybe_get_tz(tzstr)
 
         rng = date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")
@@ -206,15 +209,17 @@ class TestDatetimeIndexTimezones:
             rng_eastern[0].tzinfo
         )
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Central"), gettz("US/Central")])
+    @pytest.mark.parametrize(
+        "tz", [zoneinfo.ZoneInfo("US/Central"), gettz("US/Central")]
+    )
     def test_with_tz(self, tz):
         # just want it to work
-        start = datetime(2011, 3, 12, tzinfo=pytz.utc)
+        start = datetime(2011, 3, 12, tzinfo=timezone.utc)
         dr = bdate_range(start, periods=50, freq=pd.offsets.Hour())
-        assert dr.tz is pytz.utc
+        assert dr.tz is timezone.utc
 
         # DateRange with naive datetimes
-        dr = bdate_range("1/1/2005", "1/1/2009", tz=pytz.utc)
+        dr = bdate_range("1/1/2005", "1/1/2009", tz=timezone.utc)
         dr = bdate_range("1/1/2005", "1/1/2009", tz=tz)
 
         # normalized
@@ -231,13 +236,16 @@ class TestDatetimeIndexTimezones:
 
         # datetimes with tzinfo set
         dr = bdate_range(
-            datetime(2005, 1, 1, tzinfo=pytz.utc), datetime(2009, 1, 1, tzinfo=pytz.utc)
+            datetime(2005, 1, 1, tzinfo=timezone.utc),
+            datetime(2009, 1, 1, tzinfo=timezone.utc),
         )
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(Exception, match=msg):
-            bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc), "1/1/2009", tz=tz)
+            bdate_range(datetime(2005, 1, 1, tzinfo=timezone.utc), "1/1/2009", tz=tz)
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    @pytest.mark.parametrize(
+        "tz", [zoneinfo.ZoneInfo("US/Eastern"), gettz("US/Eastern")]
+    )
     def test_dti_convert_tz_aware_datetime_datetime(self, tz):
         # GH#1581
         dates = [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]

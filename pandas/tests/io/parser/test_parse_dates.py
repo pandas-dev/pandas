@@ -12,7 +12,6 @@ from io import StringIO
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -217,6 +216,7 @@ def test_parse_tz_aware(all_parsers):
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
     if parser.engine == "pyarrow":
+        pytz = pytest.importorskip("pytz")
         expected_tz = pytz.utc
     else:
         expected_tz = timezone.utc

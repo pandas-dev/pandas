@@ -1,8 +1,8 @@
 # NB: This is for the Timestamp.timestamp *method* specifically, not
 # the Timestamp class in general.
+from datetime import timezone
 
 import pytest
-from pytz import utc
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import WASM
@@ -18,7 +18,7 @@ class TestTimestampMethod:
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
         ts = fixed_now_ts
-        uts = ts.replace(tzinfo=utc)
+        uts = ts.replace(tzinfo=timezone.utc)
         assert ts.timestamp() == uts.timestamp()
 
         tsc = Timestamp("2014-10-11 11:00:01.12345678", tz="US/Central")
