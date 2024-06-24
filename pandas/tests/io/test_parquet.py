@@ -1129,9 +1129,11 @@ class TestParquetPyArrow(Base):
 class TestParquetFastParquet(Base):
     @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
     def test_basic(self, fp, df_full):
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         df = df_full
 
-        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz=tz)
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)

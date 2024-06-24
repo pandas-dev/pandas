@@ -1,10 +1,12 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from decimal import Decimal
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -239,7 +241,7 @@ class TestFromRecords:
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=timezone.utc)}
 
         # it works
         DataFrame.from_records([rec], index="begin_time")
