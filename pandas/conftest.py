@@ -1292,6 +1292,7 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
+        "python_numpy",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
         pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
@@ -1353,6 +1354,7 @@ def object_dtype(request):
     params=[
         "object",
         "string[python]",
+        "string[python_numpy]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ]

@@ -460,7 +460,9 @@ with cf.config_prefix("mode"):
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        validator=is_one_of_factory(
+            ["python", "pyarrow", "python_numpy", "pyarrow_numpy"]
+        ),
     )
 
 
@@ -858,7 +860,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        True if os.environ.get("PANDAS_FUTURE_INFER_STRING", "0") == "1" else False,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",

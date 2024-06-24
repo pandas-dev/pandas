@@ -16,6 +16,7 @@ try:
     pa_version_under14p1 = _palv < Version("14.0.1")
     pa_version_under15p0 = _palv < Version("15.0.0")
     pa_version_under16p0 = _palv < Version("16.0.0")
+    HAS_PYARROW = True
 except ImportError:
     pa_version_under10p1 = True
     pa_version_under11p0 = True
@@ -25,3 +26,4 @@ except ImportError:
     pa_version_under14p1 = True
     pa_version_under15p0 = True
     pa_version_under16p0 = True
+    HAS_PYARROW = False
