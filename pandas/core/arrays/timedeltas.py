@@ -746,7 +746,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         --------
         **Series**
 
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="d"))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="D"))
         >>> s
         0   0 days
         1   1 days
@@ -765,7 +765,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         **TimedeltaIndex**
 
-        >>> idx = pd.to_timedelta(np.arange(5), unit="d")
+        >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                        dtype='timedelta64[ns]', freq=None)
@@ -809,7 +809,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='D'))
     >>> ser
     0   1 days
     1   2 days

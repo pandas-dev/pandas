@@ -3,7 +3,6 @@ import weakref
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
@@ -391,8 +390,9 @@ class TestDatetimeTZDtype(Base):
 
     def test_tz_standardize(self):
         # GH 24713
+        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz="US/Eastern")
+        dr = date_range("2013-01-01", periods=3, tz=tz)
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
