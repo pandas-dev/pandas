@@ -3906,7 +3906,7 @@ class MultiIndex(Index):
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
                 # other codes
-                if k is None:  # GH 59003
+                if isna(k):  # GH 59003
                     lev_loc = -1
                 else:
                     lev_loc = len(level)
