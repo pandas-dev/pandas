@@ -74,9 +74,9 @@ jobs:
       PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
+      PANDAS_CI: '1'
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
+      PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
@@ -116,7 +116,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:5.0.9
+        image: motoserver/moto:5.0.0
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -148,9 +148,6 @@ jobs:
       uses: ./.github/actions/build_pandas
       # TODO: Re-enable once Pypy has Pypy 3.10 on conda-forge
       if: ${{ matrix.name != 'Pypy' }}
-      with:
-        meson_args: ${{ matrix.meson_args }}
-        cflags_adds: ${{ matrix.cflags_adds }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
@@ -317,7 +314,7 @@ jobs:
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-python-dev
       cancel-in-progress: true
 
     env:
