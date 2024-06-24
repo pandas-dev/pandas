@@ -14,6 +14,7 @@ from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
+    pa_version_under17p0,
 )
 
 import pandas as pd
@@ -1033,7 +1034,9 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
-    @pytest.mark.xfail(reason="pa.pandas_compat passes 'datetime64' to .astype")
+    @pytest.mark.xfail(
+        pa_version_under17p0, reason="pa.pandas_compat passes 'datetime64' to .astype"
+    )
     def test_columns_dtypes_not_invalid(self, pa):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
