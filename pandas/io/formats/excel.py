@@ -525,7 +525,7 @@ class ExcelFormatter:
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
     merge_cells : bool or 'columns', default False
-        Format MultiIndex column headers and Hierarchical Rows as mergedcells
+        Format MultiIndex column headers and Hierarchical Rows as merged cells
         if True. Merge MultiIndex column headers only if 'columns'.
         .. versionchanged:: 3.0.0
             Added the 'columns' option.
