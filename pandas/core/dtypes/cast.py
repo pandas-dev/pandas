@@ -39,7 +39,6 @@ from pandas._libs.tslibs import (
     is_supported_dtype,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
@@ -1647,13 +1646,11 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             with warnings.catch_warnings():
                 # We already disallow dtype=uint w/ negative numbers
                 # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
-                if not np_version_gt2:
-                    warnings.filterwarnings(
-                        "ignore",
-                        "NumPy will stop allowing conversion of "
-                        "out-of-bound Python int",
-                        DeprecationWarning,
-                    )
+                warnings.filterwarnings(
+                    "ignore",
+                    "NumPy will stop allowing conversion of out-of-bound Python int",
+                    DeprecationWarning,
+                )
                 casted = np.asarray(arr, dtype=dtype)
         else:
             with warnings.catch_warnings():
