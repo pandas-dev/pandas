@@ -585,8 +585,8 @@ class ExcelFormatter:
         self.index_label = index_label
         self.header = header
 
-        if (not isinstance(merge_cells, bool)) and (merge_cells != "columns"):
-            raise ValueError("Unexpected value for 'merge_cells'.")
+        if not isinstance(merge_cells, bool) and merge_cells != "columns":
+            raise ValueError(f"Unexpected value for {merge_cells=}.)
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
 
