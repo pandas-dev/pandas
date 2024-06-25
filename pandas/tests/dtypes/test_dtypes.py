@@ -1233,8 +1233,7 @@ def test_multi_column_dtype_assignment():
     tm.assert_frame_equal(df, expected)
 
 
-def test_loc_conversion():
-    """Checks whether empty loc assignments convert dtypes."""
+def test_loc_setitem_empty_labels_no_dtype_conversion():
     # GH 29707
 
     df = pd.DataFrame({"a": [2, 3]})
