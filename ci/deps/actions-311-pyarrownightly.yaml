@@ -18,7 +18,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<2
   - pytz
   - pip
 

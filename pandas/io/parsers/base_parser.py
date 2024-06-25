@@ -7,7 +7,6 @@ from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
     final,
     overload,
@@ -78,6 +77,7 @@ from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterable,
         Mapping,
         Sequence,

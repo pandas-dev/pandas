@@ -673,7 +673,9 @@ def merge_asof(
     Parameters
     ----------
     left : DataFrame or named Series
+        First pandas object to merge.
     right : DataFrame or named Series
+        Second pandas object to merge.
     on : label
         Field name to join on. Must be found in both DataFrames.
         The data MUST be ordered. Furthermore this must be a numeric column,
@@ -712,6 +714,7 @@ def merge_asof(
     Returns
     -------
     DataFrame
+        A DataFrame of the two merged objects.
 
     See Also
     --------
