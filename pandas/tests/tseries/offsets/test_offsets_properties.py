@@ -37,7 +37,7 @@ def test_on_offset_implementations(dt, offset):
         # When dt + offset does not exist or is DST-ambiguous, assume(False) to
         # indicate to hypothesis that this is not a valid test case
         # DST-ambiguous example (GH41906):
-        # dt=datetime.datetime(1900, 1, 1, tzinfo=zoneinfo.ZoneInfo('Africa/Kinshasa'))
+        # dt = datetime.datetime(1900, 1, 1, tzinfo=ZoneInfo('Africa/Kinshasa'))
         # offset = MonthBegin(66)
         assume(False)
 
