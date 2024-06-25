@@ -91,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.to_frame RT03" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
-        -i "pandas.NamedAgg SA01" \
         -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
@@ -155,7 +154,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.ge SA01" \
         -i "pandas.Series.gt SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
@@ -211,11 +209,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
-        -i "pandas.Timedelta.days SA01" \
         -i "pandas.Timedelta.floor SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
@@ -235,7 +231,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
@@ -464,7 +459,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.stata.StataReader.variable_labels RT03,SA01" \
         -i "pandas.io.stata.StataWriter.write_file SA01" \
         -i "pandas.json_normalize RT03,SA01" \
-        -i "pandas.merge_asof PR07,RT03" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \

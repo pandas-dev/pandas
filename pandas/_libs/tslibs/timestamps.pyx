@@ -1374,11 +1374,11 @@ class Timestamp(_Timestamp):
         Timezone info.
     nanosecond : int, optional, default 0
         Value of nanosecond.
-    tz : str, pytz.timezone, dateutil.tz.tzfile or None
+    tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
         Unit used for conversion if ts_input is of type int or float. The
-        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
 
         For float inputs, the result will be stored in nanoseconds, and
@@ -1417,6 +1417,11 @@ class Timestamp(_Timestamp):
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
 
+    This converts an int representing a Unix-epoch in units of weeks
+
+    >>> pd.Timestamp(1535, unit='W')
+    Timestamp('1999-06-03 00:00:00')
+
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
 
@@ -1441,7 +1446,7 @@ class Timestamp(_Timestamp):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
         Notes
@@ -2202,6 +2207,12 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        See Also
+        --------
+        Timestamp.ceil : Round up a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.floor : Round down the datetime values in a Series.
+
         Notes
         -----
         If the Timestamp has a timezone, flooring will take place relative to the
@@ -2382,7 +2393,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 
@@ -2489,7 +2500,7 @@ default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -2593,13 +2604,13 @@ default 'raise'
 
         Replace timezone (not a conversion):
 
-        >>> import pytz
-        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> import zoneinfo
+        >>> ts.replace(tzinfo=zoneinfo.ZoneInfo('US/Pacific'))
         Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
 
         Analogous for ``pd.NaT``:
 
-        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> pd.NaT.replace(tzinfo=zoneinfo.ZoneInfo('US/Pacific'))
         NaT
         """
 
