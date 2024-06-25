@@ -49,7 +49,7 @@ def frame(float_frame):
     return float_frame[:10]
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False, "columns"])
 def merge_cells(request):
     return request.param
 
