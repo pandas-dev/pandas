@@ -114,6 +114,7 @@ dependencies:
   - pyyaml
   - requests
   - pygments # Code highlighting
+  - myst-parser
 
   - pip:
       - adbc-driver-postgresql>=0.10.0
