@@ -12,6 +12,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -27,7 +28,6 @@ from typing import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     lib,
@@ -830,7 +830,11 @@ class TestInference:
 
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
-        tm.assert_numpy_array_equal(out, arr)
+        if dtype == "datetime64[ns]":
+            expected = np.array(["2363-10-04"], dtype="M8[us]")
+        else:
+            expected = arr
+        tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
         ts = Timestamp("now")
@@ -936,9 +940,9 @@ class TestInference:
     def test_maybe_convert_objects_nullable_boolean(self):
         # GH50047
         arr = np.array([True, False], dtype=object)
-        exp = np.array([True, False])
+        exp = BooleanArray._from_sequence([True, False], dtype="boolean")
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
-        tm.assert_numpy_array_equal(out, exp)
+        tm.assert_extension_array_equal(out, exp)
 
         arr = np.array([True, False, pd.NaT], dtype=object)
         exp = np.array([True, False, pd.NaT], dtype=object)
@@ -1018,7 +1022,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 

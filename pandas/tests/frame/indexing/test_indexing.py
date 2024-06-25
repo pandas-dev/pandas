@@ -118,7 +118,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_boolean(self, mixed_float_frame, mixed_int_frame, datetime_frame):
         # boolean indexing
-        d = datetime_frame.index[10]
+        d = datetime_frame.index[len(datetime_frame) // 2]
         indexer = datetime_frame.index > d
         indexer_obj = indexer.astype(object)
 
@@ -145,7 +145,7 @@ class TestDataFrameIndexing:
         # we are producing a warning that since the passed boolean
         # key is not the same as the given index, we will reindex
         # not sure this is really necessary
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="will be reindexed"):
             indexer_obj = indexer_obj.reindex(datetime_frame.index[::-1])
             subframe_obj = datetime_frame[indexer_obj]
             tm.assert_frame_equal(subframe_obj, subframe)
@@ -524,6 +524,16 @@ class TestDataFrameIndexing:
         result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
+    def test_getitem_slice_empty(self):
+        df = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+        result = df[:]
+
+        expected = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+
+        tm.assert_frame_equal(result, expected)
+        # Ensure df[:] returns a view of df, not the same object
+        assert result is not df
+
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
@@ -714,6 +724,14 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
+    def test_getitem_float_label_positional(self):
+        # GH 53338
+        index = Index([1.5, 2])
+        df = DataFrame(range(2), index=index)
+        result = df[1:2]
+        expected = DataFrame([1], index=[2.0])
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
@@ -736,12 +754,6 @@ class TestDataFrameIndexing:
         # loc_float changes this to work properly
         result = df.loc[1:2]
         expected = df.iloc[0:2]
-        tm.assert_frame_equal(result, expected)
-
-        expected = df.iloc[0:2]
-        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df[1:2]
         tm.assert_frame_equal(result, expected)
 
         # #2727
@@ -1009,13 +1021,13 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
-    def test_iloc_callable_tuple_return_value(self):
-        # GH53769
+    def test_iloc_callable_tuple_return_value_raises(self):
+        # GH53769: Enforced pandas 3.0
         df = DataFrame(np.arange(40).reshape(10, 4), index=range(0, 20, 2))
-        msg = "callable with iloc"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Returning a tuple from"
+        with pytest.raises(ValueError, match=msg):
             df.iloc[lambda _: (0,)]
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.iloc[lambda _: (0,)] = 1
 
     def test_iloc_row(self):

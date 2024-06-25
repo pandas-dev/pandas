@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import warnings
 
@@ -55,6 +54,8 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -361,6 +362,13 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array-like or dtype is of the timedelta64 dtype.
+
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_period_dtype : Check whether an array-like or dtype is of the
+        Period dtype.
 
     Examples
     --------
@@ -872,6 +880,15 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     -------
     bool
         Whether or not the array or dtype is of the datetime64 dtype.
+
+    See Also
+    --------
+    api.types.is_datetime64_dtype : Check whether an array-like or dtype is of the
+        datetime64 dtype.
+    api.is_datetime64_ns_dtype : Check whether the provided array or dtype is of the
+        datetime64[ns] dtype.
+    api.is_datetime64tz_dtype : Check whether an array-like or dtype is of a
+        DatetimeTZDtype dtype.
 
     Examples
     --------

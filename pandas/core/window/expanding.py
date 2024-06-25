@@ -4,14 +4,10 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -35,6 +31,8 @@ from pandas.core.window.rolling import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         QuantileInterpolation,
         WindowingRankType,
@@ -709,7 +707,6 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
-    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,

@@ -5,7 +5,6 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Union,
     cast,
 )
@@ -53,7 +52,10 @@ if not pa_version_under10p1:
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -196,13 +198,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            return cls(pa.array(result, mask=na_values, type=pa.string()))
+            return cls(pa.array(result, mask=na_values, type=pa.large_string()))
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            return cls(pc.cast(scalars, pa.string()))
+            return cls(pc.cast(scalars, pa.large_string()))
 
         # convert non-na-likes to str
         result = lib.ensure_string_array(scalars, copy=copy)
-        return cls(pa.array(result, type=pa.string(), from_pandas=True))
+        return cls(pa.array(result, type=pa.large_string(), from_pandas=True))
 
     @classmethod
     def _from_sequence_of_strings(
@@ -245,7 +247,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         value_set = [
             pa_scalar.as_py()
             for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
-            if pa_scalar.type in (pa.string(), pa.null())
+            if pa_scalar.type in (pa.string(), pa.null(), pa.large_string())
         ]
 
         # short-circuit to return all False array.
@@ -332,7 +334,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            result = pa.array(
+                result, mask=mask, type=pa.large_string(), from_pandas=True
+            )
             return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
@@ -627,35 +631,34 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                 na_value = np.nan
             else:
                 na_value = False
-            try:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                    dtype=np.dtype(cast(type, dtype)),
-                )
-                return result
 
-            except ValueError:
-                result = lib.map_infer_mask(
-                    arr,
-                    f,
-                    mask.view("uint8"),
-                    convert=False,
-                    na_value=na_value,
-                )
-                if convert and result.dtype == object:
-                    result = lib.maybe_convert_objects(result)
-                return result
+            dtype = np.dtype(cast(type, dtype))
+            if mask.any():
+                # numpy int/bool dtypes cannot hold NaNs so we must convert to
+                # float64 for int (to match maybe_convert_objects) or
+                # object for bool (again to match maybe_convert_objects)
+                if is_integer_dtype(dtype):
+                    dtype = np.dtype("float64")
+                else:
+                    dtype = np.dtype(object)
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=dtype,
+            )
+            return result
 
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
             result = lib.map_infer_mask(
                 arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
-            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            result = pa.array(
+                result, mask=mask, type=pa.large_string(), from_pandas=True
+            )
             return type(self)(result)
         else:
             # This is when the result type is object. We reach this when

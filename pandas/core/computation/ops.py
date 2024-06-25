@@ -9,7 +9,6 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
 )
 
@@ -19,6 +18,7 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
 )
 
@@ -36,6 +36,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterable,
         Iterator,
     )
@@ -45,6 +46,7 @@ REDUCTIONS = ("sum", "prod", "min", "max")
 _unary_math_ops = (
     "sin",
     "cos",
+    "tan",
     "exp",
     "log",
     "expm1",
@@ -507,10 +509,6 @@ class BinOp(Op):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
-def isnumeric(dtype) -> bool:
-    return issubclass(np.dtype(dtype).type, np.number)
-
-
 class Div(BinOp):
     """
     Div operator to special case casting.
@@ -524,7 +522,9 @@ class Div(BinOp):
     def __init__(self, lhs, rhs) -> None:
         super().__init__("/", lhs, rhs)
 
-        if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
+        if not is_numeric_dtype(lhs.return_type) or not is_numeric_dtype(
+            rhs.return_type
+        ):
             raise TypeError(
                 f"unsupported operand type(s) for {self.op}: "
                 f"'{lhs.return_type}' and '{rhs.return_type}'"

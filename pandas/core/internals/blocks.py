@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     final,
@@ -38,7 +37,10 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    OutOfBoundsDatetime,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -98,7 +100,6 @@ from pandas.core.array_algos.replace import (
 )
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
@@ -118,6 +119,8 @@ from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
+        Generator,
         Iterable,
         Sequence,
     )
@@ -385,20 +388,18 @@ class Block(PandasObject, libinternals.Block):
         return [nb]
 
     @final
-    def _split(self) -> list[Block]:
+    def _split(self) -> Generator[Block, None, None]:
         """
         Split a block into a list of single-column blocks.
         """
         assert self.ndim == 2
 
-        new_blocks = []
         for i, ref_loc in enumerate(self._mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
             bp = BlockPlacement(ref_loc)
             nb = type(self)(vals, placement=bp, ndim=2, refs=self.refs)
-            new_blocks.append(nb)
-        return new_blocks
+            yield nb
 
     @final
     def split_and_operate(self, func, *args, **kwargs) -> list[Block]:
@@ -479,7 +480,17 @@ class Block(PandasObject, libinternals.Block):
                 f"{self.values.dtype}. Please report a bug at "
                 "https://github.com/pandas-dev/pandas/issues."
             )
-        return self.astype(new_dtype)
+        try:
+            return self.astype(new_dtype)
+        except OutOfBoundsDatetime as err:
+            # e.g. GH#56419 if self.dtype is a low-resolution dt64 and we try to
+            #  upcast to a higher-resolution dt64, we may have entries that are
+            #  out of bounds for the higher resolution.
+            #  Re-raise with a more informative message.
+            raise OutOfBoundsDatetime(
+                f"Incompatible (high-resolution) value for dtype='{self.dtype}'. "
+                "Explicitly cast before operating."
+            ) from err
 
     @final
     def convert(self) -> list[Block]:
@@ -537,7 +548,9 @@ class Block(PandasObject, libinternals.Block):
         rbs = []
         for blk in blks:
             # Determine dtype column by column
-            sub_blks = [blk] if blk.ndim == 1 or self.shape[0] == 1 else blk._split()
+            sub_blks = (
+                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+            )
             dtypes = [
                 convert_dtypes(
                     b.values,
@@ -682,14 +695,6 @@ class Block(PandasObject, libinternals.Block):
         #  go through replace_list
         values = self.values
 
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=to_replace, value=value, inplace=True)
-            return [blk]
-
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
             #  replacing it is a no-op.
@@ -788,14 +793,6 @@ class Block(PandasObject, libinternals.Block):
         See BlockManager.replace_list docstring.
         """
         values = self.values
-
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=src_list, value=dest_list, inplace=True)
-            return [blk]
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -1190,8 +1187,7 @@ class Block(PandasObject, libinternals.Block):
                 is_array = isinstance(new, np.ndarray)
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = new
                     if is_array:
                         # we have a different value per-column
@@ -1255,8 +1251,7 @@ class Block(PandasObject, libinternals.Block):
                 is_array = isinstance(other, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     oth = other
                     if is_array:
                         # we have a different value per-column
@@ -1698,8 +1693,7 @@ class EABackedBlock(Block):
                 is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = orig_other
                     if is_array:
                         # we have a different value per-column
@@ -1760,8 +1754,7 @@ class EABackedBlock(Block):
                 is_array = isinstance(orig_new, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
-                nbs = self._split()
-                for i, nb in enumerate(nbs):
+                for i, nb in enumerate(self._split()):
                     n = orig_new
                     if is_array:
                         # we have a different value per-column
@@ -1853,6 +1846,8 @@ class ExtensionBlock(EABackedBlock):
     ) -> list[Block]:
         if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
+            if limit is not None:
+                raise ValueError("limit must be None")
             return super().fillna(
                 value=value,
                 limit=limit,
@@ -2141,14 +2136,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     values: DatetimeArray | TimedeltaArray
 
 
-class DatetimeTZBlock(DatetimeLikeBlock):
-    """implement a datetime64 block with a tz attribute"""
-
-    values: DatetimeArray
-
-    __slots__ = ()
-
-
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2195,7 +2182,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     cls : class, subclass of Block
     """
     if isinstance(dtype, DatetimeTZDtype):
-        return DatetimeTZBlock
+        return DatetimeLikeBlock
     elif isinstance(dtype, PeriodDtype):
         return NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
