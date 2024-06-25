@@ -1231,3 +1231,12 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_conversion():
+    # GH 29707
+
+    df = pd.DataFrame({"a": [2, 3]})
+    assert df.a.dtype == "int64"
+    df.loc[[]] = 0.1
+    assert df.a.dtype == "int64"
