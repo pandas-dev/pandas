@@ -288,6 +288,13 @@ class TestMultiLevel:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("na", [None, np.nan])
+    def test_multiindex_insert_level_with_na(self, na):
+        # GH 59003
+        df = DataFrame([0], columns=[["A"], ["B"]])
+        df[na, "B"] = 1
+        tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
+
 
 class TestSorted:
     """everything you wanted to test about sorting"""
