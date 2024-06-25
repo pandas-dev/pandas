@@ -441,6 +441,29 @@ def test_drop_duplicates_null_in_object_column(nulls_fixture):
     tm.assert_frame_equal(result, df)
 
 
+import pandas as pd
+
+
+def test_drop_duplicates_index():
+    # Example 1: Basic usage with integer index and duplicate rows
+    df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 1])
+    result = df.drop_duplicates(index=True)
+    expected = pd.DataFrame({"A": [1, 2]}, index=[0, 1])
+    pd.testing.assert_frame_equal(result, expected)
+
+    # Example 2: Using strings as index
+    df2 = pd.DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+    result2 = df2.drop_duplicates(index=True)
+    expected2 = pd.DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+    pd.testing.assert_frame_equal(result2, expected2)
+
+    # Example 3: Index is not reset after dropping duplicates
+    df3 = pd.DataFrame({"A": [1, 2, 3]}, index=["a", "b", "a"])
+    result3 = df3.drop_duplicates(index=True)
+    expected3 = pd.DataFrame({"A": [1, 2]}, index=["a", "b"])
+    pd.testing.assert_frame_equal(result3, expected3)
+
+
 def test_drop_duplicates_series_vs_dataframe(keep):
     # GH#14192
     df = DataFrame(
