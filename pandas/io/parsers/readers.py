@@ -674,14 +674,14 @@ def _read(
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
-    
+
     # Check type of encoding_errors
     errors = kwds.get("encoding_errors", "strict")
     if not isinstance(errors, str) and errors is not None:
         raise ValueError(
             f"encoding_errors must be a string or None, got {type(errors).__name__}"
         )
-    
+
     if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
