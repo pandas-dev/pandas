@@ -5731,7 +5731,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
         weights : str or ndarray-like, optional
-            Default 'None' results in equal probability weighting.
+            Default ``None`` results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
             values in weights not found in sampled object will be ignored and
             index values in sampled object not in weights will be assigned
@@ -5746,6 +5746,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
+            Default ``None`` results in sampling with the current state of np.random.
 
             .. versionchanged:: 1.4.0
 
