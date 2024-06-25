@@ -744,9 +744,15 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
         It also assumes that the `tz` input is not None.
     """
     if treat_tz_as_pytz(tz):
+        import pytz
+
         # datetime.replace with pytz may be incorrect result
         # TODO: try to respect `fold` attribute
-        return tz.localize(dt, is_dst=None)
+        try:
+            return tz.localize(dt, is_dst=None)
+        except (pytz.AmbiguousTimeError, pytz.NonExistentTimeError) as err:
+            # As of pandas 3.0, we raise ValueErrors instead of pytz exceptions
+            raise ValueError(str(err)) from err
     else:
         return dt.replace(tzinfo=tz)
 

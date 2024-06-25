@@ -108,13 +108,13 @@ class TestDST:
                 "second": "2013-11-03 01:59:01.999999",
                 "microsecond": "2013-11-03 01:59:59.000001",
             }[offset_name]
-            with pytest.raises(pytz.AmbiguousTimeError, match=err_msg):
+            with pytest.raises(ValueError, match=err_msg):
                 tstart + offset
             # While we're here, let's check that we get the same behavior in a
             #  vectorized path
             dti = DatetimeIndex([tstart])
             warn_msg = "Non-vectorized DateOffset"
-            with pytest.raises(pytz.AmbiguousTimeError, match=err_msg):
+            with pytest.raises(ValueError, match=err_msg):
                 with tm.assert_produces_warning(performance_warning, match=warn_msg):
                     dti + offset
             return

@@ -251,7 +251,7 @@ with the pip extra ``pip install pandas[timezone]``.
 
 
 Additionally, pandas no longer throws ``pytz`` exceptions for timezone operations leading to ambiguous or nonexistent
-times. These operations will now yield
+times. These cases will now raise a ``ValueError``.
 
 .. _whatsnew_300.api_breaking.other:
 
