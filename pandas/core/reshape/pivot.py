@@ -557,8 +557,6 @@ def _generate_marginal_results(
                 piece = piece.T
                 all_key = _all_key(key)
 
-                # we are going to mutate this, so need to copy!
-                piece = piece.copy()
                 piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -842,11 +840,11 @@ def pivot(
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
-    data = data.copy(deep=False)
-    data.index = data.index.copy()
-    data.index.names = [
-        name if name is not None else lib.no_default for name in data.index.names
-    ]
+    if any(name is None for name in data.index.names):
+        data = data.copy(deep=False)
+        data.index.names = [
+            name if name is not None else lib.no_default for name in data.index.names
+        ]
 
     indexed: DataFrame | Series
     if values is lib.no_default:
