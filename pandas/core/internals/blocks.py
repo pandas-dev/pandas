@@ -100,7 +100,6 @@ from pandas.core.array_algos.replace import (
 )
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
@@ -696,14 +695,6 @@ class Block(PandasObject, libinternals.Block):
         #  go through replace_list
         values = self.values
 
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=to_replace, value=value, inplace=True)
-            return [blk]
-
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
             #  replacing it is a no-op.
@@ -802,14 +793,6 @@ class Block(PandasObject, libinternals.Block):
         See BlockManager.replace_list docstring.
         """
         values = self.values
-
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=src_list, value=dest_list, inplace=True)
-            return [blk]
 
         # Exclude anything that we know we won't contain
         pairs = [
