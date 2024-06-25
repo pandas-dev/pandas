@@ -674,6 +674,14 @@ def _read(
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
+    
+    # Check type of encoding_errors
+    errors = kwds.get("encoding_errors", "strict")
+    if not isinstance(errors, str) and errors is not None:
+        raise ValueError(
+            f"encoding_errors must be a string or None, got {type(errors).__name__}"
+        )
+    
     if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
@@ -1414,12 +1422,6 @@ class TextFileReader(abc.Iterator):
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
 
-        errors = self.options.get("encoding_errors", "strict")
-        if not isinstance(errors, str) and errors is not None:
-            raise ValueError(
-                f"encoding_errors must be a string, got {type(errors).__name__}"
-            )
-
         if not isinstance(f, list):
             # open file here
             is_text = True
@@ -1444,7 +1446,7 @@ class TextFileReader(abc.Iterator):
                 compression=self.options.get("compression", None),
                 memory_map=self.options.get("memory_map", False),
                 is_text=is_text,
-                errors=errors,
+                errors=self.options.get("encoding_errors", "strict"),
                 storage_options=self.options.get("storage_options", None),
             )
             assert self.handles is not None
