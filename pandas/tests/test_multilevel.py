@@ -121,8 +121,7 @@ class TestMultiLevel:
 
         expected = ymd.groupby([k1, k2]).mean()
 
-        # TODO groupby with level_values drops names
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected)
         assert result.index.names == ymd.index.names[:2]
 
         result2 = ymd.groupby(level=ymd.index.names[:2]).mean()

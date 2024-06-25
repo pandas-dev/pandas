@@ -10,6 +10,7 @@ from pandas.compat import (
     IS64,
     is_platform_arm,
     is_platform_power,
+    is_platform_riscv64,
 )
 
 from pandas import (
@@ -577,7 +578,7 @@ def test_missing_minp_zero_variable():
         [np.nan] * 4,
         index=DatetimeIndex(["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]),
     )
-    result = x.rolling(Timedelta("2d"), min_periods=0).sum()
+    result = x.rolling(Timedelta("2D"), min_periods=0).sum()
     expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
@@ -1081,7 +1082,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    is_platform_arm() or is_platform_power(),
+    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
     reason="GH 38921",
 )
 @pytest.mark.parametrize(

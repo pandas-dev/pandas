@@ -1,9 +1,9 @@
 from datetime import datetime
 from functools import partial
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
@@ -1300,7 +1300,8 @@ def test_resample_consistency(unit):
 
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
-    rl = s.reindex_like(s10, method="bfill", limit=2)
+    with tm.assert_produces_warning(FutureWarning):
+        rl = s.reindex_like(s10, method="bfill", limit=2)
     r10_2 = s.resample("10Min").bfill(limit=2)
     r10 = s.resample("10Min").bfill()
 
@@ -1654,13 +1655,13 @@ def test_resample_dst_anchor2(unit):
 
 def test_downsample_across_dst(unit):
     # GH 8531
-    tz = pytz.timezone("Europe/Berlin")
+    tz = zoneinfo.ZoneInfo("Europe/Berlin")
     dt = datetime(2014, 10, 26)
-    dates = date_range(tz.localize(dt), periods=4, freq="2h").as_unit(unit)
+    dates = date_range(dt.astimezone(tz), periods=4, freq="2h").as_unit(unit)
     result = Series(5, index=dates).resample("h").mean()
     expected = Series(
         [5.0, np.nan] * 3 + [5.0],
-        index=date_range(tz.localize(dt), periods=7, freq="h").as_unit(unit),
+        index=date_range(dt.astimezone(tz), periods=7, freq="h").as_unit(unit),
     )
     tm.assert_series_equal(result, expected)
 
@@ -2013,46 +2014,22 @@ def test_resample_empty_series_with_tz():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq, freq_depr",
-    [
-        ("2ME", "2M"),
-        ("2QE", "2Q"),
-        ("2QE-SEP", "2Q-SEP"),
-        ("1YE", "1Y"),
-        ("2YE-MAR", "2Y-MAR"),
-    ],
-)
-def test_resample_M_Q_Y_deprecated(freq, freq_depr):
-    # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-    f"in a future version, please use '{freq[1:]}' instead."
+@pytest.mark.parametrize("freq", ["2M", "2m", "2Q", "2Q-SEP", "2q-sep", "1Y", "2Y-MAR"])
+def test_resample_M_Q_Y_raises(freq):
+    msg = f"Invalid frequency: {freq}"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample(freq).mean()
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample(freq_depr).mean()
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        s.resample(freq).mean()
 
 
-@pytest.mark.parametrize(
-    "freq, freq_depr",
-    [
-        ("2BME", "2BM"),
-        ("2BQE", "2BQ"),
-        ("2BQE-MAR", "2BQ-MAR"),
-    ],
-)
-def test_resample_BM_BQ_deprecated(freq, freq_depr):
-    # GH#52064
-    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-    f"in a future version, please use '{freq[1:]}' instead."
+@pytest.mark.parametrize("freq", ["2BM", "1bm", "1BQ", "2BQ-MAR", "2bq=-mar"])
+def test_resample_BM_BQ_raises(freq):
+    msg = f"Invalid frequency: {freq}"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample(freq).mean()
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample(freq_depr).mean()
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        s.resample(freq).mean()
 
 
 def test_resample_ms_closed_right(unit):

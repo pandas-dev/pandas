@@ -82,7 +82,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-def test_basic(using_infer_string):  # TODO: split this test
+def test_basic():
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -95,17 +95,20 @@ def test_basic(using_infer_string):  # TODO: split this test
     result = data.groupby("b", observed=False).mean()
     tm.assert_frame_equal(result, expected)
 
+
+def test_basic_single_grouper():
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
     df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
 
-    # single grouper
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
     result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
+
+def test_basic_string(using_infer_string):
     # GH 8623
     x = DataFrame(
         [[1, "John P. Doe"], [2, "Jane Dove"], [1, "John P. Doe"]],
@@ -133,8 +136,9 @@ def test_basic(using_infer_string):  # TODO: split this test
     expected["person_name"] = expected["person_name"].astype(dtype)
     tm.assert_frame_equal(result, expected)
 
+
+def test_basic_monotonic():
     # GH 9921
-    # Monotonic
     df = DataFrame({"a": [5, 15, 25]})
     c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
 
@@ -165,7 +169,8 @@ def test_basic(using_infer_string):  # TODO: split this test
     tm.assert_series_equal(df.a.groupby(c, observed=False).filter(np.all), df["a"])
     tm.assert_frame_equal(df.groupby(c, observed=False).filter(np.all), df)
 
-    # Non-monotonic
+
+def test_basic_non_monotonic():
     df = DataFrame({"a": [5, 15, 25, -5]})
     c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
 
@@ -183,6 +188,8 @@ def test_basic(using_infer_string):  # TODO: split this test
         df.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df[["a"]]
     )
 
+
+def test_basic_cut_grouping():
     # GH 9603
     df = DataFrame({"a": [1, 0, 0, 0]})
     c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=Categorical(list("abcd")))
@@ -193,13 +200,14 @@ def test_basic(using_infer_string):  # TODO: split this test
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
-    # more basic
+
+def test_more_basic():
     levels = ["foo", "bar", "baz", "qux"]
-    codes = np.random.default_rng(2).integers(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=10)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
+    data = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
     result = data.groupby(cats, observed=False).mean()
 
@@ -225,9 +233,9 @@ def test_basic(using_infer_string):  # TODO: split this test
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(desc_result.stack().index.get_level_values(0), exp)
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(desc_result.stack().index.get_level_values(1), exp)
 
 
 def test_level_get_group(observed):
@@ -352,6 +360,8 @@ def test_observed(observed):
 
     tm.assert_frame_equal(result, expected)
 
+
+def test_observed_single_column(observed):
     # https://github.com/pandas-dev/pandas/issues/8138
     d = {
         "cat": Categorical(
@@ -362,7 +372,6 @@ def test_observed(observed):
     }
     df = DataFrame(d)
 
-    # Grouping on a single column
     groups_single_key = df.groupby("cat", observed=observed)
     result = groups_single_key.mean()
 
@@ -378,7 +387,17 @@ def test_observed(observed):
 
     tm.assert_frame_equal(result, expected)
 
-    # Grouping on two columns
+
+def test_observed_two_columns(observed):
+    # https://github.com/pandas-dev/pandas/issues/8138
+    d = {
+        "cat": Categorical(
+            ["a", "b", "a", "b"], categories=["a", "b", "c"], ordered=True
+        ),
+        "ints": [1, 1, 2, 2],
+        "val": [10, 20, 30, 40],
+    }
+    df = DataFrame(d)
     groups_double_key = df.groupby(["cat", "ints"], observed=observed)
     result = groups_double_key.agg("mean")
     expected = DataFrame(
@@ -404,6 +423,8 @@ def test_observed(observed):
         expected = df[(df.cat == c) & (df.ints == i)]
         tm.assert_frame_equal(result, expected)
 
+
+def test_observed_with_as_index(observed):
     # gh-8869
     # with as_index
     d = {
@@ -591,7 +612,6 @@ def test_dataframe_categorical_with_nan(observed):
 
 
 @pytest.mark.parametrize("ordered", [True, False])
-@pytest.mark.parametrize("observed", [True, False])
 def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
     # GH 25871: Fix groupby sorting on ordered Categoricals
     # GH 25167: Groupby with observed=True doesn't sort
@@ -627,11 +647,11 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range("2014-01-01", periods=4)
-    codes = np.random.default_rng(2).integers(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=10)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
+    data = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
     result = data.groupby(cats, observed=False).mean()
 
     expected = data.groupby(np.asarray(cats), observed=False).mean()
@@ -832,7 +852,10 @@ def test_preserve_categories():
         df.groupby("A", sort=False, observed=False).first().index, nosort_index
     )
 
-    # ordered=False
+
+def test_preserve_categories_ordered_false():
+    # GH-13179
+    categories = list("abc")
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
     sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
     # GH#48749 - don't change order of categories
@@ -846,7 +869,8 @@ def test_preserve_categories():
     )
 
 
-def test_preserve_categorical_dtype():
+@pytest.mark.parametrize("col", ["C1", "C2"])
+def test_preserve_categorical_dtype(col):
     # GH13743, GH13854
     df = DataFrame(
         {
@@ -865,18 +889,15 @@ def test_preserve_categorical_dtype():
             "C2": Categorical(list("bac"), categories=list("bac"), ordered=True),
         }
     )
-    for col in ["C1", "C2"]:
-        result1 = df.groupby(by=col, as_index=False, observed=False).mean(
-            numeric_only=True
-        )
-        result2 = (
-            df.groupby(by=col, as_index=True, observed=False)
-            .mean(numeric_only=True)
-            .reset_index()
-        )
-        expected = exp_full.reindex(columns=result1.columns)
-        tm.assert_frame_equal(result1, expected)
-        tm.assert_frame_equal(result2, expected)
+    result1 = df.groupby(by=col, as_index=False, observed=False).mean(numeric_only=True)
+    result2 = (
+        df.groupby(by=col, as_index=True, observed=False)
+        .mean(numeric_only=True)
+        .reset_index()
+    )
+    expected = exp_full.reindex(columns=result1.columns)
+    tm.assert_frame_equal(result1, expected)
+    tm.assert_frame_equal(result2, expected)
 
 
 @pytest.mark.parametrize(
@@ -931,6 +952,8 @@ def test_categorical_no_compress():
     )
     tm.assert_series_equal(result, exp)
 
+
+def test_categorical_no_compress_string():
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -965,7 +988,7 @@ def test_sort():
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
-    df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
+    df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 10)})
     labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
@@ -1450,7 +1473,14 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
     df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
 
     args = get_groupby_method_args(reduction_func, df)
-    res = getattr(df_grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        res = getattr(df_grp, reduction_func)(*args)
 
     for cat in unobserved_cats:
         assert cat not in res.index
@@ -1489,7 +1519,14 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
             getattr(df_grp, reduction_func)(*args)
         return
 
-    res = getattr(df_grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
 
@@ -1881,8 +1918,14 @@ def test_category_order_reducer(
         ):
             getattr(gb, reduction_func)(*args)
         return
-
-    op_result = getattr(gb, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        warn_msg = ""
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
     else:

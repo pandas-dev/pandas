@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     final,
@@ -121,6 +120,7 @@ from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterable,
         Sequence,
@@ -1859,6 +1859,8 @@ class ExtensionBlock(EABackedBlock):
     ) -> list[Block]:
         if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
+            if limit is not None:
+                raise ValueError("limit must be None")
             return super().fillna(
                 value=value,
                 limit=limit,
@@ -2147,14 +2149,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     values: DatetimeArray | TimedeltaArray
 
 
-class DatetimeTZBlock(DatetimeLikeBlock):
-    """implement a datetime64 block with a tz attribute"""
-
-    values: DatetimeArray
-
-    __slots__ = ()
-
-
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2201,7 +2195,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     cls : class, subclass of Block
     """
     if isinstance(dtype, DatetimeTZDtype):
-        return DatetimeTZBlock
+        return DatetimeLikeBlock
     elif isinstance(dtype, PeriodDtype):
         return NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
