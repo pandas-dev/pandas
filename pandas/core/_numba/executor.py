@@ -71,13 +71,20 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
             labels: np.ndarray,
             ngroups: int,
             min_periods: int,
+            skipna: bool = True,
             *args,
         ):
             result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
             na_positions = {}
             for i in numba.prange(values.shape[0]):
                 output, na_pos = func(
-                    values[i], result_dtype, labels, ngroups, min_periods, *args
+                    values[i],
+                    result_dtype,
+                    labels,
+                    ngroups,
+                    min_periods,
+                    skipna,
+                    *args,
                 )
                 result[i] = output
                 if len(na_pos) > 0:
@@ -164,6 +171,7 @@ def generate_shared_aggregator(
     nopython: bool,
     nogil: bool,
     parallel: bool,
+    skipna: bool = True,
 ):
     """
     Generate a Numba function that loops over the columns 2D object and applies
@@ -192,7 +200,6 @@ def generate_shared_aggregator(
     -------
     Numba function
     """
-
     # A wrapper around the looper function,
     # to dispatch based on dtype since numba is unable to do that in nopython mode
 
@@ -216,11 +223,11 @@ def generate_shared_aggregator(
         # Need to unpack kwargs since numba only supports *args
         if is_grouped_kernel:
             result, na_positions = column_looper(
-                values, labels, ngroups, min_periods, *kwargs.values()
+                values, labels, ngroups, min_periods, skipna, *kwargs.values()
             )
         else:
             result, na_positions = column_looper(
-                values, start, end, min_periods, *kwargs.values()
+                values, start, end, min_periods, skipna, *kwargs.values()
             )
         if result.dtype.kind == "i":
             # Look if na_positions is not empty

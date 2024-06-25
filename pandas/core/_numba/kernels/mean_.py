@@ -71,6 +71,7 @@ def sliding_mean(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
@@ -169,9 +170,10 @@ def grouped_mean(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     output, nobs_arr, comp_arr, consecutive_counts, prev_vals = grouped_kahan_sum(
-        values, result_dtype, labels, ngroups
+        values, result_dtype, labels, ngroups, skipna
     )
 
     # Post-processing, replace sums that don't satisfy min_periods
@@ -187,7 +189,8 @@ def grouped_mean(
                 result = sum_x
         else:
             result = np.nan
-        result /= nobs
+        if nobs != 0:
+            result /= nobs
         output[lab] = result
 
     # na_position is empty list since float64 can already hold nans

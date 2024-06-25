@@ -78,6 +78,7 @@ def sliding_var(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool = True,
     ddof: int = 1,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)
@@ -175,6 +176,7 @@ def grouped_var(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool = True,
     ddof: int = 1,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
@@ -193,36 +195,41 @@ def grouped_var(
         if lab < 0:
             continue
 
-        mean_x = means[lab]
-        ssqdm_x = output[lab]
-        nobs = nobs_arr[lab]
-        compensation_add = comp_arr[lab]
-        num_consecutive_same_value = consecutive_counts[lab]
-        prev_value = prev_vals[lab]
+        if not skipna and np.isnan(val):
+            output[lab] = val
+            nobs_arr[lab] = 0
 
-        (
-            nobs,
-            mean_x,
-            ssqdm_x,
-            compensation_add,
-            num_consecutive_same_value,
-            prev_value,
-        ) = add_var(
-            val,
-            nobs,
-            mean_x,
-            ssqdm_x,
-            compensation_add,
-            num_consecutive_same_value,
-            prev_value,
-        )
+        else:
+            mean_x = means[lab]
+            ssqdm_x = output[lab]
+            nobs = nobs_arr[lab]
+            compensation_add = comp_arr[lab]
+            num_consecutive_same_value = consecutive_counts[lab]
+            prev_value = prev_vals[lab]
 
-        output[lab] = ssqdm_x
-        means[lab] = mean_x
-        consecutive_counts[lab] = num_consecutive_same_value
-        prev_vals[lab] = prev_value
-        comp_arr[lab] = compensation_add
-        nobs_arr[lab] = nobs
+            (
+                nobs,
+                mean_x,
+                ssqdm_x,
+                compensation_add,
+                num_consecutive_same_value,
+                prev_value,
+            ) = add_var(
+                val,
+                nobs,
+                mean_x,
+                ssqdm_x,
+                compensation_add,
+                num_consecutive_same_value,
+                prev_value,
+            )
+
+            output[lab] = ssqdm_x
+            means[lab] = mean_x
+            consecutive_counts[lab] = num_consecutive_same_value
+            prev_vals[lab] = prev_value
+            comp_arr[lab] = compensation_add
+            nobs_arr[lab] = nobs
 
     # Post-processing, replace vars that don't satisfy min_periods
     for lab in range(ngroups):

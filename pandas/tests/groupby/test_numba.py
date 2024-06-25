@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas import (
@@ -71,3 +72,23 @@ class TestEngine:
             res = gb.agg({"b": "first"})
         expected = gb.agg({"b": "first"})
         tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "numba_method", ["sum", "min", "max", "std", "var", "mean"]
+    )
+    def test_skipna_numba(self, numba_method):
+        # GH15675
+        df = DataFrame(
+            {
+                "l": ["A", "A", "A", "B", "B", "B"],
+                "float": [-1.0, 1.2, -1.1, 1.5, 1.0, np.nan],
+            }
+        )
+
+        result_numba = getattr(df.groupby("l").float, numba_method)(
+            skipna=False, engine="numba"
+        )
+        expected = df.groupby("l").float.apply(
+            lambda x: getattr(x, numba_method)(skipna=False)
+        )
+        tm.assert_series_equal(result_numba, expected, check_exact=False)

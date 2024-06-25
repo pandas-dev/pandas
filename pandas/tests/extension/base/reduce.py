@@ -77,6 +77,19 @@ class BaseReduceTests:
 
         tm.assert_extension_array_equal(result1, expected)
 
+    def check_reduce_groupby(self, ser: pd.Series, op_name: str, skipna: bool):
+        # Check that groupby reduction behaves correctly
+        df = pd.DataFrame({"a": ser, "key": [1, 2] * (len(ser) // 2)})
+        grp = df.groupby("key")["a"]
+        res_op = getattr(grp, op_name)
+
+        expected = grp.apply(
+            lambda x: getattr(x.astype("float64"), op_name)(skipna=skipna)
+        )
+
+        result = res_op(skipna=skipna)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         op_name = all_boolean_reductions
@@ -129,3 +142,15 @@ class BaseReduceTests:
             pytest.skip(f"Reduction {op_name} not supported for this dtype")
 
         self.check_reduce_frame(ser, op_name, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_groupby_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        ser = pd.Series(data)
+        if not is_numeric_dtype(ser.dtype):
+            pytest.skip(f"{ser.dtype} is not numeric dtype")
+
+        if not self._supports_reduction(ser, op_name):
+            pytest.skip(f"Reduction {op_name} not supported for this dtype")
+
+        self.check_reduce_groupby(ser, op_name, skipna)
