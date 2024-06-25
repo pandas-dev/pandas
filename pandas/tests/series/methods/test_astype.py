@@ -298,7 +298,7 @@ class TestAstype:
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
-        td = Series([Timedelta(1, unit="d")])
+        td = Series([Timedelta(1, unit="D")])
         ser = td.astype(str)
 
         expected = Series(["1 days"], dtype=object)
