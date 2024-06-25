@@ -168,9 +168,7 @@ class TestReaders:
     def test_read_excel_type_check(self, col, datapath):
         # GH 58159
         df = DataFrame({"bool_column": col}, dtype="boolean")
-        f_path = os.path.join(
-            datapath("io", "data", "excel"), "test_boolean_types.xlsx"
-        )
+        f_path = datapath("io", "data", "excel", "test_boolean_types.xlsx")
 
         df.to_excel(f_path, index=False)
         df2 = pd.read_excel(f_path, dtype={"bool_column": "boolean"}, engine="openpyxl")
@@ -178,7 +176,7 @@ class TestReaders:
 
     def test_pass_none_type(self, datapath):
         # GH 58159
-        f_path = os.path.join(datapath("io", "data", "excel"), "test_none_type.xlsx")
+        f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
 
         with pd.ExcelFile(f_path) as excel:
             parsed = pd.read_excel(
