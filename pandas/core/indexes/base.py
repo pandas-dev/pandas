@@ -47,6 +47,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     DropKeep,
+    DtypeArg,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -1088,7 +1089,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    def astype(self, dtype: DtypeObj, copy: bool = True):
+    def astype(self, dtype: DtypeArg, copy: bool = True):
         """
         Create an Index with values cast to dtypes.
 
