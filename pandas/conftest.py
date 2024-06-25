@@ -1993,7 +1993,7 @@ def using_infer_string() -> bool:
 
 _warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if pytz is not None:
-    _warsaws.append(pytz.timezone("Europe/Warsaw"))  # type: ignore[arg-type]
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
 
 
 @pytest.fixture(params=_warsaws)
