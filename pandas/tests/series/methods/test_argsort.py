@@ -24,6 +24,14 @@ class TestSeriesArgsort:
         expected = np.argsort(np.array(ser))
         tm.assert_numpy_array_equal(res, expected)
 
+    def test_argsort_numpy_missing(self):
+        data = [0.1, np.nan, 0.2, np.nan, 0.3]
+        ser = Series(data)
+        result = np.argsort(ser)
+        expected = np.argsort(np.array(data))
+
+        tm.assert_numpy_array_equal(result.values, expected)
+
     def test_argsort(self, datetime_series):
         argsorted = datetime_series.argsort()
         assert issubclass(argsorted.dtype.type, np.integer)
