@@ -378,15 +378,14 @@ class TestSeriesReplace:
             expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result, check_categorical=False)
 
-    @pytest.mark.parametrize(
-        "data, data_exp", [(["a", "b", "c"], ["b", "b", "c"]), (["a"], ["b"])]
-    )
-    def test_replace_categorical_inplace_raises(self, data, data_exp):
+    def test_replace_categorical_inplace(self):
         # GH 53358
+        data = ["a", "b", "c"]
+        data_exp = ["b", "b", "c"]
         result = pd.Series(data, dtype="category")
-        msg = "with CategoricalDtype is not supported"
-        with pytest.raises(TypeError, match=msg):
-            result.replace(to_replace="a", value="b", inplace=True)
+        result.replace(to_replace="a", value="b", inplace=True)
+        expected = pd.Series(pd.Categorical(data_exp, categories=data))
+        tm.assert_series_equal(result, expected)
 
     def test_replace_categorical_single(self):
         # GH 26988

@@ -705,6 +705,25 @@ class TestDataFrameReplace:
         expected = DataFrame([None, None])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_with_None_keeps_categorical(self):
+        # gh-46634
+        cat_series = Series(["b", "b", "b", "d"], dtype="category")
+        df = DataFrame(
+            {
+                "id": Series([5, 4, 3, 2], dtype="float64"),
+                "col": cat_series,
+            }
+        )
+        result = df.replace({3: None})
+
+        expected = DataFrame(
+            {
+                "id": Series([5.0, 4.0, None, 2.0], dtype="object"),
+                "col": cat_series,
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
@@ -1249,6 +1268,30 @@ class TestDataFrameReplace:
         result = obj.replace(1.0, 0.0)
         tm.assert_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "replace_dict, final_data",
+        [({"a": 1, "b": 1}, [[2, 2], [2, 2]]), ({"a": 1, "b": 2}, [[2, 1], [2, 2]])],
+    )
+    def test_categorical_replace_with_dict(self, replace_dict, final_data):
+        # GH 26988
+        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
+
+        final_data = np.array(final_data)
+
+        a = pd.Categorical(final_data[:, 0], categories=[1, 2])
+        b = pd.Categorical(final_data[:, 1], categories=[1, 2])
+
+        expected = DataFrame({"a": a, "b": b})
+        result = df.replace(replace_dict, 2)
+        tm.assert_frame_equal(result, expected)
+        msg = r"DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are " "different"
+        with pytest.raises(AssertionError, match=msg):
+            # ensure non-inplace call does not affect original
+            tm.assert_frame_equal(df, expected)
+        return_value = df.replace(replace_dict, 2, inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(df, expected)
+
     def test_replace_value_category_type(self):
         """
         Test for #23305: to ensure category dtypes are maintained
@@ -1405,18 +1448,6 @@ class TestDataFrameReplace:
         result = ser.replace("nil", "anything else")
         tm.assert_frame_equal(expected, result)
 
-    def test_replace_with_categorical_raises(self):
-        input_dict = {
-            "col1": [1, 2, 3, 4],
-            "col2": ["a", "b", "c", "d"],
-            "col4": ["cat1", "cat2", "cat3", "cat4"],
-        }
-        df = DataFrame(data=input_dict).astype({"col2": "category", "col4": "category"})
-
-        msg = "with CategoricalDtype is not supported"
-        with pytest.raises(TypeError, match=msg):
-            df.replace({3: None})
-
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
@@ -1482,6 +1513,20 @@ class TestDataFrameReplaceRegex:
         df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
         result = df.replace({0: 1, 1: np.nan})
         expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_categorical_no_replacement(self):
+        # GH#46672
+        df = DataFrame(
+            {
+                "a": ["one", "two", None, "three"],
+                "b": ["one", None, "two", "three"],
+            },
+            dtype="category",
+        )
+        expected = df.copy()
+
+        result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)
 
     def test_replace_object_splitting(self, using_infer_string):
