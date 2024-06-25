@@ -20,14 +20,12 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#include <Python.h>
-
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
-
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
 #include <numpy/ndarrayobject.h>
 #include <numpy/npy_common.h>
+#include <stdbool.h>
 
 #if defined(_WIN32)
 #ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
@@ -58,12 +56,15 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #endif
 #endif
 
+#define XSTR(a) STR(a)
+#define STR(a) #a
+
 #define PD_CHECK_OVERFLOW(FUNC)                                                \
   do {                                                                         \
     if ((FUNC) != 0) {                                                         \
       PyGILState_STATE gstate = PyGILState_Ensure();                           \
       PyErr_SetString(PyExc_OverflowError,                                     \
-                      "Overflow occurred in npy_datetimestruct_to_datetime");  \
+                      "Overflow occurred at " __FILE__ ":" XSTR(__LINE__));    \
       PyGILState_Release(gstate);                                              \
       return -1;                                                               \
     }                                                                          \
@@ -139,8 +140,8 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
   npy_int64 year, days = 0;
   const int *month_lengths;
 
-  year = dts->year - 1970;
-  days = year * 365;
+  PD_CHECK_OVERFLOW(checked_int64_sub(dts->year, 1970, &year));
+  PD_CHECK_OVERFLOW(checked_int64_mul(year, 365, &days));
 
   /* Adjust for leap years */
   if (days >= 0) {
@@ -148,32 +149,32 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
      * 1968 is the closest leap year before 1970.
      * Exclude the current year, so add 1.
      */
-    year += 1;
+    PD_CHECK_OVERFLOW(checked_int64_add(year, 1, &year));
     /* Add one day for each 4 years */
-    days += year / 4;
+    PD_CHECK_OVERFLOW(checked_int64_add(days, year / 4, &days));
     /* 1900 is the closest previous year divisible by 100 */
-    year += 68;
+    PD_CHECK_OVERFLOW(checked_int64_add(year, 68, &year));
     /* Subtract one day for each 100 years */
-    days -= year / 100;
+    PD_CHECK_OVERFLOW(checked_int64_sub(days, year / 100, &days));
     /* 1600 is the closest previous year divisible by 400 */
-    year += 300;
+    PD_CHECK_OVERFLOW(checked_int64_add(year, 300, &year));
     /* Add one day for each 400 years */
-    days += year / 400;
+    PD_CHECK_OVERFLOW(checked_int64_add(days, year / 400, &days));
   } else {
     /*
      * 1972 is the closest later year after 1970.
      * Include the current year, so subtract 2.
      */
-    year -= 2;
+    PD_CHECK_OVERFLOW(checked_int64_sub(year, 2, &year));
     /* Subtract one day for each 4 years */
-    days += year / 4;
+    PD_CHECK_OVERFLOW(checked_int64_add(days, year / 4, &days));
     /* 2000 is the closest later year divisible by 100 */
-    year -= 28;
+    PD_CHECK_OVERFLOW(checked_int64_sub(year, 28, &year));
     /* Add one day for each 100 years */
-    days -= year / 100;
+    PD_CHECK_OVERFLOW(checked_int64_sub(days, year / 100, &days));
     /* 2000 is also the closest later year divisible by 400 */
     /* Subtract one day for each 400 years */
-    days += year / 400;
+    PD_CHECK_OVERFLOW(checked_int64_add(days, year / 400, &days));
   }
 
   month_lengths = days_per_month_table[is_leapyear(dts->year)];
@@ -181,11 +182,11 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
 
   /* Add the months */
   for (i = 0; i < month; ++i) {
-    days += month_lengths[i];
+    PD_CHECK_OVERFLOW(checked_int64_add(days, month_lengths[i], &days));
   }
 
   /* Add the days */
-  days += dts->day - 1;
+  PD_CHECK_OVERFLOW(checked_int64_add(days, dts->day - 1, &days));
 
   return days;
 }
@@ -430,6 +431,15 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   const int64_t days = get_datetimestruct_days(dts);
+  if (days == -1) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    bool did_error = PyErr_Occurred() == NULL ? false : true;
+    PyGILState_Release(gstate);
+    if (did_error) {
+      return -1;
+    }
+  }
+
   if (base == NPY_FR_D) {
     return days;
   }
