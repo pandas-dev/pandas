@@ -5020,7 +5020,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        Value that is popped from series.
+        scalar
+            Value that is popped from series.
 
         Examples
         --------
