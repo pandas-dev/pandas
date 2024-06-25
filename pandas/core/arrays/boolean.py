@@ -329,15 +329,21 @@ class BooleanArray(BaseMaskedArray):
         copy: bool = False,
         true_values: list[str] | None = None,
         false_values: list[str] | None = None,
+        none_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s) -> bool:
+        if none_values is None:
+            none_values = []
+
+        def map_string(s) -> bool | None:
             if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
+            elif s in none_values:
+                return None
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 
