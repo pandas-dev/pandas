@@ -1421,7 +1421,6 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-
         if not isinstance(f, list):
             # open file here
             is_text = True
