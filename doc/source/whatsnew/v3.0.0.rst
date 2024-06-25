@@ -235,6 +235,7 @@ string to various methods. (:issue:`34916`)
 *Old behavior:*
 
 .. code-block:: ipython
+
     In [1]: ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
     In [2]: ts.tz
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
@@ -242,6 +243,7 @@ string to various methods. (:issue:`34916`)
 *New behavior:*
 
 .. ipython:: python
+
     ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
     ts.tz
 
