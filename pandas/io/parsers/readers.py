@@ -677,7 +677,7 @@ def _read(
 
     # Check type of encoding_errors
     errors = kwds.get("encoding_errors", "strict")
-    if not isinstance(errors, str) and errors is not None:
+    if not isinstance(errors, str):
         raise ValueError(
             f"encoding_errors must be a string or None, got {type(errors).__name__}"
         )
