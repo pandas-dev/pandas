@@ -3320,7 +3320,8 @@ class StringMethods(NoNewAttributesMixin):
 
     This is equivalent to running the Python string method
     :meth:`str.%(method)s` for each element of the Series/Index. If a string
-    has zero characters, ``False`` is returned for that check.
+    has zero characters, ``False`` is returned for that check
+    except for the `isascii` method.
 
     Returns
     -------
@@ -3333,6 +3334,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isalpha : Check whether all characters are alphabetic.
     Series.str.isnumeric : Check whether all characters are numeric.
     Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isascii : Check whether all characters are ASCII characters.
     Series.str.isdigit : Check whether all characters are digits.
     Series.str.isdecimal : Check whether all characters are decimal.
     Series.str.isspace : Check whether all characters are whitespace.
@@ -3365,6 +3367,13 @@ class StringMethods(NoNewAttributesMixin):
     1     True
     2     True
     3    False
+    dtype: bool
+
+    >>> s1.str.isascii()
+    0     True
+    1     True
+    2     True
+    3     True
     dtype: bool
 
     Note that checks against characters mixed with any additional punctuation
@@ -3457,6 +3466,7 @@ class StringMethods(NoNewAttributesMixin):
     """
     _doc_args["isalnum"] = {"type": "alphanumeric", "method": "isalnum"}
     _doc_args["isalpha"] = {"type": "alphabetic", "method": "isalpha"}
+    _doc_args["isascii"] = {"type": "ASCII characters", "method": "isascii"}
     _doc_args["isdigit"] = {"type": "digits", "method": "isdigit"}
     _doc_args["isspace"] = {"type": "whitespace", "method": "isspace"}
     _doc_args["islower"] = {"type": "lowercase", "method": "islower"}
@@ -3471,6 +3481,9 @@ class StringMethods(NoNewAttributesMixin):
     )
     isalpha = _map_and_wrap(
         "isalpha", docstring=_shared_docs["ismethods"] % _doc_args["isalpha"]
+    )
+    isascii = _map_and_wrap(
+        "isascii", docstring=_shared_docs["ismethods"] % _doc_args["isascii"]
     )
     isdigit = _map_and_wrap(
         "isdigit", docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
