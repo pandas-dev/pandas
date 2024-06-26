@@ -4782,6 +4782,7 @@ class DataFrame(NDFrame, OpsMixin):
         ValueError
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
+        TypeError
             * If any kind of string dtype is passed in.
 
         See Also
