@@ -7,6 +7,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -233,6 +235,7 @@ def test_temp_setattr(with_exception):
     assert ser.name == "first"
 
 
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
 @pytest.mark.single_cpu
 def test_str_size():
     # GH#21758
