@@ -70,7 +70,6 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
         "pytz",
         "dateutil",
         # install / build,
-        "setuptools",
         "pip",
         "Cython",
         # docs
