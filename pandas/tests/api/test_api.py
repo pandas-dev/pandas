@@ -336,6 +336,7 @@ class TestApi(Base):
         "take",
         "ExtensionArray",
         "ExtensionScalarOpsMixin",
+        "NDArrayBackedExtensionArray",
     ]
 
     def test_api(self):
