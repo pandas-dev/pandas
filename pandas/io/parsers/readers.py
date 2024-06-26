@@ -1534,7 +1534,10 @@ class TextFileReader(abc.Iterator):
         if self.nrows is not None:
             if self._currow >= self.nrows:
                 raise StopIteration
-            size = min(size, self.nrows - self._currow)
+            if size is None:
+                size = self.nrows - self._currow
+            else:
+                size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
     def __enter__(self) -> Self:
