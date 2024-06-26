@@ -679,7 +679,7 @@ def _read(
     errors = kwds.get("encoding_errors", "strict")
     if not isinstance(errors, str):
         raise ValueError(
-            f"encoding_errors must be a string or None, got {type(errors).__name__}"
+            f"encoding_errors must be a string, got {type(errors).__name__}"
         )
 
     if kwds.get("engine") == "pyarrow":
