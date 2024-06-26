@@ -49,7 +49,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -3722,25 +3721,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
-        values = self._values
-        mask = isna(values)
-
-        if mask.any():
-            # TODO(3.0): once this deprecation is enforced we can call
-            #  self.array.argsort directly, which will close GH#43840 and
-            #  GH#12694
-            warnings.warn(
-                "The behavior of Series.argsort in the presence of NA values is "
-                "deprecated. In a future version, NA values will be ordered "
-                "last instead of set to -1.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            result = np.full(len(self), -1, dtype=np.intp)
-            notmask = ~mask
-            result[notmask] = np.argsort(values[notmask], kind=kind)
-        else:
-            result = np.argsort(values, kind=kind)
+        result = self.array.argsort(kind=kind)
 
         res = self._constructor(
             result, index=self.index, name=self.name, dtype=np.intp, copy=False
