@@ -194,9 +194,10 @@ def eval(
     :class:`~pandas.DataFrame` objects are supported and behave as they would
     with plain ol' Python evaluation.
     
-    Warning: The `pandas.eval` function is not secure when processing untrusted data. Only use this function with data you trust.
-    It is possible to utilize the `pandas.eval` function in ways that could allow execution of arbitrary code via specially crafted input.Never use this function with data that could have come from an untrusted source or has been tampered with.
-    Consider more stringent checks or safer alternatives when dealing with untrusted data.
+    .. warning::
+    
+        ``eval`` can run arbitrary code which can make you vulnerable to code
+         injection and untrusted data.
 
     Parameters
     ----------
