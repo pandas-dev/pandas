@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import inspect
 import types
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 GLOBAL_USE_NUMBA: bool = False
 

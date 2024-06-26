@@ -419,7 +419,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_mul_numeric_ndarray_0d(self):
         td = Timedelta("1 day")
-        other = np.array(2)
+        other = np.array(2, dtype=np.int64)
         assert other.ndim == 0
         expected = Timedelta("2 days")
 
@@ -623,6 +623,7 @@ class TestTimedeltaMultiplicationDivision:
             [
                 r"Invalid dtype datetime64\[D\] for __floordiv__",
                 "'dtype' is an invalid keyword argument for this function",
+                "this function got an unexpected keyword argument 'dtype'",
                 r"ufunc '?floor_divide'? cannot use operands with types",
             ]
         )

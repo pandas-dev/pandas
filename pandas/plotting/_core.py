@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
 )
 
@@ -27,6 +26,7 @@ from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
