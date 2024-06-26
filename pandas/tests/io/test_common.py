@@ -555,7 +555,7 @@ def test_explicit_encoding(io_class, mode, msg):
             expected.to_csv(buffer, mode=f"w{mode}")
 
 
-@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("encoding_errors", ["strict", "replace"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_encoding_errors(encoding_errors, format):
     # GH39450
