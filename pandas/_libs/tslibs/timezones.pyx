@@ -38,10 +38,11 @@ from pandas._libs.tslibs.util cimport (
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
-cdef object utc_pytz = pytz.UTC if pytz else None
+cdef tzinfo utc_pytz = pytz.UTC if pytz else None
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 cdef tzinfo utc_zoneinfo = None
+cdef type ZoneInfo = zoneinfo.ZoneInfo
 
 
 # ----------------------------------------------------------------------
@@ -76,7 +77,7 @@ cpdef inline bint is_utc(tzinfo tz):
 
 
 cdef bint is_zoneinfo(tzinfo tz):
-    return isinstance(tz, zoneinfo.ZoneInfo)
+    return isinstance(tz, ZoneInfo)
 
 
 cdef bint is_tzlocal(tzinfo tz):
