@@ -388,6 +388,8 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
+        env:
+          PYTHON_GIL: 0
 
   emscripten:
     # Note: the Python version, Emscripten toolchain version are determined
