@@ -29,15 +29,32 @@ pyodide, a WASM distribution of pandas), both of which pyarrow does not provide 
    While both of these reasons are mentioned in the drawbacks section of this PDEP, at the time of the writing
 of the PDEP, we underestimated the impact this would have on users, and also downstream developers.
 
-2) Many of the benefits presented in this PDEP can be materialized even with payrrow as an optional dependency.
+2) Many of the benefits presented in PDEP-10 can be materialized for users that have pyarrow installed, without
+   forcing a pyarrow requirement on other users.
 
-   For example, as detailed in PDEP-14, it is possible to create a new string data type with the same semantics
-   as our current default object string data type, but that allows users to experience faster performance and memory savings
-   compared to the object strings (if pyarrow is installed).
+   In PDEP-10, there are three primary benefits listed:
 
-While we've decided to not move forward with requiring pyarrow in pandas 3.0, the rejection of this PDEP
-does not mean that we are abandoning pyarrow support and integration in pandas. We, as the core team, still believe
-that adopting support for pyarrow arrays and data types in more of pandas will lead to greater interoperability with the
+    - First class support for strings.
+
+      - This is covered by PDEP-14, which will enable the usage of a pyarrow backed string dtype by default,
+        (for users who have pyarrow instaleld) and the use of a Python object based fallback in the case .
+
+    - Support for dtypes not present in pandas (e.g. nested dtypes, decimals)
+      - Users can already create arrays with these dtypes if they have pyarrow installed, but we cannot infer
+      arrays to those dtypes by default without pyarrow installed (as there is no Python/numpy equivalent).
+
+    - Interoperability
+      - The Arrow C Data Interface would allow us to import/export pandas DataFrames to and from other libraries
+        that support Arrow in a zero-copy manner.
+
+        Support for the Arrow C Data interface in pandas and other libraries in the ecosystem is still very new, though,
+        (support in pandas itself was only added as of pandas 2.2), and the dataframe interchange protocol, which allows
+        for dataframe interchange between Python dataframe implementations is currently better supported in downstream
+        libraries.
+
+Although this PR recommends not adopting pyarrow as a required dependency in pandas 3.0, this does not mean that we are
+abandoning pyarrow support and integration in pandas. Adopting support for pyarrow arrays
+and data types in more of pandas will lead to greater interoperability with the
 ecosystem and better performance for users. Furthermore, a lot of the drawbacks, such as the large installation size of pyarrow
 and the lack of support for certain platforms, can be solved, and potential solutions have been proposed for them, allowing us
 to potentially revisit this decision in the future.
