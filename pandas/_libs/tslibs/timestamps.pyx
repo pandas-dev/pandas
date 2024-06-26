@@ -2368,6 +2368,17 @@ timedelta}, default 'raise'
         """
         Alias for tzinfo.
 
+        The `tz` property provides a simple and direct way to retrieve the timezone
+        information of a `Timestamp` object. It is particularly useful when working
+        with time series data that includes timezone information, allowing for easy
+        access and manipulation of the timezone context.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+
         Examples
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
