@@ -819,7 +819,7 @@ class TestPivotTable:
         df = DataFrame({"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]})
         msg = r"pivot\(\) missing 1 required keyword-only argument: 'columns'"
         with pytest.raises(TypeError, match=msg):
-            df.pivot(index="col1", values="col3")  # pylint: disable=missing-kwoa
+            df.pivot(index="col1", values="col3")
 
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
@@ -2058,6 +2058,60 @@ class TestPivotTable:
         ).rename_axis("A")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("kwargs", [{"a": 2}, {"a": 2, "b": 3}, {"b": 3, "a": 2}])
+    def test_pivot_table_kwargs(self, kwargs):
+        # GH#57884
+        def f(x, a, b=3):
+            return x.sum() * a + b
+
+        def g(x):
+            return f(x, **kwargs)
+
+        df = DataFrame(
+            {
+                "A": ["good", "bad", "good", "bad", "good"],
+                "B": ["one", "two", "one", "three", "two"],
+                "X": [2, 5, 4, 20, 10],
+            }
+        )
+        result = pivot_table(
+            df, index="A", columns="B", values="X", aggfunc=f, **kwargs
+        )
+        expected = pivot_table(df, index="A", columns="B", values="X", aggfunc=g)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs", [{}, {"b": 10}, {"a": 3}, {"a": 3, "b": 10}, {"b": 10, "a": 3}]
+    )
+    def test_pivot_table_kwargs_margin(self, data, kwargs):
+        # GH#57884
+        def f(x, a=5, b=7):
+            return (x.sum() + b) * a
+
+        def g(x):
+            return f(x, **kwargs)
+
+        result = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=f,
+            margins=True,
+            fill_value=0,
+            **kwargs,
+        )
+
+        expected = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=g,
+            margins=True,
+            fill_value=0,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "f, f_numpy",
         [
@@ -2600,7 +2654,7 @@ class TestPivot:
         # GH#48293
         df = DataFrame({"a": [1], "b": 1})
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
-            df.pivot()  # pylint: disable=missing-kwoa
+            df.pivot()
 
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_columns_is_none(self):
@@ -2705,7 +2759,7 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("m", [1, 10])
-    def test_unstack_shares_memory(self, m):
+    def test_unstack_copy(self, m):
         # GH#56633
         levels = np.arange(m)
         index = MultiIndex.from_product([levels] * 2)
@@ -2713,6 +2767,5 @@ class TestPivot:
         df = DataFrame(values, index, np.arange(100))
         df_orig = df.copy()
         result = df.unstack(sort=False)
-        assert np.shares_memory(df._values, result._values) is (m == 1)
         result.iloc[0, 0] = -1
         tm.assert_frame_equal(df, df_orig)

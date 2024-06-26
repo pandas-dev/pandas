@@ -121,8 +121,7 @@ class TestMultiLevel:
 
         expected = ymd.groupby([k1, k2]).mean()
 
-        # TODO groupby with level_values drops names
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected)
         assert result.index.names == ymd.index.names[:2]
 
         result2 = ymd.groupby(level=ymd.index.names[:2]).mean()
@@ -135,7 +134,7 @@ class TestMultiLevel:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
         )
-        df["Totals", ""] = df.sum(1)
+        df["Totals", ""] = df.sum(axis=1)
         df = df._consolidate()
 
     def test_level_with_tuples(self):
@@ -288,6 +287,13 @@ class TestMultiLevel:
         ).set_index(["pivot_0", "pivot_1"])
 
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("na", [None, np.nan])
+    def test_multiindex_insert_level_with_na(self, na):
+        # GH 59003
+        df = DataFrame([0], columns=[["A"], ["B"]])
+        df[na, "B"] = 1
+        tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
 
 
 class TestSorted:

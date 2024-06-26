@@ -104,7 +104,9 @@ class TestSorting:
         gr = df.groupby(list("abcde"))
 
         # verify this is testing what it is supposed to test!
-        assert is_int64_overflow_possible(gr._grouper.shape)
+        assert is_int64_overflow_possible(
+            tuple(ping.ngroups for ping in gr._grouper.groupings)
+        )
 
         mi = MultiIndex.from_arrays(
             [ar.ravel() for ar in np.array_split(np.unique(arr, axis=0), 5, axis=1)],

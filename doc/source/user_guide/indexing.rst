@@ -94,13 +94,14 @@ well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 ``p.loc['a', :]``.
 
-.. csv-table::
-    :header: "Object Type", "Indexers"
-    :widths: 30, 50
-    :delim: ;
 
-    Series; ``s.loc[indexer]``
-    DataFrame; ``df.loc[row_indexer,column_indexer]``
+.. ipython:: python
+
+   ser = pd.Series(range(5), index=list("abcde"))
+   ser.loc[["a", "c", "e"]]
+
+   df = pd.DataFrame(np.arange(25).reshape(5, 5), index=list("abcde"), columns=list("abcde"))
+   df.loc[["a", "c", "e"], ["b", "d"]]
 
 .. _indexing.basics:
 
@@ -116,10 +117,9 @@ indexing pandas objects with ``[]``:
 .. csv-table::
     :header: "Object Type", "Selection", "Return Value Type"
     :widths: 30, 30, 60
-    :delim: ;
 
-    Series; ``series[label]``; scalar value
-    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Series, ``series[label]``, scalar value
+    DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -403,9 +403,9 @@ are returned:
    s = pd.Series(list('abcde'), index=[0, 3, 2, 5, 4])
    s.loc[3:5]
 
-If at least one of the two is absent, but the index is sorted, and can be
-compared against start and stop labels, then slicing will still work as
-expected, by selecting labels which *rank* between the two:
+If the index is sorted, and can be compared against start and stop labels,
+then slicing will still work as expected, by selecting labels which *rank*
+between the two:
 
 .. ipython:: python
 
@@ -952,7 +952,7 @@ To select a row where each column meets its own criterion:
 
   values = {'ids': ['a', 'b'], 'ids2': ['a', 'c'], 'vals': [1, 3]}
 
-  row_mask = df.isin(values).all(1)
+  row_mask = df.isin(values).all(axis=1)
 
   df[row_mask]
 
@@ -1711,6 +1711,6 @@ Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Copy-on-Write <copy_on_write>` is the new default with pandas 3.0.
-This means than chained indexing will never work.
+This means that chained indexing will never work.
 See :ref:`this section <copy_on_write_chained_assignment>`
 for more context.

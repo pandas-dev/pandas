@@ -682,7 +682,7 @@ def test_header_missing_rows(all_parsers):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_multiple_whitespaces(all_parsers):
     # GH#54931
@@ -695,7 +695,7 @@ def test_header_multiple_whitespaces(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_delim_whitespace(all_parsers):
     # GH#54918
@@ -704,12 +704,7 @@ def test_header_delim_whitespace(all_parsers):
 1,2
 3,4
     """
-
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    result = parser.read_csv(StringIO(data), sep=r"\s+")
     expected = DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)
 
