@@ -382,6 +382,7 @@ Other Removals
 - Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`57627`)
 - Enforced deprecation of the behavior of :func:`concat` when ``len(keys) != len(objs)`` would truncate to the shorter of the two. Now this raises a ``ValueError`` (:issue:`43485`)
 - Enforced deprecation of the behavior of :meth:`DataFrame.replace` and :meth:`Series.replace` with :class:`CategoricalDtype` that would introduce new categories. (:issue:`58270`)
+- Enforced deprecation of the behavior of :meth:`Series.argsort` in the presence of NA values (:issue:`58232`)
 - Enforced deprecation of values "pad", "ffill", "bfill", and "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`57869`)
 - Enforced deprecation removing :meth:`Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)
 - Enforced silent-downcasting deprecation for :ref:`all relevant methods <whatsnew_220.silent_downcasting>` (:issue:`54710`)
