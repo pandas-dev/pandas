@@ -510,6 +510,7 @@ ToStataByteorder = Literal[">", "<", "little", "big"]
 
 # ExcelWriter
 ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
+ExcelWriterMergeCells = Union[bool, Literal["columns"]]
 
 # Offsets
 OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]

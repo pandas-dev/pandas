@@ -202,9 +202,9 @@ def melt(
         if value_vars_was_not_none:
             frame = frame.iloc[:, algos.unique(idx)]
         else:
-            frame = frame.copy()
+            frame = frame.copy(deep=False)
     else:
-        frame = frame.copy()
+        frame = frame.copy(deep=False)
 
     if col_level is not None:  # allow list or other?
         # frame is a copy
