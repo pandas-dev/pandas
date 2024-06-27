@@ -42,7 +42,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
-    RangeIndex,
+    default_index,
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
@@ -461,7 +461,7 @@ def _unstack_multiple(
         )
 
     if isinstance(data, Series):
-        dummy = data.copy()
+        dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
@@ -842,7 +842,7 @@ def _stack_multi_columns(
                     [x._values.astype(dtype, copy=False) for _, x in subset.items()]
                 )
                 N, K = subset.shape
-                idx = np.arange(N * K).reshape(K, N).T.ravel()
+                idx = np.arange(N * K).reshape(K, N).T.reshape(-1)
                 value_slice = value_slice.take(idx)
             else:
                 value_slice = subset.values
@@ -924,7 +924,7 @@ def _reorder_for_extension_array_stack(
     # idx is an indexer like
     # [c0r0, c1r0, c2r0, ...,
     #  c0r1, c1r1, c2r1, ...]
-    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.ravel()
+    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.reshape(-1)
     return arr.take(idx)
 
 
@@ -1025,7 +1025,7 @@ def stack_reshape(
     buf = []
     for idx in stack_cols.unique():
         if len(frame.columns) == 1:
-            data = frame.copy()
+            data = frame.copy(deep=False)
         else:
             if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
                 # GH#57750 - if the frame is an Index with tuples, .loc below will fail
@@ -1047,7 +1047,7 @@ def stack_reshape(
             if data.ndim == 1:
                 data.name = 0
             else:
-                data.columns = RangeIndex(len(data.columns))
+                data.columns = default_index(len(data.columns))
         buf.append(data)
 
     if len(buf) > 0 and not frame.empty:

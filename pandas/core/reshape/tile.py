@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -44,6 +43,8 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
@@ -289,6 +290,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
+        Input Numpy array or pandas Series object to be discretized.
     q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
@@ -312,6 +314,11 @@ def qcut(
         represented as categories when categorical data is returned.
     bins : ndarray of floats
         Returned only if `retbins` is True.
+
+    See Also
+    --------
+    cut : Bin values into discrete intervals.
+    Series.quantile : Return value at the given quantile.
 
     Notes
     -----

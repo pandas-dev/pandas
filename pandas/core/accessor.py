@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Callable,
     final,
 )
 import warnings
@@ -18,6 +17,8 @@ from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import TypeT
 
     from pandas import Index

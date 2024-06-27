@@ -9,7 +9,6 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -65,6 +64,7 @@ from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
     )
@@ -369,18 +369,22 @@ class JSONTableWriter(FrameWriter):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)
 
-        obj = obj.copy()
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
+        copied = False
         if len(timedeltas):
+            obj = obj.copy()
+            copied = True
             obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serializing
-        if isinstance(obj.index.dtype, PeriodDtype):
-            obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
         if not self.index:
             self.obj = obj.reset_index(drop=True)
         else:
+            # Convert PeriodIndex to datetimes before serializing
+            if isinstance(obj.index.dtype, PeriodDtype):
+                if not copied:
+                    obj = obj.copy(deep=False)
+                obj.index = obj.index.to_timestamp()
             self.obj = obj.reset_index(drop=False)
         self.date_format = "iso"
         self.orient = "records"
