@@ -638,6 +638,7 @@ These methods are:
 - :meth:`DataFrame.mask`, :meth:`Series.mask`
 - :meth:`DataFrame.where`, :meth:`Series.where`
 - :meth:`DataFrame.clip`, :meth:`Series.clip`
+- :meth:`DataFrame.median`
 
 Explicitly call :meth:`DataFrame.infer_objects` to replicate the current behavior in the future.
 
