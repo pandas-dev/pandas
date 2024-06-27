@@ -119,27 +119,26 @@ cpdef inline object get_timezone(tzinfo tz):
         raise TypeError("tz argument cannot be None")
     if is_utc(tz):
         return tz
+    elif is_zoneinfo(tz):
+        return tz.key
+    elif treat_tz_as_pytz(tz):
+        zone = tz.zone
+        if zone is None:
+            return tz
+        return zone
+    elif treat_tz_as_dateutil(tz):
+        if ".tar.gz" in tz._filename:
+            raise ValueError(
+                "Bad tz filename. Dateutil on python 3 on windows has a "
+                "bug which causes tzfile._filename to be the same for all "
+                "timezone files. Please construct dateutil timezones "
+                'implicitly by passing a string like "dateutil/Europe'
+                '/London" when you construct your pandas objects instead '
+                "of passing a timezone object. See "
+                "https://github.com/pandas-dev/pandas/pull/7362")
+        return "dateutil/" + tz._filename
     else:
-        if treat_tz_as_dateutil(tz):
-            if ".tar.gz" in tz._filename:
-                raise ValueError(
-                    "Bad tz filename. Dateutil on python 3 on windows has a "
-                    "bug which causes tzfile._filename to be the same for all "
-                    "timezone files. Please construct dateutil timezones "
-                    'implicitly by passing a string like "dateutil/Europe'
-                    '/London" when you construct your pandas objects instead '
-                    "of passing a timezone object. See "
-                    "https://github.com/pandas-dev/pandas/pull/7362")
-            return "dateutil/" + tz._filename
-        else:
-            # tz is a pytz timezone or unknown.
-            try:
-                zone = tz.zone
-                if zone is None:
-                    return tz
-                return zone
-            except AttributeError:
-                return tz
+        return tz
 
 
 cpdef inline tzinfo maybe_get_tz(object tz):
