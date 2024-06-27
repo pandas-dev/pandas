@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
@@ -2346,6 +2347,8 @@ class ExtensionArray:
         result = map_array(self, mapper, na_action=na_action)
         if isinstance(self.dtype, NumpyEADtype):
             return pd_array(result, dtype=NumpyEADtype(result.dtype))
+        if isinstance(self.dtype, IntervalDtype):
+            return result
         elif isinstance(result, np.ndarray):
             return pd_array(result)
         else:
