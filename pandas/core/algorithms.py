@@ -1680,7 +1680,10 @@ def map_array(
             from pandas import Series
 
             if len(mapper) == 0:
-                mapper = Series(mapper, dtype=np.float64)
+                if is_extension_array_dtype(arr.dtype) and arr.dtype.na_value is NA:
+                    mapper = Series(mapper, dtype=arr.dtype)
+                else:
+                    mapper = Series(mapper, dtype=np.float64)
             else:
                 mapper = Series(mapper)
 
@@ -1698,7 +1701,7 @@ def map_array(
     if not len(arr):
         return arr.copy()
 
-    na_value = None
+    na_value = np.nan
     mask = isna(arr)
     storage = None
     if isinstance(arr.dtype, BaseMaskedDtype):
