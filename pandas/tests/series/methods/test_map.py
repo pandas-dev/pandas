@@ -8,6 +8,8 @@ import math
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -236,14 +238,13 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    na_value = np.nan
-    dtype = "float64"
+    if is_extension_array_dtype(s.dtype) and s.dtype.na_value is pd.NA:
+        na_value = s.dtype.na_value
+        dtype = s.dtype
+    else:
+        na_value = np.nan
+        dtype = "float64"
 
-    # In pyarrow double is the equivalent of float64
-    # Cf: https://arrow.apache.org/docs/python/pandas.html#pandas-arrow-conversion
-    if "pyarrow" in s.dtype.__repr__():
-        dtype = "double[pyarrow]"
-        na_value = pd.NA
     expected = Series(na_value, index=s.index, dtype=dtype)
     tm.assert_series_equal(result, expected)
 
