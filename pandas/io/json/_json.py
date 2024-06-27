@@ -1149,7 +1149,7 @@ class Parser:
                 setattr(obj, axis_name, new_axis)
         return obj
 
-    def _try_convert_types(self, obj: DataFrame | Series) -> DataFrame | Series:
+    def _try_convert_types(self, obj):
         raise AbstractMethodError(self)
 
     @final
