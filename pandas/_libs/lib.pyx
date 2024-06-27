@@ -2815,12 +2815,19 @@ def maybe_convert_objects(ndarray[object] objects,
 
         # TODO: do these after the itemsize check?
         if (result is ints or result is uints) and convert_to_nullable_dtype:
-            from pandas.core.arrays import IntegerArray
+            if storage == "pyarrow":
+                from pandas.core.dtypes.dtypes import ArrowDtype
 
-            # Set these values to 1 to be deterministic, match
-            #  IntegerDtype._internal_fill_value
-            result[mask] = 1
-            result = IntegerArray(result, mask)
+                dtype = ArrowDtype(pa.int64())
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            else:
+                from pandas.core.arrays import IntegerArray
+
+                # Set these values to 1 to be deterministic, match
+                #  IntegerDtype._internal_fill_value
+                result[mask] = 1
+                result = IntegerArray(result, mask)
+
         elif result is floats and convert_to_nullable_dtype:
             from pandas.core.arrays import FloatingArray
 
