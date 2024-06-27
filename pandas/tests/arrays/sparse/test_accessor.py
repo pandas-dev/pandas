@@ -115,7 +115,7 @@ class TestFrameAccessor:
         result = pd.DataFrame.sparse.from_spmatrix(sp_mat, index=labels, columns=labels)
         mat = np.eye(10, dtype=dtype)
         expected = pd.DataFrame(
-            np.ma.masked_array(mat, mask=(mat == 0)).filled(sp_dtype.fill_value),
+            np.ma.array(mat, mask=(mat == 0)).filled(sp_dtype.fill_value),
             index=labels,
             columns=labels,
         ).astype(sp_dtype)
