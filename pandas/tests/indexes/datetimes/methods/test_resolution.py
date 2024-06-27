@@ -1,10 +1,7 @@
 from dateutil.tz import tzlocal
 import pytest
 
-from pandas.compat import (
-    IS64,
-    WASM,
-)
+from pandas.compat import IS64
 
 from pandas import date_range
 
@@ -23,10 +20,9 @@ from pandas import date_range
         ("us", "microsecond"),
     ],
 )
-@pytest.mark.skipif(WASM, reason="OverflowError received on WASM")
 def test_dti_resolution(request, tz_naive_fixture, freq, expected):
     tz = tz_naive_fixture
-    if freq == "YE" and ((not IS64) or WASM) and isinstance(tz, tzlocal):
+    if freq == "YE" and not IS64 and isinstance(tz, tzlocal):
         request.applymarker(
             pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
         )

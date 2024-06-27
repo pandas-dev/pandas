@@ -11,6 +11,7 @@ from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -23,12 +24,29 @@ from pandas.core.interchange.from_dataframe import from_dataframe
 from pandas.core.interchange.utils import ArrowCTypes
 
 
-@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data):
-    data_categorical = {
+@pytest.fixture
+def data_categorical():
+    return {
         "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
         "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
     }
+
+
+@pytest.fixture
+def string_data():
+    return {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.nan,
+        ]
+    }
+
+
+@pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
+def test_categorical_dtype(data, data_categorical):
     df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
@@ -214,16 +232,7 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string():
-    string_data = {
-        "separator data": [
-            "abC|DeF,Hik",
-            "234,3245.67",
-            "gSaf,qWer|Gre",
-            "asd3,4sad|",
-            np.nan,
-        ]
-    }
+def test_string(string_data):
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -260,6 +269,7 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
+@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
@@ -340,6 +350,7 @@ def test_timestamp_ns_pyarrow():
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
     tz_data = (
@@ -591,49 +602,3 @@ def test_empty_dataframe():
     result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
     expected = pd.DataFrame({"a": []}, dtype="int8")
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    ("data", "expected_dtype", "expected_buffer_dtype"),
-    [
-        (
-            pd.Series(["a", "b", "a"], dtype="category"),
-            (DtypeKind.CATEGORICAL, 8, "c", "="),
-            (DtypeKind.INT, 8, "c", "|"),
-        ),
-        (
-            pd.Series(
-                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)],
-                dtype="M8[ns]",
-            ),
-            (DtypeKind.DATETIME, 64, "tsn:", "="),
-            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
-        ),
-        (
-            pd.Series(["a", "bc", None]),
-            (DtypeKind.STRING, 8, ArrowCTypes.STRING, "="),
-            (DtypeKind.UINT, 8, ArrowCTypes.UINT8, "="),
-        ),
-        (
-            pd.Series([1, 2, 3]),
-            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
-            (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),
-        ),
-        (
-            pd.Series([1.5, 2, 3]),
-            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
-            (DtypeKind.FLOAT, 64, ArrowCTypes.FLOAT64, "="),
-        ),
-    ],
-)
-def test_buffer_dtype_categorical(
-    data: pd.Series,
-    expected_dtype: tuple[DtypeKind, int, str, str],
-    expected_buffer_dtype: tuple[DtypeKind, int, str, str],
-) -> None:
-    # https://github.com/pandas-dev/pandas/issues/54781
-    df = pd.DataFrame({"data": data})
-    dfi = df.__dataframe__()
-    col = dfi.get_column_by_name("data")
-    assert col.dtype == expected_dtype
-    assert col.get_buffers()["data"][1] == expected_buffer_dtype

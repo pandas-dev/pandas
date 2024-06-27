@@ -1,9 +1,7 @@
 """
 Testing that we work in the downstream packages
 """
-
 import array
-from functools import partial
 import subprocess
 import sys
 
@@ -11,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import IntCastingNaNError
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -20,6 +19,10 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 
 
 @pytest.fixture
@@ -43,8 +46,6 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
-# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-@pytest.mark.skip(reason="not implemented with CoW")
 def test_dask_ufunc():
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
@@ -57,8 +58,8 @@ def test_dask_ufunc():
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
-        result = da.log(ds).compute()
-        expected = np.log(s)
+        result = da.fix(ds).compute()
+        expected = np.fix(s)
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
@@ -152,7 +153,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn(mpl_cleanup):
+def test_seaborn():
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
@@ -260,25 +261,54 @@ def test_pandas_priority():
     assert right + left is left
 
 
-@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-@pytest.mark.parametrize(
-    "box", [memoryview, partial(array.array, "i"), "dask", "xarray"]
+@pytest.fixture(
+    params=[
+        "memoryview",
+        "array",
+        pytest.param("dask", marks=td.skip_if_no("dask.array")),
+        pytest.param("xarray", marks=td.skip_if_no("xarray")),
+    ]
 )
-def test_from_obscure_array(dtype, box):
+def array_likes(request):
+    """
+    Fixture giving a numpy array and a parametrized 'data' object, which can
+    be a memoryview, array, dask or xarray object created from the numpy array.
+    """
+    # GH#24539 recognize e.g xarray, dask, ...
+    arr = np.array([1, 2, 3], dtype=np.int64)
+
+    name = request.param
+    if name == "memoryview":
+        data = memoryview(arr)
+    elif name == "array":
+        data = array.array("i", arr)
+    elif name == "dask":
+        import dask.array
+
+        data = dask.array.array(arr)
+    elif name == "xarray":
+        import xarray as xr
+
+        data = xr.DataArray(arr)
+
+    return arr, data
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_from_obscure_array(dtype, array_likes):
     # GH#24539 recognize e.g xarray, dask, ...
     # Note: we dont do this for PeriodArray bc _from_sequence won't accept
     #  an array of integers
     # TODO: could check with arraylike of Period objects
-    # GH#24539 recognize e.g xarray, dask, ...
-    arr = np.array([1, 2, 3], dtype=np.int64)
-    if box == "dask":
-        da = pytest.importorskip("dask.array")
-        data = da.array(arr)
-    elif box == "xarray":
-        xr = pytest.importorskip("xarray")
-        data = xr.DataArray(arr)
-    else:
-        data = box(arr)
+    arr, data = array_likes
+
+    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    depr_msg = f"{cls.__name__}.__init__ is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        expected = cls(arr)
+    result = cls._from_sequence(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
 
     if not isinstance(data, memoryview):
         # FIXME(GH#44431) these raise on memoryview and attempted fix
@@ -293,6 +323,25 @@ def test_from_obscure_array(dtype, box):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
+
+
+def test_dataframe_consortium() -> None:
+    """
+    Test some basic methods of the dataframe consortium standard.
+
+    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
+    this is just to check that the entry point works as expected.
+    """
+    pytest.importorskip("dataframe_api_compat")
+    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = df_pd.__dataframe_consortium_standard__()
+    result_1 = df.get_column_names()
+    expected_1 = ["a", "b"]
+    assert result_1 == expected_1
+
+    ser = Series([1, 2, 3], name="a")
+    col = ser.__column_consortium_standard__()
+    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

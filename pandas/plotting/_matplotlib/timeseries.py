@@ -253,7 +253,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
-        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
+        base = to_offset(
+            freq_str, is_period=True
+        )._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -310,7 +312,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str, how="start")
+                data.index = data.index.asfreq(freq=freq_str)
     return data
 
 
@@ -333,7 +335,7 @@ def format_dateaxis(
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    import matplotlib.pyplot as plt
+    from matplotlib import pylab
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
@@ -365,4 +367,4 @@ def format_dateaxis(
     else:
         raise TypeError("index type not supported")
 
-    plt.draw_if_interactive()
+    pylab.draw_if_interactive()

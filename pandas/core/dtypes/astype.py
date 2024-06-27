@@ -2,7 +2,6 @@
 Functions for implementing 'astype' methods according to pandas conventions,
 particularly ones that differ from numpy.
 """
-
 from __future__ import annotations
 
 import inspect
@@ -37,17 +36,21 @@ if TYPE_CHECKING:
 
     from pandas.core.arrays import ExtensionArray
 
+_dtype_obj = np.dtype(object)
+
 
 @overload
 def _astype_nansafe(
     arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
-) -> np.ndarray: ...
+) -> np.ndarray:
+    ...
 
 
 @overload
 def _astype_nansafe(
     arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...
-) -> ExtensionArray: ...
+) -> ExtensionArray:
+    ...
 
 
 def _astype_nansafe(
@@ -255,11 +258,6 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     -------
     True if new data is a view or not guaranteed to be a copy, False otherwise
     """
-    if dtype.kind in "iufb" and dtype.kind == new_dtype.kind:
-        # fastpath for numeric dtypes
-        if hasattr(dtype, "itemsize") and hasattr(new_dtype, "itemsize"):
-            return dtype.itemsize == new_dtype.itemsize  # pyright: ignore[reportAttributeAccessIssue]
-
     if isinstance(dtype, np.dtype) and not isinstance(new_dtype, np.dtype):
         new_dtype, dtype = dtype, new_dtype
 

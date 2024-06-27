@@ -94,6 +94,7 @@ class TestMergeMulti:
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.parametrize("sort", [True, False])
     def test_left_join_multi_index(self, sort, infer_string):
         with option_context("future.infer_string", infer_string):
             icols = ["1st", "2nd", "3rd"]
@@ -133,7 +134,9 @@ class TestMergeMulti:
                 "2nd",
                 np.random.default_rng(2).integers(0, 10, len(left)).astype("float"),
             )
-            right = left.sample(frac=1, random_state=np.random.default_rng(2))
+
+            i = np.random.default_rng(2).permutation(len(left))
+            right = left.iloc[i].copy()
 
             left["4th"] = bind_cols(left)
             right["5th"] = -bind_cols(right)
@@ -154,6 +157,7 @@ class TestMergeMulti:
 
             run_asserts(left, right, sort)
 
+    @pytest.mark.parametrize("sort", [False, True])
     def test_merge_right_vs_left(self, left, right, sort):
         # compare left vs right merge with multikey
         on_cols = ["key1", "key2"]

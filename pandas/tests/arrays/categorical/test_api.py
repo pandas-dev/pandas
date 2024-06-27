@@ -18,6 +18,13 @@ from pandas.core.arrays.categorical import recode_for_categories
 
 
 class TestCategoricalAPI:
+    def test_to_list_deprecated(self):
+        # GH#51254
+        cat1 = Categorical(list("acb"), ordered=False)
+        msg = "Categorical.to_list is deprecated and will be removed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat1.to_list()
+
     def test_ordered_api(self):
         # GH 9347
         cat1 = Categorical(list("acb"), ordered=False)
@@ -284,16 +291,17 @@ class TestCategoricalAPI:
             (["a", "b", "c"], ["a", "b"], ["a", "b"]),
             (["a", "b", "c"], ["a", "b"], ["b", "a"]),
             (["b", "a", "c"], ["a", "b"], ["a", "b"]),
-            (["b", "a", "c"], ["a", "b"], ["b", "a"]),
+            (["b", "a", "c"], ["a", "b"], ["a", "b"]),
             # Introduce NaNs
             (["a", "b", "c"], ["a", "b"], ["a"]),
             (["a", "b", "c"], ["a", "b"], ["b"]),
             (["b", "a", "c"], ["a", "b"], ["a"]),
-            (["b", "a", "c"], ["a", "b"], ["b"]),
+            (["b", "a", "c"], ["a", "b"], ["a"]),
             # No overlap
             (["a", "b", "c"], ["a", "b"], ["d", "e"]),
         ],
     )
+    @pytest.mark.parametrize("ordered", [True, False])
     def test_set_categories_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)

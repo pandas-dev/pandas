@@ -18,6 +18,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -27,7 +28,6 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-import pandas._testing as tm
 
 
 class TestTimestampConstructorUnitKeyword:
@@ -122,7 +122,6 @@ class TestTimestampConstructorFoldKeyword:
         # Test for GH#25057
         # pytz doesn't support fold. Check that we raise
         # if fold is passed with pytz
-        pytz = pytest.importorskip("pytz")
         msg = "pytz timezones do not support fold. Please use dateutil timezones."
         tz = pytz.timezone("Europe/London")
         with pytest.raises(ValueError, match=msg):
@@ -160,13 +159,15 @@ class TestTimestampConstructorFoldKeyword:
         expected = fold
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "tz",
-        [
+    try:
+        _tzs = [
             "dateutil/Europe/London",
             zoneinfo.ZoneInfo("Europe/London"),
-        ],
-    )
+        ]
+    except zoneinfo.ZoneInfoNotFoundError:
+        _tzs = ["dateutil/Europe/London"]
+
+    @pytest.mark.parametrize("tz", _tzs)
     @pytest.mark.parametrize(
         "ts_input,fold_out",
         [
@@ -189,17 +190,18 @@ class TestTimestampConstructorFoldKeyword:
 
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
     @pytest.mark.parametrize(
-        "fold,value_out",
+        "ts_input,fold,value_out",
         [
-            (0, 1572136200000000),
-            (1, 1572139800000000),
+            (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000),
+            (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000),
         ],
     )
-    def test_timestamp_constructor_adjust_value_for_fold(self, tz, fold, value_out):
+    def test_timestamp_constructor_adjust_value_for_fold(
+        self, tz, ts_input, fold, value_out
+    ):
         # Test for GH#25057
         # Check that we adjust value for fold correctly
         # based on timestamps since utc
-        ts_input = datetime(2019, 10, 27, 1, 30)
         ts = Timestamp(ts_input, tz=tz, fold=fold)
         result = ts._value
         expected = value_out
@@ -209,7 +211,11 @@ class TestTimestampConstructorFoldKeyword:
 class TestTimestampConstructorPositionalAndKeywordSupport:
     def test_constructor_positional(self):
         # see GH#10758
-        msg = "'NoneType' object cannot be interpreted as an integer"
+        msg = (
+            "'NoneType' object cannot be interpreted as an integer"
+            if PY310
+            else "an integer is required"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
 
@@ -322,18 +328,6 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
 class TestTimestampClassMethodConstructors:
     # Timestamp constructors other than __new__
-
-    def test_utcnow_deprecated(self):
-        # GH#56680
-        msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            Timestamp.utcnow()
-
-    def test_utcfromtimestamp_deprecated(self):
-        # GH#56680
-        msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
         # GH#25016
@@ -559,11 +553,11 @@ class TestTimestampConstructors:
         timezones = [
             (None, 0),
             ("UTC", 0),
-            (timezone.utc, 0),
+            (pytz.utc, 0),
             ("Asia/Tokyo", 9),
             ("US/Eastern", -4),
             ("dateutil/US/Pacific", -7),
-            (timezone(timedelta(hours=-3)), -3),
+            (pytz.FixedOffset(-180), -3),
             (dateutil.tz.tzoffset(None, 18000), 5),
         ]
 
@@ -615,12 +609,13 @@ class TestTimestampConstructors:
         ]
 
         timezones = [
+            (None, 0),
             ("UTC", 0),
-            (timezone.utc, 0),
+            (pytz.utc, 0),
             ("Asia/Tokyo", 9),
             ("US/Eastern", -4),
             ("dateutil/US/Pacific", -7),
-            (timezone(timedelta(hours=-3)), -3),
+            (pytz.FixedOffset(-180), -3),
             (dateutil.tz.tzoffset(None, 18000), 5),
         ]
 
@@ -700,7 +695,7 @@ class TestTimestampConstructors:
 
         msg = "at most one of"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2017-10-22", tzinfo=timezone.utc, tz="UTC")
+            Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
         msg = "Cannot pass a date attribute keyword argument when passing a date string"
         with pytest.raises(ValueError, match=msg):
@@ -713,11 +708,11 @@ class TestTimestampConstructors:
         # GH#17943, GH#17690, GH#5168
         stamps = [
             Timestamp(year=2017, month=10, day=22, tz="UTC"),
-            Timestamp(year=2017, month=10, day=22, tzinfo=timezone.utc),
-            Timestamp(year=2017, month=10, day=22, tz=timezone.utc),
-            Timestamp(datetime(2017, 10, 22), tzinfo=timezone.utc),
+            Timestamp(year=2017, month=10, day=22, tzinfo=pytz.utc),
+            Timestamp(year=2017, month=10, day=22, tz=pytz.utc),
+            Timestamp(datetime(2017, 10, 22), tzinfo=pytz.utc),
             Timestamp(datetime(2017, 10, 22), tz="UTC"),
-            Timestamp(datetime(2017, 10, 22), tz=timezone.utc),
+            Timestamp(datetime(2017, 10, 22), tz=pytz.utc),
         ]
         assert all(ts == stamps[0] for ts in stamps)
 
@@ -892,13 +887,13 @@ class TestTimestampConstructors:
     def test_construct_with_different_string_format(self, arg):
         # GH 12064
         result = Timestamp(arg)
-        expected = Timestamp(datetime(2013, 1, 1), tz=timezone(timedelta(hours=9)))
+        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
         assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
-        kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": timezone.utc}
+        kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": pytz.utc}
         msg = "Cannot pass a datetime or Timestamp"
         with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tz="US/Pacific")
@@ -906,7 +901,7 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError, match=msg):
             Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
 
-    def test_dont_convert_dateutil_utc_to_default_utc(self):
+    def test_dont_convert_dateutil_utc_to_pytz_utc(self):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
         expected = Timestamp(datetime(2018, 1, 1)).tz_localize(tzutc())
         assert result == expected
@@ -990,7 +985,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize(
         "tz",
         [
-            "pytz/US/Eastern",
+            pytz.timezone("US/Eastern"),
             gettz("US/Eastern"),
             "US/Eastern",
             "dateutil/US/Eastern",
@@ -999,26 +994,12 @@ class TestTimestampConstructors:
     def test_timestamp_constructed_by_date_and_tz(self, tz):
         # GH#2993, Timestamp cannot be constructed by datetime.date
         # and tz correctly
-        if isinstance(tz, str) and tz.startswith("pytz/"):
-            pytz = pytest.importorskip("pytz")
-            tz = pytz.timezone(tz.removeprefix("pytz/"))
+
         result = Timestamp(date(2012, 3, 11), tz=tz)
 
         expected = Timestamp("3/11/2012", tz=tz)
         assert result.hour == expected.hour
         assert result == expected
-
-    def test_explicit_tz_none(self):
-        # GH#48688
-        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
-        with pytest.raises(ValueError, match=msg):
-            Timestamp(datetime(2022, 1, 1, tzinfo=timezone.utc), tz=None)
-
-        with pytest.raises(ValueError, match=msg):
-            Timestamp("2022-01-01 00:00:00", tzinfo=timezone.utc, tz=None)
-
-        with pytest.raises(ValueError, match=msg):
-            Timestamp("2022-01-01 00:00:00-0400", tz=None)
 
 
 def test_constructor_ambiguous_dst():

@@ -1,7 +1,6 @@
 """
 Engine classes for :func:`~pandas.eval`
 """
-
 from __future__ import annotations
 
 import abc
@@ -54,7 +53,6 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.expr = expr
         self.aligned_axes = None
         self.result_type = None
-        self.result_name = None
 
     def convert(self) -> str:
         """
@@ -77,18 +75,12 @@ class AbstractEngine(metaclass=abc.ABCMeta):
             The result of the passed expression.
         """
         if not self._is_aligned:
-            self.result_type, self.aligned_axes, self.result_name = align_terms(
-                self.expr.terms
-            )
+            self.result_type, self.aligned_axes = align_terms(self.expr.terms)
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
         return reconstruct_object(
-            self.result_type,
-            res,
-            self.aligned_axes,
-            self.expr.terms.return_type,
-            self.result_name,
+            self.result_type, res, self.aligned_axes, self.expr.terms.return_type
         )
 
     @property

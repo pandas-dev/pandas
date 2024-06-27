@@ -157,6 +157,7 @@ class TestDataFrameLogicalOperators:
 
         _check_unary_op(operator.inv)  # TODO: belongs elsewhere
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_logical_with_nas(self):
         d = DataFrame({"a": [np.nan, False], "b": [True, True]})
 
@@ -170,7 +171,10 @@ class TestDataFrameLogicalOperators:
         result = d["a"].fillna(False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
-        result = d["a"].fillna(False) | d["b"]
+
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = d["a"].fillna(False, downcast=False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 

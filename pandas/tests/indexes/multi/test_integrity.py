@@ -245,7 +245,7 @@ def test_rangeindex_fallback_coercion_bug():
     df1 = pd.DataFrame(np.arange(100).reshape((10, 10)))
     df2 = pd.DataFrame(np.arange(100).reshape((10, 10)))
     df = pd.concat(
-        {"df1": df1.stack(), "df2": df2.stack()},
+        {"df1": df1.stack(future_stack=True), "df2": df2.stack(future_stack=True)},
         axis=1,
     )
     df.index.names = ["fizz", "buzz"]

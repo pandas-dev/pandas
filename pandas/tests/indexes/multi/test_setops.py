@@ -382,7 +382,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
+    with tm.assert_produces_warning(RuntimeWarning):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
@@ -711,11 +711,17 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     "a",
     [pd.Categorical(["a", "b"], categories=["a", "b"]), ["a", "b"]],
 )
-@pytest.mark.parametrize("b_ordered", [True, False])
-def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
+@pytest.mark.parametrize(
+    "b",
+    [
+        pd.Categorical(["a", "b"], categories=["b", "a"], ordered=True),
+        pd.Categorical(["a", "b"], categories=["b", "a"]),
+    ],
+)
+def test_intersection_with_non_lex_sorted_categories(a, b):
     # GH#49974
     other = ["1", "2"]
-    b = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered)
+
     df1 = DataFrame({"x": a, "y": other})
     df2 = DataFrame({"x": b, "y": other})
 

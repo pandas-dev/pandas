@@ -325,6 +325,8 @@ class TestDataFrameMisc:
         self,
         allows_duplicate_labels,
         frame_or_series,
+        using_copy_on_write,
+        warn_copy_on_write,
     ):
         obj = DataFrame({"A": [1, 2]})
         key = (0, 0)
@@ -352,11 +354,20 @@ class TestDataFrameMisc:
         else:
             assert np.may_share_memory(obj["A"].values, result["A"].values)
 
-        result.iloc[key] = 0
-        assert obj.iloc[key] == 1
+        with tm.assert_cow_warning(warn_copy_on_write):
+            result.iloc[key] = 0
+        if using_copy_on_write:
+            assert obj.iloc[key] == 1
+        else:
+            assert obj.iloc[key] == 0
+            # set back to 1 for test below
+            with tm.assert_cow_warning(warn_copy_on_write):
+                result.iloc[key] = 1
 
         # Now we do copy.
-        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        result = obj.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 
@@ -374,4 +385,8 @@ class TestDataFrameMisc:
         # GH38740
         pytest.importorskip("jinja2")
         df = DataFrame()
-        inspect.getmembers(df)
+        msg = "DataFrame._data is deprecated"
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
+            inspect.getmembers(df)

@@ -1,8 +1,8 @@
-"""implement the TimedeltaIndex"""
-
+""" implement the TimedeltaIndex """
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 from pandas._libs import (
     index as libindex,
@@ -13,6 +13,8 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas._libs.tslibs.timedeltas import disallow_ambiguous_unit
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -30,7 +32,6 @@ from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
-    from pandas._libs import NaTType
     from pandas._typing import DtypeObj
 
 
@@ -60,6 +61,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     ----------
     data : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with.
+    unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
+        The unit of ``data``.
+
+        .. deprecated:: 2.2.0
+         Use ``pd.to_timedelta`` instead.
+
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         ``'infer'`` can be passed in order to set the frequency of the index as
@@ -101,18 +108,18 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     Notes
     -----
-    To learn more about the frequency strings, please see
-    :ref:`this link<timeseries.offset_aliases>`.
+    To learn more about the frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
-    >>> pd.TimedeltaIndex(["0 days", "1 days", "2 days", "3 days", "4 days"])
+    >>> pd.TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'])
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
     We can also let pandas infer the frequency when possible.
 
-    >>> pd.TimedeltaIndex(np.arange(5) * 24 * 3600 * 1e9, freq="infer")
+    >>> pd.TimedeltaIndex(np.arange(5) * 24 * 3600 * 1e9, freq='infer')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')
     """
@@ -142,16 +149,40 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
+        unit=lib.no_default,
         freq=lib.no_default,
+        closed=lib.no_default,
         dtype=None,
         copy: bool = False,
         name=None,
     ):
+        if closed is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'closed' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if unit is not lib.no_default:
+            # GH#55499
+            warnings.warn(
+                f"The 'unit' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version. "
+                "Use pd.to_timedelta instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            unit = None
+
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
+        disallow_ambiguous_unit(unit)
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -178,7 +209,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence_not_strict(
-            data, freq=freq, unit=None, dtype=dtype, copy=copy
+            data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
@@ -214,10 +245,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    # error: Return type "tuple[Timedelta | NaTType, None]" of "_parse_with_reso"
-    # incompatible with return type "tuple[datetime, Resolution]" in supertype
-    # "DatetimeIndexOpsMixin"
-    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, None]:  # type: ignore[override]
+    def _parse_with_reso(self, label: str):
         # the "with_reso" is a no-op for TimedeltaIndex
         parsed = Timedelta(label)
         return parsed, None
@@ -271,12 +299,6 @@ def timedelta_range(
     Returns
     -------
     TimedeltaIndex
-        Fixed frequency, with day as the default.
-
-    See Also
-    --------
-    date_range : Return a fixed frequency DatetimeIndex.
-    period_range : Return a fixed frequency PeriodIndex.
 
     Notes
     -----
@@ -285,19 +307,19 @@ def timedelta_range(
     ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between
     ``start`` and ``end`` (closed on both sides).
 
-    To learn more about the frequency strings, please see
-    :ref:`this link<timeseries.offset_aliases>`.
+    To learn more about the frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
-    >>> pd.timedelta_range(start="1 day", periods=4)
+    >>> pd.timedelta_range(start='1 day', periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
-    >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
+    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')
     TimedeltaIndex(['2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')
 
@@ -305,7 +327,7 @@ def timedelta_range(
     Only fixed frequencies can be passed, non-fixed frequencies such as
     'M' (month end) will raise.
 
-    >>> pd.timedelta_range(start="1 day", end="2 days", freq="6h")
+    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6h')
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
                    dtype='timedelta64[ns]', freq='6h')
@@ -313,7 +335,7 @@ def timedelta_range(
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
-    >>> pd.timedelta_range(start="1 day", end="5 days", periods=4)
+    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
                    dtype='timedelta64[ns]', freq=None)

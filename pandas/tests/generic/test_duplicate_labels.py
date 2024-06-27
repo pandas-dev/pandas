@@ -1,5 +1,4 @@
 """Tests dealing with the NDFrame.allows_duplicates."""
-
 import operator
 
 import numpy as np
@@ -46,11 +45,12 @@ class TestPreserves:
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         assert func(s).flags.allows_duplicate_labels is False
 
-    @pytest.mark.parametrize("index", [["a", "b", "c"], ["a", "b"]])
+    @pytest.mark.parametrize(
+        "other", [pd.Series(0, index=["a", "b", "c"]), pd.Series(0, index=["a", "b"])]
+    )
     # TODO: frame
     @not_implemented
-    def test_align(self, index):
-        other = pd.Series(0, index=index)
+    def test_align(self, other):
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         a, b = s.align(other)
         assert a.flags.allows_duplicate_labels is False
@@ -89,6 +89,18 @@ class TestPreserves:
         assert df.loc[0].flags.allows_duplicate_labels is False
         assert df.loc[[0]].flags.allows_duplicate_labels is False
         assert df.loc[0, ["A"]].flags.allows_duplicate_labels is False
+
+    def test_ndframe_getitem_caching_issue(
+        self, request, using_copy_on_write, warn_copy_on_write
+    ):
+        if not (using_copy_on_write or warn_copy_on_write):
+            request.applymarker(pytest.mark.xfail(reason="Unclear behavior."))
+        # NDFrame.__getitem__ will cache the first df['A']. May need to
+        # invalidate that cache? Update the cached entries?
+        df = pd.DataFrame({"A": [0]}).set_flags(allows_duplicate_labels=False)
+        assert df["A"].flags.allows_duplicate_labels is False
+        df.flags.allows_duplicate_labels = True
+        assert df["A"].flags.allows_duplicate_labels is True
 
     @pytest.mark.parametrize(
         "objs, kwargs",
@@ -286,15 +298,23 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             getter(target)
 
-    def test_concat_raises(self):
-        objs = [
-            pd.Series(1, index=[0, 1], name="a"),
-            pd.Series(2, index=[0, 1], name="a"),
-        ]
+    @pytest.mark.parametrize(
+        "objs, kwargs",
+        [
+            (
+                [
+                    pd.Series(1, index=[0, 1], name="a"),
+                    pd.Series(2, index=[0, 1], name="a"),
+                ],
+                {"axis": 1},
+            )
+        ],
+    )
+    def test_concat_raises(self, objs, kwargs):
         objs = [x.set_flags(allows_duplicate_labels=False) for x in objs]
         msg = "Index has duplicates."
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
-            pd.concat(objs, axis=1)
+            pd.concat(objs, **kwargs)
 
     @not_implemented
     def test_merge_raises(self):

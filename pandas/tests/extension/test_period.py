@@ -13,7 +13,6 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

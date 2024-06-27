@@ -1,7 +1,6 @@
 """
 :func:`~pandas.eval` parsers.
 """
-
 from __future__ import annotations
 
 import ast
@@ -12,7 +11,7 @@ from functools import (
 from keyword import iskeyword
 import tokenize
 from typing import (
-    TYPE_CHECKING,
+    Callable,
     ClassVar,
     TypeVar,
 )
@@ -46,9 +45,6 @@ from pandas.core.computation.parsing import (
 from pandas.core.computation.scope import Scope
 
 from pandas.io.formats import printing
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -699,7 +695,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if not isinstance(key, ast.keyword):
                     # error: "expr" has no attribute "id"
                     raise ValueError(
-                        "keyword error in function call " f"'{node.func.id}'"  # type: ignore[attr-defined]
+                        "keyword error in function call "
+                        f"'{node.func.id}'"  # type: ignore[attr-defined]
                     )
 
                 if key.arg:

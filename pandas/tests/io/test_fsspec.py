@@ -72,9 +72,7 @@ def test_read_csv(cleared_fs, df1):
         w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
-    expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
-    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df1, df2)
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
@@ -97,9 +95,7 @@ def test_to_csv(cleared_fs, df1):
 
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
 
-    expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
-    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df1, df2)
 
 
 def test_to_excel(cleared_fs, df1):
@@ -110,9 +106,7 @@ def test_to_excel(cleared_fs, df1):
 
     df2 = read_excel(path, parse_dates=["dt"], index_col=0)
 
-    expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
-    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df1, df2)
 
 
 @pytest.mark.parametrize("binary_mode", [False, True])
@@ -134,9 +128,7 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
         )
         assert not fsspec_object.closed
 
-    expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
-    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df1, df2)
 
 
 def test_csv_options(fsspectest):
@@ -202,6 +194,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
@@ -260,6 +253,7 @@ def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
 
 
 @pytest.mark.single_cpu
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 def test_s3_parquet(s3_public_bucket, s3so, df1):
     pytest.importorskip("fastparquet")
     pytest.importorskip("s3fs")

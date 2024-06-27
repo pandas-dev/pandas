@@ -1,5 +1,4 @@
 """Sparse accessor"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -18,11 +17,6 @@ from pandas.core.accessor import (
 from pandas.core.arrays.sparse.array import SparseArray
 
 if TYPE_CHECKING:
-    from scipy.sparse import (
-        coo_matrix,
-        spmatrix,
-    )
-
     from pandas import (
         DataFrame,
         Series,
@@ -36,7 +30,7 @@ class BaseAccessor:
         self._parent = data
         self._validate(data)
 
-    def _validate(self, data) -> None:
+    def _validate(self, data):
         raise NotImplementedError
 
 
@@ -56,7 +50,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     array([2, 2, 2])
     """
 
-    def _validate(self, data) -> None:
+    def _validate(self, data):
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
@@ -98,8 +92,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...     ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
         ... )
         >>> A
-        <COOrdinate sparse matrix of dtype 'float64'
-            with 3 stored elements and shape (3, 4)>
+        <3x4 sparse matrix of type '<class 'numpy.float64'>'
+        with 3 stored elements in COOrdinate format>
 
         >>> A.todense()
         matrix([[0., 0., 1., 2.],
@@ -121,9 +115,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(
-        self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False
-    ) -> tuple[coo_matrix, list, list]:
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 
@@ -157,7 +149,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...         (1, 1, "b", 0),
         ...         (1, 1, "b", 1),
         ...         (2, 1, "b", 0),
-        ...         (2, 1, "b", 1),
+        ...         (2, 1, "b", 1)
         ...     ],
         ...     names=["A", "B", "C", "D"],
         ... )
@@ -186,8 +178,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...     row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
         ... )
         >>> A
-        <COOrdinate sparse matrix of dtype 'float64'
-            with 3 stored elements and shape (3, 4)>
+        <3x4 sparse matrix of type '<class 'numpy.float64'>'
+        with 3 stored elements in COOrdinate format>
         >>> A.todense()
         matrix([[0., 0., 1., 3.],
         [3., 0., 0., 0.],
@@ -243,23 +235,15 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
 
-    Parameters
-    ----------
-    data : scipy.sparse.spmatrix
-        Must be convertible to csc format.
-
-    See Also
-    --------
-    DataFrame.sparse.density : Ratio of non-sparse points to total (dense) data points.
-
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 2, 0, 0], "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
+    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
     >>> df.sparse.density
     0.5
     """
 
-    def _validate(self, data) -> None:
+    def _validate(self, data):
         dtypes = data.dtypes
         if not all(isinstance(t, SparseDtype) for t in dtypes):
             raise AttributeError(self._validation_msg)
@@ -282,11 +266,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame
             Each column of the DataFrame is stored as a
             :class:`arrays.SparseArray`.
-
-        See Also
-        --------
-        DataFrame.sparse.to_coo : Return the contents of the frame as a
-            sparse SciPy COO matrix.
 
         Examples
         --------
@@ -333,11 +312,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         DataFrame
             A DataFrame with the same values stored as dense arrays.
 
-        See Also
-        --------
-        DataFrame.sparse.density : Ratio of non-sparse points to total
-            (dense) data points.
-
         Examples
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
@@ -352,7 +326,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
 
-    def to_coo(self) -> spmatrix:
+    def to_coo(self):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
@@ -361,10 +335,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
-
-        See Also
-        --------
-        DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
 
         Notes
         -----
@@ -380,8 +350,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.to_coo()
-        <COOrdinate sparse matrix of dtype 'int64'
-            with 2 stored elements and shape (4, 1)>
+        <4x1 sparse matrix of type '<class 'numpy.int64'>'
+                with 2 stored elements in COOrdinate format>
         """
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
@@ -410,11 +380,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
-
-        See Also
-        --------
-        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
-            scipy sparse matrix.
 
         Examples
         --------

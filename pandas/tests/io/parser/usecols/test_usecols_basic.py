@@ -2,7 +2,6 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
-
 from io import StringIO
 
 import numpy as np
@@ -158,8 +157,7 @@ def test_usecols_single_string(all_parsers):
         parser.read_csv(StringIO(data), usecols="foo")
 
 
-# ArrowKeyError: Column 'a' in include_columns does not exist in CSV file
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error in one case, AttributeError in another
 @pytest.mark.parametrize(
     "data", ["a,b,c,d\n1,2,3,4\n5,6,7,8", "a,b,c,d\n1,2,3,4,\n5,6,7,8,"]
 )
@@ -255,12 +253,29 @@ def test_usecols_regex_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # Column 'a' in include_columns does not exist in CSV file
 def test_usecols_with_whitespace(all_parsers):
     parser = all_parsers
     data = "a  b  c\n4  apple  bat  5.7\n8  orange  cow  10"
 
-    result = parser.read_csv(StringIO(data), sep=r"\s+", usecols=("a", "b"))
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(
+                    StringIO(data), delim_whitespace=True, usecols=("a", "b")
+                )
+        return
+
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data), delim_whitespace=True, usecols=("a", "b")
+        )
     expected = DataFrame({"a": ["apple", "orange"], "b": ["bat", "cow"]}, index=[4, 8])
     tm.assert_frame_equal(result, expected)
 
@@ -374,18 +389,20 @@ def test_incomplete_first_row(all_parsers, usecols):
             "19,29,39\n" * 2 + "10,20,30,40",
             [0, 1, 2],
             {"header": None},
-            [[19, 29, 39], [19, 29, 39], [10, 20, 30]],
+            DataFrame([[19, 29, 39], [19, 29, 39], [10, 20, 30]]),
         ),
         # see gh-9549
         (
             ("A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n1,2,3,,,1,\n1,2,3\n5,6,7"),
             ["A", "B", "C"],
             {},
-            {
-                "A": [1, 3, 1, 1, 1, 5],
-                "B": [2, 4, 2, 2, 2, 6],
-                "C": [3, 5, 4, 3, 3, 7],
-            },
+            DataFrame(
+                {
+                    "A": [1, 3, 1, 1, 1, 5],
+                    "B": [2, 4, 2, 2, 2, 6],
+                    "C": [3, 5, 4, 3, 3, 7],
+                }
+            ),
         ),
     ],
 )
@@ -393,7 +410,6 @@ def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
     # see gh-8985
     parser = all_parsers
     result = parser.read_csv(StringIO(data), usecols=usecols, **kwargs)
-    expected = DataFrame(expected)
     tm.assert_frame_equal(result, expected)
 
 

@@ -2,7 +2,6 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
-
 import string
 
 import pytest
@@ -325,7 +324,7 @@ def test_css_to_excel_bad_colors(input_color):
     if input_color is not None:
         expected["fill"] = {"patternType": "solid"}
 
-    with tm.assert_produces_warning(CSSWarning, match="Unhandled color format"):
+    with tm.assert_produces_warning(CSSWarning):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
 

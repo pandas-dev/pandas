@@ -209,7 +209,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"Label\(s\) \['r', 'r2'\] do not exist"
+    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
@@ -224,7 +224,7 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
-    msg = r"Label\(s\) \['ma'\] do not exist"
+    msg = r"Column\(s\) \['ma'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
@@ -410,7 +410,10 @@ def test_agg_callables():
 
     expected = df.groupby("foo").agg("sum")
     for ecall in equiv_callables:
-        result = df.groupby("foo").agg(ecall)
+        warn = FutureWarning if ecall is sum or ecall is np.sum else None
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.groupby("foo").agg(ecall)
         tm.assert_frame_equal(result, expected)
 
 
@@ -537,44 +540,46 @@ def test_sum_uint64_overflow():
 
 
 @pytest.mark.parametrize(
-    "structure, cast_as",
+    "structure, expected",
     [
-        (tuple, tuple),
-        (list, list),
-        (lambda x: tuple(x), tuple),
-        (lambda x: list(x), list),
+        (tuple, DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}})),
+        (list, DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}})),
+        (
+            lambda x: tuple(x),
+            DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}}),
+        ),
+        (
+            lambda x: list(x),
+            DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}}),
+        ),
     ],
 )
-def test_agg_structs_dataframe(structure, cast_as):
+def test_agg_structs_dataframe(structure, expected):
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby(["A", "B"]).aggregate(structure)
-    expected = DataFrame(
-        {"C": {(1, 1): cast_as([1, 1, 1]), (3, 4): cast_as([3, 4, 4])}}
-    )
     expected.index.names = ["A", "B"]
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "structure, cast_as",
+    "structure, expected",
     [
-        (tuple, tuple),
-        (list, list),
-        (lambda x: tuple(x), tuple),
-        (lambda x: list(x), list),
+        (tuple, Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
+        (list, Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
+        (lambda x: tuple(x), Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
+        (lambda x: list(x), Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
     ],
 )
-def test_agg_structs_series(structure, cast_as):
+def test_agg_structs_series(structure, expected):
     # Issue #18079
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby("A")["C"].aggregate(structure)
-    expected = Series([cast_as([1, 1, 1]), cast_as([3, 4, 4])], index=[1, 3], name="C")
     expected.index.name = "A"
     tm.assert_series_equal(result, expected)
 
@@ -584,7 +589,9 @@ def test_agg_category_nansum(observed):
     df = DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
-    result = df.groupby("A", observed=observed).B.agg(np.nansum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),

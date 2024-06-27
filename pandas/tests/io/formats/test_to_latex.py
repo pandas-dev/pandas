@@ -187,6 +187,22 @@ class TestToLatex:
         )
         assert result == expected
 
+    def test_to_latex_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame(
+            {
+                "name": ["Raphael", "Donatello"],
+                "age": [26, 45],
+                "height": [181.23, 177.65],
+            }
+        )
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_latex except for "
+            r"the argument 'buf' will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_latex(None, None)
+
 
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):
@@ -267,15 +283,14 @@ class TestToLatexLongtable:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "df_data, expected_number",
+        "df, expected_number",
         [
-            ({"a": [1, 2]}, 1),
-            ({"a": [1, 2], "b": [3, 4]}, 2),
-            ({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, 3),
+            (DataFrame({"a": [1, 2]}), 1),
+            (DataFrame({"a": [1, 2], "b": [3, 4]}), 2),
+            (DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}), 3),
         ],
     )
-    def test_to_latex_longtable_continued_on_next_page(self, df_data, expected_number):
-        df = DataFrame(df_data)
+    def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
         result = df.to_latex(index=False, longtable=True)
         assert rf"\multicolumn{{{expected_number}}}" in result
 
@@ -756,7 +771,7 @@ class TestToLatexEscape:
         """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
-        return DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
+        yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
@@ -995,7 +1010,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multiindex_frame(self):
         """Multiindex dataframe for testing multirow LaTeX macros."""
-        return DataFrame.from_dict(
+        yield DataFrame.from_dict(
             {
                 ("c1", 0): Series({x: x for x in range(4)}),
                 ("c1", 1): Series({x: x + 4 for x in range(4)}),
@@ -1008,7 +1023,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
-        return DataFrame(
+        yield DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
                 ("c1", 1): {x: x + 5 for x in range(5)},
@@ -1311,6 +1326,7 @@ class TestToLatexMultiindex:
         )
         col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
         observed = df.to_latex(multirow=False)
+        # pylint: disable-next=consider-using-f-string
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
  & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\
@@ -1322,7 +1338,9 @@ class TestToLatexMultiindex:
  & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
 \end{tabular}
-""" % tuple(list(col_names) + [idx_names_row])
+""" % tuple(
+            list(col_names) + [idx_names_row]
+        )
         assert observed == expected
 
     @pytest.mark.parametrize("one_row", [True, False])

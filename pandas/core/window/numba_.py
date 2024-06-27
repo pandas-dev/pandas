@@ -4,6 +4,7 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
 )
 
 import numpy as np
@@ -13,8 +14,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.util.numba_ import jit_user_function
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pandas._typing import Scalar
 
 
@@ -187,7 +186,8 @@ def generate_numba_table_func(
     Generate a numba jitted function to apply window calculations table-wise.
 
     Func will be passed a M window size x N number of columns array, and
-    must return a 1 x N number of columns array.
+    must return a 1 x N number of columns array. Func is intended to operate
+    row-wise, but the result will be transposed for axis=1.
 
     1. jit the user's function
     2. Return a rolling apply function with the jitted function inline
@@ -228,10 +228,10 @@ def generate_numba_table_func(
             stop = end[i]
             window = values[start:stop]
             count_nan = np.sum(np.isnan(window), axis=0)
+            sub_result = numba_func(window, *args)
             nan_mask = len(window) - count_nan >= minimum_periods
-            if nan_mask.any():
-                result[i, :] = numba_func(window, *args)
             min_periods_mask[i, :] = nan_mask
+            result[i, :] = sub_result
         result = np.where(min_periods_mask, result, np.nan)
         return result
 

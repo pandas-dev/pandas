@@ -2,13 +2,11 @@ from collections import (
     OrderedDict,
     defaultdict,
 )
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas import (
     NA,
@@ -168,7 +166,7 @@ class TestDataFrameToDict:
         # GH#16927: When converting to a dict, if a column has a non-unique name
         # it will be dropped, throwing a warning.
         df = DataFrame([[1, 2, 3]], columns=["a", "a", "b"])
-        with tm.assert_produces_warning(UserWarning, match="columns will be omitted"):
+        with tm.assert_produces_warning(UserWarning):
             df.to_dict()
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -211,15 +209,15 @@ class TestDataFrameToDict:
         # GH#18372 When converting to dict with orient='records' columns of
         # datetime that are tz-aware were not converted to required arrays
         data = [
-            (datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=timezone.utc),),
-            (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=timezone.utc),),
+            (datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
+            (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc),),
         ]
         df = DataFrame(list(data), columns=["d"])
 
         result = df.to_dict(orient="records")
         expected = [
-            {"d": Timestamp("2017-11-18 21:53:00.219225+0000", tz=timezone.utc)},
-            {"d": Timestamp("2017-11-18 22:06:30.061810+0000", tz=timezone.utc)},
+            {"d": Timestamp("2017-11-18 21:53:00.219225+0000", tz=pytz.utc)},
+            {"d": Timestamp("2017-11-18 22:06:30.061810+0000", tz=pytz.utc)},
         ]
         tm.assert_dict_equal(result[0], expected[0])
         tm.assert_dict_equal(result[1], expected[1])
@@ -515,19 +513,15 @@ class TestDataFrameToDict:
         result = df.to_dict(orient="records")
         assert isinstance(result[0]["a"], int)
 
-    def test_to_dict_tight_no_warning_with_duplicate_column(self):
-        # GH#58281
-        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "A"])
-        with tm.assert_produces_warning(None):
-            result = df.to_dict(orient="tight")
-        expected = {
-            "index": [0, 1, 2],
-            "columns": ["A", "A"],
-            "data": [[1, 2], [3, 4], [5, 6]],
-            "index_names": [None],
-            "column_names": [None],
-        }
-        assert result == expected
+    def test_to_dict_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_dict except for the "
+            r"argument 'orient' will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_dict("records", {})
 
 
 @pytest.mark.parametrize(

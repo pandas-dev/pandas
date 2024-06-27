@@ -1,5 +1,3 @@
-import zoneinfo
-
 import numpy as np
 import pytest
 
@@ -15,34 +13,28 @@ import pandas._testing as tm
 
 class TestTZConvert:
     def test_tz_convert(self, frame_or_series):
-        rng = date_range(
-            "1/1/2011", periods=200, freq="D", tz=zoneinfo.ZoneInfo("US/Eastern")
-        )
+        rng = date_range("1/1/2011", periods=200, freq="D", tz="US/Eastern")
 
         obj = DataFrame({"a": 1}, index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
-        berlin = zoneinfo.ZoneInfo("Europe/Berlin")
-        result = obj.tz_convert(berlin)
-        expected = DataFrame({"a": 1}, rng.tz_convert(berlin))
+        result = obj.tz_convert("Europe/Berlin")
+        expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
         expected = tm.get_obj(expected, frame_or_series)
 
-        assert result.index.tz.key == "Europe/Berlin"
+        assert result.index.tz.zone == "Europe/Berlin"
         tm.assert_equal(result, expected)
 
     def test_tz_convert_axis1(self):
-        rng = date_range(
-            "1/1/2011", periods=200, freq="D", tz=zoneinfo.ZoneInfo("US/Eastern")
-        )
+        rng = date_range("1/1/2011", periods=200, freq="D", tz="US/Eastern")
 
         obj = DataFrame({"a": 1}, index=rng)
 
         obj = obj.T
-        berlin = zoneinfo.ZoneInfo("Europe/Berlin")
-        result = obj.tz_convert(berlin, axis=1)
-        assert result.columns.tz.key == "Europe/Berlin"
+        result = obj.tz_convert("Europe/Berlin", axis=1)
+        assert result.columns.tz.zone == "Europe/Berlin"
 
-        expected = DataFrame({"a": 1}, rng.tz_convert(berlin))
+        expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
 
         tm.assert_equal(result, expected.T)
 
@@ -106,33 +98,32 @@ class TestTZConvert:
             tm.assert_index_equal(df3.index.levels[1], l1_expected)
             assert not df3.index.levels[1].equals(l1)
 
-    @pytest.mark.parametrize("fn", ["tz_localize", "tz_convert"])
-    def test_tz_convert_and_localize_bad_input(self, fn):
-        int_idx = Index(range(5))
-        l0 = date_range("20140701", periods=5, freq="D")
+        # Bad Inputs
+
         # Not DatetimeIndex / PeriodIndex
-        df = DataFrame(index=int_idx)
         with pytest.raises(TypeError, match="DatetimeIndex"):
+            df = DataFrame(index=int_idx)
             getattr(df, fn)("US/Pacific")
 
         # Not DatetimeIndex / PeriodIndex
-        df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
         with pytest.raises(TypeError, match="DatetimeIndex"):
+            df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
             getattr(df, fn)("US/Pacific", level=0)
 
         # Invalid level
-        df = DataFrame(index=l0)
         with pytest.raises(ValueError, match="not valid"):
+            df = DataFrame(index=l0)
             getattr(df, fn)("US/Pacific", level=1)
 
-    def test_tz_convert_copy_inplace_mutate(self, frame_or_series):
+    @pytest.mark.parametrize("copy", [True, False])
+    def test_tz_convert_copy_inplace_mutate(self, copy, frame_or_series):
         # GH#6326
         obj = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="h", tz="Europe/Berlin"),
         )
         orig = obj.copy()
-        result = obj.tz_convert("UTC")
+        result = obj.tz_convert("UTC", copy=copy)
         expected = frame_or_series(np.arange(0, 5), index=obj.index.tz_convert("UTC"))
         tm.assert_equal(result, expected)
         tm.assert_equal(obj, orig)

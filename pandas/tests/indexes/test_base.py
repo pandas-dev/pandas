@@ -71,8 +71,8 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    def test_constructor_copy(self, using_infer_string):
-        index = Index(list("abc"), name="name")
+    @pytest.mark.parametrize("index", ["string"], indirect=True)
+    def test_constructor_copy(self, index, using_infer_string):
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
@@ -104,9 +104,16 @@ class TestIndex:
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
-            result = Index(index.astype(object))
-            assert result.dtype == np.dtype(object)
-            if isinstance(index, DatetimeIndex):
+            with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+                result = Index(index.astype(object))
+        else:
+            result = Index(index)
+
+        tm.assert_index_equal(result, index)
+
+        if isinstance(index, DatetimeIndex):
+            assert result.tz == index.tz
+            if cast_as_obj:
                 # GH#23524 check that Index(dti, dtype=object) does not
                 #  incorrectly raise ValueError, and that nanoseconds are not
                 #  dropped
@@ -114,10 +121,6 @@ class TestIndex:
                 result = Index(index, dtype=object)
                 assert result.dtype == np.object_
                 assert list(result) == list(index)
-        else:
-            result = Index(index)
-
-            tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize(
         "index,has_tz",
@@ -183,7 +186,7 @@ class TestIndex:
         "klass,dtype,na_val",
         [
             (Index, np.float64, np.nan),
-            (DatetimeIndex, "datetime64[s]", pd.NaT),
+            (DatetimeIndex, "datetime64[ns]", pd.NaT),
         ],
     )
     def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):
@@ -356,8 +359,8 @@ class TestIndex:
                 index.view("i8")
         else:
             msg = (
-                "Cannot change data-type for array of references.|"
-                "Cannot change data-type for object array.|"
+                "Cannot change data-type for array of references|"
+                "Cannot change data-type for object array|"
             )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
@@ -478,7 +481,7 @@ class TestIndex:
 
         assert index[[]].identical(empty_index)
         if dtype == np.bool_:
-            with pytest.raises(ValueError, match="length of the boolean indexer"):
+            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
                 assert index[empty_arr].identical(empty_index)
         else:
             assert index[empty_arr].identical(empty_index)
@@ -636,7 +639,9 @@ class TestIndex:
         left = Index([], name="foo")
         right = Index([1, 2, 3], name=name)
 
-        result = left.append(right)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left.append(right)
         assert result.name == expected
 
     @pytest.mark.parametrize(
@@ -684,11 +689,47 @@ class TestIndex:
     def test_summary(self, index):
         index._summary()
 
-    def test_logical_compat(self, all_boolean_reductions, simple_index):
+    def test_format_bug(self):
+        # GH 14626
+        # windows has different precision on datetime.datetime.now (it doesn't
+        # include us since the default for Timestamp shows these but Index
+        # formatting does not we are skipping)
+        now = datetime.now()
+        msg = r"Index\.format is deprecated"
+
+        if not str(now).endswith("000"):
+            index = Index([now])
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = index.format()
+            expected = [str(index[0])]
+            assert formatted == expected
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Index([]).format()
+
+    @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
+    def test_format_missing(self, vals, nulls_fixture):
+        # 2845
+        vals = list(vals)  # Copy for each iteration
+        vals.append(nulls_fixture)
+        index = Index(vals, dtype=object)
+        # TODO: case with complex dtype?
+
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = index.format()
+        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
+        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
+
+        assert formatted == expected
+        assert index[3] is nulls_fixture
+
+    @pytest.mark.parametrize("op", ["any", "all"])
+    def test_logical_compat(self, op, simple_index):
         index = simple_index
-        left = getattr(index, all_boolean_reductions)()
-        assert left == getattr(index.values, all_boolean_reductions)()
-        right = getattr(index.to_series(), all_boolean_reductions)()
+        left = getattr(index, op)()
+        assert left == getattr(index.values, op)()
+        right = getattr(index.to_series(), op)()
         # left might not match right exactly in e.g. string cases where the
         # because we use np.any/all instead of .any/all
         assert bool(left) == bool(right)
@@ -807,14 +848,12 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index,expected",
         [
-            (["qux", "baz", "foo", "bar"], [False, False, True, True]),
-            ([], []),  # empty
+            (Index(["qux", "baz", "foo", "bar"]), np.array([False, False, True, True])),
+            (Index([]), np.array([], dtype=bool)),  # empty
         ],
     )
     def test_isin(self, values, index, expected):
-        index = Index(index)
         result = index.isin(values)
-        expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isin_nan_common_object(
@@ -862,7 +901,7 @@ class TestIndex:
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
-                f"not {type(nulls_fixture).__name__!r}"
+                f"not {repr(type(nulls_fixture).__name__)}"
             )
             with pytest.raises(TypeError, match=msg):
                 Index([1.0, nulls_fixture], dtype=dtype)
@@ -883,12 +922,11 @@ class TestIndex:
     @pytest.mark.parametrize(
         "index",
         [
-            ["qux", "baz", "foo", "bar"],
-            np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
+            Index(["qux", "baz", "foo", "bar"]),
+            Index([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
         ],
     )
     def test_isin_level_kwarg(self, level, index):
-        index = Index(index)
         values = index.tolist()[-2:] + ["nonexisting"]
 
         expected = np.array([False, False, True, True])
@@ -1044,11 +1082,10 @@ class TestIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index,expected", [(list("abcd"), True), (range(4), False)]
+        "index,expected", [(Index(list("abcd")), True), (Index(range(4)), False)]
     )
     def test_tab_completion(self, index, expected):
         # GH 9910
-        index = Index(index)
         result = "str" in dir(index)
         assert result == expected
 
@@ -1062,10 +1099,10 @@ class TestIndex:
         left_index = Index(np.random.default_rng(2).permutation(15))
         right_index = date_range("2020-01-01", periods=10)
 
-        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
+        with tm.assert_produces_warning(RuntimeWarning):
             result = left_index.join(right_index, how="outer")
 
-        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
+        with tm.assert_produces_warning(RuntimeWarning):
             expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)
@@ -1131,11 +1168,15 @@ class TestIndex:
         index = Index(list("abc"))
         assert index.reindex(labels)[0].dtype.type == index.dtype.type
 
-    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
+    @pytest.mark.parametrize(
+        "labels,dtype",
+        [
+            (DatetimeIndex([]), np.datetime64),
+        ],
+    )
+    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self, labels, dtype):
         # GH7774
         index = Index(list("abc"))
-        labels = DatetimeIndex([])
-        dtype = np.datetime64
         assert index.reindex(labels)[0].dtype.type == dtype
 
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index_numeric(
@@ -1512,10 +1553,8 @@ class TestIndexUtils:
     @pytest.mark.parametrize(
         "data, names, expected",
         [
-            ([[1, 2, 4]], None, Index([1, 2, 4])),
-            ([[1, 2, 4]], ["name"], Index([1, 2, 4], name="name")),
-            ([[1, 2, 3]], None, RangeIndex(1, 4)),
-            ([[1, 2, 3]], ["name"], RangeIndex(1, 4, name="name")),
+            ([[1, 2, 3]], None, Index([1, 2, 3])),
+            ([[1, 2, 3]], ["name"], Index([1, 2, 3], name="name")),
             (
                 [["a", "a"], ["c", "d"]],
                 None,
@@ -1530,7 +1569,7 @@ class TestIndexUtils:
     )
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected)
 
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
@@ -1558,7 +1597,7 @@ class TestIndexUtils:
 
     def test_get_combined_index(self):
         result = _get_combined_index([])
-        expected = RangeIndex(0)
+        expected = Index([])
         tm.assert_index_equal(result, expected)
 
 

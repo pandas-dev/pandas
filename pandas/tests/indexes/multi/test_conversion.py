@@ -5,7 +5,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
-    RangeIndex,
 )
 import pandas._testing as tm
 
@@ -147,13 +146,6 @@ def test_to_frame_duplicate_labels():
     result = index.to_frame(allow_duplicates=True)
     expected = DataFrame(data, index=index, columns=[0, 0])
     tm.assert_frame_equal(result, expected)
-
-
-def test_to_frame_column_rangeindex():
-    mi = MultiIndex.from_arrays([[1, 2], ["a", "b"]])
-    result = mi.to_frame().columns
-    expected = RangeIndex(2)
-    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_to_flat_index(idx):

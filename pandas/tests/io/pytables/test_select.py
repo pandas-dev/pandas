@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -169,7 +168,7 @@ def test_select(setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_select_dtypes(setup_path, request):
+def test_select_dtypes(setup_path):
     with ensure_clean_store(setup_path) as store:
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
@@ -280,13 +279,6 @@ def test_select_dtypes(setup_path, request):
         expected = df[df["A"] > 0]
 
         store.append("df", df, data_columns=True)
-        request.applymarker(
-            pytest.mark.xfail(
-                PY312,
-                reason="AST change in PY312",
-                raises=ValueError,
-            )
-        )
         np_zero = np.float64(0)  # noqa: F841
         result = store.select("df", where=["A>np_zero"])
         tm.assert_frame_equal(expected, result)
@@ -615,7 +607,7 @@ def test_select_iterator_many_empty_frames(setup_path):
         assert len(results) == 0
 
 
-def test_frame_select(setup_path, request):
+def test_frame_select(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
@@ -632,13 +624,6 @@ def test_frame_select(setup_path, request):
         crit2 = "columns=['A', 'D']"
         crit3 = "columns=A"
 
-        request.applymarker(
-            pytest.mark.xfail(
-                PY312,
-                reason="AST change in PY312",
-                raises=TypeError,
-            )
-        )
         result = store.select("frame", [crit1, crit2])
         expected = df.loc[date:, ["A", "D"]]
         tm.assert_frame_equal(result, expected)

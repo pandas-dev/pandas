@@ -26,7 +26,7 @@ def custom_dialect():
         "escapechar": "~",
         "delimiter": ":",
         "skipinitialspace": False,
-        "quotechar": "`",
+        "quotechar": "~",
         "quoting": 3,
     }
     return dialect_name, dialect_kwargs

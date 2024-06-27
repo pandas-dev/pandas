@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas._libs.index as libindex
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -16,7 +17,7 @@ from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
-    def test_multiindex_perf_warn(self, performance_warning):
+    def test_multiindex_perf_warn(self):
         df = DataFrame(
             {
                 "jim": [0, 0, 1, 1],
@@ -25,11 +26,11 @@ class TestMultiIndexBasic:
             }
         ).set_index(["jim", "joe"])
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(1, "z")]
 
         df = df.iloc[[2, 1, 3, 0]]
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(0,)]
 
     @pytest.mark.parametrize("offset", [-5, 5])

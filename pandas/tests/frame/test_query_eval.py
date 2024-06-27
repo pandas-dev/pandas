@@ -58,26 +58,26 @@ class TestCompat:
         result = df.query("A>0")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, expected2)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_None(self, df, expected1, expected2):
         result = df.query("A>0", engine=None)
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, expected2)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_python(self, df, expected1, expected2):
         result = df.query("A>0", engine="python")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, expected2)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
     def test_query_numexpr(self, df, expected1, expected2):
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, expected2)
+            tm.assert_series_equal(result, expected2, check_names=False)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -187,27 +187,6 @@ class TestDataFrameEval:
         res = df.eval("c = ((a1 == 'Y') & True)")
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
-
-    def test_using_numpy(self, engine, parser):
-        # GH 58041
-        skip_if_no_pandas_parser(parser)
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
-        res = df.eval("@np.floor(a)", engine=engine, parser=parser)
-        expected = np.floor(df["a"])
-        tm.assert_series_equal(expected, res)
-
-    def test_eval_simple(self, engine, parser):
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
-        res = df.eval("a", engine=engine, parser=parser)
-        expected = df["a"]
-        tm.assert_series_equal(expected, res)
-
-    def test_extension_array_eval(self, engine, parser):
-        # GH#58748
-        df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
-        result = df.eval("a / b", engine=engine, parser=parser)
-        expected = Series([0.25, 0.40, 0.50])
-        tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameQueryWithMultiIndex:
@@ -970,8 +949,8 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, op_, rh in zip(lhs, ops, rhs):
-                ex = f"{lh} {op_} {rh}"
+            for lhs, op, rhs in zip(lhs, ops, rhs):
+                ex = f"{lhs} {op} {rhs}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
                         ex,
@@ -1011,8 +990,8 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, ops_, rh in zip(lhs, ops, rhs):
-                ex = f"{lh} {ops_} {rh}"
+            for lhs, op, rhs in zip(lhs, ops, rhs):
+                ex = f"{lhs} {op} {rhs}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)
         else:
@@ -1208,7 +1187,7 @@ class TestDataFrameQueryBacktickQuoting:
         by backticks. The last two columns cannot be escaped by backticks
         and should raise a ValueError.
         """
-        return DataFrame(
+        yield DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],

@@ -94,12 +94,7 @@ class TestSeriesInterpolateData:
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
-
-        # Set data between Tuesday and Thursday to NaN for 2 consecutive weeks.
-        # Linear interpolation should fill in the missing values correctly,
-        # as the index is equally-spaced within each week.
-        ts_copy[1:4] = np.nan
-        ts_copy[6:9] = np.nan
+        ts_copy[5:10] = np.nan
 
         linear_interp = ts_copy.interpolate(method="linear")
         tm.assert_series_equal(linear_interp, ts)
@@ -229,7 +224,8 @@ class TestSeriesInterpolateData:
 
         result = s.interpolate(method="index")
 
-        bad = isna(s)
+        expected = s.copy()
+        bad = isna(expected.values)
         good = ~bad
         expected = Series(
             np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad]
@@ -270,7 +266,7 @@ class TestSeriesInterpolateData:
     def test_nan_irregular_index(self):
         s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
         result = s.interpolate()
-        expected = Series([1.0, 2.0, 2.6666666666666665, 4.0], index=[1, 3, 5, 9])
+        expected = Series([1.0, 2.0, 3.0, 4.0], index=[1, 3, 5, 9])
         tm.assert_series_equal(result, expected)
 
     def test_nan_str_index(self):
@@ -293,21 +289,26 @@ class TestSeriesInterpolateData:
         expected = Series([1.0, 3.0, 7.5, 12.0, 18.5, 25.0])
         result = s.interpolate(method="slinear")
         tm.assert_series_equal(result, expected)
-        result = s.interpolate(method="slinear")
+
+        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="slinear", downcast="infer")
         tm.assert_series_equal(result, expected)
         # nearest
-        expected = Series([1, 3, 3, 12, 12, 25.0])
+        expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="nearest")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="nearest", downcast="infer")
         tm.assert_series_equal(result, expected)
         # zero
-        expected = Series([1, 3, 3, 12, 12, 25.0])
+        expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="zero")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="zero")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="zero", downcast="infer")
         tm.assert_series_equal(result, expected)
         # quadratic
         # GH #15662.
@@ -315,7 +316,8 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="quadratic")
         tm.assert_series_equal(result, expected)
 
-        result = s.interpolate(method="quadratic")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="quadratic", downcast="infer")
         tm.assert_series_equal(result, expected)
         # cubic
         expected = Series([1.0, 3.0, 6.8, 12.0, 18.2, 25.0])
@@ -349,7 +351,7 @@ class TestSeriesInterpolateData:
     def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = "Can not interpolate with method=nonexistent_method"
+        msg = f"method must be one of.* Got '{invalid_method}' instead"
         if invalid_method is None:
             msg = "'method' should be a string, not None"
         with pytest.raises(ValueError, match=msg):
@@ -359,6 +361,16 @@ class TestSeriesInterpolateData:
         # provided, the error message reflects the invalid method.
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
+
+    def test_interp_invalid_method_and_value(self):
+        # GH#36624
+        ser = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "'fill_value' is not a valid keyword for Series.interpolate"
+        msg2 = "Series.interpolate with method=pad"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                ser.interpolate(fill_value=3, method="pad")
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -450,70 +462,107 @@ class TestSeriesInterpolateData:
             s.interpolate(method="linear", limit_area="abc")
 
     @pytest.mark.parametrize(
-        "data, kwargs",
+        "method, limit_direction, expected",
+        [
+            ("pad", "backward", "forward"),
+            ("ffill", "backward", "forward"),
+            ("backfill", "forward", "backward"),
+            ("bfill", "forward", "backward"),
+            ("pad", "both", "forward"),
+            ("ffill", "both", "forward"),
+            ("backfill", "both", "backward"),
+            ("bfill", "both", "backward"),
+        ],
+    )
+    def test_interp_limit_direction_raises(self, method, limit_direction, expected):
+        # https://github.com/pandas-dev/pandas/pull/34746
+        s = Series([1, 2, 3])
+
+        msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        msg2 = "Series.interpolate with method="
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                s.interpolate(method=method, limit_direction=limit_direction)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
         (
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
                 {"method": "pad", "limit_area": "inside"},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
                 {"method": "pad", "limit_area": "inside", "limit": 1},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
                 {"method": "pad", "limit_area": "outside"},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
                 {"method": "pad", "limit_area": "outside", "limit": 1},
             ),
             (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                 {"method": "pad", "limit_area": "outside", "limit": 1},
             ),
             (
                 range(5),
+                range(5),
                 {"method": "pad", "limit_area": "outside", "limit": 1},
             ),
         ),
     )
-    def test_interp_limit_area_with_pad(self, data, kwargs):
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
         # GH26796
 
         s = Series(data)
-        msg = "Can not interpolate with method=pad"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(**kwargs)
+        expected = Series(expected_data)
+        msg = "Series.interpolate with method=pad"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "data, kwargs",
+        "data, expected_data, kwargs",
         (
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
                 {"method": "bfill", "limit_area": "inside"},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
                 {"method": "bfill", "limit_area": "inside", "limit": 1},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
                 {"method": "bfill", "limit_area": "outside"},
             ),
             (
                 [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
                 {"method": "bfill", "limit_area": "outside", "limit": 1},
             ),
         ),
     )
-    def test_interp_limit_area_with_backfill(self, data, kwargs):
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
         # GH26796
-        s = Series(data)
 
-        msg = "Can not interpolate with method=bfill"
-        with pytest.raises(ValueError, match=msg):
-            s.interpolate(**kwargs)
+        s = Series(data)
+        expected = Series(expected_data)
+        msg = "Series.interpolate with method=bfill"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
@@ -608,18 +657,20 @@ class TestSeriesInterpolateData:
         df = Series(
             [1, np.nan, 3], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture)
         )
-
-        if method == "nearest":
+        warn = None if method == "nearest" else FutureWarning
+        msg = "Series.interpolate with method=pad is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
             result = df.interpolate(method=method)
-            expected = Series(
-                [1.0, 1.0, 3.0],
-                index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture),
-            )
-            tm.assert_series_equal(result, expected)
-        else:
-            msg = "Can not interpolate with method=pad"
-            with pytest.raises(ValueError, match=msg):
-                df.interpolate(method=method)
+        if warn is not None:
+            # check the "use ffill instead" is equivalent
+            alt = df.ffill()
+            tm.assert_series_equal(result, alt)
+
+        expected = Series(
+            [1.0, 1.0, 3.0],
+            index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture),
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
@@ -627,9 +678,16 @@ class TestSeriesInterpolateData:
         ser = Series(dti)
         ser[1] = pd.NaT
 
-        msg = "Can not interpolate with method=pad"
-        with pytest.raises(ValueError, match=msg):
-            ser.interpolate(method="pad")
+        msg = "Series.interpolate with method=pad is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate(method="pad")
+        # check the "use ffill instead" is equivalent
+        alt = ser.ffill()
+        tm.assert_series_equal(result, alt)
+
+        expected = Series(dti)
+        expected[1] = expected[0]
+        tm.assert_series_equal(result, expected)
 
     def test_interp_limit_no_nans(self):
         # GH 7173
@@ -795,9 +853,11 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_asfreq_raises(self):
         ser = Series(["a", None, "b"], dtype=object)
-        msg = "Can not interpolate with method=asfreq"
+        msg2 = "Series.interpolate with object dtype"
+        msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
-            ser.interpolate(method="asfreq")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                ser.interpolate(method="asfreq")
 
     def test_interpolate_fill_value(self):
         # GH#54920

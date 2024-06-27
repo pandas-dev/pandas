@@ -1,7 +1,6 @@
 """
 Tests for offsets.BusinessHour
 """
-
 from __future__ import annotations
 
 from datetime import (
@@ -916,34 +915,28 @@ class TestBusinessHour:
             (
                 BusinessHour(),
                 {
-                    Timestamp("2014-07-04 15:00") + Nano(5): Timestamp(
-                        "2014-07-04 16:00"
-                    )
+                    Timestamp("2014-07-04 15:00")
+                    + Nano(5): Timestamp("2014-07-04 16:00")
                     + Nano(5),
-                    Timestamp("2014-07-04 16:00") + Nano(5): Timestamp(
-                        "2014-07-07 09:00"
-                    )
+                    Timestamp("2014-07-04 16:00")
+                    + Nano(5): Timestamp("2014-07-07 09:00")
                     + Nano(5),
-                    Timestamp("2014-07-04 16:00") - Nano(5): Timestamp(
-                        "2014-07-04 17:00"
-                    )
+                    Timestamp("2014-07-04 16:00")
+                    - Nano(5): Timestamp("2014-07-04 17:00")
                     - Nano(5),
                 },
             ),
             (
                 BusinessHour(-1),
                 {
-                    Timestamp("2014-07-04 15:00") + Nano(5): Timestamp(
-                        "2014-07-04 14:00"
-                    )
+                    Timestamp("2014-07-04 15:00")
+                    + Nano(5): Timestamp("2014-07-04 14:00")
                     + Nano(5),
-                    Timestamp("2014-07-04 10:00") + Nano(5): Timestamp(
-                        "2014-07-04 09:00"
-                    )
+                    Timestamp("2014-07-04 10:00")
+                    + Nano(5): Timestamp("2014-07-04 09:00")
                     + Nano(5),
-                    Timestamp("2014-07-04 10:00") - Nano(5): Timestamp(
-                        "2014-07-03 17:00"
-                    )
+                    Timestamp("2014-07-04 10:00")
+                    - Nano(5): Timestamp("2014-07-03 17:00")
                     - Nano(5),
                 },
             ),
@@ -954,6 +947,7 @@ class TestBusinessHour:
                 assert_offset_equal(offset, base, expected)
 
     @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_bday_ignores_timedeltas(self, unit, td_unit):
         # GH#55608
         idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)

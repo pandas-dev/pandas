@@ -2,7 +2,6 @@
 Test extension array that has custom attribute information (not stored on the dtype).
 
 """
-
 from __future__ import annotations
 
 import numbers

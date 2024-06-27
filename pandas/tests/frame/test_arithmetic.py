@@ -13,6 +13,8 @@ import pytest
 
 from pandas._config import using_pyarrow_string_dtype
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -304,7 +306,8 @@ class TestFrameComparisons:
 
 class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
-    def test_bool_flex_frame(self, comparison_op):
+    @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
+    def test_bool_flex_frame(self, op):
         data = np.random.default_rng(2).standard_normal((5, 3))
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
@@ -314,8 +317,8 @@ class TestFrameFlexComparisons:
         # DataFrame
         assert df.eq(df).values.all()
         assert not df.ne(df).values.any()
-        f = getattr(df, comparison_op.__name__)
-        o = comparison_op
+        f = getattr(df, op)
+        o = getattr(operator, op)
         # No NAs
         tm.assert_frame_equal(f(other), o(df, other))
         # Unaligned
@@ -458,23 +461,25 @@ class TestFrameFlexComparisons:
         result = df.ne(pd.NaT)
         assert result.iloc[0, 0].item() is True
 
-    def test_df_flex_cmp_constant_return_types(self, comparison_op):
+    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
+    def test_df_flex_cmp_constant_return_types(self, opname):
         # GH 15077, non-empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
-        result = getattr(df, comparison_op.__name__)(const).dtypes.value_counts()
+        result = getattr(df, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
 
-    def test_df_flex_cmp_constant_return_types_empty(self, comparison_op):
+    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
+    def test_df_flex_cmp_constant_return_types_empty(self, opname):
         # GH 15077 empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, comparison_op.__name__)(const).dtypes.value_counts()
+        result = getattr(empty, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
@@ -661,12 +666,11 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-    def test_arith_flex_series_broadcasting(self, any_real_numpy_dtype):
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    def test_arith_flex_series_broadcasting(self, dtype):
         # broadcasting issue in GH 7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=any_real_numpy_dtype)
+        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=dtype)
         expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
-        if any_real_numpy_dtype == "float32":
-            expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
@@ -890,10 +894,15 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_rowlike_broadcasts(
-        self, request, all_arithmetic_operators
+        self, request, all_arithmetic_operators, using_array_manager
     ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
+
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -912,10 +921,15 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_collike_broadcasts(
-        self, request, all_arithmetic_operators
+        self, request, all_arithmetic_operators, using_array_manager
     ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
+
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -1097,7 +1111,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning
+                    warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1105,16 +1119,17 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn, match="evaluating in Python"):
+                with tm.assert_produces_warning(warn):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                    # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn, match="evaluating in Python"):
+                with tm.assert_produces_warning(warn):
                     op(df, elem.value)
 
             else:
@@ -1238,8 +1253,9 @@ class TestFrameArithmeticUnsorted:
 
         # since filling converts dtypes from object, changed expected to be
         # object
-
-        filled = df.fillna(np.nan)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
         expected[pd.isna(expected)] = np.nan
@@ -1250,10 +1266,14 @@ class TestFrameArithmeticUnsorted:
         expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-        result = op(df, df.fillna(7))
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
-        result = op(df.fillna(7), df)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = op(df.fillna(7), df)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
@@ -2000,16 +2020,23 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update():
+def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    series += 1
-    assert series._values is not vals
-    tm.assert_frame_equal(df, df_orig)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        series += 1
+    if using_copy_on_write:
+        assert series._values is not vals
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert series._values is vals
+
+        expected = DataFrame({"A": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
 
 
 def test_arithmetic_multiindex_align():

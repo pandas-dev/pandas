@@ -164,15 +164,14 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize(
-        "data",
+        "series",
         [
-            [string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)],
-            [string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0],
+            Series([string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
+            Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
         ],
     )
-    def test_astype_str_map(self, dtype, data, using_infer_string):
+    def test_astype_str_map(self, dtype, series, using_infer_string):
         # see GH#4405
-        series = Series(data)
         result = series.astype(dtype)
         expected = series.map(str)
         if using_infer_string:
@@ -298,7 +297,7 @@ class TestAstype:
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
-        td = Series([Timedelta(1, unit="D")])
+        td = Series([Timedelta(1, unit="d")])
         ser = td.astype(str)
 
         expected = Series(["1 days"], dtype=object)
@@ -343,9 +342,10 @@ class TestAstype:
             with pytest.raises((ValueError, TypeError), match=msg):
                 ser.astype(float, errors=errors)
 
-    def test_astype_from_float_to_str(self, any_float_dtype):
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_astype_from_float_to_str(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/36451
-        ser = Series([0.1], dtype=any_float_dtype)
+        ser = Series([0.1], dtype=dtype)
         result = ser.astype(str)
         expected = Series(["0.1"], dtype=object)
         tm.assert_series_equal(result, expected)
@@ -374,19 +374,21 @@ class TestAstype:
         assert as_typed.name == ser.name
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
-    def test_astype_cast_nan_inf_int(self, any_int_numpy_dtype, value):
+    @pytest.mark.parametrize("dtype", [np.int32, np.int64])
+    def test_astype_cast_nan_inf_int(self, dtype, value):
         # gh-14265: check NaN and inf raise error when converting to int
         msg = "Cannot convert non-finite values \\(NA or inf\\) to integer"
         ser = Series([value])
 
         with pytest.raises(ValueError, match=msg):
-            ser.astype(any_int_numpy_dtype)
+            ser.astype(dtype)
 
-    def test_astype_cast_object_int_fail(self, any_int_numpy_dtype):
+    @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
+    def test_astype_cast_object_int_fail(self, dtype):
         arr = Series(["car", "house", "tree", "1"])
         msg = r"invalid literal for int\(\) with base 10: 'car'"
         with pytest.raises(ValueError, match=msg):
-            arr.astype(any_int_numpy_dtype)
+            arr.astype(dtype)
 
     def test_astype_float_to_uint_negatives_raise(
         self, float_numpy_dtype, any_unsigned_int_numpy_dtype
@@ -460,9 +462,13 @@ class TestAstype:
         expected = Series(True, dtype="bool")
         tm.assert_series_equal(result, expected)
 
-    def test_astype_ea_to_datetimetzdtype(self, any_numeric_ea_dtype):
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
+    )
+    def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
-        ser = Series([4, 0, 9], dtype=any_numeric_ea_dtype)
+        ser = Series([4, 0, 9], dtype=dtype)
         result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
 
         expected = Series(

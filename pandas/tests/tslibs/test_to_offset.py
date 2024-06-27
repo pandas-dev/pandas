@@ -8,8 +8,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 
-import pandas._testing as tm
-
 
 @pytest.mark.parametrize(
     "freq_input,expected",
@@ -25,6 +23,7 @@ import pandas._testing as tm
         ("0.5s", offsets.Milli(500)),
         ("15ms500us", offsets.Micro(15500)),
         ("10s75ms", offsets.Milli(10075)),
+        ("1s0.25ms", offsets.Micro(1000250)),
         ("1s0.25ms", offsets.Micro(1000250)),
         ("2800ns", offsets.Nano(2800)),
         ("2SME", offsets.SemiMonthEnd(2)),
@@ -176,14 +175,6 @@ def test_anchored_shortcuts(shortcut, expected):
     assert result == expected
 
 
-def test_to_offset_lowercase_frequency_w_deprecated():
-    # GH#54939
-    msg = "'w' is deprecated and will be removed in a future version"
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        to_offset("2w")
-
-
 @pytest.mark.parametrize(
     "freq_depr",
     [
@@ -193,16 +184,18 @@ def test_to_offset_lowercase_frequency_w_deprecated():
         "2qs-feb",
         "2bqs",
         "2sms",
-        "1sme",
         "2bms",
         "2cbme",
         "2me",
+        "2w",
     ],
 )
-def test_to_offset_lowercase_frequency_raises(freq_depr):
-    msg = f"Invalid frequency: {freq_depr}"
+def test_to_offset_lowercase_frequency_deprecated(freq_depr):
+    # GH#54939
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+    f"future version, please use '{freq_depr.upper()[1:]}' instead."
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(FutureWarning, match=depr_msg):
         to_offset(freq_depr)
 
 
@@ -222,5 +215,5 @@ def test_to_offset_uppercase_frequency_deprecated(freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.lower()[1:]}' instead."
 
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+    with pytest.raises(FutureWarning, match=depr_msg):
         to_offset(freq_depr)

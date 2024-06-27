@@ -5,7 +5,6 @@ Tests for the following offsets:
 - MonthBegin
 - MonthEnd
 """
-
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,7 +1,6 @@
 """
 Tests for offsets.CustomBusinessDay / CDay
 """
-
 from datetime import (
     datetime,
     timedelta,

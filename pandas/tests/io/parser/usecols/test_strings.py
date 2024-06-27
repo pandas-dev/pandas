@@ -2,7 +2,6 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
-
 from io import StringIO
 
 import pytest
@@ -75,7 +74,8 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
         parser.read_csv(StringIO(data), usecols=usecols)
 
 
-def test_usecols_with_multi_byte_characters(all_parsers):
+@pytest.mark.parametrize("usecols", [["あああ", "いい"], ["あああ", "いい"]])
+def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     data = """あああ,いい,ううう,ええええ
 0.056674973,8,True,a
 2.613230982,2,False,b
@@ -92,5 +92,5 @@ def test_usecols_with_multi_byte_characters(all_parsers):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=["あああ", "いい"])
+    result = parser.read_csv(StringIO(data), usecols=usecols)
     tm.assert_frame_equal(result, expected)

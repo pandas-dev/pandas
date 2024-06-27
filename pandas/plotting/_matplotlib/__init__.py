@@ -69,7 +69,7 @@ def plot(data, kind, **kwargs):
             kwargs["ax"] = getattr(ax, "left_ax", ax)
     plot_obj = PLOT_CLASSES[kind](data, **kwargs)
     plot_obj.generate()
-    plt.draw_if_interactive()
+    plot_obj.draw()
     return plot_obj.result
 
 

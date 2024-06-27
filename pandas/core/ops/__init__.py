@@ -3,7 +3,6 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-
 from __future__ import annotations
 
 from pandas.core.ops.array_ops import (

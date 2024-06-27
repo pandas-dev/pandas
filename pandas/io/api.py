@@ -9,6 +9,7 @@ from pandas.io.excel import (
     read_excel,
 )
 from pandas.io.feather_format import read_feather
+from pandas.io.gbq import read_gbq
 from pandas.io.html import read_html
 from pandas.io.json import read_json
 from pandas.io.orc import read_orc
@@ -45,6 +46,7 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
+    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",

@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import itertools
 from typing import (
-    TYPE_CHECKING,
     Any,
+    Callable,
     cast,
 )
 import warnings
@@ -31,6 +31,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_complex,
@@ -47,9 +48,6 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -523,7 +521,12 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'any'")
+        warnings.warn(
+            "'any' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).any() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -579,7 +582,12 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'all'")
+        warnings.warn(
+            "'all' with datetime64 dtypes is deprecated and will raise in a "
+            "future version. Use (obj != pd.Timestamp(0)).all() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
@@ -748,10 +756,6 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     >>> s = pd.Series([1, np.nan, 2, 2])
     >>> nanops.nanmedian(s.values)
     2.0
-
-    >>> s = pd.Series([np.nan, np.nan, np.nan])
-    >>> nanops.nanmedian(s.values)
-    nan
     """
     # for floats without mask, the data already uses NaN as missing value
     # indicator, and `mask` will be calculated from that below -> in those
@@ -770,7 +774,6 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             warnings.filterwarnings(
                 "ignore", "All-NaN slice encountered", RuntimeWarning
             )
-            warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
             res = np.nanmedian(x[_mask])
         return res
 
@@ -1436,15 +1439,19 @@ def _maybe_arg_null_out(
         return result
 
     if axis is None or not getattr(result, "ndim", False):
-        if skipna and mask.all():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and mask.any():
-            raise ValueError("Encountered an NA value with skipna=False")
+        if skipna:
+            if mask.all():
+                return -1
+        else:
+            if mask.any():
+                return -1
     else:
-        if skipna and mask.all(axis).any():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and mask.any(axis).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+        if skipna:
+            na_mask = mask.all(axis)
+        else:
+            na_mask = mask.any(axis)
+        if na_mask.any():
+            result[na_mask] = -1
     return result
 
 

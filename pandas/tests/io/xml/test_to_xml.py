@@ -298,8 +298,10 @@ def test_index_false_rename_row_root(xml_books, parser):
         assert output == expected
 
 
-@pytest.mark.parametrize("typ", [int, str])
-def test_index_false_with_offset_input_index(parser, typ, geom_df):
+@pytest.mark.parametrize(
+    "offset_index", [list(range(10, 13)), [str(i) for i in range(10, 13)]]
+)
+def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
     """
     Tests that the output does not contain the `<index>` field when the index of the
     input Dataframe has an offset.
@@ -326,7 +328,7 @@ def test_index_false_with_offset_input_index(parser, typ, geom_df):
     <sides>3.0</sides>
   </row>
 </data>"""
-    offset_index = [typ(i) for i in range(10, 13)]
+
     offset_geom_df = geom_df.copy()
     offset_geom_df.index = Index(offset_index)
     output = offset_geom_df.to_xml(index=False, parser=parser)
@@ -1034,23 +1036,26 @@ def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
     with open(
         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ) as f:
-        output = geom_df.to_xml(stylesheet=f)
+        xsl_obj = f.read()
+
+    output = geom_df.to_xml(stylesheet=xsl_obj)
 
     assert output == xsl_expected
 
 
 def test_stylesheet_wrong_path(geom_df):
-    pytest.importorskip("lxml.etree")
+    lxml_etree = pytest.importorskip("lxml.etree")
 
-    xsl = os.path.join("does", "not", "exist", "row_field_output.xslt")
+    xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
     with pytest.raises(
-        FileNotFoundError, match=r"\[Errno 2\] No such file or director"
+        lxml_etree.XMLSyntaxError,
+        match=("Start tag expected, '<' not found"),
     ):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@pytest.mark.parametrize("val", [StringIO(""), BytesIO(b"")])
+@pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_stylesheet(val, geom_df):
     lxml_etree = pytest.importorskip("lxml.etree")
 
@@ -1092,9 +1097,9 @@ def test_incorrect_xsl_syntax(geom_df):
 </xsl:stylesheet>"""
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError, match="Opening and ending tag mismatch"
+        lxml_etree.XMLSyntaxError, match=("Opening and ending tag mismatch")
     ):
-        geom_df.to_xml(stylesheet=StringIO(xsl))
+        geom_df.to_xml(stylesheet=xsl)
 
 
 def test_incorrect_xsl_eval(geom_df):
@@ -1121,8 +1126,8 @@ def test_incorrect_xsl_eval(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTParseError, match="failed to compile"):
-        geom_df.to_xml(stylesheet=StringIO(xsl))
+    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
+        geom_df.to_xml(stylesheet=xsl)
 
 
 def test_incorrect_xsl_apply(geom_df):
@@ -1140,9 +1145,9 @@ def test_incorrect_xsl_apply(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTApplyError, match="Cannot resolve URI"):
+    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
         with tm.ensure_clean("test.xml") as path:
-            geom_df.to_xml(path, stylesheet=StringIO(xsl))
+            geom_df.to_xml(path, stylesheet=xsl)
 
 
 def test_stylesheet_with_etree(geom_df):
@@ -1157,8 +1162,10 @@ def test_stylesheet_with_etree(geom_df):
         </xsl:copy>
     </xsl:template>"""
 
-    with pytest.raises(ValueError, match="To use stylesheet, you need lxml installed"):
-        geom_df.to_xml(parser="etree", stylesheet=StringIO(xsl))
+    with pytest.raises(
+        ValueError, match=("To use stylesheet, you need lxml installed")
+    ):
+        geom_df.to_xml(parser="etree", stylesheet=xsl)
 
 
 def test_style_to_csv(geom_df):
@@ -1185,7 +1192,7 @@ def test_style_to_csv(geom_df):
 
     if out_csv is not None:
         out_csv = out_csv.strip()
-    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
+    out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_csv == out_xml
 
@@ -1219,7 +1226,7 @@ def test_style_to_string(geom_df):
 </xsl:stylesheet>"""
 
     out_str = geom_df.to_string()
-    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=StringIO(xsl))
+    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=xsl)
 
     assert out_xml == out_str
 
@@ -1264,7 +1271,7 @@ def test_style_to_json(geom_df):
 </xsl:stylesheet>"""
 
     out_json = geom_df.to_json()
-    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
+    out_xml = geom_df.to_xml(stylesheet=xsl)
 
     assert out_json == out_xml
 

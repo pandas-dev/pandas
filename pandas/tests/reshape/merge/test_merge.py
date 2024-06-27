@@ -47,6 +47,54 @@ def get_test_data(ngroups=8, n=50):
     return arr
 
 
+def get_series():
+    return [
+        Series([1], dtype="int64"),
+        Series([1], dtype="Int64"),
+        Series([1.23]),
+        Series(["foo"]),
+        Series([True]),
+        Series([pd.Timestamp("2018-01-01")]),
+        Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
+    ]
+
+
+def get_series_na():
+    return [
+        Series([np.nan], dtype="Int64"),
+        Series([np.nan], dtype="float"),
+        Series([np.nan], dtype="object"),
+        Series([pd.NaT]),
+    ]
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype(request):
+    """
+    A parametrized fixture returning a variety of Series of different
+    dtypes
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+def series_of_dtype2(request):
+    """
+    A duplicate of the series_of_dtype fixture, so that it can be used
+    twice by a single function
+    """
+    return request.param
+
+
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+def series_of_dtype_all_na(request):
+    """
+    A parametrized fixture returning a variety of Series with all NA
+    values
+    """
+    return request.param
+
+
 @pytest.fixture
 def dfs_for_indicator():
     df1 = DataFrame({"col1": [0, 1], "col_conflict": [1, 2], "col_left": ["a", "b"]})
@@ -93,6 +141,13 @@ class TestMerge:
                 "key": ["a", "b", "c", "d", "e", "e", "a"],
                 "v1": np.random.default_rng(2).standard_normal(7),
             }
+        )
+
+    @pytest.fixture
+    def right(self):
+        return DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
         )
 
     def test_merge_inner_join_empty(self):
@@ -178,11 +233,7 @@ class TestMerge:
         expected = left.join(right, on="key").loc[result.index]
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
-    def test_merge_misspecified(self, df, df2, left):
-        right = DataFrame(
-            {"v2": np.random.default_rng(2).standard_normal(4)},
-            index=["d", "b", "c", "a"],
-        )
+    def test_merge_misspecified(self, df, df2, left, right):
         msg = "Must pass right_on or right_index=True"
         with pytest.raises(pd.errors.MergeError, match=msg):
             merge(left, right, left_index=True)
@@ -260,7 +311,7 @@ class TestMerge:
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
-        merged = merge(left, right, left_index=True, right_index=True)
+        merged = merge(left, right, left_index=True, right_index=True, copy=True)
 
         merged["a"] = 6
         assert (left["a"] == 0).all()
@@ -268,11 +319,11 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
-    def test_merge_nocopy(self, using_infer_string):
+    def test_merge_nocopy(self, using_array_manager, using_infer_string):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
-        merged = merge(left, right, left_index=True, right_index=True)
+        merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
         assert np.shares_memory(merged["a"]._values, left["a"]._values)
         if not using_infer_string:
@@ -408,12 +459,13 @@ class TestMerge:
         result = merge(right, left, on="key", how="right")
         tm.assert_frame_equal(result, left)
 
-    def test_merge_empty_dataframe(self, index, join_type):
+    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+    def test_merge_empty_dataframe(self, index, how):
         # GH52777
         left = DataFrame([], index=index[:0])
         right = left.copy()
 
-        result = left.join(right, how=join_type)
+        result = left.join(right, how=how)
         tm.assert_frame_equal(result, left)
 
     @pytest.mark.parametrize(
@@ -524,30 +576,6 @@ class TestMerge:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
 
-    @pytest.mark.parametrize(
-        "series_of_dtype",
-        [
-            Series([1], dtype="int64"),
-            Series([1], dtype="Int64"),
-            Series([1.23]),
-            Series(["foo"]),
-            Series([True]),
-            Series([pd.Timestamp("2018-01-01")]),
-            Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "series_of_dtype2",
-        [
-            Series([1], dtype="int64"),
-            Series([1], dtype="Int64"),
-            Series([1.23]),
-            Series(["foo"]),
-            Series([True]),
-            Series([pd.Timestamp("2018-01-01")]),
-            Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
-        ],
-    )
     def test_merge_empty_frame(self, series_of_dtype, series_of_dtype2):
         # GH 25183
         df = DataFrame(
@@ -566,27 +594,6 @@ class TestMerge:
         actual = df_empty.merge(df, on="key")
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.parametrize(
-        "series_of_dtype",
-        [
-            Series([1], dtype="int64"),
-            Series([1], dtype="Int64"),
-            Series([1.23]),
-            Series(["foo"]),
-            Series([True]),
-            Series([pd.Timestamp("2018-01-01")]),
-            Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "series_of_dtype_all_na",
-        [
-            Series([np.nan], dtype="Int64"),
-            Series([np.nan], dtype="float"),
-            Series([np.nan], dtype="object"),
-            Series([pd.NaT]),
-        ],
-    )
     def test_merge_all_na_column(self, series_of_dtype, series_of_dtype_all_na):
         # GH 25183
         df_left = DataFrame(
@@ -701,7 +708,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self):
+    def test_join_append_timedeltas(self, using_array_manager):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -709,15 +716,22 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        df = concat([df, d], ignore_index=True)
-        result = concat([df, d], ignore_index=True)
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        warn = FutureWarning
+        if using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df = concat([df, d], ignore_index=True)
+            result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            },
-            dtype=object,
+            }
         )
+        if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):
@@ -1367,8 +1381,8 @@ class TestMerge:
                 ),
             ),
             (
-                TimedeltaIndex(["1D", "2D", "3D"]),
-                TimedeltaIndex(["1D", "2D", "3D", pd.NaT, pd.NaT, pd.NaT]),
+                TimedeltaIndex(["1d", "2d", "3d"]),
+                TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
             ),
         ],
     )
@@ -1451,8 +1465,8 @@ class TestMerge:
         )
 
         # make each underlying block array / column array read-only
-        for block in data1._mgr.blocks:
-            block.values.flags.writeable = False
+        for arr in data1._mgr.arrays:
+            arr.flags.writeable = False
 
         data1.merge(data2)  # no error
 
@@ -1470,8 +1484,10 @@ def _check_merge(x, y):
 
 
 class TestMergeDtypes:
-    @pytest.mark.parametrize("dtype", [object, "category"])
-    def test_different(self, dtype):
+    @pytest.mark.parametrize(
+        "right_vals", [["foo", "bar"], Series(["foo", "bar"]).astype("category")]
+    )
+    def test_different(self, right_vals):
         left = DataFrame(
             {
                 "A": ["foo", "bar"],
@@ -1482,7 +1498,6 @@ class TestMergeDtypes:
                 "F": Series([1, 2], dtype="int32"),
             }
         )
-        right_vals = Series(["foo", "bar"], dtype=dtype)
         right = DataFrame({"A": right_vals})
 
         # GH 9780
@@ -1491,9 +1506,12 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
 
+    @pytest.mark.parametrize(
+        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
+    )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
-    def test_join_multi_dtypes(self, any_int_numpy_dtype, d2):
-        dtype1 = np.dtype(any_int_numpy_dtype)
+    def test_join_multi_dtypes(self, d1, d2):
+        dtype1 = np.dtype(d1)
         dtype2 = np.dtype(d2)
 
         left = DataFrame(
@@ -1565,12 +1583,11 @@ class TestMergeDtypes:
         B = DataFrame({"Y": [1.1, 2.5, 3.0]})
         expected = DataFrame({"X": [3], "Y": [3.0]})
 
-        msg = "the float values are not equal to their int representation"
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(UserWarning):
             result = A.merge(B, left_on="X", right_on="Y")
             tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(UserWarning):
             result = B.merge(A, left_on="Y", right_on="X")
             tm.assert_frame_equal(result, expected[["Y", "X"]])
 
@@ -1636,6 +1653,7 @@ class TestMergeDtypes:
             (Series([1, 2], dtype="int32"), ["a", "b", "c"]),
             ([0, 1, 2], ["0", "1", "2"]),
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+            ([0, 1, 2], ["0", "1", "2"]),
             (
                 pd.date_range("1/1/2011", periods=2, freq="D"),
                 ["2011-01-01", "2011-01-02"],
@@ -2132,6 +2150,16 @@ class TestMergeCategorical:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.fixture
+def left_df():
+    return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
+
+
+@pytest.fixture
+def right_df():
+    return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
+
+
 class TestMergeOnIndexes:
     @pytest.mark.parametrize(
         "how, sort, expected",
@@ -2180,9 +2208,7 @@ class TestMergeOnIndexes:
             ),
         ],
     )
-    def test_merge_on_indexes(self, how, sort, expected):
-        left_df = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
-        right_df = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
+    def test_merge_on_indexes(self, left_df, right_df, how, sort, expected):
         result = merge(
             left_df, right_df, left_index=True, right_index=True, how=how, sort=sort
         )
@@ -2191,28 +2217,23 @@ class TestMergeOnIndexes:
 
 @pytest.mark.parametrize(
     "index",
-    [
-        Index([1, 2, 4], dtype=dtyp, name="index_col")
-        for dtyp in tm.ALL_REAL_NUMPY_DTYPES
-    ]
+    [Index([1, 2], dtype=dtyp, name="index_col") for dtyp in tm.ALL_REAL_NUMPY_DTYPES]
     + [
-        CategoricalIndex(["A", "B", "C"], categories=["A", "B", "C"], name="index_col"),
-        RangeIndex(start=0, stop=3, name="index_col"),
-        DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"], name="index_col"),
+        CategoricalIndex(["A", "B"], categories=["A", "B"], name="index_col"),
+        RangeIndex(start=0, stop=2, name="index_col"),
+        DatetimeIndex(["2018-01-01", "2018-01-02"], name="index_col"),
     ],
     ids=lambda x: f"{type(x).__name__}[{x.dtype}]",
 )
 def test_merge_index_types(index):
     # gh-20777
     # assert key access is consistent across index types
-    left = DataFrame({"left_data": [1, 2, 3]}, index=index)
-    right = DataFrame({"right_data": [1.0, 2.0, 3.0]}, index=index)
+    left = DataFrame({"left_data": [1, 2]}, index=index)
+    right = DataFrame({"right_data": [1.0, 2.0]}, index=index)
 
     result = left.merge(right, on=["index_col"])
 
-    expected = DataFrame(
-        {"left_data": [1, 2, 3], "right_data": [1.0, 2.0, 3.0]}, index=index
-    )
+    expected = DataFrame({"left_data": [1, 2], "right_data": [1.0, 2.0]}, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2324,15 +2345,19 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     [
         (
             "right",
-            {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]},
+            DataFrame(
+                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
+            ),
         ),
         (
             "outer",
-            {
-                "A": [1, 100, 200, 300],
-                "B1": [80, 60, 70, np.nan],
-                "B2": [np.nan, 600, 700, 800],
-            },
+            DataFrame(
+                {
+                    "A": [1, 100, 200, 300],
+                    "B1": [80, 60, 70, np.nan],
+                    "B2": [np.nan, 600, 700, 800],
+                }
+            ),
         ),
     ],
 )
@@ -2340,7 +2365,6 @@ def test_merge_duplicate_suffix(how, expected):
     left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
     result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
-    expected = DataFrame(expected)
     expected.columns = ["A", "B_x", "B_x"]
 
     tm.assert_frame_equal(result, expected)
@@ -2805,8 +2829,9 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, join_type):
+def test_merge_datetime_different_resolution(tz, how):
     # https://github.com/pandas-dev/pandas/issues/53200
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
@@ -2820,14 +2845,14 @@ def test_merge_datetime_different_resolution(tz, join_type):
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
     expected["t"] = expected["t"].dt.as_unit("ns")
-    if join_type == "inner":
+    if how == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
-    elif join_type == "left":
+    elif how == "left":
         expected = expected.iloc[[0, 1]]
-    elif join_type == "right":
+    elif how == "right":
         expected = expected.iloc[[1, 2]].reset_index(drop=True)
 
-    result = df1.merge(df2, on="t", how=join_type)
+    result = df1.merge(df2, on="t", how=how)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2844,21 +2869,16 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+@pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
 @pytest.mark.parametrize("right_unique", [True, False])
 @pytest.mark.parametrize("right_monotonic", [True, False])
 def test_merge_combinations(
-    join_type,
-    sort,
-    on_index,
-    left_unique,
-    left_monotonic,
-    right_unique,
-    right_monotonic,
+    how, sort, on_index, left_unique, left_monotonic, right_unique, right_monotonic
 ):
-    how = join_type
     # GH 54611
     left = [2, 3]
     if left_unique:

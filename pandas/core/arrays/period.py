@@ -5,6 +5,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
     TypeVar,
     cast,
@@ -36,6 +37,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
+    freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
@@ -53,6 +55,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -74,10 +77,7 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sequence,
-    )
+    from collections.abc import Sequence
 
     from pandas._typing import (
         AnyArrayLike,
@@ -89,8 +89,6 @@ if TYPE_CHECKING:
         Self,
         npt,
     )
-
-    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas.core.arrays import (
         DatetimeArray,
@@ -136,6 +134,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     dtype : PeriodDtype, optional
         A PeriodDtype instance from which to extract a `freq`. If both
         `freq` and `dtype` are specified, then the frequencies must match.
+    freq : str or DateOffset
+        The `freq` to use for the array. Mostly applicable when `values`
+        is an ndarray of integers, when `freq` is required. When `values`
+        is a PeriodArray (or box around), it's checked that ``values.freq``
+        matches `freq`.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
@@ -169,7 +172,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.arrays.PeriodArray(pd.PeriodIndex(["2023-01-01", "2023-01-02"], freq="D"))
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
+    ...                                       '2023-01-02'], freq='D'))
     <PeriodArray>
     ['2023-01-01', '2023-01-02']
     Length: 2, dtype: period[D]
@@ -220,7 +224,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype: Dtype | None = None, copy: bool = False) -> None:
+    def __init__(
+        self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
+    ) -> None:
+        if freq is not None:
+            # GH#52462
+            warnings.warn(
+                "The 'freq' keyword in the PeriodArray constructor is deprecated "
+                "and will be removed in a future version. Pass 'dtype' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            freq = validate_dtype_freq(dtype, freq)
+            dtype = PeriodDtype(freq)
+
         if dtype is not None:
             dtype = pandas_dtype(dtype)
             if not isinstance(dtype, PeriodDtype):
@@ -290,7 +307,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
@@ -310,7 +327,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodArray[freq]
         """
         if isinstance(freq, BaseOffset):
-            freq = PeriodDtype(freq)._freqstr
+            freq = freq_to_period_freqstr(freq.n, freq.name)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
@@ -384,7 +401,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @property
     def freqstr(self) -> str:
-        return PeriodDtype(self.freq)._freqstr
+        return freq_to_period_freqstr(self.freq.n, self.freq.name)
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -625,20 +642,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[ns]', freq='MS')
-
-        The frequency will not be inferred if the index contains less than
-        three elements, or if the values of index are not strictly monotonic:
-
-        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
-        >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
-
-        >>> idx = pd.PeriodIndex(
-        ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
-        ... )
-        >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
-        dtype='datetime64[ns]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
@@ -721,16 +724,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
-        >>> pidx = pd.period_range("2010-01-01", "2015-01-01", freq="Y")
+        >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='Y')
         >>> pidx
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
         dtype='period[Y-DEC]')
 
-        >>> pidx.asfreq("M")
+        >>> pidx.asfreq('M')
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
         '2015-12'], dtype='period[M]')
 
-        >>> pidx.asfreq("M", how="S")
+        >>> pidx.asfreq('M', how='S')
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
         '2015-01'], dtype='period[M]')
         """
@@ -761,7 +764,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
+    def _formatter(self, boxed: bool = False):
         if boxed:
             return str
         return "'{}'".format
@@ -829,6 +832,19 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             return cast("Self", result.view(self.dtype))
         else:
             return self
+
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
+        if method is not None:
+            # view as dt64 so we get treated as timelike in core.missing,
+            #  similar to dtl._period_dispatch
+            dta = self.view("M8[ns]")
+            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
+            # error: Incompatible return value type (got "Union[ExtensionArray,
+            # ndarray[Any, Any]]", expected "PeriodArray")
+            return result.view(self.dtype)  # type: ignore[return-value]
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -976,17 +992,13 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, BaseOffset):
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
-            )
-            other_freq = PeriodDtype(right)._freqstr
+        other_freq = freq_to_period_freqstr(right.n, right.name)
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
-    own_freq = PeriodDtype(left.freq)._freqstr
+    own_freq = freq_to_period_freqstr(left.freq.n, left.freq.name)
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
@@ -1028,26 +1040,29 @@ def period_array(
 
     Examples
     --------
-    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y")])
+    >>> period_array([pd.Period('2017', freq='Y'),
+    ...               pd.Period('2018', freq='Y')])
     <PeriodArray>
     ['2017', '2018']
     Length: 2, dtype: period[Y-DEC]
 
-    >>> period_array([pd.Period("2017", freq="Y"), pd.Period("2018", freq="Y"), pd.NaT])
+    >>> period_array([pd.Period('2017', freq='Y'),
+    ...               pd.Period('2018', freq='Y'),
+    ...               pd.NaT])
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
 
     Integers that look like years are handled
 
-    >>> period_array([2000, 2001, 2002], freq="D")
+    >>> period_array([2000, 2001, 2002], freq='D')
     <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
-    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
+    >>> period_array(['2000-Q1', '2000-Q2', '2000-Q3', '2000-Q4'], freq='Q')
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
@@ -1094,11 +1109,13 @@ def period_array(
 
 
 @overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
+    ...
 
 
 @overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
+    ...
 
 
 def validate_dtype_freq(

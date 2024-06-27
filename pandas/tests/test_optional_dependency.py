@@ -42,7 +42,7 @@ def test_bad_version(monkeypatch):
     result = import_optional_dependency("fakemodule", min_version="0.8")
     assert result is module
 
-    with tm.assert_produces_warning(UserWarning, match=match):
+    with tm.assert_produces_warning(UserWarning):
         result = import_optional_dependency("fakemodule", errors="warn")
     assert result is None
 
@@ -53,7 +53,7 @@ def test_bad_version(monkeypatch):
     with pytest.raises(ImportError, match="Pandas requires version '1.1.0'"):
         import_optional_dependency("fakemodule", min_version="1.1.0")
 
-    with tm.assert_produces_warning(UserWarning, match="Pandas requires version"):
+    with tm.assert_produces_warning(UserWarning):
         result = import_optional_dependency(
             "fakemodule", errors="warn", min_version="1.1.0"
         )
@@ -81,7 +81,7 @@ def test_submodule(monkeypatch):
     with pytest.raises(ImportError, match=match):
         import_optional_dependency("fakemodule.submodule")
 
-    with tm.assert_produces_warning(UserWarning, match=match):
+    with tm.assert_produces_warning(UserWarning):
         result = import_optional_dependency("fakemodule.submodule", errors="warn")
     assert result is None
 

@@ -5,7 +5,6 @@ from datetime import (
     datetime,
     time,
     timedelta,
-    timezone,
 )
 from itertools import (
     product,
@@ -15,9 +14,11 @@ import operator
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -181,12 +182,12 @@ class TestDatetime64SeriesComparison:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (operator.eq, [False, False, True]),
-            (operator.ne, [True, True, False]),
-            (operator.lt, [False, False, False]),
-            (operator.gt, [False, False, False]),
-            (operator.ge, [False, False, True]),
-            (operator.le, [False, False, True]),
+            (operator.eq, Series([False, False, True])),
+            (operator.ne, Series([True, True, False])),
+            (operator.lt, Series([False, False, False])),
+            (operator.gt, Series([False, False, False])),
+            (operator.ge, Series([False, False, True])),
+            (operator.le, Series([False, False, True])),
         ],
     )
     def test_nat_comparisons(
@@ -209,7 +210,7 @@ class TestDatetime64SeriesComparison:
 
         result = op(left, right)
 
-        tm.assert_series_equal(result, Series(expected))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "data",
@@ -1007,16 +1008,14 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Subtraction of datetime-like array-like
 
-    def test_dt64arr_sub_dt64object_array(
-        self, performance_warning, box_with_array, tz_naive_fixture
-    ):
+    def test_dt64arr_sub_dt64object_array(self, box_with_array, tz_naive_fixture):
         dti = date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
         expected = dti - dti
 
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
@@ -1080,7 +1079,7 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["h", "D", "W", "2ME", "MS", "QE", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, dtype, index_or_series_or_array, freq, tz_naive_fixture
+        self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         # GH#55860 use index_or_series_or_array instead of box_with_array
@@ -1222,6 +1221,7 @@ class TestDatetime64DateOffsetArithmetic:
     # Tick DateOffsets
 
     # TODO: parametrize over timezone?
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_dt64arr_series_add_tick_DateOffset(self, box_with_array, unit):
         # GH#4532
         # operate with pd.offsets
@@ -1311,6 +1311,7 @@ class TestDatetime64DateOffsetArithmetic:
     # -------------------------------------------------------------
     # RelativeDelta DateOffsets
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_dt64arr_add_sub_relativedelta_offsets(self, box_with_array, unit):
         # GH#10699
         vec = DatetimeIndex(
@@ -1386,6 +1387,7 @@ class TestDatetime64DateOffsetArithmetic:
             "SemiMonthBegin",
             "Week",
             ("Week", {"weekday": 3}),
+            "Week",
             ("Week", {"weekday": 6}),
             "BusinessDay",
             "BDay",
@@ -1420,6 +1422,7 @@ class TestDatetime64DateOffsetArithmetic:
     )
     @pytest.mark.parametrize("normalize", [True, False])
     @pytest.mark.parametrize("n", [0, 5])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_dt64arr_add_sub_DateOffsets(
         self, box_with_array, n, normalize, cls_and_kwargs, unit, tz
@@ -1486,15 +1489,16 @@ class TestDatetime64DateOffsetArithmetic:
     @pytest.mark.parametrize(
         "other",
         [
-            [pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
-            [pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()],
-            # matching offsets
-            [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)],
+            np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)]),
+            np.array([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()]),
+            np.array(  # matching offsets
+                [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)]
+            ),
         ],
     )
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     def test_dt64arr_add_sub_offset_array(
-        self, performance_warning, tz_naive_fixture, box_with_array, op, other
+        self, tz_naive_fixture, box_with_array, op, other
     ):
         # GH#18849
         # GH#10699 array of offsets
@@ -1502,11 +1506,11 @@ class TestDatetime64DateOffsetArithmetic:
         tz = tz_naive_fixture
         dti = date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
-        other = np.array(other)
+
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -1515,7 +1519,7 @@ class TestDatetime64DateOffsetArithmetic:
         if box_with_array is pd.array and op is roperator.radd:
             # We expect a NumpyExtensionArray, not ndarray[object] here
             expected = pd.array(expected, dtype=object)
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
@@ -1870,10 +1874,8 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
-            unit
-        )
-        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
+        dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)
@@ -2338,7 +2340,7 @@ class TestDatetimeIndexArithmetic:
 
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     def test_dti_addsub_offset_arraylike(
-        self, performance_warning, tz_naive_fixture, names, op, index_or_series
+        self, tz_naive_fixture, names, op, index_or_series
     ):
         # GH#18849, GH#19744
         other_box = index_or_series
@@ -2349,7 +2351,7 @@ class TestDatetimeIndexArithmetic:
 
         xbox = get_upcast_box(dti, other)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dti, other)
 
         expected = DatetimeIndex(
@@ -2360,7 +2362,7 @@ class TestDatetimeIndexArithmetic:
 
     @pytest.mark.parametrize("other_box", [pd.Index, np.array])
     def test_dti_addsub_object_arraylike(
-        self, performance_warning, tz_naive_fixture, box_with_array, other_box
+        self, tz_naive_fixture, box_with_array, other_box
     ):
         tz = tz_naive_fixture
 
@@ -2372,20 +2374,21 @@ class TestDatetimeIndexArithmetic:
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr + other
         tm.assert_equal(result, expected)
 
         expected = DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = dtarr - other
         tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("years", [-1, 0, 1])
 @pytest.mark.parametrize("months", [-2, 0, 2])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_shift_months(years, months, unit):
     dti = DatetimeIndex(
         [
@@ -2405,7 +2408,7 @@ def test_shift_months(years, months, unit):
     tm.assert_index_equal(actual, expected)
 
 
-def test_dt64arr_addsub_object_dtype_2d(performance_warning):
+def test_dt64arr_addsub_object_dtype_2d():
     # block-wise DataFrame operations will require operating on 2D
     #  DatetimeArray/TimedeltaArray, so check that specifically.
     dti = date_range("1994-02-13", freq="2W", periods=4)
@@ -2414,14 +2417,14 @@ def test_dt64arr_addsub_object_dtype_2d(performance_warning):
     other = np.array([[pd.offsets.Day(n)] for n in range(4)])
     assert other.shape == dta.shape
 
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(PerformanceWarning):
         result = dta + other
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(PerformanceWarning):
         expected = (dta[:, 0] + other[:, 0]).reshape(-1, 1)
 
     tm.assert_numpy_array_equal(result, expected)
 
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(PerformanceWarning):
         # Case where we expect to get a TimedeltaArray back
         result2 = dta - dta.astype(object)
 

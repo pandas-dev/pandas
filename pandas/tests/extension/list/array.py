@@ -3,7 +3,6 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
-
 from __future__ import annotations
 
 import numbers

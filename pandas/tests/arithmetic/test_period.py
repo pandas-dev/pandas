@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -867,7 +868,7 @@ class TestPeriodIndexArithmetic:
     # operations with array/Index of DateOffset objects
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_pi_add_offset_array(self, performance_warning, box):
+    def test_pi_add_offset_array(self, box):
         # GH#18849
         pi = PeriodIndex([Period("2015Q1"), Period("2016Q2")])
         offs = box(
@@ -878,11 +879,11 @@ class TestPeriodIndexArithmetic:
         )
         expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")]).astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = pi + offs
         tm.assert_index_equal(res, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res2 = offs + pi
         tm.assert_index_equal(res2, expected)
 
@@ -891,14 +892,14 @@ class TestPeriodIndexArithmetic:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(PerformanceWarning):
                 pi + unanchored
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(PerformanceWarning):
                 unanchored + pi
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_pi_sub_offset_array(self, performance_warning, box):
+    def test_pi_sub_offset_array(self, box):
         # GH#18824
         pi = PeriodIndex([Period("2015Q1"), Period("2016Q2")])
         other = box(
@@ -911,7 +912,7 @@ class TestPeriodIndexArithmetic:
         expected = PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
         expected = expected.astype(object)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = pi - other
         tm.assert_index_equal(res, expected)
 
@@ -921,10 +922,10 @@ class TestPeriodIndexArithmetic:
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(PerformanceWarning):
                 pi - anchored
         with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(performance_warning):
+            with tm.assert_produces_warning(PerformanceWarning):
                 anchored - pi
 
     def test_pi_add_iadd_int(self, one):
@@ -1328,13 +1329,13 @@ class TestPeriodIndexArithmetic:
         expected = pi - pi
         tm.assert_index_equal(result, expected)
 
-    def test_parr_add_sub_object_array(self, performance_warning):
+    def test_parr_add_sub_object_array(self):
         pi = period_range("2000-12-31", periods=3, freq="D")
         parr = pi.array
 
         other = np.array([Timedelta(days=1), pd.offsets.Day(2), 3])
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = parr + other
 
         expected = PeriodIndex(
@@ -1342,7 +1343,7 @@ class TestPeriodIndexArithmetic:
         )._data.astype(object)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = parr - other
 
         expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
@@ -1361,12 +1362,7 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-        if box_with_array is pd.DataFrame:
-            # TODO: before implementing resolution-inference we got the same
-            #  message with DataFrame and non-DataFrame.  Why did that change?
-            msg = "cannot add PeriodArray and Timestamp"
-        else:
-            msg = "cannot add PeriodArray and DatetimeArray"
+        msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
         with pytest.raises(TypeError, match=msg):

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import (
-    AbstractContextManager,
     contextmanager,
     nullcontext,
 )
@@ -11,7 +10,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
     cast,
 )
 import warnings
@@ -33,8 +31,7 @@ def assert_produces_warning(
     ] = "always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
-    match: str | tuple[str | None, ...] | None = None,
-    must_find_all_warnings: bool = True,
+    match: str | None = None,
 ) -> Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
@@ -70,23 +67,18 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
-    match : {str, tuple[str, ...]}, optional
-        Match warning message. If it's a tuple, it has to be the size of
-        `expected_warning`. If additionally `must_find_all_warnings` is
-        True, each expected warning's message gets matched with a respective
-        match. Otherwise, multiple values get treated as an alternative.
-    must_find_all_warnings : bool, default True
-        If True and `expected_warning` is a tuple, each expected warning
-        type must get encountered. Otherwise, even one expected warning
-        results in success.
+    match : str, optional
+        Match warning message.
 
     Examples
     --------
     >>> import warnings
     >>> with assert_produces_warning():
     ...     warnings.warn(UserWarning())
+    ...
     >>> with assert_produces_warning(False):
     ...     warnings.warn(RuntimeWarning())
+    ...
     Traceback (most recent call last):
         ...
     AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
@@ -106,35 +98,13 @@ def assert_produces_warning(
             yield w
         finally:
             if expected_warning:
-                if isinstance(expected_warning, tuple) and must_find_all_warnings:
-                    match = (
-                        match
-                        if isinstance(match, tuple)
-                        else (match,) * len(expected_warning)
-                    )
-                    for warning_type, warning_match in zip(expected_warning, match):
-                        _assert_caught_expected_warnings(
-                            caught_warnings=w,
-                            expected_warning=warning_type,
-                            match=warning_match,
-                            check_stacklevel=check_stacklevel,
-                        )
-                else:
-                    expected_warning = cast(
-                        Union[type[Warning], tuple[type[Warning], ...]],
-                        expected_warning,
-                    )
-                    match = (
-                        "|".join(m for m in match if m)
-                        if isinstance(match, tuple)
-                        else match
-                    )
-                    _assert_caught_expected_warnings(
-                        caught_warnings=w,
-                        expected_warning=expected_warning,
-                        match=match,
-                        check_stacklevel=check_stacklevel,
-                    )
+                expected_warning = cast(type[Warning], expected_warning)
+                _assert_caught_expected_warning(
+                    caught_warnings=w,
+                    expected_warning=expected_warning,
+                    match=match,
+                    check_stacklevel=check_stacklevel,
+                )
             if raise_on_extra_warnings:
                 _assert_caught_no_extra_warnings(
                     caught_warnings=w,
@@ -142,9 +112,7 @@ def assert_produces_warning(
                 )
 
 
-def maybe_produces_warning(
-    warning: type[Warning], condition: bool, **kwargs
-) -> AbstractContextManager:
+def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
     """
     Return a context manager that possibly checks a warning based on the condition
     """
@@ -154,10 +122,10 @@ def maybe_produces_warning(
         return nullcontext()
 
 
-def _assert_caught_expected_warnings(
+def _assert_caught_expected_warning(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: type[Warning] | tuple[type[Warning], ...],
+    expected_warning: type[Warning],
     match: str | None,
     check_stacklevel: bool,
 ) -> None:
@@ -165,11 +133,6 @@ def _assert_caught_expected_warnings(
     saw_warning = False
     matched_message = False
     unmatched_messages = []
-    warning_name = (
-        tuple(x.__name__ for x in expected_warning)
-        if isinstance(expected_warning, tuple)
-        else expected_warning.__name__
-    )
 
     for actual_warning in caught_warnings:
         if issubclass(actual_warning.category, expected_warning):
@@ -185,11 +148,14 @@ def _assert_caught_expected_warnings(
                     unmatched_messages.append(actual_warning.message)
 
     if not saw_warning:
-        raise AssertionError(f"Did not see expected warning of class {warning_name!r}")
+        raise AssertionError(
+            f"Did not see expected warning of class "
+            f"{repr(expected_warning.__name__)}"
+        )
 
     if match and not matched_message:
         raise AssertionError(
-            f"Did not see warning {warning_name!r} "
+            f"Did not see warning {repr(expected_warning.__name__)} "
             f"matching '{match}'. The emitted warning messages are "
             f"{unmatched_messages}"
         )
@@ -231,7 +197,7 @@ def _assert_caught_no_extra_warnings(
             )
 
     if extra_warnings:
-        raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}")
+        raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
 
 
 def _is_unexpected_warning(

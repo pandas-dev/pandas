@@ -56,6 +56,7 @@ from pandas.core.window.rolling import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        Axis,
         TimedeltaConvertibleTypes,
         npt,
     )
@@ -203,6 +204,13 @@ class ExponentialMovingWindow(BaseWindow):
           [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
           ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
 
+    axis : {0, 1}, default 0
+        If ``0`` or ``'index'``, calculate across the rows.
+
+        If ``1`` or ``'columns'``, calculate across the columns.
+
+        For `Series` this parameter is unused and defaults to 0.
+
     times : np.ndarray, Series, default None
 
         Only applicable to ``mean()``.
@@ -226,8 +234,6 @@ class ExponentialMovingWindow(BaseWindow):
     Returns
     -------
     pandas.api.typing.ExponentialMovingWindow
-        An instance of ExponentialMovingWindow for further exponentially weighted (EW)
-        calculations, e.g. using the ``mean`` method.
 
     See Also
     --------
@@ -322,6 +328,7 @@ class ExponentialMovingWindow(BaseWindow):
         "min_periods",
         "adjust",
         "ignore_na",
+        "axis",
         "times",
         "method",
     ]
@@ -336,6 +343,7 @@ class ExponentialMovingWindow(BaseWindow):
         min_periods: int | None = 0,
         adjust: bool = True,
         ignore_na: bool = False,
+        axis: Axis = 0,
         times: np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
@@ -348,6 +356,7 @@ class ExponentialMovingWindow(BaseWindow):
             center=False,
             closed=None,
             method=method,
+            axis=axis,
             selection=selection,
         )
         self.com = com
@@ -388,7 +397,9 @@ class ExponentialMovingWindow(BaseWindow):
                     "times is not None."
                 )
             # Without times, points are equally spaced
-            self._deltas = np.ones(max(self.obj.shape[0] - 1, 0), dtype=np.float64)
+            self._deltas = np.ones(
+                max(self.obj.shape[self.axis] - 1, 0), dtype=np.float64
+            )
             self._com = get_center_of_mass(
                 # error: Argument 3 to "get_center_of_mass" has incompatible type
                 # "Union[float, Any, None, timedelta64, signedinteger[_64Bit]]";
@@ -449,6 +460,7 @@ class ExponentialMovingWindow(BaseWindow):
             min_periods=self.min_periods,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
+            axis=self.axis,
             times=self.times,
             engine=engine,
             engine_kwargs=engine_kwargs,
@@ -589,8 +601,6 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
-        if self.times is not None:
-            raise NotImplementedError("sum is not implemented with times")
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -662,8 +672,6 @@ class ExponentialMovingWindow(BaseWindow):
             raise NotImplementedError(
                 f"{type(self).__name__}.std does not implement numeric_only"
             )
-        if self.times is not None:
-            raise NotImplementedError("std is not implemented with times")
         return zsqrt(self.var(bias=bias, numeric_only=numeric_only))
 
     @doc(
@@ -697,8 +705,6 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="var",
     )
     def var(self, bias: bool = False, numeric_only: bool = False):
-        if self.times is not None:
-            raise NotImplementedError("var is not implemented with times")
         window_func = window_aggregations.ewmcov
         wfunc = partial(
             window_func,
@@ -761,9 +767,6 @@ class ExponentialMovingWindow(BaseWindow):
         bias: bool = False,
         numeric_only: bool = False,
     ):
-        if self.times is not None:
-            raise NotImplementedError("cov is not implemented with times")
-
         from pandas import Series
 
         self._validate_numeric_only("cov", numeric_only)
@@ -848,9 +851,6 @@ class ExponentialMovingWindow(BaseWindow):
         pairwise: bool | None = None,
         numeric_only: bool = False,
     ):
-        if self.times is not None:
-            raise NotImplementedError("corr is not implemented with times")
-
         from pandas import Series
 
         self._validate_numeric_only("corr", numeric_only)
@@ -941,6 +941,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         min_periods: int | None = 0,
         adjust: bool = True,
         ignore_na: bool = False,
+        axis: Axis = 0,
         times: np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
@@ -960,10 +961,13 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             min_periods=min_periods,
             adjust=adjust,
             ignore_na=ignore_na,
+            axis=axis,
             times=times,
             selection=selection,
         )
-        self._mean = EWMMeanState(self._com, self.adjust, self.ignore_na, obj.shape)
+        self._mean = EWMMeanState(
+            self._com, self.adjust, self.ignore_na, self.axis, obj.shape
+        )
         if maybe_use_numba(engine):
             self.engine = engine
             self.engine_kwargs = engine_kwargs
@@ -1051,7 +1055,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
         update_deltas = np.ones(
-            max(self._selected_obj.shape[-1] - 1, 0), dtype=np.float64
+            max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
         )
         if update is not None:
             if self._mean.last_ewm is None:
@@ -1074,7 +1078,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 result_kwargs["columns"] = self._selected_obj.columns
             else:
                 result_kwargs["name"] = self._selected_obj.name
-            np_array = self._selected_obj.astype(np.float64).to_numpy()
+            np_array = self._selected_obj.astype(np.float64, copy=False).to_numpy()
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )

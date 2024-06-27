@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 
@@ -7,12 +9,32 @@ from pandas import (
     Series,
 )
 
-mpl = pytest.importorskip("matplotlib")
+pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
+
+import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 
-pytestmark = pytest.mark.usefixtures("mpl_cleanup")
+
+@pytest.fixture(autouse=True)
+def mpl_cleanup():
+    # matplotlib/testing/decorators.py#L24
+    # 1) Resets units registry
+    # 2) Resets rc_context
+    # 3) Closes all figures
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    with mpl.rc_context():
+        mpl.use("template")
+        yield
+    mpl_units.registry.clear()
+    mpl_units.registry.update(orig_units_registry)
+    plt.close("all")
+    # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+    gc.collect(1)
 
 
 @pytest.fixture
@@ -238,10 +260,15 @@ def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gma
     assert expected.ctx == result.ctx
 
 
-@pytest.mark.parametrize("axis", [1, 0])
-def test_background_gradient_gmap_wrong_dataframe(styler_blank, axis):
+@pytest.mark.parametrize(
+    "gmap, axis",
+    [
+        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 1),
+        (DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"]), 0),
+    ],
+)
+def test_background_gradient_gmap_wrong_dataframe(styler_blank, gmap, axis):
     # test giving a gmap in DataFrame but with wrong axis
-    gmap = DataFrame([[1, 2], [2, 1]], columns=["A", "B"], index=["X", "Y"])
     msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
     with pytest.raises(ValueError, match=msg):
         styler_blank.background_gradient(gmap=gmap, axis=axis)._compute()
@@ -294,7 +321,10 @@ def test_bar_color_raises(df):
         df.style.bar(color="something", cmap="something else").to_html()
 
 
-@pytest.mark.parametrize("plot_method", ["scatter", "hexbin"])
+@pytest.mark.parametrize(
+    "plot_method",
+    ["scatter", "hexbin"],
+)
 def test_pass_colormap_instance(df, plot_method):
     # https://github.com/pandas-dev/pandas/issues/49374
     cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])

@@ -2,7 +2,6 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
-
 from collections import defaultdict
 from io import StringIO
 
@@ -133,12 +132,15 @@ def test_dtype_with_converters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
+@pytest.mark.parametrize(
+    "dtype", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
+)
+def test_numeric_dtype(all_parsers, dtype):
     data = "0\n1"
     parser = all_parsers
-    expected = DataFrame([0, 1], dtype=any_real_numpy_dtype)
+    expected = DataFrame([0, 1], dtype=dtype)
 
-    result = parser.read_csv(StringIO(data), header=None, dtype=any_real_numpy_dtype)
+    result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
 
 

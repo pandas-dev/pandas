@@ -1,5 +1,4 @@
-"""io on the clipboard"""
-
+""" io on the clipboard """
 from __future__ import annotations
 
 from io import StringIO
@@ -65,7 +64,7 @@ def read_clipboard(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
     >>> df.to_clipboard()  # doctest: +SKIP
     >>> pd.read_clipboard()  # doctest: +SKIP
          A  B  C
@@ -113,8 +112,9 @@ def read_clipboard(
         if index_length != 0:
             kwargs.setdefault("index_col", list(range(index_length)))
 
-    elif not isinstance(sep, str):
-        raise ValueError(f"{sep=} must be a string")
+    # Edge case where sep is specified to be None, return to default
+    if sep is None and kwargs.get("delim_whitespace") is None:
+        sep = r"\s+"
 
     # Regex separator currently only works with python engine.
     # Default to python if separator is multi-character (regex)

@@ -154,12 +154,13 @@ class TestJoin:
             target.join(source, on="E")
 
         # overlap
+        source_copy = source.copy()
         msg = (
             "You are trying to merge on float64 and object|string columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
-            target.join(source, on="A")
+            target.join(source_copy, on="A")
 
     def test_join_on_fails_with_different_right_index(self):
         df = DataFrame(

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Index,
@@ -119,7 +121,7 @@ def test_droplevel_list():
         index[:2].droplevel(["one", "four"])
 
 
-def test_drop_not_lexsorted(performance_warning):
+def test_drop_not_lexsorted():
     # GH 12078
 
     # define the lexsorted version of the multi-index
@@ -138,7 +140,7 @@ def test_drop_not_lexsorted(performance_warning):
 
     # compare the results
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
-    with tm.assert_produces_warning(performance_warning):
+    with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
 
 

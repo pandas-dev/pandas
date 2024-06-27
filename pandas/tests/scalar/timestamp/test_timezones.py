@@ -1,7 +1,6 @@
 """
 Tests for Timestamp timezone-related methods
 """
-
 from datetime import datetime
 
 from pandas._libs.tslibs import timezones

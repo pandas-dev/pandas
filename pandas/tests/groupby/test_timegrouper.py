@@ -1,15 +1,14 @@
 """
 test with the TimeGrouper / grouping with datetimes
 """
-
 from datetime import (
     datetime,
     timedelta,
-    timezone,
 )
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas as pd
 from pandas import (
@@ -68,7 +67,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    assert len(gb._grouper.result_index) != len(gb._grouper.codes)
+    assert len(gb._grouper.result_index) != len(gb._grouper.group_keys_seq)
 
     return gb
 
@@ -774,12 +773,12 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-        utc = timezone.utc
-        df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
-        assert df["b"][0].tzinfo == utc
+
+        df = DataFrame({"a": [1], "b": [datetime.now(pytz.utc)]})
+        assert df["b"][0].tzinfo == pytz.utc
         df = DataFrame({"a": [1, 2, 3]})
-        df["b"] = datetime.now(utc)
-        assert df["b"][0].tzinfo == utc
+        df["b"] = datetime.now(pytz.utc)
+        assert df["b"][0].tzinfo == pytz.utc
 
     def test_datetime_count(self):
         df = DataFrame(
@@ -926,7 +925,7 @@ class TestGroupBy:
         # check that we will go through the singular_series path
         #  in _wrap_applied_output_series
         assert gb.ngroups == 1
-        assert gb._selected_obj.index.nlevels == 1
+        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
 
         # function that returns a Series
         msg = "DataFrameGroupBy.apply operated on the grouping columns"

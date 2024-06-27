@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -165,7 +167,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    def test_drop_multiindex_not_lexsorted(self, performance_warning):
+    def test_drop_multiindex_not_lexsorted(self):
         # GH#11640
 
         # define the lexsorted version
@@ -186,7 +188,7 @@ class TestDataFrameDrop:
         assert not not_lexsorted_df.columns._is_lexsorted()
 
         expected = lexsorted_df.drop("a", axis=1).astype(float)
-        with tm.assert_produces_warning(performance_warning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.drop("a", axis=1)
 
         tm.assert_frame_equal(result, expected)
@@ -230,13 +232,15 @@ class TestDataFrameDrop:
         with pytest.raises(ValueError, match=msg):
             df.drop(axis=1)
 
+    data = [[1, 2, 3], [1, 2, 3]]
+
     @pytest.mark.parametrize(
         "actual",
         [
-            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]),
-            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]),
-            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "b"]).set_index([0, 1]),
-            DataFrame([[1, 2, 3], [1, 2, 3]], index=["a", "a"]).set_index([0, 1]),
+            DataFrame(data=data, index=["a", "a"]),
+            DataFrame(data=data, index=["a", "b"]),
+            DataFrame(data=data, index=["a", "b"]).set_index([0, 1]),
+            DataFrame(data=data, index=["a", "a"]).set_index([0, 1]),
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):

@@ -68,14 +68,6 @@ def test_nans_equal():
     assert b == a
 
 
-def test_nans_not_equal():
-    # GH 54770
-    a = SparseDtype(float, 0)
-    b = SparseDtype(float, pd.NA)
-    assert a != b
-    assert b != a
-
-
 with warnings.catch_warnings():
     msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
     warnings.filterwarnings("ignore", msg, category=FutureWarning)
@@ -84,6 +76,7 @@ with warnings.catch_warnings():
         (SparseDtype("float64"), SparseDtype("float32")),
         (SparseDtype("float64"), SparseDtype("float64", 0)),
         (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
+        (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
         (SparseDtype("float64"), np.dtype("float64")),
     ]
 
@@ -106,15 +99,15 @@ def test_construct_from_string_raises():
 @pytest.mark.parametrize(
     "dtype, expected",
     [
-        (int, True),
-        (float, True),
-        (bool, True),
-        (object, False),
-        (str, False),
+        (SparseDtype(int), True),
+        (SparseDtype(float), True),
+        (SparseDtype(bool), True),
+        (SparseDtype(object), False),
+        (SparseDtype(str), False),
     ],
 )
 def test_is_numeric(dtype, expected):
-    assert SparseDtype(dtype)._is_numeric is expected
+    assert dtype._is_numeric is expected
 
 
 def test_str_uses_object():

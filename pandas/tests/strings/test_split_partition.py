@@ -190,24 +190,23 @@ def test_split_maxsplit(data, pat, any_string_dtype, n):
 
 
 @pytest.mark.parametrize(
-    "data, pat, expected_val",
+    "data, pat, expected",
     [
         (
             ["split once", "split once too!"],
             None,
-            "once too!",
+            Series({0: ["split", "once"], 1: ["split", "once too!"]}),
         ),
         (
             ["split_once", "split_once_too!"],
             "_",
-            "once_too!",
+            Series({0: ["split", "once"], 1: ["split", "once_too!"]}),
         ),
     ],
 )
-def test_split_no_pat_with_nonzero_n(data, pat, expected_val, any_string_dtype):
+def test_split_no_pat_with_nonzero_n(data, pat, expected, any_string_dtype):
     s = Series(data, dtype=any_string_dtype)
     result = s.str.split(pat=pat, n=1)
-    expected = Series({0: ["split", "once"], 1: ["split", expected_val]})
     tm.assert_series_equal(expected, result, check_index_type=False)
 
 
@@ -534,27 +533,37 @@ def test_partition_series_stdlib(any_string_dtype, method):
 
 
 @pytest.mark.parametrize(
-    "method, exp",
+    "method, expand, exp, exp_levels",
     [
         [
             "partition",
-            [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None],
+            False,
+            np.array(
+                [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None],
+                dtype=object,
+            ),
+            1,
         ],
         [
             "rpartition",
-            [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None],
+            False,
+            np.array(
+                [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None],
+                dtype=object,
+            ),
+            1,
         ],
     ],
 )
-def test_partition_index(method, exp):
+def test_partition_index(method, expand, exp, exp_levels):
     # https://github.com/pandas-dev/pandas/issues/23558
 
     values = Index(["a_b_c", "c_d_e", "f_g_h", np.nan, None])
 
-    result = getattr(values.str, method)("_", expand=False)
-    exp = Index(np.array(exp, dtype=object), dtype=object)
+    result = getattr(values.str, method)("_", expand=expand)
+    exp = Index(exp)
     tm.assert_index_equal(result, exp)
-    assert result.nlevels == 1
+    assert result.nlevels == exp_levels
 
 
 @pytest.mark.parametrize(

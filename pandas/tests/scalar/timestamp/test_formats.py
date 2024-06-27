@@ -1,13 +1,9 @@
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime
 import pprint
 
 import dateutil.tz
 import pytest
-
-from pandas.compat import WASM
+import pytz  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
 
@@ -92,14 +88,13 @@ def test_isoformat(ts, timespec, expected_iso):
 
 
 class TestTimestampRendering:
-    @pytest.mark.parametrize(
-        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
-    )
+    timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/America/Los_Angeles"]
+
+    @pytest.mark.parametrize("tz", timezones)
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
     @pytest.mark.parametrize(
         "date", ["2014-03-07", "2014-01-01 09:00", "2014-01-01 00:00:00.000000001"]
     )
-    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_repr(self, date, freq, tz):
         # avoid to match with timezone name
         freq_repr = f"'{freq}'"
@@ -123,7 +118,7 @@ class TestTimestampRendering:
     def test_repr_utcoffset(self):
         # This can cause the tz field to be populated, but it's redundant to
         # include this information in the date-string.
-        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400")
+        date_with_utc_offset = Timestamp("2014-03-13 00:00:00-0400", tz=None)
         assert "2014-03-13 00:00:00-0400" in repr(date_with_utc_offset)
         assert "tzoffset" not in repr(date_with_utc_offset)
         assert "UTC-04:00" in repr(date_with_utc_offset)
@@ -183,14 +178,14 @@ class TestTimestampRendering:
         ts_nanos_micros = Timestamp(1200)
         assert str(ts_nanos_micros) == "1970-01-01 00:00:00.000001200"
 
-    def test_repr_matches_pydatetime_tz_stdlib(self):
-        dt_date = datetime(2013, 1, 2, tzinfo=timezone.utc)
+    def test_repr_matches_pydatetime_tz_pytz(self):
+        dt_date = datetime(2013, 1, 2, tzinfo=pytz.utc)
         assert str(dt_date) == str(Timestamp(dt_date))
 
-        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=timezone.utc)
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=pytz.utc)
         assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
-        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=timezone.utc)
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=pytz.utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_repr_matches_pydatetime_tz_dateutil(self):

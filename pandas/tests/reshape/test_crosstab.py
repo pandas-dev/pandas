@@ -452,12 +452,14 @@ class TestCrosstab:
             index=Index([1, 2, "All"], name="a", dtype="object"),
             columns=Index([3, 4, "All"], name="b", dtype="object"),
         )
-        test_case = crosstab(
-            df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
-        )
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            test_case = crosstab(
+                df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
+            )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self):
+    def test_crosstab_with_empties(self, using_array_manager):
         # Check handling of empties
         df = DataFrame(
             {
@@ -482,6 +484,9 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -653,14 +658,16 @@ class TestCrosstab:
             }
         )
 
-        result = crosstab(
-            [df.A, df.B],
-            df.C,
-            values=df.D,
-            aggfunc=np.sum,
-            normalize=True,
-            margins=True,
-        )
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = crosstab(
+                [df.A, df.B],
+                df.C,
+                values=df.D,
+                aggfunc=np.sum,
+                normalize=True,
+                margins=True,
+            )
         expected = DataFrame(
             np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
             columns=Index(["bar", "foo", "All"], name="C"),

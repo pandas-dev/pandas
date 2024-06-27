@@ -1,5 +1,4 @@
-"""define generic base classes for pandas objects"""
-
+""" define generic base classes for pandas objects """
 from __future__ import annotations
 
 from typing import (
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
-def create_pandas_abc_type(name, attr, comp) -> type:
+def create_pandas_abc_type(name, attr, comp):
     def _check(inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 

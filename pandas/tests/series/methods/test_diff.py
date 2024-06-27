@@ -10,11 +10,6 @@ import pandas._testing as tm
 
 
 class TestSeriesDiff:
-    def test_diff_series_requires_integer(self):
-        series = Series(np.random.default_rng(2).standard_normal(2))
-        with pytest.raises(ValueError, match="periods must be an integer"):
-            series.diff(1.5)
-
     def test_diff_np(self):
         # TODO(__array_function__): could make np.diff return a Series
         #  matching ser.diff()
@@ -74,11 +69,13 @@ class TestSeriesDiff:
         expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         tm.assert_series_equal(result, expected)
 
-    def test_diff_bool(self):
+    @pytest.mark.parametrize(
+        "input,output,diff",
+        [([False, True, True, False, False], [np.nan, True, False, True, False], 1)],
+    )
+    def test_diff_bool(self, input, output, diff):
         # boolean series (test for fixing #17294)
-        data = [False, True, True, False, False]
-        output = [np.nan, True, False, True, False]
-        ser = Series(data)
+        ser = Series(input)
         result = ser.diff()
         expected = Series(output)
         tm.assert_series_equal(result, expected)

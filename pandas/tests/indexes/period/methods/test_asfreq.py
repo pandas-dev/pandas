@@ -147,19 +147,11 @@ class TestPeriodIndex:
             "2BMS",
             "2YS-MAR",
             "2bh",
-            offsets.MonthBegin(2),
-            offsets.BusinessMonthEnd(2),
         ],
     )
     def test_pi_asfreq_not_supported_frequency(self, freq):
-        # GH#55785, GH#56945
-        msg = "|".join(
-            [
-                f"Invalid frequency: {freq}",
-                re.escape(f"{freq} is not supported as period frequency"),
-                "bh is not supported as period frequency",
-            ]
-        )
+        # GH#55785
+        msg = f"{freq[1:]} is not supported as period frequency"
 
         pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         with pytest.raises(ValueError, match=msg):
@@ -176,6 +168,21 @@ class TestPeriodIndex:
     def test_pi_asfreq_invalid_frequency(self, freq):
         # GH#55785
         msg = f"Invalid frequency: {freq}"
+
+        pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        with pytest.raises(ValueError, match=msg):
+            pi.asfreq(freq=freq)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.MonthBegin(2),
+            offsets.BusinessMonthEnd(2),
+        ],
+    )
+    def test_pi_asfreq_invalid_baseoffset(self, freq):
+        # GH#56945
+        msg = re.escape(f"{freq} is not supported as period frequency")
 
         pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         with pytest.raises(ValueError, match=msg):

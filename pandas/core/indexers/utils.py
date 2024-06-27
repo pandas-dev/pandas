@@ -1,7 +1,6 @@
 """
 Low-dependency indexing utilities.
 """
-
 from __future__ import annotations
 
 from typing import (
@@ -203,7 +202,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 
     Examples
     --------
-    >>> validate_indices(np.array([1, 2]), 3)  # OK
+    >>> validate_indices(np.array([1, 2]), 3) # OK
 
     >>> validate_indices(np.array([1, -2]), 3)
     Traceback (most recent call last):
@@ -215,7 +214,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
         ...
     IndexError: indices are out-of-bounds
 
-    >>> validate_indices(np.array([-1, -1]), 0)  # OK
+    >>> validate_indices(np.array([-1, -1]), 0) # OK
 
     >>> validate_indices(np.array([0, 1]), 0)
     Traceback (most recent call last):
@@ -503,7 +502,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
 
     For non-integer/boolean dtypes, an appropriate error is raised:
 
-    >>> indexer = np.array([0.0, 2.0], dtype="float64")
+    >>> indexer = np.array([0., 2.], dtype="float64")
     >>> pd.api.indexers.check_array_indexer(arr, indexer)
     Traceback (most recent call last):
     ...

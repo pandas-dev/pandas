@@ -63,9 +63,11 @@ class TestCombineFirst:
         # corner case
         ser = Series([1.0, 2, 3], index=[0, 1, 2])
         empty = Series([], index=[], dtype=object)
-        result = ser.combine_first(empty)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.combine_first(empty)
         ser.index = ser.index.astype("O")
-        tm.assert_series_equal(result, ser.astype(object))
+        tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self, unit):
         s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
@@ -78,7 +80,7 @@ class TestCombineFirst:
         s1 = Series([np.nan, "2011"])
         rs = s0.combine_first(s1)
 
-        xp = Series([datetime(2010, 1, 1), "2011"], dtype=f"datetime64[{unit}]")
+        xp = Series([datetime(2010, 1, 1), "2011"], dtype="datetime64[ns]")
 
         tm.assert_series_equal(rs, xp)
 
@@ -110,8 +112,10 @@ class TestCombineFirst:
         )
         s1 = Series(range(10), index=time_index)
         s2 = Series(index=time_index)
-        result = s1.combine_first(s2)
-        tm.assert_series_equal(result, s1.astype(np.float64))
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s1.combine_first(s2)
+        tm.assert_series_equal(result, s1)
 
     def test_combine_first_preserves_dtype(self):
         # GH51764

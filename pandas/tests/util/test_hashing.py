@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
 from pandas.util import (
     hash_array,
-    hash_pandas_object,
+    hash_pandas_object, 
 )
 
 
@@ -222,12 +222,12 @@ def test_hash_pandas_series_diff_index(series):
     assert not (a == b).all()
 
 
-@pytest.mark.parametrize("klass", [Index, Series])
-@pytest.mark.parametrize("dtype", ["float64", "object"])
-def test_hash_pandas_empty_object(klass, dtype, index):
+@pytest.mark.parametrize(
+    "obj", [Series([], dtype="float64"), Series([], dtype="object"), Index([])]
+)
+def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
-    obj = klass([], dtype=dtype)
     a = hash_pandas_object(obj, index=index)
     b = hash_pandas_object(obj, index=index)
     tm.assert_series_equal(a, b)
@@ -236,9 +236,9 @@ def test_hash_pandas_empty_object(klass, dtype, index):
 @pytest.mark.parametrize(
     "s1",
     [
-        ["a", "b", "c", "d"],
-        [1000, 2000, 3000, 4000],
-        pd.date_range(0, periods=4),
+        Series(["a", "b", "c", "d"]),
+        Series([1000, 2000, 3000, 4000]),
+        Series(pd.date_range(0, periods=4)),
     ],
 )
 @pytest.mark.parametrize("categorize", [True, False])
@@ -247,7 +247,6 @@ def test_categorical_consistency(s1, categorize):
     #
     # Check that categoricals hash consistent with their values,
     # not codes. This should work for categoricals of any dtype.
-    s1 = Series(s1)
     s2 = s1.astype("category").cat.set_categories(s1)
     s3 = s2.cat.set_categories(list(reversed(s1)))
 
@@ -260,14 +259,14 @@ def test_categorical_consistency(s1, categorize):
     tm.assert_series_equal(h1, h3)
 
 
-def test_categorical_with_nan_consistency(unit):
-    dti = pd.date_range("2012-01-01", periods=5, name="B", unit=unit)
-    cat = pd.Categorical.from_codes([-1, 0, 1, 2, 3, 4], categories=dti)
-    expected = hash_array(cat, categorize=False)
+def test_categorical_with_nan_consistency():
+    c = pd.Categorical.from_codes(
+        [-1, 0, 1, 2, 3, 4], categories=pd.date_range("2012-01-01", periods=5, name="B")
+    )
+    expected = hash_array(c, categorize=False)
 
-    ts = pd.Timestamp("2012-01-01").as_unit(unit)
-    cat2 = pd.Categorical.from_codes([-1, 0], categories=[ts])
-    result = hash_array(cat2, categorize=False)
+    c = pd.Categorical.from_codes([-1, 0], categories=[pd.Timestamp("2012-01-01")])
+    result = hash_array(c, categorize=False)
 
     assert result[0] in expected
     assert result[1] in expected

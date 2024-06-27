@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import warnings
+
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -28,8 +31,7 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python -m pip install -ve . --no-build-isolation --config-settings "
-        "editable-verbose=true' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
 
 from pandas._config import (
@@ -100,6 +102,7 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
+    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -160,6 +163,7 @@ from pandas.io.api import (
     read_parquet,
     read_orc,
     read_feather,
+    read_gbq,
     read_html,
     read_xml,
     read_json,
@@ -189,6 +193,17 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
+# GH#55043 - deprecation of the data_manager option
+if "PANDAS_DATA_MANAGER" in os.environ:
+    warnings.warn(
+        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
+        "deprecated and will be removed in a future version. Only the BlockManager "
+        "will be available. Unset this environment variable to silence this warning.",
+        FutureWarning,
+        stacklevel=2,
+    )
+
+del warnings, os
 
 # module level doc-string
 __doc__ = """
@@ -319,6 +334,7 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
+    "read_gbq",
     "read_hdf",
     "read_html",
     "read_json",
@@ -346,5 +362,6 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
+    "value_counts",
     "wide_to_long",
 ]

@@ -118,26 +118,15 @@ def test_doc_examples():
     tm.assert_frame_equal(result, expected)
 
 
-def test_multiindex():
-    # Test the multiindex mentioned as the use-case in the documentation
-
-    def _make_df_from_data(data):
-        rows = {}
-        for date in data:
-            for level in data[date]:
-                rows[(date, level[0])] = {"A": level[1], "B": level[2]}
-
-        df = pd.DataFrame.from_dict(rows, orient="index")
-        df.index.names = ("Date", "Item")
-        return df
-
+@pytest.fixture()
+def multiindex_data():
     rng = np.random.default_rng(2)
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
     items = [f"item {i}" for i in range(nitems)]
 
-    multiindex_data = {}
+    data = {}
     for date in dates:
         nitems_for_date = nitems - rng.integers(0, 12)
         levels = [
@@ -145,12 +134,28 @@ def test_multiindex():
             for item in items[:nitems_for_date]
         ]
         levels.sort(key=lambda x: x[1])
-        multiindex_data[date] = levels
+        data[date] = levels
 
+    return data
+
+
+def _make_df_from_data(data):
+    rows = {}
+    for date in data:
+        for level in data[date]:
+            rows[(date, level[0])] = {"A": level[1], "B": level[2]}
+
+    df = pd.DataFrame.from_dict(rows, orient="index")
+    df.index.names = ("Date", "Item")
+    return df
+
+
+def test_multiindex(multiindex_data):
+    # Test the multiindex mentioned as the use-case in the documentation
     df = _make_df_from_data(multiindex_data)
     result = df.groupby("Date", as_index=False).nth(slice(3, -3))
 
-    sliced = {date: values[3:-3] for date, values in multiindex_data.items()}
+    sliced = {date: multiindex_data[date][3:-3] for date in multiindex_data}
     expected = _make_df_from_data(sliced)
 
     tm.assert_frame_equal(result, expected)
@@ -262,6 +267,24 @@ def test_step(step):
     index += [9 + i for i in range(0, 3, step)]
 
     expected = pd.DataFrame(data, columns=["A", "B"], index=index)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.fixture()
+def column_group_df():
+    return pd.DataFrame(
+        [[0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 0, 1, 0, 2]],
+        columns=["A", "B", "C", "D", "E", "F", "G"],
+    )
+
+
+def test_column_axis(column_group_df):
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
+    result = g._positional_selector[1:-1]
+    expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
 

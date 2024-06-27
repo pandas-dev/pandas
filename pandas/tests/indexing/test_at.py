@@ -136,11 +136,7 @@ class TestAtSetItem:
 class TestAtSetItemWithExpansion:
     def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
         # GH#25506
-        ts = (
-            Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
-            if tz_naive_fixture is not None
-            else Timestamp("2017-08-05 00:00:00+0100")
-        )
+        ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
         result = Series(ts)
         result.at[1] = ts
         expected = Series([ts, ts])

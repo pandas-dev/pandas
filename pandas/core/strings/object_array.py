@@ -5,6 +5,7 @@ import re
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
     cast,
 )
@@ -21,15 +22,14 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sequence,
-    )
+    from collections.abc import Sequence
 
     from pandas._typing import (
         NpDtype,
         Scalar,
     )
+
+    from pandas import Series
 
 
 class ObjectStringArrayMixin(BaseStringArrayMethods):
@@ -75,9 +75,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         mask = isna(arr)
         map_convert = convert and not np.all(mask)
         try:
-            result = lib.map_infer_mask(
-                arr, f, mask.view(np.uint8), convert=map_convert
-            )
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
         except (TypeError, AttributeError) as err:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
@@ -207,10 +205,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 np.asarray(repeats, dtype=object),
                 rep,
             )
-            if not isinstance(self, BaseStringArray):
-                return result
-            # Not going through map, so we have to do this here.
-            return type(self)._from_sequence(result, dtype=self.dtype)
+            if isinstance(self, BaseStringArray):
+                # Not going through map, so we have to do this here.
+                result = type(self)._from_sequence(result, dtype=self.dtype)
+            return result
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
@@ -458,10 +456,19 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
 
-    def _str_removeprefix(self, prefix: str):
-        return self._str_map(lambda x: x.removeprefix(prefix))
+    def _str_removeprefix(self, prefix: str) -> Series:
+        # outstanding question on whether to use native methods for users on Python 3.9+
+        # https://github.com/pandas-dev/pandas/pull/39226#issuecomment-836719770,
+        # in which case we could do return self._str_map(str.removeprefix)
 
-    def _str_removesuffix(self, suffix: str):
+        def removeprefix(text: str) -> str:
+            if text.startswith(prefix):
+                return text[len(prefix) :]
+            return text
+
+        return self._str_map(removeprefix)
+
+    def _str_removesuffix(self, suffix: str) -> Series:
         return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):

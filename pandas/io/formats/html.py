@@ -1,7 +1,6 @@
 """
 Module for formatting output data in HTML.
 """
-
 from __future__ import annotations
 
 from textwrap import dedent

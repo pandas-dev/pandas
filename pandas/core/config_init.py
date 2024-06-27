@@ -9,11 +9,10 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
-
 from __future__ import annotations
 
-from collections.abc import Callable
 import os
+from typing import Callable
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -37,7 +36,7 @@ use_bottleneck_doc = """
 """
 
 
-def use_bottleneck_cb(key: str) -> None:
+def use_bottleneck_cb(key) -> None:
     from pandas.core import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
@@ -51,7 +50,7 @@ use_numexpr_doc = """
 """
 
 
-def use_numexpr_cb(key: str) -> None:
+def use_numexpr_cb(key) -> None:
     from pandas.core.computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
@@ -65,7 +64,7 @@ use_numba_doc = """
 """
 
 
-def use_numba_cb(key: str) -> None:
+def use_numba_cb(key) -> None:
     from pandas.core.util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
@@ -93,6 +92,11 @@ pc_precision_doc = """
     Floating point output precision in terms of number of places after the
     decimal, for regular formatting as well as scientific notation. Similar
     to ``precision`` in :meth:`numpy.set_printoptions`.
+"""
+
+pc_colspace_doc = """
+: int
+    Default space for DataFrame columns.
 """
 
 pc_max_rows_doc = """
@@ -200,6 +204,11 @@ pc_east_asian_width_doc = """
     Enabling this may affect to the performance (default: False)
 """
 
+pc_ambiguous_as_wide_doc = """
+: boolean
+    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
+    (default: False)
+"""
 
 pc_table_schema_doc = """
 : boolean
@@ -277,7 +286,7 @@ pc_memory_usage_doc = """
 """
 
 
-def table_schema_cb(key: str) -> None:
+def table_schema_cb(key) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
     enable_data_resource_formatter(cf.get_option(key))
@@ -320,7 +329,7 @@ with cf.config_prefix("display"):
         "min_rows",
         10,
         pc_min_rows_doc,
-        validator=is_instance_factory((type(None), int)),
+        validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
@@ -360,7 +369,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
+        "width", 80, pc_width_doc, validator=is_instance_factory([type(None), int])
     )
     cf.register_option(
         "memory_usage",
@@ -396,6 +405,61 @@ tc_sim_interactive_doc = """
 
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
+
+use_inf_as_na_doc = """
+: boolean
+    True means treat None, NaN, INF, -INF as NA (old way),
+    False means None and NaN are null, but INF, -INF are not NA
+    (new way).
+
+    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
+"""
+
+# We don't want to start importing everything at the global context level
+# or we'll hit circular deps.
+
+
+def use_inf_as_na_cb(key) -> None:
+    # TODO(3.0): enforcing this deprecation will close GH#52501
+    from pandas.core.dtypes.missing import _use_inf_as_na
+
+    _use_inf_as_na(key)
+
+
+with cf.config_prefix("mode"):
+    cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
+
+cf.deprecate_option(
+    # GH#51684
+    "mode.use_inf_as_na",
+    "use_inf_as_na option is deprecated and will be removed in a future "
+    "version. Convert inf values to NaN before operating instead.",
+)
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "data_manager",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to "block". This environment variable can be set for testing.
+        os.environ.get("PANDAS_DATA_MANAGER", "block"),
+        data_manager_doc,
+        validator=is_one_of_factory(["block", "array"]),
+    )
+
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
 
 
 # TODO better name?
@@ -433,19 +497,6 @@ with cf.config_prefix("mode"):
         "warn",
         chained_assignment,
         validator=is_one_of_factory([None, "warn", "raise"]),
-    )
-
-performance_warnings = """
-: boolean
-    Whether to show or hide PerformanceWarnings.
-"""
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "performance_warnings",
-        True,
-        performance_warnings,
-        validator=is_bool,
     )
 
 
@@ -602,7 +653,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key: str | None) -> None:
+def register_plotting_backend_cb(key) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -616,7 +667,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=register_plotting_backend_cb,  # type: ignore[arg-type]
+        validator=register_plotting_backend_cb,
     )
 
 
@@ -628,7 +679,7 @@ register_converter_doc = """
 """
 
 
-def register_converter_cb(key: str) -> None:
+def register_converter_cb(key) -> None:
     from pandas.plotting import (
         deregister_matplotlib_converters,
         register_matplotlib_converters,
@@ -799,14 +850,14 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_instance_factory((type(None), str)),
+        validator=is_instance_factory([type(None), str]),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_instance_factory((type(None), str)),
+        validator=is_instance_factory([type(None), str]),
     )
 
     cf.register_option(
@@ -816,15 +867,11 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
-    # error: Argument 1 to "is_instance_factory" has incompatible type "tuple[
-    # ..., <typing special form>, ...]"; expected "type | tuple[type, ...]"
     cf.register_option(
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory(
-            (type(None), dict, Callable, str)  # type: ignore[arg-type]
-        ),
+        validator=is_instance_factory([type(None), dict, Callable, str]),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -851,7 +898,7 @@ with cf.config_prefix("styler"):
         "latex.environment",
         None,
         styler_environment,
-        validator=is_instance_factory((type(None), str)),
+        validator=is_instance_factory([type(None), str]),
     )
 
 

@@ -10,7 +10,9 @@ from pandas.core.arrays.categorical import (
 )
 
 
-def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorical:
+def recode_for_groupby(
+    c: Categorical, sort: bool, observed: bool
+) -> tuple[Categorical, Categorical | None]:
     """
     Code the categories to ensure we can groupby for categoricals.
 
@@ -40,13 +42,15 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         appearance in codes (unless ordered=True, in which case the
         original order is preserved), followed by any unrepresented
         categories in the original order.
+    Categorical or None
+        If we are observed, return the original categorical, otherwise None
     """
     # we only care about observed values
     if observed:
         # In cases with c.ordered, this is equivalent to
         #  return c.remove_unused_categories(), c
 
-        unique_codes = unique1d(c.codes)  # type: ignore[no-untyped-call]
+        unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
         if sort:
@@ -59,18 +63,18 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         # return a new categorical that maps our new codes
         # and categories
         dtype = CategoricalDtype(categories, ordered=c.ordered)
-        return Categorical._simple_new(codes, dtype=dtype)
+        return Categorical._simple_new(codes, dtype=dtype), c
 
     # Already sorted according to c.categories; all is fine
     if sort:
-        return c
+        return c, None
 
     # sort=False should order groups in as-encountered order (GH-8868)
 
     # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     all_codes = np.arange(c.categories.nunique())
     # GH 38140: exclude nan from indexer for categories
-    unique_notnan_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
+    unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if sort:
         unique_notnan_codes = np.sort(unique_notnan_codes)
     if len(all_codes) > len(unique_notnan_codes):
@@ -80,4 +84,4 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
     else:
         take_codes = unique_notnan_codes
 
-    return Categorical(c, c.unique().categories.take(take_codes))
+    return Categorical(c, c.unique().categories.take(take_codes)), None

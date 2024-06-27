@@ -42,10 +42,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
-        # GH#59051
-        msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx = TimedeltaIndex(["3d", "1d", "2d"])
+        idx = TimedeltaIndex(["3d", "1d", "2d"])
         ordered = TimedeltaIndex(idx.sort_values(), freq="infer")
         result = ordered.union(idx)
         tm.assert_index_equal(result, ordered)
@@ -73,7 +70,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
-        left = timedelta_range("1 day", "30D")
+        left = timedelta_range("1 day", "30d")
         right = left + pd.offsets.Minute(15)
 
         result = left.union(right)

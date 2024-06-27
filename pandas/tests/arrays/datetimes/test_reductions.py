@@ -10,6 +10,10 @@ from pandas.core.arrays import DatetimeArray
 
 
 class TestReductions:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
         """Fixture returning DatetimeArray with parametrized timezones"""
@@ -50,6 +54,7 @@ class TestReductions:
         assert result is NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_empty(self, skipna, tz):
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
@@ -60,6 +65,7 @@ class TestReductions:
         assert result is NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_median_empty(self, skipna, tz):
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
@@ -158,6 +164,7 @@ class TestReductions:
         expected = dti.mean()
         assert result == expected
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_empty(self, arr1d, skipna):
         arr = arr1d[:0]
 

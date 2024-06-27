@@ -81,6 +81,7 @@ class TestAstype:
         expected = array(codes, dtype="Float64") / 2
         tm.assert_extension_array_equal(res, expected)
 
+    @pytest.mark.parametrize("ordered", [True, False])
     def test_astype(self, ordered):
         # string
         cat = Categorical(list("abbaaccc"), ordered=ordered)
@@ -107,10 +108,11 @@ class TestAstype:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_ordered", [True, False])
-    def test_astype_category(self, dtype_ordered, ordered):
+    @pytest.mark.parametrize("cat_ordered", [True, False])
+    def test_astype_category(self, dtype_ordered, cat_ordered):
         # GH#10696/GH#18593
         data = list("abcaacbab")
-        cat = Categorical(data, categories=list("bac"), ordered=ordered)
+        cat = Categorical(data, categories=list("bac"), ordered=cat_ordered)
 
         # standard categories
         dtype = CategoricalDtype(ordered=dtype_ordered)

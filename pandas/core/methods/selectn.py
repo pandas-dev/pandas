@@ -10,7 +10,6 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
-    Generic,
     cast,
     final,
 )
@@ -29,32 +28,20 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
-from pandas.core.indexes.api import default_index
-
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
-        NDFrameT,
     )
 
     from pandas import (
         DataFrame,
-        Index,
         Series,
     )
-else:
-    # Generic[...] requires a non-str, provide it with a plain TypeVar at
-    # runtime to avoid circular imports
-    from pandas._typing import T
-
-    NDFrameT = T
-    DataFrame = T
-    Series = T
 
 
-class SelectN(Generic[NDFrameT]):
-    def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
+class SelectN:
+    def __init__(self, obj, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -62,15 +49,15 @@ class SelectN(Generic[NDFrameT]):
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> NDFrameT:
+    def compute(self, method: str) -> DataFrame | Series:
         raise NotImplementedError
 
     @final
-    def nlargest(self) -> NDFrameT:
+    def nlargest(self):
         return self.compute("nlargest")
 
     @final
-    def nsmallest(self) -> NDFrameT:
+    def nsmallest(self):
         return self.compute("nsmallest")
 
     @final
@@ -85,7 +72,7 @@ class SelectN(Generic[NDFrameT]):
         return needs_i8_conversion(dtype)
 
 
-class SelectNSeries(SelectN[Series]):
+class SelectNSeries(SelectN):
     """
     Implement n largest/smallest for Series
 
@@ -176,7 +163,7 @@ class SelectNSeries(SelectN[Series]):
         return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
 
 
-class SelectNFrame(SelectN[DataFrame]):
+class SelectNFrame(SelectN):
     """
     Implement n largest/smallest for DataFrame
 
@@ -202,6 +189,8 @@ class SelectNFrame(SelectN[DataFrame]):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
+        from pandas.core.api import Index
+
         n = self.n
         frame = self.obj
         columns = self.columns
@@ -210,11 +199,11 @@ class SelectNFrame(SelectN[DataFrame]):
             dtype = frame[column].dtype
             if not self.is_valid_dtype_n_method(dtype):
                 raise TypeError(
-                    f"Column {column!r} has dtype {dtype}, "
-                    f"cannot use method {method!r} with this dtype"
+                    f"Column {repr(column)} has dtype {dtype}, "
+                    f"cannot use method {repr(method)} with this dtype"
                 )
 
-        def get_indexer(current_indexer: Index, other_indexer: Index) -> Index:
+        def get_indexer(current_indexer, other_indexer):
             """
             Helper function to concat `current_indexer` and `other_indexer`
             depending on `method`
@@ -228,7 +217,7 @@ class SelectNFrame(SelectN[DataFrame]):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer: Index = default_index(0)
+        indexer = Index([], dtype=np.int64)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].

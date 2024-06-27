@@ -11,7 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    overload,
 )
 
 import numpy as np
@@ -19,10 +18,7 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -46,33 +42,13 @@ def convert_to_line_delimits(s: str) -> str:
     return convert_json_to_lines(s)
 
 
-@overload
 def nested_to_record(
-    ds: dict,
-    prefix: str = ...,
-    sep: str = ...,
-    level: int = ...,
-    max_level: int | None = ...,
-) -> dict[str, Any]: ...
-
-
-@overload
-def nested_to_record(
-    ds: list[dict],
-    prefix: str = ...,
-    sep: str = ...,
-    level: int = ...,
-    max_level: int | None = ...,
-) -> list[dict[str, Any]]: ...
-
-
-def nested_to_record(
-    ds: dict | list[dict],
+    ds,
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
     max_level: int | None = None,
-) -> dict[str, Any] | list[dict[str, Any]]:
+):
     """
     A simplified json_normalize
 
@@ -267,7 +243,7 @@ def _simple_json_normalize(
 
 
 def json_normalize(
-    data: dict | list[dict] | Series,
+    data: dict | list[dict],
     record_path: str | list | None = None,
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
@@ -281,7 +257,7 @@ def json_normalize(
 
     Parameters
     ----------
-    data : dict, list of dicts, or Series of dicts
+    data : dict or list of dicts
         Unserialized JSON objects.
     record_path : str or list of str, default None
         Path in each object to list of records. If not passed, data will be
@@ -289,10 +265,10 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
+        If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         meta is ['foo', 'bar'].
     record_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
+        If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
@@ -365,26 +341,6 @@ def json_normalize(
     0  1.0   Cole Volk             130              60
     1  NaN    Mark Reg             130              60
     2  2.0  Faye Raker             130              60
-
-    >>> data = [
-    ...     {
-    ...         "id": 1,
-    ...         "name": "Cole Volk",
-    ...         "fitness": {"height": 130, "weight": 60},
-    ...     },
-    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
-    ...     {
-    ...         "id": 2,
-    ...         "name": "Faye Raker",
-    ...         "fitness": {"height": 130, "weight": 60},
-    ...     },
-    ... ]
-    >>> series = pd.Series(data, index=pd.Index(["a", "b", "c"]))
-    >>> pd.json_normalize(series)
-        id        name  fitness.height  fitness.weight
-    a  1.0   Cole Volk             130              60
-    b  NaN    Mark Reg             130              60
-    c  2.0  Faye Raker             130              60
 
     >>> data = [
     ...     {
@@ -471,15 +427,10 @@ def json_normalize(
                 result = []
             else:
                 raise TypeError(
-                    f"Path must contain list or null, "
-                    f"but got {type(result).__name__} at {spec!r}"
+                    f"{js} has non list value {result} for path {spec}. "
+                    "Must be list or null."
                 )
         return result
-
-    if isinstance(data, Series):
-        index = data.index
-    else:
-        index = None
 
     if isinstance(data, list) and not data:
         return DataFrame()
@@ -503,7 +454,7 @@ def json_normalize(
         and record_prefix is None
         and max_level is None
     ):
-        return DataFrame(_simple_json_normalize(data, sep=sep), index=index)
+        return DataFrame(_simple_json_normalize(data, sep=sep))
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -515,7 +466,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -586,10 +537,8 @@ def json_normalize(
         if values.ndim > 1:
             # GH 37782
             values = np.empty((len(v),), dtype=object)
-            for i, val in enumerate(v):
-                values[i] = val
+            for i, v in enumerate(v):
+                values[i] = v
 
         result[k] = values.repeat(lengths)
-    if index is not None:
-        result.index = index.repeat(lengths)
     return result

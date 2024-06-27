@@ -3,17 +3,17 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
-    Index,
+    DatetimeIndex,
     Series,
 )
 import pandas._testing as tm
 
 
 def test_series_set_value():
-    # GH#1561, GH#51363 as of 3.0 we do not do inference in Index.insert
+    # GH#1561
 
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
-    index = Index(dates, dtype=object)
+    index = DatetimeIndex(dates)
 
     s = Series(dtype=object)
     s._set_value(dates[0], 1.0)

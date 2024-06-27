@@ -1,5 +1,4 @@
 """Tests for Interval-Interval operations, such as overlaps, contains, etc."""
-
 import numpy as np
 import pytest
 

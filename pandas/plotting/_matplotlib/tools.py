@@ -5,7 +5,8 @@ from math import ceil
 from typing import TYPE_CHECKING
 import warnings
 
-import matplotlib as mpl
+from matplotlib import ticker
+import matplotlib.table
 import numpy as np
 
 from pandas.util._exceptions import find_stack_level
@@ -19,8 +20,8 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Generator,
         Iterable,
+        Sequence,
     )
 
     from matplotlib.axes import Axes
@@ -79,7 +80,7 @@ def table(
 
     # error: Argument "cellText" to "table" has incompatible type "ndarray[Any,
     # Any]"; expected "Sequence[Sequence[str]] | None"
-    return mpl.table.table(
+    return matplotlib.table.table(
         ax,
         cellText=cellText,  # type: ignore[arg-type]
         rowLabels=rowLabels,
@@ -100,14 +101,13 @@ def _get_layout(
         nrows, ncols = layout
 
         if nrows == -1 and ncols > 0:
-            layout = (ceil(nplots / ncols), ncols)
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = (nrows, ceil(nplots / nrows))
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
 
-        nrows, ncols = layout
         if nrows * ncols < nplots:
             raise ValueError(
                 f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"
@@ -234,7 +234,7 @@ def create_subplots(
     else:
         if is_list_like(ax):
             if squeeze:
-                ax = np.fromiter(flatten_axes(ax), dtype=object)
+                ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
@@ -263,7 +263,7 @@ def create_subplots(
             if squeeze:
                 return fig, ax
             else:
-                return fig, np.fromiter(flatten_axes(ax), dtype=object)
+                return fig, flatten_axes(ax)
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
@@ -329,10 +329,10 @@ def _remove_labels_from_axis(axis: Axis) -> None:
 
     # set_visible will not be effective if
     # minor axis has NullLocator and NullFormatter (default)
-    if isinstance(axis.get_minor_locator(), mpl.ticker.NullLocator):
-        axis.set_minor_locator(mpl.ticker.AutoLocator())
-    if isinstance(axis.get_minor_formatter(), mpl.ticker.NullFormatter):
-        axis.set_minor_formatter(mpl.ticker.FormatStrFormatter(""))
+    if isinstance(axis.get_minor_locator(), ticker.NullLocator):
+        axis.set_minor_locator(ticker.AutoLocator())
+    if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
+        axis.set_minor_formatter(ticker.FormatStrFormatter(""))
     for t in axis.get_minorticklabels():
         t.set_visible(False)
 
@@ -442,31 +442,32 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Iterable[Axes]) -> Generator[Axes, None, None]:
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
-        yield axes  # type: ignore[misc]
+        return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
-        yield from np.asarray(axes).reshape(-1)
-    else:
-        yield from axes  # type: ignore[misc]
+        return np.asarray(axes).ravel()
+    return np.array(axes)
 
 
 def set_ticks_props(
-    axes: Axes | Iterable[Axes],
+    axes: Axes | Sequence[Axes],
     xlabelsize: int | None = None,
     xrot=None,
     ylabelsize: int | None = None,
     yrot=None,
 ):
+    import matplotlib.pyplot as plt
+
     for ax in flatten_axes(axes):
         if xlabelsize is not None:
-            mpl.artist.setp(ax.get_xticklabels(), fontsize=xlabelsize)  # type: ignore[arg-type]
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
         if xrot is not None:
-            mpl.artist.setp(ax.get_xticklabels(), rotation=xrot)  # type: ignore[arg-type]
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
         if ylabelsize is not None:
-            mpl.artist.setp(ax.get_yticklabels(), fontsize=ylabelsize)  # type: ignore[arg-type]
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
         if yrot is not None:
-            mpl.artist.setp(ax.get_yticklabels(), rotation=yrot)  # type: ignore[arg-type]
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
     return axes
 
 

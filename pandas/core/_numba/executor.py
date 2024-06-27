@@ -4,17 +4,15 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from pandas._typing import Scalar
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
-
-from pandas.core.util.numba_ import jit_user_function
 
 
 @functools.cache
@@ -23,10 +21,10 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         import numba
     else:
         numba = import_optional_dependency("numba")
-    nb_compat_func = jit_user_function(func)
+    nb_compat_func = numba.extending.register_jitable(func)
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def nb_looper(values, axis, *args):
+    def nb_looper(values, axis):
         # Operate on the first row/col in order to get
         # the output shape
         if axis == 0:
@@ -35,7 +33,7 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         else:
             first_elem = values[0]
             dim0 = values.shape[0]
-        res0 = nb_compat_func(first_elem, *args)
+        res0 = nb_compat_func(first_elem)
         # Use np.asarray to get shape for
         # https://github.com/numba/numba/issues/4202#issuecomment-1185981507
         buf_shape = (dim0,) + np.atleast_1d(np.asarray(res0)).shape
@@ -46,11 +44,11 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         if axis == 1:
             buff[0] = res0
             for i in numba.prange(1, values.shape[0]):
-                buff[i] = nb_compat_func(values[i], *args)
+                buff[i] = nb_compat_func(values[i])
         else:
             buff[:, 0] = res0
             for j in numba.prange(1, values.shape[1]):
-                buff[:, j] = nb_compat_func(values[:, j], *args)
+                buff[:, j] = nb_compat_func(values[:, j])
         return buff
 
     return nb_looper

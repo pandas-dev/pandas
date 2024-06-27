@@ -1,11 +1,11 @@
 """
 Hypothesis data generator helpers.
 """
-
 from datetime import datetime
 
 from hypothesis import strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
+from hypothesis.extra.pytz import timezones as pytz_timezones
 
 from pandas.compat import is_platform_windows
 
@@ -54,9 +54,13 @@ else:
     DATETIME_NO_TZ = st.datetimes()
 
 DATETIME_JAN_1_1900_OPTIONAL_TZ = st.datetimes(
-    min_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),  # pyright: ignore[reportArgumentType]
-    max_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),  # pyright: ignore[reportArgumentType]
-    timezones=st.one_of(st.none(), dateutil_timezones(), st.timezones()),
+    min_value=pd.Timestamp(
+        1900, 1, 1
+    ).to_pydatetime(),  # pyright: ignore[reportGeneralTypeIssues]
+    max_value=pd.Timestamp(
+        1900, 1, 1
+    ).to_pydatetime(),  # pyright: ignore[reportGeneralTypeIssues]
+    timezones=st.one_of(st.none(), dateutil_timezones(), pytz_timezones()),
 )
 
 DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ = st.datetimes(

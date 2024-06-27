@@ -96,10 +96,11 @@ def test_flex_binary_frame(method, frame):
     tm.assert_frame_equal(res, exp)
     tm.assert_frame_equal(res2, exp)
 
+    frame2 = frame.copy()
     frame2 = DataFrame(
-        np.random.default_rng(2).standard_normal(frame.shape),
-        index=frame.index,
-        columns=frame.columns,
+        np.random.default_rng(2).standard_normal(frame2.shape),
+        index=frame2.index,
+        columns=frame2.columns,
     )
 
     res3 = getattr(frame.rolling(window=10), method)(frame2)

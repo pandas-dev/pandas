@@ -20,10 +20,11 @@ pytestmark = pytest.mark.filterwarnings(
         lambda x: TimedeltaIndex(TimedeltaIndex(x)),
     ],
 )
-def test_timedeltaindex(cons):
+def test_timedeltaindex(using_copy_on_write, cons):
     dt = timedelta_range("1 day", periods=3)
     ser = Series(dt)
     idx = cons(ser)
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timedelta("5 days")
-    tm.assert_index_equal(idx, expected)
+    if using_copy_on_write:
+        tm.assert_index_equal(idx, expected)

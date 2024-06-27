@@ -1,11 +1,9 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
-
 from __future__ import annotations
 
 from collections.abc import (
-    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -17,6 +15,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     cast,
 )
 import warnings
@@ -52,7 +51,6 @@ from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
         StorageOptions,
@@ -286,9 +284,7 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(
-        self, style: str | None, width: str | None, color: str | None
-    ) -> str | None:
+    def _border_style(self, style: str | None, width: str | None, color: str | None):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -337,7 +333,7 @@ class CSSToExcelConverter:
             return self.BORDER_STYLE_MAP[style]
         else:
             warnings.warn(
-                f"Unhandled border style format: {style!r}",
+                f"Unhandled border style format: {repr(style)}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -473,7 +469,7 @@ class CSSToExcelConverter:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(
-                f"Unhandled color format: {val!r}",
+                f"Unhandled color format: {repr(val)}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -524,11 +520,8 @@ class ExcelFormatter:
         Column label for index column(s) if desired. If None is given, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : bool or 'columns', default False
-        Format MultiIndex column headers and Hierarchical Rows as merged cells
-        if True. Merge MultiIndex column headers only if 'columns'.
-        .. versionchanged:: 3.0.0
-            Added the 'columns' option.
+    merge_cells : bool, default False
+        Format MultiIndex and Hierarchical Rows as merged cells.
     inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
@@ -551,7 +544,7 @@ class ExcelFormatter:
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
-        merge_cells: ExcelWriterMergeCells = False,
+        merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Callable | None = None,
     ) -> None:
@@ -584,11 +577,21 @@ class ExcelFormatter:
         self.index = index
         self.index_label = index_label
         self.header = header
-
-        if not isinstance(merge_cells, bool) and merge_cells != "columns":
-            raise ValueError(f"Unexpected value for {merge_cells=}.")
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+
+    @property
+    def header_style(self) -> dict[str, dict[str, str | bool]]:
+        return {
+            "font": {"bold": True},
+            "borders": {
+                "top": "thin",
+                "right": "thin",
+                "bottom": "thin",
+                "left": "thin",
+            },
+            "alignment": {"horizontal": "center", "vertical": "top"},
+        }
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -621,23 +624,23 @@ class ExcelFormatter:
 
         columns = self.columns
         level_strs = columns._format_multi(
-            sparsify=self.merge_cells in {True, "columns"}, include_names=False
+            sparsify=self.merge_cells, include_names=False
         )
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
 
         if self.index and isinstance(self.df.index, MultiIndex):
-            coloffset = self.df.index.nlevels - 1
+            coloffset = len(self.df.index[0]) - 1
 
-        if self.merge_cells in {True, "columns"}:
+        if self.merge_cells:
             # Format multi-index as a merged cells.
             for lnum, name in enumerate(columns.names):
                 yield ExcelCell(
                     row=lnum,
                     col=coloffset,
                     val=name,
-                    style=None,
+                    style=self.header_style,
                 )
 
             for lnum, (spans, levels, level_codes) in enumerate(
@@ -652,7 +655,7 @@ class ExcelFormatter:
                         row=lnum,
                         col=coloffset + i + 1,
                         val=values[i],
-                        style=None,
+                        style=self.header_style,
                         css_styles=getattr(self.styler, "ctx_columns", None),
                         css_row=lnum,
                         css_col=i,
@@ -668,7 +671,7 @@ class ExcelFormatter:
                     row=lnum,
                     col=coloffset + i + 1,
                     val=v,
-                    style=None,
+                    style=self.header_style,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
                     css_col=i,
@@ -701,7 +704,7 @@ class ExcelFormatter:
                     row=self.rowcounter,
                     col=colindex + coloffset,
                     val=colname,
-                    style=None,
+                    style=self.header_style,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=0,
                     css_col=colindex,
@@ -724,7 +727,7 @@ class ExcelFormatter:
             ] * len(self.columns)
             if functools.reduce(lambda x, y: x and y, (x != "" for x in row)):
                 gen2 = (
-                    ExcelCell(self.rowcounter, colindex, val, None)
+                    ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
                 self.rowcounter += 1
@@ -758,7 +761,7 @@ class ExcelFormatter:
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
-                yield ExcelCell(self.rowcounter - 1, 0, index_label, None)
+                yield ExcelCell(self.rowcounter - 1, 0, index_label, self.header_style)
 
             # write index_values
             index_values = self.df.index
@@ -770,7 +773,7 @@ class ExcelFormatter:
                     row=self.rowcounter + idx,
                     col=0,
                     val=idxval,
-                    style=None,
+                    style=self.header_style,
                     css_styles=getattr(self.styler, "ctx_index", None),
                     css_row=idx,
                     css_col=0,
@@ -800,17 +803,15 @@ class ExcelFormatter:
             # with index names (blank if None) for
             # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, MultiIndex) and (
-                self.merge_cells in {True, "columns"}
-            ):
+            if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
             if com.any_not_none(*index_labels) and self.header is not False:
                 for cidx, name in enumerate(index_labels):
-                    yield ExcelCell(self.rowcounter - 1, cidx, name, None)
+                    yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
-            if self.merge_cells and self.merge_cells != "columns":
+            if self.merge_cells:
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index._format_multi(
                     sparsify=True, include_names=False
@@ -835,7 +836,7 @@ class ExcelFormatter:
                             row=self.rowcounter + i,
                             col=gcolidx,
                             val=values[i],
-                            style=None,
+                            style=self.header_style,
                             css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=i,
                             css_col=gcolidx,
@@ -853,7 +854,7 @@ class ExcelFormatter:
                             row=self.rowcounter + idx,
                             col=gcolidx,
                             val=indexcolval,
-                            style=None,
+                            style=self.header_style,
                             css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=idx,
                             css_col=gcolidx,

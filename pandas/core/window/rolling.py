@@ -2,7 +2,6 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-
 from __future__ import annotations
 
 import copy
@@ -13,6 +12,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
 )
 
@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -89,7 +92,6 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
         Hashable,
         Iterator,
@@ -98,6 +100,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        Axis,
         NDFrameT,
         QuantileInterpolation,
         WindowingRankType,
@@ -128,6 +131,7 @@ class BaseWindow(SelectionMixin):
         min_periods: int | None = None,
         center: bool | None = False,
         win_type: str | None = None,
+        axis: Axis = 0,
         on: str | Index | None = None,
         closed: str | None = None,
         step: int | None = None,
@@ -143,10 +147,15 @@ class BaseWindow(SelectionMixin):
         self.min_periods = min_periods
         self.center = center
         self.win_type = win_type
+        self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8: int | None = None
         if self.on is None:
-            self._on = self.obj.index
+            if self.axis == 0:
+                self._on = self.obj.index
+            else:
+                # i.e. self.axis == 1
+                self._on = self.obj.columns
         elif isinstance(self.on, Index):
             self._on = self.on
         elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
@@ -268,9 +277,15 @@ class BaseWindow(SelectionMixin):
         """
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
-            obj = obj.reindex(columns=obj.columns.difference([self.on]))
-        if obj.ndim > 1 and numeric_only:
+            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+        if obj.ndim > 1 and (numeric_only or self.axis == 1):
+            # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
+            # to float to calculate the complete row at once. We exclude all non-numeric
+            # dtypes.
             obj = self._make_numeric_only(obj)
+        if self.axis == 1:
+            obj = obj.astype("float64", copy=False)
+            obj._mgr = obj._mgr.consolidate()
         return obj
 
     def _gotitem(self, key, ndim, subset=None):
@@ -462,6 +477,9 @@ class BaseWindow(SelectionMixin):
             obj = notna(obj).astype(int)
             obj._mgr = obj._mgr.consolidate()
 
+        if self.axis == 1:
+            obj = obj.T
+
         taker = []
         res_values = []
         for i, arr in enumerate(obj._iter_column_arrays()):
@@ -487,6 +505,9 @@ class BaseWindow(SelectionMixin):
             verify_integrity=False,
         )
 
+        if self.axis == 1:
+            df = df.T
+
         return self._resolve_output(df, obj)
 
     def _apply_tablewise(
@@ -502,7 +523,9 @@ class BaseWindow(SelectionMixin):
             raise ValueError("method='table' not applicable for Series objects.")
         obj = self._create_data(self._selected_obj, numeric_only)
         values = self._prep_values(obj.to_numpy())
+        values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
+        result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         columns = (
             obj.columns
@@ -610,6 +633,8 @@ class BaseWindow(SelectionMixin):
             else window_indexer.window_size
         )
         obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.T
         values = self._prep_values(obj.to_numpy())
         if values.ndim == 1:
             values = values.reshape(-1, 1)
@@ -635,6 +660,7 @@ class BaseWindow(SelectionMixin):
         result = aggregator(
             values.T, start=start, end=end, min_periods=min_periods, **func_kwargs
         ).T
+        result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
             result = result.squeeze()
@@ -820,7 +846,7 @@ class BaseWindowGroupby(BaseWindow):
             result_levels = [idx_levels]
             result_names = [result.index.name]
 
-            # 3) Create the resulting index by combining 1) + 2)
+        # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
         result_levels = groupby_levels + result_levels
         result_names = self._grouper.names + result_names
@@ -870,8 +896,8 @@ class Window(BaseWindow):
         If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
-        To learn more about the offsets & frequency strings, please see
-        :ref:`this link<timeseries.offset_aliases>`.
+        To learn more about the offsets & frequency strings, please see `this link
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
@@ -909,12 +935,24 @@ class Window(BaseWindow):
         Provided integer column is ignored and excluded from result since
         an integer index is not used to calculate the rolling window.
 
+    axis : int or str, default 0
+        If ``0`` or ``'index'``, roll across the rows.
+
+        If ``1`` or ``'columns'``, roll across the columns.
+
+        For `Series` this parameter is unused and defaults to 0.
+
+        .. deprecated:: 2.1.0
+
+            The axis keyword is deprecated. For ``axis=1``,
+            transpose the DataFrame first instead.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
         If ``'left'``, the last point in the window is excluded from calculations.
 
-        If ``'both'``, no point in the window is excluded from calculations.
+        If ``'both'``, the no points in the window are excluded from calculations.
 
         If ``'neither'``, the first and last points in the window are excluded
         from calculations.
@@ -922,11 +960,12 @@ class Window(BaseWindow):
         Default ``None`` (``'right'``).
 
     step : int, default None
+
+        .. versionadded:: 1.5.0
+
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
         than None or 1 will produce a result with a different shape than the input.
-
-        .. versionadded:: 1.5.0
 
     method : str {'single', 'table'}, default 'single'
 
@@ -956,7 +995,7 @@ class Window(BaseWindow):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
     0  0.0
@@ -979,16 +1018,12 @@ class Window(BaseWindow):
 
     Rolling sum with a window span of 2 seconds.
 
-    >>> df_time = pd.DataFrame(
-    ...     {"B": [0, 1, 2, np.nan, 4]},
-    ...     index=[
-    ...         pd.Timestamp("20130101 09:00:00"),
-    ...         pd.Timestamp("20130101 09:00:02"),
-    ...         pd.Timestamp("20130101 09:00:03"),
-    ...         pd.Timestamp("20130101 09:00:05"),
-    ...         pd.Timestamp("20130101 09:00:06"),
-    ...     ],
-    ... )
+    >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+    ...                        index=[pd.Timestamp('20130101 09:00:00'),
+    ...                               pd.Timestamp('20130101 09:00:02'),
+    ...                               pd.Timestamp('20130101 09:00:03'),
+    ...                               pd.Timestamp('20130101 09:00:05'),
+    ...                               pd.Timestamp('20130101 09:00:06')])
 
     >>> df_time
                            B
@@ -998,7 +1033,7 @@ class Window(BaseWindow):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-    >>> df_time.rolling("2s").sum()
+    >>> df_time.rolling('2s').sum()
                            B
     2013-01-01 09:00:00  0.0
     2013-01-01 09:00:02  1.0
@@ -1066,7 +1101,7 @@ class Window(BaseWindow):
     Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
     window type. ``std`` is required in the aggregation function.
 
-    >>> df.rolling(2, win_type="gaussian").sum(std=3)
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
               B
     0       NaN
     1  0.986207
@@ -1078,17 +1113,12 @@ class Window(BaseWindow):
 
     Rolling sum with a window length of 2 days.
 
-    >>> df = pd.DataFrame(
-    ...     {
-    ...         "A": [
-    ...             pd.to_datetime("2020-01-01"),
-    ...             pd.to_datetime("2020-01-01"),
-    ...             pd.to_datetime("2020-01-02"),
-    ...         ],
-    ...         "B": [1, 2, 3],
-    ...     },
-    ...     index=pd.date_range("2020", periods=3),
-    ... )
+    >>> df = pd.DataFrame({
+    ...     'A': [pd.to_datetime('2020-01-01'),
+    ...           pd.to_datetime('2020-01-01'),
+    ...           pd.to_datetime('2020-01-02'),],
+    ...     'B': [1, 2, 3], },
+    ...     index=pd.date_range('2020', periods=3))
 
     >>> df
                         A  B
@@ -1096,7 +1126,7 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  2
     2020-01-03 2020-01-02  3
 
-    >>> df.rolling("2D", on="A").sum()
+    >>> df.rolling('2D', on='A').sum()
                         A    B
     2020-01-01 2020-01-01  1.0
     2020-01-02 2020-01-01  3.0
@@ -1108,13 +1138,14 @@ class Window(BaseWindow):
         "min_periods",
         "center",
         "win_type",
+        "axis",
         "on",
         "closed",
         "step",
         "method",
     ]
 
-    def _validate(self) -> None:
+    def _validate(self):
         super()._validate()
 
         if not isinstance(self.win_type, str):
@@ -1213,8 +1244,8 @@ class Window(BaseWindow):
             """
         See Also
         --------
-        DataFrame.aggregate : Similar DataFrame method.
-        Series.aggregate : Similar Series method.
+        pandas.DataFrame.aggregate : Similar DataFrame method.
+        pandas.Series.aggregate : Similar Series method.
         """
         ),
         examples=dedent(
@@ -1827,13 +1858,14 @@ class Rolling(RollingAndExpandingMixin):
         "min_periods",
         "center",
         "win_type",
+        "axis",
         "on",
         "closed",
         "step",
         "method",
     ]
 
-    def _validate(self) -> None:
+    def _validate(self):
         super()._validate()
 
         # we allow rolling on a datetimelike index
@@ -1894,7 +1926,10 @@ class Rolling(RollingAndExpandingMixin):
     def _raise_monotonic_error(self, msg: str):
         on = self.on
         if on is None:
-            on = "index"
+            if self.axis == 0:
+                on = "index"
+            else:
+                on = "column"
         raise ValueError(f"{on} {msg}")
 
     @doc(
@@ -1903,8 +1938,8 @@ class Rolling(RollingAndExpandingMixin):
             """
         See Also
         --------
-        Series.rolling : Calling object with Series data.
-        DataFrame.rolling : Calling object with DataFrame data.
+        pandas.Series.rolling : Calling object with Series data.
+        pandas.DataFrame.rolling : Calling object with DataFrame data.
         """
         ),
         examples=dedent(
@@ -2508,11 +2543,11 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        q : float
+        quantile : float
             Quantile to compute. 0 <= quantile <= 1.
 
             .. deprecated:: 2.1.0
-                This was renamed from 'quantile' to 'q' in version 2.1.0.
+                This will be renamed to 'q' in a future version.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2553,6 +2588,7 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
         q: float,
@@ -2875,7 +2911,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_datetimelike_monotonic(self) -> None:
+    def _validate_datetimelike_monotonic(self):
         """
         Validate that each group in self._on is monotonic
         """

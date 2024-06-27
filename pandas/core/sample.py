@@ -1,7 +1,6 @@
 """
 Module containing utilities for NDFrame.sample() and .GroupBy.sample()
 """
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

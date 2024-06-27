@@ -6,7 +6,6 @@ Numba 1D min/max kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

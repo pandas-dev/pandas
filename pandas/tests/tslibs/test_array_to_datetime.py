@@ -15,6 +15,7 @@ from pandas._libs import (
     tslib,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas import Timestamp
 import pandas._testing as tm
@@ -155,7 +156,7 @@ def test_parsing_valid_dates(data, expected):
     arr = np.array(data, dtype=object)
     result, _ = tslib.array_to_datetime(arr)
 
-    expected = np.array(expected, dtype="M8[s]")
+    expected = np.array(expected, dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -173,8 +174,6 @@ def test_parsing_timezone_offsets(dt_string, expected_tz):
     # to the same datetime after the timezone offset is added.
     arr = np.array(["01-01-2013 00:00:00"], dtype=object)
     expected, _ = tslib.array_to_datetime(arr)
-    if "000000000" in dt_string:
-        expected = expected.astype("M8[ns]")
 
     arr = np.array([dt_string], dtype=object)
     result, result_tz = tslib.array_to_datetime(arr)
@@ -201,57 +200,88 @@ def test_parsing_different_timezone_offsets():
     data = ["2015-11-18 15:30:00+05:30", "2015-11-18 15:30:00+06:30"]
     data = np.array(data, dtype=object)
 
-    msg = "Mixed timezones detected. Pass utc=True in to_datetime"
-    with pytest.raises(ValueError, match=msg):
-        tslib.array_to_datetime(data)
+    msg = "parsing datetimes with mixed time zones will raise an error"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result, result_tz = tslib.array_to_datetime(data)
+    expected = np.array(
+        [
+            datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 19800)),
+            datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 23400)),
+        ],
+        dtype=object,
+    )
+
+    tm.assert_numpy_array_equal(result, expected)
+    assert result_tz is None
 
 
 @pytest.mark.parametrize(
-    "invalid_date,exp_unit",
+    "data", [["-352.737091", "183.575577"], ["1", "2", "3", "4", "5"]]
+)
+def test_number_looking_strings_not_into_datetime(data):
+    # see gh-4601
+    #
+    # These strings don't look like datetimes, so
+    # they shouldn't be attempted to be converted.
+    arr = np.array(data, dtype=object)
+    result, _ = tslib.array_to_datetime(arr, errors="ignore")
+
+    tm.assert_numpy_array_equal(result, arr)
+
+
+@pytest.mark.parametrize(
+    "invalid_date",
     [
-        (date(1000, 1, 1), "s"),
-        (datetime(1000, 1, 1), "us"),
-        ("1000-01-01", "s"),
-        ("Jan 1, 1000", "s"),
-        (np.datetime64("1000-01-01"), "s"),
+        date(1000, 1, 1),
+        datetime(1000, 1, 1),
+        "1000-01-01",
+        "Jan 1, 1000",
+        np.datetime64("1000-01-01"),
     ],
 )
 @pytest.mark.parametrize("errors", ["coerce", "raise"])
-def test_coerce_outside_ns_bounds(invalid_date, exp_unit, errors):
+def test_coerce_outside_ns_bounds(invalid_date, errors):
     arr = np.array([invalid_date], dtype="object")
+    kwargs = {"values": arr, "errors": errors}
 
-    result, _ = tslib.array_to_datetime(arr, errors=errors)
-    out_reso = np.datetime_data(result.dtype)[0]
-    assert out_reso == exp_unit
-    ts = Timestamp(invalid_date)
-    assert ts.unit == exp_unit
+    if errors == "raise":
+        msg = "^Out of bounds nanosecond timestamp: .*, at position 0$"
 
-    expected = np.array([ts._value], dtype=f"M8[{exp_unit}]")
-    tm.assert_numpy_array_equal(result, expected)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            tslib.array_to_datetime(**kwargs)
+    else:  # coerce.
+        result, _ = tslib.array_to_datetime(**kwargs)
+        expected = np.array([iNaT], dtype="M8[ns]")
+
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def test_coerce_outside_ns_bounds_one_valid():
     arr = np.array(["1/1/1000", "1/1/2000"], dtype=object)
     result, _ = tslib.array_to_datetime(arr, errors="coerce")
 
-    expected = ["1000-01-01T00:00:00.000000000", "2000-01-01T00:00:00.000000000"]
-    expected = np.array(expected, dtype="M8[s]")
+    expected = [iNaT, "2000-01-01T00:00:00.000000000"]
+    expected = np.array(expected, dtype="M8[ns]")
 
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_coerce_of_invalid_datetimes():
+@pytest.mark.parametrize("errors", ["ignore", "coerce"])
+def test_coerce_of_invalid_datetimes(errors):
     arr = np.array(["01-01-2013", "not_a_date", "1"], dtype=object)
-    # With coercing, the invalid dates becomes iNaT
-    result, _ = tslib.array_to_datetime(arr, errors="coerce")
-    expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
-    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[s]"))
+    kwargs = {"values": arr, "errors": errors}
 
-    # With coercing, the invalid dates becomes iNaT
-    result, _ = tslib.array_to_datetime(arr, errors="coerce")
-    expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
+    if errors == "ignore":
+        # Without coercing, the presence of any invalid
+        # dates prevents any values from being converted.
+        result, _ = tslib.array_to_datetime(**kwargs)
+        tm.assert_numpy_array_equal(result, arr)
+    else:  # coerce.
+        # With coercing, the invalid dates becomes iNaT
+        result, _ = tslib.array_to_datetime(arr, errors="coerce")
+        expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
 
-    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[s]"))
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))
 
 
 def test_to_datetime_barely_out_of_bounds():
@@ -287,14 +317,21 @@ class SubDatetime(datetime):
     pass
 
 
-@pytest.mark.parametrize("klass", [SubDatetime, datetime, Timestamp])
-def test_datetime_subclass(klass):
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        ([SubDatetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
+        ([datetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
+        ([Timestamp(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
+    ],
+)
+def test_datetime_subclass(data, expected):
     # GH 25851
     # ensure that subclassed datetime works with
     # array_to_datetime
 
-    arr = np.array([klass(2000, 1, 1)], dtype=object)
+    arr = np.array(data, dtype=object)
     result, _ = tslib.array_to_datetime(arr)
 
-    expected = np.array(["2000-01-01T00:00:00.000000"], dtype="M8[us]")
+    expected = np.array(expected, dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)

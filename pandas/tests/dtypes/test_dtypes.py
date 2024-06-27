@@ -3,6 +3,7 @@ import weakref
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
@@ -390,9 +391,8 @@ class TestDatetimeTZDtype(Base):
 
     def test_tz_standardize(self):
         # GH 24713
-        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz=tz)
+        dr = date_range("2013-01-01", periods=3, tz="US/Eastern")
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
@@ -959,24 +959,25 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
+    @pytest.mark.parametrize("ordered1", [True, False, None])
     @pytest.mark.parametrize("ordered2", [True, False, None])
-    def test_categorical_equality(self, ordered, ordered2):
+    def test_categorical_equality(self, ordered1, ordered2):
         # same categories, same order
         # any combination of None/False are equal
         # True/True is the only combination with True that are equal
-        c1 = CategoricalDtype(list("abc"), ordered)
+        c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(list("abc"), ordered2)
         result = c1 == c2
-        expected = bool(ordered) is bool(ordered2)
+        expected = bool(ordered1) is bool(ordered2)
         assert result is expected
 
         # same categories, different order
         # any combination of None/False are equal (order doesn't matter)
         # any combination with True are not equal (different order of cats)
-        c1 = CategoricalDtype(list("abc"), ordered)
+        c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(list("cab"), ordered2)
         result = c1 == c2
-        expected = (bool(ordered) is False) and (bool(ordered2) is False)
+        expected = (bool(ordered1) is False) and (bool(ordered2) is False)
         assert result is expected
 
         # different categories
@@ -984,9 +985,9 @@ class TestCategoricalDtypeParametrized:
         assert c1 != c2
 
         # none categories
-        c1 = CategoricalDtype(list("abc"), ordered)
+        c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(None, ordered2)
-        c3 = CategoricalDtype(None, ordered)
+        c3 = CategoricalDtype(None, ordered1)
         assert c1 != c2
         assert c2 != c1
         assert c2 == c3
@@ -1230,16 +1231,4 @@ def test_multi_column_dtype_assignment():
     tm.assert_frame_equal(df, expected)
 
     df["b"] = 0
-    tm.assert_frame_equal(df, expected)
-
-
-def test_loc_setitem_empty_labels_no_dtype_conversion():
-    # GH 29707
-
-    df = pd.DataFrame({"a": [2, 3]})
-    expected = df.copy()
-    assert df.a.dtype == "int64"
-    df.loc[[]] = 0.1
-
-    assert df.a.dtype == "int64"
     tm.assert_frame_equal(df, expected)

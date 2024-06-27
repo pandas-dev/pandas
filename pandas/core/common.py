@@ -3,7 +3,6 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
-
 from __future__ import annotations
 
 import builtins
@@ -12,7 +11,6 @@ from collections import (
     defaultdict,
 )
 from collections.abc import (
-    Callable,
     Collection,
     Generator,
     Hashable,
@@ -25,7 +23,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeVar,
+    Callable,
     cast,
     overload,
 )
@@ -53,9 +51,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
-        P,
         RandomState,
         T,
     )
@@ -228,7 +224,8 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike: ...
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+    ...
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
@@ -335,12 +332,11 @@ def is_empty_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
+def is_true_slices(line) -> list[bool]:
     """
-    Find non-trivial slices in "line": yields a bool.
+    Find non-trivial slices in "line": return a list of booleans with same length.
     """
-    for k in line:
-        yield isinstance(k, slice) and not is_null_slice(k)
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
@@ -423,13 +419,15 @@ def standardize_mapping(into):
 
 
 @overload
-def random_state(state: np.random.Generator) -> np.random.Generator: ...
+def random_state(state: np.random.Generator) -> np.random.Generator:
+    ...
 
 
 @overload
 def random_state(
     state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
-) -> np.random.RandomState: ...
+) -> np.random.RandomState:
+    ...
 
 
 def random_state(state: RandomState | None = None):
@@ -467,32 +465,8 @@ def random_state(state: RandomState | None = None):
         )
 
 
-_T = TypeVar("_T")  # Secondary TypeVar for use in pipe's type hints
-
-
-@overload
 def pipe(
-    obj: _T,
-    func: Callable[Concatenate[_T, P], T],
-    *args: P.args,
-    **kwargs: P.kwargs,
-) -> T: ...
-
-
-@overload
-def pipe(
-    obj: Any,
-    func: tuple[Callable[..., T], str],
-    *args: Any,
-    **kwargs: Any,
-) -> T: ...
-
-
-def pipe(
-    obj: _T,
-    func: Callable[Concatenate[_T, P], T] | tuple[Callable[..., T], str],
-    *args: Any,
-    **kwargs: Any,
+    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
 ) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -518,13 +492,12 @@ def pipe(
     object : the return type of ``func``.
     """
     if isinstance(func, tuple):
-        # Assigning to func_ so pyright understands that it's a callable
-        func_, target = func
+        func, target = func
         if target in kwargs:
             msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
-        return func_(*args, **kwargs)
+        return func(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
 
@@ -605,6 +578,22 @@ def require_length_match(data, index: Index) -> None:
         )
 
 
+# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
+#  whereas np.min and np.max (which directly call obj.min and obj.max)
+#  default to axis=None.
+_builtin_table = {
+    builtins.sum: np.sum,
+    builtins.max: np.maximum.reduce,
+    builtins.min: np.minimum.reduce,
+}
+
+# GH#53425: Only for deprecation
+_builtin_table_alias = {
+    builtins.sum: "np.sum",
+    builtins.max: "np.maximum.reduce",
+    builtins.min: "np.minimum.reduce",
+}
+
 _cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
@@ -639,6 +628,14 @@ def get_cython_func(arg: Callable) -> str | None:
     if we define an internal function for this argument, return it
     """
     return _cython_table.get(arg)
+
+
+def is_builtin_func(arg):
+    """
+    if we define a builtin function for this argument, return it,
+    otherwise return the arg
+    """
+    return _builtin_table.get(arg, arg)
 
 
 def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:

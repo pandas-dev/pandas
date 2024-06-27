@@ -33,6 +33,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
+    validate_fillna_kwargs,
     validate_insert_loc,
 )
 
@@ -88,9 +89,7 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
-# is incompatible with definition in base class "ExtensionArray"
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
@@ -210,7 +209,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise ValueError("Encountered an NA value with skipna=False")
+            raise NotImplementedError
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
@@ -218,7 +217,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise ValueError("Encountered an NA value with skipna=False")
+            raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
 
     def unique(self) -> Self:
@@ -249,7 +248,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     @doc(ExtensionArray.shift)
-    def shift(self, periods: int = 1, fill_value=None) -> Self:
+    def shift(self, periods: int = 1, fill_value=None):
         # NB: shift is always along axis=0
         axis = 0
         fill_value = self._validate_scalar(fill_value)
@@ -266,13 +265,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return value
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any: ...
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> Self: ...
+    ) -> Self:
+        ...
 
     def __getitem__(
         self,
@@ -295,6 +296,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
         result = self._from_backing_data(result)
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        # (for now) when self.ndim == 2, we assume axis=0
+        func = missing.get_fill_func(method, ndim=self.ndim)
+        func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
         self,
@@ -328,33 +336,44 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
+
         mask = self.isna()
-        if limit is not None and limit < len(self):
-            # mypy doesn't like that mask can be an EA which need not have `cumsum`
-            modify = mask.cumsum() > limit  # type: ignore[union-attr]
-            if modify.any():
-                # Only copy mask if necessary
-                mask = mask.copy()
-                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value,
-            mask,  # type: ignore[arg-type]
-            len(self),
+            value, mask, len(self)  # type: ignore[arg-type]
         )
 
         if mask.any():
-            # fill with value
-            if copy:
-                new_values = self.copy()
+            if method is not None:
+                # (for now) when self.ndim == 2, we assume axis=0
+                func = missing.get_fill_func(method, ndim=self.ndim)
+                npvalues = self._ndarray.T
+                if copy:
+                    npvalues = npvalues.copy()
+                func(npvalues, limit=limit, mask=mask.T)
+                npvalues = npvalues.T
+
+                # TODO: NumpyExtensionArray didn't used to copy, need tests
+                #  for this
+                new_values = self._from_backing_data(npvalues)
             else:
-                new_values = self[:]
-            new_values[mask] = value
+                # fill with value
+                if copy:
+                    new_values = self.copy()
+                else:
+                    new_values = self[:]
+                new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
-            self._validate_setitem_value(value)
+            if value is not None:
+                self._validate_setitem_value(value)
 
             if not copy:
                 new_values = self[:]
@@ -365,7 +384,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
+    def _wrap_reduction_result(self, axis: AxisInt | None, result):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)

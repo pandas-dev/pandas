@@ -133,7 +133,7 @@ def test_compression_warning(compression_only):
     )
     with tm.ensure_clean() as path:
         with icom.get_handle(path, "w", compression=compression_only) as handles:
-            with tm.assert_produces_warning(RuntimeWarning, match="has no effect"):
+            with tm.assert_produces_warning(RuntimeWarning):
                 df.to_csv(handles.handle, compression=compression_only)
 
 
@@ -231,7 +231,7 @@ def test_with_missing_lzma():
 
 @pytest.mark.single_cpu
 def test_with_missing_lzma_runtime():
-    """Tests if ModuleNotFoundError is hit when calling lzma without
+    """Tests if RuntimeError is hit when calling lzma without
     having the module available.
     """
     code = textwrap.dedent(
@@ -241,7 +241,7 @@ def test_with_missing_lzma_runtime():
         sys.modules['lzma'] = None
         import pandas as pd
         df = pd.DataFrame()
-        with pytest.raises(ModuleNotFoundError, match='import of lzma'):
+        with pytest.raises(RuntimeError, match='lzma module'):
             df.to_csv('foo.csv', compression='xz')
         """
     )

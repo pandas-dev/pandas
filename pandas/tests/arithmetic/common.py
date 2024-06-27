@@ -1,7 +1,6 @@
 """
 Assertion helpers for arithmetic tests.
 """
-
 import numpy as np
 import pytest
 
@@ -20,16 +19,13 @@ from pandas.core.arrays import (
 
 def assert_cannot_add(left, right, msg="cannot add"):
     """
-    Helper function to assert that two objects cannot be added.
+    Helper to assert that left and right cannot be added.
 
     Parameters
     ----------
     left : object
-        The first operand.
     right : object
-        The second operand.
     msg : str, default "cannot add"
-        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right
@@ -39,17 +35,13 @@ def assert_cannot_add(left, right, msg="cannot add"):
 
 def assert_invalid_addsub_type(left, right, msg=None):
     """
-    Helper function to assert that two objects can
-    neither be added nor subtracted.
+    Helper to assert that left and right can be neither added nor subtracted.
 
     Parameters
     ----------
     left : object
-        The first operand.
     right : object
-        The second operand.
     msg : str or None, default None
-        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right

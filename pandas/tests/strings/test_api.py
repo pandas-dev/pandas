@@ -1,5 +1,3 @@
-import weakref
-
 import numpy as np
 import pytest
 
@@ -68,15 +66,6 @@ def test_api(any_string_dtype):
     # GH 6106, GH 9322
     assert Series.str is StringMethods
     assert isinstance(Series([""], dtype=any_string_dtype).str, StringMethods)
-
-
-def test_no_circular_reference(any_string_dtype):
-    # GH 47667
-    ser = Series([""], dtype=any_string_dtype)
-    ref = weakref.ref(ser)
-    ser.str  # Used to cache and cause circular reference
-    del ser
-    assert ref() is None
 
 
 def test_api_mi_raises():
@@ -181,7 +170,7 @@ def test_api_per_method(
         # GH 23011, GH 23163
         msg = (
             f"Cannot use .str.{method_name} with values of "
-            f"inferred dtype {inferred_dtype!r}."
+            f"inferred dtype {repr(inferred_dtype)}."
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)

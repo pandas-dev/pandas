@@ -111,10 +111,12 @@ class TestSample:
             obj.sample(n=3, weights=[0, 1])
 
         with pytest.raises(ValueError, match=msg):
-            obj.sample(n=3, weights=[0.5] * 11)
+            bad_weights = [0.5] * 11
+            obj.sample(n=3, weights=bad_weights)
 
         with pytest.raises(ValueError, match="Fewer non-zero entries in p than size"):
-            obj.sample(n=4, weights=Series([0, 0, 0.2]))
+            bad_weight_series = Series([0, 0, 0.2])
+            obj.sample(n=4, weights=bad_weight_series)
 
     def test_sample_negative_weights(self, obj):
         # Check won't accept negative weights
@@ -333,7 +335,7 @@ class TestSampleDataFrame:
 
     def test_sample_is_copy(self):
         # GH#27357, GH#30784: ensure the result of sample is an actual copy and
-        # doesn't track the parent dataframe
+        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )

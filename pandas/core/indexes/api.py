@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import textwrap
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -22,7 +23,6 @@ from pandas.core.indexes.base import (
     ensure_index,
     ensure_index_from_sequences,
     get_unanimous_names,
-    maybe_sequence_to_range,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -34,6 +34,16 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
     from pandas._typing import Axis
+_sort_msg = textwrap.dedent(
+    """\
+Sorting because non-concatenation axis is not aligned. A future version
+of pandas will change to not sort by default.
+
+To accept the future behavior, pass 'sort=False'.
+
+To retain the current behavior and silence the warning, pass 'sort=True'.
+"""
+)
 
 
 __all__ = [
@@ -56,7 +66,6 @@ __all__ = [
     "all_indexes_same",
     "default_index",
     "safe_sort_index",
-    "maybe_sequence_to_range",
 ]
 
 
@@ -65,6 +74,7 @@ def get_objs_combined_axis(
     intersect: bool = False,
     axis: Axis = 0,
     sort: bool = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -82,13 +92,15 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -109,6 +121,7 @@ def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
+    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -122,6 +135,8 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -130,7 +145,7 @@ def _get_combined_index(
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
-        index: Index = default_index(0)
+        index = Index([])
     elif len(indexes) == 1:
         index = indexes[0]
     elif intersect:
@@ -143,6 +158,10 @@ def _get_combined_index(
 
     if sort:
         index = safe_sort_index(index)
+    # GH 29879
+    if copy:
+        index = index.copy()
+
     return index
 
 
@@ -209,28 +228,77 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     indexes, kind = _sanitize_and_check(indexes)
 
+    def _unique_indices(inds, dtype) -> Index:
+        """
+        Concatenate indices and remove duplicates.
+
+        Parameters
+        ----------
+        inds : list of Index or list objects
+        dtype : dtype to set for the resulting Index
+
+        Returns
+        -------
+        Index
+        """
+        if all(isinstance(ind, Index) for ind in inds):
+            inds = [ind.astype(dtype, copy=False) for ind in inds]
+            result = inds[0].unique()
+            other = inds[1].append(inds[2:])
+            diff = other[result.get_indexer_for(other) == -1]
+            if len(diff):
+                result = result.append(diff.unique())
+            if sort:
+                result = result.sort_values()
+            return result
+
+        def conv(i):
+            if isinstance(i, Index):
+                i = i.tolist()
+            return i
+
+        return Index(
+            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort),
+            dtype=dtype,
+        )
+
+    def _find_common_index_dtype(inds):
+        """
+        Finds a common type for the indexes to pass through to resulting index.
+
+        Parameters
+        ----------
+        inds: list of Index or list objects
+
+        Returns
+        -------
+        The common type or None if no indexes were given
+        """
+        dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
+        if dtypes:
+            dtype = find_common_type(dtypes)
+        else:
+            dtype = None
+
+        return dtype
+
     if kind == "special":
         result = indexes[0]
 
-        num_dtis = 0
-        num_dti_tzs = 0
-        for idx in indexes:
-            if isinstance(idx, DatetimeIndex):
-                num_dtis += 1
-                if idx.tz is not None:
-                    num_dti_tzs += 1
-        if num_dti_tzs not in [0, num_dtis]:
+        dtis = [x for x in indexes if isinstance(x, DatetimeIndex)]
+        dti_tzs = [x for x in dtis if x.tz is not None]
+        if len(dti_tzs) not in [0, len(dtis)]:
             # TODO: this behavior is not tested (so may not be desired),
             #  but is kept in order to keep behavior the same when
             #  deprecating union_many
             # test_frame_from_dict_with_mixed_indexes
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
-        if num_dtis == len(indexes):
+        if len(dtis) == len(indexes):
             sort = True
             result = indexes[0]
 
-        elif num_dtis > 1:
+        elif len(dtis) > 1:
             # If we have mixed timezones, our casting behavior may depend on
             #  the order of indexes, which we don't want.
             sort = False
@@ -245,36 +313,18 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         return result
 
     elif kind == "array":
-        if not all_indexes_same(indexes):
-            dtype = find_common_type([idx.dtype for idx in indexes])
-            inds = [ind.astype(dtype, copy=False) for ind in indexes]
-            index = inds[0].unique()
-            other = inds[1].append(inds[2:])
-            diff = other[index.get_indexer_for(other) == -1]
-            if len(diff):
-                index = index.append(diff.unique())
-            if sort:
-                index = index.sort_values()
-        else:
-            index = indexes[0]
+        dtype = _find_common_index_dtype(indexes)
+        index = indexes[0]
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes, dtype)
 
         name = get_unanimous_names(*indexes)[0]
         if name != index.name:
             index = index.rename(name)
         return index
-    elif kind == "list":
-        dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
-        if dtypes:
-            dtype = find_common_type(dtypes)
-        else:
-            dtype = None
-        all_lists = (idx.tolist() if isinstance(idx, Index) else idx for idx in indexes)
-        return Index(
-            lib.fast_unique_multiple_list_gen(all_lists, sort=bool(sort)),
-            dtype=dtype,
-        )
-    else:
-        raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
+    else:  # kind='list'
+        dtype = _find_common_index_dtype(indexes)
+        return _unique_indices(indexes, dtype)
 
 
 def _sanitize_and_check(indexes):
@@ -298,14 +348,14 @@ def _sanitize_and_check(indexes):
     sanitized_indexes : list of Index or list objects
     type : {'list', 'array', 'special'}
     """
-    kinds = {type(index) for index in indexes}
+    kinds = list({type(index) for index in indexes})
 
     if list in kinds:
         if len(kinds) > 1:
             indexes = [
                 Index(list(x)) if not isinstance(x, Index) else x for x in indexes
             ]
-            kinds -= {list}
+            kinds.remove(list)
         else:
             return indexes, "list"
 

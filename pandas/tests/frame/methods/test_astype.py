@@ -122,11 +122,11 @@ class TestAstype:
     def test_astype_with_view_float(self, float_frame):
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        tf.astype(np.float32)
+        tf.astype(np.float32, copy=False)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        tf.astype(np.int64)
+        tf.astype(np.int64, copy=False)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
@@ -134,8 +134,9 @@ class TestAstype:
         tf.astype(np.int64)
         tf.astype(np.float32)
 
+    @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
-    def test_astype_cast_nan_inf_int(self, val, any_int_numpy_dtype):
+    def test_astype_cast_nan_inf_int(self, val, dtype):
         # see GH#14265
         #
         # Check NaN and inf --> raise error when converting to int.
@@ -143,13 +144,13 @@ class TestAstype:
         df = DataFrame([val])
 
         with pytest.raises(ValueError, match=msg):
-            df.astype(any_int_numpy_dtype)
+            df.astype(dtype)
 
     def test_astype_str(self):
         # see GH#9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
-        c = Series([Timedelta(x, unit="D") for x in range(5)])
+        c = Series([Timedelta(x, unit="d") for x in range(5)])
         d = Series(range(5))
         e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
 
@@ -322,9 +323,9 @@ class TestAstype:
         with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
 
-    def test_astype_extension_dtypes(self, any_int_ea_dtype):
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
+    def test_astype_extension_dtypes(self, dtype):
         # GH#22578
-        dtype = any_int_ea_dtype
         df = DataFrame([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], columns=["a", "b"])
 
         expected1 = DataFrame(
@@ -347,9 +348,9 @@ class TestAstype:
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
-    def test_astype_extension_dtypes_1d(self, any_int_ea_dtype):
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
+    def test_astype_extension_dtypes_1d(self, dtype):
         # GH#22578
-        dtype = any_int_ea_dtype
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
 
         expected1 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
@@ -432,13 +433,14 @@ class TestAstype:
         else:
             assert result.iloc[0, 0] == Timedelta(1, unit=unit)
 
+    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_astype_to_datetimelike_unit(self, any_real_numpy_dtype, dtype, unit):
+    def test_astype_to_datetimelike_unit(self, arr_dtype, dtype, unit):
         # tests all units from numeric origination
         # GH#19223 / GH#12425
         dtype = f"{dtype}[{unit}]"
-        arr = np.array([[1, 2, 3]], dtype=any_real_numpy_dtype)
+        arr = np.array([[1, 2, 3]], dtype=arr_dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
         expected = DataFrame(arr.astype(dtype))
@@ -496,10 +498,11 @@ class TestAstype:
         assert exp_dta.dtype == dtype
         tm.assert_extension_array_equal(res_dta, exp_dta)
 
-    def test_astype_to_timedelta_unit_ns(self):
+    @pytest.mark.parametrize("unit", ["ns"])
+    def test_astype_to_timedelta_unit_ns(self, unit):
         # preserver the timedelta conversion
         # GH#19223
-        dtype = "m8[ns]"
+        dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -553,11 +556,27 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a datetimelike from "
+                rf"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a timedelta from "
+                rf"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
+            ]
+        )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
@@ -851,7 +870,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
     # GH 42501
 
     def copy(self):
-        raise NotImplementedError
+        assert False
 
 
 class Int16DtypeNoCopy(pd.Int16Dtype):
@@ -865,7 +884,7 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 def test_frame_astype_no_copy():
     # GH 42501
     df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
-    result = df.astype({"a": Int16DtypeNoCopy()})
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
@@ -876,7 +895,7 @@ def test_astype_copies(dtype):
     # GH#50984
     pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
-    result = df.astype("int64[pyarrow]")
+    result = df.astype("int64[pyarrow]", copy=True)
     df.iloc[0, 0] = 100
     expected = DataFrame({"a": [1, 2, 3]}, dtype="int64[pyarrow]")
     tm.assert_frame_equal(result, expected)
@@ -888,5 +907,5 @@ def test_astype_to_string_not_modifying_input(string_storage, val):
     df = DataFrame({"a": ["a", "b", val]})
     expected = df.copy()
     with option_context("mode.string_storage", string_storage):
-        df.astype("string")
+        df.astype("string", copy=False)
     tm.assert_frame_equal(df, expected)

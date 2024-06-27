@@ -326,6 +326,7 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_na_key(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -335,6 +336,7 @@ def test_map_defaultdict_na_key(na_action):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_missing_key(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -344,6 +346,7 @@ def test_map_defaultdict_missing_key(na_action):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_unmutated(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -480,6 +483,7 @@ def test_map_box_period():
     tm.assert_series_equal(res, exp)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_categorical(na_action, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))

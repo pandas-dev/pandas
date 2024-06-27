@@ -1,7 +1,6 @@
 """
 Tests shared by MaskedArray subclasses.
 """
-
 import numpy as np
 import pytest
 

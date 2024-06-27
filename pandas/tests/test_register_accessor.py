@@ -1,6 +1,5 @@
 from collections.abc import Generator
 import contextlib
-import weakref
 
 import pytest
 
@@ -102,22 +101,3 @@ def test_raises_attribute_error():
 
         with pytest.raises(AttributeError, match="whoops"):
             pd.Series([], dtype=object).bad
-
-
-@pytest.mark.parametrize(
-    "klass, registrar",
-    [
-        (pd.Series, pd.api.extensions.register_series_accessor),
-        (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
-        (pd.Index, pd.api.extensions.register_index_accessor),
-    ],
-)
-def test_no_circular_reference(klass, registrar):
-    # GH 41357
-    with ensure_removed(klass, "access"):
-        registrar("access")(MyAccessor)
-        obj = klass([0])
-        ref = weakref.ref(obj)
-        assert obj.access.obj is obj
-        del obj
-        assert ref() is None

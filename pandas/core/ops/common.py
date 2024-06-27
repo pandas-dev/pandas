@@ -1,11 +1,13 @@
 """
 Boilerplate functions used in defining binary operations.
 """
-
 from __future__ import annotations
 
 from functools import wraps
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
@@ -16,8 +18,6 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pandas._typing import F
 
 
@@ -40,7 +40,7 @@ def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     return wrapper
 
 
-def _unpack_zerodim_and_defer(method: F, name: str) -> F:
+def _unpack_zerodim_and_defer(method, name: str):
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -75,9 +75,7 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
 
         return method(self, other)
 
-    # error: Incompatible return value type (got "Callable[[Any, Any], Any]",
-    # expected "F")
-    return new_method  # type: ignore[return-value]
+    return new_method
 
 
 def get_op_result_name(left, right):

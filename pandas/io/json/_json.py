@@ -5,16 +5,19 @@ from abc import (
     abstractmethod,
 )
 from collections import abc
+from io import StringIO
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Generic,
     Literal,
     TypeVar,
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -27,6 +30,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -51,8 +55,12 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     dedup_names,
+    extension_to_compression,
+    file_exists,
     get_handle,
+    is_fsspec_url,
     is_potential_multi_index,
+    is_url,
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
@@ -64,7 +72,6 @@ from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Callable,
         Hashable,
         Mapping,
     )
@@ -106,7 +113,8 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -125,7 +133,8 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
-) -> str: ...
+) -> str:
+    ...
 
 
 def to_json(
@@ -242,6 +251,8 @@ class Writer(ABC):
         self.default_handler = default_handler
         self.index = index
         self.indent = indent
+
+        self.is_copy = None
         self._format_axes()
 
     def _format_axes(self) -> None:
@@ -369,22 +380,18 @@ class JSONTableWriter(FrameWriter):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)
 
+        obj = obj.copy()
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
-        copied = False
         if len(timedeltas):
-            obj = obj.copy()
-            copied = True
             obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
+        # Convert PeriodIndex to datetimes before serializing
+        if isinstance(obj.index.dtype, PeriodDtype):
+            obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
         if not self.index:
             self.obj = obj.reset_index(drop=True)
         else:
-            # Convert PeriodIndex to datetimes before serializing
-            if isinstance(obj.index.dtype, PeriodDtype):
-                if not copied:
-                    obj = obj.copy(deep=False)
-                obj.index = obj.index.to_timestamp()
             self.obj = obj.reset_index(drop=False)
         self.date_format = "iso"
         self.orient = "records"
@@ -416,7 +423,8 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["frame"]]: ...
+) -> JsonReader[Literal["frame"]]:
+    ...
 
 
 @overload
@@ -440,7 +448,8 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> JsonReader[Literal["series"]]: ...
+) -> JsonReader[Literal["series"]]:
+    ...
 
 
 @overload
@@ -464,7 +473,8 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> Series: ...
+) -> Series:
+    ...
 
 
 @overload
@@ -488,7 +498,8 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
-) -> DataFrame: ...
+) -> DataFrame:
+    ...
 
 
 @doc(
@@ -521,7 +532,7 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a str path, path object or file-like object
+    path_or_buf : a valid JSON str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
@@ -706,7 +717,7 @@ def read_json(
 "data":[["a","b"],["c","d"]]\
 }}\
 '
-    >>> pd.read_json(StringIO(_), orient='split')  # noqa: F821
+    >>> pd.read_json(StringIO(_), orient='split')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -716,7 +727,7 @@ def read_json(
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
 
-    >>> pd.read_json(StringIO(_), orient='index')  # noqa: F821
+    >>> pd.read_json(StringIO(_), orient='index')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -726,7 +737,7 @@ def read_json(
 
     >>> df.to_json(orient='records')
     '[{{"col 1":"a","col 2":"b"}},{{"col 1":"c","col 2":"d"}}]'
-    >>> pd.read_json(StringIO(_), orient='records')  # noqa: F821
+    >>> pd.read_json(StringIO(_), orient='records')
       col 1 col 2
     0     a     b
     1     c     d
@@ -870,6 +881,18 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+        if (
+            isinstance(filepath_or_buffer, str)
+            and not self.lines
+            and "\n" in filepath_or_buffer
+        ):
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -879,22 +902,45 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.data = filepath_or_buffer
         elif self.engine == "ujson":
             data = self._get_data_from_filepath(filepath_or_buffer)
-            # If self.chunksize, we prepare the data for the `__next__` method.
-            # Otherwise, we read it into memory for the `read` method.
-            if not (self.chunksize or self.nrows):
-                with self:
-                    self.data = data.read()
-            else:
-                self.data = data
+            self.data = self._preprocess_data(data)
+
+    def _preprocess_data(self, data):
+        """
+        At this point, the data either has a `read` attribute (e.g. a file
+        object or a StringIO) or is a string that is a JSON document.
+
+        If self.chunksize, we prepare the data for the `__next__` method.
+        Otherwise, we read it into memory for the `read` method.
+        """
+        if hasattr(data, "read") and not (self.chunksize or self.nrows):
+            with self:
+                data = data.read()
+        if not hasattr(data, "read") and (self.chunksize or self.nrows):
+            data = StringIO(data)
+
+        return data
 
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
         The function read_json accepts three input types:
             1. filepath (string-like)
             2. file-like object (e.g. open file object, StringIO)
+            3. JSON string
+
+        This method turns (1) into (2) to simplify the rest of the processing.
+        It returns input types (2) and (3) unchanged.
+
+        It raises FileNotFoundError if the input is a string ending in
+        one of .json, .json.gz, .json.bz2, etc. but no such file exists.
         """
+        # if it is a string but the file does not exist, it might be a JSON string
         filepath_or_buffer = stringify_path(filepath_or_buffer)
-        try:
+        if (
+            not isinstance(filepath_or_buffer, str)
+            or is_url(filepath_or_buffer)
+            or is_fsspec_url(filepath_or_buffer)
+            or file_exists(filepath_or_buffer)
+        ):
             self.handles = get_handle(
                 filepath_or_buffer,
                 "r",
@@ -903,11 +949,23 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 storage_options=self.storage_options,
                 errors=self.encoding_errors,
             )
-        except OSError as err:
-            raise FileNotFoundError(
-                f"File {filepath_or_buffer} does not exist"
-            ) from err
-        filepath_or_buffer = self.handles.handle
+            filepath_or_buffer = self.handles.handle
+        elif (
+            isinstance(filepath_or_buffer, str)
+            and filepath_or_buffer.lower().endswith(
+                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
+            )
+            and not file_exists(filepath_or_buffer)
+        ):
+            raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
+        else:
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:
@@ -919,13 +977,16 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         )
 
     @overload
-    def read(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
+    def read(self: JsonReader[Literal["frame"]]) -> DataFrame:
+        ...
 
     @overload
-    def read(self: JsonReader[Literal["series"]]) -> Series: ...
+    def read(self: JsonReader[Literal["series"]]) -> Series:
+        ...
 
     @overload
-    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series: ...
+    def read(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
+        ...
 
     def read(self) -> DataFrame | Series:
         """
@@ -1010,15 +1071,16 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         return self
 
     @overload
-    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame: ...
+    def __next__(self: JsonReader[Literal["frame"]]) -> DataFrame:
+        ...
 
     @overload
-    def __next__(self: JsonReader[Literal["series"]]) -> Series: ...
+    def __next__(self: JsonReader[Literal["series"]]) -> Series:
+        ...
 
     @overload
-    def __next__(
-        self: JsonReader[Literal["frame", "series"]],
-    ) -> DataFrame | Series: ...
+    def __next__(self: JsonReader[Literal["frame", "series"]]) -> DataFrame | Series:
+        ...
 
     def __next__(self) -> DataFrame | Series:
         if self.nrows and self.nrows_seen >= self.nrows:
@@ -1176,7 +1238,13 @@ class Parser:
                 if all(notna(data)):
                     return data, False
 
-                filled = data.fillna(np.nan)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    filled = data.fillna(np.nan)
 
                 return filled, True
 
@@ -1282,7 +1350,14 @@ class Parser:
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time "
+                        "zones will raise an error",
+                        category=FutureWarning,
+                    )
+                    new_data = to_datetime(new_data, errors="raise", unit=date_unit)
             except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True

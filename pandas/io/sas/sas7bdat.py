@@ -13,10 +13,13 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-
 from __future__ import annotations
 
-from datetime import datetime
+from collections import abc
+from datetime import (
+    datetime,
+    timedelta,
+)
 import sys
 from typing import TYPE_CHECKING
 
@@ -40,11 +43,12 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Timestamp,
+    isna,
 )
 
 from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.sasreader import SASReader
+from pandas.io.sas.sasreader import ReaderBase
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -56,6 +60,20 @@ if TYPE_CHECKING:
 
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
+
+
+def _parse_datetime(sas_datetime: float, unit: str):
+    if isna(sas_datetime):
+        return pd.NaT
+
+    if unit == "s":
+        return datetime(1960, 1, 1) + timedelta(seconds=sas_datetime)
+
+    elif unit == "d":
+        return datetime(1960, 1, 1) + timedelta(days=sas_datetime)
+
+    else:
+        raise ValueError("unit must be 'd' or 's'")
 
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
@@ -115,7 +133,7 @@ class _Column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(SASReader):
+class SAS7BDATReader(ReaderBase, abc.Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
@@ -308,7 +326,7 @@ class SAS7BDATReader(SASReader):
         return da
 
     # Read a single float of the given width (4 or 8).
-    def _read_float(self, offset: int, width: int) -> float:
+    def _read_float(self, offset: int, width: int):
         assert self._cached_page is not None
         if width == 4:
             return read_float_with_byteswap(
@@ -349,6 +367,11 @@ class SAS7BDATReader(SASReader):
             self.close()
             raise ValueError("The cached page is too small.")
         return self._cached_page[offset : offset + length]
+
+    def _read_and_convert_header_text(self, offset: int, length: int) -> str | bytes:
+        return self._convert_header_text(
+            self._read_bytes(offset, length).rstrip(b"\x00 ")
+        )
 
     def _parse_metadata(self) -> None:
         done = False
@@ -718,7 +741,7 @@ class SAS7BDATReader(SASReader):
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {self._column_types[j]!r}")
+                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
 
         df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
         return df

@@ -135,7 +135,7 @@ derived from `pyarrow.ExtensionType` instead, and register this type explicitly.
 """
 
 
-def patch_pyarrow() -> None:
+def patch_pyarrow():
     # starting from pyarrow 14.0.1, it has its own mechanism
     if not pa_version_under14p1:
         return
@@ -145,7 +145,7 @@ def patch_pyarrow() -> None:
         return
 
     class ForbiddenExtensionType(pyarrow.ExtensionType):
-        def __arrow_ext_serialize__(self) -> bytes:
+        def __arrow_ext_serialize__(self):
             return b""
 
         @classmethod

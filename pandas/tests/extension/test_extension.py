@@ -1,7 +1,6 @@
 """
 Tests for behavior if an author does *not* implement EA methods.
 """
-
 import numpy as np
 import pytest
 

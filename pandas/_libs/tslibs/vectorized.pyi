@@ -1,5 +1,7 @@
-# For cython types that cannot be represented precisely, closest-available
-# python equivalents are used, and the precise types kept as adjacent comments.
+"""
+For cython types that cannot be represented precisely, closest-available
+python equivalents are used, and the precise types kept as adjacent comments.
+"""
 from datetime import tzinfo
 
 import numpy as np

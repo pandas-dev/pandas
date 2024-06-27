@@ -207,19 +207,27 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self):
+    def test_corr_item_cache(self, using_copy_on_write, warn_copy_on_write):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.arrays) == 2  # i.e. 2 blocks
 
         _ = df.corr(numeric_only=True)
 
-        ser.iloc[0] = 99
-        assert df.loc[0, "A"] == 0
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.loc[0, "A"] == 0
+        else:
+            # Check that the corr didn't break link between ser and df
+            ser.values[0] = 99
+            assert df.loc[0, "A"] == 99
+            if not warn_copy_on_write:
+                assert df["A"] is ser
+            assert df.values[0, 0] == 99
 
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
@@ -285,7 +293,7 @@ class TestDataFrameCorrWith:
         b = datetime_frame.add(noise, axis=0)
 
         # make sure order does not matter
-        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][len(a) // 2 :])
+        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
         del b["B"]
 
         colcorr = a.corrwith(b, axis=0)
@@ -301,7 +309,7 @@ class TestDataFrameCorrWith:
         dropped = a.corrwith(b, axis=1, drop=True)
         assert a.index[-1] not in dropped.index
 
-    def test_corrwith_non_timeseries_data(self):
+        # non time-series data
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(
@@ -355,8 +363,8 @@ class TestDataFrameCorrWith:
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_matches_corrcoef(self):
-        df1 = DataFrame(np.arange(100), columns=["a"])
-        df2 = DataFrame(np.arange(100) ** 2, columns=["a"])
+        df1 = DataFrame(np.arange(10000), columns=["a"])
+        df2 = DataFrame(np.arange(10000) ** 2, columns=["a"])
         c1 = df1.corrwith(df2)["a"]
         c2 = np.corrcoef(df1["a"], df2["a"])[0][1]
 
@@ -459,30 +467,5 @@ class TestDataFrameCorrWith:
         )
         ser_bool = Series([True, True, False, True])
         result = df_bool.corrwith(ser_bool)
-        expected = Series([0.57735, 0.57735], index=["A", "B"])
-        tm.assert_series_equal(result, expected)
-
-    def test_corrwith_min_periods_method(self):
-        # GH#9490
-        pytest.importorskip("scipy")
-        df1 = DataFrame(
-            {
-                "A": [1, np.nan, 7, 8],
-                "B": [False, True, True, False],
-                "C": [10, 4, 9, 3],
-            }
-        )
-        df2 = df1[["B", "C"]]
-        result = (df1 + 1).corrwith(df2.B, method="spearman", min_periods=2)
-        expected = Series([0.0, 1.0, 0.0], index=["A", "B", "C"])
-        tm.assert_series_equal(result, expected)
-
-    def test_corrwith_min_periods_boolean(self):
-        # GH#9490
-        df_bool = DataFrame(
-            {"A": [True, True, False, False], "B": [True, False, False, True]}
-        )
-        ser_bool = Series([True, True, False, True])
-        result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)

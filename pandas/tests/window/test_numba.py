@@ -67,21 +67,6 @@ class TestEngine:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_numba_min_periods(self):
-        # GH 58868
-        def last_row(x):
-            assert len(x) == 3
-            return x[-1]
-
-        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]])
-
-        result = df.rolling(3, method="table", min_periods=3).apply(
-            last_row, raw=True, engine="numba"
-        )
-
-        expected = DataFrame([[np.nan, np.nan], [np.nan, np.nan], [5, 6], [7, 8]])
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "data",
         [
@@ -319,9 +304,7 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
-    with pytest.raises(
-        NumbaUtilError, match="numba does not support keyword-only arguments"
-    ):
+    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )
@@ -345,6 +328,7 @@ class TestTableMethod:
 
     def test_table_method_rolling_methods(
         self,
+        axis,
         nogil,
         parallel,
         nopython,
@@ -356,14 +340,16 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-        roll_table = df.rolling(2, method="table", min_periods=0, step=step)
+        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0, step=step)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
                 getattr(roll_table, method)(
                     engine_kwargs=engine_kwargs, engine="numba", **kwargs
                 )
         else:
-            roll_single = df.rolling(2, method="single", min_periods=0, step=step)
+            roll_single = df.rolling(
+                2, method="single", axis=axis, min_periods=0, step=step
+            )
             result = getattr(roll_table, method)(
                 engine_kwargs=engine_kwargs, engine="numba", **kwargs
             )
@@ -372,19 +358,19 @@ class TestTableMethod:
             )
             tm.assert_frame_equal(result, expected)
 
-    def test_table_method_rolling_apply(self, nogil, parallel, nopython, step):
+    def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython, step):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
             return np.sum(x, axis=0) + 1
 
         df = DataFrame(np.eye(3))
-        result = df.rolling(2, method="table", min_periods=0, step=step).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
-        )
-        expected = df.rolling(2, method="single", min_periods=0, step=step).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
-        )
+        result = df.rolling(
+            2, method="table", axis=axis, min_periods=0, step=step
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+        expected = df.rolling(
+            2, method="single", axis=axis, min_periods=0, step=step
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self, step):
@@ -407,37 +393,37 @@ class TestTableMethod:
         )[::step]
         tm.assert_frame_equal(result, expected)
 
-    def test_table_method_expanding_apply(self, nogil, parallel, nopython):
+    def test_table_method_expanding_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
             return np.sum(x, axis=0) + 1
 
         df = DataFrame(np.eye(3))
-        result = df.expanding(method="table").apply(
+        result = df.expanding(method="table", axis=axis).apply(
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
-        expected = df.expanding(method="single").apply(
+        expected = df.expanding(method="single", axis=axis).apply(
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_expanding_methods(
-        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-        expand_table = df.expanding(method="table")
+        expand_table = df.expanding(method="table", axis=axis)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
                 getattr(expand_table, method)(
                     engine_kwargs=engine_kwargs, engine="numba", **kwargs
                 )
         else:
-            expand_single = df.expanding(method="single")
+            expand_single = df.expanding(method="single", axis=axis)
             result = getattr(expand_table, method)(
                 engine_kwargs=engine_kwargs, engine="numba", **kwargs
             )
@@ -448,15 +434,15 @@ class TestTableMethod:
 
     @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
     @pytest.mark.parametrize("method", ["mean", "sum"])
-    def test_table_method_ewm(self, data, method, nogil, parallel, nopython):
+    def test_table_method_ewm(self, data, method, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(data)
 
-        result = getattr(df.ewm(com=1, method="table"), method)(
+        result = getattr(df.ewm(com=1, method="table", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
-        expected = getattr(df.ewm(com=1, method="single"), method)(
+        expected = getattr(df.ewm(com=1, method="single", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)

@@ -11,10 +11,8 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import np_version_gt2
-
-from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import (
@@ -54,7 +52,7 @@ def period_index(freqstr):
         warnings.filterwarnings(
             "ignore", message="Period with BDay freq", category=FutureWarning
         )
-        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
+        freqstr = freq_to_period_freqstr(1, freqstr)
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -247,7 +245,7 @@ class SharedTests:
         assert result == arr1d[0]
 
     def test_reduce_invalid(self, arr1d):
-        msg = "does not support operation 'not a method'"
+        msg = "does not support reduction 'not a method'"
         with pytest.raises(TypeError, match=msg):
             arr1d._reduce("not a method")
 
@@ -661,9 +659,7 @@ class TestDatetimeArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]")
-        if not np_version_gt2:
-            # TODO: GH 57739
-            assert result is not expected
+        assert result is not expected
         tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
@@ -769,7 +765,7 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = dti._data
 
-        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
+        freqstr = freq_to_period_freqstr(1, freqstr)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)
@@ -780,7 +776,7 @@ class TestDatetimeArray(SharedTests):
         arr2d = arr1d.reshape(1, -1)
 
         warn = None if arr1d.tz is None else UserWarning
-        with tm.assert_produces_warning(warn, match="will drop timezone information"):
+        with tm.assert_produces_warning(warn):
             result = arr2d.to_period("D")
             expected = arr1d.to_period("D").reshape(1, -1)
         tm.assert_period_array_equal(result, expected)
@@ -978,9 +974,7 @@ class TestTimedeltaArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]")
-        if not np_version_gt2:
-            # TODO: GH 57739
-            assert result is not expected
+        assert result is not expected
         tm.assert_numpy_array_equal(result, expected)
 
         # to object dtype
@@ -1323,6 +1317,12 @@ def test_from_pandas_array(dtype):
     arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
+
+    depr_msg = f"{cls.__name__}.__init__ is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        result = cls(arr)
+        expected = cls(data)
+    tm.assert_extension_array_equal(result, expected)
 
     result = cls._from_sequence(arr, dtype=dtype)
     expected = cls._from_sequence(data, dtype=dtype)

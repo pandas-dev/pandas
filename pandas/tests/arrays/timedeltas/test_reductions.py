@@ -10,6 +10,7 @@ from pandas.core.arrays import TimedeltaArray
 
 class TestReductions:
     @pytest.mark.parametrize("name", ["std", "min", "max", "median", "mean"])
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array
@@ -20,6 +21,7 @@ class TestReductions:
         result = getattr(arr, name)(skipna=skipna)
         assert result is pd.NaT
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_sum_empty(self, skipna):
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array

@@ -33,6 +33,7 @@ def test_map_float_object_conversion(val):
     assert result == object
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])
@@ -158,15 +159,14 @@ def test_map_box():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_map_dont_convert_datetime64(unit):
-    dtype = f"M8[{unit}]"
-    df = DataFrame({"x1": [datetime(1996, 1, 1)]}, dtype=dtype)
+def test_frame_map_dont_convert_datetime64():
+    df = DataFrame({"x1": [datetime(1996, 1, 1)]})
 
     df = df.map(lambda x: x + BDay())
     df = df.map(lambda x: x + BDay())
 
     result = df.x1.dtype
-    assert result == dtype
+    assert result == "M8[ns]"
 
 
 def test_map_function_runs_once():
@@ -206,3 +206,11 @@ def test_map_invalid_na_action(float_frame):
     # GH 23803
     with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
         float_frame.map(lambda x: len(str(x)), na_action="abc")
+
+
+def test_applymap_deprecated():
+    # GH52353
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = "DataFrame.applymap has been deprecated. Use DataFrame.map instead."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.applymap(lambda x: x)

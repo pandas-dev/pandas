@@ -34,6 +34,7 @@ class TestTypes(Base):
         "is_timedelta64_ns_dtype",
         "is_unsigned_integer_dtype",
         "is_period_dtype",
+        "is_interval",
         "is_interval_dtype",
         "is_re",
         "is_re_compilable",

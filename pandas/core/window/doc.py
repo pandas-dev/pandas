@@ -1,5 +1,4 @@
 """Any shareable docstring components for rolling/expanding/ewm"""
-
 from __future__ import annotations
 
 from textwrap import dedent
@@ -25,10 +24,10 @@ template_returns = dedent(
 
 template_see_also = dedent(
     """
-    Series.{window_method} : Calling {window_method} with Series data.
-    DataFrame.{window_method} : Calling {window_method} with DataFrames.
-    Series.{agg_method} : Aggregating {agg_method} for Series.
-    DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.\n
+    pandas.Series.{window_method} : Calling {window_method} with Series data.
+    pandas.DataFrame.{window_method} : Calling {window_method} with DataFrames.
+    pandas.Series.{agg_method} : Aggregating {agg_method} for Series.
+    pandas.DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.\n
     """
 ).replace("\n", "", 1)
 

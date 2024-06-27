@@ -93,21 +93,16 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        Index,
-        Series,
-    )
-
-
-def holds_integer(column: Index) -> bool:
-    return column.inferred_type in {"integer", "mixed-integer"}
+    from pandas import Series
 
 
 def _color_in_style(style: str) -> bool:
     """
     Check if there is a color letter in the style string.
     """
-    return not set(mpl.colors.BASE_COLORS).isdisjoint(style)
+    from matplotlib.colors import BASE_COLORS
+
+    return not set(BASE_COLORS).isdisjoint(style)
 
 
 class MPLPlot(ABC):
@@ -174,6 +169,8 @@ class MPLPlot(ABC):
         style=None,
         **kwds,
     ) -> None:
+        import matplotlib.pyplot as plt
+
         # if users assign an empty list or tuple, raise `ValueError`
         # similar to current `df.box` and `df.hist` APIs.
         if by in ([], ()):
@@ -234,7 +231,7 @@ class MPLPlot(ABC):
             self.rot = self._default_rot
 
         if grid is None:
-            grid = False if secondary_y else mpl.rcParams["axes.grid"]
+            grid = False if secondary_y else plt.rcParams["axes.grid"]
 
         self.grid = grid
         self.legend = legend
@@ -293,7 +290,7 @@ class MPLPlot(ABC):
     def _validate_sharex(sharex: bool | None, ax, by) -> bool:
         if sharex is None:
             # if by is defined, subplots are used and sharex should be False
-            if ax is None and by is None:
+            if ax is None and by is None:  # pylint: disable=simplifiable-if-statement
                 sharex = True
             else:
                 # if we get an axis, the users should do the visibility
@@ -468,7 +465,7 @@ class MPLPlot(ABC):
     @final
     @staticmethod
     def _iter_data(
-        data: DataFrame | dict[Hashable, Series | DataFrame],
+        data: DataFrame | dict[Hashable, Series | DataFrame]
     ) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
             # This was originally written to use values.values before EAs
@@ -492,6 +489,10 @@ class MPLPlot(ABC):
     @property
     def nseries(self) -> int:
         return self._get_nseries(self.data)
+
+    @final
+    def draw(self) -> None:
+        self.plt.draw_if_interactive()
 
     @final
     def generate(self) -> None:
@@ -562,8 +563,6 @@ class MPLPlot(ABC):
     @final
     @cache_readonly
     def _axes_and_fig(self) -> tuple[Sequence[Axes], Figure]:
-        import matplotlib.pyplot as plt
-
         if self.subplots:
             naxes = (
                 self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
@@ -578,7 +577,7 @@ class MPLPlot(ABC):
                 layout_type=self._layout_type,
             )
         elif self.ax is None:
-            fig = plt.figure(figsize=self.figsize)
+            fig = self.plt.figure(figsize=self.figsize)
             axes = fig.add_subplot(111)
         else:
             fig = self.ax.get_figure()
@@ -586,7 +585,7 @@ class MPLPlot(ABC):
                 fig.set_size_inches(self.figsize)
             axes = self.ax
 
-        axes = np.fromiter(flatten_axes(axes), dtype=object)
+        axes = flatten_axes(axes)
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
@@ -617,7 +616,8 @@ class MPLPlot(ABC):
             # error: Argument 1 to "len" has incompatible type "Union[bool,
             # Tuple[Any, ...], List[Any], ndarray[Any, Any]]"; expected "Sized"
             all_sec = (
-                is_list_like(self.secondary_y) and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
+                is_list_like(self.secondary_y)
+                and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
@@ -672,7 +672,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects()
+        data = data.infer_objects(copy=False)
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -912,6 +912,13 @@ class MPLPlot(ABC):
             ax = other_ax
         return ax, leg
 
+    @final
+    @cache_readonly
+    def plt(self):
+        import matplotlib.pyplot as plt
+
+        return plt
+
     _need_to_set_index = False
 
     @final
@@ -1015,7 +1022,7 @@ class MPLPlot(ABC):
             return col_idx
 
     @final
-    def _get_ax(self, i: int) -> Axes:
+    def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
             i = self._col_idx_to_axis_idx(i)
@@ -1031,7 +1038,7 @@ class MPLPlot(ABC):
         return ax
 
     @final
-    def on_right(self, i: int) -> bool:
+    def on_right(self, i: int):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
@@ -1204,11 +1211,11 @@ class MPLPlot(ABC):
         return errors
 
     @final
-    def _get_subplots(self, fig: Figure) -> list[Axes]:
+    def _get_subplots(self, fig: Figure):
         if Version(mpl.__version__) < Version("3.8"):
-            Klass = mpl.axes.Subplot
+            from matplotlib.axes import Subplot as Klass
         else:
-            Klass = mpl.axes.Axes
+            from matplotlib.axes import Axes as Klass
 
         return [
             ax
@@ -1240,9 +1247,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not holds_integer(self.data.columns):
+        if is_integer(x) and not self.data.columns._holds_integer():
             x = self.data.columns[x]
-        if is_integer(y) and not holds_integer(self.data.columns):
+        if is_integer(y) and not self.data.columns._holds_integer():
             y = self.data.columns[y]
 
         self.x = x
@@ -1312,7 +1319,7 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
-        if is_integer(c) and not holds_integer(self.data.columns):
+        if is_integer(c) and not self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1373,7 +1380,7 @@ class ScatterPlot(PlanePlot):
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is None and color is None:
-            c_values = mpl.rcParams["patch.facecolor"]
+            c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
         elif color_by_categorical:
@@ -1398,10 +1405,12 @@ class ScatterPlot(PlanePlot):
             cmap = None
 
         if color_by_categorical and cmap is not None:
+            from matplotlib import colors
+
             n_cats = len(self.data[c].cat.categories)
-            cmap = mpl.colors.ListedColormap([cmap(i) for i in range(cmap.N)])
+            cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
             bounds = np.linspace(0, n_cats, n_cats + 1)
-            norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+            norm = colors.BoundaryNorm(bounds, cmap.N)
             # TODO: warn that we are ignoring self.norm if user specified it?
             #  Doesn't happen in any tests 2023-11-09
         else:
@@ -1426,7 +1435,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not holds_integer(self.data.columns):
+        if is_integer(C) and not self.data.columns._holds_integer():
             C = self.data.columns[C]
         self.C = C
 
@@ -1661,6 +1670,8 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values  # type: ignore[attr-defined]
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
+        from matplotlib.ticker import FixedLocator
+
         def get_label(i):
             if is_float(i) and i.is_integer():
                 i = int(i)
@@ -1674,7 +1685,7 @@ class LinePlot(MPLPlot):
             xticklabels = [get_label(x) for x in xticks]
             # error: Argument 1 to "FixedLocator" has incompatible type "ndarray[Any,
             # Any]"; expected "Sequence[float]"
-            ax.xaxis.set_major_locator(mpl.ticker.FixedLocator(xticks))  # type: ignore[arg-type]
+            ax.xaxis.set_major_locator(FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
 
         # If the index is an irregular time series, then by default
@@ -1708,7 +1719,13 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        data = data.fillna(value=0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Downcasting object dtype arrays",
+                category=FutureWarning,
+            )
+            data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:
@@ -2060,6 +2077,9 @@ class PiePlot(MPLPlot):
 
         for i, (label, y) in enumerate(self._iter_data(data=self.data)):
             ax = self._get_ax(i)
+            if label is not None:
+                label = pprint_thing(label)
+                ax.set_ylabel(label)
 
             kwds = self.kwds.copy()
 
@@ -2081,11 +2101,9 @@ class PiePlot(MPLPlot):
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
-                # error: Need more than 2 values to unpack (3 expected)
-                patches, texts, autotexts = results  # type: ignore[misc]
+                patches, texts, autotexts = results
             else:
-                # error: Too many values to unpack (2 expected, 3 provided)
-                patches, texts = results  # type: ignore[misc]
+                patches, texts = results
                 autotexts = []
 
             if self.fontsize is not None:

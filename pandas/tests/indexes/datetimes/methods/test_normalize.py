@@ -2,7 +2,6 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -71,9 +70,6 @@ class TestNormalize:
         assert not rng.is_normalized
 
     @td.skip_if_windows
-    @pytest.mark.skipif(
-        WASM, reason="tzset is available only on Unix-like systems, not WASM"
-    )
     @pytest.mark.parametrize(
         "timezone",
         [

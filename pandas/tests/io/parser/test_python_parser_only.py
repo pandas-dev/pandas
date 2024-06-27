@@ -4,7 +4,6 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
-
 from __future__ import annotations
 
 import csv
@@ -529,17 +528,21 @@ a;b;c
     [
         (
             {"a": str, "b": np.float64, "c": np.int64},
-            {
-                "b": [16000.1, 0, 23000],
-                "c": [0, 4001, 131],
-            },
+            DataFrame(
+                {
+                    "b": [16000.1, 0, 23000],
+                    "c": [0, 4001, 131],
+                }
+            ),
         ),
         (
             str,
-            {
-                "b": ["16,000.1", "0", "23,000"],
-                "c": ["0", "4,001", "131"],
-            },
+            DataFrame(
+                {
+                    "b": ["16,000.1", "0", "23,000"],
+                    "c": ["0", "4,001", "131"],
+                }
+            ),
         ),
     ],
 )
@@ -557,6 +560,5 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
         dtype=dtype,
         thousands=",",
     )
-    expected = DataFrame(expected)
     expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)

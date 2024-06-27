@@ -20,8 +20,7 @@ def test_reindex_like(datetime_series):
     series1 = Series([5, None, None], [day1, day2, day3])
     series2 = Series([None, None], [day1, day3])
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = series1.reindex_like(series2, method="pad")
+    result = series1.reindex_like(series2, method="pad")
     expected = Series([5, np.nan], index=[day1, day3])
     tm.assert_series_equal(result, expected)
 
@@ -33,13 +32,10 @@ def test_reindex_like_nearest():
     other = ser.reindex(target, method="nearest")
     expected = Series(np.around(target).astype("int64"), target)
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.reindex_like(other, method="nearest")
+    result = ser.reindex_like(other, method="nearest")
     tm.assert_series_equal(expected, result)
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.reindex_like(other, method="nearest", tolerance=1)
+    result = ser.reindex_like(other, method="nearest", tolerance=1)
     tm.assert_series_equal(expected, result)
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.reindex_like(other, method="nearest", tolerance=[1, 2, 3, 4])
+    result = ser.reindex_like(other, method="nearest", tolerance=[1, 2, 3, 4])
     tm.assert_series_equal(expected, result)

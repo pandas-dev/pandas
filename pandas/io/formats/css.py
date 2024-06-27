@@ -1,11 +1,13 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
-
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 import warnings
 
 from pandas.errors import CSSWarning
@@ -13,7 +15,6 @@ from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Callable,
         Generator,
         Iterable,
         Iterator,
@@ -34,9 +35,7 @@ def _side_expander(prop_fmt: str) -> Callable:
         function: Return to call when a 'border(-{side}): {value}' string is encountered
     """
 
-    def expand(
-        self: CSSResolver, prop: str, value: str
-    ) -> Generator[tuple[str, str], None, None]:
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
 
@@ -81,9 +80,7 @@ def _border_expander(side: str = "") -> Callable:
     if side != "":
         side = f"-{side}"
 
-    def expand(
-        self: CSSResolver, prop: str, value: str
-    ) -> Generator[tuple[str, str], None, None]:
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
         """
         Expand border into color, style, and width tuples
 
@@ -247,17 +244,14 @@ class CSSResolver:
         Examples
         --------
         >>> resolve = CSSResolver()
-        >>> inherited = {"font-family": "serif", "font-weight": "bold"}
-        >>> out = resolve(
-        ...     '''
+        >>> inherited = {'font-family': 'serif', 'font-weight': 'bold'}
+        >>> out = resolve('''
         ...               border-color: BLUE RED;
         ...               font-size: 1em;
         ...               font-size: 2em;
         ...               font-weight: normal;
         ...               font-weight: inherit;
-        ...               ''',
-        ...     inherited,
-        ... )
+        ...               ''', inherited)
         >>> sorted(out.items())  # doctest: +NORMALIZE_WHITESPACE
         [('border-bottom-color', 'blue'),
          ('border-left-color', 'red'),
@@ -345,12 +339,10 @@ class CSSResolver:
                     )
         return props
 
-    def size_to_pt(
-        self, in_val: str, em_pt: float | None = None, conversions: dict = UNIT_RATIOS
-    ) -> str:
-        def _error() -> str:
+    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
+        def _error():
             warnings.warn(
-                f"Unhandled size: {in_val!r}",
+                f"Unhandled size: {repr(in_val)}",
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
@@ -423,7 +415,7 @@ class CSSResolver:
                 yield prop, val
             else:
                 warnings.warn(
-                    f"Ill-formatted attribute: expected a colon in {decl!r}",
+                    f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
                     stacklevel=find_stack_level(),
                 )

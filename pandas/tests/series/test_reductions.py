@@ -70,6 +70,7 @@ def test_reductions_td64_with_nat():
     assert ser.max() == exp
 
 
+@pytest.mark.parametrize("skipna", [True, False])
 def test_td64_sum_empty(skipna):
     # GH#37151
     ser = Series([], dtype="timedelta64[ns]")
@@ -162,7 +163,7 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_mean_with_convertible_string_raises(using_infer_string):
+def test_mean_with_convertible_string_raises(using_array_manager, using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
     if using_infer_string:
@@ -176,15 +177,19 @@ def test_mean_with_convertible_string_raises(using_infer_string):
         ser.mean()
 
     df = ser.to_frame()
-    msg = r"Could not convert \['12'\] to numeric|does not support"
+    if not using_array_manager:
+        msg = r"Could not convert \['12'\] to numeric|does not support"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
 
-def test_mean_dont_convert_j_to_complex():
+def test_mean_dont_convert_j_to_complex(using_array_manager):
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = r"Could not convert \['J'\] to numeric|does not support"
+    if using_array_manager:
+        msg = "Could not convert string 'J' to numeric"
+    else:
+        msg = r"Could not convert \['J'\] to numeric|does not support"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
@@ -199,14 +204,15 @@ def test_mean_dont_convert_j_to_complex():
         np.mean(df["db"].astype("string").array)
 
 
-def test_median_with_convertible_string_raises():
+def test_median_with_convertible_string_raises(using_array_manager):
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
     msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+    if not using_array_manager:
+        msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()

@@ -9,8 +9,6 @@ import pandas as pd
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from matplotlib.figure import Figure
-
 
 class TablePlotter:
     """
@@ -48,9 +46,7 @@ class TablePlotter:
             hcells = sum([self._shape(df)[1] for df in left] + [self._shape(right)[1]])
         return hcells, vcells
 
-    def plot(
-        self, left, right, labels: Iterable[str] = (), vertical: bool = True
-    ) -> Figure:
+    def plot(self, left, right, labels: Iterable[str] = (), vertical: bool = True):
         """
         Plot left / right DataFrames in specified layout.
 

@@ -1,7 +1,6 @@
 """
 Assertion helpers and base class for offsets tests
 """
-
 from __future__ import annotations
 
 

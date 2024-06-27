@@ -9,7 +9,9 @@ from os import PathLike
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -18,6 +20,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -25,8 +28,10 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
+    file_exists,
     get_handle,
     infer_compression,
+    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -34,10 +39,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sequence,
-    )
+    from collections.abc import Sequence
     from xml.etree.ElementTree import Element
 
     from lxml import etree
@@ -174,6 +176,7 @@ class _XMLFrameParser:
         self.encoding = encoding
         self.stylesheet = stylesheet
         self.iterparse = iterparse
+        self.is_style = None
         self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
@@ -481,12 +484,12 @@ class _EtreeFrameParser(_XMLFrameParser):
                 if children == [] and attrs == {}:
                     raise ValueError(msg)
 
-        except (KeyError, SyntaxError) as err:
+        except (KeyError, SyntaxError):
             raise SyntaxError(
                 "You have used an incorrect or unsupported XPath "
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
-            ) from err
+            )
 
         return elems
 
@@ -525,7 +528,7 @@ class _EtreeFrameParser(_XMLFrameParser):
             storage_options=self.storage_options,
         )
 
-        with handle_data as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
             document = parse(xml_data, parser=curr_parser)
 
@@ -632,7 +635,7 @@ class _LxmlFrameParser(_XMLFrameParser):
             storage_options=self.storage_options,
         )
 
-        with handle_data as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
@@ -670,27 +673,44 @@ def get_data_from_filepath(
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-):
+) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
 
-    The method accepts two input types:
+    The method accepts three input types:
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
+        3. XML string or bytes
+
+    This method turns (1) into (2) to simplify the rest of the processing.
+    It returns input types (2) and (3) unchanged.
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(  # pyright: ignore[reportCallIssue]
-        filepath_or_buffer,  # pyright: ignore[reportArgumentType]
-        "r",
-        encoding=encoding,
-        compression=compression,
-        storage_options=storage_options,
-    ) as handle_obj:
-        return (
-            preprocess_data(handle_obj.handle.read())
-            if hasattr(handle_obj.handle, "read")
-            else handle_obj.handle
-        )
+    if not isinstance(filepath_or_buffer, bytes):
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and not filepath_or_buffer.startswith(("<?xml", "<"))
+    ) and (
+        not isinstance(filepath_or_buffer, str)
+        or is_url(filepath_or_buffer)
+        or is_fsspec_url(filepath_or_buffer)
+        or file_exists(filepath_or_buffer)
+    ):
+        with get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=encoding,
+            compression=compression,
+            storage_options=storage_options,
+        ) as handle_obj:
+            filepath_or_buffer = (
+                handle_obj.handle.read()
+                if hasattr(handle_obj.handle, "read")
+                else handle_obj.handle
+            )
+
+    return filepath_or_buffer
 
 
 def preprocess_data(data) -> io.StringIO | io.BytesIO:
@@ -726,12 +746,12 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
     try:
         with TextParser(nodes, names=tags, **kwargs) as tp:
             return tp.read()
-    except ParserError as err:
+    except ParserError:
         raise ParserError(
             "XML document may be too complex for import. "
             "Try to flatten document and use distinct "
             "element and attribute names."
-        ) from err
+        )
 
 
 def _parse(
@@ -769,6 +789,22 @@ def _parse(
     """
 
     p: _EtreeFrameParser | _LxmlFrameParser
+
+    if isinstance(path_or_buffer, str) and not any(
+        [
+            is_file_like(path_or_buffer),
+            file_exists(path_or_buffer),
+            is_url(path_or_buffer),
+            is_fsspec_url(path_or_buffer),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
@@ -858,8 +894,8 @@ def read_xml(
     ----------
     path_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a ``read()`` function. The string can be a path.
-        The string can further be a URL. Valid URL schemes
+        object implementing a ``read()`` function. The string can be any valid XML
+        string or a path. The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
         .. deprecated:: 2.1.0
@@ -880,7 +916,9 @@ def read_xml(
         Note: if XML document uses default namespace denoted as
         `xmlns='<URI>'` without a prefix, you must assign any temporary
         namespace prefix such as 'doc' to the URI in order to parse
-        underlying nodes and/or attributes.
+        underlying nodes and/or attributes. For example, ::
+
+            namespaces = {{"doc": "https://example.com"}}
 
     elems_only : bool, optional, default False
         Parse only the child elements at the specified ``xpath``. By default,
@@ -933,7 +971,7 @@ def read_xml(
         and ability to use XSLT stylesheet are supported.
 
     stylesheet : str, path object or file-like object
-        A URL, file-like object, or a string path containing an XSLT script.
+        A URL, file-like object, or a raw string containing an XSLT script.
         This stylesheet should flatten complex, deeply nested XML documents
         for easier parsing. To use this feature you must have ``lxml`` module
         installed and specify 'lxml' as ``parser``. The ``xpath`` must
@@ -949,7 +987,9 @@ def read_xml(
         and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
-        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
+        For example, ::
+
+            iterparse = {{"row_element": ["child_elem", "attr", "grandchild_elem"]}}
 
         .. versionadded:: 1.5.0
 
@@ -1078,11 +1118,9 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(
-    ...     StringIO(xml),
-    ...     xpath="//doc:row",
-    ...     namespaces={{"doc": "https://example.com"}},
-    ... )
+    >>> df = pd.read_xml(StringIO(xml),
+    ...                  xpath="//doc:row",
+    ...                  namespaces={{"doc": "https://example.com"}})
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1109,9 +1147,9 @@ def read_xml(
     ...         </data>
     ...         '''
 
-    >>> df = pd.read_xml(
-    ...     StringIO(xml_data), dtype_backend="numpy_nullable", parse_dates=["e"]
-    ... )
+    >>> df = pd.read_xml(StringIO(xml_data),
+    ...                  dtype_backend="numpy_nullable",
+    ...                  parse_dates=["e"])
     >>> df
        index     a    b      c  d          e
     0      0     1  2.5   True  a 2019-12-31

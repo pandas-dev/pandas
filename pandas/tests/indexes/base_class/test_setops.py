@@ -84,13 +84,13 @@ class TestIndexSetOps:
         # https://github.com/pandas-dev/pandas/issues/24959
         idx = Index([1, pd.Timestamp("2000")])
         # default (sort=None)
-        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
+        with tm.assert_produces_warning(RuntimeWarning):
             result = idx.union(idx[:1])
 
         tm.assert_index_equal(result, idx)
 
         # sort=None
-        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
+        with tm.assert_produces_warning(RuntimeWarning):
             result = idx.union(idx[:1], sort=None)
         tm.assert_index_equal(result, idx)
 
@@ -149,13 +149,13 @@ class TestIndexSetOps:
 
     @pytest.mark.parametrize(
         "index2,expected_arr",
-        [(["B", "D"], ["B"]), (["B", "D", "A"], ["A", "B"])],
+        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B"])],
     )
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique
         index1 = Index(["A", "B", "A", "C"])
         expected = Index(expected_arr)
-        result = index1.intersection(Index(index2), sort=sort)
+        result = index1.intersection(index2, sort=sort)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)

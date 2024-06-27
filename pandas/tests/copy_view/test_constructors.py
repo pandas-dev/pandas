@@ -21,7 +21,7 @@ from pandas.tests.copy_view.util import get_array
 
 
 @pytest.mark.parametrize("dtype", [None, "int64"])
-def test_series_from_series(dtype):
+def test_series_from_series(dtype, using_copy_on_write, warn_copy_on_write):
     # Case: constructing a Series from another Series object follows CoW rules:
     # a new object is returned and thus mutations are not propagated
     ser = Series([1, 2, 3], name="name")
@@ -32,23 +32,38 @@ def test_series_from_series(dtype):
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(ser), get_array(result))
 
-    assert result._mgr.blocks[0].refs.has_reference()
+    if using_copy_on_write:
+        assert result._mgr.blocks[0].refs.has_reference()
 
-    # mutating new series copy doesn't mutate original
-    result.iloc[0] = 0
-    assert ser.iloc[0] == 1
-    # mutating triggered a copy-on-write -> no longer shares memory
-    assert not np.shares_memory(get_array(ser), get_array(result))
+    if using_copy_on_write:
+        # mutating new series copy doesn't mutate original
+        result.iloc[0] = 0
+        assert ser.iloc[0] == 1
+        # mutating triggered a copy-on-write -> no longer shares memory
+        assert not np.shares_memory(get_array(ser), get_array(result))
+    else:
+        # mutating shallow copy does mutate original
+        with tm.assert_cow_warning(warn_copy_on_write):
+            result.iloc[0] = 0
+        assert ser.iloc[0] == 0
+        # and still shares memory
+        assert np.shares_memory(get_array(ser), get_array(result))
 
     # the same when modifying the parent
     result = Series(ser, dtype=dtype)
 
-    # mutating original doesn't mutate new series
-    ser.iloc[0] = 0
-    assert result.iloc[0] == 1
+    if using_copy_on_write:
+        # mutating original doesn't mutate new series
+        ser.iloc[0] = 0
+        assert result.iloc[0] == 1
+    else:
+        # mutating original does mutate shallow copy
+        with tm.assert_cow_warning(warn_copy_on_write):
+            ser.iloc[0] = 0
+        assert result.iloc[0] == 0
 
 
-def test_series_from_series_with_reindex():
+def test_series_from_series_with_reindex(using_copy_on_write, warn_copy_on_write):
     # Case: constructing a Series from another Series with specifying an index
     # that potentially requires a reindex of the values
     ser = Series([1, 2, 3], name="name")
@@ -63,33 +78,50 @@ def test_series_from_series_with_reindex():
     ]:
         result = Series(ser, index=index)
         assert np.shares_memory(ser.values, result.values)
-        result.iloc[0] = 0
-        assert ser.iloc[0] == 1
+        with tm.assert_cow_warning(warn_copy_on_write):
+            result.iloc[0] = 0
+        if using_copy_on_write:
+            assert ser.iloc[0] == 1
+        else:
+            assert ser.iloc[0] == 0
 
     # ensure that if an actual reindex is needed, we don't have any refs
     # (mutating the result wouldn't trigger CoW)
     result = Series(ser, index=[0, 1, 2, 3])
     assert not np.shares_memory(ser.values, result.values)
-    assert not result._mgr.blocks[0].refs.has_reference()
+    if using_copy_on_write:
+        assert not result._mgr.blocks[0].refs.has_reference()
 
 
+@pytest.mark.parametrize("fastpath", [False, True])
 @pytest.mark.parametrize("dtype", [None, "int64"])
 @pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), pd.array([1, 2, 3], dtype="Int64")]
 )
-def test_series_from_array(idx, dtype, arr):
-    ser = Series(arr, dtype=dtype, index=idx)
+def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
+    if idx is None or dtype is not None:
+        fastpath = False
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
-    assert not np.shares_memory(get_array(ser), data)
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(ser), data)
+    else:
+        assert np.shares_memory(get_array(ser), data)
 
     arr[0] = 100
-    tm.assert_series_equal(ser, ser_orig)
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        expected = Series([100, 2, 3], dtype=dtype if dtype is not None else arr.dtype)
+        tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize("copy", [True, False, None])
-def test_series_from_array_different_dtype(copy):
+def test_series_from_array_different_dtype(using_copy_on_write, copy):
     arr = np.array([1, 2, 3], dtype="int64")
     ser = Series(arr, dtype="int32", copy=copy)
     assert not np.shares_memory(get_array(ser), arr)
@@ -104,34 +136,63 @@ def test_series_from_array_different_dtype(copy):
         TimedeltaIndex([Timedelta("1 days"), Timedelta("2 days")]),
     ],
 )
-def test_series_from_index(idx):
+def test_series_from_index(using_copy_on_write, idx):
     ser = Series(idx)
     expected = idx.copy(deep=True)
-    assert np.shares_memory(get_array(ser), get_array(idx))
-    assert not ser._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(idx))
+        assert not ser._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(idx))
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
 
 
-def test_series_from_index_different_dtypes():
+def test_series_from_index_different_dtypes(using_copy_on_write):
     idx = Index([1, 2, 3], dtype="int64")
     ser = Series(idx, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(idx))
-    assert ser._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert ser._mgr._has_no_reference(0)
 
 
-def test_series_from_block_manager_different_dtype():
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+@pytest.mark.parametrize("fastpath", [False, True])
+@pytest.mark.parametrize("dtype", [None, "int64"])
+@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
+def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
+    ser = Series([1, 2, 3], dtype="int64")
+    ser_orig = ser.copy()
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+    assert np.shares_memory(get_array(ser), get_array(ser2))
+    if using_copy_on_write:
+        assert not ser2._mgr._has_no_reference(0)
+
+    ser2.iloc[0] = 100
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        expected = Series([100, 2, 3])
+        tm.assert_series_equal(ser, expected)
+
+
+def test_series_from_block_manager_different_dtype(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="int64")
     msg = "Passing a SingleBlockManager to Series"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         ser2 = Series(ser._mgr, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(ser2))
-    assert ser2._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert ser2._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("use_mgr", [True, False])
 @pytest.mark.parametrize("columns", [None, ["a"]])
-def test_dataframe_constructor_mgr_or_df(columns, use_mgr):
+def test_dataframe_constructor_mgr_or_df(
+    using_copy_on_write, warn_copy_on_write, columns, use_mgr
+):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
@@ -146,16 +207,23 @@ def test_dataframe_constructor_mgr_or_df(columns, use_mgr):
         new_df = DataFrame(data)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
-    new_df.iloc[0] = 100
+    with tm.assert_cow_warning(warn_copy_on_write and not use_mgr):
+        new_df.iloc[0] = 100
 
-    assert not np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
-    tm.assert_frame_equal(df, df_orig)
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
+        tm.assert_frame_equal(df, new_df)
 
 
 @pytest.mark.parametrize("dtype", [None, "int64", "Int64"])
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])
 @pytest.mark.parametrize("columns", [None, ["a", "b"], ["a", "b", "c"]])
-def test_dataframe_from_dict_of_series(columns, index, dtype):
+def test_dataframe_from_dict_of_series(
+    request, using_copy_on_write, warn_copy_on_write, columns, index, dtype
+):
     # Case: constructing a DataFrame from Series objects with copy=False
     # has to do a lazy following CoW rules
     # (the default for DataFrame(dict) is still to copy to ensure consolidation)
@@ -174,9 +242,13 @@ def test_dataframe_from_dict_of_series(columns, index, dtype):
     assert np.shares_memory(get_array(result, "a"), get_array(s1))
 
     # mutating the new dataframe doesn't mutate original
-    result.iloc[0, 0] = 10
-    assert not np.shares_memory(get_array(result, "a"), get_array(s1))
-    tm.assert_series_equal(s1, s1_orig)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result.iloc[0, 0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), get_array(s1))
+        tm.assert_series_equal(s1, s1_orig)
+    else:
+        assert s1.iloc[0] == 10
 
     # the same when modifying the parent series
     s1 = Series([1, 2, 3])
@@ -184,9 +256,13 @@ def test_dataframe_from_dict_of_series(columns, index, dtype):
     result = DataFrame(
         {"a": s1, "b": s2}, index=index, columns=columns, dtype=dtype, copy=False
     )
-    s1.iloc[0] = 10
-    assert not np.shares_memory(get_array(result, "a"), get_array(s1))
-    tm.assert_frame_equal(result, expected)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        s1.iloc[0] = 10
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(result, "a"), get_array(s1))
+        tm.assert_frame_equal(result, expected)
+    else:
+        assert result.iloc[0, 0] == 10
 
 
 @pytest.mark.parametrize("dtype", [None, "int64"])
@@ -207,33 +283,42 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     assert np.shares_memory(arr_before, arr_after)
 
 
+@pytest.mark.parametrize("cons", [Series, Index])
 @pytest.mark.parametrize(
     "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
 )
-def test_dataframe_from_series_or_index(data, dtype, index_or_series):
-    obj = index_or_series(data, dtype=dtype)
+def test_dataframe_from_series_or_index(
+    using_copy_on_write, warn_copy_on_write, data, dtype, cons
+):
+    obj = cons(data, dtype=dtype)
     obj_orig = obj.copy()
     df = DataFrame(obj, dtype=dtype)
     assert np.shares_memory(get_array(obj), get_array(df, 0))
-    assert not df._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
 
-    df.iloc[0, 0] = data[-1]
-    tm.assert_equal(obj, obj_orig)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.iloc[0, 0] = data[-1]
+    if using_copy_on_write:
+        tm.assert_equal(obj, obj_orig)
 
 
-def test_dataframe_from_series_or_index_different_dtype(index_or_series):
-    obj = index_or_series([1, 2], dtype="int64")
+@pytest.mark.parametrize("cons", [Series, Index])
+def test_dataframe_from_series_or_index_different_dtype(using_copy_on_write, cons):
+    obj = cons([1, 2], dtype="int64")
     df = DataFrame(obj, dtype="int32")
     assert not np.shares_memory(get_array(obj), get_array(df, 0))
-    assert df._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
 
 
-def test_dataframe_from_series_dont_infer_datetime():
+def test_dataframe_from_series_infer_datetime(using_copy_on_write):
     ser = Series([Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype=object)
-    df = DataFrame(ser)
-    assert df.dtypes.iloc[0] == np.dtype(object)
-    assert np.shares_memory(get_array(ser), get_array(df, 0))
-    assert not df._mgr._has_no_reference(0)
+    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+        df = DataFrame(ser)
+    assert not np.shares_memory(get_array(ser), get_array(df, 0))
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])
@@ -254,22 +339,44 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 
 
 @pytest.mark.parametrize("copy", [False, None, True])
-def test_frame_from_numpy_array(copy):
+def test_frame_from_numpy_array(using_copy_on_write, copy, using_array_manager):
     arr = np.array([[1, 2], [3, 4]])
     df = DataFrame(arr, copy=copy)
 
-    if copy is not False or copy is True:
+    if (
+        using_copy_on_write
+        and copy is not False
+        or copy is True
+        or (using_array_manager and copy is None)
+    ):
         assert not np.shares_memory(get_array(df, 0), arr)
     else:
         assert np.shares_memory(get_array(df, 0), arr)
 
 
-def test_frame_from_dict_of_index():
+def test_dataframe_from_records_with_dataframe(using_copy_on_write, warn_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    with tm.assert_produces_warning(FutureWarning):
+        df2 = DataFrame.from_records(df)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df2.iloc[0, 0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        tm.assert_frame_equal(df, df2)
+
+
+def test_frame_from_dict_of_index(using_copy_on_write):
     idx = Index([1, 2, 3])
     expected = idx.copy(deep=True)
     df = DataFrame({"a": idx}, copy=False)
     assert np.shares_memory(get_array(df, "a"), idx._values)
-    assert not df._mgr._has_no_reference(0)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
 
-    df.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected)
+        df.iloc[0, 0] = 100
+        tm.assert_index_equal(idx, expected)

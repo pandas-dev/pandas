@@ -3,22 +3,19 @@ from __future__ import annotations
 import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
 )
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sequence,
-    )
+    from collections.abc import Sequence
     import re
 
-    from pandas._typing import (
-        Scalar,
-        Self,
-    )
+    from pandas._typing import Scalar
+
+    from pandas import Series
 
 
 class BaseStringArrayMethods(abc.ABC):
@@ -243,11 +240,11 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_removeprefix(self, prefix: str) -> Self:
+    def _str_removeprefix(self, prefix: str) -> Series:
         pass
 
     @abc.abstractmethod
-    def _str_removesuffix(self, suffix: str) -> Self:
+    def _str_removesuffix(self, suffix: str) -> Series:
         pass
 
     @abc.abstractmethod

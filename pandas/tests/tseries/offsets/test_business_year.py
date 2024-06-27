@@ -3,7 +3,6 @@ Tests for the following offsets:
 - BYearBegin
 - BYearEnd
 """
-
 from __future__ import annotations
 
 from datetime import datetime

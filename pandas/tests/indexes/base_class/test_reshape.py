@@ -1,7 +1,6 @@
 """
 Tests for ndarray-like method on the base Index class
 """
-
 import numpy as np
 import pytest
 

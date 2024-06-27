@@ -1,5 +1,4 @@
-"""test get/set & misc"""
-
+""" test get/set & misc """
 from datetime import timedelta
 import re
 
@@ -32,16 +31,27 @@ def test_basic_indexing():
         np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
     )
 
-    with pytest.raises(KeyError, match="^5$"):
-        s[5]
+    warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
+    msg = "index 5 is out of bounds for axis 0 with size 5"
+    with pytest.raises(IndexError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
+    with pytest.raises(IndexError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
 
     s = s.sort_index()
 
-    with pytest.raises(KeyError, match="^5$"):
-        s[5]
+    with pytest.raises(IndexError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
+    msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
+    with pytest.raises(IndexError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
@@ -91,32 +101,35 @@ def test_basic_getitem_dt64tz_values():
     assert result == expected
 
 
-def test_getitem_setitem_ellipsis():
+def test_getitem_setitem_ellipsis(using_copy_on_write, warn_copy_on_write):
     s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
+
+    with tm.assert_cow_warning(warn_copy_on_write):
+        s[...] = 5
+    if not using_copy_on_write:
+        assert (result == 5).all()
 
 
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
         [
-            {1: 12, 2: [1, 2, 2, 3]},
-            {1: 313},
+            Series({1: 12, 2: [1, 2, 2, 3]}),
+            Series({1: 313}),
             Series({1: 12}, dtype=object),
         ],
         [
-            {1: [1, 2, 3], 2: [1, 2, 2, 3]},
-            {1: [1, 2, 3]},
+            Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+            Series({1: [1, 2, 3]}),
             Series({1: [1, 2, 3]}),
         ],
     ],
 )
 def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
-    result_1 = Series(result_1)
-    duplicate_item = Series(duplicate_item)
     result = result_1._append(duplicate_item)
     expected = expected_1._append(duplicate_item)
     tm.assert_series_equal(result[1], expected)
@@ -142,7 +155,9 @@ def test_series_box_timestamp():
     assert isinstance(ser.iloc[4], Timestamp)
 
     ser = Series(rng, index=rng)
-    assert isinstance(ser[rng[0]], Timestamp)
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert isinstance(ser[0], Timestamp)
     assert isinstance(ser.at[rng[1]], Timestamp)
     assert isinstance(ser.iat[2], Timestamp)
     assert isinstance(ser.loc[rng[3]], Timestamp)
@@ -226,7 +241,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, [None, None]]] = 2
 
 
-def test_slice(string_series, object_series):
+def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_write):
     original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -243,10 +258,14 @@ def test_slice(string_series, object_series):
 
     # Test return view.
     sl = string_series[10:20]
-    sl[:] = 0
+    with tm.assert_cow_warning(warn_copy_on_write):
+        sl[:] = 0
 
-    # Doesn't modify parent (CoW)
-    tm.assert_series_equal(string_series, original)
+    if using_copy_on_write:
+        # Doesn't modify parent (CoW)
+        tm.assert_series_equal(string_series, original)
+    else:
+        assert (string_series[10:20] == 0).all()
 
 
 def test_timedelta_assignment():
@@ -263,7 +282,7 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_underlying_data_conversion():
+def test_underlying_data_conversion(using_copy_on_write):
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
     return_value = df.set_index(["a", "b", "c"], inplace=True)
@@ -273,9 +292,18 @@ def test_underlying_data_conversion():
     df_original = df.copy()
     df
 
-    with tm.raises_chained_assignment_error():
-        df["val"].update(s)
-    expected = df_original
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["val"].update(s)
+        expected = df_original
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["val"].update(s)
+        expected = DataFrame(
+            {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+        )
+        return_value = expected.set_index(["a", "b", "c"], inplace=True)
+        assert return_value is None
     tm.assert_frame_equal(df, expected)
 
 

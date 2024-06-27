@@ -33,7 +33,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         Constructor - an instance of this (private) class is returned from
         `pd.DataFrame.__dataframe__`.
         """
-        self._df = df.rename(columns=str)
+        self._df = df.rename(columns=str, copy=False)
         self._allow_copy = allow_copy
         for i, _col in enumerate(self._df.columns):
             rechunked = maybe_rechunk(self._df.iloc[:, i], allow_copy=allow_copy)

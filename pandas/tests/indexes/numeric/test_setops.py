@@ -96,11 +96,7 @@ class TestSetOps:
         result = string_index.difference(float_index)
         tm.assert_index_equal(result, string_index)
 
-    def test_intersection_uint64_outside_int64_range(self):
-        index_large = Index(
-            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
-            dtype=np.uint64,
-        )
+    def test_intersection_uint64_outside_int64_range(self, index_large):
         other = Index([2**63, 2**63 + 5, 2**63 + 10, 2**63 + 15, 2**63 + 20])
         result = index_large.intersection(other)
         expected = Index(np.sort(np.intersect1d(index_large.values, other.values)))
@@ -113,14 +109,13 @@ class TestSetOps:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index2_name,keeps_name",
+        "index2,keeps_name",
         [
-            ("index", True),
-            ("other", False),
+            (Index([4, 7, 6, 5, 3], name="index"), True),
+            (Index([4, 7, 6, 5, 3], name="other"), False),
         ],
     )
-    def test_intersection_monotonic(self, index2_name, keeps_name, sort):
-        index2 = Index([4, 7, 6, 5, 3], name=index2_name)
+    def test_intersection_monotonic(self, index2, keeps_name, sort):
         index1 = Index([5, 3, 2, 4, 1], name="index")
         expected = Index([5, 3, 4])
 

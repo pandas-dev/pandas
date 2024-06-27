@@ -92,7 +92,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(range(5), unit="D"))
+        s = Series(pd.to_timedelta(range(5), unit="d"))
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
@@ -211,11 +211,18 @@ def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
     tm.assert_series_equal(result, expected)
 
 
-def test_isin_complex_numbers():
+@pytest.mark.parametrize(
+    "array,expected",
+    [
+        (
+            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
+            Series([False, True, True, False, True, True, True], dtype=bool),
+        )
+    ],
+)
+def test_isin_complex_numbers(array, expected):
     # GH 17927
-    array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
-    expected = Series([False, True, True, False, True, True, True], dtype=bool)
     tm.assert_series_equal(result, expected)
 
 

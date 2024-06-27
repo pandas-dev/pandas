@@ -17,6 +17,13 @@ from pandas.core.arrays import (
 )
 
 
+@pytest.fixture
+def index_large():
+    # large values used in Index[uint64] tests where no compat needed with Int64/Float64
+    large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+    return Index(large, dtype=np.uint64)
+
+
 class TestGetLoc:
     def test_get_loc(self):
         index = Index([0, 1, 2])
@@ -110,16 +117,16 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "expected,method",
         [
-            ([-1, 0, 0, 1, 1], "pad"),
-            ([-1, 0, 0, 1, 1], "ffill"),
-            ([0, 0, 1, 1, 2], "backfill"),
-            ([0, 0, 1, 1, 2], "bfill"),
+            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "pad"),
+            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "ffill"),
+            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "backfill"),
+            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "bfill"),
         ],
     )
     def test_get_indexer_methods(self, reverse, expected, method):
         index1 = Index([1, 2, 3, 4, 5])
         index2 = Index([2, 4, 6])
-        expected = np.array(expected, dtype=np.intp)
+
         if reverse:
             index1 = index1[::-1]
             expected = expected[::-1]
@@ -166,11 +173,12 @@ class TestGetIndexer:
     @pytest.mark.parametrize("listtype", [list, tuple, Series, np.array])
     @pytest.mark.parametrize(
         "tolerance, expected",
-        [
-            [[0.3, 0.3, 0.1], [0, 2, -1]],
-            [[0.2, 0.1, 0.1], [0, -1, -1]],
-            [[0.1, 0.5, 0.5], [-1, 2, 9]],
-        ],
+        list(
+            zip(
+                [[0.3, 0.3, 0.1], [0.2, 0.1, 0.1], [0.1, 0.5, 0.5]],
+                [[0, 2, -1], [0, -1, -1], [-1, 2, 9]],
+            )
+        ),
     )
     def test_get_indexer_nearest_listlike_tolerance(
         self, tolerance, expected, listtype
@@ -295,11 +303,7 @@ class TestGetIndexer:
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-    def test_get_indexer_uint64(self):
-        index_large = Index(
-            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
-            dtype=np.uint64,
-        )
+    def test_get_indexer_uint64(self, index_large):
         target = Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target)
         expected = np.array([0, -1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
@@ -402,9 +406,8 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
         result_1, result_2 = idx.get_indexer_non_unique(target)
-        expected_1, expected_2 = (
-            np.array([0, -1], dtype=np.int64),
-            np.array([1], dtype=np.int64),
+        expected_1, expected_2 = np.array([0, -1], dtype=np.int64), np.array(
+            [1], dtype=np.int64
         )
         tm.assert_numpy_array_equal(result_1, expected_1)
         tm.assert_numpy_array_equal(result_2, expected_2)

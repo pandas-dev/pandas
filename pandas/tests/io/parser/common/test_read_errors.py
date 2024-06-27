@@ -2,7 +2,6 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
-
 import codecs
 import csv
 from io import StringIO
@@ -58,12 +57,9 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with (
-        open(path, "rb") as handle,
-        codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-        ) as stream,
-    ):
+    with open(path, "rb") as handle, codecs.StreamRecoder(
+        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+    ) as stream:
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 
@@ -196,6 +192,7 @@ def test_warn_bad_lines(all_parsers):
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
@@ -250,17 +247,19 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(all_parsers):
+def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "object of type 'NoneType' has no len"
-        err = TypeError
+        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
+        err = ValueError
     elif parser.engine == "pyarrow":
-        msg = "'utf-8' codec can't decode byte 0xe4"
+        msg = (
+            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
+        )
         err = ValueError
 
     with tm.ensure_clean() as path:
@@ -312,6 +311,7 @@ a,b
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False

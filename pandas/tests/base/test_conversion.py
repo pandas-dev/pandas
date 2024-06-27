@@ -270,7 +270,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(arr, attr, index_or_series):
+def test_array(arr, attr, index_or_series, request):
     box = index_or_series
 
     result = box(arr, copy=False).array
@@ -383,7 +383,7 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
 
 @pytest.mark.parametrize("as_series", [True, False])
-def test_to_numpy_dtype(as_series):
+def test_to_numpy_dtype(as_series, unit):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
@@ -412,7 +412,7 @@ def test_to_numpy_dtype(as_series):
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
         ),
     ],
 )
@@ -454,7 +454,7 @@ def test_to_numpy_na_value_numpy_dtype(
             [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
         ),
     ],
 )
@@ -499,23 +499,22 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, expected_data",
+    "data, expected",
     [
         (
             {"a": pd.array([1, 2, None])},
-            [[1.0], [2.0], [np.nan]],
+            np.array([[1.0], [2.0], [np.nan]], dtype=float),
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
-            [[1, 1], [2, 2], [3, 3]],
+            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, expected_data):
+def test_to_numpy_dataframe_single_block(data, expected):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
     result = df.to_numpy(dtype=float, na_value=np.nan)
-    expected = np.array(expected_data, dtype=float)
     tm.assert_numpy_array_equal(result, expected)
 
 

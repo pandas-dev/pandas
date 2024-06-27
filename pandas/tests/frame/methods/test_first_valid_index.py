@@ -1,7 +1,6 @@
 """
 Includes test for last_valid_index.
 """
-
 import numpy as np
 import pytest
 

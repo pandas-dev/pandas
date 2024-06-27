@@ -296,7 +296,6 @@ class TestnanopsDataFrame:
         self,
         testfunc,
         targfunc,
-        testar,
         testarval,
         targarval,
         skipna,
@@ -320,13 +319,6 @@ class TestnanopsDataFrame:
                 else:
                     targ = bool(targ)
 
-            if testfunc.__name__ in ["nanargmax", "nanargmin"] and (
-                testar.startswith("arr_nan")
-                or (testar.endswith("nan") and (not skipna or axis == 1))
-            ):
-                with pytest.raises(ValueError, match="Encountered .* NA value"):
-                    testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
-                return
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
@@ -358,7 +350,6 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
-            testar,
             testarval2,
             targarval2,
             skipna=skipna,
@@ -379,7 +370,6 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
-            testar,
             testarval,
             targarval,
             skipna=skipna,
@@ -758,6 +748,7 @@ class TestnanopsDataFrame:
         ("arr_bool", False),
         ("arr_str", False),
         ("arr_utf", False),
+        ("arr_complex", False),
         ("arr_complex_nan", False),
         ("arr_nan_nanj", False),
         ("arr_nan_infj", True),
@@ -1111,6 +1102,10 @@ class TestNankurtFixedValues:
 
 
 class TestDatetime64NaNOps:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, unit):

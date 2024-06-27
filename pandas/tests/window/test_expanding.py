@@ -79,14 +79,23 @@ def test_missing_minp_zero():
     tm.assert_series_equal(result, expected)
 
 
-def test_expanding():
+def test_expanding_axis(axis_frame):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
+    axis = df._get_axis_number(axis_frame)
 
-    expected = DataFrame(
-        {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
-    )
-    result = df.expanding(3).sum()
+    if axis == 0:
+        msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
+        expected = DataFrame(
+            {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
+        )
+    else:
+        # axis == 1
+        msg = "Support for axis=1 in DataFrame.expanding is deprecated"
+        expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.expanding(3, axis=axis_frame).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -118,7 +127,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
     "df,expected,min_periods",
     [
         (
-            {"A": [1, 2, 3], "B": [4, 5, 6]},
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -127,7 +136,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             3,
         ),
         (
-            {"A": [1, 2, 3], "B": [4, 5, 6]},
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -136,7 +145,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             2,
         ),
         (
-            {"A": [1, 2, 3], "B": [4, 5, 6]},
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
             [
                 ({"A": [1], "B": [4]}, [0]),
                 ({"A": [1, 2], "B": [4, 5]}, [0, 1]),
@@ -144,10 +153,10 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             ],
             1,
         ),
-        ({"A": [1], "B": [4]}, [], 2),
-        (None, [({}, [])], 1),
+        (DataFrame({"A": [1], "B": [4]}), [], 2),
+        (DataFrame(), [({}, [])], 1),
         (
-            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -156,7 +165,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             3,
         ),
         (
-            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -165,7 +174,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
             2,
         ),
         (
-            {"A": [1, np.nan, 3], "B": [np.nan, 5, 6]},
+            DataFrame({"A": [1, np.nan, 3], "B": [np.nan, 5, 6]}),
             [
                 ({"A": [1.0], "B": [np.nan]}, [0]),
                 ({"A": [1, np.nan], "B": [np.nan, 5]}, [0, 1]),
@@ -177,10 +186,9 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
 )
 def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
-    df = DataFrame(df)
-    expecteds = [DataFrame(values, index=index) for (values, index) in expected]
+    expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, df.expanding(min_periods)):
+    for expected, actual in zip(expected, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -197,9 +205,9 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
 )
 def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
-    expecteds = [Series(values, index=index) for (values, index) in expected]
+    expected = [Series(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, ser.expanding(min_periods)):
+    for expected, actual in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -233,6 +241,7 @@ def test_expanding_skew_kurt_numerical_stability(method):
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
@@ -310,7 +319,7 @@ def test_expanding_corr_pairwise(frame):
 @pytest.mark.parametrize(
     "func,static_comp",
     [
-        ("sum", lambda x: np.sum(x, axis=0)),
+        ("sum", np.sum),
         ("mean", lambda x: np.mean(x, axis=0)),
         ("max", lambda x: np.max(x, axis=0)),
         ("min", lambda x: np.min(x, axis=0)),
@@ -320,11 +329,18 @@ def test_expanding_corr_pairwise(frame):
 def test_expanding_func(func, static_comp, frame_or_series):
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
 
-    obj = data.expanding(min_periods=1)
+    msg = "The 'axis' keyword in (Series|DataFrame).expanding is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        obj = data.expanding(min_periods=1, axis=0)
     result = getattr(obj, func)()
     assert isinstance(result, frame_or_series)
 
-    expected = static_comp(data[:11])
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    warn = None
+    if frame_or_series is DataFrame and static_comp is np.sum:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        expected = static_comp(data[:11])
     if frame_or_series is Series:
         tm.assert_almost_equal(result[10], expected)
     else:
@@ -339,26 +355,33 @@ def test_expanding_func(func, static_comp, frame_or_series):
 def test_expanding_min_periods(func, static_comp):
     ser = Series(np.random.default_rng(2).standard_normal(50))
 
-    result = getattr(ser.expanding(min_periods=30), func)()
+    msg = "The 'axis' keyword in Series.expanding is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=30, axis=0), func)()
     assert result[:29].isna().all()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
     # min_periods is working correctly
-    result = getattr(ser.expanding(min_periods=15), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=15, axis=0), func)()
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
     ser2 = Series(np.random.default_rng(2).standard_normal(20))
-    result = getattr(ser2.expanding(min_periods=5), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
     assert isna(result[3])
     assert notna(result[4])
 
     # min_periods=0
-    result0 = getattr(ser.expanding(min_periods=0), func)()
-    result1 = getattr(ser.expanding(min_periods=1), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result0, result1)
 
-    result = getattr(ser.expanding(min_periods=1), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
 
@@ -550,7 +573,7 @@ def test_expanding_cov_pairwise_diff_length():
     df2a = DataFrame(
         [[5, 6], [2, 1]], index=[0, 2], columns=Index(["X", "Y"], name="foo")
     )
-    # xref gh-15826
+    # TODO: xref gh-15826
     # .loc is not preserving the names
     result1 = df1.expanding().cov(df2, pairwise=True).loc[2]
     result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
@@ -691,3 +714,10 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+def test_keyword_quantile_deprecated():
+    # GH #52550
+    ser = Series([1, 2, 3, 4])
+    with tm.assert_produces_warning(FutureWarning):
+        ser.expanding().quantile(quantile=0.5)

@@ -4,7 +4,6 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
-
 from __future__ import annotations
 
 from datetime import (
@@ -22,6 +21,7 @@ from pandas._libs.tslibs.offsets import (
     WeekOfMonth,
 )
 
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     WeekDay,
     assert_is_on_offset,
@@ -41,6 +41,15 @@ class TestWeek:
 
         with pytest.raises(ValueError, match="Day must be"):
             Week(weekday=-1)
+
+    def test_is_anchored(self):
+        msg = "Week.is_anchored is deprecated "
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert Week(weekday=0).is_anchored()
+            assert not Week().is_anchored()
+            assert not Week(2, weekday=2).is_anchored()
+            assert not Week(2).is_anchored()
 
     offset_cases = []
     # not business week

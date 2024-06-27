@@ -122,25 +122,29 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         table: list[list[Scalar | NaTType]] = []
 
         for sheet_row in sheet_rows:
+            sheet_cells = [
+                x
+                for x in sheet_row.childNodes
+                if hasattr(x, "qname") and x.qname in cell_names
+            ]
             empty_cells = 0
             table_row: list[Scalar | NaTType] = []
 
-            for sheet_cell in sheet_row.childNodes:
-                if hasattr(sheet_cell, "qname") and sheet_cell.qname in cell_names:
-                    if sheet_cell.qname == table_cell_name:
-                        value = self._get_cell_value(sheet_cell)
-                    else:
-                        value = self.empty_value
+            for sheet_cell in sheet_cells:
+                if sheet_cell.qname == table_cell_name:
+                    value = self._get_cell_value(sheet_cell)
+                else:
+                    value = self.empty_value
 
-                    column_repeat = self._get_column_repeat(sheet_cell)
+                column_repeat = self._get_column_repeat(sheet_cell)
 
-                    # Queue up empty values, writing only if content succeeds them
-                    if value == self.empty_value:
-                        empty_cells += column_repeat
-                    else:
-                        table_row.extend([self.empty_value] * empty_cells)
-                        empty_cells = 0
-                        table_row.extend([value] * column_repeat)
+                # Queue up empty values, writing only if content succeeds them
+                if value == self.empty_value:
+                    empty_cells += column_repeat
+                else:
+                    table_row.extend([self.empty_value] * empty_cells)
+                    empty_cells = 0
+                    table_row.extend([value] * column_repeat)
 
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)

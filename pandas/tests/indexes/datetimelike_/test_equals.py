@@ -1,7 +1,6 @@
 """
 Tests shared for DatetimeIndex/TimedeltaIndex/PeriodIndex
 """
-
 from datetime import (
     datetime,
     timedelta,

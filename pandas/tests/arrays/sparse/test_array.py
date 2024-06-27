@@ -52,11 +52,10 @@ class TestSparseArray:
         arr.fill_value = 2
         assert arr.fill_value == 2
 
-        msg = "fill_value must be a valid value for the SparseDtype.subtype"
-        with pytest.raises(ValueError, match=msg):
-            # GH#53043
+        msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             arr.fill_value = 3.1
-        assert arr.fill_value == 2
+        assert arr.fill_value == 3.1
 
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
@@ -65,9 +64,8 @@ class TestSparseArray:
         arr.fill_value = True
         assert arr.fill_value is True
 
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             arr.fill_value = 0
-        assert arr.fill_value is True
 
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)

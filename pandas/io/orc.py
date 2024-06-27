@@ -1,8 +1,8 @@
-"""orc compat"""
-
+""" orc compat """
 from __future__ import annotations
 
 import io
+from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -73,7 +73,7 @@ def read_orc(
         .. versionadded:: 2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
-        Filesystem object to use when reading the orc file.
+        Filesystem object to use when reading the parquet file.
 
         .. versionadded:: 2.1.0
 
@@ -83,15 +83,6 @@ def read_orc(
     Returns
     -------
     DataFrame
-        DataFrame based on the ORC file.
-
-    See Also
-    --------
-    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
-    read_excel : Read an Excel file into a pandas DataFrame.
-    read_spss : Read an SPSS file into a pandas DataFrame.
-    read_sas : Load a SAS file into a pandas DataFrame.
-    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Notes
     -----
@@ -107,7 +98,7 @@ def read_orc(
     --------
     >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
-    # we require a newer version of pyarrow than we support for orc
+    # we require a newer version of pyarrow than we support for parquet
 
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -227,7 +218,7 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    pyarrow = import_optional_dependency(engine, min_version="10.0.1")
+    engine = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -236,9 +227,10 @@ def to_orc(
         path = io.BytesIO()
     assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
+        assert isinstance(engine, ModuleType)  # For mypy
         try:
             orc.write_table(
-                pyarrow.Table.from_pandas(df, preserve_index=index),
+                engine.Table.from_pandas(df, preserve_index=index),
                 handles.handle,
                 **engine_kwargs,
             )

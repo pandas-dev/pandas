@@ -1,14 +1,10 @@
 """
 Top level ``eval`` module.
 """
-
 from __future__ import annotations
 
 import tokenize
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -76,7 +72,7 @@ def _check_engine(engine: str | None) -> str:
     return engine
 
 
-def _check_parser(parser: str) -> None:
+def _check_parser(parser: str):
     """
     Make sure a valid parser is passed.
 
@@ -95,7 +91,7 @@ def _check_parser(parser: str) -> None:
         )
 
 
-def _check_resolvers(resolvers) -> None:
+def _check_resolvers(resolvers):
     if resolvers is not None:
         for resolver in resolvers:
             if not hasattr(resolver, "__getitem__"):
@@ -106,7 +102,7 @@ def _check_resolvers(resolvers) -> None:
                 )
 
 
-def _check_expression(expr) -> None:
+def _check_expression(expr):
     """
     Make sure an expression is not an empty string
 
@@ -153,7 +149,7 @@ def _convert_expression(expr) -> str:
     return s
 
 
-def _check_for_locals(expr: str, stack_level: int, parser: str) -> None:
+def _check_for_locals(expr: str, stack_level: int, parser: str):
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
 
@@ -181,7 +177,7 @@ def eval(
     level: int = 0,
     target=None,
     inplace: bool = False,
-) -> Any:
+):
     """
     Evaluate a Python expression as a string using various backends.
 
@@ -193,8 +189,6 @@ def eval(
     corresponding bitwise operators.  :class:`~pandas.Series` and
     :class:`~pandas.DataFrame` objects are supported and behave as they would
     with plain ol' Python evaluation.
-    `eval` can run arbitrary code which can make you vulnerable to code
-    injection if you pass user input to this function.
 
     Parameters
     ----------
@@ -381,7 +375,7 @@ def eval(
                 try:
                     target = env.target
                     if isinstance(target, NDFrame):
-                        target = target.copy(deep=False)
+                        target = target.copy(deep=None)
                     else:
                         target = target.copy()
                 except AttributeError as err:
@@ -397,7 +391,7 @@ def eval(
                 if inplace and isinstance(target, NDFrame):
                     target.loc[:, assigner] = ret
                 else:
-                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
+                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

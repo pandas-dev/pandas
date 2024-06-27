@@ -48,6 +48,7 @@ from pandas.core.computation.expressions import (
 )
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
+    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,
@@ -140,8 +141,8 @@ class TestEval:
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs, engine, parser):
         if parser == "python" and binop in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
-            ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
+                ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -160,8 +161,9 @@ class TestEval:
 
         if parser == "python" and cmp_op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
-            ex = f"lhs {cmp_op} rhs"
+
             with pytest.raises(NotImplementedError, match=msg):
+                ex = f"lhs {cmp_op} rhs"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -191,8 +193,8 @@ class TestEval:
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
-            ex = f"~(lhs {op} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
+                ex = f"~(lhs {op} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -265,7 +267,7 @@ class TestEval:
                 tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "arith1", sorted(set(ARITH_OPS_SYMS).difference({"**", "//", "%"}))
+        "arith1", sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
     )
     def test_binary_arith_ops(self, arith1, lhs, rhs, engine, parser):
         ex = f"lhs {arith1} rhs"
@@ -521,15 +523,14 @@ class TestEval:
         "lhs",
         [
             # Float
-            np.random.default_rng(2).standard_normal((5, 2)),
+            DataFrame(np.random.default_rng(2).standard_normal((5, 2))),
             # Int
-            np.random.default_rng(2).integers(5, size=(5, 2)),
+            DataFrame(np.random.default_rng(2).integers(5, size=(5, 2))),
             # bool doesn't work with numexpr but works elsewhere
-            np.array([True, False, True, False, True], dtype=np.bool_),
+            DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5),
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
-        lhs = DataFrame(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -540,15 +541,14 @@ class TestEval:
         "lhs",
         [
             # Float
-            np.random.default_rng(2).standard_normal(5),
+            Series(np.random.default_rng(2).standard_normal(5)),
             # Int
-            np.random.default_rng(2).integers(5, size=5),
+            Series(np.random.default_rng(2).integers(5, size=5)),
             # bool doesn't work with numexpr but works elsewhere
-            np.array([True, False, True, False, True], dtype=np.bool_),
+            Series(np.random.default_rng(2).standard_normal(5) > 0.5),
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
-        lhs = Series(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -606,10 +606,11 @@ class TestEval:
         )
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     @pytest.mark.parametrize("expr", ["x < -0.1", "-5 > x"])
-    def test_float_comparison_bin_op(self, float_numpy_dtype, expr):
+    def test_float_comparison_bin_op(self, dtype, expr):
         # GH 16363
-        df = DataFrame({"x": np.array([0], dtype=float_numpy_dtype)})
+        df = DataFrame({"x": np.array([0], dtype=dtype)})
         res = df.eval(expr)
         assert res.values == np.array([False])
 
@@ -737,17 +738,6 @@ class TestEval:
         assert pd.eval(f"{event.str.match('hello').a}")
         assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
-    def test_eval_keep_name(self, engine, parser):
-        df = Series([2, 15, 28], name="a").to_frame()
-        res = df.eval("a + a", engine=engine, parser=parser)
-        expected = Series([4, 30, 56], name="a")
-        tm.assert_series_equal(expected, res)
-
-    def test_eval_unmatching_names(self, engine, parser):
-        variable_name = Series([42], name="series_name")
-        res = pd.eval("variable_name + 0", engine=engine, parser=parser)
-        tm.assert_series_equal(variable_name, res)
-
 
 # -------------------------------------
 # gh-12388: Typecasting rules consistency with python
@@ -757,16 +747,15 @@ class TestTypeCasting:
     @pytest.mark.parametrize("op", ["+", "-", "*", "**", "/"])
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.core.sctypes[x] for x in ['uint', 'int', 'float']))
+    @pytest.mark.parametrize("dt", [np.float32, np.float64])
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
-    def test_binop_typecasting(self, engine, parser, op, float_numpy_dtype, left_right):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((5, 3)), dtype=float_numpy_dtype
-        )
+    def test_binop_typecasting(self, engine, parser, op, dt, left_right):
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dt)
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
-        assert df.values.dtype == float_numpy_dtype
-        assert res.values.dtype == float_numpy_dtype
+        assert df.values.dtype == dt
+        assert res.values.dtype == dt
         tm.assert_frame_equal(res, eval(s))
 
 
@@ -1015,18 +1004,15 @@ class TestAlignment:
         assert res.shape == expected.shape
         tm.assert_frame_equal(res, expected)
 
-    def test_performance_warning_for_poor_alignment(
-        self, performance_warning, engine, parser
-    ):
+    def test_performance_warning_for_poor_alignment(self, engine, parser):
         df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
-        if engine == "numexpr" and performance_warning:
+        if engine == "numexpr":
             seen = PerformanceWarning
         else:
             seen = False
 
-        msg = "Alignment difference on axis 1 is larger than an order of magnitude"
-        with tm.assert_produces_warning(seen, match=msg):
+        with tm.assert_produces_warning(seen):
             pd.eval("df + s", engine=engine, parser=parser)
 
         s = Series(np.random.default_rng(2).standard_normal(1000))
@@ -1043,15 +1029,15 @@ class TestAlignment:
 
         is_python_engine = engine == "python"
 
-        if not is_python_engine and performance_warning:
+        if not is_python_engine:
             wrn = PerformanceWarning
         else:
             wrn = False
 
-        with tm.assert_produces_warning(wrn, match=msg) as w:
+        with tm.assert_produces_warning(wrn) as w:
             pd.eval("df + s", engine=engine, parser=parser)
 
-            if not is_python_engine and performance_warning:
+            if not is_python_engine:
                 assert len(w) == 1
                 msg = str(w[0].message)
                 logged = np.log10(s.size - df.shape[1])
@@ -1280,12 +1266,14 @@ class TestOperations:
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-    def test_column_in(self, engine):
+    def test_column_in(self):
         # GH 11235
         df = DataFrame({"a": [11], "b": [-32]})
-        result = df.eval("a in [11, -32]", engine=engine)
-        expected = Series([True], name="a")
-        tm.assert_series_equal(result, expected)
+        result = df.eval("a in [11, -32]")
+        expected = Series([True])
+        # TODO: 2022-01-29: Name check failed with numexpr 2.7.3 in CI
+        # but cannot reproduce locally
+        tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
     def test_assignment_not_inplace(self):
@@ -1301,7 +1289,7 @@ class TestOperations:
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-    def test_multi_line_expression(self):
+    def test_multi_line_expression(self, warn_copy_on_write):
         # GH 11149
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
@@ -1514,7 +1502,7 @@ class TestOperations:
             parser=parser,
         )
         expec = df.dates1 < "20130101"
-        tm.assert_series_equal(res, expec)
+        tm.assert_series_equal(res, expec, check_names=False)
 
     def test_simple_in_ops(self, engine, parser):
         if parser != "python":
@@ -1619,20 +1607,22 @@ class TestMath:
         kwargs["level"] = kwargs.pop("level", 0) + 1
         return pd.eval(*args, **kwargs)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.skipif(
+        not NUMEXPR_INSTALLED, reason="Unary ops only implemented for numexpr"
+    )
     @pytest.mark.parametrize("fn", _unary_math_ops)
-    def test_unary_functions(self, fn, engine, parser):
+    def test_unary_functions(self, fn):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         a = df.a
 
         expr = f"{fn}(a)"
-        got = self.eval(expr, engine=engine, parser=parser)
+        got = self.eval(expr)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a)
-        tm.assert_series_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
-    def test_binary_functions(self, fn, engine, parser):
+    def test_binary_functions(self, fn):
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
@@ -1643,10 +1633,10 @@ class TestMath:
         b = df.b
 
         expr = f"{fn}(a, b)"
-        got = self.eval(expr, engine=engine, parser=parser)
+        got = self.eval(expr)
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a, b)
-        tm.assert_almost_equal(got, expect)
+        tm.assert_almost_equal(got, expect, check_names=False)
 
     def test_df_use_case(self, engine, parser):
         df = DataFrame(
@@ -1662,8 +1652,8 @@ class TestMath:
             inplace=True,
         )
         got = df.e
-        expect = np.arctan2(np.sin(df.a), df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        expect = np.arctan2(np.sin(df.a), df.b)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_df_arithmetic_subexpression(self, engine, parser):
         df = DataFrame(
@@ -1674,8 +1664,8 @@ class TestMath:
         )
         df.eval("e = sin(a + b)", engine=engine, parser=parser, inplace=True)
         got = df.e
-        expect = np.sin(df.a + df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        expect = np.sin(df.a + df.b)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     @pytest.mark.parametrize(
         "dtype, expect_dtype",
@@ -1699,10 +1689,10 @@ class TestMath:
         assert df.a.dtype == dtype
         df.eval("b = sin(a)", engine=engine, parser=parser, inplace=True)
         got = df.b
-        expect = np.sin(df.a).rename("b")
+        expect = np.sin(df.a)
         assert expect.dtype == got.dtype
         assert expect_dtype == got.dtype
-        tm.assert_series_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_undefined_func(self, engine, parser):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
@@ -1907,6 +1897,10 @@ def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]}, dtype=object)
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
+    if USE_NUMEXPR:
+        # https://github.com/pandas-dev/pandas/issues/10239
+        # lose name with numexpr engine. Remove when that's fixed.
+        expected.name = None
     tm.assert_series_equal(result, expected)
 
 
@@ -1969,23 +1963,29 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace():
+def test_set_inplace(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
-    df.eval("A = B + C", inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
-    expected = Series([1, 2, 3], name="A")
-    tm.assert_series_equal(ser, expected)
-    tm.assert_series_equal(result_view["A"], expected)
+    if not using_copy_on_write:
+        tm.assert_series_equal(ser, expected["A"])
+        tm.assert_series_equal(result_view["A"], expected["A"])
+    else:
+        expected = Series([1, 2, 3], name="A")
+        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(result_view["A"], expected)
 
 
-@pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
-def test_validate_bool_args(value):
-    msg = 'For argument "inplace" expected type bool, received type'
-    with pytest.raises(ValueError, match=msg):
-        pd.eval("2+2", inplace=value)
+class TestValidate:
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args(self, value):
+        msg = 'For argument "inplace" expected type bool, received type'
+        with pytest.raises(ValueError, match=msg):
+            pd.eval("2+2", inplace=value)

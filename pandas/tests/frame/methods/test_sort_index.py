@@ -773,6 +773,18 @@ class TestDataFrameSortIndex:
         with pytest.raises(ValueError, match=match):
             df.sort_index(axis=0, ascending=ascending, na_position="first")
 
+    def test_sort_index_use_inf_as_na(self):
+        # GH 29687
+        expected = DataFrame(
+            {"col1": [1, 2, 3], "col2": [3, 4, 5]},
+            index=pd.date_range("2020", periods=3),
+        )
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                result = expected.sort_index()
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "ascending",
         [(True, False), [True, False]],
@@ -915,6 +927,7 @@ class TestDataFrameSortIndexKey:
         result = df.sort_index(level=[0, 1], na_position="last")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_index_multiindex_sort_remaining(self, ascending):
         # GH #24247
         df = DataFrame(
@@ -988,23 +1001,6 @@ def test_axis_columns_ignore_index():
     df = DataFrame([[1, 2]], columns=["d", "c"])
     result = df.sort_index(axis="columns", ignore_index=True)
     expected = DataFrame([[2, 1]])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_axis_columns_ignore_index_ascending_false():
-    # GH 57293
-    df = DataFrame(
-        {
-            "b": [1.0, 3.0, np.nan],
-            "a": [1, 4, 3],
-            1: ["a", "b", "c"],
-            "e": [3, 1, 4],
-            "d": [1, 2, 8],
-        }
-    ).set_index(["b", "a", 1])
-    result = df.sort_index(axis="columns", ignore_index=True, ascending=False)
-    expected = df.copy()
-    expected.columns = RangeIndex(2)
     tm.assert_frame_equal(result, expected)
 
 

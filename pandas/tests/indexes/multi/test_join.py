@@ -12,9 +12,10 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("other", [["three", "one", "two"], ["one"], ["one", "three"]])
+@pytest.mark.parametrize(
+    "other", [Index(["three", "one", "two"]), Index(["one"]), Index(["one", "three"])]
+)
 def test_join_level(idx, other, join_type):
-    other = Index(other)
     join_index, lidx, ridx = other.join(
         idx, how=join_type, level="second", return_indexers=True
     )
@@ -35,10 +36,7 @@ def test_join_level(idx, other, join_type):
 
         assert join_index.equals(join_index2)
         tm.assert_numpy_array_equal(lidx, lidx2)
-        if ridx is None:
-            assert ridx == ridx2
-        else:
-            tm.assert_numpy_array_equal(ridx, ridx2)
+        tm.assert_numpy_array_equal(ridx, ridx2)
         tm.assert_numpy_array_equal(join_index2.values, exp_values)
 
 
@@ -260,7 +258,7 @@ def test_join_dtypes_all_nan(any_numeric_ea_dtype):
 
 def test_join_index_levels():
     # GH#53093
-    midx = MultiIndex.from_tuples([("a", "2019-02-01"), ("a", "2019-02-01")])
+    midx = midx = MultiIndex.from_tuples([("a", "2019-02-01"), ("a", "2019-02-01")])
     midx2 = MultiIndex.from_tuples([("a", "2019-01-31")])
     result = midx.join(midx2, how="outer")
     expected = MultiIndex.from_tuples(

@@ -1,7 +1,6 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
-
 from __future__ import annotations
 
 import codecs
@@ -11,6 +10,7 @@ from typing import (
     Any,
     final,
 )
+import warnings
 
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -24,7 +24,10 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
-from pandas.io.xml import get_data_from_filepath
+from pandas.io.xml import (
+    get_data_from_filepath,
+    preprocess_data,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -207,7 +210,13 @@ class _BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            df = df.fillna(self.na_rep)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Downcasting object dtype arrays",
+                    category=FutureWarning,
+                )
+                df = df.fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 
@@ -284,8 +293,8 @@ class _BaseXMLFormatter:
             try:
                 if not isna(d[col]):
                     elem_row.attrib[attr_name] = str(d[col])
-            except KeyError as err:
-                raise KeyError(f"no valid column, {col}") from err
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
         return elem_row
 
     @final
@@ -321,8 +330,8 @@ class _BaseXMLFormatter:
             try:
                 val = None if isna(d[col]) or d[col] == "" else str(d[col])
                 sub_element_cls(elem_row, elem_name).text = val
-            except KeyError as err:
-                raise KeyError(f"no valid column, {col}") from err
+            except KeyError:
+                raise KeyError(f"no valid column, {col}")
 
     @final
     def write_output(self) -> str | None:
@@ -399,10 +408,8 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
-                except KeyError as err:
-                    raise KeyError(
-                        f"{self.prefix} is not included in namespaces"
-                    ) from err
+                except KeyError:
+                    raise KeyError(f"{self.prefix} is not included in namespaces")
             elif "" in self.namespaces:
                 uri = f'{{{self.namespaces[""]}}}'
             else:
@@ -497,10 +504,8 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
             if self.prefix:
                 try:
                     uri = f"{{{self.namespaces[self.prefix]}}}"
-                except KeyError as err:
-                    raise KeyError(
-                        f"{self.prefix} is not included in namespaces"
-                    ) from err
+                except KeyError:
+                    raise KeyError(f"{self.prefix} is not included in namespaces")
             elif "" in self.namespaces:
                 uri = f'{{{self.namespaces[""]}}}'
             else:
@@ -539,7 +544,7 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
             storage_options=self.storage_options,
         )
 
-        with handle_data as xml_data:
+        with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):

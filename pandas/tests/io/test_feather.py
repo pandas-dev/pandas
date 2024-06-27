@@ -1,7 +1,4 @@
-"""test feather-format compat"""
-
-import zoneinfo
-
+""" test feather-format compat """
 import numpy as np
 import pytest
 
@@ -39,9 +36,7 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, expected=None, write_kwargs=None, **read_kwargs):
-        if write_kwargs is None:
-            write_kwargs = {}
+    def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
         if expected is None:
             expected = df.copy()
 
@@ -64,7 +59,6 @@ class TestFeather:
             self.check_error_on_write(obj, ValueError, msg)
 
     def test_basic(self):
-        tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
             {
                 "string": list("abc"),
@@ -79,7 +73,7 @@ class TestFeather:
                     list(pd.date_range("20130101", periods=3)), freq=None
                 ),
                 "dttz": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, tz=tz)),
+                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
                     freq=None,
                 ),
                 "dt_with_null": [
@@ -96,7 +90,7 @@ class TestFeather:
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
-        assert df.dttz.dtype.tz.key == "US/Eastern"
+        assert df.dttz.dtype.tz.zone == "US/Eastern"
 
         expected = df.copy()
         expected.loc[1, "bool_with_null"] = None
@@ -144,6 +138,15 @@ class TestFeather:
             index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
+        tm.assert_frame_equal(df, result)
+
+    def test_path_localpath(self):
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
+        result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self):

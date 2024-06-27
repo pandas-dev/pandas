@@ -12,6 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import SettingWithCopyError
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -114,8 +115,10 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
-        assert isinstance(result, Series)
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
+        assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
         result = ser.dt.tz_localize("US/Eastern")
@@ -151,8 +154,10 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
-        assert isinstance(result, Series)
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
+        assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
         result = ser.dt.tz_convert("CET")
@@ -192,9 +197,7 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, ser.index)
 
-            msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result = ser.dt.to_pytimedelta()
+            result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
@@ -256,8 +259,9 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        idx = period_range("20130101", periods=5, freq="D", name="xxx")
-        ser = Series(idx)
+        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
@@ -277,15 +281,26 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self):
+    def test_dt_accessor_not_writeable(self, using_copy_on_write, warn_copy_on_write):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
             ser.dt.hour = 5
 
         # trying to set a copy
-        with tm.raises_chained_assignment_error():
-            ser.dt.hour[0] = 5
+        msg = "modifications to a property of a datetimelike.+not supported"
+        with pd.option_context("chained_assignment", "raise"):
+            if using_copy_on_write:
+                with tm.raises_chained_assignment_error():
+                    ser.dt.hour[0] = 5
+            elif warn_copy_on_write:
+                with tm.assert_produces_warning(
+                    FutureWarning, match="ChainedAssignmentError"
+                ):
+                    ser.dt.hour[0] = 5
+            else:
+                with pytest.raises(SettingWithCopyError, match=msg):
+                    ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",
@@ -437,8 +452,7 @@ class TestSeriesDatetimeValues:
 
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -682,16 +696,15 @@ class TestSeriesDatetimeValues:
         assert isinstance(ser.dt, DatetimeProperties)
 
     @pytest.mark.parametrize(
-        "data",
+        "ser",
         [
-            np.arange(5),
-            list("abcde"),
-            np.random.default_rng(2).standard_normal(5),
+            Series(np.arange(5)),
+            Series(list("abcde")),
+            Series(np.random.default_rng(2).standard_normal(5)),
         ],
     )
-    def test_dt_accessor_invalid(self, data):
+    def test_dt_accessor_invalid(self, ser):
         # GH#9322 check that series with incorrect dtypes don't have attr
-        ser = Series(data)
         with pytest.raises(AttributeError, match="only use .dt accessor"):
             ser.dt
         assert not hasattr(ser, "dt")

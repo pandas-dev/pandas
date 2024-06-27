@@ -1,7 +1,6 @@
 """
 Tests for offsets.Tick and subclasses
 """
-
 from datetime import (
     datetime,
     timedelta,
@@ -16,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
+from pandas.errors import OutOfBoundsTimedelta
 
 from pandas import (
     Timedelta,
@@ -238,6 +238,16 @@ def test_tick_addition(kls, expected):
         assert result == expected
 
 
+def test_tick_delta_overflow():
+    # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
+    tick = offsets.Day(10**9)
+    msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
+    depr_msg = "Day.delta is deprecated"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            tick.delta
+
+
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_division(cls):
     off = cls(10)
@@ -325,6 +335,14 @@ def test_tick_zero(cls1, cls2):
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_equalities(cls):
     assert cls() == cls(1)
+
+
+@pytest.mark.parametrize("cls", tick_classes)
+def test_tick_offset(cls):
+    msg = f"{cls.__name__}.is_anchored is deprecated "
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not cls().is_anchored()
 
 
 @pytest.mark.parametrize("cls", tick_classes)

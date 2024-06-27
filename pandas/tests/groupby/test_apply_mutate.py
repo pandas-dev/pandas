@@ -75,7 +75,7 @@ def test_no_mutate_but_looks_like():
     tm.assert_series_equal(result1, result2)
 
 
-def test_apply_function_with_indexing():
+def test_apply_function_with_indexing(warn_copy_on_write):
     # GH: 33058
     df = pd.DataFrame(
         {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
@@ -86,11 +86,78 @@ def test_apply_function_with_indexing():
         return x.col2
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(
+        DeprecationWarning, match=msg, raise_on_extra_warnings=not warn_copy_on_write
+    ):
         result = df.groupby(["col1"], as_index=False).apply(fn)
     expected = pd.Series(
         [1, 2, 0, 4, 5, 0],
-        index=range(6),
+        index=pd.MultiIndex.from_tuples(
+            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
+        ),
         name="col2",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_mutate_columns_multiindex():
+    # GH 12652
+    df = pd.DataFrame(
+        {
+            ("C", "julian"): [1, 2, 3],
+            ("B", "geoffrey"): [1, 2, 3],
+            ("A", "julian"): [1, 2, 3],
+            ("B", "julian"): [1, 2, 3],
+            ("A", "geoffrey"): [1, 2, 3],
+            ("C", "geoffrey"): [1, 2, 3],
+        },
+        columns=pd.MultiIndex.from_tuples(
+            [
+                ("A", "julian"),
+                ("A", "geoffrey"),
+                ("B", "julian"),
+                ("B", "geoffrey"),
+                ("C", "julian"),
+                ("C", "geoffrey"),
+            ]
+        ),
+    )
+
+    def add_column(grouped):
+        name = grouped.columns[0][1]
+        grouped["sum", name] = grouped.sum(axis=1)
+        return grouped
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
+    result = gb.apply(add_column)
+    expected = pd.DataFrame(
+        [
+            [1, 1, 1, 3, 1, 1, 1, 3],
+            [2, 2, 2, 6, 2, 2, 2, 6],
+            [
+                3,
+                3,
+                3,
+                9,
+                3,
+                3,
+                3,
+                9,
+            ],
+        ],
+        columns=pd.MultiIndex.from_tuples(
+            [
+                ("geoffrey", "A", "geoffrey"),
+                ("geoffrey", "B", "geoffrey"),
+                ("geoffrey", "C", "geoffrey"),
+                ("geoffrey", "sum", "geoffrey"),
+                ("julian", "A", "julian"),
+                ("julian", "B", "julian"),
+                ("julian", "C", "julian"),
+                ("julian", "sum", "julian"),
+            ]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -1,7 +1,6 @@
 """
 Tests for subclasses of NDArrayBackedExtensionArray
 """
-
 import numpy as np
 
 from pandas import (

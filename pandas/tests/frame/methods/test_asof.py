@@ -36,18 +36,18 @@ class TestFrameAsof:
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = df.asof(dates)
-        assert result.notna().all(axis=1).all()
+        assert result.notna().all(1).all()
         lb = df.index[14]
         ub = df.index[30]
 
         dates = list(dates)
 
         result = df.asof(dates)
-        assert result.notna().all(axis=1).all()
+        assert result.notna().all(1).all()
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
-        assert (rs == 14).all(axis=1).all()
+        assert (rs == 14).all(1).all()
 
     def test_subset(self, date_range_frame):
         N = 10
@@ -162,6 +162,19 @@ class TestFrameAsof:
 
         result = df.asof(stamp)
         tm.assert_series_equal(result, expected)
+
+    def test_is_copy(self, date_range_frame):
+        # GH-27357, GH-30784: ensure the result of asof is an actual copy and
+        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
+        df = date_range_frame.astype({"A": "float"})
+        N = 50
+        df.loc[df.index[15:30], "A"] = np.nan
+        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
+
+        result = df.asof(dates)
+
+        with tm.assert_produces_warning(None):
+            result["C"] = 1
 
     def test_asof_periodindex_mismatched_freq(self):
         N = 50

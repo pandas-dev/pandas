@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -125,12 +127,18 @@ class TestTranspose:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    def test_transpose_get_view(self, float_frame):
+    @td.skip_array_manager_invalid_test
+    def test_transpose_get_view(self, float_frame, using_copy_on_write):
         dft = float_frame.T
         dft.iloc[:, 5:10] = 5
-        assert (float_frame.values[5:10] != 5).all()
 
-    def test_transpose_get_view_dt64tzget_view(self):
+        if using_copy_on_write:
+            assert (float_frame.values[5:10] != 5).all()
+        else:
+            assert (float_frame.values[5:10] == 5).all()
+
+    @td.skip_array_manager_invalid_test
+    def test_transpose_get_view_dt64tzget_view(self, using_copy_on_write):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         arr = dti._data.reshape(3, 2)
         df = DataFrame(arr)
@@ -140,7 +148,10 @@ class TestTranspose:
         assert result._mgr.nblocks == 1
 
         rtrip = result._mgr.blocks[0].values
-        assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
+        if using_copy_on_write:
+            assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
+        else:
+            assert np.shares_memory(arr._ndarray, rtrip._ndarray)
 
     def test_transpose_not_inferring_dt(self):
         # GH#51546

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
+import pandas._testing as tm
 
 
 class TestCopy:
@@ -15,6 +18,25 @@ class TestCopy:
         getattr(cp, attr).name = "foo"
         assert getattr(float_frame, attr).name is None
 
+    @td.skip_copy_on_write_invalid_test
+    def test_copy_cache(self):
+        # GH#31784 _item_cache not cleared on copy causes incorrect reads after updates
+        df = DataFrame({"a": [1]})
+
+        df["x"] = [0]
+        df["a"]
+
+        df.copy()
+
+        df["a"].values[0] = -1
+
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
+
+        df["y"] = [0]
+
+        assert df["a"].values[0] == -1
+        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
+
     def test_copy(self, float_frame, float_string_frame):
         cop = float_frame.copy()
         cop["E"] = cop["A"]
@@ -24,6 +46,7 @@ class TestCopy:
         copy = float_string_frame.copy()
         assert copy._mgr is not float_string_frame._mgr
 
+    @td.skip_array_manager_invalid_test
     def test_copy_consolidates(self):
         # GH#42477
         df = DataFrame(

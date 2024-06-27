@@ -5,13 +5,14 @@ for missing values.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pandas._typing import npt
 
 
@@ -21,7 +22,7 @@ def _cum_func(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+):
     """
     Accumulations for 1D masked array.
 
@@ -59,10 +60,10 @@ def _cum_func(
             np.cumsum: 0,
             np.minimum.accumulate: dtype_info.max,
         }[func]
-    except KeyError as err:
+    except KeyError:
         raise NotImplementedError(
             f"No accumulation for {func} implemented on BaseMaskedArray"
-        ) from err
+        )
 
     values[mask] = fill_value
 
@@ -73,25 +74,17 @@ def _cum_func(
     return values, mask
 
 
-def cumsum(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
-) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+def cumsum(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.cumsum, values, mask, skipna=skipna)
 
 
-def cumprod(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
-) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+def cumprod(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.cumprod, values, mask, skipna=skipna)
 
 
-def cummin(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
-) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+def cummin(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.minimum.accumulate, values, mask, skipna=skipna)
 
 
-def cummax(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True
-) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+def cummax(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.maximum.accumulate, values, mask, skipna=skipna)

@@ -34,11 +34,15 @@ from pandas.tseries.offsets import (
     Second,
 )
 
-plt = pytest.importorskip("matplotlib.pyplot")
-dates = pytest.importorskip("matplotlib.dates")
-units = pytest.importorskip("matplotlib.units")
+try:
+    from pandas.plotting._matplotlib import converter
+except ImportError:
+    # try / except, rather than skip, to avoid internal refactoring
+    # causing an improper skip
+    pass
 
-from pandas.plotting._matplotlib import converter
+pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
 
 
 @pytest.mark.single_cpu
@@ -75,22 +79,30 @@ class TestRegistration:
         assert subprocess.check_call(call) == 0
 
     def test_registering_no_warning(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
         ax.plot(s.index, s.values)
+        plt.close()
 
     def test_pandas_plots_register(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
-        assert len(w) == 0
+        try:
+            assert len(w) == 0
+        finally:
+            plt.close()
 
     def test_matplotlib_formatters(self):
+        units = pytest.importorskip("matplotlib.units")
+
         # Can't make any assertion about the start state.
         # We we check that toggling converters off removes it, and toggling it
         # on restores it.
@@ -101,19 +113,26 @@ class TestRegistration:
             assert Timestamp in units.registry
 
     def test_option_no_warning(self):
+        pytest.importorskip("matplotlib.pyplot")
+        ctx = cf.option_context("plotting.matplotlib.register_converters", False)
+        plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Test without registering first, no warning
-        with cf.option_context("plotting.matplotlib.register_converters", False):
+        with ctx:
             ax.plot(s.index, s.values)
 
         # Now test with registering
         register_matplotlib_converters()
-        with cf.option_context("plotting.matplotlib.register_converters", False):
+        with ctx:
             ax.plot(s.index, s.values)
+        plt.close()
 
     def test_registry_resets(self):
+        units = pytest.importorskip("matplotlib.units")
+        dates = pytest.importorskip("matplotlib.dates")
+
         # make a copy, to reset to
         original = dict(units.registry)
 
@@ -196,7 +215,7 @@ class TestDateTimeConverter:
         rtol = 0.5 * 10**-9
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
-        xp = dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
+        xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = dtc.convert(
@@ -217,10 +236,10 @@ class TestDateTimeConverter:
     def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
         rs = dtc.convert(values, None, None)
-        xp = dates.date2num(values)
+        xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
         rs = dtc.convert(values[0], None, None)
-        xp = dates.date2num(values[0])
+        xp = converter.mdates.date2num(values[0])
         assert rs == xp
 
     @pytest.mark.parametrize(
@@ -243,7 +262,7 @@ class TestDateTimeConverter:
         rtol = 10**-9
         dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
-        xp = dates.date2num(dateindex._mpl_repr())
+        xp = converter.mdates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])

@@ -11,10 +11,6 @@ class Flags:
     """
     Flags that apply to pandas objects.
 
-    “Flags” differ from “metadata”. Flags reflect properties of the pandas
-    object (the Series or DataFrame). Metadata refer to properties of the
-    dataset, and should be stored in DataFrame.attrs.
-
     Parameters
     ----------
     obj : Series or DataFrame
@@ -34,11 +30,6 @@ class Flags:
            it is expected that every method taking or returning one or more
            DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
-    See Also
-    --------
-    DataFrame.attrs : Dictionary of global attributes of this dataset.
-    Series.attrs : Dictionary of global attributes of this dataset.
-
     Examples
     --------
     Attributes can be set in two ways:
@@ -50,7 +41,7 @@ class Flags:
     >>> df.flags
     <Flags(allows_duplicate_labels=False)>
 
-    >>> df.flags["allows_duplicate_labels"] = True
+    >>> df.flags['allows_duplicate_labels'] = True
     >>> df.flags
     <Flags(allows_duplicate_labels=True)>
     """
@@ -80,7 +71,7 @@ class Flags:
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2]}, index=["a", "a"])
+        >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
         >>> df.flags.allows_duplicate_labels
         True
         >>> df.flags.allows_duplicate_labels = False
@@ -120,7 +111,7 @@ class Flags:
     def __repr__(self) -> str:
         return f"<Flags(allows_duplicate_labels={self.allows_duplicate_labels})>"
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other) -> bool:
         if isinstance(other, type(self)):
             return self.allows_duplicate_labels == other.allows_duplicate_labels
         return False

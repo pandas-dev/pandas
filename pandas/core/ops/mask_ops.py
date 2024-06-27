@@ -1,10 +1,7 @@
 """
 Ops for masked arrays.
 """
-
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -13,16 +10,13 @@ from pandas._libs import (
     missing as libmissing,
 )
 
-if TYPE_CHECKING:
-    from pandas._typing import npt
-
 
 def kleene_or(
     left: bool | np.ndarray | libmissing.NAType,
     right: bool | np.ndarray | libmissing.NAType,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+):
     """
     Boolean ``or`` using Kleene logic.
 
@@ -84,7 +78,7 @@ def kleene_xor(
     right: bool | np.ndarray | libmissing.NAType,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+):
     """
     Boolean ``xor`` using Kleene logic.
 
@@ -137,7 +131,7 @@ def kleene_and(
     right: bool | libmissing.NAType | np.ndarray,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+):
     """
     Boolean ``and`` using Kleene logic.
 
@@ -190,6 +184,6 @@ def kleene_and(
     return result, mask
 
 
-def raise_for_nan(value: object, method: str) -> None:
+def raise_for_nan(value, method: str) -> None:
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")

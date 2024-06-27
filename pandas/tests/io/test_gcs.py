@@ -78,12 +78,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df1.to_excel(path)
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
-        msg = (
-            "The default 'epoch' date format is deprecated and will be removed "
-            "in a future version, please use 'iso' date format instead."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df1.to_json(path)
+        df1.to_json(path)
         df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
@@ -107,11 +102,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
         df1.to_markdown(path)
         df2 = df1
 
-    expected = df1[:]
-    if format in ["csv", "excel"]:
-        expected["dt"] = expected["dt"].dt.as_unit("s")
-
-    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df1, df2)
 
 
 def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
@@ -124,17 +115,15 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
     """
     if compression == "zip":
         # Only compare the CRC checksum of the file contents
-        with (
-            zipfile.ZipFile(BytesIO(result)) as exp,
-            zipfile.ZipFile(BytesIO(expected)) as res,
-        ):
+        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
+            BytesIO(expected)
+        ) as res:
             for res_info, exp_info in zip(res.infolist(), exp.infolist()):
                 assert res_info.CRC == exp_info.CRC
     elif compression == "tar":
-        with (
-            tarfile.open(fileobj=BytesIO(result)) as tar_exp,
-            tarfile.open(fileobj=BytesIO(expected)) as tar_res,
-        ):
+        with tarfile.open(fileobj=BytesIO(result)) as tar_exp, tarfile.open(
+            fileobj=BytesIO(expected)
+        ) as tar_res:
             for tar_res_info, tar_exp_info in zip(
                 tar_res.getmembers(), tar_exp.getmembers()
             ):
