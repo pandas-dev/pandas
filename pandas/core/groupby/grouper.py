@@ -780,7 +780,9 @@ def get_grouper(
     elif isinstance(key, ops.BaseGrouper):
         return key, frozenset(), obj
 
+    key_dtype_str = False
     if not isinstance(key, list):
+        key_dtype_str = True
         keys = [key]
         match_axis_length = False
     else:
@@ -895,7 +897,6 @@ def get_grouper(
             if not isinstance(gpr, Grouping)
             else gpr
         )
-
         groupings.append(ping)
 
     if len(groupings) == 0 and len(obj):
@@ -904,7 +905,9 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
+    grouper = ops.BaseGrouper(
+        group_axis, groupings, sort=sort, dropna=dropna, key_dtype_str=key_dtype_str
+    )
     return grouper, frozenset(exclusions), obj
 
 

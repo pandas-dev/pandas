@@ -584,6 +584,7 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
+        key_dtype_str: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
 
@@ -591,6 +592,7 @@ class BaseGrouper:
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
         self.dropna = dropna
+        self.key_dtype_str = key_dtype_str
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -640,6 +642,7 @@ class BaseGrouper:
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
+
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
@@ -703,7 +706,10 @@ class BaseGrouper:
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
         """dict {group name -> group labels}"""
-        if len(self.groupings) == 1 and not isinstance(self.shape, tuple):
+        if len(self.groupings) == 1 and not self.key_dtype_str:
+            result = self.groupings[0].groups
+
+        if self.key_dtype_str and len(self.groupings) == 1:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
@@ -764,7 +770,7 @@ class BaseGrouper:
             if ping._passed_categorical:
                 levels[k] = level.set_categories(ping._orig_cats)
 
-        if len(self.groupings) == 1:
+        if self.key_dtype_str and len(self.groupings) == 1:
             result_index = levels[0]
             result_index.name = self.names[0]
             ids = ensure_platform_int(self.codes[0])
