@@ -56,7 +56,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if not pa_version_under10p1:
-    import pyarrow as pa
+    pass
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -554,11 +554,7 @@ def sanitize_array(
     np.ndarray or ExtensionArray
     """
     original_dtype = dtype
-    if (
-        not pa_version_under10p1
-        and isinstance(data, (pa.ChunkedArray, pa.Array))
-        and dtype is None
-    ):
+    if not pa_version_under10p1 and lib.is_pyarrow_array(data) and dtype is None:
         dtype = ArrowDtype(data.type)
 
     if isinstance(data, ma.MaskedArray):
