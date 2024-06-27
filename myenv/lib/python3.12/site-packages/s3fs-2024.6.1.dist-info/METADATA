@@ -1,0 +1,45 @@
+Metadata-Version: 2.1
+Name: s3fs
+Version: 2024.6.1
+Summary: Convenient Filesystem interface over S3
+Home-page: http://github.com/fsspec/s3fs/
+Maintainer: Martin Durant
+Maintainer-email: mdurant@continuum.io
+License: BSD
+Keywords: s3,boto
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >= 3.8
+License-File: LICENSE.txt
+Requires-Dist: aiobotocore <3.0.0,>=2.5.4
+Requires-Dist: fsspec ==2024.6.1.*
+Requires-Dist: aiohttp !=4.0.0a0,!=4.0.0a1
+Provides-Extra: awscli
+Requires-Dist: aiobotocore[awscli] <3.0.0,>=2.5.4 ; extra == 'awscli'
+Provides-Extra: boto3
+Requires-Dist: aiobotocore[boto3] <3.0.0,>=2.5.4 ; extra == 'boto3'
+
+s3fs
+====
+
+|Build Status| |Doc Status|
+
+S3FS builds on aiobotocore_ to provide a convenient Python filesystem interface for S3.
+
+View the documentation_ for s3fs.
+
+.. _documentation: http://s3fs.readthedocs.io/en/latest/
+.. _aiobotocore: https://aiobotocore.readthedocs.io/en/latest/
+
+.. |Build Status| image:: https://github.com/fsspec/s3fs/workflows/CI/badge.svg
+    :target: https://github.com/fsspec/s3fs/actions
+    :alt: Build Status
+.. |Doc Status| image:: https://readthedocs.org/projects/s3fs/badge/?version=latest
+    :target: https://s3fs.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status

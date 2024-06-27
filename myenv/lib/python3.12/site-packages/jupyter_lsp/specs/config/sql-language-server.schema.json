@@ -1,0 +1,125 @@
+{
+  "title": "SQL configuration",
+  "type": "object",
+  "properties": {
+    "personalConfig.connections": {
+      "type": "array",
+      "default": [
+        {
+          "name": "default sqlite3 connection",
+          "adapter": "sqlite3",
+          "filename": ":memory:",
+          "projectPaths": ["."]
+        }
+      ],
+      "items": {
+        "type": "object",
+        "required": ["name", "adapter"],
+        "properties": {
+          "name": {
+            "description": "Connection name (free-form text)",
+            "type": "string"
+          },
+          "adapter": {
+            "description": "Database type",
+            "type": "string",
+            "enum": [
+              "json",
+              "mysql",
+              "postgresql",
+              "postgres",
+              "sqlite3",
+              "bigquery"
+            ]
+          },
+          "host": {
+            "description": "Database host",
+            "type": "string"
+          },
+          "port": {
+            "description": "Database port",
+            "type": "number"
+          },
+          "user": {
+            "description": "Database user",
+            "type": "string"
+          },
+          "database": {
+            "description": "Database name",
+            "type": "string"
+          },
+          "password": {
+            "description": "Database password",
+            "type": "string"
+          },
+          "filename": {
+            "description": "Database filename - only for sqlite3 (required); use ':memory:' for in-memory database",
+            "type": "string"
+          },
+          "projectPaths": {
+            "description": "Project path that you want to apply (if you don't set it configuration will not apply automatically when lsp's started up)",
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "ssh": {
+            "oneOf": [
+              {
+                "title": "Disabled",
+                "type": "null",
+                "additionalProperties": false
+              },
+              {
+                "title": "Enabled",
+                "type": "object",
+                "properties": {
+                  "remoteHost": {
+                    "description": "The host address you want to connect to",
+                    "type": "string",
+                    "default": "",
+                    "title": "Remote host"
+                  },
+                  "remotePort": {
+                    "description": "Port number of the server for ssh",
+                    "type": "integer",
+                    "default": 22,
+                    "title": "Remote port"
+                  },
+                  "user": {
+                    "description": "User name on the server",
+                    "type": "string",
+                    "default": "",
+                    "title": "User"
+                  },
+                  "dbHost": {
+                    "description": "Database host on the server",
+                    "type": "string",
+                    "default": "127.0.0.1",
+                    "title": "Database host"
+                  },
+                  "dbPort": {
+                    "description": "Databse port on the server, default 3306 for mysql and 5432 for postgres",
+                    "type": "number",
+                    "title": "Database port"
+                  },
+                  "identityFile": {
+                    "description": "Identity file for ssh",
+                    "type": "string",
+                    "default": "~/.ssh/config/id_rsa",
+                    "title": "Identity file"
+                  },
+                  "passphrase": {
+                    "description": "Passphrase to allow to use identity file",
+                    "type": "string",
+                    "title": "Passphrase"
+                  }
+                }
+              }
+            ],
+            "default": null,
+            "title": "Settings for port fowarding"
+          }
+        }
+      }
+    }
+  }
+}

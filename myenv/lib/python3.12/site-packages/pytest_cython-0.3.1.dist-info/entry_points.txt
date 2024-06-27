@@ -1,0 +1,2 @@
+[pytest11]
+pytest_cython = pytest_cython.plugin

@@ -1,0 +1,47 @@
+/**
+ * Tables
+ */
+
+// ensure table will fit in the article width and make them y-scrollable
+table {
+  display: table;
+  width: fit-content;
+  max-width: 100%;
+  overflow: auto;
+
+  // default to table-center
+  margin-left: auto;
+  margin-right: auto;
+
+  &.table-right {
+    margin-right: 0;
+  }
+
+  &.table-left {
+    margin-left: 0;
+  }
+}
+
+// customize table caption from bootstrap
+// to display them on top and centered
+table caption {
+  text-align: center;
+  caption-side: top;
+  color: var(--pst-color-text-muted);
+}
+
+// MyST Markdown tables use these classes to control alignment
+th,
+td {
+  &.text-align\:left {
+    text-align: left;
+  }
+
+  &.text-align\:right {
+    text-align: right;
+  }
+
+  &.text-align\:center {
+    text-align: center;
+  }
+}

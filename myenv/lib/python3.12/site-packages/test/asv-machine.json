@@ -1,0 +1,10 @@
+{
+    "orangutan": {
+        "arch": "x86_64",
+        "cpu": "Blazingly fast",
+        "machine": "orangutan",
+        "os": "GNU/Linux",
+        "ram": "128GB"
+    },
+    "version": 1
+}

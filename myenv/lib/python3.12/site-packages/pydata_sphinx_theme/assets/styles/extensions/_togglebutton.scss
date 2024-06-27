@@ -1,0 +1,20 @@
+/**
+ * Sphinx togglebutton
+ */
+
+.bd-content {
+  // Admonition toggles
+  .admonition {
+    button.toggle-button {
+      color: inherit;
+    }
+  }
+
+  // Details buttons
+  details.toggle-details {
+    // Over-ride border color to re-use our primary color
+    summary {
+      border-left: 3px solid var(--pst-color-primary);
+    }
+  }
+}

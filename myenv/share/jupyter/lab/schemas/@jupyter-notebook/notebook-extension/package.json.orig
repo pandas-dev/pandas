@@ -1,0 +1,66 @@
+{
+  "name": "@jupyter-notebook/notebook-extension",
+  "version": "7.2.1",
+  "description": "Jupyter Notebook - Notebook Extension",
+  "homepage": "https://github.com/jupyter/notebook",
+  "bugs": {
+    "url": "https://github.com/jupyter/notebook/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyter/notebook.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/**/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "schema/*.json",
+    "style/**/*.css",
+    "style/index.js"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "build:prod": "tsc -b",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "docs": "typedoc src",
+    "watch": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@jupyter-notebook/application": "^7.2.1",
+    "@jupyterlab/application": "~4.2.0",
+    "@jupyterlab/apputils": "~4.3.0",
+    "@jupyterlab/cells": "~4.2.0",
+    "@jupyterlab/docmanager": "~4.2.0",
+    "@jupyterlab/notebook": "~4.2.0",
+    "@jupyterlab/settingregistry": "~4.2.0",
+    "@jupyterlab/translation": "~4.2.0",
+    "@lumino/polling": "^2.1.2",
+    "@lumino/widgets": "^2.3.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "rimraf": "^3.0.2",
+    "typescript": "~5.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "schemaDir": "schema"
+  },
+  "styleModule": "style/index.js"
+}

@@ -1,0 +1,2 @@
+[console_scripts]
+validate-docstrings = numpydoc.hooks.validate_docstrings:main

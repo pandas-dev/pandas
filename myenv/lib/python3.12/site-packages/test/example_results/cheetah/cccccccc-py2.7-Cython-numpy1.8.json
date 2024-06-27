@@ -1,0 +1,18 @@
+{
+    "commit_hash": "eaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeeaeae", 
+    "date": 1389468105000, 
+    "params": {
+        "machine": "not-cheetah", 
+        "why": "The above machine name doesn't match with machine.json",
+        "what": "Therefore, asv should ignore this file"
+    }, 
+    "python": "2.7", 
+    "requirements": {
+        "Cython": null, 
+        "numpy": "1.8"
+    }, 
+    "results": {
+        "time_coordinates.time_latitude": 6.313679218292237e-05
+    }, 
+    "version": 1
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Jupyter Widgets",
+  "description": "Jupyter widgets settings.",
+  "additionalProperties": false,
+  "properties": {
+    "saveState": {
+      "type": "boolean",
+      "title": "Save Jupyter widget state in notebooks",
+      "description": "Automatically save Jupyter widget state when a notebook is saved.",
+      "default": false
+    }
+  },
+  "type": "object"
+}

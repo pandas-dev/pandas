@@ -1,0 +1,8 @@
+{
+    "arch": "x86_64", 
+    "cpu": "Intel(R) Core(TM) i5-2520M CPU @ 2.50GHz (4 cores)", 
+    "machine": "cheetah", 
+    "os": "Linux (Fedora 20)", 
+    "ram": "8.2G", 
+    "version": 1
+}

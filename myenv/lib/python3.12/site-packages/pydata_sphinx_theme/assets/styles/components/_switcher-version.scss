@@ -1,0 +1,59 @@
+button.btn.version-switcher__button {
+  border-color: var(--pst-color-border);
+  color: var(--pst-color-text-base);
+  // Add a margin on narrow screens to avoid feeling cramped
+  margin-bottom: 1em;
+  @include media-breakpoint-up($breakpoint-sidebar-primary) {
+    margin-bottom: unset;
+  }
+
+  @include link-style-hover;
+  @include focus-indicator;
+  &:active {
+    color: var(--pst-color-text-base);
+    border-color: var(--pst-color-border);
+  }
+}
+
+.version-switcher__menu {
+  border-color: var(--pst-color-border);
+  border-radius: var(--bs-dropdown-border-radius);
+
+  a.list-group-item {
+    background-color: var(--pst-color-on-background);
+    color: var(--pst-color-text-base);
+    padding: 0.75rem 1.25rem;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--pst-color-border);
+    }
+    @include link-style-hover;
+    &:hover {
+      background-color: var(--pst-color-surface);
+    }
+    &.active {
+      @include link-sidebar-current;
+      position: relative;
+      z-index: 1;
+
+      span:before {
+        content: "";
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        z-index: -1;
+        left: 0;
+        top: 0;
+      }
+    }
+  }
+}
+
+// Font behavior on mobile
+button.version-switcher__button,
+.version-switcher__menu {
+  font-size: 1.1em; // A bit smaller than other menu font
+  @include media-breakpoint-up($breakpoint-sidebar-primary) {
+    font-size: unset;
+  }
+}

@@ -1,0 +1,2 @@
+[console_scripts]
+jupyter-server = jupyter_server.serverapp:main

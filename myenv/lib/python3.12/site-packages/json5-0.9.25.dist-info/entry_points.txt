@@ -1,0 +1,2 @@
+[console_scripts]
+pyjson5 = json5.tool:main

@@ -1,0 +1,125 @@
+Metadata-Version: 2.3
+Name: jupyterlab_server
+Version: 2.27.2
+Summary: A set of server components for JupyterLab and JupyterLab like applications.
+Project-URL: Homepage, https://jupyterlab-server.readthedocs.io
+Project-URL: Documentation, https://jupyterlab-server.readthedocs.io
+Project-URL: Funding, https://numfocus.org/donate-to-jupyter
+Project-URL: Source, https://github.com/jupyterlab/jupyterlab_server
+Project-URL: Tracker, https://github.com/jupyterlab/jupyterlab_server/issues
+Author-email: Jupyter Development Team <jupyter@googlegroups.com>
+License: Copyright (c) 2015-2017, Project Jupyter Contributors
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        1. Redistributions of source code must retain the above copyright notice, this
+           list of conditions and the following disclaimer.
+        
+        2. Redistributions in binary form must reproduce the above copyright notice,
+           this list of conditions and the following disclaimer in the documentation
+           and/or other materials provided with the distribution.
+        
+        3. Neither the name of the copyright holder nor the names of its
+           contributors may be used to endorse or promote products derived from
+           this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+License-File: LICENSE
+Keywords: jupyter,jupyterlab
+Classifier: Framework :: Jupyter
+Classifier: Framework :: Jupyter :: JupyterLab
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Typing :: Typed
+Requires-Python: >=3.8
+Requires-Dist: babel>=2.10
+Requires-Dist: importlib-metadata>=4.8.3; python_version < '3.10'
+Requires-Dist: jinja2>=3.0.3
+Requires-Dist: json5>=0.9.0
+Requires-Dist: jsonschema>=4.18.0
+Requires-Dist: jupyter-server<3,>=1.21
+Requires-Dist: packaging>=21.3
+Requires-Dist: requests>=2.31
+Provides-Extra: docs
+Requires-Dist: autodoc-traits; extra == 'docs'
+Requires-Dist: jinja2<3.2.0; extra == 'docs'
+Requires-Dist: mistune<4; extra == 'docs'
+Requires-Dist: myst-parser; extra == 'docs'
+Requires-Dist: pydata-sphinx-theme; extra == 'docs'
+Requires-Dist: sphinx; extra == 'docs'
+Requires-Dist: sphinx-copybutton; extra == 'docs'
+Requires-Dist: sphinxcontrib-openapi>0.8; extra == 'docs'
+Provides-Extra: openapi
+Requires-Dist: openapi-core~=0.18.0; extra == 'openapi'
+Requires-Dist: ruamel-yaml; extra == 'openapi'
+Provides-Extra: test
+Requires-Dist: hatch; extra == 'test'
+Requires-Dist: ipykernel; extra == 'test'
+Requires-Dist: openapi-core~=0.18.0; extra == 'test'
+Requires-Dist: openapi-spec-validator<0.8.0,>=0.6.0; extra == 'test'
+Requires-Dist: pytest-console-scripts; extra == 'test'
+Requires-Dist: pytest-cov; extra == 'test'
+Requires-Dist: pytest-jupyter[server]>=0.6.2; extra == 'test'
+Requires-Dist: pytest-timeout; extra == 'test'
+Requires-Dist: pytest<8,>=7.0; extra == 'test'
+Requires-Dist: requests-mock; extra == 'test'
+Requires-Dist: ruamel-yaml; extra == 'test'
+Requires-Dist: sphinxcontrib-spelling; extra == 'test'
+Requires-Dist: strict-rfc3339; extra == 'test'
+Requires-Dist: werkzeug; extra == 'test'
+Description-Content-Type: text/markdown
+
+# jupyterlab server
+
+[![Build Status](https://github.com/jupyterlab/jupyterlab_server/workflows/Tests/badge.svg?branch=master)](https://github.com/jupyterlab/jupyterlab_server/actions?query=branch%3Amaster+workflow%3A%22Tests%22)
+[![Documentation Status](https://readthedocs.org/projects/jupyterlab-server/badge/?version=stable)](http://jupyterlab-server.readthedocs.io/en/stable/)
+
+## Motivation
+
+JupyterLab Server sits between JupyterLab and Jupyter Server, and provides a
+set of REST API handlers and utilities that are used by JupyterLab. It is a separate project in order to
+accommodate creating JupyterLab-like applications from a more limited scope.
+
+## Install
+
+`pip install jupyterlab_server`
+
+To include optional `openapi` dependencies, use:
+
+`pip install jupyterlab_server[openapi]`
+
+To include optional `pytest_plugin` dependencies, use:
+
+`pip install jupyterlab_server[test]`
+
+## Usage
+
+See the full documentation for [API docs](https://jupyterlab-server.readthedocs.io/en/stable/api/index.html) and [REST endpoint descriptions](https://jupyterlab-server.readthedocs.io/en/stable/api/rest.html).
+
+## Extending the Application
+
+Subclass the `LabServerApp` and provide additional traits and handlers as appropriate for your application.
+
+## Contribution
+
+Please see `CONTRIBUTING.md` for details.

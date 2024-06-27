@@ -1,0 +1,77 @@
+Metadata-Version: 2.1
+Name: webcolors
+Version: 24.6.0
+Summary: A library for working with the color formats defined by HTML and CSS.
+Author-email: James Bennett <james@b-list.org>
+License: BSD-3-Clause
+Project-URL: documentation, https://webcolors.readthedocs.io
+Project-URL: homepage, https://github.com/ubernostrum/webcolors
+Keywords: color,css,html,web
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Provides-Extra: docs
+Requires-Dist: furo ; extra == 'docs'
+Requires-Dist: sphinx ; extra == 'docs'
+Requires-Dist: sphinx-copybutton ; extra == 'docs'
+Requires-Dist: sphinx-inline-tabs ; extra == 'docs'
+Requires-Dist: sphinx-notfound-page ; extra == 'docs'
+Requires-Dist: sphinxext-opengraph ; extra == 'docs'
+Provides-Extra: tests
+Requires-Dist: coverage[toml] ; extra == 'tests'
+
+.. -*-restructuredtext-*-
+
+.. image:: https://github.com/ubernostrum/webcolors/workflows/CI/badge.svg
+   :alt: CI status image
+   :target: https://github.com/ubernostrum/webcolors/actions?query=workflow%3ACI
+
+``webcolors`` is a module for working with and converting between the
+various HTML/CSS color formats.
+
+Support is included for normalizing and converting between the
+following formats (RGB colorspace only; conversion to/from HSL can be
+handled by the ``colorsys`` module in the Python standard library):
+
+* Specification-defined color names
+
+* Six-digit hexadecimal
+
+* Three-digit hexadecimal
+
+* Integer ``rgb()`` triplet
+
+* Percentage ``rgb()`` triplet
+
+For example:
+
+.. code-block:: python
+
+    >>> import webcolors
+    >>> webcolors.hex_to_name("#daa520")
+    'goldenrod'
+
+Implementations are also provided for the HTML5 color parsing and
+serialization algorithms. For example, parsing the infamous
+"chucknorris" string into an ``rgb()`` triplet:
+
+.. code-block:: python
+
+    >>> import webcolors
+    >>> webcolors.html5_parse_legacy_color("chucknorris")
+    HTML5SimpleColor(red=192, green=0, blue=0)
+
+Full documentation is `available online <https://webcolors.readthedocs.io/>`_.

@@ -1,0 +1,30 @@
+{# Logo link generation -#}
+{% if not theme_logo.get("link") %}
+  {% set href = pathto(root_doc) %}
+{% elif hasdoc(theme_logo.get("link")) %}
+  {% set href = pathto(theme_logo.get("link")) %} {# internal page #}
+{% else %}
+  {% set href = theme_logo.get("link") %} {# external url #}
+{% endif %}
+
+{#- Logo HTML and image #}
+<a class="navbar-brand logo" href="{{ href }}">
+  {# get all the brand information from html_theme_option #}
+  {% set is_logo = "light" in theme_logo["image_relative"] %}
+  {% set alt = theme_logo.get("alt_text", "Logo image") %}
+  {% if is_logo %}
+    {# Theme switching is only available when JavaScript is enabled.
+     # Thus we should add the extra image using JavaScript, defaulting
+     # depending on the value of default_mode; and light if unset.
+     #}
+    {% if default_mode is undefined or default_mode == "auto" %}
+      {% set default_mode = "light" %}
+    {% endif %}
+    {% set js_mode = "light" if default_mode == "dark" else "dark" %}
+    <img src="{{ theme_logo['image_relative'][default_mode] }}" class="logo__image only-{{ default_mode }}" alt="{{ alt }}"/>
+    <script>document.write(`<img src="{{ theme_logo['image_relative'][js_mode] }}" class="logo__image only-{{ js_mode }}" alt="{{ alt }}"/>`);</script>
+  {% endif %}
+  {% if not is_logo or theme_logo.get("text") %}
+    <p class="title logo__title">{{ theme_logo.get("text") or docstitle }}</p>
+  {% endif %}
+</a>

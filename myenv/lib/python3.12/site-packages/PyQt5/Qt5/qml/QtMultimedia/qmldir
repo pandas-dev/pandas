@@ -1,0 +1,5 @@
+module QtMultimedia
+plugin declarative_multimedia
+classname QMultimediaDeclarativeModule
+typeinfo plugins.qmltypes
+Video 5.0 Video.qml

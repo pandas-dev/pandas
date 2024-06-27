@@ -1,0 +1,31 @@
+.nbsphinx-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 5px;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.nbsphinx-gallery > a {
+    padding: 5px;
+    border: 1px dotted currentColor;
+    border-radius: 2px;
+    text-align: center;
+}
+
+.nbsphinx-gallery > a:hover {
+    border-style: solid;
+}
+
+.nbsphinx-gallery img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.nbsphinx-gallery > a > div:first-child {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    height: 120px;
+    margin-bottom: 5px;
+}

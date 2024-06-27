@@ -1,0 +1,66 @@
+Metadata-Version: 2.1
+Name: asv_runner
+Version: 0.2.1
+Summary: Core Python benchmark code for ASV
+Home-page: https://asv.readthedocs.io/projects/asv-runner/en/latest/
+Author-Email: Rohit Goswami <rog32@hi.is>, Michael Droettboom <mdroe@stsci.edu>
+Maintainer-Email: Rohit Goswami <rog32@hi.is>
+License: BSD-3-Clause
+Classifier: Development Status :: 4 - Beta
+Classifier: Programming Language :: Python
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: System :: Benchmark
+Project-URL: Homepage, https://asv.readthedocs.io/projects/asv-runner/en/latest/
+Project-URL: Repository, https://github.com/airspeed-velocity/asv_runner
+Project-URL: Documentation, https://asv.readthedocs.io/projects/asv-runner/en/latest/
+Requires-Python: >=3.7
+Requires-Dist: importlib-metadata
+Requires-Dist: furo; extra == "docs"
+Requires-Dist: sphinx; extra == "docs"
+Requires-Dist: sphinx-contributors; extra == "docs"
+Requires-Dist: sphinx-copybutton; extra == "docs"
+Requires-Dist: sphinx-design; extra == "docs"
+Requires-Dist: sphinx-autobuild; extra == "docs"
+Requires-Dist: sphinxcontrib-spelling; extra == "docs"
+Requires-Dist: myst-parser>=2; extra == "docs"
+Requires-Dist: sphinx-autodoc2>=0.4.2; extra == "docs"
+Provides-Extra: docs
+Description-Content-Type: text/markdown
+
+# About [![Documentation](https://img.shields.io/badge/Documentation-latest-brightgreen?style=for-the-badge)](https://asv.readthedocs.io/projects/asv-runner/en/latest/)
+
+
+Core Python benchmark code for `asv`.
+
+**This package shall not have any dependencies on external packages and must be
+compatible with all Python versions greater than or equal to `3.7`.**
+
+
+For other functionality, refer to the `asv` package or consider writing an extension.
+
+# Contributions
+
+All contributions are welcome, this includes code and documentation
+contributions but also questions or other clarifications. Note that we expect
+all contributors to follow our [Code of
+Conduct](https://github.com/airspeed-velocity/asv_runner/blob/main/CODE_OF_CONDUCT.md).
+
+## Developing locally
+
+A `pre-commit` job is setup on CI to enforce consistent styles, so it is best to
+set it up locally as well (using [pipx](https://pypa.github.io/pipx/) for isolation):
+
+```sh
+# Run before commiting
+pipx run pre-commit run --all-files
+# Or install the git hook to enforce this
+pipx run pre-commit install
+```

@@ -1,0 +1,29 @@
+// GitHub blockquote style
+blockquote {
+  padding: 1em 1em;
+  color: var(--pst-color-text-muted);
+  border-left: 0.25em solid var(--pst-color-border);
+  border-radius: $admonition-border-radius;
+  position: relative;
+
+  p {
+    color: var(--pst-color-text-base);
+  }
+
+  // remove padding from included line-block to avoid duplication
+  .line-block {
+    margin: 0 0;
+  }
+
+  // remove margin bottom for the last p
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  @include background-from-color-variable(--pst-color-on-background);
+
+  //hack to make the text in the blockquote selectable
+  &:before {
+    z-index: -1;
+  }
+}

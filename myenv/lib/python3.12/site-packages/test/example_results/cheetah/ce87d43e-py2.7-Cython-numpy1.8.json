@@ -1,0 +1,34 @@
+{
+    "commit_hash": "ce87d43ebd19b24e17204974eac5848137615850", 
+    "date": 1383336645000, 
+    "params": {
+        "Cython": null, 
+        "arch": "x86_64", 
+        "cpu": "Intel(R) Core(TM) i5-2520M CPU @ 2.50GHz (4 cores)", 
+        "machine": "cheetah", 
+        "numpy": "1.8", 
+        "os": "Linux (Fedora 20)", 
+        "python": "2.7", 
+        "ram": "8.2G"
+    }, 
+    "python": "2.7", 
+    "requirements": {
+        "Cython": null, 
+        "numpy": "1.8"
+    }, 
+    "results": {
+        "time_coordinates.time_latitude": 0.0004272441864013672, 
+        "time_quantity.time_quantity_array_conversion": 0.0018620319366455078, 
+        "time_quantity.time_quantity_init_array": 0.000917330026626587, 
+        "time_quantity.time_quantity_init_scalar": 0.0001370389938354492, 
+        "time_quantity.time_quantity_scalar_conversion": 0.0003115720748901367, 
+        "time_quantity.time_quantity_ufunc_sin": 0.0011487789154052735, 
+        "time_units.mem_unit": 728, 
+        "time_units.time_simple_unit_parse": 0.00018388848304748536, 
+        "time_units.time_unit_compose": 0.0008137280941009522, 
+        "time_units.time_unit_parse": 0.0004451677799224854, 
+        "time_units.time_unit_to": 7.188441753387452e-05, 
+        "time_units.time_very_simple_unit_parse": 1.3581430912017822e-05
+    }, 
+    "version": 1
+}

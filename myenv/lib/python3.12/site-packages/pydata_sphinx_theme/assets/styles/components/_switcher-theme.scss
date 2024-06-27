@@ -1,0 +1,33 @@
+/**
+ * Light/dark theme switcher
+ */
+
+.theme-switch-button {
+  // overide bootstrap settings
+  margin: 0 -0.5rem;
+  padding: 0; // We pad the `span` not the container
+  color: var(--pst-color-text-muted);
+  border-radius: 0;
+  @include focus-indicator;
+
+  span {
+    display: none;
+    padding: 0.5em;
+
+    @include icon-navbar-hover;
+    &:active {
+      text-decoration: none;
+      color: var(--pst-color-link-hover);
+    }
+  }
+}
+
+html[data-mode="auto"] .theme-switch-button span[data-mode="auto"] {
+  display: flex;
+}
+html[data-mode="light"] .theme-switch-button span[data-mode="light"] {
+  display: flex;
+}
+html[data-mode="dark"] .theme-switch-button span[data-mode="dark"] {
+  display: flex;
+}

@@ -1,0 +1,112 @@
+/**
+ * Miscellaneous color functions and mixins
+**/
+
+// loading the math module
+@use "sass:math";
+
+// Set background color from a color variable
+//
+@mixin background-from-color-variable($color-variable) {
+  &:before {
+    content: "";
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: var(#{$color-variable});
+    z-index: -1;
+    // So that hovering over the text within background is still possible.
+    // Otherwise the background overlays the text and you cannot click or select easily.
+    // ref: https://developer.mozilla.org/en-US/docs/Web/CSS/pointer-events
+    pointer-events: none;
+  }
+}
+
+/**
+* Function to get items from nested maps
+*/
+// @param {Map} $map - Map
+// @param {Arglist} $keys - Keys to fetc
+// @return {*}
+@function map-deep-get($map, $keys...) {
+  @each $key in $keys {
+    $map: map-get($map, $key);
+  }
+  @return $map;
+}
+
+/**
+  * Function to check if the color needs converting to a "color" type
+  * if it is a string we cannot use other color manipulation functions
+  * It is used to create the sphinx-design colours as these are often interpolated
+  */
+// @param {String/Color} $color - Color definition from map
+// @return {Color} - Color type (in hex)
+@function check-color($color) {
+  @if type-of($color) == string {
+    $color: from-hex($color);
+  }
+  @return $color;
+}
+
+/**
+  * Function to convert the string representation of a color to a color type (hex)
+  */
+// @param {String} $string - String representation of a color
+@function from-hex($string) {
+  $string-lower: to-lower-case($string);
+  $r: "";
+  $g: "";
+  $b: "";
+  $hex: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f";
+  $length: str-length($string);
+  $max: if($length == 4, 1, 2);
+
+  // Check for length accuracy
+  @if $length != 4 and $length != 7 {
+    @return $string;
+  }
+
+  // Loop from the second character (omitting #)
+  @for $i from 2 through $length {
+    $c: str-slice($string-lower, $i, $i);
+
+    // If wrong character, return
+    @if index($hex, $c) == null {
+      @return $string;
+    }
+
+    @if str-length($r) < $max {
+      $r: $r + $c;
+    } @else if str-length($g) < $max {
+      $g: $g + $c;
+    } @else if str-length($b) < $max {
+      $b: $b + $c;
+    }
+  }
+
+  @if $length == 4 {
+    $r: $r + $r;
+    $g: $g + $g;
+    $b: $b + $b;
+  }
+
+  @return rgb(_hex-to-dec($r), _hex-to-dec($g), _hex-to-dec($b));
+}
+
+@function _hex-to-dec($string) {
+  $hex: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f";
+  $string: to-lower-case($string);
+  $length: str-length($string);
+
+  $dec: 0;
+  @for $i from 1 through $length {
+    $factor: 1 + (15 * ($length - $i));
+    $index: index($hex, str-slice($string, $i, $i));
+    $dec: $dec + $factor * ($index - 1);
+  }
+
+  @return $dec;
+}

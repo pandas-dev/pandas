@@ -1,0 +1,394 @@
+{
+    "mem_examples.mem_list": {
+        "code": "def mem_list():\n    return [0] * 255\n", 
+        "name": "mem_examples.mem_list", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "memory", 
+        "unit": "bytes"
+    }, 
+    "params_examples.ParamSuite.track_value": {
+        "code": "def track_value(self, p):\n    return self.value + self.count\n", 
+        "name": "params_examples.ParamSuite.track_value", 
+        "param_names": [
+            "param1"
+        ], 
+        "params": [
+            [
+                "'a'", 
+                "'b'", 
+                "'c'"
+            ]
+        ], 
+        "timeout": 60.0, 
+        "type": "track", 
+        "unit": "unit"
+    }, 
+    "params_examples.TuningTest.time_it": {
+        "code": "def time_it(self, n):\n    self.counter[0] += 1\n", 
+        "sample_time": 2.0, 
+        "name": "params_examples.TuningTest.time_it", 
+        "number": 10, 
+        "param_names": [
+            "param1"
+        ], 
+        "params": [
+            [
+                "1", 
+                "2"
+            ]
+        ], 
+        "repeat": 10, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "params_examples.mem_param": {
+        "code": "def mem_param(n, m):\n    return [[0]*m]*n\n", 
+        "name": "params_examples.mem_param", 
+        "param_names": [
+            "number", 
+            "depth"
+        ], 
+        "params": [
+            [
+                "10", 
+                "20"
+            ], 
+            [
+                "2", 
+                "3"
+            ]
+        ], 
+        "timeout": 60.0, 
+        "type": "memory", 
+        "unit": "bytes"
+    }, 
+    "params_examples.time_skip": {
+        "code": "def time_skip(n):\n    list(range(n))\n", 
+        "sample_time": 0.01, 
+        "name": "params_examples.time_skip", 
+        "number": 0, 
+        "param_names": [
+            "param1"
+        ], 
+        "params": [
+            [
+                "1000", 
+                "2000", 
+                "3000"
+            ]
+        ], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "params_examples.track_param": {
+        "code": "def track_param(n):\n    return 42\n", 
+        "name": "params_examples.track_param", 
+        "param_names": [
+            "param1"
+        ], 
+        "params": [
+            [
+                "<class 'benchmark.params_examples.ClassOne'>", 
+                "<class 'benchmark.params_examples.ClassTwo'>"
+            ]
+        ], 
+        "timeout": 60.0, 
+        "type": "track", 
+        "unit": "unit"
+    }, 
+    "subdir.time_subdir.time_foo": {
+        "code": "def time_foo():\n    if x != 42:\n        raise RuntimeError()\n    for y in range(1000):\n        pass\n", 
+        "sample_time": 2.0, 
+        "name": "subdir.time_subdir.time_foo", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_examples.TimeSuite.time_example_benchmark_1": {
+        "code": "def time_example_benchmark_1(self):\n    s = ''\n    for i in xrange(self.n):\n        s = s + 'x'\n", 
+        "sample_time": 2.0, 
+        "name": "time_examples.TimeSuite.time_example_benchmark_1", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_examples.TimeSuite.time_example_benchmark_2": {
+        "code": "def time_example_benchmark_2(self):\n    s = []\n    for i in xrange(self.n):\n        s.append('x')\n    ''.join(s)\n", 
+        "sample_time": 2.0, 
+        "name": "time_examples.TimeSuite.time_example_benchmark_2", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_examples.TimeSuiteSub.time_example_benchmark_1": {
+        "code": "def time_example_benchmark_1(self):\n    s = ''\n    for i in xrange(self.n):\n        s = s + 'x'\n", 
+        "sample_time": 2.0, 
+        "name": "time_examples.TimeSuiteSub.time_example_benchmark_1", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_examples.TimeSuiteSub.time_example_benchmark_2": {
+        "code": "def time_example_benchmark_2(self):\n    s = []\n    for i in xrange(self.n):\n        s.append('x')\n    ''.join(s)\n", 
+        "sample_time": 2.0, 
+        "name": "time_examples.TimeSuiteSub.time_example_benchmark_2", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_examples.time_with_warnings": {
+        "code": "def time_with_warnings():\n    print('hi')\n    warnings.warn('before')\n    1 / 0\n    warnings.warn('after')\n", 
+        "sample_time": 2.0, 
+        "name": "time_examples.time_with_warnings", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_secondary.TimeSecondary.time_exception": {
+        "code": "def time_exception(self):\n    raise RuntimeError()\n", 
+        "sample_time": 2.0, 
+        "name": "time_secondary.TimeSecondary.time_exception", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_secondary.TimeSecondary.time_factorial": {
+        "code": "def time_factorial(self):\n    x = 1\n    for i in xrange(100):\n        x *= i\n    # This is to generate invalid output\n    sys.stdout.write(\"X\")\n", 
+        "sample_time": 2.0, 
+        "name": "time_secondary.TimeSecondary.time_factorial", 
+        "number": 0, 
+        "param_names": [], 
+        "params": [], 
+        "repeat": 3, 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    }, 
+    "time_secondary.track_value": {
+        "code": "def track_value():\n    return 42.0\n", 
+        "name": "time_secondary.track_value", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "track", 
+        "unit": "unit"
+    },
+    "time_AAA_failure": {
+        "code": "foo\n", 
+        "name": "time_AAA_failure", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_AAA_skip": {
+        "code": "foo\n", 
+        "name": "time_AAA_skip", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_coordinates.time_latitude": {
+        "code": "foo\n", 
+        "name": "time_coordinates.time_latitude", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_quantity.time_quantity_array_conversion": {
+        "code": "foo\n", 
+        "name": "time_quantity.time_quantity_array_conversion", 
+    	"setup_cache_key": "example:21",
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_quantity.time_quantity_init_array": {
+        "code": "foo\n", 
+        "name": "time_quantity.time_quantity_init_array", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_quantity.time_quantity_init_scalar": {
+        "code": "foo\n", 
+        "name": "time_quantity.time_quantity_init_scalar", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_quantity.time_quantity_scalar_conversion": {
+        "code": "foo\n", 
+        "name": "time_quantity.time_quantity_scalar_conversion", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_quantity.time_quantity_ufunc_sin": {
+        "code": "foo\n", 
+        "name": "time_quantity.time_quantity_ufunc_sin", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.mem_unit": {
+        "code": "foo\n", 
+        "name": "time_units.mem_unit", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.time_simple_unit_parse": {
+        "code": "foo\n", 
+        "name": "time_units.time_simple_unit_parse", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.time_unit_compose": {
+        "code": "foo\n", 
+        "name": "time_units.time_unit_compose", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.time_unit_parse": {
+        "code": "foo\n", 
+        "name": "time_units.time_unit_parse", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.time_unit_to": {
+        "code": "foo\n", 
+        "name": "time_units.time_unit_to", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_units.time_very_simple_unit_parse": {
+        "code": "foo\n", 
+        "name": "time_units.time_very_simple_unit_parse", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_other.time_parameterized": {
+        "code": "foo\n", 
+        "name": "time_other.time_parameterized", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_ci_small": {
+        "code": "foo\n", 
+        "name": "time_ci_small", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_ci_big": {
+        "code": "foo\n", 
+        "name": "time_ci_big", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds"
+    },
+    "time_with_version_match": {
+        "code": "foo\n", 
+        "name": "time_with_version_match", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds",
+        "version": "1"
+    },
+    "time_with_version_mismatch_bench": {
+        "code": "foo\n", 
+        "name": "time_with_version_mismatch_bench", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds",
+        "version": "2"
+    },
+    "time_with_version_mismatch_other": {
+        "code": "foo\n", 
+        "name": "time_with_version_mismatch_other", 
+        "param_names": [], 
+        "params": [], 
+        "timeout": 60.0, 
+        "type": "time", 
+        "unit": "seconds",
+        "version": "1"
+    },
+    "version": 2
+}

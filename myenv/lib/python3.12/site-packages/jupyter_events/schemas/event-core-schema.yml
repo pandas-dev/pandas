@@ -1,0 +1,27 @@
+$schema: http://json-schema.org/draft-07/schema
+$id: http://event.jupyter.org/event-schema
+version: 1
+title: Event Schema
+description: |
+  A schema for validating any Jupyter Event.
+type: object
+properties:
+  __metadata_version__:
+    title: Metadata Version
+    type: number
+    const: 1
+  __schema_version__:
+    title: Schema Version
+    type: integer
+  __schema__:
+    title: Schema ID
+    type: string
+  __timestamp__:
+    title: Event Timestamp
+    type: string
+    format: datetime
+required:
+  - __metadata_version__
+  - __schema__
+  - __schema_version__
+  - __timestamp__

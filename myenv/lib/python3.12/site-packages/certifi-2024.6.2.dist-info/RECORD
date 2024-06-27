@@ -1,0 +1,14 @@
+certifi-2024.6.2.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+certifi-2024.6.2.dist-info/LICENSE,sha256=6TcW2mucDVpKHfYP5pWzcPBpVgPSH2-D8FPkLPwQyvc,989
+certifi-2024.6.2.dist-info/METADATA,sha256=0JvKStGd0rn8QzECH3rN6wcw-6ZmNtR68uciKdXeVmU,2221
+certifi-2024.6.2.dist-info/RECORD,,
+certifi-2024.6.2.dist-info/WHEEL,sha256=GJ7t_kWBFywbagK5eo9IoUwLW6oyOeTKmQ-9iHFVNxQ,92
+certifi-2024.6.2.dist-info/top_level.txt,sha256=KMu4vUCfsjLrkPbSNdgdekS-pVJzBAJFO__nI8NF6-U,8
+certifi/__init__.py,sha256=OemlOQZNxjR0BTLg7e4GIST-_QTOZsTKNgXw4v_0DwI,94
+certifi/__main__.py,sha256=xBBoj905TUWBLRGANOcf7oi6e-3dMP4cEoG9OyMs11g,243
+certifi/__pycache__/__init__.cpython-312.pyc,,
+certifi/__pycache__/__main__.cpython-312.pyc,,
+certifi/__pycache__/core.cpython-312.pyc,,
+certifi/cacert.pem,sha256=FgXQ05xeJdZ-eDjaahfc8ujGz6eQMOj7AxjjX1SVSTw,293951
+certifi/core.py,sha256=qRDDFyXVJwTB_EmoGppaXU_R9qCZvhl-EzxPMuV3nTA,4426
+certifi/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0

@@ -1,0 +1,6 @@
+{
+    "explanation": "This file is valid JSON, but not a results file",
+    "what_should_happen": "ASV should just ignore this file",
+    "date": 1389280586000,
+    "version": 1
+}

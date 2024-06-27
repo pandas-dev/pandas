@@ -1,0 +1,53 @@
+Metadata-Version: 2.1
+Name: fastjsonschema
+Version: 2.20.0
+Summary: Fastest Python implementation of JSON schema
+Home-page: https://github.com/horejsek/python-fastjsonschema
+Author: Michal Horejsek
+Author-email: fastjsonschema@horejsek.com
+License: BSD
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+License-File: LICENSE
+License-File: AUTHORS
+Provides-Extra: devel
+Requires-Dist: colorama ; extra == 'devel'
+Requires-Dist: jsonschema ; extra == 'devel'
+Requires-Dist: json-spec ; extra == 'devel'
+Requires-Dist: pylint ; extra == 'devel'
+Requires-Dist: pytest ; extra == 'devel'
+Requires-Dist: pytest-benchmark ; extra == 'devel'
+Requires-Dist: pytest-cache ; extra == 'devel'
+Requires-Dist: validictory ; extra == 'devel'
+
+===========================
+Fast JSON schema for Python
+===========================
+
+|PyPI| |Pythons|
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/fastjsonschema.svg
+   :alt: PyPI version
+   :target: https://pypi.python.org/pypi/fastjsonschema
+
+.. |Pythons| image:: https://img.shields.io/pypi/pyversions/fastjsonschema.svg
+   :alt: Supported Python versions
+   :target: https://pypi.python.org/pypi/fastjsonschema
+
+See `documentation <https://horejsek.github.io/python-fastjsonschema/>`_.

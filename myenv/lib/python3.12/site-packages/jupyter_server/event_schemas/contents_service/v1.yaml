@@ -1,0 +1,73 @@
+"$id": https://events.jupyter.org/jupyter_server/contents_service/v1
+version: 1
+title: Contents Manager activities
+personal-data: true
+description: |
+  Record actions on files via the ContentsManager.
+
+  The notebook ContentsManager REST API is used by all frontends to retrieve,
+  save, list, delete and perform other actions on notebooks, directories,
+  and other files through the UI. This is pluggable - the default acts on
+  the file system, but can be replaced with a different ContentsManager
+  implementation - to work on S3, Postgres, other object stores, etc.
+  The events get recorded regardless of the ContentsManager implementation
+  being used.
+
+  Limitations:
+
+  1. This does not record all filesystem access, just the ones that happen
+     explicitly via the notebook server's REST API. Users can (and often do)
+     trivially access the filesystem in many other ways (such as `open()` calls
+     in their code), so this is usually never a complete record.
+  2. As with all events recorded by the notebook server, users most likely
+     have the ability to modify the code of the notebook server. Unless other
+     security measures are in place, these events should be treated as user
+     controlled and not used in high security areas.
+  3. Events are only recorded when an action succeeds.
+type: object
+required:
+  - action
+  - path
+properties:
+  action:
+    enum:
+      - get
+      - create
+      - save
+      - upload
+      - rename
+      - copy
+      - delete
+    description: |
+      Action performed by the ContentsManager API.
+
+      This is a required field.
+
+      Possible values:
+
+      1. get
+         Get contents of a particular file, or list contents of a directory.
+
+      2. save
+         Save a file at path with contents from the client
+
+      3. rename
+         Rename a file or directory from value in source_path to
+         value in path.
+
+      4. copy
+         Copy a file or directory from value in source_path to
+         value in path.
+
+      5. delete
+         Delete a file or empty directory at given path
+  path:
+    type: string
+    description: |
+      Logical path on which the operation was performed.
+
+      This is a required field.
+  source_path:
+    type: string
+    description: |
+      Source path of an operation when action is 'copy' or 'rename'

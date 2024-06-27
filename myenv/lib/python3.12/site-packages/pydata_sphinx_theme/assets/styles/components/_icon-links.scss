@@ -1,0 +1,53 @@
+/**
+ * Icon links in the navbar
+ */
+
+.navbar-icon-links {
+  display: flex;
+  flex-direction: row;
+  column-gap: 1rem;
+  flex-wrap: wrap;
+
+  // Remove the padding so that we can define it with flexbox gap above
+  li.nav-item a.nav-link {
+    padding-left: 0;
+    padding-right: 0;
+    @include icon-navbar-hover;
+  }
+
+  // Spacing and centering
+  a span {
+    display: flex;
+    align-items: center;
+  }
+
+  // Icons styling
+  i {
+    &.fa-brands,
+    &.fa-regular,
+    &.fa-solid {
+      vertical-align: middle;
+      font-style: normal;
+      font-size: var(--pst-font-size-icon);
+    }
+
+    /* Social media buttons hard-code the brand color */
+    &.fa-square-twitter:before {
+      color: #55acee;
+    }
+
+    &.fa-square-gitlab:before {
+      color: #548;
+    }
+
+    &.fa-bitbucket:before {
+      color: #0052cc;
+    }
+  }
+
+  // Force images to be icon-sized
+  img.icon-link-image {
+    height: 1.5em;
+    border-radius: 0.2rem;
+  }
+}

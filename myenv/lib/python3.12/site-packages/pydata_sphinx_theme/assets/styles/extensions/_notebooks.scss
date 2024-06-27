@@ -1,0 +1,75 @@
+/**
+ * Styles for various Sphinx execution libraries to display pre-executed notebooks.
+ * For now, where these define output sections, we simply revert their background
+ * to be a "light theme" background. This ensures that inputs/outputs behave similarly,
+ * because the CSS is often controlled by each package.
+ * In the future, we might add dark theme support for specific packages.
+ */
+
+/*******************************************************************************
+ * nbsphinx
+ */
+html div.rendered_html
+// NBsphinx ipywidgets output selector
+html .jp-RenderedHTMLCommon {
+  table {
+    table-layout: auto;
+  }
+}
+
+// Dark theme special-cases
+html[data-theme="dark"] .bd-content {
+  .nboutput {
+    .output_area.rendered_html {
+      @include cell-output-background;
+    }
+
+    .output_area.stderr {
+      background: var(--pst-color-danger);
+    }
+  }
+}
+
+// Add extra padding to the final item in an nbsphinx container
+div.nblast.container {
+  margin-bottom: 1rem;
+}
+
+/*******************************************************************************
+ * myst NB
+ */
+
+div.cell_output .output {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+// Dark theme special-cases
+html[data-theme="dark"] .bd-content {
+  div.cell_output {
+    img,
+    .text_html {
+      @include cell-output-background;
+    }
+  }
+}
+
+// Prevent tables from scrunching together
+.bd-content {
+  div.cell_input {
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+  }
+
+  div.cell_input,
+  div.output {
+    border-radius: $admonition-border-radius;
+  }
+
+  div.output {
+    table {
+      table-layout: auto;
+    }
+  }
+}

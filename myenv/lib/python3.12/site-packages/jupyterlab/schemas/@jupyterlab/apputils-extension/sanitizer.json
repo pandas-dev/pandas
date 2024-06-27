@@ -1,0 +1,25 @@
+{
+  "title": "HTML Sanitizer",
+  "description": "HTML Sanitizer settings.",
+  "jupyter.lab.setting-icon": "ui-components:html5",
+  "additionalProperties": false,
+  "properties": {
+    "allowedSchemes": {
+      "title": "Allowed URL Scheme",
+      "description": "Scheme allowed by the HTML sanitizer.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      },
+      "default": ["http", "https", "ftp", "mailto", "tel"]
+    },
+    "autolink": {
+      "type": "boolean",
+      "title": "Autolink URL replacement",
+      "description": "Whether to replace URLs with links or not.",
+      "default": true
+    }
+  },
+  "type": "object"
+}

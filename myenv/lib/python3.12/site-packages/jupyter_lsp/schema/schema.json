@@ -1,0 +1,264 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "client-config-schema": {
+      "description": "a JSON schema to configure the Language Server or extension behavior from the client",
+      "title": "Client Configuration Schema",
+      "type": "object"
+    },
+    "current-version": {
+      "description": "which version of the spec this implements",
+      "enum": [2],
+      "title": "Spec Schema Version",
+      "type": "number"
+    },
+    "env-var": {
+      "title": "an environment variable. may contain python `string.Template` evaluated against the existing environment, e.g ${HOME}",
+      "type": "string"
+    },
+    "install-bundle": {
+      "additionalProperties": {
+        "$ref": "#/definitions/install-help"
+      },
+      "description": "a list of installation approaches keyed by package manager, e.g. pip, npm, yarn, apt",
+      "patternProperties": {
+        ".+": {
+          "$ref": "#/definitions/install-help"
+        }
+      },
+      "title": "Installation",
+      "type": "object"
+    },
+    "install-help": {
+      "description": "the install commands or description for installing the language server",
+      "type": "string"
+    },
+    "language-list": {
+      "description": "languages supported by this Language Server",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "language-server-extension": {
+      "description": "an extension which can extend the functionality of the language server and client",
+      "properties": {
+        "config_schema": {
+          "$ref": "#/definitions/client-config-schema"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "install": {
+          "$ref": "#/definitions/install-bundle"
+        }
+      },
+      "title": "Language Server Extension",
+      "type": "object"
+    },
+    "language-server-spec": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/partial-language-server-spec"
+        },
+        {
+          "required": ["argv", "languages", "version"]
+        }
+      ],
+      "description": "a description of a language server that could be started",
+      "title": "Language Server Spec"
+    },
+    "nullable-date-time": {
+      "description": "a date/time that might not have been recorded",
+      "oneOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "partial-language-server-spec": {
+      "description": "all properties that might be required to start and/or describe a Language Server",
+      "properties": {
+        "argv": {
+          "$ref": "#/definitions/shell-args",
+          "description": "the arguments to start the language server normally",
+          "title": "Launch Arguments"
+        },
+        "config_schema": {
+          "$ref": "#/definitions/client-config-schema",
+          "description": "a JSON schema to configure the Language Server behavior from the client",
+          "title": "Client Configuration Schema"
+        },
+        "debug_argv": {
+          "$ref": "#/definitions/shell-args",
+          "description": "the arguments to start the language server with more verbose output",
+          "title": "Debug Arguments"
+        },
+        "display_name": {
+          "description": "name shown in the UI",
+          "title": "Display Name",
+          "type": "string"
+        },
+        "env": {
+          "additionalProperties": {
+            "$ref": "#/definitions/env-var"
+          },
+          "description": "additional environment variables to set when starting the language server",
+          "patternProperties": {
+            "[^ ]+": {
+              "$ref": "#/definitions/env-var"
+            }
+          },
+          "title": "Environment Variables",
+          "type": "object"
+        },
+        "extend": {
+          "description": "known extensions that can contribute to the Language Server's features",
+          "items": {
+            "$ref": "#/definitions/language-server-extension"
+          },
+          "title": "Extensions",
+          "type": "array"
+        },
+        "requires_documents_on_disk": {
+          "default": true,
+          "description": "Whether to write un-saved documents to disk in a transient `.virtual_documents` directory. Well-behaved language servers that work against in-memory files should set this to `false`, which will become the default in the future.",
+          "type": "boolean"
+        },
+        "install": {
+          "$ref": "#/definitions/install-bundle",
+          "description": "a list of installation approaches keyed by package manager, e.g. pip, npm, yarn, apt",
+          "title": "Installation"
+        },
+        "languages": {
+          "$ref": "#/definitions/language-list"
+        },
+        "mime_types": {
+          "$ref": "#/definitions/language-list",
+          "description": "list of MIME types supported by the language server",
+          "title": "MIME Types"
+        },
+        "troubleshoot": {
+          "type": "string",
+          "description": "information on troubleshooting the installation or auto-detection of the language server",
+          "title": "Troubleshooting"
+        },
+        "urls": {
+          "additionalProperties": {
+            "format": "uri",
+            "type": "string"
+          },
+          "description": "a collection of urls keyed by type, e.g. home, issues",
+          "patternProperties": {
+            ".+": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "title": "URLs",
+          "type": "object"
+        },
+        "version": {
+          "$ref": "#/definitions/current-version"
+        },
+        "workspace_configuration": {
+          "description": "default values to include in the client `workspace/configuration` reply (also known as `serverSettings`). User may override these defaults. The keys should be fully qualified (dotted) names of settings (nested specification is not supported).",
+          "title": "Workspace configuration",
+          "type": "object"
+        }
+      },
+      "title": "Server Spec Properties"
+    },
+    "servers-response": {
+      "properties": {
+        "sessions": {
+          "$ref": "#/definitions/sessions"
+        },
+        "specs": {
+          "$ref": "#/definitions/language-server-specs-implementation-map"
+        },
+        "version": {
+          "$ref": "#/definitions/current-version"
+        }
+      },
+      "required": ["sessions", "version"],
+      "type": "object"
+    },
+    "sessions": {
+      "description": "named server sessions that are, could be, or were running",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/session"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/session"
+      },
+      "type": "object"
+    },
+    "session": {
+      "additionalProperties": false,
+      "description": "a language server session",
+      "properties": {
+        "handler_count": {
+          "description": "the count of currently-connected WebSocket handlers",
+          "minValue": 0,
+          "title": "handler count",
+          "type": "integer"
+        },
+        "last_handler_message_at": {
+          "$ref": "#/definitions/nullable-date-time",
+          "description": "date-time of last seen message from a WebSocket handler"
+        },
+        "last_server_message_at": {
+          "$ref": "#/definitions/nullable-date-time",
+          "description": "date-time of last seen message from the language server"
+        },
+        "spec": {
+          "$ref": "#/definitions/partial-language-server-spec"
+        },
+        "status": {
+          "description": "a string describing the current state of the server",
+          "enum": ["not_started", "starting", "started", "stopping", "stopped"],
+          "type": "string"
+        }
+      },
+      "required": [
+        "handler_count",
+        "status",
+        "last_server_message_at",
+        "last_handler_message_at",
+        "spec"
+      ],
+      "title": "Language Server Session"
+    },
+    "shell-args": {
+      "description": "a list of tokens for running a command",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "language-server-specs-implementation-map": {
+      "title": "Language Server Specs Map",
+      "description": "a set of language servers keyed by their implementation name",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/language-server-spec"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/language-server-spec"
+      },
+      "type": "object"
+    }
+  },
+  "description": "describes the current state of (potentially) running language servers",
+  "title": "jupyter_lsp server status response"
+}

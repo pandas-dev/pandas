@@ -1,0 +1,120 @@
+{
+  "title": "File Browser Widget",
+  "description": "File Browser widget settings.",
+  "jupyter.lab.toolbars": {
+    "FileBrowser": [
+      {
+        "name": "new-directory",
+        "command": "filebrowser:create-new-directory",
+        "rank": 10
+      },
+      { "name": "uploader", "rank": 20 },
+      { "name": "refresh", "command": "filebrowser:refresh", "rank": 30 },
+      { "name": "fileNameSearcher", "rank": 40 }
+    ]
+  },
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "command": "filebrowser:toggle-main",
+            "rank": 1
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-settings",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 5
+          },
+          {
+            "command": "filebrowser:toggle-navigate-to-current-directory",
+            "rank": 5
+          },
+          {
+            "type": "separator",
+            "rank": 5
+          }
+        ]
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "filebrowser:toggle-main",
+      "keys": ["Accel Shift F"],
+      "selector": "body"
+    }
+  ],
+  "jupyter.lab.transform": true,
+  "properties": {
+    "toolbar": {
+      "title": "File browser toolbar items",
+      "description": "Note: To disable a toolbar item,\ncopy it to User Preferences and add the\n\"disabled\" key. The following example will disable the uploader button:\n{\n  \"toolbar\": [\n    {\n      \"name\": \"uploader\",\n      \"disabled\": true\n    }\n  ]\n}\n\nToolbar description:",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

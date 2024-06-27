@@ -1,0 +1,68 @@
+{
+  "title": "Inline Completer",
+  "description": "Inline completer settings.",
+  "jupyter.lab.setting-icon": "completer:inline",
+  "jupyter.lab.setting-icon-label": "Inline Completer",
+  "jupyter.lab.transform": true,
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "inline-completer:next",
+      "keys": ["Alt ]"],
+      "selector": ".jp-mod-completer-enabled",
+      "preventDefault": false
+    },
+    {
+      "command": "inline-completer:previous",
+      "keys": ["Alt ["],
+      "selector": ".jp-mod-completer-enabled",
+      "preventDefault": false
+    },
+    {
+      "command": "inline-completer:accept",
+      "keys": ["Alt End"],
+      "selector": ".jp-mod-inline-completer-active"
+    },
+    {
+      "command": "inline-completer:invoke",
+      "keys": ["Alt \\"],
+      "selector": ".jp-mod-completer-enabled",
+      "preventDefault": false
+    }
+  ],
+  "properties": {
+    "providers": {
+      "title": "Inline completion providers",
+      "type": "object",
+      "default": {}
+    },
+    "showWidget": {
+      "title": "Show widget",
+      "description": "When to show the inline completer widget.",
+      "type": "string",
+      "oneOf": [
+        { "const": "always", "title": "Always" },
+        { "const": "onHover", "title": "On hover" },
+        { "const": "never", "title": "Never" }
+      ],
+      "default": "onHover"
+    },
+    "showShortcuts": {
+      "title": "Show shortcuts in the widget",
+      "description": "Whether to show shortcuts in the inline completer widget.",
+      "type": "boolean",
+      "default": true
+    },
+    "streamingAnimation": {
+      "title": "Streaming animation",
+      "description": "Transition effect used when streaming tokens from model.",
+      "type": "string",
+      "oneOf": [
+        { "const": "none", "title": "None" },
+        { "const": "uncover", "title": "Uncover" }
+      ],
+      "default": "uncover"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

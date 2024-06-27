@@ -1,0 +1,37 @@
+Metadata-Version: 2.1
+Name: types-pytz
+Version: 2024.1.0.20240417
+Summary: Typing stubs for pytz
+Home-page: https://github.com/python/typeshed
+License: Apache-2.0 license
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/pytz.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+## Typing stubs for pytz
+
+This is a [PEP 561](https://peps.python.org/pep-0561/)
+type stub package for the [`pytz`](https://github.com/stub42/pytz) package.
+It can be used by type-checking tools like
+[mypy](https://github.com/python/mypy/),
+[pyright](https://github.com/microsoft/pyright),
+[pytype](https://github.com/google/pytype/),
+PyCharm, etc. to check code that uses
+`pytz`.
+
+This version of `types-pytz` aims to provide accurate annotations
+for `pytz==2024.1`.
+The source for this package can be found at
+https://github.com/python/typeshed/tree/main/stubs/pytz. All fixes for
+types and metadata should be contributed there.
+
+See https://github.com/python/typeshed/blob/main/README.md for more details.
+This package was generated from typeshed commit `7d56cd9a6cf6e0a4ea89c68d0397e197aff32cbe` and was tested
+with mypy 1.9.0, pyright 1.1.358, and
+pytype 2024.4.11.

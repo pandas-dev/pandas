@@ -1615,10 +1615,19 @@ def nancorr(
     return f(a, b)
 
 
+branch_coverage_get_corr_func = {
+    "get_corr_func_1": False,  # kendall
+    "get_corr_func_2": False,  # spearman
+    "get_corr_func_3": False,  # pearson
+    "get_corr_func_4": False,  # callable
+    "get_corr_func_5": False,  # unknown method
+}
+
 def get_corr_func(
     method: CorrelationMethod,
 ) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
+        branch_coverage_get_corr_func["get_corr_func_1"] = True
         from scipy.stats import kendalltau
 
         def func(a, b):
@@ -1626,6 +1635,7 @@ def get_corr_func(
 
         return func
     elif method == "spearman":
+        branch_coverage_get_corr_func["get_corr_func_2"] = True
         from scipy.stats import spearmanr
 
         def func(a, b):
@@ -1633,19 +1643,21 @@ def get_corr_func(
 
         return func
     elif method == "pearson":
+        branch_coverage_get_corr_func["get_corr_func_3"] = True
 
         def func(a, b):
             return np.corrcoef(a, b)[0, 1]
 
         return func
     elif callable(method):
+        branch_coverage_get_corr_func["get_corr_func_4"] = True
         return method
 
+    branch_coverage_get_corr_func["get_corr_func_5"] = True
     raise ValueError(
         f"Unknown method '{method}', expected one of "
         "'kendall', 'spearman', 'pearson', or callable"
     )
-
 
 @disallow("M8", "m8")
 def nancov(

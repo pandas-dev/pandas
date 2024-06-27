@@ -1,0 +1,3755 @@
+# Translations template for Sphinx.
+# Copyright (C) 2024 ORGANIZATION
+# This file is distributed under the same license as the Sphinx project.
+# 
+# Translators:
+# Adam Turner, 2023
+# Antoni Bella Pérez <antonibella5@yahoo.com>, 2023-2024
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2009
+# Pau Fernández <pau.fernandez@upc.edu>, 2009
+msgid ""
+msgstr ""
+"Project-Id-Version: Sphinx\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2024-04-14 23:27+0000\n"
+"PO-Revision-Date: 2013-04-02 08:44+0000\n"
+"Last-Translator: Antoni Bella Pérez <antonibella5@yahoo.com>, 2023-2024\n"
+"Language-Team: Catalan (http://app.transifex.com/sphinx-doc/sphinx-1/language/ca/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+"Language: ca\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: sphinx/application.py:157
+#, python-format
+msgid "Cannot find source directory (%s)"
+msgstr "No es pot trobar el directori d'origen (%s)"
+
+#: sphinx/application.py:161
+#, python-format
+msgid "Output directory (%s) is not a directory"
+msgstr "El directori de sortida (%s) no és un directori"
+
+#: sphinx/application.py:165
+msgid "Source directory and destination directory cannot be identical"
+msgstr "El directori d'origen i el de destinació no poden ser idèntics"
+
+#: sphinx/application.py:197
+#, python-format
+msgid "Running Sphinx v%s"
+msgstr "S'està executant Sphinx versió %s"
+
+#: sphinx/application.py:219
+#, python-format
+msgid ""
+"This project needs at least Sphinx v%s and therefore cannot be built with "
+"this version."
+msgstr "Aquest projecte almenys necessita Sphinx versió %s i, per tant, no es pot crear amb aquesta versió."
+
+#: sphinx/application.py:235
+msgid "making output directory"
+msgstr "es crea el directori de sortida"
+
+#: sphinx/application.py:240 sphinx/registry.py:450
+#, python-format
+msgid "while setting up extension %s:"
+msgstr "mentre es configura l'extensió %s:"
+
+#: sphinx/application.py:246
+msgid ""
+"'setup' as currently defined in conf.py isn't a Python callable. Please "
+"modify its definition to make it a callable function. This is needed for "
+"conf.py to behave as a Sphinx extension."
+msgstr "«setup» tal com es defineix actualment a conf.py no és una crida de Python. Modifiqueu la seva definició per a convertir-la en una funció que es pugui cridar. Això és necessari perquè conf.py es comporti com a una extensió de Sphinx."
+
+#: sphinx/application.py:277
+#, python-format
+msgid "loading translations [%s]... "
+msgstr "s'estan carregant les traduccions [%s]..."
+
+#: sphinx/application.py:294 sphinx/util/display.py:85
+msgid "done"
+msgstr "fet"
+
+#: sphinx/application.py:296
+msgid "not available for built-in messages"
+msgstr "no està disponible per a missatges integrats"
+
+#: sphinx/application.py:310
+msgid "loading pickled environment"
+msgstr "s'està carregant l'entorn preparat"
+
+#: sphinx/application.py:318
+#, python-format
+msgid "failed: %s"
+msgstr "ha fallat: %s"
+
+#: sphinx/application.py:332
+msgid "No builder selected, using default: html"
+msgstr "No s'ha seleccionat cap constructor, s'usa el predeterminat: html"
+
+#: sphinx/application.py:365
+msgid "succeeded"
+msgstr "ha tingut èxit"
+
+#: sphinx/application.py:366
+msgid "finished with problems"
+msgstr "ha acabat amb problemes"
+
+#: sphinx/application.py:370
+#, python-format
+msgid "build %s, %s warning (with warnings treated as errors)."
+msgstr "construcció %s, %s avís (amb els avisos tractats com a errors)."
+
+#: sphinx/application.py:372
+#, python-format
+msgid "build %s, %s warnings (with warnings treated as errors)."
+msgstr "construcció %s, %s avisos (amb els avisos tractats com a errors)."
+
+#: sphinx/application.py:375
+#, python-format
+msgid "build %s, %s warning."
+msgstr "construcció %s, %s avís."
+
+#: sphinx/application.py:377
+#, python-format
+msgid "build %s, %s warnings."
+msgstr "construcció %s, %s avisos."
+
+#: sphinx/application.py:381
+#, python-format
+msgid "build %s."
+msgstr "construcció %s."
+
+#: sphinx/application.py:610
+#, python-format
+msgid "node class %r is already registered, its visitors will be overridden"
+msgstr "la classe del node %r ja està registrada, els seus visitants seran anul·lats"
+
+#: sphinx/application.py:689
+#, python-format
+msgid "directive %r is already registered, it will be overridden"
+msgstr "la directiva %r ja està registrada, s'anul·larà"
+
+#: sphinx/application.py:711 sphinx/application.py:733
+#, python-format
+msgid "role %r is already registered, it will be overridden"
+msgstr "el rol %r ja està registrat, s'anul·larà"
+
+#: sphinx/application.py:1282
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel reading, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "l'extensió %s no declara si és segur per a la lectura en paral·lel, suposant que no ho sigui, demaneu a l'autor de l'extensió que ho comprovi i faci que sigui explícit"
+
+#: sphinx/application.py:1286
+#, python-format
+msgid "the %s extension is not safe for parallel reading"
+msgstr "l'extensió %s no és segura per a la lectura en paral·lel"
+
+#: sphinx/application.py:1289
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel writing, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "l'extensió %s no declara si és segur per a l'escriptura en paral·lel, suposant que no ho sigui, demaneu a l'autor de l'extensió que ho comprovi i faci que sigui explícit"
+
+#: sphinx/application.py:1293
+#, python-format
+msgid "the %s extension is not safe for parallel writing"
+msgstr "l'extensió %s no és segura per a l'escriptura en paral·lel"
+
+#: sphinx/application.py:1301 sphinx/application.py:1305
+#, python-format
+msgid "doing serial %s"
+msgstr "s'està executant %s en sèrie"
+
+#: sphinx/config.py:309
+#, python-format
+msgid "config directory doesn't contain a conf.py file (%s)"
+msgstr "el directori de configuració no conté un fitxer conf.py (%s)"
+
+#: sphinx/config.py:318
+msgid ""
+"Invalid configuration value found: 'language = None'. Update your "
+"configuration to a valid language code. Falling back to 'en' (English)."
+msgstr "S'ha trobat un valor de configuració no vàlid: «language = None». Actualitzeu la vostra configuració a un codi d'idioma vàlid. Es torna «en» (anglès)."
+
+#: sphinx/config.py:341
+#, python-format
+msgid ""
+"cannot override dictionary config setting %r, ignoring (use %r to set "
+"individual elements)"
+msgstr "no s'ha pogut substituir l'ajust de la configuració del diccionari %r, s'ignora (useu %r per a establir elements individuals)"
+
+#: sphinx/config.py:350
+#, python-format
+msgid "invalid number %r for config value %r, ignoring"
+msgstr "nombre no vàlid %r del valor de configuració %r, s'ignora"
+
+#: sphinx/config.py:355
+#, python-format
+msgid "cannot override config setting %r with unsupported type, ignoring"
+msgstr "no s'ha pogut substituir l'ajust de la configuració %r amb tipus no compatibles, s'ignora"
+
+#: sphinx/config.py:378
+#, python-format
+msgid "unknown config value %r in override, ignoring"
+msgstr "valor de configuració desconegut %r en substituir, s'ignora"
+
+#: sphinx/config.py:418
+#, python-format
+msgid "No such config value: %r"
+msgstr "Aquest valor de configuració no existeix: %r"
+
+#: sphinx/config.py:440
+#, python-format
+msgid "Config value %r already present"
+msgstr "El valor de configuració %r ja està present"
+
+#: sphinx/config.py:473
+#, python-format
+msgid "cannot cache unpickable configuration value: %r"
+msgstr "no es pot emmagatzemar a la memòria cau un valor de configuració no seleccionable: %r"
+
+#: sphinx/config.py:509
+#, python-format
+msgid "There is a syntax error in your configuration file: %s\n"
+msgstr "Hi ha un error de sintaxi en el fitxer de configuració: %s\n"
+
+#: sphinx/config.py:512
+msgid ""
+"The configuration file (or one of the modules it imports) called sys.exit()"
+msgstr "El fitxer de configuració (o un dels mòduls que s'importen) ha cridat «sys.exit()»"
+
+#: sphinx/config.py:519
+#, python-format
+msgid ""
+"There is a programmable error in your configuration file:\n"
+"\n"
+"%s"
+msgstr "Hi ha un error programable en el fitxer de configuració:\n\n%s"
+
+#: sphinx/config.py:540
+#, python-format
+msgid "Failed to convert %r to a set or tuple"
+msgstr "Ha fallat en convertir %r en un conjunt o tupla"
+
+#: sphinx/config.py:565
+#, python-format
+msgid ""
+"The config value `source_suffix' expects a string, list of strings, or "
+"dictionary. But `%r' is given."
+msgstr "El valor de configuració «source_suffix» espera una cadena, una llista de cadenes o un diccionari. Però s'ha donat «%r»."
+
+#: sphinx/config.py:585
+#, python-format
+msgid "Section %s"
+msgstr "Secció %s"
+
+#: sphinx/config.py:586
+#, python-format
+msgid "Fig. %s"
+msgstr "Fig. %s"
+
+#: sphinx/config.py:587
+#, python-format
+msgid "Table %s"
+msgstr "Taula %s"
+
+#: sphinx/config.py:588
+#, python-format
+msgid "Listing %s"
+msgstr "Llistat %s"
+
+#: sphinx/config.py:663
+msgid ""
+"The config value `{name}` has to be a one of {candidates}, but `{current}` "
+"is given."
+msgstr "El valor de configuració «{name}» ha de ser un de {candidates}, però s'ha donat «{current}»."
+
+#: sphinx/config.py:687
+msgid ""
+"The config value `{name}' has type `{current.__name__}'; expected "
+"{permitted}."
+msgstr "El valor de configuració «{name}» té el tipus «{current.__name__}», s'espera {permitted}."
+
+#: sphinx/config.py:700
+msgid ""
+"The config value `{name}' has type `{current.__name__}', defaults to "
+"`{default.__name__}'."
+msgstr "El valor de configuració «{name}» té el tipus «{current.__name__}», el valor predeterminat és «{default.__name__}»."
+
+#: sphinx/config.py:711
+#, python-format
+msgid "primary_domain %r not found, ignored."
+msgstr "no s'ha trobat primary_domain %r, s'ignora."
+
+#: sphinx/config.py:723
+msgid ""
+"Since v2.0, Sphinx uses \"index\" as root_doc by default. Please add "
+"\"root_doc = 'contents'\" to your conf.py."
+msgstr "Des de la versió 2.0, Sphinx usa «index» de manera predeterminada com a root_doc. Afegiu «root_doc = 'contents'» al vostre conf.py."
+
+#: sphinx/events.py:64
+#, python-format
+msgid "Event %r already present"
+msgstr "L'esdeveniment %r ja està present"
+
+#: sphinx/events.py:70
+#, python-format
+msgid "Unknown event name: %s"
+msgstr "Nom desconegut de l'esdeveniment: %s"
+
+#: sphinx/events.py:109
+#, python-format
+msgid "Handler %r for event %r threw an exception"
+msgstr "El gestor %r per a l'esdeveniment %r ha retornat una excepció"
+
+#: sphinx/extension.py:55
+#, python-format
+msgid ""
+"The %s extension is required by needs_extensions settings, but it is not "
+"loaded."
+msgstr "L'extensió %s és requerida per la configuració de needs_extensions, però aquesta no està carregada."
+
+#: sphinx/extension.py:76
+#, python-format
+msgid ""
+"This project needs the extension %s at least in version %s and therefore "
+"cannot be built with the loaded version (%s)."
+msgstr "Aquest projecte necessita l'extensió %s almenys a la versió %s i, per tant, no es pot construir amb la versió carregada (%s)."
+
+#: sphinx/highlighting.py:155
+#, python-format
+msgid "Pygments lexer name %r is not known"
+msgstr "No es coneix el nom del lexer de pigments %r"
+
+#: sphinx/highlighting.py:189
+#, python-format
+msgid ""
+"Lexing literal_block %r as \"%s\" resulted in an error at token: %r. "
+"Retrying in relaxed mode."
+msgstr "L'anàlisi lèxica del literal_block %r com a «%s» ha resultat en un error en el testimoni: %r. S'està tornant a provar en el mode relaxat."
+
+#: sphinx/project.py:66
+#, python-format
+msgid ""
+"multiple files found for the document \"%s\": %r\n"
+"Use %r for the build."
+msgstr "s'han trobat múltiples fitxers per al document «%s»: %r\nUseu %r per a la compilació."
+
+#: sphinx/project.py:81
+#, python-format
+msgid "Ignored unreadable document %r."
+msgstr "S'ha ignorat el document il·legible %r."
+
+#: sphinx/registry.py:142
+#, python-format
+msgid "Builder class %s has no \"name\" attribute"
+msgstr "La classe del constructor %s no té cap atribut «name»"
+
+#: sphinx/registry.py:144
+#, python-format
+msgid "Builder %r already exists (in module %s)"
+msgstr "El constructor %r ja existeix (al mòdul %s)"
+
+#: sphinx/registry.py:157
+#, python-format
+msgid "Builder name %s not registered or available through entry point"
+msgstr "El nom del constructor %s no està registrat o disponible a través del punt d'entrada"
+
+#: sphinx/registry.py:164
+#, python-format
+msgid "Builder name %s not registered"
+msgstr "El nom del constructor %s no està registrat"
+
+#: sphinx/registry.py:171
+#, python-format
+msgid "domain %s already registered"
+msgstr "el domini %s ja està registrat"
+
+#: sphinx/registry.py:194 sphinx/registry.py:207 sphinx/registry.py:218
+#, python-format
+msgid "domain %s not yet registered"
+msgstr "el domini %s encara no està registrat"
+
+#: sphinx/registry.py:198
+#, python-format
+msgid "The %r directive is already registered to domain %s"
+msgstr "La directiva %r ja està registrada al domini %s"
+
+#: sphinx/registry.py:210
+#, python-format
+msgid "The %r role is already registered to domain %s"
+msgstr "El rol %r ja està registrat al domini %s"
+
+#: sphinx/registry.py:221
+#, python-format
+msgid "The %r index is already registered to domain %s"
+msgstr "L'índex %r ja està registrat al domini %s"
+
+#: sphinx/registry.py:252
+#, python-format
+msgid "The %r object_type is already registered"
+msgstr "L'object_type %r ja està registrat"
+
+#: sphinx/registry.py:278
+#, python-format
+msgid "The %r crossref_type is already registered"
+msgstr "El crossref_type %r ja està registrat"
+
+#: sphinx/registry.py:285
+#, python-format
+msgid "source_suffix %r is already registered"
+msgstr "source_suffix %r ja està registrat"
+
+#: sphinx/registry.py:294
+#, python-format
+msgid "source_parser for %r is already registered"
+msgstr "source_parser per a %r ja està registrat"
+
+#: sphinx/registry.py:302
+#, python-format
+msgid "Source parser for %s not registered"
+msgstr "L'analitzador de fonts per a %s no registrat"
+
+#: sphinx/registry.py:318
+#, python-format
+msgid "Translator for %r already exists"
+msgstr "El traductor per a %r ja existeix"
+
+#: sphinx/registry.py:334
+#, python-format
+msgid "kwargs for add_node() must be a (visit, depart) function tuple: %r=%r"
+msgstr "kwargs per a add_node() haurà de ser una funció (visita, sortida) tupla: %r=%r"
+
+#: sphinx/registry.py:417
+#, python-format
+msgid "enumerable_node %r already registered"
+msgstr "enumerable_node %r ja està registrat"
+
+#: sphinx/registry.py:429
+#, python-format
+msgid "math renderer %s is already registered"
+msgstr "la representació matemàtica %s ja està registrada"
+
+#: sphinx/registry.py:444
+#, python-format
+msgid ""
+"the extension %r was already merged with Sphinx since version %s; this "
+"extension is ignored."
+msgstr "l'extensió %r ja es va fusionar amb Sphinx des de la versió %s. Aquesta extensió s'ignorarà."
+
+#: sphinx/registry.py:455
+msgid "Original exception:\n"
+msgstr "Excepció original:\n"
+
+#: sphinx/registry.py:456
+#, python-format
+msgid "Could not import extension %s"
+msgstr "No s'ha pogut importar l'extensió %s"
+
+#: sphinx/registry.py:461
+#, python-format
+msgid ""
+"extension %r has no setup() function; is it really a Sphinx extension "
+"module?"
+msgstr "l'extensió %r no té cap funció setup(). És realment un mòdul d'extensions de Sphinx?"
+
+#: sphinx/registry.py:470
+#, python-format
+msgid ""
+"The %s extension used by this project needs at least Sphinx v%s; it "
+"therefore cannot be built with this version."
+msgstr "L'extensió %s usada per aquest projecte almenys necessita Sphinx versió %s i, per tant, no es pot crear amb aquesta versió."
+
+#: sphinx/registry.py:478
+#, python-format
+msgid ""
+"extension %r returned an unsupported object from its setup() function; it "
+"should return None or a metadata dictionary"
+msgstr "l'extensió %r ha retornat un objecte no admès des de la seva funció setup(). No n'hauria de retornar cap o retornar un diccionari de metadades"
+
+#: sphinx/roles.py:201
+#, python-format
+msgid "Python Enhancement Proposals; PEP %s"
+msgstr "Propostes de millora a Python; PEP %s"
+
+#: sphinx/roles.py:222
+#, python-format
+msgid "invalid PEP number %s"
+msgstr "número de PEP no vàlid %s"
+
+#: sphinx/roles.py:257
+#, python-format
+msgid "invalid RFC number %s"
+msgstr "número de RFC no vàlid %s"
+
+#: sphinx/theming.py:125
+#, python-format
+msgid "setting %s.%s occurs in none of the searched theme configs"
+msgstr "configuració %s. %s no es produeix en cap de les configuracions de temes cercats"
+
+#: sphinx/theming.py:140
+#, python-format
+msgid "unsupported theme option %r given"
+msgstr "opció de tema no admesa, s'ha donat %r"
+
+#: sphinx/theming.py:206
+#, python-format
+msgid "file %r on theme path is not a valid zipfile or contains no theme"
+msgstr "el fitxer %r en el camí de temes no és un fitxer ZIP vàlid ni conté cap tema"
+
+#: sphinx/theming.py:226
+#, python-format
+msgid "no theme named %r found (missing theme.toml?)"
+msgstr "no s'ha trobat cap tema anomenat %r (manca theme.toml?)"
+
+#: sphinx/theming.py:259
+#, python-format
+msgid "The %r theme has circular inheritance"
+msgstr "El tema %r té una herència circular"
+
+#: sphinx/theming.py:262
+#, python-format
+msgid ""
+"The %r theme inherits from %r, which is not a loaded theme. Loaded themes "
+"are: %s"
+msgstr "El tema %r hereta des de %r, el qual no és un tema que estigui carregat. Els temes carregats són: %s"
+
+#: sphinx/theming.py:269
+#, python-format
+msgid "The %r theme has too many ancestors"
+msgstr "El tema %r té massa avantpassats"
+
+#: sphinx/theming.py:295
+#, python-format
+msgid "no theme configuration file found in %r"
+msgstr "no s'ha trobat cap fitxer de configuració del tema a %r"
+
+#: sphinx/theming.py:323 sphinx/theming.py:374
+#, python-format
+msgid "theme %r doesn't have the \"theme\" table"
+msgstr "el tema %r no té la taula «theme»."
+
+#: sphinx/theming.py:327
+#, python-format
+msgid "The %r theme \"[theme]\" table is not a table"
+msgstr "La taula del tema %r «[theme]» no és una taula"
+
+#: sphinx/theming.py:331 sphinx/theming.py:377
+#, python-format
+msgid "The %r theme must define the \"theme.inherit\" setting"
+msgstr "El tema %r ha de definir la configuració «theme.inherit»."
+
+#: sphinx/theming.py:335
+#, python-format
+msgid "The %r theme \"[options]\" table is not a table"
+msgstr "La taula del tema %r «[options]» no és una taula"
+
+#: sphinx/theming.py:353
+#, python-format
+msgid "The \"theme.pygments_style\" setting must be a table. Hint: \"%s\""
+msgstr "La configuració de «theme.pygments_style» ha de ser una taula. Consell: «%s»"
+
+#: sphinx/builders/__init__.py:183
+#, python-format
+msgid "a suitable image for %s builder not found: %s (%s)"
+msgstr "no s'ha trobat una imatge adequada per al constructor %s: %s (%s)"
+
+#: sphinx/builders/__init__.py:187
+#, python-format
+msgid "a suitable image for %s builder not found: %s"
+msgstr "no s'ha trobat una imatge adequada per al constructor %s: %s"
+
+#: sphinx/builders/__init__.py:207
+msgid "building [mo]: "
+msgstr "s'estan construint [mo]:"
+
+#: sphinx/builders/__init__.py:208 sphinx/builders/__init__.py:574
+#: sphinx/builders/__init__.py:601
+msgid "writing output... "
+msgstr "s'està escrivint la sortida..."
+
+#: sphinx/builders/__init__.py:217
+#, python-format
+msgid "all of %d po files"
+msgstr "tots els %d fitxers PO"
+
+#: sphinx/builders/__init__.py:235
+#, python-format
+msgid "targets for %d po files that are specified"
+msgstr "objectius per als %d fitxers PO que s'han especificat"
+
+#: sphinx/builders/__init__.py:243
+#, python-format
+msgid "targets for %d po files that are out of date"
+msgstr "objectius per als %d fitxers PO que estan desfasats"
+
+#: sphinx/builders/__init__.py:252
+msgid "all source files"
+msgstr "tots els fitxers font"
+
+#: sphinx/builders/__init__.py:262
+#, python-format
+msgid "file %r given on command line does not exist, "
+msgstr "el fitxer %r proporcionat a la línia d'ordres no existeix, "
+
+#: sphinx/builders/__init__.py:267
+#, python-format
+msgid ""
+"file %r given on command line is not under the source directory, ignoring"
+msgstr "el fitxer %r proporcionat a la línia d'ordres no es troba sota el directori d'origen, s'ignora"
+
+#: sphinx/builders/__init__.py:273
+#, python-format
+msgid "file %r given on command line is not a valid document, ignoring"
+msgstr "el fitxer %r proporcionat a la línia d'ordres no és un document vàlid, s'ignora"
+
+#: sphinx/builders/__init__.py:282
+#, python-format
+msgid "%d source files given on command line"
+msgstr "%d fitxers font proporcionats a la línia d'ordres"
+
+#: sphinx/builders/__init__.py:294
+#, python-format
+msgid "targets for %d source files that are out of date"
+msgstr "els objectius per a %d fitxers font que estan desfasats"
+
+#: sphinx/builders/__init__.py:309 sphinx/builders/gettext.py:243
+#, python-format
+msgid "building [%s]: "
+msgstr "s'està construint [%s]: "
+
+#: sphinx/builders/__init__.py:316
+msgid "looking for now-outdated files... "
+msgstr "s'està cercant per fitxers sense actualitzar... "
+
+#: sphinx/builders/__init__.py:320
+#, python-format
+msgid "%d found"
+msgstr "s'han trobat %d"
+
+#: sphinx/builders/__init__.py:322
+msgid "none found"
+msgstr "no se n'ha trobat cap"
+
+#: sphinx/builders/__init__.py:327
+msgid "pickling environment"
+msgstr "s'està preparant l'ambient"
+
+#: sphinx/builders/__init__.py:333
+msgid "checking consistency"
+msgstr "s'està comprovant la coherència"
+
+#: sphinx/builders/__init__.py:337
+msgid "no targets are out of date."
+msgstr "no hi ha cap objectiu desfasat."
+
+#: sphinx/builders/__init__.py:376
+msgid "updating environment: "
+msgstr "s'està actualitzant l'entorn: "
+
+#: sphinx/builders/__init__.py:397
+#, python-format
+msgid "%s added, %s changed, %s removed"
+msgstr "%s afegits, %s canviats, %s eliminats"
+
+#: sphinx/builders/__init__.py:435 sphinx/builders/__init__.py:447
+msgid "reading sources... "
+msgstr "s'estan llegint les fonts... "
+
+#: sphinx/builders/__init__.py:549
+#, python-format
+msgid "docnames to write: %s"
+msgstr "els docname que s'escriuran: %s"
+
+#: sphinx/builders/__init__.py:558 sphinx/builders/singlehtml.py:157
+msgid "preparing documents"
+msgstr "s'estan preparant els documents"
+
+#: sphinx/builders/__init__.py:561
+msgid "copying assets"
+msgstr "s'estan copiant els recursos"
+
+#: sphinx/builders/_epub_base.py:215
+#, python-format
+msgid "duplicated ToC entry found: %s"
+msgstr "s'ha trobat una entrada ToC duplicada: %s"
+
+#: sphinx/builders/_epub_base.py:404 sphinx/builders/html/__init__.py:758
+#: sphinx/builders/latex/__init__.py:432 sphinx/builders/texinfo.py:187
+msgid "copying images... "
+msgstr "s'estan copiant les imatges... "
+
+#: sphinx/builders/_epub_base.py:411
+#, python-format
+msgid "cannot read image file %r: copying it instead"
+msgstr "no s'ha pogut llegir el fitxer d'imatge %r: en el seu lloc, es copia"
+
+#: sphinx/builders/_epub_base.py:417 sphinx/builders/html/__init__.py:766
+#: sphinx/builders/latex/__init__.py:440 sphinx/builders/texinfo.py:197
+#, python-format
+msgid "cannot copy image file %r: %s"
+msgstr "no s'ha pogut copiar el fitxer d'imatge %r: %s"
+
+#: sphinx/builders/_epub_base.py:434
+#, python-format
+msgid "cannot write image file %r: %s"
+msgstr "no s'ha pogut escriure el fitxer d'imatge %r: %s"
+
+#: sphinx/builders/_epub_base.py:444
+msgid "Pillow not found - copying image files"
+msgstr "No s'ha trobat el Pillow: es copien els fitxers d'imatge"
+
+#: sphinx/builders/_epub_base.py:470
+msgid "writing mimetype file..."
+msgstr "s'està escrivint un fitxer de tipus MIME..."
+
+#: sphinx/builders/_epub_base.py:475
+msgid "writing META-INF/container.xml file..."
+msgstr "s'està escrivint el fitxer META-INF/container.xml..."
+
+#: sphinx/builders/_epub_base.py:508
+msgid "writing content.opf file..."
+msgstr "s'està escrivint el fitxer content.opf..."
+
+#: sphinx/builders/_epub_base.py:539
+#, python-format
+msgid "unknown mimetype for %s, ignoring"
+msgstr "tipus MIME desconegut per a %s, s'ignora"
+
+#: sphinx/builders/_epub_base.py:686
+msgid "writing toc.ncx file..."
+msgstr "s'està escrivint el fitxer toc.ncx..."
+
+#: sphinx/builders/_epub_base.py:711
+#, python-format
+msgid "writing %s file..."
+msgstr "s'està escrivint el fitxer %s..."
+
+#: sphinx/builders/changes.py:32
+#, python-format
+msgid "The overview file is in %(outdir)s."
+msgstr "El fitxer de vista general es troba a %(outdir)s."
+
+#: sphinx/builders/changes.py:59
+#, python-format
+msgid "no changes in version %s."
+msgstr "no hi ha canvis en la versió %s."
+
+#: sphinx/builders/changes.py:61
+msgid "writing summary file..."
+msgstr "s'està escrivint el fitxer de vista general..."
+
+#: sphinx/builders/changes.py:76
+msgid "Builtins"
+msgstr "Elements incorporats"
+
+#: sphinx/builders/changes.py:78
+msgid "Module level"
+msgstr "Nivell de mòdul"
+
+#: sphinx/builders/changes.py:123
+msgid "copying source files..."
+msgstr "s'estan copiant els fitxers font..."
+
+#: sphinx/builders/changes.py:130
+#, python-format
+msgid "could not read %r for changelog creation"
+msgstr "no s'ha pogut llegir %r per a la creació del registre de canvis"
+
+#: sphinx/builders/dummy.py:19
+msgid "The dummy builder generates no files."
+msgstr "El constructor fictici no genera cap fitxer."
+
+#: sphinx/builders/epub3.py:81
+#, python-format
+msgid "The ePub file is in %(outdir)s."
+msgstr "El fitxer ePub es troba a %(outdir)s."
+
+#: sphinx/builders/epub3.py:185
+msgid "writing nav.xhtml file..."
+msgstr "s'està escrivint el fitxer nav.xhtml..."
+
+#: sphinx/builders/epub3.py:211
+msgid "conf value \"epub_language\" (or \"language\") should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_language» (o «language») no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:215
+msgid "conf value \"epub_uid\" should be XML NAME for EPUB3"
+msgstr "el valor de configuració «epub_uid» haurà de ser un XML NAME per a EPUB3"
+
+#: sphinx/builders/epub3.py:218
+msgid "conf value \"epub_title\" (or \"html_title\") should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_title» (o «html_title») no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:222
+msgid "conf value \"epub_author\" should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_author» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:225
+msgid "conf value \"epub_contributor\" should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_contributor» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:228
+msgid "conf value \"epub_description\" should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_description» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:231
+msgid "conf value \"epub_publisher\" should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_publisher» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:234
+msgid "conf value \"epub_copyright\" (or \"copyright\")should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_copyright» (o «copyright») no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:238
+msgid "conf value \"epub_identifier\" should not be empty for EPUB3"
+msgstr "el valor de configuració «epub_identifier» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:241
+msgid "conf value \"version\" should not be empty for EPUB3"
+msgstr "el valor de configuració «version» no pot estar buit per a EPUB3"
+
+#: sphinx/builders/epub3.py:255 sphinx/builders/html/__init__.py:1187
+#, python-format
+msgid "invalid css_file: %r, ignored"
+msgstr "css_file no vàlid: %r, s'ignora"
+
+#: sphinx/builders/gettext.py:222
+#, python-format
+msgid "The message catalogs are in %(outdir)s."
+msgstr "Els catàlegs de missatges es troben a %(outdir)s."
+
+#: sphinx/builders/gettext.py:244
+#, python-format
+msgid "targets for %d template files"
+msgstr "objectius per a %d fitxers de plantilla"
+
+#: sphinx/builders/gettext.py:248
+msgid "reading templates... "
+msgstr "s'estan llegint les plantilles... "
+
+#: sphinx/builders/gettext.py:282
+msgid "writing message catalogs... "
+msgstr "s'estan escrivint els catàlegs de missatges... "
+
+#: sphinx/builders/linkcheck.py:59
+#, python-format
+msgid "Look for any errors in the above output or in %(outdir)s/output.txt"
+msgstr "Cerqueu qualsevol error a la sortida anterior o en el fitxer %(outdir)s/output.txt"
+
+#: sphinx/builders/linkcheck.py:137
+#, python-format
+msgid "broken link: %s (%s)"
+msgstr "enllaç trencat: %s (%s)"
+
+#: sphinx/builders/linkcheck.py:660
+#, python-format
+msgid "Failed to compile regex in linkcheck_allowed_redirects: %r %s"
+msgstr "Ha fallat en compilar expressions regulars a linkcheck_allowed_redirects: %r %s"
+
+#: sphinx/builders/manpage.py:37
+#, python-format
+msgid "The manual pages are in %(outdir)s."
+msgstr "Les pàgines del manual es troben a %(outdir)s."
+
+#: sphinx/builders/manpage.py:44
+msgid "no \"man_pages\" config value found; no manual pages will be written"
+msgstr "no s'ha trobat el valor de configuració «man_pages»: no s'escriuran les pàgines del manual"
+
+#: sphinx/builders/latex/__init__.py:314 sphinx/builders/manpage.py:53
+#: sphinx/builders/singlehtml.py:165 sphinx/builders/texinfo.py:112
+msgid "writing"
+msgstr "s'està escrivint"
+
+#: sphinx/builders/manpage.py:68
+#, python-format
+msgid "\"man_pages\" config value references unknown document %s"
+msgstr "El valor de configuració «man_pages» fa referència a un document %s desconegut"
+
+#: sphinx/builders/singlehtml.py:34
+#, python-format
+msgid "The HTML page is in %(outdir)s."
+msgstr "La pàgina HTML es troba a %(outdir)s."
+
+#: sphinx/builders/singlehtml.py:160
+msgid "assembling single document"
+msgstr "s'està muntant un únic document"
+
+#: sphinx/builders/singlehtml.py:178
+msgid "writing additional files"
+msgstr "s'estan escrivint els fitxers addicionals"
+
+#: sphinx/builders/texinfo.py:48
+#, python-format
+msgid "The Texinfo files are in %(outdir)s."
+msgstr "Els fitxers de Texinfo es troben a %(outdir)s."
+
+#: sphinx/builders/texinfo.py:50
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through makeinfo\n"
+"(use 'make info' here to do that automatically)."
+msgstr "\nExecuteu l'ordre «make» en aquest directori per a executar-les mitjançant\nde makeinfo (useu l'ordre «make info» per a fer-ho automàticament)."
+
+#: sphinx/builders/texinfo.py:77
+msgid "no \"texinfo_documents\" config value found; no documents will be written"
+msgstr "no s'ha trobat el valor de configuració «texinfo_documents»: no s'escriurà cap document"
+
+#: sphinx/builders/texinfo.py:85
+#, python-format
+msgid "\"texinfo_documents\" config value references unknown document %s"
+msgstr "El valor de configuració «texinfo_documents» fa referència a un document %s desconegut"
+
+#: sphinx/builders/latex/__init__.py:296 sphinx/builders/texinfo.py:108
+#, python-format
+msgid "processing %s"
+msgstr "s'està processant %s"
+
+#: sphinx/builders/latex/__init__.py:369 sphinx/builders/texinfo.py:161
+msgid "resolving references..."
+msgstr "s'estan resolent les referències..."
+
+#: sphinx/builders/latex/__init__.py:380 sphinx/builders/texinfo.py:171
+msgid " (in "
+msgstr " (a "
+
+#: sphinx/builders/texinfo.py:202
+msgid "copying Texinfo support files"
+msgstr "s'estan copiant els fitxers de suport de Texinfo"
+
+#: sphinx/builders/texinfo.py:206
+#, python-format
+msgid "error writing file Makefile: %s"
+msgstr "error en escriure el fitxer Makefile: %s"
+
+#: sphinx/builders/text.py:30
+#, python-format
+msgid "The text files are in %(outdir)s."
+msgstr "Els fitxers de text es troben a %(outdir)s."
+
+#: sphinx/builders/html/__init__.py:1138 sphinx/builders/text.py:77
+#: sphinx/builders/xml.py:96
+#, python-format
+msgid "error writing file %s: %s"
+msgstr "error en escriure al fitxer %s: %s"
+
+#: sphinx/builders/xml.py:36
+#, python-format
+msgid "The XML files are in %(outdir)s."
+msgstr "Els fitxers en XML es troben a %(outdir)s."
+
+#: sphinx/builders/xml.py:109
+#, python-format
+msgid "The pseudo-XML files are in %(outdir)s."
+msgstr "Els fitxers en pseudo XML es troben a %(outdir)s."
+
+#: sphinx/builders/html/__init__.py:130
+#, python-format
+msgid "build info file is broken: %r"
+msgstr "el fitxer d'informació de la compilació està trencat: %r"
+
+#: sphinx/builders/html/__init__.py:168
+#, python-format
+msgid "The HTML pages are in %(outdir)s."
+msgstr "Les pàgines en HTML es troben a %(outdir)s."
+
+#: sphinx/builders/html/__init__.py:394
+#, python-format
+msgid "Failed to read build info file: %r"
+msgstr "Ha fallat en llegir el fitxer d'informació de la construcció: %r"
+
+#: sphinx/builders/html/__init__.py:487 sphinx/builders/latex/__init__.py:189
+#: sphinx/transforms/__init__.py:119 sphinx/writers/manpage.py:101
+#: sphinx/writers/texinfo.py:227
+#, python-format
+msgid "%b %d, %Y"
+msgstr "%-d %b, %Y"
+
+#: sphinx/builders/html/__init__.py:506 sphinx/themes/basic/defindex.html:30
+msgid "General Index"
+msgstr "Índex general"
+
+#: sphinx/builders/html/__init__.py:506
+msgid "index"
+msgstr "índex"
+
+#: sphinx/builders/html/__init__.py:579
+msgid "next"
+msgstr "següent"
+
+#: sphinx/builders/html/__init__.py:588
+msgid "previous"
+msgstr "anterior"
+
+#: sphinx/builders/html/__init__.py:684
+msgid "generating indices"
+msgstr "s'estan generant els índexs"
+
+#: sphinx/builders/html/__init__.py:699
+msgid "writing additional pages"
+msgstr "s'estan escrivint les pàgines addicionals"
+
+#: sphinx/builders/html/__init__.py:776
+msgid "copying downloadable files... "
+msgstr "s'estan copiant els fitxers que es poden baixar... "
+
+#: sphinx/builders/html/__init__.py:784
+#, python-format
+msgid "cannot copy downloadable file %r: %s"
+msgstr "no s'ha pogut copiar el fitxer que es podia baixar %r: %s"
+
+#: sphinx/builders/html/__init__.py:817 sphinx/builders/html/__init__.py:829
+#, python-format
+msgid "Failed to copy a file in html_static_file: %s: %r"
+msgstr "Ha fallat en copiar un fitxer a html_static_file: %s: %r"
+
+#: sphinx/builders/html/__init__.py:850
+msgid "copying static files"
+msgstr "s'estan copiant els fitxers estàtics"
+
+#: sphinx/builders/html/__init__.py:866
+#, python-format
+msgid "cannot copy static file %r"
+msgstr "no s'ha pogut copiar el fitxer estàtic %r"
+
+#: sphinx/builders/html/__init__.py:871
+msgid "copying extra files"
+msgstr "s'estan copiant els fitxers addicionals"
+
+#: sphinx/builders/html/__init__.py:877
+#, python-format
+msgid "cannot copy extra file %r"
+msgstr "no s'ha pogut copiar el fitxer addicional %r"
+
+#: sphinx/builders/html/__init__.py:884
+#, python-format
+msgid "Failed to write build info file: %r"
+msgstr "Ha fallat en escriure el fitxer d'informació de la construcció: %r"
+
+#: sphinx/builders/html/__init__.py:933
+msgid ""
+"search index couldn't be loaded, but not all documents will be built: the "
+"index will be incomplete."
+msgstr "no s'ha pogut carregar l'índex de cerca, i no es construiran tots els documents: l'índex estarà incomplet."
+
+#: sphinx/builders/html/__init__.py:978
+#, python-format
+msgid "page %s matches two patterns in html_sidebars: %r and %r"
+msgstr "la pàgina %s coincideix amb dos patrons a html_sidebars: %r i %r"
+
+#: sphinx/builders/html/__init__.py:1121
+#, python-format
+msgid ""
+"a Unicode error occurred when rendering the page %s. Please make sure all "
+"config values that contain non-ASCII content are Unicode strings."
+msgstr "s'ha produït un error d'Unicode en representar la pàgina %s. Assegureu-vos que tots els valors de configuració que contenen contingut que no és ASCII són cadenes Unicode."
+
+#: sphinx/builders/html/__init__.py:1126
+#, python-format
+msgid ""
+"An error happened in rendering the page %s.\n"
+"Reason: %r"
+msgstr "S'ha produït un error en representar la pàgina %s.\nMotiu: %r"
+
+#: sphinx/builders/html/__init__.py:1154
+msgid "dumping object inventory"
+msgstr "s'està bolcant l'inventari d'objectes"
+
+#: sphinx/builders/html/__init__.py:1162
+#, python-format
+msgid "dumping search index in %s"
+msgstr "s'està bolcant l'índex de cerca a %s"
+
+#: sphinx/builders/html/__init__.py:1210
+#, python-format
+msgid "invalid js_file: %r, ignored"
+msgstr "js_file no vàlid: %r, s'ignora"
+
+#: sphinx/builders/html/__init__.py:1238
+msgid "Many math_renderers are registered. But no math_renderer is selected."
+msgstr "S'han enregistrat molts math_renderer. Però no s'ha seleccionat math_renderer."
+
+#: sphinx/builders/html/__init__.py:1241
+#, python-format
+msgid "Unknown math_renderer %r is given."
+msgstr "S'ha donat un math_renderer %r desconegut."
+
+#: sphinx/builders/html/__init__.py:1249
+#, python-format
+msgid "html_extra_path entry %r does not exist"
+msgstr "l'entrada html_extra_path %r no existeix"
+
+#: sphinx/builders/html/__init__.py:1253
+#, python-format
+msgid "html_extra_path entry %r is placed inside outdir"
+msgstr "l'entrada html_extra_path %r es col·loca dins del directori de sortida"
+
+#: sphinx/builders/html/__init__.py:1262
+#, python-format
+msgid "html_static_path entry %r does not exist"
+msgstr "l'entrada html_static_path %r no existeix"
+
+#: sphinx/builders/html/__init__.py:1266
+#, python-format
+msgid "html_static_path entry %r is placed inside outdir"
+msgstr "l'entrada html_static_path %r es col·loca dins del directori de sortida"
+
+#: sphinx/builders/html/__init__.py:1275 sphinx/builders/latex/__init__.py:444
+#, python-format
+msgid "logo file %r does not exist"
+msgstr "el fitxer de logotip %r no existeix"
+
+#: sphinx/builders/html/__init__.py:1284
+#, python-format
+msgid "favicon file %r does not exist"
+msgstr "el fitxer icona de web %r no existeix"
+
+#: sphinx/builders/html/__init__.py:1291
+msgid ""
+"HTML 4 is no longer supported by Sphinx. (\"html4_writer=True\" detected in "
+"configuration options)"
+msgstr "HTML 4 ja no és compatible amb Sphinx. (s'ha detectat «html4_writer=true» a les opcions de configuració)"
+
+#: sphinx/builders/html/__init__.py:1306
+#, python-format
+msgid "%s %s documentation"
+msgstr "%s %s documentació"
+
+#: sphinx/builders/latex/__init__.py:115
+#, python-format
+msgid "The LaTeX files are in %(outdir)s."
+msgstr "Els fitxers en LaTeX es troben a %(outdir)s."
+
+#: sphinx/builders/latex/__init__.py:117
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through (pdf)latex\n"
+"(use `make latexpdf' here to do that automatically)."
+msgstr "\nExecuteu l'ordre «make» en aquest directori per a executar-les\nmitjançant (pdf)latex (useu l'ordre «make latexpdf» per a fer-ho\nautomàticament)."
+
+#: sphinx/builders/latex/__init__.py:152
+msgid "no \"latex_documents\" config value found; no documents will be written"
+msgstr "no s'ha trobat el valor de configuració «latex_documents»: no s'escriurà cap document"
+
+#: sphinx/builders/latex/__init__.py:160
+#, python-format
+msgid "\"latex_documents\" config value references unknown document %s"
+msgstr "El valor de configuració «latex_documents» fa referència a un document %s desconegut"
+
+#: sphinx/builders/latex/__init__.py:196 sphinx/domains/std/__init__.py:559
+#: sphinx/domains/std/__init__.py:571 sphinx/templates/latex/latex.tex_t:106
+#: sphinx/themes/basic/genindex-single.html:30
+#: sphinx/themes/basic/genindex-single.html:55
+#: sphinx/themes/basic/genindex-split.html:11
+#: sphinx/themes/basic/genindex-split.html:14
+#: sphinx/themes/basic/genindex.html:11 sphinx/themes/basic/genindex.html:34
+#: sphinx/themes/basic/genindex.html:67 sphinx/themes/basic/layout.html:138
+#: sphinx/writers/texinfo.py:497
+msgid "Index"
+msgstr "Índex"
+
+#: sphinx/builders/latex/__init__.py:199 sphinx/templates/latex/latex.tex_t:91
+msgid "Release"
+msgstr "Versió"
+
+#: sphinx/builders/latex/__init__.py:213 sphinx/writers/latex.py:370
+#, python-format
+msgid "no Babel option known for language %r"
+msgstr "no es coneix l'opció de Babel per a l'idioma %r"
+
+#: sphinx/builders/latex/__init__.py:394
+msgid "copying TeX support files"
+msgstr "s'estan copiant els fitxers de suport de TeX"
+
+#: sphinx/builders/latex/__init__.py:410
+msgid "copying TeX support files..."
+msgstr "s'estan copiant els fitxers de suport de TeX..."
+
+#: sphinx/builders/latex/__init__.py:423
+msgid "copying additional files"
+msgstr "s'estan copiant els fitxers addicionals"
+
+#: sphinx/builders/latex/__init__.py:466
+#, python-format
+msgid "Unknown configure key: latex_elements[%r], ignored."
+msgstr "Clau de configuració desconeguda: latex_elements[%r], s'ignora."
+
+#: sphinx/builders/latex/__init__.py:474
+#, python-format
+msgid "Unknown theme option: latex_theme_options[%r], ignored."
+msgstr "Opció desconeguda de tema: latex_theme_options[%r], s'ignora."
+
+#: sphinx/builders/latex/theming.py:87
+#, python-format
+msgid "%r doesn't have \"theme\" setting"
+msgstr "%r no té la configuració «theme»"
+
+#: sphinx/builders/latex/theming.py:90
+#, python-format
+msgid "%r doesn't have \"%s\" setting"
+msgstr "%r no té la configuració «%s»"
+
+#: sphinx/builders/latex/transforms.py:120
+msgid "Failed to get a docname!"
+msgstr "Ha fallat en obtenir el docname!"
+
+#: sphinx/builders/latex/transforms.py:121
+msgid "Failed to get a docname for source {source!r}!"
+msgstr "Ha fallat en obtenir un docname per a l'origen {source!r}!"
+
+#: sphinx/builders/latex/transforms.py:482
+#, python-format
+msgid "No footnote was found for given reference node %r"
+msgstr "No s'ha trobat cap nota a peu de pàgina per al node de referència %r donat"
+
+#: sphinx/cmd/build.py:46
+msgid "Exception occurred while building, starting debugger:"
+msgstr "S'ha produït una excepció en construir, s'està iniciant el depurador:"
+
+#: sphinx/cmd/build.py:61
+msgid "Interrupted!"
+msgstr "S'ha interromput!"
+
+#: sphinx/cmd/build.py:63
+msgid "reST markup error:"
+msgstr "Error de marcatge reST:"
+
+#: sphinx/cmd/build.py:69
+msgid "Encoding error:"
+msgstr "Error de codificació:"
+
+#: sphinx/cmd/build.py:72 sphinx/cmd/build.py:87
+#, python-format
+msgid ""
+"The full traceback has been saved in %s, if you want to report the issue to "
+"the developers."
+msgstr "La traça completa s'ha guardat a %s, si voleu informar del problema als desenvolupadors."
+
+#: sphinx/cmd/build.py:76
+msgid "Recursion error:"
+msgstr "Error de recursivitat:"
+
+#: sphinx/cmd/build.py:79
+msgid ""
+"This can happen with very large or deeply nested source files. You can "
+"carefully increase the default Python recursion limit of 1000 in conf.py "
+"with e.g.:"
+msgstr "Es pot produir amb fitxers molt grans o profundament imbricats. Podeu augmentar amb cura el límit predeterminat de la recursivitat de 1000 en el fitxer conf.py, amb, per exemple:"
+
+#: sphinx/cmd/build.py:84
+msgid "Exception occurred:"
+msgstr "S'ha produït una excepció:"
+
+#: sphinx/cmd/build.py:90
+msgid ""
+"Please also report this if it was a user error, so that a better error "
+"message can be provided next time."
+msgstr "Informeu-ho també si es tractava d'un error d'usuari, de manera que la pròxima vegada es pugui proporcionar un missatge d'error millor."
+
+#: sphinx/cmd/build.py:93
+msgid ""
+"A bug report can be filed in the tracker at <https://github.com/sphinx-"
+"doc/sphinx/issues>. Thanks!"
+msgstr "Es pot presentar un informe d'error en el seguidor <https://github.com/sphinx-doc/sphinx/issues>. Moltes gràcies!"
+
+#: sphinx/cmd/build.py:109
+msgid "job number should be a positive number"
+msgstr "el número de treball hauria de ser un nombre positiu"
+
+#: sphinx/cmd/build.py:117 sphinx/cmd/quickstart.py:474
+#: sphinx/ext/apidoc.py:317 sphinx/ext/autosummary/generate.py:689
+msgid "For more information, visit <https://www.sphinx-doc.org/>."
+msgstr "Per a més informació, visiteu <https://www.sphinx-doc.org/>."
+
+#: sphinx/cmd/build.py:118
+msgid ""
+"\n"
+"Generate documentation from source files.\n"
+"\n"
+"sphinx-build generates documentation from the files in SOURCEDIR and places it\n"
+"in OUTPUTDIR. It looks for 'conf.py' in SOURCEDIR for the configuration\n"
+"settings. The 'sphinx-quickstart' tool may be used to generate template files,\n"
+"including 'conf.py'\n"
+"\n"
+"sphinx-build can create documentation in different formats. A format is\n"
+"selected by specifying the builder name on the command line; it defaults to\n"
+"HTML. Builders can also perform other tasks related to documentation\n"
+"processing.\n"
+"\n"
+"By default, everything that is outdated is built. Output only for selected\n"
+"files can be built by specifying individual filenames.\n"
+msgstr "\nGenerar la documentació a partir dels fitxers font.\n\nL'eina «sphinx-build» generarà la documentació a partir dels fitxers\na SOURCEDIR i els situarà a OUTPUTDIR. Cerqueu el «conf.py» en el\nSOURCEDIR per als paràmetres de configuració. L'eina «sphinx-quickstart» es pot usar per a generar fitxers de plantilla, inclòs el «conf.py».\n\nL'eina «sphinx-build» pot crear documentació en formats diferents. A la\nlínia d'ordres se selecciona un format que especifica el nom del constructor.\nDe manera predeterminada és HTML. Els constructors també poden dur a terme\naltres tasques relacionades amb el processament de la documentació.\n\nDe manera predeterminada, es construeix tot el que està desactualitzat. Es pot\ngenerar la sortida només per als fitxers seleccionats especificant noms de fitxer\nindividuals.\n"
+
+#: sphinx/cmd/build.py:139
+msgid "path to documentation source files"
+msgstr "camí cap als fitxers font de la documentació"
+
+#: sphinx/cmd/build.py:141
+msgid "path to output directory"
+msgstr "camí cap al directori de sortida"
+
+#: sphinx/cmd/build.py:143
+msgid ""
+"(optional) a list of specific files to rebuild. Ignored if --write-all is "
+"specified"
+msgstr "(opcional) una llista de fitxers específics que s'han de reconstruir. S'ignorarà si s'especifica «--write-all»"
+
+#: sphinx/cmd/build.py:146
+msgid "general options"
+msgstr "opcions generals"
+
+#: sphinx/cmd/build.py:149
+msgid "builder to use (default: 'html')"
+msgstr "constructor que s'usarà (predeterminat: «html»)"
+
+#: sphinx/cmd/build.py:152
+msgid ""
+"run in parallel with N processes, when possible. 'auto' uses the number of "
+"CPU cores"
+msgstr "executa en paral·lel amb N processos, quan sigui possible. «auto» uxa el nombre de nuclis de la CPU"
+
+#: sphinx/cmd/build.py:155
+msgid "write all files (default: only write new and changed files)"
+msgstr "escriu tots els fitxers (predeterminat: només escriu els fitxers nous i els que han canviat)"
+
+#: sphinx/cmd/build.py:158
+msgid "don't use a saved environment, always read all files"
+msgstr "no usar un entorn desat, llegeix sempre tots els fitxers"
+
+#: sphinx/cmd/build.py:161
+msgid "path options"
+msgstr "opcions de camí"
+
+#: sphinx/cmd/build.py:163
+msgid ""
+"directory for doctree and environment files (default: OUTPUT_DIR/.doctrees)"
+msgstr "directori per als fitxers doctree i d'entorn (predeterminat: OUTPUT_DIR/.doctrees)"
+
+#: sphinx/cmd/build.py:166
+msgid "directory for the configuration file (conf.py) (default: SOURCE_DIR)"
+msgstr "directori per al fitxer de configuració (conf.py) (predeterminat: SOURCE_DIR)"
+
+#: sphinx/cmd/build.py:171
+msgid "use no configuration file, only use settings from -D options"
+msgstr "no usa cap fitxer de configuració, només usa la configuració de les opcions de «-D»"
+
+#: sphinx/cmd/build.py:174
+msgid "override a setting in configuration file"
+msgstr "superposa una configuració en el fitxer de configuració"
+
+#: sphinx/cmd/build.py:177
+msgid "pass a value into HTML templates"
+msgstr "passa un valor a les plantilles HTML"
+
+#: sphinx/cmd/build.py:180
+msgid "define tag: include \"only\" blocks with TAG"
+msgstr "defineix l'etiqueta: inclou blocs «only» amb TAG"
+
+#: sphinx/cmd/build.py:182
+msgid "nit-picky mode: warn about all missing references"
+msgstr "mode exigent: avisa de totes les referències que manquen"
+
+#: sphinx/cmd/build.py:184
+msgid "console output options"
+msgstr "opcions de sortida de la consola"
+
+#: sphinx/cmd/build.py:187
+msgid "increase verbosity (can be repeated)"
+msgstr "augmenta la loquacitat (es pot repetir)"
+
+#: sphinx/cmd/build.py:189 sphinx/ext/apidoc.py:340
+msgid "no output on stdout, just warnings on stderr"
+msgstr "sense sortida a la sortida estàndard, només avisos a la sortida d'error estàndard"
+
+#: sphinx/cmd/build.py:191
+msgid "no output at all, not even warnings"
+msgstr "sense sortida, ni tan sols els avisos"
+
+#: sphinx/cmd/build.py:194
+msgid "do emit colored output (default: auto-detect)"
+msgstr "emet una sortida amb colors (predeterminada: detecció automàtica)"
+
+#: sphinx/cmd/build.py:197
+msgid "do not emit colored output (default: auto-detect)"
+msgstr "no emetre una sortida amb colors (predeterminada: detecció automàtica)"
+
+#: sphinx/cmd/build.py:199
+msgid "warning control options"
+msgstr "opcions de control d'avís"
+
+#: sphinx/cmd/build.py:201
+msgid "write warnings (and errors) to given file"
+msgstr "escriviu els avisos (i errors) al fitxer indicat"
+
+#: sphinx/cmd/build.py:203
+msgid "turn warnings into errors"
+msgstr "converteix els avisos en errors"
+
+#: sphinx/cmd/build.py:205
+msgid "with --fail-on-warning, keep going when getting warnings"
+msgstr "amb «--fail-on-warning», se segueix endavant quan es reben avisos"
+
+#: sphinx/cmd/build.py:207
+msgid "show full traceback on exception"
+msgstr "mostra la traça completa en excepció"
+
+#: sphinx/cmd/build.py:209
+msgid "run Pdb on exception"
+msgstr "executa Pdb en excepció"
+
+#: sphinx/cmd/build.py:244
+msgid "cannot combine -a option and filenames"
+msgstr "no es pot combinar l'opció -a i els noms de fitxer"
+
+#: sphinx/cmd/build.py:276
+#, python-format
+msgid "cannot open warning file %r: %s"
+msgstr "no s'ha pogut obrir el fitxer d'avisos %r: %s"
+
+#: sphinx/cmd/build.py:296
+msgid "-D option argument must be in the form name=value"
+msgstr "l'argument de l'opció «-D» haurà d'estar en la forma «nom=valor»"
+
+#: sphinx/cmd/build.py:303
+msgid "-A option argument must be in the form name=value"
+msgstr "l'argument de l'opció -A haurà d'estar en la forma «nom=valor»"
+
+#: sphinx/cmd/quickstart.py:42
+msgid "automatically insert docstrings from modules"
+msgstr "insereix automàticament les docstring des dels mòduls"
+
+#: sphinx/cmd/quickstart.py:43
+msgid "automatically test code snippets in doctest blocks"
+msgstr "prova automàticament els fragments de codi en els blocs doctest"
+
+#: sphinx/cmd/quickstart.py:44
+msgid "link between Sphinx documentation of different projects"
+msgstr "enllaç entre la documentació de Sphinx de projectes diferents"
+
+#: sphinx/cmd/quickstart.py:45
+msgid "write \"todo\" entries that can be shown or hidden on build"
+msgstr "escriu les entrades «todo» que es poden mostrar o ocultar durant la construcció"
+
+#: sphinx/cmd/quickstart.py:46
+msgid "checks for documentation coverage"
+msgstr "comprovacions per a la cobertura de la documentació"
+
+#: sphinx/cmd/quickstart.py:47
+msgid "include math, rendered as PNG or SVG images"
+msgstr "inclou expressions matemàtiques, mostrades com a imatges PNG o SVG"
+
+#: sphinx/cmd/quickstart.py:48
+msgid "include math, rendered in the browser by MathJax"
+msgstr "inclou expressions matemàtiques, representades en el navegador per MathJax"
+
+#: sphinx/cmd/quickstart.py:49
+msgid "conditional inclusion of content based on config values"
+msgstr "inclusió condicional de contingut basat en els valors de la configuració"
+
+#: sphinx/cmd/quickstart.py:50
+msgid "include links to the source code of documented Python objects"
+msgstr "inclou els enllaços cap al codi font dels objectes documentats en Python"
+
+#: sphinx/cmd/quickstart.py:51
+msgid "create .nojekyll file to publish the document on GitHub pages"
+msgstr "crea un fitxer .nojekyll per a publicar el document a les pàgines de GitHub"
+
+#: sphinx/cmd/quickstart.py:93
+msgid "Please enter a valid path name."
+msgstr "Si us plau, introduïu un nom de camí vàlid."
+
+#: sphinx/cmd/quickstart.py:109
+msgid "Please enter some text."
+msgstr "Si us plau, introduïu algun text."
+
+#: sphinx/cmd/quickstart.py:116
+#, python-format
+msgid "Please enter one of %s."
+msgstr "Si us plau, introduïu un dels %s."
+
+#: sphinx/cmd/quickstart.py:123
+msgid "Please enter either 'y' or 'n'."
+msgstr "Si us plau, introduïu qualsevol de «y» o «n»."
+
+#: sphinx/cmd/quickstart.py:129
+msgid "Please enter a file suffix, e.g. '.rst' or '.txt'."
+msgstr "Si us plau, introduïu un sufix de fitxer, p. ex., «.rst» o «.txt»."
+
+#: sphinx/cmd/quickstart.py:208
+#, python-format
+msgid "Welcome to the Sphinx %s quickstart utility."
+msgstr "Us donem la benvinguda a la utilitat d'inici ràpid de Sphinx %s."
+
+#: sphinx/cmd/quickstart.py:210
+msgid ""
+"Please enter values for the following settings (just press Enter to\n"
+"accept a default value, if one is given in brackets)."
+msgstr "Introduïu els valors per a les configuracions següents (només premeu «Retorn»\nper a acceptar un valor predeterminat, si se'n dona un entre parèntesis)."
+
+#: sphinx/cmd/quickstart.py:215
+#, python-format
+msgid "Selected root path: %s"
+msgstr "Camí arrel seleccionat: %s"
+
+#: sphinx/cmd/quickstart.py:218
+msgid "Enter the root path for documentation."
+msgstr "Introduïu el camí arrel per a la documentació."
+
+#: sphinx/cmd/quickstart.py:219
+msgid "Root path for the documentation"
+msgstr "Camí arrel per a la documentació"
+
+#: sphinx/cmd/quickstart.py:224
+msgid "Error: an existing conf.py has been found in the selected root path."
+msgstr "Error: ja existeix un fitxer conf.py en el camí arrel seleccionat."
+
+#: sphinx/cmd/quickstart.py:226
+msgid "sphinx-quickstart will not overwrite existing Sphinx projects."
+msgstr "«sphinx-quickstart» no sobreescriurà els projectes de Sphinx existents."
+
+#: sphinx/cmd/quickstart.py:228
+msgid "Please enter a new root path (or just Enter to exit)"
+msgstr "Introduïu un camí arrel nou (o premeu «Retorn» per a sortir)"
+
+#: sphinx/cmd/quickstart.py:235
+msgid ""
+"You have two options for placing the build directory for Sphinx output.\n"
+"Either, you use a directory \"_build\" within the root path, or you separate\n"
+"\"source\" and \"build\" directories within the root path."
+msgstr "Teniu dues opcions per a col·locar el directori de construcció per a la\nsortida de Sphinx. O useu un directori «_build» dins del camí arrel,\no els directoris separats «source» i «build» dins del camí arrel."
+
+#: sphinx/cmd/quickstart.py:238
+msgid "Separate source and build directories (y/n)"
+msgstr "Separa els directoris «source» i «build» (s/n)"
+
+#: sphinx/cmd/quickstart.py:242
+msgid ""
+"Inside the root directory, two more directories will be created; \"_templates\"\n"
+"for custom HTML templates and \"_static\" for custom stylesheets and other static\n"
+"files. You can enter another prefix (such as \".\") to replace the underscore."
+msgstr "Dins del directori arrel, es crearan dos directoris més: «_templates» per a\nles plantilles HTML personalitzades i «_static» per als fulls d'estil\npersonalitzats i altres fitxers estàtics. Podeu introduir un altre prefix\n(com «.») per a substituir el guió baix."
+
+#: sphinx/cmd/quickstart.py:245
+msgid "Name prefix for templates and static dir"
+msgstr "Prefix de nom per als directoris «templates» i «static»"
+
+#: sphinx/cmd/quickstart.py:249
+msgid ""
+"The project name will occur in several places in the built documentation."
+msgstr "El nom del projecte apareixerà en diversos llocs de la documentació construïda."
+
+#: sphinx/cmd/quickstart.py:250
+msgid "Project name"
+msgstr "Nom del projecte"
+
+#: sphinx/cmd/quickstart.py:252
+msgid "Author name(s)"
+msgstr "Noms de l'autoria"
+
+#: sphinx/cmd/quickstart.py:256
+msgid ""
+"Sphinx has the notion of a \"version\" and a \"release\" for the\n"
+"software. Each version can have multiple releases. For example, for\n"
+"Python the version is something like 2.5 or 3.0, while the release is\n"
+"something like 2.5.1 or 3.0a1. If you don't need this dual structure,\n"
+"just set both to the same value."
+msgstr "Sphinx té la noció d'una «versió» i un «llançament» per al programari.\nCada versió pot tenir múltiples versions. Per exemple, per a Python,\nla versió és una cosa semblant a 2.5 o 3.0, mentre que el llançament és\ncom 2.5.1 o 3.0a1. Si no necessiteu aquesta doble estructura, senzillament\nestabliu ambdues amb el mateix valor."
+
+#: sphinx/cmd/quickstart.py:261
+msgid "Project version"
+msgstr "Versió del projecte"
+
+#: sphinx/cmd/quickstart.py:263
+msgid "Project release"
+msgstr "Llançament del projecte"
+
+#: sphinx/cmd/quickstart.py:267
+msgid ""
+"If the documents are to be written in a language other than English,\n"
+"you can select a language here by its language code. Sphinx will then\n"
+"translate text that it generates into that language.\n"
+"\n"
+"For a list of supported codes, see\n"
+"https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language."
+msgstr "Si els documents s'han d'escriure en un idioma que no sigui l'anglès,\npodeu seleccionar un idioma aquí per al vostre codi d'idioma.\nA continuació, Sphinx traduirà el text que es genera en aquest idioma.\n\nPer a obtenir una llista dels codis admesos, vegeu\nhttps://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language."
+
+#: sphinx/cmd/quickstart.py:275
+msgid "Project language"
+msgstr "Idioma del projecte"
+
+#: sphinx/cmd/quickstart.py:281
+msgid ""
+"The file name suffix for source files. Commonly, this is either \".txt\"\n"
+"or \".rst\". Only files with this suffix are considered documents."
+msgstr "El sufix del nom del fitxer per als fitxers d'origen. Normalment, aquest és\n«.txt» o «.rst». Només els fitxers amb aquest sufix es consideraran documents."
+
+#: sphinx/cmd/quickstart.py:283
+msgid "Source file suffix"
+msgstr "Sufix del fitxer font"
+
+#: sphinx/cmd/quickstart.py:287
+msgid ""
+"One document is special in that it is considered the top node of the\n"
+"\"contents tree\", that is, it is the root of the hierarchical structure\n"
+"of the documents. Normally, this is \"index\", but if your \"index\"\n"
+"document is a custom template, you can also set this to another filename."
+msgstr "Un document és especial perquè es considera el node superior de l'«arbre de\ncontingut», és a dir, és l'arrel de l'estructura jeràrquica dels documents.\nNormalment, es tracta de l'«index», però si el document «index» és una\nplantilla personalitzada, també podreu establir-la a un altre nom de fitxer."
+
+#: sphinx/cmd/quickstart.py:291
+msgid "Name of your master document (without suffix)"
+msgstr "Nom del document mestre (sense sufix)"
+
+#: sphinx/cmd/quickstart.py:296
+#, python-format
+msgid ""
+"Error: the master file %s has already been found in the selected root path."
+msgstr "Error: el fitxer mestre %s ja es troba en el camí arrel seleccionat."
+
+#: sphinx/cmd/quickstart.py:298
+msgid "sphinx-quickstart will not overwrite the existing file."
+msgstr "«sphinx-quickstart» no sobreescriurà el fitxer existent."
+
+#: sphinx/cmd/quickstart.py:300
+msgid ""
+"Please enter a new file name, or rename the existing file and press Enter"
+msgstr "Introduïu un nom de fitxer nou o canvieu-ne el nom i premeu «Retorn»"
+
+#: sphinx/cmd/quickstart.py:304
+msgid "Indicate which of the following Sphinx extensions should be enabled:"
+msgstr "Indiqueu quines de les extensions següents de Sphinx haurien d'estar habilitades:"
+
+#: sphinx/cmd/quickstart.py:312
+msgid ""
+"Note: imgmath and mathjax cannot be enabled at the same time. imgmath has "
+"been deselected."
+msgstr "Nota: «imgmath» i «mathjax» no es poden habilitar alhora. «imgmath» ha estat desseleccionat."
+
+#: sphinx/cmd/quickstart.py:318
+msgid ""
+"A Makefile and a Windows command file can be generated for you so that you\n"
+"only have to run e.g. `make html' instead of invoking sphinx-build\n"
+"directly."
+msgstr "Es pot generar un fitxer Makefile i un fitxer d'ordres de Windows,\nde manera que només haureu d'executar, p. ex., «make html»\nen lloc d'invocar directament «sphinx-build»."
+
+#: sphinx/cmd/quickstart.py:321
+msgid "Create Makefile? (y/n)"
+msgstr "Voleu crear el Makefile? (s/n)"
+
+#: sphinx/cmd/quickstart.py:324
+msgid "Create Windows command file? (y/n)"
+msgstr "Voleu crear el fitxer d'ordres de Windows? (s/n)"
+
+#: sphinx/cmd/quickstart.py:368 sphinx/ext/apidoc.py:93
+#, python-format
+msgid "Creating file %s."
+msgstr "S'està creant el fitxer %s."
+
+#: sphinx/cmd/quickstart.py:373 sphinx/ext/apidoc.py:90
+#, python-format
+msgid "File %s already exists, skipping."
+msgstr "El fitxer %s ja existeix, se salta."
+
+#: sphinx/cmd/quickstart.py:418
+msgid "Finished: An initial directory structure has been created."
+msgstr "Finalitzat: s'ha creat una estructura inicial del directori."
+
+#: sphinx/cmd/quickstart.py:420
+#, python-format
+msgid ""
+"You should now populate your master file %s and create other documentation\n"
+"source files. "
+msgstr "Ara heu de completar el fitxer mestre %s i crear altres fitxers font de documentació. "
+
+#: sphinx/cmd/quickstart.py:423
+msgid ""
+"Use the Makefile to build the docs, like so:\n"
+"   make builder"
+msgstr "Useu el Makefile per a construir els documents, com segueix:\n   make builder"
+
+#: sphinx/cmd/quickstart.py:426
+#, python-format
+msgid ""
+"Use the sphinx-build command to build the docs, like so:\n"
+"   sphinx-build -b builder %s %s"
+msgstr "Useu l'ordre «sphinx-build» per a construir els documents, com segueix:\n   sphinx-build -b constructor %s %s"
+
+#: sphinx/cmd/quickstart.py:428
+msgid ""
+"where \"builder\" is one of the supported builders, e.g. html, latex or "
+"linkcheck."
+msgstr "on «constructor» és un dels constructors admesos, p. ex., html, latex o linkcheck."
+
+#: sphinx/cmd/quickstart.py:464
+msgid ""
+"\n"
+"Generate required files for a Sphinx project.\n"
+"\n"
+"sphinx-quickstart is an interactive tool that asks some questions about your\n"
+"project and then generates a complete documentation directory and sample\n"
+"Makefile to be used with sphinx-build.\n"
+msgstr "\nGenereu els fitxers necessaris per a un projecte Sphinx.\n\n«sphinx-quickstart» és una eina interactiva que fa algunes preguntes sobre el\nprojecte i després genera un directori complet de documentació i un\nexemple del fitxer Makefile per a ser usat amb l'ordre «sphinx-build».\n"
+
+#: sphinx/cmd/quickstart.py:479
+msgid "quiet mode"
+msgstr "mode silenciós"
+
+#: sphinx/cmd/quickstart.py:484
+msgid "project root"
+msgstr "arrel del projecte"
+
+#: sphinx/cmd/quickstart.py:486
+msgid "Structure options"
+msgstr "Opcions de l'estructura"
+
+#: sphinx/cmd/quickstart.py:488
+msgid "if specified, separate source and build dirs"
+msgstr "Si s'especifica, se separarà el codi font i els directoris de compilació"
+
+#: sphinx/cmd/quickstart.py:490
+msgid "if specified, create build dir under source dir"
+msgstr "Si s'especifica, es crearà el directori de construcció a dins del directori d'origen"
+
+#: sphinx/cmd/quickstart.py:492
+msgid "replacement for dot in _templates etc."
+msgstr "substitució per a punts a _templates, etc."
+
+#: sphinx/cmd/quickstart.py:494
+msgid "Project basic options"
+msgstr "Opcions bàsiques del projecte"
+
+#: sphinx/cmd/quickstart.py:496
+msgid "project name"
+msgstr "nom del projecte"
+
+#: sphinx/cmd/quickstart.py:498
+msgid "author names"
+msgstr "noms de l'autoria"
+
+#: sphinx/cmd/quickstart.py:500
+msgid "version of project"
+msgstr "versió del projecte"
+
+#: sphinx/cmd/quickstart.py:502
+msgid "release of project"
+msgstr "llançament del projecte"
+
+#: sphinx/cmd/quickstart.py:504
+msgid "document language"
+msgstr "idioma del document"
+
+#: sphinx/cmd/quickstart.py:506
+msgid "source file suffix"
+msgstr "sufix del fitxer font"
+
+#: sphinx/cmd/quickstart.py:508
+msgid "master document name"
+msgstr "nom del document mestre"
+
+#: sphinx/cmd/quickstart.py:510
+msgid "use epub"
+msgstr "usa epub"
+
+#: sphinx/cmd/quickstart.py:512
+msgid "Extension options"
+msgstr "Opcions de l'extensió"
+
+#: sphinx/cmd/quickstart.py:516 sphinx/ext/apidoc.py:400
+#, python-format
+msgid "enable %s extension"
+msgstr "habilita l'extensió %s"
+
+#: sphinx/cmd/quickstart.py:518 sphinx/ext/apidoc.py:396
+msgid "enable arbitrary extensions"
+msgstr "habilita les extensions arbitràries"
+
+#: sphinx/cmd/quickstart.py:520
+msgid "Makefile and Batchfile creation"
+msgstr "Creació dels fitxers Makefile i de processament per lots"
+
+#: sphinx/cmd/quickstart.py:522
+msgid "create makefile"
+msgstr "es crea el Makefile"
+
+#: sphinx/cmd/quickstart.py:524
+msgid "do not create makefile"
+msgstr "no es crea el Makefile"
+
+#: sphinx/cmd/quickstart.py:526
+msgid "create batchfile"
+msgstr "es crea el fitxer de processament per lots"
+
+#: sphinx/cmd/quickstart.py:529
+msgid "do not create batchfile"
+msgstr "no es crea el fitxer de processament per lots"
+
+#: sphinx/cmd/quickstart.py:532
+msgid "use make-mode for Makefile/make.bat"
+msgstr "usa el mode make per a Makefile/make.bat"
+
+#: sphinx/cmd/quickstart.py:535
+msgid "do not use make-mode for Makefile/make.bat"
+msgstr "no usis el mode make per a Makefile/make.bat"
+
+#: sphinx/cmd/quickstart.py:537 sphinx/ext/apidoc.py:402
+msgid "Project templating"
+msgstr "Plantilles de projecte"
+
+#: sphinx/cmd/quickstart.py:540 sphinx/ext/apidoc.py:405
+msgid "template directory for template files"
+msgstr "directori de plantilles per als fitxers de plantilla"
+
+#: sphinx/cmd/quickstart.py:543
+msgid "define a template variable"
+msgstr "defineix una variable de plantilla"
+
+#: sphinx/cmd/quickstart.py:576
+msgid "\"quiet\" is specified, but any of \"project\" or \"author\" is not specified."
+msgstr "s'especifica «quiet», però no s'especifica cap «project» o «author»."
+
+#: sphinx/cmd/quickstart.py:590
+msgid ""
+"Error: specified path is not a directory, or sphinx files already exist."
+msgstr "Error: el camí especificat no és un directori o ja hi ha els fitxers de Sphinx."
+
+#: sphinx/cmd/quickstart.py:592
+msgid ""
+"sphinx-quickstart only generate into a empty directory. Please specify a new"
+" root path."
+msgstr "«sphinx-quickstart» només generarà dins d'un directori buit. Especifiqueu un camí arrel nou."
+
+#: sphinx/cmd/quickstart.py:607
+#, python-format
+msgid "Invalid template variable: %s"
+msgstr "Variable no vàlida de plantilla: %s"
+
+#: sphinx/directives/code.py:61
+msgid "non-whitespace stripped by dedent"
+msgstr "cap espai en blanc eliminat en disminuir el sagnat"
+
+#: sphinx/directives/code.py:82
+#, python-format
+msgid "Invalid caption: %s"
+msgstr "Subtítol no vàlid: %s"
+
+#: sphinx/directives/code.py:127 sphinx/directives/code.py:277
+#: sphinx/directives/code.py:453
+#, python-format
+msgid "line number spec is out of range(1-%d): %r"
+msgstr "l'especificació del número de línia queda fora de l'interval (1-%d): %r"
+
+#: sphinx/directives/code.py:206
+#, python-format
+msgid "Cannot use both \"%s\" and \"%s\" options"
+msgstr "No es poden usar ambdues opcions «%s» i «%s»"
+
+#: sphinx/directives/code.py:220
+#, python-format
+msgid "Include file %r not found or reading it failed"
+msgstr "El fitxer inclòs %r no s'ha trobat o s'ha fallat en llegir-lo"
+
+#: sphinx/directives/code.py:223
+#, python-format
+msgid ""
+"Encoding %r used for reading included file %r seems to be wrong, try giving "
+"an :encoding: option"
+msgstr "La codificació %r usada per a la lectura del fitxer inclòs %r sembla estar malament, intenteu donar una opció «:encoding:»"
+
+#: sphinx/directives/code.py:260
+#, python-format
+msgid "Object named %r not found in include file %r"
+msgstr "L'objecte anomenat %r no es troba en el fitxer inclòs %r"
+
+#: sphinx/directives/code.py:286
+msgid "Cannot use \"lineno-match\" with a disjoint set of \"lines\""
+msgstr "No podeu usar «lineno-match» amb un conjunt desarticulat de «línies»"
+
+#: sphinx/directives/code.py:291
+#, python-format
+msgid "Line spec %r: no lines pulled from include file %r"
+msgstr "Línia específica %r: No hi ha cap línia llançada des del fitxer inclòs %r"
+
+#: sphinx/directives/other.py:120
+#, python-format
+msgid "toctree glob pattern %r didn't match any documents"
+msgstr "El patró global toctree %r no coincideix amb cap document"
+
+#: sphinx/directives/other.py:146 sphinx/environment/adapters/toctree.py:324
+#, python-format
+msgid "toctree contains reference to excluded document %r"
+msgstr "el toctree conté una referència cap al document exclòs %r"
+
+#: sphinx/directives/other.py:149 sphinx/environment/adapters/toctree.py:328
+#, python-format
+msgid "toctree contains reference to nonexisting document %r"
+msgstr "el toctree conté una referència cap al document %r, el qual no existeix"
+
+#: sphinx/directives/other.py:160
+#, python-format
+msgid "duplicated entry found in toctree: %s"
+msgstr "s'ha trobat una entrada duplicada en el toctree: %s"
+
+#: sphinx/directives/other.py:193
+msgid "Section author: "
+msgstr "Autor de la secció:"
+
+#: sphinx/directives/other.py:195
+msgid "Module author: "
+msgstr "Autor del mòdul: "
+
+#: sphinx/directives/other.py:197
+msgid "Code author: "
+msgstr "Autor del codi: "
+
+#: sphinx/directives/other.py:199
+msgid "Author: "
+msgstr "Autor: "
+
+#: sphinx/directives/other.py:275
+msgid ".. acks content is not a list"
+msgstr "... el contingut dels reconeixements no és una llista"
+
+#: sphinx/directives/other.py:301
+msgid ".. hlist content is not a list"
+msgstr "... el contingut de l'historial no és una llista"
+
+#: sphinx/directives/patches.py:66
+msgid ""
+"\":file:\" option for csv-table directive now recognizes an absolute path as"
+" a relative path from source directory. Please update your document."
+msgstr "«:file:» l'opció per a la directiva «csv-table» ara reconeix un camí absolut com a camí relatiu des del directori d'origen. Actualitzeu el vostre document."
+
+#: sphinx/domains/__init__.py:397
+#, python-format
+msgid "%s %s"
+msgstr "%s %s"
+
+#: sphinx/domains/changeset.py:23
+#, python-format
+msgid "Added in version %s"
+msgstr "Afegit a la versió %s"
+
+#: sphinx/domains/changeset.py:24
+#, python-format
+msgid "Changed in version %s"
+msgstr "Canviat a la versió %s"
+
+#: sphinx/domains/changeset.py:25
+#, python-format
+msgid "Deprecated since version %s"
+msgstr "Obsolet des de la versió %s"
+
+#: sphinx/domains/changeset.py:26
+#, python-format
+msgid "Removed in version %s"
+msgstr "S'ha eliminat a la versió %s"
+
+#: sphinx/domains/citation.py:71
+#, python-format
+msgid "duplicate citation %s, other instance in %s"
+msgstr "citació duplicada %s, una altra instància a %s"
+
+#: sphinx/domains/citation.py:82
+#, python-format
+msgid "Citation [%s] is not referenced."
+msgstr "No es fa referència a la citació [%s]."
+
+#: sphinx/domains/javascript.py:165
+#, python-format
+msgid "%s() (built-in function)"
+msgstr "%s() (funció interna)"
+
+#: sphinx/domains/javascript.py:166 sphinx/domains/python/__init__.py:240
+#, python-format
+msgid "%s() (%s method)"
+msgstr "%s() (mètode %s)"
+
+#: sphinx/domains/javascript.py:168
+#, python-format
+msgid "%s() (class)"
+msgstr "%s() (classe)"
+
+#: sphinx/domains/javascript.py:170
+#, python-format
+msgid "%s (global variable or constant)"
+msgstr "%s (variable global o constant)"
+
+#: sphinx/domains/javascript.py:172 sphinx/domains/python/__init__.py:325
+#, python-format
+msgid "%s (%s attribute)"
+msgstr "%s (atribut %s)"
+
+#: sphinx/domains/javascript.py:255
+msgid "Arguments"
+msgstr "Arguments"
+
+#: sphinx/domains/cpp/__init__.py:350 sphinx/domains/javascript.py:258
+msgid "Throws"
+msgstr "Llançaments"
+
+#: sphinx/domains/c/__init__.py:251 sphinx/domains/cpp/__init__.py:361
+#: sphinx/domains/javascript.py:261 sphinx/domains/python/_object.py:175
+msgid "Returns"
+msgstr "Retorna"
+
+#: sphinx/domains/c/__init__.py:253 sphinx/domains/javascript.py:263
+#: sphinx/domains/python/_object.py:177
+msgid "Return type"
+msgstr "Tipus de retorn"
+
+#: sphinx/domains/javascript.py:331
+#, python-format
+msgid "%s (module)"
+msgstr "%s (mòdul)"
+
+#: sphinx/domains/c/__init__.py:622 sphinx/domains/cpp/__init__.py:764
+#: sphinx/domains/javascript.py:368 sphinx/domains/python/__init__.py:574
+msgid "function"
+msgstr "funció"
+
+#: sphinx/domains/javascript.py:369 sphinx/domains/python/__init__.py:578
+msgid "method"
+msgstr "mètode"
+
+#: sphinx/domains/cpp/__init__.py:762 sphinx/domains/javascript.py:370
+#: sphinx/domains/python/__init__.py:576
+msgid "class"
+msgstr "classe"
+
+#: sphinx/domains/javascript.py:371 sphinx/domains/python/__init__.py:575
+msgid "data"
+msgstr "dades"
+
+#: sphinx/domains/javascript.py:372 sphinx/domains/python/__init__.py:581
+msgid "attribute"
+msgstr "atribut"
+
+#: sphinx/domains/javascript.py:373 sphinx/domains/python/__init__.py:583
+msgid "module"
+msgstr "mòdul"
+
+#: sphinx/domains/javascript.py:404
+#, python-format
+msgid "duplicate %s description of %s, other %s in %s"
+msgstr "descripció %s duplicada de %s, una altra %s a %s"
+
+#: sphinx/domains/math.py:63
+#, python-format
+msgid "duplicate label of equation %s, other instance in %s"
+msgstr "etiqueta duplicada de l'equació %s, una altra instància a %s"
+
+#: sphinx/domains/math.py:118 sphinx/writers/latex.py:2252
+#, python-format
+msgid "Invalid math_eqref_format: %r"
+msgstr "math_eqref_format no vàlid: %r"
+
+#: sphinx/domains/rst.py:127 sphinx/domains/rst.py:184
+#, python-format
+msgid "%s (directive)"
+msgstr "%s (directiva)"
+
+#: sphinx/domains/rst.py:185 sphinx/domains/rst.py:189
+#, python-format
+msgid ":%s: (directive option)"
+msgstr ":%s: (opció de la directiva)"
+
+#: sphinx/domains/rst.py:213
+#, python-format
+msgid "%s (role)"
+msgstr "%s (rol)"
+
+#: sphinx/domains/rst.py:223
+msgid "directive"
+msgstr "directiva"
+
+#: sphinx/domains/rst.py:224
+msgid "directive-option"
+msgstr "opció_de_la_directiva"
+
+#: sphinx/domains/rst.py:225
+msgid "role"
+msgstr "rol"
+
+#: sphinx/domains/rst.py:247
+#, python-format
+msgid "duplicate description of %s %s, other instance in %s"
+msgstr "descripció duplicada del %s %s, una altra instància a %s"
+
+#: sphinx/domains/c/__init__.py:146
+#, python-format
+msgid "%s (C %s)"
+msgstr "%s (C %s)"
+
+#: sphinx/domains/c/__init__.py:207 sphinx/domains/c/_symbol.py:552
+#, python-format
+msgid ""
+"Duplicate C declaration, also defined at %s:%s.\n"
+"Declaration is '.. c:%s:: %s'."
+msgstr "Declaració de C duplicada, també definida a %s:%s.\nLa declaració és «.. c:%s:: %s»."
+
+#: sphinx/domains/c/__init__.py:245 sphinx/domains/cpp/__init__.py:344
+#: sphinx/domains/python/_object.py:163 sphinx/ext/napoleon/docstring.py:762
+msgid "Parameters"
+msgstr "Paràmetres"
+
+#: sphinx/domains/c/__init__.py:248 sphinx/domains/cpp/__init__.py:357
+msgid "Return values"
+msgstr "Valors retornats"
+
+#: sphinx/domains/c/__init__.py:620 sphinx/domains/cpp/__init__.py:765
+msgid "member"
+msgstr "membre"
+
+#: sphinx/domains/c/__init__.py:621
+msgid "variable"
+msgstr "variable"
+
+#: sphinx/domains/c/__init__.py:623
+msgid "macro"
+msgstr "macro"
+
+#: sphinx/domains/c/__init__.py:624
+msgid "struct"
+msgstr "estructura"
+
+#: sphinx/domains/c/__init__.py:625 sphinx/domains/cpp/__init__.py:763
+msgid "union"
+msgstr "unió"
+
+#: sphinx/domains/c/__init__.py:626 sphinx/domains/cpp/__init__.py:768
+msgid "enum"
+msgstr "enumera"
+
+#: sphinx/domains/c/__init__.py:627 sphinx/domains/cpp/__init__.py:769
+msgid "enumerator"
+msgstr "numerador"
+
+#: sphinx/domains/c/__init__.py:628 sphinx/domains/cpp/__init__.py:766
+msgid "type"
+msgstr "tipus"
+
+#: sphinx/domains/c/__init__.py:630 sphinx/domains/cpp/__init__.py:771
+msgid "function parameter"
+msgstr "paràmetre de la funció"
+
+#: sphinx/domains/cpp/__init__.py:63
+msgid "Template Parameters"
+msgstr "Paràmetres de la plantilla"
+
+#: sphinx/domains/cpp/__init__.py:185
+#, python-format
+msgid "%s (C++ %s)"
+msgstr "%s (C++ %s)"
+
+#: sphinx/domains/cpp/__init__.py:268 sphinx/domains/cpp/_symbol.py:790
+#, python-format
+msgid ""
+"Duplicate C++ declaration, also defined at %s:%s.\n"
+"Declaration is '.. cpp:%s:: %s'."
+msgstr "Declaració de C** duplicada, també definida a %s:%s.\nLa declaració és «.. cpp:%s:: %s»."
+
+#: sphinx/domains/cpp/__init__.py:767
+msgid "concept"
+msgstr "concepte"
+
+#: sphinx/domains/cpp/__init__.py:772
+msgid "template parameter"
+msgstr "paràmetre de la plantilla"
+
+#: sphinx/domains/python/__init__.py:94 sphinx/domains/python/__init__.py:231
+#, python-format
+msgid "%s() (in module %s)"
+msgstr "%s() (al mòdul %s)"
+
+#: sphinx/domains/python/__init__.py:154 sphinx/domains/python/__init__.py:321
+#: sphinx/domains/python/__init__.py:372
+#, python-format
+msgid "%s (in module %s)"
+msgstr "%s (al mòdul %s)"
+
+#: sphinx/domains/python/__init__.py:156
+#, python-format
+msgid "%s (built-in variable)"
+msgstr "%s (variable interna)"
+
+#: sphinx/domains/python/__init__.py:181
+#, python-format
+msgid "%s (built-in class)"
+msgstr "%s (classe interna)"
+
+#: sphinx/domains/python/__init__.py:182
+#, python-format
+msgid "%s (class in %s)"
+msgstr "%s (classe a %s)"
+
+#: sphinx/domains/python/__init__.py:236
+#, python-format
+msgid "%s() (%s class method)"
+msgstr "%s() (mètode de classe %s)"
+
+#: sphinx/domains/python/__init__.py:238
+#, python-format
+msgid "%s() (%s static method)"
+msgstr "%s() (mètode estàtic %s)"
+
+#: sphinx/domains/python/__init__.py:376
+#, python-format
+msgid "%s (%s property)"
+msgstr "%s (propietat %s)"
+
+#: sphinx/domains/python/__init__.py:502
+msgid "Python Module Index"
+msgstr "Índex de mòduls en Python"
+
+#: sphinx/domains/python/__init__.py:503
+msgid "modules"
+msgstr "mòduls"
+
+#: sphinx/domains/python/__init__.py:552
+msgid "Deprecated"
+msgstr "Obsolet"
+
+#: sphinx/domains/python/__init__.py:577
+msgid "exception"
+msgstr "excepció"
+
+#: sphinx/domains/python/__init__.py:579
+msgid "class method"
+msgstr "mètode de classe"
+
+#: sphinx/domains/python/__init__.py:580
+msgid "static method"
+msgstr "mètode estàtic"
+
+#: sphinx/domains/python/__init__.py:582
+msgid "property"
+msgstr "propietat"
+
+#: sphinx/domains/python/__init__.py:640
+#, python-format
+msgid ""
+"duplicate object description of %s, other instance in %s, use :no-index: for"
+" one of them"
+msgstr "descripció de l'objecte duplicat de %s, una altra instància a %s, ús «:no-index:» per a un d'ells"
+
+#: sphinx/domains/python/__init__.py:760
+#, python-format
+msgid "more than one target found for cross-reference %r: %s"
+msgstr "s'ha trobat més d'un objectiu per a la referència creuada %r: %s"
+
+#: sphinx/domains/python/__init__.py:821
+msgid " (deprecated)"
+msgstr " (obsolet)"
+
+#: sphinx/domains/python/_object.py:168
+msgid "Variables"
+msgstr "Variables"
+
+#: sphinx/domains/python/_object.py:172
+msgid "Raises"
+msgstr "Llença"
+
+#: sphinx/domains/std/__init__.py:80 sphinx/domains/std/__init__.py:97
+#, python-format
+msgid "environment variable; %s"
+msgstr "variable d'entorn; %s"
+
+#: sphinx/domains/std/__init__.py:157
+#, python-format
+msgid ""
+"Malformed option description %r, should look like \"opt\", \"-opt args\", \""
+"--opt args\", \"/opt args\" or \"+opt args\""
+msgstr "Descripció de l'opció amb format incorrecte %r, s'ha de veure com «opt», «-opt args», «--opt args», «/opt args» o «+opt args»"
+
+#: sphinx/domains/std/__init__.py:228
+#, python-format
+msgid "%s command line option"
+msgstr "opció de la línia d'ordres %s"
+
+#: sphinx/domains/std/__init__.py:230
+msgid "command line option"
+msgstr "opció de la línia d'ordres"
+
+#: sphinx/domains/std/__init__.py:348
+msgid "glossary term must be preceded by empty line"
+msgstr "el terme del glossari ha d'estar precedit per una línia buida"
+
+#: sphinx/domains/std/__init__.py:356
+msgid "glossary terms must not be separated by empty lines"
+msgstr "els termes del glossari no han d'estar separats per línies buides"
+
+#: sphinx/domains/std/__init__.py:362 sphinx/domains/std/__init__.py:375
+msgid "glossary seems to be misformatted, check indentation"
+msgstr "el glossari sembla estar mal formatat, verifiqueu el sagnat"
+
+#: sphinx/domains/std/__init__.py:518
+msgid "glossary term"
+msgstr "terme del glossari"
+
+#: sphinx/domains/std/__init__.py:519
+msgid "grammar token"
+msgstr "gramàtica simbòlica"
+
+#: sphinx/domains/std/__init__.py:520
+msgid "reference label"
+msgstr "etiqueta de referència"
+
+#: sphinx/domains/std/__init__.py:522
+msgid "environment variable"
+msgstr "variable d'entorn"
+
+#: sphinx/domains/std/__init__.py:523
+msgid "program option"
+msgstr "opció del programa"
+
+#: sphinx/domains/std/__init__.py:524
+msgid "document"
+msgstr "document"
+
+#: sphinx/domains/std/__init__.py:560 sphinx/domains/std/__init__.py:572
+msgid "Module Index"
+msgstr "Índex de mòduls"
+
+#: sphinx/domains/std/__init__.py:561 sphinx/domains/std/__init__.py:573
+#: sphinx/themes/basic/defindex.html:25
+msgid "Search Page"
+msgstr "Pàgina de cerca"
+
+#: sphinx/domains/std/__init__.py:616 sphinx/domains/std/__init__.py:722
+#: sphinx/ext/autosectionlabel.py:53
+#, python-format
+msgid "duplicate label %s, other instance in %s"
+msgstr "etiqueta duplicada %s, una altra instància a %s"
+
+#: sphinx/domains/std/__init__.py:635
+#, python-format
+msgid "duplicate %s description of %s, other instance in %s"
+msgstr "descripció %s duplicada del %s, una altra instància a %s"
+
+#: sphinx/domains/std/__init__.py:841
+msgid "numfig is disabled. :numref: is ignored."
+msgstr "«numfig» està desactivat. :numref: s'ignora."
+
+#: sphinx/domains/std/__init__.py:849
+#, python-format
+msgid "Failed to create a cross reference. Any number is not assigned: %s"
+msgstr "Ha fallat en crear una referència creuada. No s'assigna cap número: %s"
+
+#: sphinx/domains/std/__init__.py:861
+#, python-format
+msgid "the link has no caption: %s"
+msgstr "l'enllaç no té cap subtítol: %s"
+
+#: sphinx/domains/std/__init__.py:875
+#, python-format
+msgid "invalid numfig_format: %s (%r)"
+msgstr "numfig_format no vàlid: %s (%r)"
+
+#: sphinx/domains/std/__init__.py:878
+#, python-format
+msgid "invalid numfig_format: %s"
+msgstr "numfig_format no vàlid: %s"
+
+#: sphinx/domains/std/__init__.py:1109
+#, python-format
+msgid "undefined label: %r"
+msgstr "etiqueta sense definir: %r"
+
+#: sphinx/domains/std/__init__.py:1111
+#, python-format
+msgid "Failed to create a cross reference. A title or caption not found: %r"
+msgstr "Ha fallat en crear una referència creuada. No es troba un títol o subtítol: %r"
+
+#: sphinx/environment/__init__.py:71
+msgid "new config"
+msgstr "configuració nova"
+
+#: sphinx/environment/__init__.py:72
+msgid "config changed"
+msgstr "configuració modificada"
+
+#: sphinx/environment/__init__.py:73
+msgid "extensions changed"
+msgstr "extensions modificades"
+
+#: sphinx/environment/__init__.py:279
+msgid "build environment version not current"
+msgstr "la versió de l'entorn de compilació no és actual"
+
+#: sphinx/environment/__init__.py:281
+msgid "source directory has changed"
+msgstr "el directori d'origen ha estat modificat"
+
+#: sphinx/environment/__init__.py:360
+msgid ""
+"This environment is incompatible with the selected builder, please choose "
+"another doctree directory."
+msgstr "Aquest entorn és incompatible amb el constructor seleccionat, trieu un altre directori doctree."
+
+#: sphinx/environment/__init__.py:459
+#, python-format
+msgid "Failed to scan documents in %s: %r"
+msgstr "Ha fallat en escanejar els documents a %s: %r"
+
+#: sphinx/environment/__init__.py:596
+#, python-format
+msgid "Domain %r is not registered"
+msgstr "El domini %r no està registrat"
+
+#: sphinx/environment/__init__.py:730
+msgid "document isn't included in any toctree"
+msgstr "el document no està inclòs en cap toctree"
+
+#: sphinx/environment/__init__.py:766
+msgid "self referenced toctree found. Ignored."
+msgstr "S'ha trobat un toctree autoreferenciat. S'ignora."
+
+#: sphinx/environment/adapters/indexentries.py:69
+#, python-format
+msgid "see %s"
+msgstr "vegeu %s"
+
+#: sphinx/environment/adapters/indexentries.py:73
+#, python-format
+msgid "see also %s"
+msgstr "vegeu també %s"
+
+#: sphinx/environment/adapters/indexentries.py:76
+#, python-format
+msgid "unknown index entry type %r"
+msgstr "tipus d'entrada %r amb un índex desconegut"
+
+#: sphinx/environment/adapters/indexentries.py:187
+#: sphinx/templates/latex/sphinxmessages.sty_t:11
+msgid "Symbols"
+msgstr "Símbols"
+
+#: sphinx/environment/adapters/toctree.py:297
+#, python-format
+msgid "circular toctree references detected, ignoring: %s <- %s"
+msgstr "s'han detectat referències circulars del toctree, s'ignora: %s <- %s"
+
+#: sphinx/environment/adapters/toctree.py:317
+#, python-format
+msgid ""
+"toctree contains reference to document %r that doesn't have a title: no link"
+" will be generated"
+msgstr "el toctree conté una referència cap al document %r, el qual no conté un títol: no es generarà cap enllaç"
+
+#: sphinx/environment/adapters/toctree.py:326
+#, python-format
+msgid "toctree contains reference to non-included document %r"
+msgstr "el toctree conté una referència cap a un document no inclòs %r"
+
+#: sphinx/environment/collectors/asset.py:89
+#, python-format
+msgid "image file not readable: %s"
+msgstr "el fitxer d'imatge no es pot llegir: %s"
+
+#: sphinx/environment/collectors/asset.py:108
+#, python-format
+msgid "image file %s not readable: %s"
+msgstr "el fitxer d'imatge %s no es pot llegir: %s"
+
+#: sphinx/environment/collectors/asset.py:134
+#, python-format
+msgid "download file not readable: %s"
+msgstr "el fitxer de baixada no es pot llegir: %s"
+
+#: sphinx/environment/collectors/toctree.py:225
+#, python-format
+msgid "%s is already assigned section numbers (nested numbered toctree?)"
+msgstr "%s ja té assignats números de secció (toctree amb numeració imbricada?)"
+
+#: sphinx/ext/apidoc.py:86
+#, python-format
+msgid "Would create file %s."
+msgstr "S'hauria de crear el fitxer %s."
+
+#: sphinx/ext/apidoc.py:318
+msgid ""
+"\n"
+"Look recursively in <MODULE_PATH> for Python modules and packages and create\n"
+"one reST file with automodule directives per package in the <OUTPUT_PATH>.\n"
+"\n"
+"The <EXCLUDE_PATTERN>s can be file and/or directory patterns that will be\n"
+"excluded from generation.\n"
+"\n"
+"Note: By default this script will not overwrite already created files."
+msgstr "\nMireu recursivament a <MODULE_PATH> per als mòduls i paquets de Python\ni creeu un fitxer reST amb les directives «automodule» per paquet en el <OUTPUT_PATH>.\n\nEls <EXCLUDE_PATTERN> poden ser fitxers i/o patrons de directori que seran\nexclosos de la generació.\n\nNota: De manera predeterminada, aquest script no sobreescriurà els fitxers que ja s'han creat."
+
+#: sphinx/ext/apidoc.py:331
+msgid "path to module to document"
+msgstr "camí cap al mòdul que es documenta"
+
+#: sphinx/ext/apidoc.py:333
+msgid ""
+"fnmatch-style file and/or directory patterns to exclude from generation"
+msgstr "fitxer d'estil fnmatch i/o patrons de directori que s'exclouran de la generació"
+
+#: sphinx/ext/apidoc.py:338
+msgid "directory to place all output"
+msgstr "directori per a col·locar tota la sortida"
+
+#: sphinx/ext/apidoc.py:343
+msgid "maximum depth of submodules to show in the TOC (default: 4)"
+msgstr "profunditat màxima dels submòduls que es mostraran a la TOC (predeterminada: 4)"
+
+#: sphinx/ext/apidoc.py:346
+msgid "overwrite existing files"
+msgstr "sobreescriu els fitxers existents"
+
+#: sphinx/ext/apidoc.py:349
+msgid ""
+"follow symbolic links. Powerful when combined with "
+"collective.recipe.omelette."
+msgstr "seguir els enllaços simbòlics. Potent quan es combina amb el paquet collective.recipe.omelette."
+
+#: sphinx/ext/apidoc.py:352
+msgid "run the script without creating files"
+msgstr "executa l'script sense crear els fitxers"
+
+#: sphinx/ext/apidoc.py:355
+msgid "put documentation for each module on its own page"
+msgstr "posa la documentació per a cada mòdul a la seva pròpia pàgina"
+
+#: sphinx/ext/apidoc.py:358
+msgid "include \"_private\" modules"
+msgstr "inclou «_private» en els mòduls"
+
+#: sphinx/ext/apidoc.py:360
+msgid "filename of table of contents (default: modules)"
+msgstr "nom de fitxer de la taula de contingut (predeterminat: mòduls)"
+
+#: sphinx/ext/apidoc.py:362
+msgid "don't create a table of contents file"
+msgstr "no crea un fitxer de taula de contingut"
+
+#: sphinx/ext/apidoc.py:365
+msgid ""
+"don't create headings for the module/package packages (e.g. when the "
+"docstrings already contain them)"
+msgstr "no crea capçaleres per als paquets del mòdul/paquet (p. ex., quan les cadenes de documentació ja les contenen)"
+
+#: sphinx/ext/apidoc.py:370
+msgid "put module documentation before submodule documentation"
+msgstr "posa la documentació del mòdul abans de la documentació del submòdul"
+
+#: sphinx/ext/apidoc.py:374
+msgid ""
+"interpret module paths according to PEP-0420 implicit namespaces "
+"specification"
+msgstr "interpreta els camins dels mòduls segons l'especificació d'espais de noms implícits al PEP-0420"
+
+#: sphinx/ext/apidoc.py:378
+msgid "file suffix (default: rst)"
+msgstr "sufix del fitxer (predeterminat: rst)"
+
+#: sphinx/ext/apidoc.py:380
+msgid "generate a full project with sphinx-quickstart"
+msgstr "genera un projecte complet amb «sphinx-quickstart»"
+
+#: sphinx/ext/apidoc.py:383
+msgid "append module_path to sys.path, used when --full is given"
+msgstr "afegeix module_path a sys.path, s'usa quan s'indica el paràmetre «--full»"
+
+#: sphinx/ext/apidoc.py:385
+msgid "project name (default: root module name)"
+msgstr "nom del projecte (predeterminat: nom del mòdul arrel)"
+
+#: sphinx/ext/apidoc.py:387
+msgid "project author(s), used when --full is given"
+msgstr "autoria del projecte, s'usa quan s'indica el paràmetre «--full»"
+
+#: sphinx/ext/apidoc.py:389
+msgid "project version, used when --full is given"
+msgstr "versió del projecte, s'usa quan s'indica el paràmetre «--full»"
+
+#: sphinx/ext/apidoc.py:391
+msgid "project release, used when --full is given, defaults to --doc-version"
+msgstr "llançament del projecte, s'usa quan s'indica el paràmetre «--full», predeterminat a «--doc-version»"
+
+#: sphinx/ext/apidoc.py:394
+msgid "extension options"
+msgstr "opcions de l'extensió"
+
+#: sphinx/ext/apidoc.py:427
+#, python-format
+msgid "%s is not a directory."
+msgstr "%s no és cap directori."
+
+#: sphinx/ext/autosectionlabel.py:49
+#, python-format
+msgid "section \"%s\" gets labeled as \"%s\""
+msgstr "la secció «%s» s'etiqueta com a «%s»"
+
+#: sphinx/ext/coverage.py:46
+#, python-format
+msgid "invalid regex %r in %s"
+msgstr "expressions regulars no vàlides %r a %s"
+
+#: sphinx/ext/coverage.py:75
+#, python-format
+msgid ""
+"Testing of coverage in the sources finished, look at the results in "
+"%(outdir)spython.txt."
+msgstr "Proves de cobertura en les fonts acabades, mireu el resultat a %(outdir)spython.txt."
+
+#: sphinx/ext/coverage.py:89
+#, python-format
+msgid "invalid regex %r in coverage_c_regexes"
+msgstr "expressions regulars no vàlides %r a coverage_c_regexes"
+
+#: sphinx/ext/coverage.py:157
+#, python-format
+msgid "undocumented c api: %s [%s] in file %s"
+msgstr "API de C sense documentar: %s [ %s] en el fitxer %s"
+
+#: sphinx/ext/coverage.py:189
+#, python-format
+msgid "module %s could not be imported: %s"
+msgstr "el mòdul %s no s'ha pogut importar: %s"
+
+#: sphinx/ext/coverage.py:340
+#, python-format
+msgid "undocumented python function: %s :: %s"
+msgstr "funció de Python sense documentar: %s :: %s"
+
+#: sphinx/ext/coverage.py:356
+#, python-format
+msgid "undocumented python class: %s :: %s"
+msgstr "classe de Python sense documentar: %s :: %s"
+
+#: sphinx/ext/coverage.py:369
+#, python-format
+msgid "undocumented python method: %s :: %s :: %s"
+msgstr "mètode de Python sense documentar: %s :: %s :: %s"
+
+#: sphinx/ext/doctest.py:115
+#, python-format
+msgid "missing '+' or '-' in '%s' option."
+msgstr "manca «+» o «-» a l'opció «%s»."
+
+#: sphinx/ext/doctest.py:120
+#, python-format
+msgid "'%s' is not a valid option."
+msgstr "«%s» no és una opció vàlida."
+
+#: sphinx/ext/doctest.py:134
+#, python-format
+msgid "'%s' is not a valid pyversion option"
+msgstr "«%s» no és una opció pyversion vàlida"
+
+#: sphinx/ext/doctest.py:220
+msgid "invalid TestCode type"
+msgstr "tipus de TestCode no vàlid"
+
+#: sphinx/ext/doctest.py:281
+#, python-format
+msgid ""
+"Testing of doctests in the sources finished, look at the results in "
+"%(outdir)s/output.txt."
+msgstr "Proves de doctests en les fonts acabades, mireu el resultat a %(outdir)s/output.txt."
+
+#: sphinx/ext/doctest.py:438
+#, python-format
+msgid "no code/output in %s block at %s:%s"
+msgstr "no hi ha codi/sortida en el bloc %s a %s:%s"
+
+#: sphinx/ext/doctest.py:526
+#, python-format
+msgid "ignoring invalid doctest code: %r"
+msgstr "s'ignora el codi doctest no vàlid: %r"
+
+#: sphinx/ext/duration.py:77
+msgid ""
+"====================== slowest reading durations ======================="
+msgstr "==================== durades de lectura més lentes ====================="
+
+#: sphinx/ext/extlinks.py:82
+#, python-format
+msgid ""
+"hardcoded link %r could be replaced by an extlink (try using %r instead)"
+msgstr "l'enllaç codificat %r podria substituir-se per un enllaç extern (en el seu lloc intenteu usar %r)"
+
+#: sphinx/ext/graphviz.py:135
+msgid "Graphviz directive cannot have both content and a filename argument"
+msgstr "La directiva del Graphviz no pot tenir tant el contingut com un argument del nom de fitxer"
+
+#: sphinx/ext/graphviz.py:145
+#, python-format
+msgid "External Graphviz file %r not found or reading it failed"
+msgstr "El fitxer extern %r del Graphviz no s'ha trobat ni es pot llegir"
+
+#: sphinx/ext/graphviz.py:152
+msgid "Ignoring \"graphviz\" directive without content."
+msgstr "S'està ignorant la directiva «graphviz» sense contingut."
+
+#: sphinx/ext/graphviz.py:268
+#, python-format
+msgid "graphviz_dot executable path must be set! %r"
+msgstr "S'ha d'establir el camí de l'executable «graphviz_dot»! %r"
+
+#: sphinx/ext/graphviz.py:303
+#, python-format
+msgid ""
+"dot command %r cannot be run (needed for graphviz output), check the "
+"graphviz_dot setting"
+msgstr "l'ordre «dot» %r no s'ha pogut executar (necessària per a la sortida del Graphviz), comproveu la configuració de «graphviz_dot»"
+
+#: sphinx/ext/graphviz.py:310
+#, python-format
+msgid ""
+"dot exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "«dot» ha sortit amb un error:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: sphinx/ext/graphviz.py:313
+#, python-format
+msgid ""
+"dot did not produce an output file:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "«dot» no ha produït un fitxer de sortida:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: sphinx/ext/graphviz.py:329
+#, python-format
+msgid "graphviz_output_format must be one of 'png', 'svg', but is %r"
+msgstr "graphviz_output_format haurà de ser un de «png» o «svg», però és %r"
+
+#: sphinx/ext/graphviz.py:333 sphinx/ext/graphviz.py:386
+#: sphinx/ext/graphviz.py:423
+#, python-format
+msgid "dot code %r: %s"
+msgstr "codi del «dot» %r: %s"
+
+#: sphinx/ext/graphviz.py:436 sphinx/ext/graphviz.py:444
+#, python-format
+msgid "[graph: %s]"
+msgstr "[gràfica: %s]"
+
+#: sphinx/ext/graphviz.py:438 sphinx/ext/graphviz.py:446
+msgid "[graph]"
+msgstr "[gràfica]"
+
+#: sphinx/ext/imgconverter.py:39
+#, python-format
+msgid ""
+"Unable to run the image conversion command %r. 'sphinx.ext.imgconverter' requires ImageMagick by default. Ensure it is installed, or set the 'image_converter' option to a custom conversion command.\n"
+"\n"
+"Traceback: %s"
+msgstr "No es pot executar l'ordre de conversió d'imatges %r. «sphinx.ext.imgconverter» requereix de manera predeterminada ImageMagick. Assegureu-vos que està instal·lat o configureu l'opció «image_converter» a una ordre de conversió personalitzada.\n\nTraça: %s"
+
+#: sphinx/ext/imgconverter.py:48 sphinx/ext/imgconverter.py:72
+#, python-format
+msgid ""
+"convert exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "«convert» ha sortit amb un error:\n[stderr]\n%r\n[stdout]\n%r"
+
+#: sphinx/ext/imgconverter.py:67
+#, python-format
+msgid "convert command %r cannot be run, check the image_converter setting"
+msgstr "l'ordre «convert» %r no s'ha pogut executar, comproveu la configuració d'«image_converter»"
+
+#: sphinx/ext/imgmath.py:158
+#, python-format
+msgid ""
+"LaTeX command %r cannot be run (needed for math display), check the "
+"imgmath_latex setting"
+msgstr "l'ordre de LaTeX %r no s'ha pogut executar (necessària per a la visualització matemàtica), comproveu la configuració d'«imgmath_latex»"
+
+#: sphinx/ext/imgmath.py:173
+#, python-format
+msgid ""
+"%s command %r cannot be run (needed for math display), check the imgmath_%s "
+"setting"
+msgstr "%s l'ordre de %r no s'ha pogut executar (necessària per a la visualització matemàtica), comproveu la configuració d'«imgmath_%s»"
+
+#: sphinx/ext/imgmath.py:327
+#, python-format
+msgid "display latex %r: %s"
+msgstr "visualització de latex %r: %s"
+
+#: sphinx/ext/imgmath.py:361
+#, python-format
+msgid "inline latex %r: %s"
+msgstr "latex inclòs %r: %s"
+
+#: sphinx/ext/imgmath.py:368 sphinx/ext/mathjax.py:53
+msgid "Link to this equation"
+msgstr "Enllaça amb aquesta equació"
+
+#: sphinx/ext/intersphinx.py:195
+#, python-format
+msgid "intersphinx inventory has moved: %s -> %s"
+msgstr "l'inventari intersphinx s'ha mogut: %s -> %s"
+
+#: sphinx/ext/intersphinx.py:230
+#, python-format
+msgid "loading intersphinx inventory from %s..."
+msgstr "s'està carregant l'inventari intersphinx des de %s..."
+
+#: sphinx/ext/intersphinx.py:244
+msgid ""
+"encountered some issues with some of the inventories, but they had working "
+"alternatives:"
+msgstr "s'han trobat alguns problemes amb alguns dels inventaris, però tenien alternatives funcionals:"
+
+#: sphinx/ext/intersphinx.py:250
+msgid "failed to reach any of the inventories with the following issues:"
+msgstr "s'ha fallat en arribar a cap dels inventaris amb els problemes següents:"
+
+#: sphinx/ext/intersphinx.py:303
+#, python-format
+msgid "(in %s v%s)"
+msgstr "(a %s versió %s)"
+
+#: sphinx/ext/intersphinx.py:305
+#, python-format
+msgid "(in %s)"
+msgstr "(a %s)"
+
+#: sphinx/ext/intersphinx.py:538
+#, python-format
+msgid "inventory for external cross-reference not found: %r"
+msgstr "no es troba l'inventari per a la referència creuada externa: %r"
+
+#: sphinx/ext/intersphinx.py:546
+#, python-format
+msgid "invalid external cross-reference suffix: %r"
+msgstr "no es troba l'inventari per a la referència creuada externa: %r"
+
+#: sphinx/ext/intersphinx.py:557
+#, python-format
+msgid "domain for external cross-reference not found: %r"
+msgstr "no es troba el domini per a la referència creuada externa: %r"
+
+#: sphinx/ext/intersphinx.py:750
+#, python-format
+msgid "external %s:%s reference target not found: %s"
+msgstr "%s externa: no es troba la destinació de la referència %s: %s"
+
+#: sphinx/ext/intersphinx.py:775
+#, python-format
+msgid "intersphinx identifier %r is not string. Ignored"
+msgstr "l'identificador %r d'intersphinx no és una cadena. S'ignora"
+
+#: sphinx/ext/intersphinx.py:797
+#, python-format
+msgid "Failed to read intersphinx_mapping[%s], ignored: %r"
+msgstr "Ha fallat en llegir intersphinx_mapping[%s], s'ignora: %r"
+
+#: sphinx/ext/linkcode.py:69 sphinx/ext/viewcode.py:199
+msgid "[source]"
+msgstr "[font]"
+
+#: sphinx/ext/todo.py:69
+msgid "Todo"
+msgstr "Tasca pendent"
+
+#: sphinx/ext/todo.py:102
+#, python-format
+msgid "TODO entry found: %s"
+msgstr "S'ha trobat una entrada TODO: %s"
+
+#: sphinx/ext/todo.py:161
+msgid "<<original entry>>"
+msgstr "<<entrada original>>"
+
+#: sphinx/ext/todo.py:163
+#, python-format
+msgid "(The <<original entry>> is located in %s, line %d.)"
+msgstr "(L'<<original entry>> es troba a %s, línia %d)."
+
+#: sphinx/ext/todo.py:173
+msgid "original entry"
+msgstr "entrada original"
+
+#: sphinx/ext/viewcode.py:256
+msgid "highlighting module code... "
+msgstr "s'està ressaltant el codi del mòdul... "
+
+#: sphinx/ext/viewcode.py:284
+msgid "[docs]"
+msgstr "[documents]"
+
+#: sphinx/ext/viewcode.py:304
+msgid "Module code"
+msgstr "Codi del mòdul"
+
+#: sphinx/ext/viewcode.py:310
+#, python-format
+msgid "<h1>Source code for %s</h1>"
+msgstr "<h1>Codi font per a %s</h1>"
+
+#: sphinx/ext/viewcode.py:336
+msgid "Overview: module code"
+msgstr "Vista general: codi del mòdul"
+
+#: sphinx/ext/viewcode.py:337
+msgid "<h1>All modules for which code is available</h1>"
+msgstr "<h1>Tots els mòduls per als quals hi ha codi</h1>"
+
+#: sphinx/ext/autodoc/__init__.py:135
+#, python-format
+msgid "invalid value for member-order option: %s"
+msgstr "valor no vàlid per a l'opció de l'ordre de membre: %s"
+
+#: sphinx/ext/autodoc/__init__.py:143
+#, python-format
+msgid "invalid value for class-doc-from option: %s"
+msgstr "valor no vàlid per a l'opció des de la documentació de classes: %s"
+
+#: sphinx/ext/autodoc/__init__.py:399
+#, python-format
+msgid "invalid signature for auto%s (%r)"
+msgstr "signatura no vàlida per a auto%s (%r)"
+
+#: sphinx/ext/autodoc/__init__.py:515
+#, python-format
+msgid "error while formatting arguments for %s: %s"
+msgstr "error mentre es donava format als arguments per a %s: %s"
+
+#: sphinx/ext/autodoc/__init__.py:798
+#, python-format
+msgid ""
+"autodoc: failed to determine %s.%s (%r) to be documented, the following exception was raised:\n"
+"%s"
+msgstr "autodoc: ha fallat en determinar %s. %s (%r) que s'ha de documentar, s'ha plantejat l'excepció següent:\n%s"
+
+#: sphinx/ext/autodoc/__init__.py:893
+#, python-format
+msgid ""
+"don't know which module to import for autodocumenting %r (try placing a "
+"\"module\" or \"currentmodule\" directive in the document, or giving an "
+"explicit module name)"
+msgstr "es desconeix quin és el mòdul que s'importarà per al document automàtic %r (proveu de col·locar una directiva «module» o «currentmodule» en el document o doneu-li un nom explícit al mòdul)"
+
+#: sphinx/ext/autodoc/__init__.py:937
+#, python-format
+msgid "A mocked object is detected: %r"
+msgstr "S'ha detectat un objecte simulat: %r"
+
+#: sphinx/ext/autodoc/__init__.py:956
+#, python-format
+msgid "error while formatting signature for %s: %s"
+msgstr "error mentre es donava format a la signatura per a %s: %s"
+
+#: sphinx/ext/autodoc/__init__.py:1019
+msgid "\"::\" in automodule name doesn't make sense"
+msgstr "«::» en el nom de l'«automodule» no té sentit"
+
+#: sphinx/ext/autodoc/__init__.py:1026
+#, python-format
+msgid "signature arguments or return annotation given for automodule %s"
+msgstr "arguments de signatura o anotació de retorn indicats per a «automodule» %s"
+
+#: sphinx/ext/autodoc/__init__.py:1039
+#, python-format
+msgid ""
+"__all__ should be a list of strings, not %r (in module %s) -- ignoring "
+"__all__"
+msgstr "__all__ ha de ser una llista de cadenes, no %r (en el mòdul %s) -s'ignora __all__-"
+
+#: sphinx/ext/autodoc/__init__.py:1105
+#, python-format
+msgid ""
+"missing attribute mentioned in :members: option: module %s, attribute %s"
+msgstr "manca l'atribut esmentat a l'opció «:members:»: mòdul %s, atribut %s"
+
+#: sphinx/ext/autodoc/__init__.py:1327 sphinx/ext/autodoc/__init__.py:1404
+#: sphinx/ext/autodoc/__init__.py:2824
+#, python-format
+msgid "Failed to get a function signature for %s: %s"
+msgstr "Ha fallat en obtenir una signatura de funció per a %s: %s"
+
+#: sphinx/ext/autodoc/__init__.py:1618
+#, python-format
+msgid "Failed to get a constructor signature for %s: %s"
+msgstr "Ha fallat en obtenir un constructor de funció per a %s: %s"
+
+#: sphinx/ext/autodoc/__init__.py:1745
+#, python-format
+msgid "Bases: %s"
+msgstr "Bases: %s"
+
+#: sphinx/ext/autodoc/__init__.py:1759
+#, python-format
+msgid "missing attribute %s in object %s"
+msgstr "manca l'atribut %s a l'objecte %s"
+
+#: sphinx/ext/autodoc/__init__.py:1858 sphinx/ext/autodoc/__init__.py:1895
+#: sphinx/ext/autodoc/__init__.py:1990
+#, python-format
+msgid "alias of %s"
+msgstr "àlies de %s"
+
+#: sphinx/ext/autodoc/__init__.py:1878
+#, python-format
+msgid "alias of TypeVar(%s)"
+msgstr "àlies de TypeVar(%s)"
+
+#: sphinx/ext/autodoc/__init__.py:2216 sphinx/ext/autodoc/__init__.py:2316
+#, python-format
+msgid "Failed to get a method signature for %s: %s"
+msgstr "Ha fallat en obtenir una signatura de mètode per a %s: %s"
+
+#: sphinx/ext/autodoc/__init__.py:2447
+#, python-format
+msgid "Invalid __slots__ found on %s. Ignored."
+msgstr "S'han trobat __slots__ no vàlids a %s. S'ignora."
+
+#: sphinx/ext/autodoc/preserve_defaults.py:190
+#, python-format
+msgid "Failed to parse a default argument value for %r: %s"
+msgstr "Ha fallat en analitzar un valor d'argument predeterminat per a %r: %s"
+
+#: sphinx/ext/autodoc/type_comment.py:132
+#, python-format
+msgid "Failed to update signature for %r: parameter not found: %s"
+msgstr "Ha fallat en actualitzar la signatura per a %r: no es troba el paràmetre: %s"
+
+#: sphinx/ext/autodoc/type_comment.py:135
+#, python-format
+msgid "Failed to parse type_comment for %r: %s"
+msgstr "Ha fallat en analitzar type_comment per a %r: %s"
+
+#: sphinx/ext/autosummary/__init__.py:251
+#, python-format
+msgid "autosummary references excluded document %r. Ignored."
+msgstr "referències autosummary excloses del document %r. S'ignora."
+
+#: sphinx/ext/autosummary/__init__.py:253
+#, python-format
+msgid ""
+"autosummary: stub file not found %r. Check your autosummary_generate "
+"setting."
+msgstr "autosummary: no s'ha trobat el fitxer stub %r. Verifiqueu la vostra configuració autosummary_generate."
+
+#: sphinx/ext/autosummary/__init__.py:272
+msgid "A captioned autosummary requires :toctree: option. ignored."
+msgstr "Un resum automàtic amb subtítols requereix l'opció «:toctree:». S'ignora."
+
+#: sphinx/ext/autosummary/__init__.py:325
+#, python-format
+msgid ""
+"autosummary: failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "autosummary: ha fallat en importar %s.\nPossibles pistes:\n%s"
+
+#: sphinx/ext/autosummary/__init__.py:339
+#, python-format
+msgid "failed to parse name %s"
+msgstr "ha fallat en analitzar el nom %s"
+
+#: sphinx/ext/autosummary/__init__.py:344
+#, python-format
+msgid "failed to import object %s"
+msgstr "ha fallat en importar l'objecte %s"
+
+#: sphinx/ext/autosummary/__init__.py:802
+#, python-format
+msgid "autosummary_generate: file not found: %s"
+msgstr "autosummary_generate: no s'ha trobat el fitxer: %s"
+
+#: sphinx/ext/autosummary/__init__.py:810
+msgid ""
+"autosummary generates .rst files internally. But your source_suffix does not"
+" contain .rst. Skipped."
+msgstr "«autosummary» genera internament els fitxers «.rst». Però el vostre source_suffix no conté cap «.rst». S'omet."
+
+#: sphinx/ext/autosummary/generate.py:200
+#: sphinx/ext/autosummary/generate.py:358
+#, python-format
+msgid ""
+"autosummary: failed to determine %r to be documented, the following exception was raised:\n"
+"%s"
+msgstr "autosummary: ha fallat en determinar %r que s'ha de documentar, s'ha plantejat l'excepció següent:\n%s"
+
+#: sphinx/ext/autosummary/generate.py:470
+#, python-format
+msgid "[autosummary] generating autosummary for: %s"
+msgstr "[autosummary] s'està generant autosummary per a: %s"
+
+#: sphinx/ext/autosummary/generate.py:474
+#, python-format
+msgid "[autosummary] writing to %s"
+msgstr "[autosummary] s'està escrivint a %s"
+
+#: sphinx/ext/autosummary/generate.py:517
+#, python-format
+msgid ""
+"[autosummary] failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "[autosummary]: ha fallat en importar %s.\nPossibles pistes:\n%s"
+
+#: sphinx/ext/autosummary/generate.py:690
+msgid ""
+"\n"
+"Generate ReStructuredText using autosummary directives.\n"
+"\n"
+"sphinx-autogen is a frontend to sphinx.ext.autosummary.generate. It generates\n"
+"the reStructuredText files from the autosummary directives contained in the\n"
+"given input files.\n"
+"\n"
+"The format of the autosummary directive is documented in the\n"
+"``sphinx.ext.autosummary`` Python module and can be read using::\n"
+"\n"
+"  pydoc sphinx.ext.autosummary\n"
+msgstr "\nGenera ReStructuredText mitjançant directrius de resum automàtic «autosummary».\n\n«sphinx-autogen» és un frontal per a sphinx.ext.autosummary.generate.\nGenera els fitxers en reStructuredText des de les directrius d'autosummary\ncontingudes en els fitxers d'entrada indicats.\n\nEl format de les directrius d'autosummary està documentat en el mòdul\n``sphinx.ext.autosummary`` de Python i es pot llegir mitjançant l'ordre següent::\n\npydoc sphinx.ext.autosummary\n"
+
+#: sphinx/ext/autosummary/generate.py:707
+msgid "source files to generate rST files for"
+msgstr "fitxers font per a generar els fitxers rST per a"
+
+#: sphinx/ext/autosummary/generate.py:711
+msgid "directory to place all output in"
+msgstr "directori per a col·locar tota la sortida a"
+
+#: sphinx/ext/autosummary/generate.py:714
+#, python-format
+msgid "default suffix for files (default: %(default)s)"
+msgstr "sufix predeterminat per als fitxers (predeterminat: %(default)s)"
+
+#: sphinx/ext/autosummary/generate.py:718
+#, python-format
+msgid "custom template directory (default: %(default)s)"
+msgstr "directori de plantilles personalitzades (predeterminat: %(default)s)"
+
+#: sphinx/ext/autosummary/generate.py:722
+#, python-format
+msgid "document imported members (default: %(default)s)"
+msgstr "document de membres importats (predeterminat: %(default)s)"
+
+#: sphinx/ext/autosummary/generate.py:726
+#, python-format
+msgid ""
+"document exactly the members in module __all__ attribute. (default: "
+"%(default)s)"
+msgstr "documenta exactament els membres en l'atribut __all__ del mòdul. (predeterminat: %(default)s)"
+
+#: sphinx/ext/napoleon/__init__.py:341 sphinx/ext/napoleon/docstring.py:728
+msgid "Keyword Arguments"
+msgstr "Arguments de paraules clau"
+
+#: sphinx/ext/napoleon/docstring.py:682
+msgid "Example"
+msgstr "Exemple"
+
+#: sphinx/ext/napoleon/docstring.py:683
+msgid "Examples"
+msgstr "Exemples"
+
+#: sphinx/ext/napoleon/docstring.py:744
+msgid "Notes"
+msgstr "Notes"
+
+#: sphinx/ext/napoleon/docstring.py:753
+msgid "Other Parameters"
+msgstr "Altres paràmetres"
+
+#: sphinx/ext/napoleon/docstring.py:789
+msgid "Receives"
+msgstr "Rebudes"
+
+#: sphinx/ext/napoleon/docstring.py:793
+msgid "References"
+msgstr "Referències"
+
+#: sphinx/ext/napoleon/docstring.py:825
+msgid "Warns"
+msgstr "Avisos"
+
+#: sphinx/ext/napoleon/docstring.py:829
+msgid "Yields"
+msgstr "Rendiments"
+
+#: sphinx/ext/napoleon/docstring.py:987
+#, python-format
+msgid "invalid value set (missing closing brace): %s"
+msgstr "conjunt de valors no vàlid (manca el claudàtor de tancament): %s"
+
+#: sphinx/ext/napoleon/docstring.py:994
+#, python-format
+msgid "invalid value set (missing opening brace): %s"
+msgstr "conjunt de valors no vàlid (manca el claudàtor d'obertura): %s"
+
+#: sphinx/ext/napoleon/docstring.py:1001
+#, python-format
+msgid "malformed string literal (missing closing quote): %s"
+msgstr "Cadena incorrecta literal (manquen les cometes de tancament): %s"
+
+#: sphinx/ext/napoleon/docstring.py:1008
+#, python-format
+msgid "malformed string literal (missing opening quote): %s"
+msgstr "Cadena incorrecta literal (manquen les cometes d'obertura): %s"
+
+#: sphinx/locale/__init__.py:228
+msgid "Attention"
+msgstr "Atenció"
+
+#: sphinx/locale/__init__.py:229
+msgid "Caution"
+msgstr "Compte"
+
+#: sphinx/locale/__init__.py:230
+msgid "Danger"
+msgstr "Perill"
+
+#: sphinx/locale/__init__.py:231
+msgid "Error"
+msgstr "Error"
+
+#: sphinx/locale/__init__.py:232
+msgid "Hint"
+msgstr "Suggeriment"
+
+#: sphinx/locale/__init__.py:233
+msgid "Important"
+msgstr "Important"
+
+#: sphinx/locale/__init__.py:234
+msgid "Note"
+msgstr "Nota"
+
+#: sphinx/locale/__init__.py:235
+msgid "See also"
+msgstr "Vegeu també"
+
+#: sphinx/locale/__init__.py:236
+msgid "Tip"
+msgstr "Truc"
+
+#: sphinx/locale/__init__.py:237
+msgid "Warning"
+msgstr "Avís"
+
+#: sphinx/templates/latex/longtable.tex_t:52
+#: sphinx/templates/latex/sphinxmessages.sty_t:8
+msgid "continued from previous page"
+msgstr "ve de la pàgina anterior"
+
+#: sphinx/templates/latex/longtable.tex_t:63
+#: sphinx/templates/latex/sphinxmessages.sty_t:9
+msgid "continues on next page"
+msgstr "continua a la pàgina següent"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:10
+msgid "Non-alphabetical"
+msgstr "No alfabètic"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:12
+msgid "Numbers"
+msgstr "Números"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:13
+msgid "page"
+msgstr "pàgina"
+
+#: sphinx/themes/agogo/layout.html:38 sphinx/themes/basic/globaltoc.html:10
+#: sphinx/themes/basic/localtoc.html:12 sphinx/themes/scrolls/layout.html:41
+msgid "Table of Contents"
+msgstr "Taula de continguts"
+
+#: sphinx/themes/agogo/layout.html:43 sphinx/themes/basic/layout.html:141
+#: sphinx/themes/basic/search.html:11 sphinx/themes/basic/search.html:23
+msgid "Search"
+msgstr "Cerca"
+
+#: sphinx/themes/agogo/layout.html:46 sphinx/themes/basic/searchbox.html:16
+#: sphinx/themes/basic/searchfield.html:18
+msgid "Go"
+msgstr "Ves a"
+
+#: sphinx/themes/agogo/layout.html:90 sphinx/themes/basic/sourcelink.html:15
+msgid "Show Source"
+msgstr "Mostra el codi font"
+
+#: sphinx/themes/basic/defindex.html:11
+msgid "Overview"
+msgstr "Vista general"
+
+#: sphinx/themes/basic/defindex.html:15
+msgid "Welcome! This is"
+msgstr "Us donem la benvinguda! Això és"
+
+#: sphinx/themes/basic/defindex.html:16
+msgid "the documentation for"
+msgstr "la documentació per a"
+
+#: sphinx/themes/basic/defindex.html:17
+msgid "last updated"
+msgstr "darrera actualització"
+
+#: sphinx/themes/basic/defindex.html:20
+msgid "Indices and tables:"
+msgstr "Índexs i taules:"
+
+#: sphinx/themes/basic/defindex.html:23
+msgid "Complete Table of Contents"
+msgstr "Taula de contingut completa"
+
+#: sphinx/themes/basic/defindex.html:24
+msgid "lists all sections and subsections"
+msgstr "llista totes les seccions i subseccions"
+
+#: sphinx/themes/basic/defindex.html:26
+msgid "search this documentation"
+msgstr "cerca aquesta documentació"
+
+#: sphinx/themes/basic/defindex.html:28
+msgid "Global Module Index"
+msgstr "Índex global de mòduls"
+
+#: sphinx/themes/basic/defindex.html:29
+msgid "quick access to all modules"
+msgstr "accés ràpid a tots els mòduls"
+
+#: sphinx/themes/basic/defindex.html:31
+msgid "all functions, classes, terms"
+msgstr "totes les funcions, classes, termes"
+
+#: sphinx/themes/basic/genindex-single.html:33
+#, python-format
+msgid "Index &ndash; %(key)s"
+msgstr "Índex &ndash; %(key)s"
+
+#: sphinx/themes/basic/genindex-single.html:61
+#: sphinx/themes/basic/genindex-split.html:24
+#: sphinx/themes/basic/genindex-split.html:38
+#: sphinx/themes/basic/genindex.html:73
+msgid "Full index on one page"
+msgstr "Índex complet en una pàgina"
+
+#: sphinx/themes/basic/genindex-split.html:16
+msgid "Index pages by letter"
+msgstr "Pàgines d'índex per lletra"
+
+#: sphinx/themes/basic/genindex-split.html:25
+msgid "can be huge"
+msgstr "pot ser gegant"
+
+#: sphinx/themes/basic/layout.html:26
+msgid "Navigation"
+msgstr "Navegació"
+
+#: sphinx/themes/basic/layout.html:126
+#, python-format
+msgid "Search within %(docstitle)s"
+msgstr "Cerca dins de %(docstitle)s"
+
+#: sphinx/themes/basic/layout.html:135
+msgid "About these documents"
+msgstr "Quant a aquests documents"
+
+#: sphinx/themes/basic/layout.html:144 sphinx/themes/basic/layout.html:188
+#: sphinx/themes/basic/layout.html:190
+msgid "Copyright"
+msgstr "Copyright"
+
+#: sphinx/themes/basic/layout.html:194 sphinx/themes/basic/layout.html:200
+#, python-format
+msgid "&#169; %(copyright_prefix)s %(copyright)s."
+msgstr "&#169; %(copyright_prefix)s %(copyright)s."
+
+#: sphinx/themes/basic/layout.html:212
+#, python-format
+msgid "Last updated on %(last_updated)s."
+msgstr "Darrera actualització el %(last_updated)s."
+
+#: sphinx/themes/basic/layout.html:215
+#, python-format
+msgid ""
+"Created using <a href=\"https://www.sphinx-doc.org/\">Sphinx</a> "
+"%(sphinx_version)s."
+msgstr "Creada mitjançant <a href=\"https://www.sphinx-doc.org/\">Sphinx</a> %(sphinx_version)s."
+
+#: sphinx/themes/basic/opensearch.xml:4
+#, python-format
+msgid "Search %(docstitle)s"
+msgstr "Cercar a %(docstitle)s"
+
+#: sphinx/themes/basic/relations.html:12
+msgid "Previous topic"
+msgstr "Tema anterior"
+
+#: sphinx/themes/basic/relations.html:14
+msgid "previous chapter"
+msgstr "capítol anterior"
+
+#: sphinx/themes/basic/relations.html:19
+msgid "Next topic"
+msgstr "Tema següent"
+
+#: sphinx/themes/basic/relations.html:21
+msgid "next chapter"
+msgstr "capítol següent"
+
+#: sphinx/themes/basic/search.html:28
+msgid ""
+"Please activate JavaScript to enable the search\n"
+"    functionality."
+msgstr "Activa JavaScript per a usar la funcionalitat\n    de cerca."
+
+#: sphinx/themes/basic/search.html:36
+msgid ""
+"Searching for multiple words only shows matches that contain\n"
+"    all words."
+msgstr "Cercar múltiples paraules només mostrarà les coincidències\n    que continguin totes les paraules."
+
+#: sphinx/themes/basic/search.html:43
+msgid "search"
+msgstr "cerca"
+
+#: sphinx/themes/basic/searchbox.html:12
+msgid "Quick search"
+msgstr "Cerca ràpida"
+
+#: sphinx/themes/basic/sourcelink.html:12
+msgid "This Page"
+msgstr "Aquesta pàgina"
+
+#: sphinx/themes/basic/changes/frameset.html:5
+#: sphinx/themes/basic/changes/versionchanges.html:12
+#, python-format
+msgid "Changes in Version %(version)s &#8212; %(docstitle)s"
+msgstr "Canvis en la versió %(version)s &#8212; %(docstitle)s"
+
+#: sphinx/themes/basic/changes/rstsource.html:5
+#, python-format
+msgid "%(filename)s &#8212; %(docstitle)s"
+msgstr "%(filename)s &#8212; %(docstitle)s"
+
+#: sphinx/themes/basic/changes/versionchanges.html:17
+#, python-format
+msgid "Automatically generated list of changes in version %(version)s"
+msgstr "Llista de canvis de la versió %(version)s generada automàticament"
+
+#: sphinx/themes/basic/changes/versionchanges.html:18
+msgid "Library changes"
+msgstr "Canvis a la biblioteca"
+
+#: sphinx/themes/basic/changes/versionchanges.html:23
+msgid "C API changes"
+msgstr "Canvis a l'API de C"
+
+#: sphinx/themes/basic/changes/versionchanges.html:25
+msgid "Other changes"
+msgstr "Altres canvis"
+
+#: sphinx/themes/basic/static/searchtools.js:112
+msgid "Search Results"
+msgstr "Resultats de la cerca"
+
+#: sphinx/themes/basic/static/searchtools.js:114
+msgid ""
+"Your search did not match any documents. Please make sure that all words are"
+" spelled correctly and that you've selected enough categories."
+msgstr "La vostra cerca no ha coincidit amb cap document. Assegureu-vos que s'escriuen correctament totes les paraules i que heu seleccionat prou categories."
+
+#: sphinx/themes/basic/static/searchtools.js:118
+msgid ""
+"Search finished, found ${resultCount} page(s) matching the search query."
+msgstr "Cerca acabada, s'han trobat ${resultCount} pàgines que coincideixen amb la consulta de cerca."
+
+#: sphinx/themes/basic/static/searchtools.js:246
+msgid "Searching"
+msgstr "S'està cercant"
+
+#: sphinx/themes/basic/static/searchtools.js:262
+msgid "Preparing search..."
+msgstr "S'està preparant la cerca..."
+
+#: sphinx/themes/basic/static/searchtools.js:463
+msgid ", in "
+msgstr ", a "
+
+#: sphinx/themes/basic/static/sphinx_highlight.js:112
+msgid "Hide Search Matches"
+msgstr "Oculta els resultats de cerca"
+
+#: sphinx/themes/classic/layout.html:20
+#: sphinx/themes/classic/static/sidebar.js_t:57
+msgid "Collapse sidebar"
+msgstr "Redueix la barra lateral"
+
+#: sphinx/themes/classic/static/sidebar.js_t:48
+msgid "Expand sidebar"
+msgstr "Expandeix la barra lateral"
+
+#: sphinx/themes/haiku/layout.html:24
+msgid "Contents"
+msgstr "Contingut"
+
+#: sphinx/transforms/__init__.py:128
+msgid "could not calculate translation progress!"
+msgstr "no s'ha pogut calcular el progrés de la traducció!"
+
+#: sphinx/transforms/__init__.py:133
+msgid "no translated elements!"
+msgstr "No hi ha cap element traduït!"
+
+#: sphinx/transforms/__init__.py:250
+#, python-format
+msgid ""
+"4 column based index found. It might be a bug of extensions you use: %r"
+msgstr "S'ha trobat un índex basat en 4 columnes. Pot ser un error de les extensions que utilitzeu: %r"
+
+#: sphinx/transforms/__init__.py:291
+#, python-format
+msgid "Footnote [%s] is not referenced."
+msgstr "La nota al peu [%s] no té una referència."
+
+#: sphinx/transforms/__init__.py:297
+msgid "Footnote [#] is not referenced."
+msgstr "La nota al peu [núm.] no té una referència."
+
+#: sphinx/transforms/i18n.py:205 sphinx/transforms/i18n.py:270
+msgid ""
+"inconsistent footnote references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "referències incoherents de nota al peu en el missatge traduït. Original: {0}, traduït: {1}"
+
+#: sphinx/transforms/i18n.py:245
+msgid ""
+"inconsistent references in translated message. original: {0}, translated: "
+"{1}"
+msgstr "referències incoherents en el missatge traduït. Original: {0}, traduït: {1}"
+
+#: sphinx/transforms/i18n.py:285
+msgid ""
+"inconsistent citation references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "referències incoherents de citació en el missatge traduït. Original: {0}, traduït: {1}"
+
+#: sphinx/transforms/i18n.py:302
+msgid ""
+"inconsistent term references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "referències incoherents de terme en el missatge traduït. Original: {0}, traduït: {1}"
+
+#: sphinx/transforms/post_transforms/__init__.py:116
+msgid ""
+"Could not determine the fallback text for the cross-reference. Might be a "
+"bug."
+msgstr "No s'ha pogut determinar el text alternatiu per a la referència creuada. Podria ser un error."
+
+#: sphinx/transforms/post_transforms/__init__.py:158
+#, python-format
+msgid "more than one target found for 'any' cross-reference %r: could be %s"
+msgstr "s'ha trobat més d'una destinació per a «any» en la referència creuada %r: podria ser %s"
+
+#: sphinx/transforms/post_transforms/__init__.py:209
+#, python-format
+msgid "%s:%s reference target not found: %s"
+msgstr "%s:%s no es troba la destinació de la referència: %s"
+
+#: sphinx/transforms/post_transforms/__init__.py:212
+#, python-format
+msgid "%r reference target not found: %s"
+msgstr "%r no es troba la destinació de la referència: %s"
+
+#: sphinx/transforms/post_transforms/images.py:89
+#, python-format
+msgid "Could not fetch remote image: %s [%d]"
+msgstr "No s'ha pogut recuperar la imatge remota: %s [%d]"
+
+#: sphinx/transforms/post_transforms/images.py:117
+#, python-format
+msgid "Could not fetch remote image: %s [%s]"
+msgstr "No s'ha pogut recuperar la imatge remota: %s [%s]"
+
+#: sphinx/transforms/post_transforms/images.py:135
+#, python-format
+msgid "Unknown image format: %s..."
+msgstr "Format d'imatge desconegut: %s..."
+
+#: sphinx/util/__init__.py:168
+#, python-format
+msgid "undecodable source characters, replacing with \"?\": %r"
+msgstr "caràcters font no codificables, substituint per «?»: %r"
+
+#: sphinx/util/display.py:78
+msgid "skipped"
+msgstr "s'omet"
+
+#: sphinx/util/display.py:83
+msgid "failed"
+msgstr "ha fallat"
+
+#: sphinx/util/docfields.py:87
+#, python-format
+msgid ""
+"Problem in %s domain: field is supposed to use role '%s', but that role is "
+"not in the domain."
+msgstr "Problema en el domini %s: se suposa que el camp usa el rol «%s», però no es troba en el domini."
+
+#: sphinx/util/docutils.py:295
+#, python-format
+msgid "unknown directive or role name: %s:%s"
+msgstr "directiva o nom de rol desconegut: %s:%s"
+
+#: sphinx/util/docutils.py:591
+#, python-format
+msgid "unknown node type: %r"
+msgstr "tipus de node desconegut: %r"
+
+#: sphinx/util/i18n.py:94
+#, python-format
+msgid "reading error: %s, %s"
+msgstr "error de lectura: %s, %s"
+
+#: sphinx/util/i18n.py:101
+#, python-format
+msgid "writing error: %s, %s"
+msgstr "error d'escriptura: %s, %s"
+
+#: sphinx/util/i18n.py:125
+#, python-format
+msgid "locale_dir %s does not exist"
+msgstr "locale_dir %s no existeix"
+
+#: sphinx/util/i18n.py:215
+#, python-format
+msgid ""
+"Invalid date format. Quote the string by single quote if you want to output "
+"it directly: %s"
+msgstr "Format de data no vàlid. Citeu la cadena amb cometes senzilles si voleu generar-la directament: %s"
+
+#: sphinx/util/nodes.py:386
+#, python-format
+msgid ""
+"%r is deprecated for index entries (from entry %r). Use 'pair: %s' instead."
+msgstr "%r està en desús per a les entrades d'índex (des de l'entrada %r). En el seu lloc useu «pair: %s»."
+
+#: sphinx/util/nodes.py:439
+#, python-format
+msgid "toctree contains ref to nonexisting file %r"
+msgstr "el toctree conté una referència cap al fitxer %r que no existeix"
+
+#: sphinx/util/nodes.py:637
+#, python-format
+msgid "exception while evaluating only directive expression: %s"
+msgstr "excepció mentre només s'avaluava l'expressió directiva: %s"
+
+#: sphinx/util/rst.py:71
+#, python-format
+msgid "default role %s not found"
+msgstr "no s'ha trobat el rol predeterminat %s"
+
+#: sphinx/writers/html5.py:100 sphinx/writers/html5.py:109
+msgid "Link to this definition"
+msgstr "Enllaça amb aquesta definició"
+
+#: sphinx/writers/html5.py:397
+#, python-format
+msgid "numfig_format is not defined for %s"
+msgstr "numfig_format no s'ha definit per a %s"
+
+#: sphinx/writers/html5.py:407
+#, python-format
+msgid "Any IDs not assigned for %s node"
+msgstr "Qualsevol ID no assignat per al node %s"
+
+#: sphinx/writers/html5.py:462
+msgid "Link to this term"
+msgstr "Enllaça amb aquest terme"
+
+#: sphinx/writers/html5.py:496 sphinx/writers/html5.py:501
+msgid "Link to this heading"
+msgstr "Enllaça amb aquesta capçalera"
+
+#: sphinx/writers/html5.py:505
+msgid "Link to this table"
+msgstr "Enllaça amb aquesta taula"
+
+#: sphinx/writers/html5.py:548
+msgid "Link to this code"
+msgstr "Enllaça amb aquest codi"
+
+#: sphinx/writers/html5.py:550
+msgid "Link to this image"
+msgstr "Enllaça amb aquesta imatge"
+
+#: sphinx/writers/html5.py:552
+msgid "Link to this toctree"
+msgstr "Enllaça amb aquest toctree"
+
+#: sphinx/writers/html5.py:688
+msgid "Could not obtain image size. :scale: option is ignored."
+msgstr "No s'ha pogut obtenir la mida de la imatge. S'ignora l'opció «:scale:»."
+
+#: sphinx/writers/latex.py:335
+#, python-format
+msgid "unknown %r toplevel_sectioning for class %r"
+msgstr "%r toplevel_sectioning desconegut per a la classe %r"
+
+#: sphinx/writers/latex.py:386
+msgid "too large :maxdepth:, ignored."
+msgstr ":maxdepth: massa gran, s'ignora."
+
+#: sphinx/writers/latex.py:625
+msgid "document title is not a single Text node"
+msgstr "el títol del document no és només un node de text"
+
+#: sphinx/writers/latex.py:656 sphinx/writers/texinfo.py:626
+msgid ""
+"encountered title node not in section, topic, table, admonition or sidebar"
+msgstr "el node del títol no s'ha trobat en la secció, tema, taula, advertiment o nota al marge"
+
+#: sphinx/writers/latex.py:959 sphinx/writers/manpage.py:259
+#: sphinx/writers/texinfo.py:641
+msgid "Footnotes"
+msgstr "Notes al peu"
+
+#: sphinx/writers/latex.py:1028
+msgid ""
+"both tabularcolumns and :widths: option are given. :widths: is ignored."
+msgstr "s'indiquen tant les columnes tabulars com l'opció «:widths:». S'ignora l'opció «:widths:»."
+
+#: sphinx/writers/latex.py:1388
+#, python-format
+msgid "dimension unit %s is invalid. Ignored."
+msgstr "la unitat de dimensió %s no és vàlida. S'ignora."
+
+#: sphinx/writers/latex.py:1722
+#, python-format
+msgid "unknown index entry type %s found"
+msgstr "s'ha trobat el tipus d'entrada %s amb un índex desconegut"
+
+#: sphinx/writers/manpage.py:305 sphinx/writers/text.py:907
+#, python-format
+msgid "[image: %s]"
+msgstr "[imatge: %s]"
+
+#: sphinx/writers/manpage.py:306 sphinx/writers/text.py:908
+msgid "[image]"
+msgstr "[imatge]"
+
+#: sphinx/writers/texinfo.py:1197
+msgid "caption not inside a figure."
+msgstr "el subtítol no es troba dins d'una figura."
+
+#: sphinx/writers/texinfo.py:1284
+#, python-format
+msgid "unimplemented node type: %r"
+msgstr "tipus de node sense implementar: %r"

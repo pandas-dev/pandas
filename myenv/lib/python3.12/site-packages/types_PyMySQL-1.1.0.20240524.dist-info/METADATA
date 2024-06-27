@@ -1,0 +1,41 @@
+Metadata-Version: 2.1
+Name: types-PyMySQL
+Version: 1.1.0.20240524
+Summary: Typing stubs for PyMySQL
+Home-page: https://github.com/python/typeshed
+License: Apache-2.0 license
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/PyMySQL.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+## Typing stubs for PyMySQL
+
+This is a [PEP 561](https://peps.python.org/pep-0561/)
+type stub package for the [`PyMySQL`](https://github.com/PyMySQL/PyMySQL) package.
+It can be used by type-checking tools like
+[mypy](https://github.com/python/mypy/),
+[pyright](https://github.com/microsoft/pyright),
+[pytype](https://github.com/google/pytype/),
+PyCharm, etc. to check code that uses
+`PyMySQL`.
+
+This version of `types-PyMySQL` aims to provide accurate annotations
+for `PyMySQL==1.1.*`.
+The source for this package can be found at
+https://github.com/python/typeshed/tree/main/stubs/PyMySQL. All fixes for
+types and metadata should be contributed there.
+
+This stub package is marked as [partial](https://peps.python.org/pep-0561/#partial-stub-packages).
+If you find that annotations are missing, feel free to contribute and help complete them.
+
+
+See https://github.com/python/typeshed/blob/main/README.md for more details.
+This package was generated from typeshed commit `ac6c61ba04c3d3abf476570de04a9afe7447890b` and was tested
+with mypy 1.10.0, pyright 1.1.364, and
+pytype 2024.4.11.

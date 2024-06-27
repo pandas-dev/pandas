@@ -1,0 +1,34 @@
+Metadata-Version: 2.1
+Name: fqdn
+Version: 1.5.1
+Summary: Validates fully-qualified domain names against RFC 1123, so that they are acceptable to modern bowsers
+Home-page: https://github.com/ypcrts/fqdn
+Author: ypcrts
+Author-email: ypcrts@users.noreply.github.com
+License: MPL 2.0
+Keywords: fqdn,domain,hostname,RFC3686,dns
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Internet :: Name Service (DNS)
+Classifier: Topic :: Internet
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Utilities
+Requires-Python: >=2.7, !=3.0, !=3.1, !=3.2, !=3.3, !=3.4, <4
+Requires-Dist: cached-property (>=1.3.0) ; python_version < "3.8"
+
+UNKNOWN
+
+

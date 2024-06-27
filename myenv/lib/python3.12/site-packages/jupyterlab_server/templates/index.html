@@ -1,0 +1,44 @@
+<!--
+  ~ Copyright (c) Jupyter Development Team.
+  ~ Distributed under the terms of the Modified BSD License.
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}{{page_title | escape }}{% endblock %}</title>
+
+    {% block stylesheet %} {% for css_file in css_files %}
+    <link href="{{ css_file | escape }}" rel="stylesheet" />
+    {% endfor %} {% endblock %} {# Copy so we do not modify the page_config with
+    updates. #} {% set page_config_full = page_config.copy() %} {# Set a dummy
+    variable - we just want the side effect of the update. #} {% set _ =
+    page_config_full.update(baseUrl=base_url, wsUrl=ws_url) %}
+
+    <script id="jupyter-config-data" type="application/json">
+      {{ page_config_full | tojson }}
+    </script>
+
+    {% block favicon %} {% endblock %} {% for js_file in js_files %}
+    <script
+      src="{{ js_file | escape }}"
+      type="text/javascript"
+      charset="utf-8"
+    ></script>
+    {% endfor %} {% block meta %} {% endblock %}
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      // Remove token from URL.
+      (function () {
+        var parsedUrl = new URL(window.location.href);
+        if (parsedUrl.searchParams.get("token")) {
+          parsedUrl.searchParams.delete("token");
+          window.history.replaceState({}, "", parsedUrl.href);
+        }
+      })();
+    </script>
+  </body>
+</html>

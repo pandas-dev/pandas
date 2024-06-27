@@ -1,0 +1,3 @@
+[console_scripts]
+moto_proxy = moto.proxy:main
+moto_server = moto.server:main

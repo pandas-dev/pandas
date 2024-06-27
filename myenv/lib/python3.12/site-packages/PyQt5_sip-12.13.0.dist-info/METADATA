@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: PyQt5-sip
+Version: 12.13.0
+Summary: The sip module support for PyQt5
+Home-page: https://www.riverbankcomputing.com/software/sip/
+Author: Riverbank Computing Limited
+Author-email: info@riverbankcomputing.com
+License: SIP
+Platform: X11
+Platform: macOS
+Platform: Windows
+Requires-Python: >=3.7
+License-File: LICENSE
+License-File: LICENSE-GPL2
+License-File: LICENSE-GPL3
+
+sip Extension Module
+====================
+
+The sip extension module provides support for the PyQt5 package.

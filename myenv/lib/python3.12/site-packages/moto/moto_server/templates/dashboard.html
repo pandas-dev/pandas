@@ -1,0 +1,188 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Moto</title>
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+    <style>
+        body {
+          padding-top: 70px;
+          padding-bottom: 30px;
+        }
+
+        .theme-dropdown .dropdown-menu {
+          position: static;
+          display: block;
+          margin-bottom: 20px;
+        }
+
+        .theme-showcase > p > .btn {
+          margin: 5px 0;
+        }
+
+        .theme-showcase .navbar .container {
+          width: auto;
+        }
+    </style>
+
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Moto</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#about" data-toggle="modal" data-target="#aboutModal">About</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container theme-showcase" role="main" id="main">
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.js"></script>
+
+
+    {% raw %}
+    <script id="template" type="text/x-handlebars-template">
+
+        <ul id="myTab" class="nav nav-pills">
+        {{#each data}}
+          <li {{#if @first}}class="active"{{/if}}><a href="#{{this.name}}" data-toggle="tab">{{this.name}}</a></li>
+        {{/each}}
+        </ul>
+
+        <div id="myTabContent" class="tab-content">
+        {{#each data}}
+          <div class="tab-pane fade {{#if @first}}in active{{/if}}" id="{{this.name}}">
+
+            {{#each this}}
+            {{#unless @last}} <!-- Skip name key -->
+            <div class="page-header">
+                <h3>{{@key}}</h3>
+            </div>
+
+            <div class="row">
+            <div class="col-md-12">
+                <table class="table table-striped table-bordered table-condensed">
+                    {{#each this}}
+                    <tr>
+                        {{#each this}}
+                        <td>{{@key}}: {{{json this}}}</td>
+                        {{/each}}
+                    </tr>
+                    {{else}}
+                    <tr><td>[]</td></tr>
+                    {{/each}}
+                </table>
+                </div>
+            </div>
+            {{/unless}}
+            {{/each}}
+          </div>
+
+        {{/each}}
+        </div>
+
+    </script>
+    <script>
+        sortObject = function(obj) {
+            if ($.isArray(obj)) {
+                var result = [];
+                $.each(obj, function(index, array_item) {
+                    result.push(sortObject(array_item));
+                })
+                return result;
+            }
+
+            if (!$.isPlainObject(obj)) {
+                return obj;
+            }
+
+            var keys = $.map(obj, function(element,index) {return index});
+            keys.sort();
+            var len = keys.length;
+
+            var result = {};
+            $.each(keys, function(index, key) {
+              var val = obj[key];
+              result[key] = sortObject(val);
+            })
+            return result;
+        }
+
+
+        flattenAndSortObject = function(obj) {
+            if (!$.isPlainObject(obj)) {
+                return obj;
+            }
+
+            var keys = $.map(obj, function(element,index) {return index});
+            keys.sort();
+            var len = keys.length;
+
+            var result = [];
+            $.each(keys, function(index, key) {
+              var val = obj[key];
+              val.name = key;
+              result.push(sortObject(val));
+            })
+            return result;
+        }
+
+        $(document).ready(function (){
+            Handlebars.registerHelper("json", function (context) {
+              return JSON.stringify(context);
+            });
+            $.getJSON("/moto-api/data.json", function(data) {
+                var source = $('#template').html();
+                var template = Handlebars.compile(source);
+
+                data = flattenAndSortObject(data);
+                $('#main').append(template({"data": data}));
+            });
+
+        })
+    </script>
+    {% endraw %}
+
+    <!-- Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">About Moto</h4>
+          </div>
+          <div class="modal-body">
+            <p>Moto was created by <a href="https://twitter.com/spulec">Steve Pulec</a> and <a href="https://github.com/getmoto/moto/blob/master/AUTHORS.md">many other contributors</a>.</p>
+
+            <p>Please open any issues <a href="https://github.com/getmoto/moto/issues">here</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>

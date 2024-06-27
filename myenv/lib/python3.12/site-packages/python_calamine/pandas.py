@@ -1,0 +1,136 @@
+from __future__ import annotations
+
+from datetime import date, datetime, time, timedelta
+from importlib.metadata import version
+from typing import TYPE_CHECKING, Union, cast
+
+import pandas as pd
+from packaging.version import Version, parse
+from pandas._typing import Scalar
+from pandas.compat._optional import import_optional_dependency
+from pandas.core.shared_docs import _shared_docs
+from pandas.io.excel import ExcelFile
+from pandas.io.excel._base import (  # type:ignore[attr-defined] # missing in pandas-stubs
+    BaseExcelReader,
+)
+from pandas.util._decorators import (  # type:ignore[attr-defined] # missing in pandas-stubs
+    doc,
+)
+
+if TYPE_CHECKING:
+    from pandas._typing import FilePath, ReadBuffer, StorageOptions
+    from python_calamine import CalamineSheet, CalamineWorkbook
+
+_CellValueT = Union[int, float, str, bool, time, date, datetime, timedelta]
+
+
+PANDAS_VERSION = parse(version("pandas"))
+
+
+class CalamineExcelReader(BaseExcelReader):
+    book: CalamineWorkbook
+
+    @doc(storage_options=_shared_docs["storage_options"])
+    def __init__(
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
+    ) -> None:
+        """
+        Reader using calamine engine (xlsx/xls/xlsb/ods).
+
+        Parameters
+        ----------
+        filepath_or_buffer : str, path to be parsed or
+            an open readable stream.
+        {storage_options}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+        """
+        import_optional_dependency("python_calamine")
+        if PANDAS_VERSION >= Version("2.2.0"):
+            raise ValueError("Pandas >= 2.2.0 has builtin support of calamine")
+        elif PANDAS_VERSION >= Version("2.1.0"):
+            super().__init__(
+                filepath_or_buffer,
+                storage_options=storage_options,
+                engine_kwargs=engine_kwargs,
+            )
+        elif PANDAS_VERSION >= Version("2.0.0"):
+            super().__init__(
+                filepath_or_buffer,
+                storage_options=storage_options,
+            )
+        else:
+            raise ValueError("Pandas >= 2 is only supported")
+
+    @property
+    def _workbook_class(self) -> type[CalamineWorkbook]:
+        from python_calamine import CalamineWorkbook
+
+        return CalamineWorkbook
+
+    def load_workbook(
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        engine_kwargs: dict | None = None,
+    ) -> CalamineWorkbook:
+        from python_calamine import load_workbook
+
+        return load_workbook(filepath_or_buffer, **(engine_kwargs or {}))
+
+    @property
+    def sheet_names(self) -> list[str]:
+        from python_calamine import SheetTypeEnum
+
+        return [
+            sheet.name
+            for sheet in self.book.sheets_metadata
+            if sheet.typ == SheetTypeEnum.WorkSheet
+        ]
+
+    def get_sheet_by_name(self, name: str) -> CalamineSheet:
+        self.raise_if_bad_sheet_by_name(name)
+        return self.book.get_sheet_by_name(name)
+
+    def get_sheet_by_index(self, index: int) -> CalamineSheet:
+        self.raise_if_bad_sheet_by_index(index)
+        return self.book.get_sheet_by_index(index)
+
+    def get_sheet_data(
+        self, sheet: CalamineSheet, file_rows_needed: int | None = None
+    ) -> list[list[Scalar]]:
+        def _convert_cell(value: _CellValueT) -> Scalar:
+            if isinstance(value, float):
+                val = int(value)
+                if val == value:
+                    return val
+                else:
+                    return value
+            elif isinstance(value, date):
+                return pd.Timestamp(value)
+            elif isinstance(value, timedelta):
+                return pd.Timedelta(value)
+            elif isinstance(value, time):
+                # cast needed here because Scalar doesn't include datetime.time
+                return cast(Scalar, value)
+
+            return value
+
+        rows: list[list[_CellValueT]] = sheet.to_python(skip_empty_area=False)
+        data: list[list[Scalar]] = []
+
+        for row in rows:
+            data.append([_convert_cell(cell) for cell in row])
+            if file_rows_needed is not None and len(data) >= file_rows_needed:
+                break
+
+        return data
+
+
+def pandas_monkeypatch() -> None:
+    ExcelFile._engines = {  # type:ignore[attr-defined] # missing in pandas-stubs
+        "calamine": CalamineExcelReader,
+        **ExcelFile._engines,  # type:ignore[attr-defined] # missing in pandas-stubs
+    }

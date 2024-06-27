@@ -62,6 +62,14 @@ if TYPE_CHECKING:
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
+branch_coverage_sort_values = {
+    "sort_values_1": False,
+    "sort_values_2": False,
+    "sort_values_3": False,
+    "sort_values_4": False,
+    "sort_values_5": False,
+    "sort_values_6": False,
+}
 
 class RangeIndex(Index):
     """
@@ -599,11 +607,13 @@ class RangeIndex(Index):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: NaPosition = "last",
+        na_position: "NaPosition" = "last",
         key: Callable | None = None,
-    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
+    ) -> tuple[Self | tuple[Self, np.ndarray | "RangeIndex"], dict]:
+
         if key is not None:
-            return super().sort_values(
+            branch_coverage_sort_values["sort_values_1"] = True
+            result = super().sort_values(
                 return_indexer=return_indexer,
                 ascending=ascending,
                 na_position=na_position,
@@ -616,20 +626,27 @@ class RangeIndex(Index):
                 if self.step < 0:
                     sorted_index = self[::-1]
                     inverse_indexer = True
+                    branch_coverage_sort_values["sort_values_2"] = True
             else:
                 if self.step > 0:
                     sorted_index = self[::-1]
                     inverse_indexer = True
+                    branch_coverage_sort_values["sort_values_3"] = True
 
         if return_indexer:
             if inverse_indexer:
                 rng = range(len(self) - 1, -1, -1)
+                branch_coverage_sort_values["sort_values_4"] = True
             else:
                 rng = range(len(self))
-            return sorted_index, RangeIndex(rng)
+                branch_coverage_sort_values["sort_values_5"] = True
+            result = (sorted_index, RangeIndex(rng))
         else:
-            return sorted_index
+            branch_coverage_sort_values["sort_values_6"] = True
+            result = sorted_index
 
+        # Return the result along with branch coverage
+        return result, branch_coverage_sort_values
     # --------------------------------------------------------------------
     # Set Operations
 

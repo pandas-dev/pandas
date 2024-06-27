@@ -1,0 +1,23 @@
+{% set header_classes = ["bd-header-announcement", "container-fluid"] %}
+{% set is_remote=theme_announcement.startswith("http") %}
+{# If we are remote, add a script to make an HTTP request for the value on page load #}
+{%- if is_remote %}
+<script>
+document.write(`<div class="bd-header-announcement"></div>`);
+fetch("{{ theme_announcement }}")
+  .then(res => {return res.text();})
+  .then(data => {
+    div = document.querySelector(".bd-header-announcement");
+    div.classList.add(...{{ header_classes | tojson }});
+    div.innerHTML = `<div class="bd-header-announcement__content">${data}</div>`;
+  })
+  .catch(error => {
+    console.log("[PST]: Failed to load announcement at: {{ theme_announcement }}");
+  });
+</script>
+{#- if announcement text is not remote, populate announcement w/ local content -#}
+{%- else %}
+  <div class="{{ header_classes | join(' ') }} bd-header-announcement">
+    <div class="bd-header-announcement__content">{{ theme_announcement }}</div>
+  </div>
+{% endif %}

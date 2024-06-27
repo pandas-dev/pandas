@@ -1,0 +1,21 @@
+table.citation {
+    border: none;
+    margin-left: 2em;
+}
+
+table.citation td {
+    border: none !important;
+    padding: 0 !important;
+}
+
+table.citation td.label {
+    color: inherit;
+    vertical-align: baseline;
+    margin-right: 1em;
+    font: inherit;
+}
+
+ul.credits-list {
+    column-width: 13em;
+    list-style: none;
+}

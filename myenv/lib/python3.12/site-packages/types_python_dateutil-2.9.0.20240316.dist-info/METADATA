@@ -1,0 +1,41 @@
+Metadata-Version: 2.1
+Name: types-python-dateutil
+Version: 2.9.0.20240316
+Summary: Typing stubs for python-dateutil
+Home-page: https://github.com/python/typeshed
+License: Apache-2.0 license
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/python-dateutil.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+## Typing stubs for python-dateutil
+
+This is a [PEP 561](https://peps.python.org/pep-0561/)
+type stub package for the [`python-dateutil`](https://github.com/dateutil/dateutil) package.
+It can be used by type-checking tools like
+[mypy](https://github.com/python/mypy/),
+[pyright](https://github.com/microsoft/pyright),
+[pytype](https://github.com/google/pytype/),
+PyCharm, etc. to check code that uses
+`python-dateutil`.
+
+This version of `types-python-dateutil` aims to provide accurate annotations
+for `python-dateutil==2.9.*`.
+The source for this package can be found at
+https://github.com/python/typeshed/tree/main/stubs/python-dateutil. All fixes for
+types and metadata should be contributed there.
+
+This stub package is marked as [partial](https://peps.python.org/pep-0561/#partial-stub-packages).
+If you find that annotations are missing, feel free to contribute and help complete them.
+
+
+See https://github.com/python/typeshed/blob/main/README.md for more details.
+This package was generated from typeshed commit `82d84c758cbfb3ebe8bed63b39354da21e0d3794` and was tested
+with mypy 1.9.0, pyright 1.1.354, and
+pytype 2024.3.11.

@@ -1,0 +1,3 @@
+distutils-stubs
+pkg_resources-stubs
+setuptools-stubs

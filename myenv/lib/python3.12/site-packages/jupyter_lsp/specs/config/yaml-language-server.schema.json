@@ -1,0 +1,108 @@
+{
+  "title": "YAML language server configuration",
+  "type": "object",
+  "properties": {
+    "yamlVersion": {
+      "type": "string",
+      "default": "1.2",
+      "description": "Set default YAML spec version (1.2 or 1.1)"
+    },
+    "yaml.trace.server": {
+      "type": "string",
+      "enum": ["off", "messages", "verbose"],
+      "default": "off",
+      "description": "Traces the communication between the client and the YAML language service."
+    },
+    "yaml.schemas": {
+      "type": "object",
+      "default": {},
+      "description": "Associate schemas to YAML files in the current workspace"
+    },
+    "yaml.format.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable/disable default YAML formatter (requires restart)"
+    },
+    "yaml.format.singleQuote": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use single quotes instead of double quotes"
+    },
+    "yaml.format.bracketSpacing": {
+      "type": "boolean",
+      "default": true,
+      "description": "Print spaces between brackets in objects"
+    },
+    "yaml.format.proseWrap": {
+      "type": "string",
+      "default": "preserve",
+      "enum": ["preserve", "never", "always"],
+      "description": "Always: wrap prose if it exeeds the print width, Never: never wrap the prose, Preserve: wrap prose as-is"
+    },
+    "yaml.format.printWidth": {
+      "type": "integer",
+      "default": 80,
+      "description": "Specify the line length that the printer will wrap on"
+    },
+    "yaml.validate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable/disable validation feature"
+    },
+    "yaml.hover": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable/disable hover feature"
+    },
+    "yaml.completion": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable/disable completion feature"
+    },
+    "yaml.customTags": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Custom tags for the parser to use"
+    },
+    "yaml.schemaStore.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically pull available YAML schemas from JSON Schema Store"
+    },
+    "yaml.schemaStore.url": {
+      "type": "string",
+      "default": "",
+      "description": "URL of a schema store catalog to use when downloading schemas."
+    },
+    "yaml.maxItemsComputed": {
+      "type": "integer",
+      "default": 5000,
+      "minimum": 0,
+      "description": "The maximum number of outline symbols and folding regions computed (limited for performance reasons)."
+    },
+    "editor.tabSize": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 0,
+      "description": "The number of spaces to use when autocompleting"
+    },
+    "http.proxy": {
+      "type": "string",
+      "default": "",
+      "description": "The URL of the proxy server that will be used when attempting to download a schema. If it is not set or it is undefined no proxy server will be used."
+    },
+    "http.proxyStrictSSL": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true the proxy server certificate should be verified against the list of supplied CAs."
+    },
+    "yaml.disableDefaultProperties": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable adding not required properties with default values into completion text"
+    }
+  }
+}

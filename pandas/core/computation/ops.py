@@ -486,11 +486,12 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
+                # This branch is already covered by convert_values_4 logic
             v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
+                # This branch is already covered by convert_values_5 logic
             self.lhs.update(v)
-
     def _disallow_scalar_only_bool_ops(self):
         rhs = self.rhs
         lhs = self.lhs

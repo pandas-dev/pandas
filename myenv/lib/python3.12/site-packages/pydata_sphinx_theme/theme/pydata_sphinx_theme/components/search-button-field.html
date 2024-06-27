@@ -1,0 +1,13 @@
+{# Behaves the same as `search-button.html` but looks more like a search field.
+  #
+  # As this function will only work when JavaScript is enabled, we add it through JavaScript.
+  #}
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="{{ _('Search') }}" aria-label="{{ _('Search') }}" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__kbd-shortcut">{{ _('Search') }}</span>
+    <span><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>

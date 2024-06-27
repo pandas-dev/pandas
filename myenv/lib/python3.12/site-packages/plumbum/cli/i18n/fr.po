@@ -1,0 +1,233 @@
+# French Translations for PACKAGE package.
+# Traduction francaise du paquet PACKAGE.
+# Copyright (C) 2017 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Joel Closier <joel.closier@cern.ch>, 2017.
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-10-05 22:39-0400\n"
+"PO-Revision-Date: 2017-10-14 15:04+0200\n"
+"Last-Translator: Joel Closier <joel.closier@cern.ch>\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: plumbum/cli/application.py:69
+#, python-brace-format
+msgid "Subcommand({self.name}, {self.subapplication})"
+msgstr "Sous-commande({self.name}, {self.subapplication})"
+
+#: plumbum/cli/application.py:73
+msgid "Switches"
+msgstr "Options"
+
+#: plumbum/cli/application.py:73
+msgid "Meta-switches"
+msgstr "Meta-options"
+
+#: plumbum/cli/application.py:163
+#, python-brace-format
+msgid "see '{parent} {sub} --help' for more info"
+msgstr "voir '{parent} {sub} --help' pour plus d'information"
+
+#: plumbum/cli/application.py:220
+#, fuzzy
+msgid "Sub-command names cannot start with '-'"
+msgstr "le nom des Sous-commandes ne peut pas commencer avec '-' "
+
+#: plumbum/cli/application.py:238
+#, fuzzy, python-brace-format
+msgid "Switch {name} already defined and is not overridable"
+msgstr "Option {name} est déjà définie et ne peut pas être sur-écrite"
+
+#: plumbum/cli/application.py:343
+#, python-brace-format
+msgid "Ambiguous partial switch {0}"
+msgstr ""
+
+#: plumbum/cli/application.py:348 plumbum/cli/application.py:373
+#: plumbum/cli/application.py:389
+#, python-brace-format
+msgid "Unknown switch {0}"
+msgstr "Option inconnue {0}"
+
+#: plumbum/cli/application.py:353 plumbum/cli/application.py:362
+#: plumbum/cli/application.py:381
+#, python-brace-format
+msgid "Switch {0} requires an argument"
+msgstr "Option {0} nécessite un argument"
+
+#: plumbum/cli/application.py:401
+#, python-brace-format
+msgid "Switch {0} already given"
+msgstr "Option {0} déjà donnée"
+
+#: plumbum/cli/application.py:403
+#, python-brace-format
+msgid "Switch {0} already given ({1} is equivalent)"
+msgstr "Option {0} déjà donnée ({1} est équivalent)"
+
+#: plumbum/cli/application.py:451
+msgid ""
+"Argument of {name} expected to be {argtype}, not {val!r}:\n"
+"    {ex!r}"
+msgstr ""
+"Argument de {name} doit être {argtype} , et non {val!r}:\n"
+"    {ex!r}"
+
+#: plumbum/cli/application.py:470
+#, python-brace-format
+msgid "Switch {0} is mandatory"
+msgstr "Option {0} obligatoire"
+
+#: plumbum/cli/application.py:490
+#, python-brace-format
+msgid "Given {0}, the following are missing {1}"
+msgstr "Etant donné {0}, ce qui suit est manquant {1}"
+
+#: plumbum/cli/application.py:498
+#, python-brace-format
+msgid "Given {0}, the following are invalid {1}"
+msgstr "Etant donné {0}, ce qui suit est invalide {1}"
+
+#: plumbum/cli/application.py:515
+#, python-brace-format
+msgid "Expected at least {0} positional argument, got {1}"
+msgid_plural "Expected at least {0} positional arguments, got {1}"
+msgstr[0] "Au moins {0} argument de position attendu, reçu {0}"
+msgstr[1] "Au moins {0} arguments de position, reçu {0}"
+
+#: plumbum/cli/application.py:523
+#, python-brace-format
+msgid "Expected at most {0} positional argument, got {1}"
+msgid_plural "Expected at most {0} positional arguments, got {1}"
+msgstr[0] "Au plus {0} argument de position attendu, reçu {0}"
+msgstr[1] "Au plus {0} arguments de position, reçu {0}"
+
+#: plumbum/cli/application.py:624
+#, python-brace-format
+msgid "Error: {0}"
+msgstr "Erreur: {0}"
+
+#: plumbum/cli/application.py:625 plumbum/cli/application.py:711
+#: plumbum/cli/application.py:716
+msgid "------"
+msgstr "------"
+
+#: plumbum/cli/application.py:694
+#, python-brace-format
+msgid "Switch {0} must be a sequence (iterable)"
+msgstr "Option {0} doit être une séquence (itérable)"
+
+#: plumbum/cli/application.py:699
+#, python-brace-format
+msgid "Switch {0} is a boolean flag"
+msgstr "Option {0} est un booléen"
+
+#: plumbum/cli/application.py:710
+#, python-brace-format
+msgid "Unknown sub-command '{0}'"
+msgstr "Sous-commande inconnue '{0}'"
+
+#: plumbum/cli/application.py:715
+msgid "No sub-command given"
+msgstr "Pas de sous-commande donnée"
+
+#: plumbum/cli/application.py:721
+msgid "main() not implemented"
+msgstr "main() n'est pas implémenté"
+
+#: plumbum/cli/application.py:734
+#, fuzzy
+msgid "Prints help messages of all sub-commands and quits"
+msgstr "Imprime les messages d'aide de toutes les sous-commandes et sort"
+
+#: plumbum/cli/application.py:754
+msgid "Prints this help message and quits"
+msgstr "Imprime ce message d'aide et sort"
+
+#: plumbum/cli/application.py:877
+msgid "Usage:"
+msgstr "Utilisation:"
+
+#: plumbum/cli/application.py:883
+#, python-brace-format
+msgid "    {progname} [SWITCHES] [SUBCOMMAND [SWITCHES]] {tailargs}\n"
+msgstr "    {progname} [OPTIONS] [SOUS_COMMANDE [OPTIONS]] {tailargs}\n"
+
+#: plumbum/cli/application.py:886
+#, python-brace-format
+msgid "    {progname} [SWITCHES] {tailargs}\n"
+msgstr "    {progname} [OPTIONS] {tailargs}\n"
+
+#: plumbum/cli/application.py:936
+msgid "; may be given multiple times"
+msgstr "; peut être fourni plusieurs fois"
+
+#: plumbum/cli/application.py:938
+msgid "; required"
+msgstr "; nécessaire"
+
+#: plumbum/cli/application.py:940
+#, python-brace-format
+msgid "; requires {0}"
+msgstr "; nécessite {0}"
+
+#: plumbum/cli/application.py:947
+#, python-brace-format
+msgid "; excludes {0}"
+msgstr "; exclut {0}"
+
+#: plumbum/cli/application.py:966
+#, fuzzy
+msgid "Sub-commands:"
+msgstr "Sous-Commandes:"
+
+#: plumbum/cli/application.py:1014
+msgid "Prints the program's version and quits"
+msgstr "Imprime la version du programme et sort"
+
+#: plumbum/cli/application.py:1019
+msgid "(version not set)"
+msgstr "(version non définie)"
+
+#: plumbum/cli/switches.py:167 plumbum/cli/switches.py:225
+msgid "VALUE"
+msgstr "VALEUR"
+
+#: plumbum/cli/switches.py:238
+#, python-brace-format
+msgid "; the default is {0}"
+msgstr "; la valeur par défaut est {0}"
+
+#: plumbum/cli/switches.py:437
+#, python-brace-format
+msgid "Not in range [{0:d}..{1:d}]"
+msgstr "Pas dans la chaîne [{0:d}..{1:d}]"
+
+#: plumbum/cli/switches.py:546
+#, python-brace-format
+msgid "{0} is not a directory"
+msgstr "{0} n'est pas un répertoire"
+
+#: plumbum/cli/switches.py:565
+#, python-brace-format
+msgid "{0} is not a file"
+msgstr "{0} n'est pas un fichier"
+
+#: plumbum/cli/switches.py:574
+#, python-brace-format
+msgid "{0} already exists"
+msgstr "{0} existe déjà"
+
+#, python-brace-format
+#~ msgid "got unexpected keyword argument(s): {0}"
+#~ msgstr "mot-clé inconnu donné comme argument: {0}"
+
+#, python-brace-format
+#~ msgid "Expected one of {0}"
+#~ msgstr "un des {0} attendu"

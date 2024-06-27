@@ -1,0 +1,3752 @@
+# Translations template for Sphinx.
+# Copyright (C) 2024 ORGANIZATION
+# This file is distributed under the same license as the Sphinx project.
+# 
+# Translators:
+# Julien Malard <julien.malard@mail.mcgill.ca>, 2019
+msgid ""
+msgstr ""
+"Project-Id-Version: Sphinx\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2024-04-14 23:27+0000\n"
+"PO-Revision-Date: 2013-04-02 08:44+0000\n"
+"Last-Translator: Julien Malard <julien.malard@mail.mcgill.ca>, 2019\n"
+"Language-Team: Tamil (http://app.transifex.com/sphinx-doc/sphinx-1/language/ta/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+"Language: ta\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: sphinx/application.py:157
+#, python-format
+msgid "Cannot find source directory (%s)"
+msgstr "மூல கோப்பகத்தை (%கள்) கண்டுபிடிக்க முடியவில்லை"
+
+#: sphinx/application.py:161
+#, python-format
+msgid "Output directory (%s) is not a directory"
+msgstr "வெளியீட்டு அடைவு (%கள்) ஒரு அடைவு அல்ல"
+
+#: sphinx/application.py:165
+msgid "Source directory and destination directory cannot be identical"
+msgstr "மூல அடைவு மற்றும் இலக்கு அடைவு ஒரே மாதிரியாக இருக்க முடியாது"
+
+#: sphinx/application.py:197
+#, python-format
+msgid "Running Sphinx v%s"
+msgstr "இயங்கும் Sphinx v%s"
+
+#: sphinx/application.py:219
+#, python-format
+msgid ""
+"This project needs at least Sphinx v%s and therefore cannot be built with "
+"this version."
+msgstr "இந்த திட்டத்திற்கு குறைந்தபட்சம் ஸ்பின்க்ஸ் வி%கள் தேவை, எனவே இந்த பதிப்பில் உருவாக்க முடியாது."
+
+#: sphinx/application.py:235
+msgid "making output directory"
+msgstr "வெளியீட்டு கோப்பகத்தை உருவாக்குதல்"
+
+#: sphinx/application.py:240 sphinx/registry.py:450
+#, python-format
+msgid "while setting up extension %s:"
+msgstr "நீட்டிப்பு %s ஐ அமைக்கும் போது:"
+
+#: sphinx/application.py:246
+msgid ""
+"'setup' as currently defined in conf.py isn't a Python callable. Please "
+"modify its definition to make it a callable function. This is needed for "
+"conf.py to behave as a Sphinx extension."
+msgstr "தற்போது conf.py இல் வரையறுக்கப்பட்டுள்ளபடி 'அமைவு' ஒரு பைதான் அழைக்கக்கூடியது அல்ல. அதை அழைக்கக்கூடிய செயல்பாடாக மாற்ற அதன் வரையறையை மாற்றவும். Conf.py ஒரு ஸ்பிங்க்ஸ் நீட்டிப்பாக நடந்து கொள்ள இது தேவை."
+
+#: sphinx/application.py:277
+#, python-format
+msgid "loading translations [%s]... "
+msgstr "மொழிபெயர்ப்புகளை ஏற்றுகிறது [%கள்] ..."
+
+#: sphinx/application.py:294 sphinx/util/display.py:85
+msgid "done"
+msgstr "முடிந்தது"
+
+#: sphinx/application.py:296
+msgid "not available for built-in messages"
+msgstr "உள்ளமைக்கப்பட்ட செய்திகளுக்கு கிடைக்கவில்லை"
+
+#: sphinx/application.py:310
+msgid "loading pickled environment"
+msgstr "ஊறுகாய் சூழலை ஏற்றுகிறது"
+
+#: sphinx/application.py:318
+#, python-format
+msgid "failed: %s"
+msgstr "தோல்வியுற்றது: %கள்"
+
+#: sphinx/application.py:332
+msgid "No builder selected, using default: html"
+msgstr "இயல்புநிலையைப் பயன்படுத்தி பில்டர் தேர்ந்தெடுக்கப்படவில்லை: HTML"
+
+#: sphinx/application.py:365
+msgid "succeeded"
+msgstr "வெற்றி பெற்றார்"
+
+#: sphinx/application.py:366
+msgid "finished with problems"
+msgstr "சிக்கல்களுடன் முடிந்தது"
+
+#: sphinx/application.py:370
+#, python-format
+msgid "build %s, %s warning (with warnings treated as errors)."
+msgstr "%s, %s எச்சரிக்கையை உருவாக்குங்கள் (எச்சரிக்கைகள் பிழைகளாகக் கருதப்படுகின்றன)."
+
+#: sphinx/application.py:372
+#, python-format
+msgid "build %s, %s warnings (with warnings treated as errors)."
+msgstr "%s, %s எச்சரிக்கைகளை உருவாக்குங்கள் (எச்சரிக்கைகள் பிழைகளாகக் கருதப்படுகின்றன)."
+
+#: sphinx/application.py:375
+#, python-format
+msgid "build %s, %s warning."
+msgstr "%கள், %கள் எச்சரிக்கையை உருவாக்குங்கள்."
+
+#: sphinx/application.py:377
+#, python-format
+msgid "build %s, %s warnings."
+msgstr "%s, %s எச்சரிக்கைகளை உருவாக்குங்கள்."
+
+#: sphinx/application.py:381
+#, python-format
+msgid "build %s."
+msgstr "%s ஐ உருவாக்குங்கள்."
+
+#: sphinx/application.py:610
+#, python-format
+msgid "node class %r is already registered, its visitors will be overridden"
+msgstr "முனை வகுப்பு %ஆர் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது, அதன் பார்வையாளர்கள் மீறப்படுவார்கள்"
+
+#: sphinx/application.py:689
+#, python-format
+msgid "directive %r is already registered, it will be overridden"
+msgstr "டைரக்டிவ் %ஆர் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது, அது மீறப்படும்"
+
+#: sphinx/application.py:711 sphinx/application.py:733
+#, python-format
+msgid "role %r is already registered, it will be overridden"
+msgstr "பங்கு %ஆர் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது, அது மீறப்படும்"
+
+#: sphinx/application.py:1282
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel reading, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "இணையான வாசிப்புக்கு இது பாதுகாப்பாக இருந்தால் %கள் நீட்டிப்பு அறிவிக்கவில்லை, அது இல்லை என்று கருதி - தயவுசெய்து நீட்டிப்பு ஆசிரியரிடம் சரிபார்த்து அதை வெளிப்படையாகச் சொல்லுங்கள்"
+
+#: sphinx/application.py:1286
+#, python-format
+msgid "the %s extension is not safe for parallel reading"
+msgstr "இணையான வாசிப்புக்கு %கள் நீட்டிப்பு பாதுகாப்பானது அல்ல"
+
+#: sphinx/application.py:1289
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel writing, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr "இணையான எழுத்துக்கு பாதுகாப்பானதா என்று %கள் நீட்டிப்பு அறிவிக்கவில்லை, அது இல்லை என்று கருதி - தயவுசெய்து நீட்டிப்பு ஆசிரியரிடம் சரிபார்த்து அதை வெளிப்படையாகச் சொல்லுங்கள்"
+
+#: sphinx/application.py:1293
+#, python-format
+msgid "the %s extension is not safe for parallel writing"
+msgstr "இணையான எழுத்துக்கு %கள் நீட்டிப்பு பாதுகாப்பானது அல்ல"
+
+#: sphinx/application.py:1301 sphinx/application.py:1305
+#, python-format
+msgid "doing serial %s"
+msgstr "சீரியல் %கள் செய்வது"
+
+#: sphinx/config.py:309
+#, python-format
+msgid "config directory doesn't contain a conf.py file (%s)"
+msgstr "கட்டமைப்பு கோப்பகத்தில் ஒரு conf.py கோப்பு (%கள்) இல்லை"
+
+#: sphinx/config.py:318
+msgid ""
+"Invalid configuration value found: 'language = None'. Update your "
+"configuration to a valid language code. Falling back to 'en' (English)."
+msgstr "தவறான உள்ளமைவு மதிப்பு காணப்படுகிறது: 'மொழி = எதுவுமில்லை'. உங்கள் உள்ளமைவை செல்லுபடியாகும் மொழிக் குறியீட்டிற்கு புதுப்பிக்கவும். 'EN' (ஆங்கிலம்) க்கு மீண்டும் விழுகிறது."
+
+#: sphinx/config.py:341
+#, python-format
+msgid ""
+"cannot override dictionary config setting %r, ignoring (use %r to set "
+"individual elements)"
+msgstr "புறக்கணித்தல் (தனிப்பட்ட கூறுகளை அமைக்க %R ஐப் பயன்படுத்தவும்) அகராதி கட்டமைப்பு அமைப்பை மேலெழுத முடியாது)"
+
+#: sphinx/config.py:350
+#, python-format
+msgid "invalid number %r for config value %r, ignoring"
+msgstr "கட்டமைப்பு மதிப்புக்கு தவறான எண் %r, புறக்கணித்தல்"
+
+#: sphinx/config.py:355
+#, python-format
+msgid "cannot override config setting %r with unsupported type, ignoring"
+msgstr "புறக்கணிப்பு, ஆதரிக்கப்படாத வகையுடன் %r ஐ கட்டமைக்கும் கட்டமைப்பு அமைப்பை மீற முடியாது"
+
+#: sphinx/config.py:378
+#, python-format
+msgid "unknown config value %r in override, ignoring"
+msgstr "அறியப்படாத கட்டமைப்பு மதிப்பு %r மேலெழுதலில், புறக்கணிக்கிறது"
+
+#: sphinx/config.py:418
+#, python-format
+msgid "No such config value: %r"
+msgstr ""
+
+#: sphinx/config.py:440
+#, python-format
+msgid "Config value %r already present"
+msgstr "கட்டமைப்பு மதிப்பு %r ஏற்கனவே உள்ளது"
+
+#: sphinx/config.py:473
+#, python-format
+msgid "cannot cache unpickable configuration value: %r"
+msgstr ""
+
+#: sphinx/config.py:509
+#, python-format
+msgid "There is a syntax error in your configuration file: %s\n"
+msgstr "உங்கள் உள்ளமைவு கோப்பில் ஒரு தொடரியல் பிழை உள்ளது: %கள்"
+
+#: sphinx/config.py:512
+msgid ""
+"The configuration file (or one of the modules it imports) called sys.exit()"
+msgstr "Sys.exit () எனப்படும் உள்ளமைவு கோப்பு (அல்லது அது இறக்குமதி செய்யும் தொகுதிகளில் ஒன்று)"
+
+#: sphinx/config.py:519
+#, python-format
+msgid ""
+"There is a programmable error in your configuration file:\n"
+"\n"
+"%s"
+msgstr "உங்கள் உள்ளமைவு கோப்பில் நிரல்படுத்தக்கூடிய பிழை உள்ளது: \n\n %கள்"
+
+#: sphinx/config.py:540
+#, python-format
+msgid "Failed to convert %r to a set or tuple"
+msgstr ""
+
+#: sphinx/config.py:565
+#, python-format
+msgid ""
+"The config value `source_suffix' expects a string, list of strings, or "
+"dictionary. But `%r' is given."
+msgstr "கட்டமைப்பு மதிப்பு `source_suffix 'ஒரு சரம், சரங்களின் பட்டியல் அல்லது அகராதியை எதிர்பார்க்கிறது. ஆனால் `%r 'வழங்கப்படுகிறது."
+
+#: sphinx/config.py:585
+#, python-format
+msgid "Section %s"
+msgstr "பிரிவு %கள்"
+
+#: sphinx/config.py:586
+#, python-format
+msgid "Fig. %s"
+msgstr "படம். %கள்"
+
+#: sphinx/config.py:587
+#, python-format
+msgid "Table %s"
+msgstr "அட்டவணை %கள்"
+
+#: sphinx/config.py:588
+#, python-format
+msgid "Listing %s"
+msgstr "பட்டியல் %கள்"
+
+#: sphinx/config.py:663
+msgid ""
+"The config value `{name}` has to be a one of {candidates}, but `{current}` "
+"is given."
+msgstr "கட்டமைப்பு மதிப்பு `{பெயர்}` {வேட்பாளர்களில் ஒருவராக இருக்க வேண்டும், ஆனால் `{நடப்பு}` வழங்கப்படுகிறது."
+
+#: sphinx/config.py:687
+msgid ""
+"The config value `{name}' has type `{current.__name__}'; expected "
+"{permitted}."
+msgstr "கட்டமைப்பு மதிப்பு `{பெயர்} 'வகை` {நடப்பு .__ பெயர்__}'; எதிர்பார்க்கப்படுகிறது {அனுமதிக்கப்பட்டது}."
+
+#: sphinx/config.py:700
+msgid ""
+"The config value `{name}' has type `{current.__name__}', defaults to "
+"`{default.__name__}'."
+msgstr "கட்டமைப்பு மதிப்பு `{பெயர்} 'வகை` {நடப்பு .__ பெயர்__}', இயல்புநிலை `{இயல்புநிலை .__ பெயர்__} '."
+
+#: sphinx/config.py:711
+#, python-format
+msgid "primary_domain %r not found, ignored."
+msgstr "முதன்மை_ டொமைன் %r கண்டுபிடிக்கப்படவில்லை, புறக்கணிக்கப்படுகிறது."
+
+#: sphinx/config.py:723
+msgid ""
+"Since v2.0, Sphinx uses \"index\" as root_doc by default. Please add "
+"\"root_doc = 'contents'\" to your conf.py."
+msgstr "V2.0 என்பதால், SPHINX இயல்புநிலையாக \"குறியீட்டை\" ரூட்_டாக் பயன்படுத்துகிறது. உங்கள் conf.py இல் \"root_doc = 'பொருளடக்கம்'\" ஐச் சேர்க்கவும்."
+
+#: sphinx/events.py:64
+#, python-format
+msgid "Event %r already present"
+msgstr "நிகழ்வு %r ஏற்கனவே உள்ளது"
+
+#: sphinx/events.py:70
+#, python-format
+msgid "Unknown event name: %s"
+msgstr "தெரியாத நிகழ்வு பெயர்: %கள்"
+
+#: sphinx/events.py:109
+#, python-format
+msgid "Handler %r for event %r threw an exception"
+msgstr "நிகழ்வு %r க்கு ஹேண்ட்லர் %r ஒரு விதிவிலக்கை வீசினார்"
+
+#: sphinx/extension.py:55
+#, python-format
+msgid ""
+"The %s extension is required by needs_extensions settings, but it is not "
+"loaded."
+msgstr "%S நீட்டிப்பு தேவைகள்_எக்ஸ்டென்சன்ஸ் அமைப்புகளால் தேவைப்படுகிறது, ஆனால் அது ஏற்றப்படவில்லை."
+
+#: sphinx/extension.py:76
+#, python-format
+msgid ""
+"This project needs the extension %s at least in version %s and therefore "
+"cannot be built with the loaded version (%s)."
+msgstr "இந்த திட்டத்திற்கு குறைந்தபட்சம் %கள் பதிப்பு %s இல் நீட்டிப்பு தேவைப்படுகிறது, எனவே ஏற்றப்பட்ட பதிப்பு ( %கள்) உடன் உருவாக்க முடியாது."
+
+#: sphinx/highlighting.py:155
+#, python-format
+msgid "Pygments lexer name %r is not known"
+msgstr "பைக்மென்ட் லெக்ஸர் பெயர் %ஆர் அறியப்படவில்லை"
+
+#: sphinx/highlighting.py:189
+#, python-format
+msgid ""
+"Lexing literal_block %r as \"%s\" resulted in an error at token: %r. "
+"Retrying in relaxed mode."
+msgstr "\" %S\" என லெக்சிங் literal_block %r டோக்கனில் பிழை ஏற்பட்டது: %r. தளர்வான பயன்முறையில் மீண்டும் முயற்சிப்பது."
+
+#: sphinx/project.py:66
+#, python-format
+msgid ""
+"multiple files found for the document \"%s\": %r\n"
+"Use %r for the build."
+msgstr "\" %s\" ஆவணத்திற்கு பல கோப்புகள் காணப்படுகின்றன: %r \n உருவாக்க %R ஐப் பயன்படுத்தவும்."
+
+#: sphinx/project.py:81
+#, python-format
+msgid "Ignored unreadable document %r."
+msgstr "படிக்க முடியாத ஆவணம் %r ஐ புறக்கணித்தது."
+
+#: sphinx/registry.py:142
+#, python-format
+msgid "Builder class %s has no \"name\" attribute"
+msgstr "பில்டர் வகுப்பு %எஸ் \"பெயர்\" பண்புக்கூறு இல்லை"
+
+#: sphinx/registry.py:144
+#, python-format
+msgid "Builder %r already exists (in module %s)"
+msgstr "பில்டர் %ஆர் ஏற்கனவே உள்ளது (தொகுதி %கள்)"
+
+#: sphinx/registry.py:157
+#, python-format
+msgid "Builder name %s not registered or available through entry point"
+msgstr "பில்டர் பெயர் %எஸ் பதிவு செய்யப்படவில்லை அல்லது நுழைவு புள்ளி மூலம் கிடைக்கவில்லை"
+
+#: sphinx/registry.py:164
+#, python-format
+msgid "Builder name %s not registered"
+msgstr "பில்டர் பெயர் %கள் பதிவு செய்யப்படவில்லை"
+
+#: sphinx/registry.py:171
+#, python-format
+msgid "domain %s already registered"
+msgstr "டொமைன் %கள் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளன"
+
+#: sphinx/registry.py:194 sphinx/registry.py:207 sphinx/registry.py:218
+#, python-format
+msgid "domain %s not yet registered"
+msgstr "டொமைன் %எஸ் இன்னும் பதிவு செய்யப்படவில்லை"
+
+#: sphinx/registry.py:198
+#, python-format
+msgid "The %r directive is already registered to domain %s"
+msgstr "%R உத்தரவு ஏற்கனவே டொமைன் %s இல் பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:210
+#, python-format
+msgid "The %r role is already registered to domain %s"
+msgstr "%R பங்கு ஏற்கனவே டொமைன் %s க்கு பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:221
+#, python-format
+msgid "The %r index is already registered to domain %s"
+msgstr "%R குறியீடு ஏற்கனவே டொமைன் %s இல் பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:252
+#, python-format
+msgid "The %r object_type is already registered"
+msgstr "%R object_type ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:278
+#, python-format
+msgid "The %r crossref_type is already registered"
+msgstr "%ஆர் கிராஸ்ரெஃப்_ டைப் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:285
+#, python-format
+msgid "source_suffix %r is already registered"
+msgstr "source_suffix %r ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:294
+#, python-format
+msgid "source_parser for %r is already registered"
+msgstr "%R க்கான source_parser ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:302
+#, python-format
+msgid "Source parser for %s not registered"
+msgstr "%கள் பதிவு செய்யப்படவில்லை என்பதற்கான மூல பாகுபடுத்தி"
+
+#: sphinx/registry.py:318
+#, python-format
+msgid "Translator for %r already exists"
+msgstr "%R க்கான மொழிபெயர்ப்பாளர் ஏற்கனவே இருக்கிறார்"
+
+#: sphinx/registry.py:334
+#, python-format
+msgid "kwargs for add_node() must be a (visit, depart) function tuple: %r=%r"
+msgstr "Add_node () க்கான குவார்க்ஸ் ஒரு (வருகை, புறப்பட வேண்டும்) செயல்பாடு டூப்பிள்: %r = %r ஆக இருக்க வேண்டும்"
+
+#: sphinx/registry.py:417
+#, python-format
+msgid "enumerable_node %r already registered"
+msgstr "கணக்கிடக்கூடிய முனை %ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது"
+
+#: sphinx/registry.py:429
+#, python-format
+msgid "math renderer %s is already registered"
+msgstr "கணித ரெண்டரர் %கள் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளன"
+
+#: sphinx/registry.py:444
+#, python-format
+msgid ""
+"the extension %r was already merged with Sphinx since version %s; this "
+"extension is ignored."
+msgstr "பதிப்பு %கள் முதல் %R நீட்டிப்பு ஏற்கனவே SPHINX உடன் இணைக்கப்பட்டுள்ளது; இந்த நீட்டிப்பு புறக்கணிக்கப்படுகிறது."
+
+#: sphinx/registry.py:455
+msgid "Original exception:\n"
+msgstr "அசல் விதிவிலக்கு:"
+
+#: sphinx/registry.py:456
+#, python-format
+msgid "Could not import extension %s"
+msgstr "நீட்டிப்பு %s ஐ இறக்குமதி செய்ய முடியவில்லை"
+
+#: sphinx/registry.py:461
+#, python-format
+msgid ""
+"extension %r has no setup() function; is it really a Sphinx extension "
+"module?"
+msgstr "நீட்டிப்பு %r எந்த அமைப்பும் () செயல்பாட்டைக் கொண்டிருக்கவில்லை; இது உண்மையில் ஒரு ஸ்பிங்க்ஸ் நீட்டிப்பு தொகுதியா?"
+
+#: sphinx/registry.py:470
+#, python-format
+msgid ""
+"The %s extension used by this project needs at least Sphinx v%s; it "
+"therefore cannot be built with this version."
+msgstr "இந்த திட்டத்தால் பயன்படுத்தப்படும் %கள் நீட்டிப்புக்கு குறைந்தபட்சம் ஸ்பின்க்ஸ் v %கள் தேவை; எனவே இந்த பதிப்பில் இதை உருவாக்க முடியாது."
+
+#: sphinx/registry.py:478
+#, python-format
+msgid ""
+"extension %r returned an unsupported object from its setup() function; it "
+"should return None or a metadata dictionary"
+msgstr "நீட்டிப்பு %r அதன் அமைவு () செயல்பாட்டிலிருந்து ஆதரிக்கப்படாத பொருளைத் திருப்பியது; இது எதுவும் அல்லது மெட்டாடேட்டா அகராதியைத் திருப்பித் தரக்கூடாது"
+
+#: sphinx/roles.py:201
+#, python-format
+msgid "Python Enhancement Proposals; PEP %s"
+msgstr "பைதான் மேம்பாட்டு திட்டங்கள்; Pep %s"
+
+#: sphinx/roles.py:222
+#, python-format
+msgid "invalid PEP number %s"
+msgstr "தவறான PEP எண் %s"
+
+#: sphinx/roles.py:257
+#, python-format
+msgid "invalid RFC number %s"
+msgstr "தவறான RFC எண் %s"
+
+#: sphinx/theming.py:125
+#, python-format
+msgid "setting %s.%s occurs in none of the searched theme configs"
+msgstr "தேடப்பட்ட தீம் கட்டமைப்புகள் எதுவும் இல்லை. %s. %s ஏற்படாது"
+
+#: sphinx/theming.py:140
+#, python-format
+msgid "unsupported theme option %r given"
+msgstr "ஆதரிக்கப்படாத தீம் விருப்பம் %r கொடுக்கப்பட்டுள்ளது"
+
+#: sphinx/theming.py:206
+#, python-format
+msgid "file %r on theme path is not a valid zipfile or contains no theme"
+msgstr "தீம் பாதையில் கோப்பு %r என்பது செல்லுபடியாகும் ஜிப்ஃபைல் அல்ல அல்லது எந்த கருப்பொருளும் இல்லை"
+
+#: sphinx/theming.py:226
+#, python-format
+msgid "no theme named %r found (missing theme.toml?)"
+msgstr ""
+
+#: sphinx/theming.py:259
+#, python-format
+msgid "The %r theme has circular inheritance"
+msgstr ""
+
+#: sphinx/theming.py:262
+#, python-format
+msgid ""
+"The %r theme inherits from %r, which is not a loaded theme. Loaded themes "
+"are: %s"
+msgstr ""
+
+#: sphinx/theming.py:269
+#, python-format
+msgid "The %r theme has too many ancestors"
+msgstr ""
+
+#: sphinx/theming.py:295
+#, python-format
+msgid "no theme configuration file found in %r"
+msgstr ""
+
+#: sphinx/theming.py:323 sphinx/theming.py:374
+#, python-format
+msgid "theme %r doesn't have the \"theme\" table"
+msgstr ""
+
+#: sphinx/theming.py:327
+#, python-format
+msgid "The %r theme \"[theme]\" table is not a table"
+msgstr ""
+
+#: sphinx/theming.py:331 sphinx/theming.py:377
+#, python-format
+msgid "The %r theme must define the \"theme.inherit\" setting"
+msgstr ""
+
+#: sphinx/theming.py:335
+#, python-format
+msgid "The %r theme \"[options]\" table is not a table"
+msgstr ""
+
+#: sphinx/theming.py:353
+#, python-format
+msgid "The \"theme.pygments_style\" setting must be a table. Hint: \"%s\""
+msgstr ""
+
+#: sphinx/builders/__init__.py:183
+#, python-format
+msgid "a suitable image for %s builder not found: %s (%s)"
+msgstr "%கள் பில்டருக்கு பொருத்தமான படம் காணப்படவில்லை: %கள் ( %கள்)"
+
+#: sphinx/builders/__init__.py:187
+#, python-format
+msgid "a suitable image for %s builder not found: %s"
+msgstr "%கள் பில்டருக்கு பொருத்தமான படம் காணப்படவில்லை: %கள்"
+
+#: sphinx/builders/__init__.py:207
+msgid "building [mo]: "
+msgstr "கட்டிடம் [மோ]:"
+
+#: sphinx/builders/__init__.py:208 sphinx/builders/__init__.py:574
+#: sphinx/builders/__init__.py:601
+msgid "writing output... "
+msgstr "எழுதுதல் வெளியீடு ..."
+
+#: sphinx/builders/__init__.py:217
+#, python-format
+msgid "all of %d po files"
+msgstr "%டி போ கோப்புகள் அனைத்தும்"
+
+#: sphinx/builders/__init__.py:235
+#, python-format
+msgid "targets for %d po files that are specified"
+msgstr "குறிப்பிடப்பட்ட %d po கோப்புகளுக்கான இலக்குகள்"
+
+#: sphinx/builders/__init__.py:243
+#, python-format
+msgid "targets for %d po files that are out of date"
+msgstr "காலாவதியான %d po கோப்புகளுக்கான இலக்குகள்"
+
+#: sphinx/builders/__init__.py:252
+msgid "all source files"
+msgstr "அனைத்து மூல கோப்புகளும்"
+
+#: sphinx/builders/__init__.py:262
+#, python-format
+msgid "file %r given on command line does not exist, "
+msgstr "கட்டளை வரியில் கொடுக்கப்பட்ட கோப்பு %r இல்லை,"
+
+#: sphinx/builders/__init__.py:267
+#, python-format
+msgid ""
+"file %r given on command line is not under the source directory, ignoring"
+msgstr "கட்டளை வரியில் கொடுக்கப்பட்ட கோப்பு %r மூல கோப்பகத்தின் கீழ் இல்லை, புறக்கணிக்கிறது"
+
+#: sphinx/builders/__init__.py:273
+#, python-format
+msgid "file %r given on command line is not a valid document, ignoring"
+msgstr "கட்டளை வரியில் கொடுக்கப்பட்ட கோப்பு %r என்பது சரியான ஆவணம் அல்ல, புறக்கணிக்கிறது"
+
+#: sphinx/builders/__init__.py:282
+#, python-format
+msgid "%d source files given on command line"
+msgstr "கட்டளை வரியில் கொடுக்கப்பட்ட %d மூல கோப்புகள்"
+
+#: sphinx/builders/__init__.py:294
+#, python-format
+msgid "targets for %d source files that are out of date"
+msgstr "காலாவதியான %d மூல கோப்புகளுக்கான இலக்குகள்"
+
+#: sphinx/builders/__init__.py:309 sphinx/builders/gettext.py:243
+#, python-format
+msgid "building [%s]: "
+msgstr "கட்டிடங்கள்]:"
+
+#: sphinx/builders/__init__.py:316
+msgid "looking for now-outdated files... "
+msgstr "இப்போது வெளியேற்றப்படாத கோப்புகளைத் தேடுகிறது ..."
+
+#: sphinx/builders/__init__.py:320
+#, python-format
+msgid "%d found"
+msgstr "%d கண்டு ப்பிடித்த விட்டது"
+
+#: sphinx/builders/__init__.py:322
+msgid "none found"
+msgstr "எதுவும் கிடைக்கவில்லை"
+
+#: sphinx/builders/__init__.py:327
+msgid "pickling environment"
+msgstr "ஊறுகாய் சூழல்"
+
+#: sphinx/builders/__init__.py:333
+msgid "checking consistency"
+msgstr "நிலைத்தன்மையை சரிபார்க்கிறது"
+
+#: sphinx/builders/__init__.py:337
+msgid "no targets are out of date."
+msgstr "இலக்குகள் எதுவும் காலாவதியானவை அல்ல."
+
+#: sphinx/builders/__init__.py:376
+msgid "updating environment: "
+msgstr "சூழலைப் புதுப்பித்தல்:"
+
+#: sphinx/builders/__init__.py:397
+#, python-format
+msgid "%s added, %s changed, %s removed"
+msgstr "%கள் சேர்க்கப்பட்டன, %கள் மாற்றப்பட்டன, %கள் அகற்றப்பட்டன"
+
+#: sphinx/builders/__init__.py:435 sphinx/builders/__init__.py:447
+msgid "reading sources... "
+msgstr "வாசிப்பு ஆதாரங்கள் ..."
+
+#: sphinx/builders/__init__.py:549
+#, python-format
+msgid "docnames to write: %s"
+msgstr "எழுத டாக் பெயர்கள்: %கள்"
+
+#: sphinx/builders/__init__.py:558 sphinx/builders/singlehtml.py:157
+msgid "preparing documents"
+msgstr "ஆவணங்களைத் தயாரித்தல்"
+
+#: sphinx/builders/__init__.py:561
+msgid "copying assets"
+msgstr "சொத்துக்களை நகலெடுக்கும்"
+
+#: sphinx/builders/_epub_base.py:215
+#, python-format
+msgid "duplicated ToC entry found: %s"
+msgstr "நகல் TOC நுழைவு காணப்பட்டது: %s"
+
+#: sphinx/builders/_epub_base.py:404 sphinx/builders/html/__init__.py:758
+#: sphinx/builders/latex/__init__.py:432 sphinx/builders/texinfo.py:187
+msgid "copying images... "
+msgstr "படங்களை நகலெடுக்கும் ..."
+
+#: sphinx/builders/_epub_base.py:411
+#, python-format
+msgid "cannot read image file %r: copying it instead"
+msgstr "படக் கோப்பு %ஆர்: அதற்கு பதிலாக நகலெடுக்க முடியாது"
+
+#: sphinx/builders/_epub_base.py:417 sphinx/builders/html/__init__.py:766
+#: sphinx/builders/latex/__init__.py:440 sphinx/builders/texinfo.py:197
+#, python-format
+msgid "cannot copy image file %r: %s"
+msgstr "படக் கோப்பு %r: %s ஐ நகலெடுக்க முடியாது"
+
+#: sphinx/builders/_epub_base.py:434
+#, python-format
+msgid "cannot write image file %r: %s"
+msgstr "படக் கோப்பு %r: %s ஐ எழுத முடியாது"
+
+#: sphinx/builders/_epub_base.py:444
+msgid "Pillow not found - copying image files"
+msgstr "தலையணை கிடைக்கவில்லை - படக் கோப்புகளை நகலெடுக்கும்"
+
+#: sphinx/builders/_epub_base.py:470
+msgid "writing mimetype file..."
+msgstr "Mimetype கோப்பை எழுதுதல் ..."
+
+#: sphinx/builders/_epub_base.py:475
+msgid "writing META-INF/container.xml file..."
+msgstr "Meta-inf/contain.xml கோப்பை எழுதுதல் ..."
+
+#: sphinx/builders/_epub_base.py:508
+msgid "writing content.opf file..."
+msgstr "content.opf கோப்பு எழுதுதல் ..."
+
+#: sphinx/builders/_epub_base.py:539
+#, python-format
+msgid "unknown mimetype for %s, ignoring"
+msgstr "புறக்கணிப்பு %s க்கான அறியப்படாத Mimetype"
+
+#: sphinx/builders/_epub_base.py:686
+msgid "writing toc.ncx file..."
+msgstr "toc.ncx கோப்பை எழுதுதல் ..."
+
+#: sphinx/builders/_epub_base.py:711
+#, python-format
+msgid "writing %s file..."
+msgstr "%s கோப்பை எழுதுதல் ..."
+
+#: sphinx/builders/changes.py:32
+#, python-format
+msgid "The overview file is in %(outdir)s."
+msgstr "கண்ணோட்டம் கோப்பு %(வெளிப்புற) களில் உள்ளது."
+
+#: sphinx/builders/changes.py:59
+#, python-format
+msgid "no changes in version %s."
+msgstr "பதிப்பு %s இல் மாற்றங்கள் இல்லை."
+
+#: sphinx/builders/changes.py:61
+msgid "writing summary file..."
+msgstr "சுருக்கம் கோப்பை எழுதுதல் ..."
+
+#: sphinx/builders/changes.py:76
+msgid "Builtins"
+msgstr "பில்டின்ஸ்"
+
+#: sphinx/builders/changes.py:78
+msgid "Module level"
+msgstr "தொகுதி நிலை"
+
+#: sphinx/builders/changes.py:123
+msgid "copying source files..."
+msgstr "மூல கோப்புகளை நகலெடுக்கும் ..."
+
+#: sphinx/builders/changes.py:130
+#, python-format
+msgid "could not read %r for changelog creation"
+msgstr "சேஞ்ச்லாக் உருவாக்கத்திற்கு %R ஐப் படிக்க முடியவில்லை"
+
+#: sphinx/builders/dummy.py:19
+msgid "The dummy builder generates no files."
+msgstr "போலி பில்டர் எந்த கோப்புகளையும் உருவாக்கவில்லை."
+
+#: sphinx/builders/epub3.py:81
+#, python-format
+msgid "The ePub file is in %(outdir)s."
+msgstr "எபப் கோப்பு %(வெளிப்புற) களில் உள்ளது."
+
+#: sphinx/builders/epub3.py:185
+msgid "writing nav.xhtml file..."
+msgstr "Nav.xhtml கோப்பு எழுதுதல் ..."
+
+#: sphinx/builders/epub3.py:211
+msgid "conf value \"epub_language\" (or \"language\") should not be empty for EPUB3"
+msgstr "conf மதிப்பு \"epub_language\" (அல்லது \"மொழி\") EPUB3 க்கு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:215
+msgid "conf value \"epub_uid\" should be XML NAME for EPUB3"
+msgstr "conf மதிப்பு \"EPUB_UID\" EPUB3 க்கான XML பெயராக இருக்க வேண்டும்"
+
+#: sphinx/builders/epub3.py:218
+msgid "conf value \"epub_title\" (or \"html_title\") should not be empty for EPUB3"
+msgstr "conf மதிப்பு \"epub_title\" (அல்லது \"HTML_TITLE\") EPUB3 க்கு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:222
+msgid "conf value \"epub_author\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"EPUB_AUTHOR\" கான் மதிப்பு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:225
+msgid "conf value \"epub_contributor\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"epub_contributor\" கான்ஸ் மதிப்பு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:228
+msgid "conf value \"epub_description\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"EPUB_DESCRIPTION\" CONF மதிப்பு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:231
+msgid "conf value \"epub_publisher\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"EPUB_PUBLISHER\" கான்ஸ் மதிப்பு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:234
+msgid "conf value \"epub_copyright\" (or \"copyright\")should not be empty for EPUB3"
+msgstr "conf மதிப்பு \"epub_copyright\" (அல்லது \"பதிப்புரிமை\") EPUB3 க்கு காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:238
+msgid "conf value \"epub_identifier\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"EPUB_IDENTIFIER\" காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:241
+msgid "conf value \"version\" should not be empty for EPUB3"
+msgstr "EPUB3 க்கு \"பதிப்பு\" காலியாக இருக்கக்கூடாது"
+
+#: sphinx/builders/epub3.py:255 sphinx/builders/html/__init__.py:1187
+#, python-format
+msgid "invalid css_file: %r, ignored"
+msgstr "தவறான CSS_FILE: %r, புறக்கணிக்கப்பட்டது"
+
+#: sphinx/builders/gettext.py:222
+#, python-format
+msgid "The message catalogs are in %(outdir)s."
+msgstr "செய்தி பட்டியல்கள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/gettext.py:244
+#, python-format
+msgid "targets for %d template files"
+msgstr "%டி வார்ப்புரு கோப்புகளுக்கான இலக்குகள்"
+
+#: sphinx/builders/gettext.py:248
+msgid "reading templates... "
+msgstr "வார்ப்புருக்கள் படித்தல் ..."
+
+#: sphinx/builders/gettext.py:282
+msgid "writing message catalogs... "
+msgstr "செய்தி பட்டியல்களை எழுதுதல் ..."
+
+#: sphinx/builders/linkcheck.py:59
+#, python-format
+msgid "Look for any errors in the above output or in %(outdir)s/output.txt"
+msgstr "மேலே உள்ள வெளியீட்டில் அல்லது %(வெளிப்புற) s/output.txt இல் ஏதேனும் பிழைகள் தேடுங்கள்"
+
+#: sphinx/builders/linkcheck.py:137
+#, python-format
+msgid "broken link: %s (%s)"
+msgstr "உடைந்த இணைப்பு: %கள் ( %கள்)"
+
+#: sphinx/builders/linkcheck.py:660
+#, python-format
+msgid "Failed to compile regex in linkcheck_allowed_redirects: %r %s"
+msgstr "Regex ஐ லிங்க்செக்_அலோவ்_ரெடிரெக்ட்ஸில் தொகுக்கத் தவறிவிட்டது: %r %s"
+
+#: sphinx/builders/manpage.py:37
+#, python-format
+msgid "The manual pages are in %(outdir)s."
+msgstr "கையேடு பக்கங்கள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/manpage.py:44
+msgid "no \"man_pages\" config value found; no manual pages will be written"
+msgstr "\"MAN_PAGES\" கட்டமைப்பு மதிப்பு இல்லை; கையேடு பக்கங்கள் எதுவும் எழுதப்படாது"
+
+#: sphinx/builders/latex/__init__.py:314 sphinx/builders/manpage.py:53
+#: sphinx/builders/singlehtml.py:165 sphinx/builders/texinfo.py:112
+msgid "writing"
+msgstr "எழுதுதல்"
+
+#: sphinx/builders/manpage.py:68
+#, python-format
+msgid "\"man_pages\" config value references unknown document %s"
+msgstr "\"man_pages\" கட்டமைப்பு மதிப்பு குறிப்புகள் அறியப்படாத ஆவணம் %s"
+
+#: sphinx/builders/singlehtml.py:34
+#, python-format
+msgid "The HTML page is in %(outdir)s."
+msgstr "HTML பக்கம் %(வெளிப்புற) களில் உள்ளது."
+
+#: sphinx/builders/singlehtml.py:160
+msgid "assembling single document"
+msgstr "ஒற்றை ஆவணத்தை ஒன்று சேர்ப்பது"
+
+#: sphinx/builders/singlehtml.py:178
+msgid "writing additional files"
+msgstr "கூடுதல் கோப்புகளை எழுதுதல்"
+
+#: sphinx/builders/texinfo.py:48
+#, python-format
+msgid "The Texinfo files are in %(outdir)s."
+msgstr "டெக்ஸின்ஃபோ கோப்புகள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/texinfo.py:50
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through makeinfo\n"
+"(use 'make info' here to do that automatically)."
+msgstr "மேக்இன்ஃபோ மூலம் இயக்க அந்த கோப்பகத்தில் 'மேக்' இயக்கவும் \n (தானாகவே அதைச் செய்ய இங்கே 'தகவல்களை உருவாக்கு' பயன்படுத்தவும்)."
+
+#: sphinx/builders/texinfo.py:77
+msgid "no \"texinfo_documents\" config value found; no documents will be written"
+msgstr "இல்லை \"டெக்ஸின்ஃபோ_டோகென்ட்ஸ்\" கட்டமைப்பு மதிப்பு காணப்படவில்லை; எந்த ஆவணங்களும் எழுதப்படாது"
+
+#: sphinx/builders/texinfo.py:85
+#, python-format
+msgid "\"texinfo_documents\" config value references unknown document %s"
+msgstr "\"Dexinfo_Documents\" கட்டமைப்பு மதிப்பு குறிப்புகள் அறியப்படாத ஆவணம் %s"
+
+#: sphinx/builders/latex/__init__.py:296 sphinx/builders/texinfo.py:108
+#, python-format
+msgid "processing %s"
+msgstr "செயலாக்கம் %கள்"
+
+#: sphinx/builders/latex/__init__.py:369 sphinx/builders/texinfo.py:161
+msgid "resolving references..."
+msgstr "குறிப்புகளைத் தீர்ப்பது ..."
+
+#: sphinx/builders/latex/__init__.py:380 sphinx/builders/texinfo.py:171
+msgid " (in "
+msgstr "(இல்"
+
+#: sphinx/builders/texinfo.py:202
+msgid "copying Texinfo support files"
+msgstr "டெக்ஸின்ஃபோ ஆதரவு கோப்புகளை நகலெடுக்கிறது"
+
+#: sphinx/builders/texinfo.py:206
+#, python-format
+msgid "error writing file Makefile: %s"
+msgstr "பிழை எழுதும் கோப்பு மேக்ஃபைல்: %கள்"
+
+#: sphinx/builders/text.py:30
+#, python-format
+msgid "The text files are in %(outdir)s."
+msgstr "உரை கோப்புகள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/html/__init__.py:1138 sphinx/builders/text.py:77
+#: sphinx/builders/xml.py:96
+#, python-format
+msgid "error writing file %s: %s"
+msgstr "பிழை எழுதும் கோப்பு %s: %s"
+
+#: sphinx/builders/xml.py:36
+#, python-format
+msgid "The XML files are in %(outdir)s."
+msgstr "எக்ஸ்எம்எல் கோப்புகள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/xml.py:109
+#, python-format
+msgid "The pseudo-XML files are in %(outdir)s."
+msgstr "போலி-எக்ஸ்எம்எல் கோப்புகள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/html/__init__.py:130
+#, python-format
+msgid "build info file is broken: %r"
+msgstr "உருவாக்கு தகவல் கோப்பு உடைந்தது: %r"
+
+#: sphinx/builders/html/__init__.py:168
+#, python-format
+msgid "The HTML pages are in %(outdir)s."
+msgstr "HTML பக்கங்கள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/html/__init__.py:394
+#, python-format
+msgid "Failed to read build info file: %r"
+msgstr "உருவாக்க தகவல் கோப்பைப் படிக்கத் தவறிவிட்டது: %r"
+
+#: sphinx/builders/html/__init__.py:487 sphinx/builders/latex/__init__.py:189
+#: sphinx/transforms/__init__.py:119 sphinx/writers/manpage.py:101
+#: sphinx/writers/texinfo.py:227
+#, python-format
+msgid "%b %d, %Y"
+msgstr "%b %d, %y"
+
+#: sphinx/builders/html/__init__.py:506 sphinx/themes/basic/defindex.html:30
+msgid "General Index"
+msgstr "பொது அட்டவணை"
+
+#: sphinx/builders/html/__init__.py:506
+msgid "index"
+msgstr "குறியீட்டு"
+
+#: sphinx/builders/html/__init__.py:579
+msgid "next"
+msgstr "அடுத்த"
+
+#: sphinx/builders/html/__init__.py:588
+msgid "previous"
+msgstr "முந்தைய"
+
+#: sphinx/builders/html/__init__.py:684
+msgid "generating indices"
+msgstr "குறியீடுகளை உருவாக்குதல்"
+
+#: sphinx/builders/html/__init__.py:699
+msgid "writing additional pages"
+msgstr "கூடுதல் பக்கங்களை எழுதுதல்"
+
+#: sphinx/builders/html/__init__.py:776
+msgid "copying downloadable files... "
+msgstr "தரவிறக்கம் செய்யக்கூடிய கோப்புகளை நகலெடுக்கிறது ..."
+
+#: sphinx/builders/html/__init__.py:784
+#, python-format
+msgid "cannot copy downloadable file %r: %s"
+msgstr "தரவிறக்கம் செய்யக்கூடிய கோப்பு %r: %s ஐ நகலெடுக்க முடியாது"
+
+#: sphinx/builders/html/__init__.py:817 sphinx/builders/html/__init__.py:829
+#, python-format
+msgid "Failed to copy a file in html_static_file: %s: %r"
+msgstr "HTML_STATIC_FILE இல் ஒரு கோப்பை நகலெடுப்பதில் தோல்வி: %s: %r"
+
+#: sphinx/builders/html/__init__.py:850
+msgid "copying static files"
+msgstr "நிலையான கோப்புகளை நகலெடுக்கும்"
+
+#: sphinx/builders/html/__init__.py:866
+#, python-format
+msgid "cannot copy static file %r"
+msgstr "நிலையான கோப்பு %r ஐ நகலெடுக்க முடியாது"
+
+#: sphinx/builders/html/__init__.py:871
+msgid "copying extra files"
+msgstr "கூடுதல் கோப்புகளை நகலெடுக்கிறது"
+
+#: sphinx/builders/html/__init__.py:877
+#, python-format
+msgid "cannot copy extra file %r"
+msgstr "கூடுதல் கோப்பு %r ஐ நகலெடுக்க முடியாது"
+
+#: sphinx/builders/html/__init__.py:884
+#, python-format
+msgid "Failed to write build info file: %r"
+msgstr "உருவாக்க தகவல் கோப்பை எழுதுவதில் தோல்வி: %r"
+
+#: sphinx/builders/html/__init__.py:933
+msgid ""
+"search index couldn't be loaded, but not all documents will be built: the "
+"index will be incomplete."
+msgstr "தேடல் குறியீட்டை ஏற்ற முடியாது, ஆனால் எல்லா ஆவணங்களும் கட்டப்படாது: குறியீடு முழுமையடையாது."
+
+#: sphinx/builders/html/__init__.py:978
+#, python-format
+msgid "page %s matches two patterns in html_sidebars: %r and %r"
+msgstr "பக்கம் %S HTML_SIDEBARS இல் இரண்டு வடிவங்களுடன் பொருந்துகிறது: %R மற்றும் %R"
+
+#: sphinx/builders/html/__init__.py:1121
+#, python-format
+msgid ""
+"a Unicode error occurred when rendering the page %s. Please make sure all "
+"config values that contain non-ASCII content are Unicode strings."
+msgstr "பக்கத்தை %s ஐ வழங்கும்போது யூனிகோட் பிழை ஏற்பட்டது. அசி அல்லாத உள்ளடக்கத்தைக் கொண்ட அனைத்து கட்டமைப்பு மதிப்புகளும் யூனிகோட் சரங்கள் என்பதை உறுதிப்படுத்தவும்."
+
+#: sphinx/builders/html/__init__.py:1126
+#, python-format
+msgid ""
+"An error happened in rendering the page %s.\n"
+"Reason: %r"
+msgstr "பக்கம் %s ஐ வழங்குவதில் பிழை ஏற்பட்டது. \n காரணம்: %r"
+
+#: sphinx/builders/html/__init__.py:1154
+msgid "dumping object inventory"
+msgstr "பொருள் சரக்குகளை கொட்டுகிறது"
+
+#: sphinx/builders/html/__init__.py:1162
+#, python-format
+msgid "dumping search index in %s"
+msgstr "தேடல் குறியீட்டை %s இல் கொட்டுதல்"
+
+#: sphinx/builders/html/__init__.py:1210
+#, python-format
+msgid "invalid js_file: %r, ignored"
+msgstr "தவறான JS_FILE: %r, புறக்கணிக்கப்பட்டது"
+
+#: sphinx/builders/html/__init__.py:1238
+msgid "Many math_renderers are registered. But no math_renderer is selected."
+msgstr "பல கணிதங்கள் பதிவு செய்யப்பட்டுள்ளன. ஆனால் எந்த கணிதமும் தேர்ந்தெடுக்கப்படவில்லை."
+
+#: sphinx/builders/html/__init__.py:1241
+#, python-format
+msgid "Unknown math_renderer %r is given."
+msgstr "அறியப்படாத கணித_ரெண்டர் %ஆர் வழங்கப்படுகிறது."
+
+#: sphinx/builders/html/__init__.py:1249
+#, python-format
+msgid "html_extra_path entry %r does not exist"
+msgstr "html_extra_path நுழைவு %r இல்லை"
+
+#: sphinx/builders/html/__init__.py:1253
+#, python-format
+msgid "html_extra_path entry %r is placed inside outdir"
+msgstr "HTML_EXTRA_PATH நுழைவு %R க்குள் வைக்கப்படுகிறது"
+
+#: sphinx/builders/html/__init__.py:1262
+#, python-format
+msgid "html_static_path entry %r does not exist"
+msgstr "HTML_STATIC_PATH நுழைவு %R இல்லை"
+
+#: sphinx/builders/html/__init__.py:1266
+#, python-format
+msgid "html_static_path entry %r is placed inside outdir"
+msgstr "HTML_STATIC_PATH நுழைவு %R க்குள் வைக்கப்படுகிறது"
+
+#: sphinx/builders/html/__init__.py:1275 sphinx/builders/latex/__init__.py:444
+#, python-format
+msgid "logo file %r does not exist"
+msgstr "லோகோ கோப்பு %r இல்லை"
+
+#: sphinx/builders/html/__init__.py:1284
+#, python-format
+msgid "favicon file %r does not exist"
+msgstr "ஃபாவிகான் கோப்பு %ஆர் இல்லை"
+
+#: sphinx/builders/html/__init__.py:1291
+msgid ""
+"HTML 4 is no longer supported by Sphinx. (\"html4_writer=True\" detected in "
+"configuration options)"
+msgstr "HTML 4 இனி ஸ்பிங்க்ஸால் ஆதரிக்கப்படாது. (\"HTML4_WRITER = TRUE\" உள்ளமைவு விருப்பங்களில் கண்டறியப்பட்டது)"
+
+#: sphinx/builders/html/__init__.py:1306
+#, python-format
+msgid "%s %s documentation"
+msgstr "%s %ஆவணங்கள்"
+
+#: sphinx/builders/latex/__init__.py:115
+#, python-format
+msgid "The LaTeX files are in %(outdir)s."
+msgstr "லேடெக்ஸ் கோப்புகள் %(வெளிப்புற) களில் உள்ளன."
+
+#: sphinx/builders/latex/__init__.py:117
+msgid ""
+"\n"
+"Run 'make' in that directory to run these through (pdf)latex\n"
+"(use `make latexpdf' here to do that automatically)."
+msgstr "(PDF) லேடெக்ஸ் மூலம் இயக்க அந்த கோப்பகத்தில் 'உருவாக்கு' இயக்கவும் \n (தானாகவே அதைச் செய்ய இங்கே `Latexpdf 'ஐப் பயன்படுத்தவும்)."
+
+#: sphinx/builders/latex/__init__.py:152
+msgid "no \"latex_documents\" config value found; no documents will be written"
+msgstr "இல்லை \"லேடெக்ஸ்_டோகென்ட்ஸ்\" கட்டமைப்பு மதிப்பு காணப்படவில்லை; எந்த ஆவணங்களும் எழுதப்படாது"
+
+#: sphinx/builders/latex/__init__.py:160
+#, python-format
+msgid "\"latex_documents\" config value references unknown document %s"
+msgstr "\"Latex_Documents\" கட்டமைப்பு மதிப்பு குறிப்புகள் அறியப்படாத ஆவணம் %s"
+
+#: sphinx/builders/latex/__init__.py:196 sphinx/domains/std/__init__.py:559
+#: sphinx/domains/std/__init__.py:571 sphinx/templates/latex/latex.tex_t:106
+#: sphinx/themes/basic/genindex-single.html:30
+#: sphinx/themes/basic/genindex-single.html:55
+#: sphinx/themes/basic/genindex-split.html:11
+#: sphinx/themes/basic/genindex-split.html:14
+#: sphinx/themes/basic/genindex.html:11 sphinx/themes/basic/genindex.html:34
+#: sphinx/themes/basic/genindex.html:67 sphinx/themes/basic/layout.html:138
+#: sphinx/writers/texinfo.py:497
+msgid "Index"
+msgstr "குறியீட்டு"
+
+#: sphinx/builders/latex/__init__.py:199 sphinx/templates/latex/latex.tex_t:91
+msgid "Release"
+msgstr "வெளியீடு"
+
+#: sphinx/builders/latex/__init__.py:213 sphinx/writers/latex.py:370
+#, python-format
+msgid "no Babel option known for language %r"
+msgstr "மொழிக்கு அறியப்படாத பாபல் விருப்பம் %r"
+
+#: sphinx/builders/latex/__init__.py:394
+msgid "copying TeX support files"
+msgstr "டெக்ஸ் ஆதரவு கோப்புகளை நகலெடுக்கிறது"
+
+#: sphinx/builders/latex/__init__.py:410
+msgid "copying TeX support files..."
+msgstr "டெக்ஸ் ஆதரவு கோப்புகளை நகலெடுக்கிறது ..."
+
+#: sphinx/builders/latex/__init__.py:423
+msgid "copying additional files"
+msgstr "கூடுதல் கோப்புகளை நகலெடுக்கிறது"
+
+#: sphinx/builders/latex/__init__.py:466
+#, python-format
+msgid "Unknown configure key: latex_elements[%r], ignored."
+msgstr "அறியப்படாத கட்டமைப்பு விசை: லேடெக்ஸ்_அலெமென்ட்ஸ் [%ஆர்], புறக்கணிக்கப்பட்டது."
+
+#: sphinx/builders/latex/__init__.py:474
+#, python-format
+msgid "Unknown theme option: latex_theme_options[%r], ignored."
+msgstr "அறியப்படாத தீம் விருப்பம்: லேடெக்ஸ்_தெம்_ஓப்ஷன்கள் [%ஆர்], புறக்கணிக்கப்பட்டது."
+
+#: sphinx/builders/latex/theming.py:87
+#, python-format
+msgid "%r doesn't have \"theme\" setting"
+msgstr "%R இல் \"தீம்\" அமைப்பு இல்லை"
+
+#: sphinx/builders/latex/theming.py:90
+#, python-format
+msgid "%r doesn't have \"%s\" setting"
+msgstr "%R க்கு \"%s\" அமைப்பு இல்லை"
+
+#: sphinx/builders/latex/transforms.py:120
+msgid "Failed to get a docname!"
+msgstr "ஒரு ஆவணம் பெறத் தவறிவிட்டது!"
+
+#: sphinx/builders/latex/transforms.py:121
+msgid "Failed to get a docname for source {source!r}!"
+msgstr "மூல {மூல! R} க்கான ஆவணப் பெயர் பெறுவதில் தோல்வி!"
+
+#: sphinx/builders/latex/transforms.py:482
+#, python-format
+msgid "No footnote was found for given reference node %r"
+msgstr "கொடுக்கப்பட்ட குறிப்பு முனை %r க்கு எந்த அடிக்குறிப்பும் கிடைக்கவில்லை"
+
+#: sphinx/cmd/build.py:46
+msgid "Exception occurred while building, starting debugger:"
+msgstr "பிழைத்திருத்தத்தைத் தொடங்கும் போது விதிவிலக்கு ஏற்பட்டது:"
+
+#: sphinx/cmd/build.py:61
+msgid "Interrupted!"
+msgstr "குறுக்கிட்டது!"
+
+#: sphinx/cmd/build.py:63
+msgid "reST markup error:"
+msgstr "ஓய்வு மார்க்அப் பிழை:"
+
+#: sphinx/cmd/build.py:69
+msgid "Encoding error:"
+msgstr "குறியீட்டு பிழை:"
+
+#: sphinx/cmd/build.py:72 sphinx/cmd/build.py:87
+#, python-format
+msgid ""
+"The full traceback has been saved in %s, if you want to report the issue to "
+"the developers."
+msgstr "டெவலப்பர்களிடம் சிக்கலை நீங்கள் புகாரளிக்க விரும்பினால், முழு சுவடு % %களில் சேமிக்கப்பட்டுள்ளது."
+
+#: sphinx/cmd/build.py:76
+msgid "Recursion error:"
+msgstr "மறுநிகழ்வு பிழை:"
+
+#: sphinx/cmd/build.py:79
+msgid ""
+"This can happen with very large or deeply nested source files. You can "
+"carefully increase the default Python recursion limit of 1000 in conf.py "
+"with e.g.:"
+msgstr "இது மிகப் பெரிய அல்லது ஆழமான உள்ளமைக்கப்பட்ட மூல கோப்புகளுடன் நிகழலாம். எ.கா. உடன் conf.py இல் இயல்புநிலை பைதான் மறுநிகழ்வு வரம்பை நீங்கள் கவனமாக அதிகரிக்கலாம்."
+
+#: sphinx/cmd/build.py:84
+msgid "Exception occurred:"
+msgstr "விதிவிலக்கு ஏற்பட்டது:"
+
+#: sphinx/cmd/build.py:90
+msgid ""
+"Please also report this if it was a user error, so that a better error "
+"message can be provided next time."
+msgstr "இது ஒரு பயனர் பிழையாக இருந்தால் இதைப் புகாரளிக்கவும், இதனால் அடுத்த முறை சிறந்த பிழை செய்தியை வழங்க முடியும்."
+
+#: sphinx/cmd/build.py:93
+msgid ""
+"A bug report can be filed in the tracker at <https://github.com/sphinx-"
+"doc/sphinx/issues>. Thanks!"
+msgstr "ஒரு பிழை அறிக்கையை டிராக்கரில் <https://github.com/sphinx-doc/sphinx/issues> இல் தாக்கல் செய்யலாம். நன்றி!"
+
+#: sphinx/cmd/build.py:109
+msgid "job number should be a positive number"
+msgstr "வேலை எண் நேர்மறை எண்ணாக இருக்க வேண்டும்"
+
+#: sphinx/cmd/build.py:117 sphinx/cmd/quickstart.py:474
+#: sphinx/ext/apidoc.py:317 sphinx/ext/autosummary/generate.py:689
+msgid "For more information, visit <https://www.sphinx-doc.org/>."
+msgstr "மேலும் தகவலுக்கு, <https://www.sphinx-doc.org/> ஐப் பார்வையிடவும்."
+
+#: sphinx/cmd/build.py:118
+msgid ""
+"\n"
+"Generate documentation from source files.\n"
+"\n"
+"sphinx-build generates documentation from the files in SOURCEDIR and places it\n"
+"in OUTPUTDIR. It looks for 'conf.py' in SOURCEDIR for the configuration\n"
+"settings. The 'sphinx-quickstart' tool may be used to generate template files,\n"
+"including 'conf.py'\n"
+"\n"
+"sphinx-build can create documentation in different formats. A format is\n"
+"selected by specifying the builder name on the command line; it defaults to\n"
+"HTML. Builders can also perform other tasks related to documentation\n"
+"processing.\n"
+"\n"
+"By default, everything that is outdated is built. Output only for selected\n"
+"files can be built by specifying individual filenames.\n"
+msgstr "மூல கோப்புகளிலிருந்து ஆவணங்களை உருவாக்குங்கள். \n\n Sphinx- கட்டளை sourcedir இல் உள்ள கோப்புகளிலிருந்து ஆவணங்களை உருவாக்கி வைக்கிறது \n OutputDir இல். இது உள்ளமைவுக்காக ஆதாரத்தில் 'conf.py' ஐத் தேடுகிறது \n அமைப்புகள். வார்ப்புரு கோப்புகளை உருவாக்க 'ஸ்பின்க்ஸ்-க்யூக்ஸ்டார்ட்' கருவி பயன்படுத்தப்படலாம், \n 'conf.py' உட்பட \n\n ஸ்பிங்க்ஸ்-பில்ட் வெவ்வேறு வடிவங்களில் ஆவணங்களை உருவாக்க முடியும். ஒரு வடிவம் \n கட்டளை வரியில் பில்டர் பெயரைக் குறிப்பிடுவதன் மூலம் தேர்ந்தெடுக்கப்பட்டது; இது இயல்புநிலையாகும் \n HTML. ஆவணங்கள் தொடர்பான பிற பணிகளையும் பில்டர்கள் செய்யலாம் \n செயலாக்கம். \n\n இயல்பாக, காலாவதியான அனைத்தும் கட்டமைக்கப்பட்டுள்ளன. தேர்ந்தெடுக்கப்பட்ட வெளியீடு மட்டுமே \n தனிப்பட்ட கோப்பு பெயர்களைக் குறிப்பிடுவதன் மூலம் கோப்புகளை உருவாக்க முடியும்."
+
+#: sphinx/cmd/build.py:139
+msgid "path to documentation source files"
+msgstr "ஆவண மூல கோப்புகளுக்கான பாதை"
+
+#: sphinx/cmd/build.py:141
+msgid "path to output directory"
+msgstr "வெளியீட்டு கோப்பகத்திற்கான பாதை"
+
+#: sphinx/cmd/build.py:143
+msgid ""
+"(optional) a list of specific files to rebuild. Ignored if --write-all is "
+"specified"
+msgstr ""
+
+#: sphinx/cmd/build.py:146
+msgid "general options"
+msgstr "பொது விருப்பங்கள்"
+
+#: sphinx/cmd/build.py:149
+msgid "builder to use (default: 'html')"
+msgstr ""
+
+#: sphinx/cmd/build.py:152
+msgid ""
+"run in parallel with N processes, when possible. 'auto' uses the number of "
+"CPU cores"
+msgstr ""
+
+#: sphinx/cmd/build.py:155
+msgid "write all files (default: only write new and changed files)"
+msgstr "எல்லா கோப்புகளையும் எழுதுங்கள் (இயல்புநிலை: புதிய மற்றும் மாற்றப்பட்ட கோப்புகளை மட்டும் எழுதுங்கள்)"
+
+#: sphinx/cmd/build.py:158
+msgid "don't use a saved environment, always read all files"
+msgstr "சேமித்த சூழலைப் பயன்படுத்த வேண்டாம், எப்போதும் எல்லா கோப்புகளையும் படியுங்கள்"
+
+#: sphinx/cmd/build.py:161
+msgid "path options"
+msgstr ""
+
+#: sphinx/cmd/build.py:163
+msgid ""
+"directory for doctree and environment files (default: OUTPUT_DIR/.doctrees)"
+msgstr ""
+
+#: sphinx/cmd/build.py:166
+msgid "directory for the configuration file (conf.py) (default: SOURCE_DIR)"
+msgstr ""
+
+#: sphinx/cmd/build.py:171
+msgid "use no configuration file, only use settings from -D options"
+msgstr ""
+
+#: sphinx/cmd/build.py:174
+msgid "override a setting in configuration file"
+msgstr "உள்ளமைவு கோப்பில் ஒரு அமைப்பை மீறவும்"
+
+#: sphinx/cmd/build.py:177
+msgid "pass a value into HTML templates"
+msgstr "HTML வார்ப்புருக்களில் ஒரு மதிப்பை அனுப்பவும்"
+
+#: sphinx/cmd/build.py:180
+msgid "define tag: include \"only\" blocks with TAG"
+msgstr "குறிச்சொல்லை வரையறுக்கவும்: குறிச்சொல்லுடன் \"மட்டும்\" தொகுதிகளைச் சேர்க்கவும்"
+
+#: sphinx/cmd/build.py:182
+msgid "nit-picky mode: warn about all missing references"
+msgstr ""
+
+#: sphinx/cmd/build.py:184
+msgid "console output options"
+msgstr "வெளியீட்டு விருப்பங்கள் ஆறுதல்"
+
+#: sphinx/cmd/build.py:187
+msgid "increase verbosity (can be repeated)"
+msgstr "வாய்மொழி அதிகரிக்கவும் (மீண்டும் மீண்டும் செய்யலாம்)"
+
+#: sphinx/cmd/build.py:189 sphinx/ext/apidoc.py:340
+msgid "no output on stdout, just warnings on stderr"
+msgstr "stdout இல் வெளியீடு இல்லை, ஸ்டெர்ரரில் எச்சரிக்கைகள்"
+
+#: sphinx/cmd/build.py:191
+msgid "no output at all, not even warnings"
+msgstr "எந்த வெளியீடும் இல்லை, எச்சரிக்கைகள் கூட இல்லை"
+
+#: sphinx/cmd/build.py:194
+msgid "do emit colored output (default: auto-detect)"
+msgstr "வண்ண வெளியீட்டை வெளியிடுங்கள் (இயல்புநிலை: தானாக-கண்டறிதல்)"
+
+#: sphinx/cmd/build.py:197
+msgid "do not emit colored output (default: auto-detect)"
+msgstr "வண்ண வெளியீட்டை வெளியிட வேண்டாம் (இயல்புநிலை: தானாக கண்டறிதல்)"
+
+#: sphinx/cmd/build.py:199
+msgid "warning control options"
+msgstr ""
+
+#: sphinx/cmd/build.py:201
+msgid "write warnings (and errors) to given file"
+msgstr "கொடுக்கப்பட்ட கோப்பிற்கு எச்சரிக்கைகள் (மற்றும் பிழைகள்) எழுதுங்கள்"
+
+#: sphinx/cmd/build.py:203
+msgid "turn warnings into errors"
+msgstr "எச்சரிக்கைகளை பிழைகளாக மாற்றவும்"
+
+#: sphinx/cmd/build.py:205
+msgid "with --fail-on-warning, keep going when getting warnings"
+msgstr ""
+
+#: sphinx/cmd/build.py:207
+msgid "show full traceback on exception"
+msgstr "விதிவிலக்கில் முழு சுவடுப்பைக் காட்டுங்கள்"
+
+#: sphinx/cmd/build.py:209
+msgid "run Pdb on exception"
+msgstr "விதிவிலக்கில் PDB ஐ இயக்கவும்"
+
+#: sphinx/cmd/build.py:244
+msgid "cannot combine -a option and filenames"
+msgstr "-a விருப்பம் மற்றும் கோப்பு பெயர்களை இணைக்க முடியாது"
+
+#: sphinx/cmd/build.py:276
+#, python-format
+msgid "cannot open warning file %r: %s"
+msgstr "எச்சரிக்கை கோப்பு %r: %s ஐ திறக்க முடியாது"
+
+#: sphinx/cmd/build.py:296
+msgid "-D option argument must be in the form name=value"
+msgstr "-D விருப்ப வாதம் படிவத்தில் பெயர் = மதிப்பு இருக்க வேண்டும்"
+
+#: sphinx/cmd/build.py:303
+msgid "-A option argument must be in the form name=value"
+msgstr "-ஒரு விருப்ப வாதம் படிவத்தில் இருக்க வேண்டும் பெயர் = மதிப்பு"
+
+#: sphinx/cmd/quickstart.py:42
+msgid "automatically insert docstrings from modules"
+msgstr "தொகுதிகளிலிருந்து தானாக ஆவணங்களை செருகவும்"
+
+#: sphinx/cmd/quickstart.py:43
+msgid "automatically test code snippets in doctest blocks"
+msgstr "டாக்ஸ்டெஸ்ட் தொகுதிகளில் குறியீடு துணுக்குகளை தானாகவே சோதிக்கவும்"
+
+#: sphinx/cmd/quickstart.py:44
+msgid "link between Sphinx documentation of different projects"
+msgstr "வெவ்வேறு திட்டங்களின் SPHINX ஆவணங்களுக்கு இடையிலான இணைப்பு"
+
+#: sphinx/cmd/quickstart.py:45
+msgid "write \"todo\" entries that can be shown or hidden on build"
+msgstr "கட்டியெழுப்ப அல்லது மறைக்கக்கூடிய \"டோடோ\" உள்ளீடுகளை எழுதுங்கள்"
+
+#: sphinx/cmd/quickstart.py:46
+msgid "checks for documentation coverage"
+msgstr "ஆவணங்கள் கவரேஜ் காசோலைகள்"
+
+#: sphinx/cmd/quickstart.py:47
+msgid "include math, rendered as PNG or SVG images"
+msgstr "கணிதத்தை சேர்க்கவும், பி.என்.ஜி அல்லது எஸ்.வி.ஜி படங்களாக வழங்கப்படுகிறது"
+
+#: sphinx/cmd/quickstart.py:48
+msgid "include math, rendered in the browser by MathJax"
+msgstr "கணிதத்தை சேர்க்கவும், மேத்ஜாக்ஸால் உலாவியில் வழங்கப்படுகிறது"
+
+#: sphinx/cmd/quickstart.py:49
+msgid "conditional inclusion of content based on config values"
+msgstr "கட்டமைப்பு மதிப்புகளின் அடிப்படையில் உள்ளடக்கத்தை நிபந்தனைக்குட்பட்டது"
+
+#: sphinx/cmd/quickstart.py:50
+msgid "include links to the source code of documented Python objects"
+msgstr "ஆவணப்படுத்தப்பட்ட பைதான் பொருள்களின் மூலக் குறியீட்டிற்கான இணைப்புகளைச் சேர்க்கவும்"
+
+#: sphinx/cmd/quickstart.py:51
+msgid "create .nojekyll file to publish the document on GitHub pages"
+msgstr "கிதுப் பக்கங்களில் ஆவணத்தை வெளியிட .nojekyl கோப்பை உருவாக்கவும்"
+
+#: sphinx/cmd/quickstart.py:93
+msgid "Please enter a valid path name."
+msgstr "சரியான பாதை பெயரை உள்ளிடவும்."
+
+#: sphinx/cmd/quickstart.py:109
+msgid "Please enter some text."
+msgstr "சில உரையை உள்ளிடவும்."
+
+#: sphinx/cmd/quickstart.py:116
+#, python-format
+msgid "Please enter one of %s."
+msgstr "தயவுசெய்து %s இல் ஒன்றை உள்ளிடவும்."
+
+#: sphinx/cmd/quickstart.py:123
+msgid "Please enter either 'y' or 'n'."
+msgstr "தயவுசெய்து 'y' அல்லது 'n' ஐ உள்ளிடவும்."
+
+#: sphinx/cmd/quickstart.py:129
+msgid "Please enter a file suffix, e.g. '.rst' or '.txt'."
+msgstr "தயவுசெய்து ஒரு கோப்பு பின்னொட்டை உள்ளிடவும், எ.கா. '.rst' அல்லது '.txt'."
+
+#: sphinx/cmd/quickstart.py:208
+#, python-format
+msgid "Welcome to the Sphinx %s quickstart utility."
+msgstr "Sphinx %S QUICKSTART பயன்பாட்டிற்கு வருக."
+
+#: sphinx/cmd/quickstart.py:210
+msgid ""
+"Please enter values for the following settings (just press Enter to\n"
+"accept a default value, if one is given in brackets)."
+msgstr "பின்வரும் அமைப்புகளுக்கான மதிப்புகளை உள்ளிடவும் (Enter க்கு அழுத்தவும் \n அடைப்புக்குறிக்குள் வழங்கப்பட்டால் இயல்புநிலை மதிப்பை ஏற்றுக்கொள்ளுங்கள்)."
+
+#: sphinx/cmd/quickstart.py:215
+#, python-format
+msgid "Selected root path: %s"
+msgstr "தேர்ந்தெடுக்கப்பட்ட ரூட் பாதை: %கள்"
+
+#: sphinx/cmd/quickstart.py:218
+msgid "Enter the root path for documentation."
+msgstr "ஆவணங்களுக்கான ரூட் பாதையை உள்ளிடவும்."
+
+#: sphinx/cmd/quickstart.py:219
+msgid "Root path for the documentation"
+msgstr "ஆவணங்களுக்கான ரூட் பாதை"
+
+#: sphinx/cmd/quickstart.py:224
+msgid "Error: an existing conf.py has been found in the selected root path."
+msgstr "பிழை: தேர்ந்தெடுக்கப்பட்ட ரூட் பாதையில் ஏற்கனவே உள்ள conf.py கண்டறியப்பட்டுள்ளது."
+
+#: sphinx/cmd/quickstart.py:226
+msgid "sphinx-quickstart will not overwrite existing Sphinx projects."
+msgstr "ஸ்பிங்க்ஸ்-கிக்ஸ்டார்ட் ஏற்கனவே உள்ள ஸ்பிங்க்ஸ் திட்டங்களை மேலெழுதாது."
+
+#: sphinx/cmd/quickstart.py:228
+msgid "Please enter a new root path (or just Enter to exit)"
+msgstr "தயவுசெய்து ஒரு புதிய ரூட் பாதையை உள்ளிடவும் (அல்லது வெளியேற உள்ளிடவும்)"
+
+#: sphinx/cmd/quickstart.py:235
+msgid ""
+"You have two options for placing the build directory for Sphinx output.\n"
+"Either, you use a directory \"_build\" within the root path, or you separate\n"
+"\"source\" and \"build\" directories within the root path."
+msgstr "SPHINX வெளியீட்டிற்கான உருவாக்க கோப்பகத்தை வைக்க உங்களுக்கு இரண்டு விருப்பங்கள் உள்ளன. \n ஒன்று, நீங்கள் ரூட் பாதையில் \"_ பில்ட்\" என்ற கோப்பகத்தைப் பயன்படுத்துகிறீர்கள், அல்லது நீங்கள் பிரிக்கிறீர்கள் \n மூல பாதையில் \"மூல\" மற்றும் \"உருவாக்க\" கோப்பகங்கள்."
+
+#: sphinx/cmd/quickstart.py:238
+msgid "Separate source and build directories (y/n)"
+msgstr "தனி மூல மற்றும் உருவாக்க கோப்பகங்களை உருவாக்குதல் (y/n)"
+
+#: sphinx/cmd/quickstart.py:242
+msgid ""
+"Inside the root directory, two more directories will be created; \"_templates\"\n"
+"for custom HTML templates and \"_static\" for custom stylesheets and other static\n"
+"files. You can enter another prefix (such as \".\") to replace the underscore."
+msgstr "ரூட் கோப்பகத்தின் உள்ளே, மேலும் இரண்டு கோப்பகங்கள் உருவாக்கப்படும்; \"_TEMPLATES\" \n தனிப்பயன் HTML வார்ப்புருக்கள் மற்றும் தனிப்பயன் நடைதாள் மற்றும் பிற நிலையான \"_ஸ்டாடிக்\" \n கோப்புகள். அடிக்கோடிட்டதை மாற்ற மற்றொரு முன்னொட்டை (\".\" போன்றவை) உள்ளிடலாம்."
+
+#: sphinx/cmd/quickstart.py:245
+msgid "Name prefix for templates and static dir"
+msgstr "வார்ப்புருக்கள் மற்றும் நிலையான டிர் ஆகியவற்றிற்கான பெயர் முன்னொட்டு"
+
+#: sphinx/cmd/quickstart.py:249
+msgid ""
+"The project name will occur in several places in the built documentation."
+msgstr "கட்டமைக்கப்பட்ட ஆவணங்களில் பல இடங்களில் திட்ட பெயர் நிகழும்."
+
+#: sphinx/cmd/quickstart.py:250
+msgid "Project name"
+msgstr "திட்ட பெயர்"
+
+#: sphinx/cmd/quickstart.py:252
+msgid "Author name(s)"
+msgstr "ஆசிரியரின் பெயர் (கள்)"
+
+#: sphinx/cmd/quickstart.py:256
+msgid ""
+"Sphinx has the notion of a \"version\" and a \"release\" for the\n"
+"software. Each version can have multiple releases. For example, for\n"
+"Python the version is something like 2.5 or 3.0, while the release is\n"
+"something like 2.5.1 or 3.0a1. If you don't need this dual structure,\n"
+"just set both to the same value."
+msgstr "ஸ்பிங்க்ஸ் ஒரு \"பதிப்பு\" மற்றும் \"வெளியீடு\" என்ற கருத்தை கொண்டுள்ளது \n மென்பொருள். ஒவ்வொரு பதிப்பிலும் பல வெளியீடுகள் இருக்கலாம். உதாரணமாக, \n பைதான் பதிப்பு 2.5 அல்லது 3.0 போன்றது, அதே நேரத்தில் வெளியீடு \n 2.5.1 அல்லது 3.0A1 போன்றது. இந்த இரட்டை அமைப்பு உங்களுக்கு தேவையில்லை என்றால், \n இரண்டையும் ஒரே மதிப்புக்கு அமைக்கவும்."
+
+#: sphinx/cmd/quickstart.py:261
+msgid "Project version"
+msgstr "திட்ட பதிப்பு"
+
+#: sphinx/cmd/quickstart.py:263
+msgid "Project release"
+msgstr "திட்ட வெளியீடு"
+
+#: sphinx/cmd/quickstart.py:267
+msgid ""
+"If the documents are to be written in a language other than English,\n"
+"you can select a language here by its language code. Sphinx will then\n"
+"translate text that it generates into that language.\n"
+"\n"
+"For a list of supported codes, see\n"
+"https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language."
+msgstr "ஆவணங்கள் ஆங்கிலத்தைத் தவிர வேறு மொழியில் எழுதப்பட வேண்டும் என்றால், \n ஒரு மொழியை அதன் மொழிக் குறியீட்டால் இங்கே தேர்ந்தெடுக்கலாம். ஸ்பிங்க்ஸ் பின்னர் \n அது உருவாக்கும் உரையை அந்த மொழியில் மொழிபெயர்க்கவும். \n\n ஆதரவு குறியீடுகளின் பட்டியலுக்கு, பார்க்கவும் \n https://www.sphinx-doc.org/en/master/usage/configuration.html#confval- மொழி."
+
+#: sphinx/cmd/quickstart.py:275
+msgid "Project language"
+msgstr "திட்ட மொழி"
+
+#: sphinx/cmd/quickstart.py:281
+msgid ""
+"The file name suffix for source files. Commonly, this is either \".txt\"\n"
+"or \".rst\". Only files with this suffix are considered documents."
+msgstr "மூல கோப்புகளுக்கான கோப்பு பெயர் பின்னொட்டு. பொதுவாக, இது \".txt\" \n அல்லது \".rst\". இந்த பின்னொட்டுடன் கூடிய கோப்புகள் மட்டுமே ஆவணங்களாக கருதப்படுகின்றன."
+
+#: sphinx/cmd/quickstart.py:283
+msgid "Source file suffix"
+msgstr "மூல கோப்பு பின்னொட்டு"
+
+#: sphinx/cmd/quickstart.py:287
+msgid ""
+"One document is special in that it is considered the top node of the\n"
+"\"contents tree\", that is, it is the root of the hierarchical structure\n"
+"of the documents. Normally, this is \"index\", but if your \"index\"\n"
+"document is a custom template, you can also set this to another filename."
+msgstr "ஒரு ஆவணம் சிறப்பு வாய்ந்தது, இது மேல் முனையாக கருதப்படுகிறது \n \"உள்ளடக்க மரம்\", அதாவது, இது படிநிலை கட்டமைப்பின் வேர் \n ஆவணங்களில். பொதுவாக, இது \"குறியீட்டு\", ஆனால் உங்கள் \"குறியீட்டு\" என்றால் \n ஆவணம் ஒரு தனிப்பயன் வார்ப்புரு, இதை நீங்கள் மற்றொரு கோப்பு பெயராக அமைக்கலாம்."
+
+#: sphinx/cmd/quickstart.py:291
+msgid "Name of your master document (without suffix)"
+msgstr "உங்கள் முதன்மை ஆவணத்தின் பெயர் (பின்னொட்டு இல்லாமல்)"
+
+#: sphinx/cmd/quickstart.py:296
+#, python-format
+msgid ""
+"Error: the master file %s has already been found in the selected root path."
+msgstr "பிழை: முதன்மை கோப்பு %s ஏற்கனவே தேர்ந்தெடுக்கப்பட்ட ரூட் பாதையில் கண்டறியப்பட்டுள்ளது."
+
+#: sphinx/cmd/quickstart.py:298
+msgid "sphinx-quickstart will not overwrite the existing file."
+msgstr "SPHINX-QUICKSTART இருக்கும் கோப்பை மேலெழுதாது."
+
+#: sphinx/cmd/quickstart.py:300
+msgid ""
+"Please enter a new file name, or rename the existing file and press Enter"
+msgstr "தயவுசெய்து ஒரு புதிய கோப்பு பெயரை உள்ளிடவும் அல்லது இருக்கும் கோப்பை மறுபெயரிட்டு Enter ஐ அழுத்தவும்"
+
+#: sphinx/cmd/quickstart.py:304
+msgid "Indicate which of the following Sphinx extensions should be enabled:"
+msgstr "பின்வரும் ஸ்பிங்க்ஸ் நீட்டிப்புகளில் எது இயக்கப்பட வேண்டும் என்பதைக் குறிக்கவும்:"
+
+#: sphinx/cmd/quickstart.py:312
+msgid ""
+"Note: imgmath and mathjax cannot be enabled at the same time. imgmath has "
+"been deselected."
+msgstr "குறிப்பு: ஒரே நேரத்தில் இம்க்மாத் மற்றும் மேத்ஜாக்ஸை இயக்க முடியாது. இம்க்மத் தேர்வு செய்யப்பட்டது."
+
+#: sphinx/cmd/quickstart.py:318
+msgid ""
+"A Makefile and a Windows command file can be generated for you so that you\n"
+"only have to run e.g. `make html' instead of invoking sphinx-build\n"
+"directly."
+msgstr "ஒரு மேக்ஃபைல் மற்றும் விண்டோஸ் கட்டளை கோப்பை உங்களுக்காக உருவாக்கலாம், இதனால் நீங்கள் \n எ.கா. ஸ்பின்க்ஸ்-பில்ட் செய்வதற்கு பதிலாக `HTML ஐ உருவாக்கவும் ' \n நேரடியாக."
+
+#: sphinx/cmd/quickstart.py:321
+msgid "Create Makefile? (y/n)"
+msgstr "மேக்ஃபைலை உருவாக்கவா? (y/n)"
+
+#: sphinx/cmd/quickstart.py:324
+msgid "Create Windows command file? (y/n)"
+msgstr "விண்டோஸ் கட்டளை கோப்பை உருவாக்கவா? (y/n)"
+
+#: sphinx/cmd/quickstart.py:368 sphinx/ext/apidoc.py:93
+#, python-format
+msgid "Creating file %s."
+msgstr "கோப்பு %s ஐ உருவாக்குதல்."
+
+#: sphinx/cmd/quickstart.py:373 sphinx/ext/apidoc.py:90
+#, python-format
+msgid "File %s already exists, skipping."
+msgstr "கோப்பு %s ஏற்கனவே உள்ளது, தவிர்க்கிறது."
+
+#: sphinx/cmd/quickstart.py:418
+msgid "Finished: An initial directory structure has been created."
+msgstr "முடிந்தது: ஆரம்ப அடைவு அமைப்பு உருவாக்கப்பட்டுள்ளது."
+
+#: sphinx/cmd/quickstart.py:420
+#, python-format
+msgid ""
+"You should now populate your master file %s and create other documentation\n"
+"source files. "
+msgstr "நீங்கள் இப்போது உங்கள் முதன்மை கோப்பு %s ஐ விரிவுபடுத்தி பிற ஆவணங்களை உருவாக்க வேண்டும் \n மூல கோப்புகள்."
+
+#: sphinx/cmd/quickstart.py:423
+msgid ""
+"Use the Makefile to build the docs, like so:\n"
+"   make builder"
+msgstr "டாக்ஸை உருவாக்க மேக்ஃபைலைப் பயன்படுத்தவும்: \n    பில்டரை உருவாக்குங்கள்"
+
+#: sphinx/cmd/quickstart.py:426
+#, python-format
+msgid ""
+"Use the sphinx-build command to build the docs, like so:\n"
+"   sphinx-build -b builder %s %s"
+msgstr "டாக்ஸை உருவாக்க ஸ்பின்க்ஸ்-பில்ட் கட்டளையைப் பயன்படுத்தவும்: \n    Sphinx -build -b பில்டர் %s %s"
+
+#: sphinx/cmd/quickstart.py:428
+msgid ""
+"where \"builder\" is one of the supported builders, e.g. html, latex or "
+"linkcheck."
+msgstr "\"பில்டர்\" என்பது ஆதரிக்கப்பட்ட பில்டர்களில் ஒன்றாகும், எ.கா. HTML, லேடெக்ஸ் அல்லது லிங்க்செக்."
+
+#: sphinx/cmd/quickstart.py:464
+msgid ""
+"\n"
+"Generate required files for a Sphinx project.\n"
+"\n"
+"sphinx-quickstart is an interactive tool that asks some questions about your\n"
+"project and then generates a complete documentation directory and sample\n"
+"Makefile to be used with sphinx-build.\n"
+msgstr "ஸ்பிங்க்ஸ் திட்டத்திற்கு தேவையான கோப்புகளை உருவாக்கவும். \n\n Sphinx-quickstart என்பது உங்களைப் பற்றி சில கேள்விகளைக் கேட்கும் ஒரு ஊடாடும் கருவியாகும் \n திட்டம் மற்றும் பின்னர் ஒரு முழுமையான ஆவண அடைவு மற்றும் மாதிரி உருவாக்குகிறது \n Sphinx- கட்டளையுடன் பயன்படுத்த மேக்ஃபைல்."
+
+#: sphinx/cmd/quickstart.py:479
+msgid "quiet mode"
+msgstr "அமைதியான பயன்முறை"
+
+#: sphinx/cmd/quickstart.py:484
+msgid "project root"
+msgstr "திட்ட வேர்"
+
+#: sphinx/cmd/quickstart.py:486
+msgid "Structure options"
+msgstr "கட்டமைப்பு விருப்பங்கள்"
+
+#: sphinx/cmd/quickstart.py:488
+msgid "if specified, separate source and build dirs"
+msgstr "குறிப்பிடப்பட்டால், மூலத்தை பிரித்து dirs ஐ உருவாக்குங்கள்"
+
+#: sphinx/cmd/quickstart.py:490
+msgid "if specified, create build dir under source dir"
+msgstr "குறிப்பிடப்பட்டால், மூல dir இன் கீழ் உருவாக்க dir ஐ உருவாக்குங்கள்"
+
+#: sphinx/cmd/quickstart.py:492
+msgid "replacement for dot in _templates etc."
+msgstr "_TEMPLATES போன்றவற்றில் DOT க்கு மாற்றீடு."
+
+#: sphinx/cmd/quickstart.py:494
+msgid "Project basic options"
+msgstr "அடிப்படை விருப்பங்களை திட்டமிடுங்கள்"
+
+#: sphinx/cmd/quickstart.py:496
+msgid "project name"
+msgstr "திட்ட பெயர்"
+
+#: sphinx/cmd/quickstart.py:498
+msgid "author names"
+msgstr "ஆசிரியர் பெயர்கள்"
+
+#: sphinx/cmd/quickstart.py:500
+msgid "version of project"
+msgstr "திட்டத்தின் பதிப்பு"
+
+#: sphinx/cmd/quickstart.py:502
+msgid "release of project"
+msgstr "திட்டத்தின் வெளியீடு"
+
+#: sphinx/cmd/quickstart.py:504
+msgid "document language"
+msgstr "ஆவண மொழி"
+
+#: sphinx/cmd/quickstart.py:506
+msgid "source file suffix"
+msgstr "மூல கோப்பு பின்னொட்டு"
+
+#: sphinx/cmd/quickstart.py:508
+msgid "master document name"
+msgstr "முதன்மை ஆவண பெயர்"
+
+#: sphinx/cmd/quickstart.py:510
+msgid "use epub"
+msgstr "எபப் பயன்படுத்தவும்"
+
+#: sphinx/cmd/quickstart.py:512
+msgid "Extension options"
+msgstr "நீட்டிப்பு விருப்பங்கள்"
+
+#: sphinx/cmd/quickstart.py:516 sphinx/ext/apidoc.py:400
+#, python-format
+msgid "enable %s extension"
+msgstr "%கள் நீட்டிப்பை இயக்கவும்"
+
+#: sphinx/cmd/quickstart.py:518 sphinx/ext/apidoc.py:396
+msgid "enable arbitrary extensions"
+msgstr "தன்னிச்சையான நீட்டிப்புகளை இயக்கவும்"
+
+#: sphinx/cmd/quickstart.py:520
+msgid "Makefile and Batchfile creation"
+msgstr "மேக்ஃபைல் மற்றும் பேட்ச்பைல் உருவாக்கம்"
+
+#: sphinx/cmd/quickstart.py:522
+msgid "create makefile"
+msgstr "மேக்ஃபைலை உருவாக்கவும்"
+
+#: sphinx/cmd/quickstart.py:524
+msgid "do not create makefile"
+msgstr "மேக்ஃபைலை உருவாக்க வேண்டாம்"
+
+#: sphinx/cmd/quickstart.py:526
+msgid "create batchfile"
+msgstr "தொகுதி கோப்பை உருவாக்கவும்"
+
+#: sphinx/cmd/quickstart.py:529
+msgid "do not create batchfile"
+msgstr "தொகுதி கோப்பை உருவாக்க வேண்டாம்"
+
+#: sphinx/cmd/quickstart.py:532
+msgid "use make-mode for Makefile/make.bat"
+msgstr "MakeFile/make.bat க்கு மேக்-பயன்முறையைப் பயன்படுத்தவும்"
+
+#: sphinx/cmd/quickstart.py:535
+msgid "do not use make-mode for Makefile/make.bat"
+msgstr "MakeFile/make.bat க்கு மேக்-பயன்முறையைப் பயன்படுத்த வேண்டாம்"
+
+#: sphinx/cmd/quickstart.py:537 sphinx/ext/apidoc.py:402
+msgid "Project templating"
+msgstr "திட்ட வார்ப்புரு"
+
+#: sphinx/cmd/quickstart.py:540 sphinx/ext/apidoc.py:405
+msgid "template directory for template files"
+msgstr "வார்ப்புரு கோப்புகளுக்கான வார்ப்புரு அடைவு"
+
+#: sphinx/cmd/quickstart.py:543
+msgid "define a template variable"
+msgstr "ஒரு வார்ப்புரு மாறியை வரையறுக்கவும்"
+
+#: sphinx/cmd/quickstart.py:576
+msgid "\"quiet\" is specified, but any of \"project\" or \"author\" is not specified."
+msgstr "\"அமைதியானது\" குறிப்பிடப்பட்டுள்ளது, ஆனால் \"திட்டம்\" அல்லது \"ஆசிரியர்\" எதுவும் குறிப்பிடப்படவில்லை."
+
+#: sphinx/cmd/quickstart.py:590
+msgid ""
+"Error: specified path is not a directory, or sphinx files already exist."
+msgstr "பிழை: குறிப்பிட்ட பாதை ஒரு அடைவு அல்ல, அல்லது ஸ்பிங்க்ஸ் கோப்புகள் ஏற்கனவே உள்ளன."
+
+#: sphinx/cmd/quickstart.py:592
+msgid ""
+"sphinx-quickstart only generate into a empty directory. Please specify a new"
+" root path."
+msgstr "ஸ்பின்க்ஸ்-கிக்ஸ்டார்ட் ஒரு வெற்று கோப்பகமாக மட்டுமே உருவாக்குகிறது. புதிய ரூட் பாதையை குறிப்பிடவும்."
+
+#: sphinx/cmd/quickstart.py:607
+#, python-format
+msgid "Invalid template variable: %s"
+msgstr "தவறான வார்ப்புரு மாறி: %கள்"
+
+#: sphinx/directives/code.py:61
+msgid "non-whitespace stripped by dedent"
+msgstr "வெண்மையானது அல்லாதது"
+
+#: sphinx/directives/code.py:82
+#, python-format
+msgid "Invalid caption: %s"
+msgstr "தவறான தலைப்புகள்"
+
+#: sphinx/directives/code.py:127 sphinx/directives/code.py:277
+#: sphinx/directives/code.py:453
+#, python-format
+msgid "line number spec is out of range(1-%d): %r"
+msgstr "வரி எண் ஸ்பெக் வரம்பில் இல்லை (1- %d): %r"
+
+#: sphinx/directives/code.py:206
+#, python-format
+msgid "Cannot use both \"%s\" and \"%s\" options"
+msgstr "\"%கள்\" மற்றும் \"%கள்\" விருப்பங்கள் இரண்டையும் பயன்படுத்த முடியாது"
+
+#: sphinx/directives/code.py:220
+#, python-format
+msgid "Include file %r not found or reading it failed"
+msgstr "கோப்பு %r கண்டுபிடிக்கப்படவில்லை அல்லது அதைப் படிப்பது தோல்வியுற்றது"
+
+#: sphinx/directives/code.py:223
+#, python-format
+msgid ""
+"Encoding %r used for reading included file %r seems to be wrong, try giving "
+"an :encoding: option"
+msgstr "சேர்க்கப்பட்ட கோப்பு %r என்பது தவறானதாகத் தெரிகிறது, ஒரு: குறியாக்கம்: விருப்பம் கொடுக்க முயற்சிக்கவும்"
+
+#: sphinx/directives/code.py:260
+#, python-format
+msgid "Object named %r not found in include file %r"
+msgstr "%R இல் காணப்படாத பொருள் கோப்பு %r அடங்கும்"
+
+#: sphinx/directives/code.py:286
+msgid "Cannot use \"lineno-match\" with a disjoint set of \"lines\""
+msgstr "\"லினெனோ-மேட்ச்\" ஐ \"கோடுகளின்\" ஒத்ததாக பயன்படுத்த முடியாது"
+
+#: sphinx/directives/code.py:291
+#, python-format
+msgid "Line spec %r: no lines pulled from include file %r"
+msgstr "வரி ஸ்பெக் %ஆர்: எந்த வரிகளும் இல்லை கோப்பு %ஆர் சேர்க்கப்படவில்லை"
+
+#: sphinx/directives/other.py:120
+#, python-format
+msgid "toctree glob pattern %r didn't match any documents"
+msgstr "டோக்ட்ரீ குளோப் முறை %ஆர் எந்த ஆவணங்களுக்கும் பொருந்தவில்லை"
+
+#: sphinx/directives/other.py:146 sphinx/environment/adapters/toctree.py:324
+#, python-format
+msgid "toctree contains reference to excluded document %r"
+msgstr "டோக்ட்ரீ விலக்கப்பட்ட ஆவணம் %ஆர் பற்றிய குறிப்பு உள்ளது"
+
+#: sphinx/directives/other.py:149 sphinx/environment/adapters/toctree.py:328
+#, python-format
+msgid "toctree contains reference to nonexisting document %r"
+msgstr "டோக்ட்ரீ இல்லாத ஆவணம் %r பற்றிய குறிப்பு உள்ளது"
+
+#: sphinx/directives/other.py:160
+#, python-format
+msgid "duplicated entry found in toctree: %s"
+msgstr "டோக்ட்ரீயில் காணப்படும் நகல் நுழைவு: %கள்"
+
+#: sphinx/directives/other.py:193
+msgid "Section author: "
+msgstr "பிரிவு ஆசிரியர்:"
+
+#: sphinx/directives/other.py:195
+msgid "Module author: "
+msgstr "தொகுதி ஆசிரியர்:"
+
+#: sphinx/directives/other.py:197
+msgid "Code author: "
+msgstr "குறியீடு ஆசிரியர்:"
+
+#: sphinx/directives/other.py:199
+msgid "Author: "
+msgstr "நூலாசிரியர்:"
+
+#: sphinx/directives/other.py:275
+msgid ".. acks content is not a list"
+msgstr ".. ACKS உள்ளடக்கம் ஒரு பட்டியல் அல்ல"
+
+#: sphinx/directives/other.py:301
+msgid ".. hlist content is not a list"
+msgstr ".. HLIST உள்ளடக்கம் ஒரு பட்டியல் அல்ல"
+
+#: sphinx/directives/patches.py:66
+msgid ""
+"\":file:\" option for csv-table directive now recognizes an absolute path as"
+" a relative path from source directory. Please update your document."
+msgstr "\": கோப்பு:\" சி.எஸ்.வி-டேபிள் டைரெக்டிவ் விருப்பம் இப்போது ஒரு முழுமையான பாதையை மூல கோப்பகத்திலிருந்து தொடர்புடைய பாதையாக அங்கீகரிக்கிறது. உங்கள் ஆவணத்தை புதுப்பிக்கவும்."
+
+#: sphinx/domains/__init__.py:397
+#, python-format
+msgid "%s %s"
+msgstr "%s %s"
+
+#: sphinx/domains/changeset.py:23
+#, python-format
+msgid "Added in version %s"
+msgstr ""
+
+#: sphinx/domains/changeset.py:24
+#, python-format
+msgid "Changed in version %s"
+msgstr "பதிப்பு %s இல் மாற்றப்பட்டது"
+
+#: sphinx/domains/changeset.py:25
+#, python-format
+msgid "Deprecated since version %s"
+msgstr "பதிப்பு %s முதல் நீக்கப்பட்டது"
+
+#: sphinx/domains/changeset.py:26
+#, python-format
+msgid "Removed in version %s"
+msgstr ""
+
+#: sphinx/domains/citation.py:71
+#, python-format
+msgid "duplicate citation %s, other instance in %s"
+msgstr "நகல் மேற்கோள் %s, %s இல் மற்ற நிகழ்வு"
+
+#: sphinx/domains/citation.py:82
+#, python-format
+msgid "Citation [%s] is not referenced."
+msgstr "மேற்கோள் [%கள்] குறிப்பிடப்படவில்லை."
+
+#: sphinx/domains/javascript.py:165
+#, python-format
+msgid "%s() (built-in function)"
+msgstr "%s () (உள்ளமைக்கப்பட்ட செயல்பாடு)"
+
+#: sphinx/domains/javascript.py:166 sphinx/domains/python/__init__.py:240
+#, python-format
+msgid "%s() (%s method)"
+msgstr "%s () (%s முறை)"
+
+#: sphinx/domains/javascript.py:168
+#, python-format
+msgid "%s() (class)"
+msgstr "%கள் () (வகுப்பு)"
+
+#: sphinx/domains/javascript.py:170
+#, python-format
+msgid "%s (global variable or constant)"
+msgstr "%கள் (உலகளாவிய மாறி அல்லது மாறிலி)"
+
+#: sphinx/domains/javascript.py:172 sphinx/domains/python/__init__.py:325
+#, python-format
+msgid "%s (%s attribute)"
+msgstr "%s (%s பண்புக்கூறு)"
+
+#: sphinx/domains/javascript.py:255
+msgid "Arguments"
+msgstr "வாதங்கள்"
+
+#: sphinx/domains/cpp/__init__.py:350 sphinx/domains/javascript.py:258
+msgid "Throws"
+msgstr "வீசுகிறது"
+
+#: sphinx/domains/c/__init__.py:251 sphinx/domains/cpp/__init__.py:361
+#: sphinx/domains/javascript.py:261 sphinx/domains/python/_object.py:175
+msgid "Returns"
+msgstr "வருமானம்"
+
+#: sphinx/domains/c/__init__.py:253 sphinx/domains/javascript.py:263
+#: sphinx/domains/python/_object.py:177
+msgid "Return type"
+msgstr "திரும்ப வகை"
+
+#: sphinx/domains/javascript.py:331
+#, python-format
+msgid "%s (module)"
+msgstr "%கள் (தொகுதி)"
+
+#: sphinx/domains/c/__init__.py:622 sphinx/domains/cpp/__init__.py:764
+#: sphinx/domains/javascript.py:368 sphinx/domains/python/__init__.py:574
+msgid "function"
+msgstr "செயல்பாடு"
+
+#: sphinx/domains/javascript.py:369 sphinx/domains/python/__init__.py:578
+msgid "method"
+msgstr "முறை"
+
+#: sphinx/domains/cpp/__init__.py:762 sphinx/domains/javascript.py:370
+#: sphinx/domains/python/__init__.py:576
+msgid "class"
+msgstr "வர்க்கம்"
+
+#: sphinx/domains/javascript.py:371 sphinx/domains/python/__init__.py:575
+msgid "data"
+msgstr "தகவல்கள்"
+
+#: sphinx/domains/javascript.py:372 sphinx/domains/python/__init__.py:581
+msgid "attribute"
+msgstr "பண்புக்கூறு"
+
+#: sphinx/domains/javascript.py:373 sphinx/domains/python/__init__.py:583
+msgid "module"
+msgstr "தொகுதி"
+
+#: sphinx/domains/javascript.py:404
+#, python-format
+msgid "duplicate %s description of %s, other %s in %s"
+msgstr "%s இன் %s விளக்கம், %s இல் மற்ற %s"
+
+#: sphinx/domains/math.py:63
+#, python-format
+msgid "duplicate label of equation %s, other instance in %s"
+msgstr "சமன்பாடு %s இன் நகல் லேபிள், %s இல் மற்ற நிகழ்வு"
+
+#: sphinx/domains/math.py:118 sphinx/writers/latex.py:2252
+#, python-format
+msgid "Invalid math_eqref_format: %r"
+msgstr "தவறான MATH_EQREF_FORMAT: %r"
+
+#: sphinx/domains/rst.py:127 sphinx/domains/rst.py:184
+#, python-format
+msgid "%s (directive)"
+msgstr "%கள் (உத்தரவு)"
+
+#: sphinx/domains/rst.py:185 sphinx/domains/rst.py:189
+#, python-format
+msgid ":%s: (directive option)"
+msgstr ":%s: (உத்தரவு விருப்பம்)"
+
+#: sphinx/domains/rst.py:213
+#, python-format
+msgid "%s (role)"
+msgstr "%கள் (பங்கு)"
+
+#: sphinx/domains/rst.py:223
+msgid "directive"
+msgstr "உத்தரவு"
+
+#: sphinx/domains/rst.py:224
+msgid "directive-option"
+msgstr "உத்தரவு-விருப்பம்"
+
+#: sphinx/domains/rst.py:225
+msgid "role"
+msgstr "பங்கு"
+
+#: sphinx/domains/rst.py:247
+#, python-format
+msgid "duplicate description of %s %s, other instance in %s"
+msgstr "%s %s இன் நகல் விளக்கம், %s இல் மற்ற நிகழ்வு"
+
+#: sphinx/domains/c/__init__.py:146
+#, python-format
+msgid "%s (C %s)"
+msgstr "%s (c %s)"
+
+#: sphinx/domains/c/__init__.py:207 sphinx/domains/c/_symbol.py:552
+#, python-format
+msgid ""
+"Duplicate C declaration, also defined at %s:%s.\n"
+"Declaration is '.. c:%s:: %s'."
+msgstr "நகல் சி அறிவிப்பு, %s: %s இல் வரையறுக்கப்பட்டுள்ளது. \n அறிவிப்பு '.. c: %s :: %s'."
+
+#: sphinx/domains/c/__init__.py:245 sphinx/domains/cpp/__init__.py:344
+#: sphinx/domains/python/_object.py:163 sphinx/ext/napoleon/docstring.py:762
+msgid "Parameters"
+msgstr "அளவுருக்கள்"
+
+#: sphinx/domains/c/__init__.py:248 sphinx/domains/cpp/__init__.py:357
+msgid "Return values"
+msgstr "திரும்ப மதிப்புகள்"
+
+#: sphinx/domains/c/__init__.py:620 sphinx/domains/cpp/__init__.py:765
+msgid "member"
+msgstr "உறுப்பினர்"
+
+#: sphinx/domains/c/__init__.py:621
+msgid "variable"
+msgstr "மாறக்கூடிய"
+
+#: sphinx/domains/c/__init__.py:623
+msgid "macro"
+msgstr "பெரு"
+
+#: sphinx/domains/c/__init__.py:624
+msgid "struct"
+msgstr "கட்டமைப்பு"
+
+#: sphinx/domains/c/__init__.py:625 sphinx/domains/cpp/__init__.py:763
+msgid "union"
+msgstr "தொழிற்சங்கம்"
+
+#: sphinx/domains/c/__init__.py:626 sphinx/domains/cpp/__init__.py:768
+msgid "enum"
+msgstr "enum"
+
+#: sphinx/domains/c/__init__.py:627 sphinx/domains/cpp/__init__.py:769
+msgid "enumerator"
+msgstr "கணக்காளர்"
+
+#: sphinx/domains/c/__init__.py:628 sphinx/domains/cpp/__init__.py:766
+msgid "type"
+msgstr "தட்டச்சு செய்க"
+
+#: sphinx/domains/c/__init__.py:630 sphinx/domains/cpp/__init__.py:771
+msgid "function parameter"
+msgstr "செயல்பாடு அளவுரு"
+
+#: sphinx/domains/cpp/__init__.py:63
+msgid "Template Parameters"
+msgstr "வார்ப்புரு அளவுருக்கள்"
+
+#: sphinx/domains/cpp/__init__.py:185
+#, python-format
+msgid "%s (C++ %s)"
+msgstr "%s (c ++ %s)"
+
+#: sphinx/domains/cpp/__init__.py:268 sphinx/domains/cpp/_symbol.py:790
+#, python-format
+msgid ""
+"Duplicate C++ declaration, also defined at %s:%s.\n"
+"Declaration is '.. cpp:%s:: %s'."
+msgstr "சி ++ பிரகடனத்தை நகல், %கள்: %s இல் வரையறுக்கப்படுகிறது. \n அறிவிப்பு '.. CPP: %s :: %s'."
+
+#: sphinx/domains/cpp/__init__.py:767
+msgid "concept"
+msgstr "கருத்து"
+
+#: sphinx/domains/cpp/__init__.py:772
+msgid "template parameter"
+msgstr "வார்ப்புரு அளவுரு"
+
+#: sphinx/domains/python/__init__.py:94 sphinx/domains/python/__init__.py:231
+#, python-format
+msgid "%s() (in module %s)"
+msgstr "%s () (தொகுதி %s இல்)"
+
+#: sphinx/domains/python/__init__.py:154 sphinx/domains/python/__init__.py:321
+#: sphinx/domains/python/__init__.py:372
+#, python-format
+msgid "%s (in module %s)"
+msgstr "%s (தொகுதி %s இல்)"
+
+#: sphinx/domains/python/__init__.py:156
+#, python-format
+msgid "%s (built-in variable)"
+msgstr "%கள் (உள்ளமைக்கப்பட்ட மாறி)"
+
+#: sphinx/domains/python/__init__.py:181
+#, python-format
+msgid "%s (built-in class)"
+msgstr "%கள் (உள்ளமைக்கப்பட்ட வகுப்பு)"
+
+#: sphinx/domains/python/__init__.py:182
+#, python-format
+msgid "%s (class in %s)"
+msgstr "%கள் ( %s இல் வகுப்பு)"
+
+#: sphinx/domains/python/__init__.py:236
+#, python-format
+msgid "%s() (%s class method)"
+msgstr "%s () (%s வகுப்பு முறை)"
+
+#: sphinx/domains/python/__init__.py:238
+#, python-format
+msgid "%s() (%s static method)"
+msgstr "%s () (%s நிலையான முறை)"
+
+#: sphinx/domains/python/__init__.py:376
+#, python-format
+msgid "%s (%s property)"
+msgstr "%கள் (%s சொத்து)"
+
+#: sphinx/domains/python/__init__.py:502
+msgid "Python Module Index"
+msgstr "பைதான் தொகுதி அட்டவணை"
+
+#: sphinx/domains/python/__init__.py:503
+msgid "modules"
+msgstr "தொகுதிகள்"
+
+#: sphinx/domains/python/__init__.py:552
+msgid "Deprecated"
+msgstr "மதிப்பிடப்பட்டது"
+
+#: sphinx/domains/python/__init__.py:577
+msgid "exception"
+msgstr "விதிவிலக்கு"
+
+#: sphinx/domains/python/__init__.py:579
+msgid "class method"
+msgstr "வகுப்பு முறை"
+
+#: sphinx/domains/python/__init__.py:580
+msgid "static method"
+msgstr "நிலையான முறை"
+
+#: sphinx/domains/python/__init__.py:582
+msgid "property"
+msgstr "சொத்து"
+
+#: sphinx/domains/python/__init__.py:640
+#, python-format
+msgid ""
+"duplicate object description of %s, other instance in %s, use :no-index: for"
+" one of them"
+msgstr "%s இன் நகல் பொருள் விளக்கம், %s இல் உள்ள பிற நிகழ்வு, பயன்பாடு: இல்லை-குறியீட்டு: அவற்றில் ஒன்று"
+
+#: sphinx/domains/python/__init__.py:760
+#, python-format
+msgid "more than one target found for cross-reference %r: %s"
+msgstr "குறுக்கு-குறிப்புக்கு ஒன்றுக்கு மேற்பட்ட இலக்குகள் %r: %s"
+
+#: sphinx/domains/python/__init__.py:821
+msgid " (deprecated)"
+msgstr "(நீக்கப்பட்டது)"
+
+#: sphinx/domains/python/_object.py:168
+msgid "Variables"
+msgstr "மாறிகள்"
+
+#: sphinx/domains/python/_object.py:172
+msgid "Raises"
+msgstr "எழுப்புகிறது"
+
+#: sphinx/domains/std/__init__.py:80 sphinx/domains/std/__init__.py:97
+#, python-format
+msgid "environment variable; %s"
+msgstr "சுற்றுச்சூழல் மாறி; %கள்"
+
+#: sphinx/domains/std/__init__.py:157
+#, python-format
+msgid ""
+"Malformed option description %r, should look like \"opt\", \"-opt args\", \""
+"--opt args\", \"/opt args\" or \"+opt args\""
+msgstr "தவறான விருப்பமான விளக்கம் %r, \"OPT\", \"-OPT ARGS\", \"--opt args\", \"/Opt args\" அல்லது \"+Opt args\""
+
+#: sphinx/domains/std/__init__.py:228
+#, python-format
+msgid "%s command line option"
+msgstr "%S கட்டளை வரி விருப்பம்"
+
+#: sphinx/domains/std/__init__.py:230
+msgid "command line option"
+msgstr "கட்டளை வரி விருப்பம்"
+
+#: sphinx/domains/std/__init__.py:348
+msgid "glossary term must be preceded by empty line"
+msgstr "சொற்களஞ்சியம் காலத்திற்கு முன்னதாக இருக்க வேண்டும்"
+
+#: sphinx/domains/std/__init__.py:356
+msgid "glossary terms must not be separated by empty lines"
+msgstr "சொற்களஞ்சிய சொற்கள் வெற்று கோடுகளால் பிரிக்கப்படக்கூடாது"
+
+#: sphinx/domains/std/__init__.py:362 sphinx/domains/std/__init__.py:375
+msgid "glossary seems to be misformatted, check indentation"
+msgstr "சொற்களஞ்சியம் தவறாகப் புரிந்து கொள்ளப்பட்டதாகத் தெரிகிறது, உள்தள்ளலை சரிபார்க்கவும்"
+
+#: sphinx/domains/std/__init__.py:518
+msgid "glossary term"
+msgstr "சொற்களஞ்சிய கால"
+
+#: sphinx/domains/std/__init__.py:519
+msgid "grammar token"
+msgstr "இலக்கண டோக்கன்"
+
+#: sphinx/domains/std/__init__.py:520
+msgid "reference label"
+msgstr "குறிப்பு லேபிள்"
+
+#: sphinx/domains/std/__init__.py:522
+msgid "environment variable"
+msgstr "சுற்றுச்சூழல் மாறி"
+
+#: sphinx/domains/std/__init__.py:523
+msgid "program option"
+msgstr "நிரல் விருப்பம்"
+
+#: sphinx/domains/std/__init__.py:524
+msgid "document"
+msgstr "ஆவணம்"
+
+#: sphinx/domains/std/__init__.py:560 sphinx/domains/std/__init__.py:572
+msgid "Module Index"
+msgstr "தொகுதி அட்டவணை"
+
+#: sphinx/domains/std/__init__.py:561 sphinx/domains/std/__init__.py:573
+#: sphinx/themes/basic/defindex.html:25
+msgid "Search Page"
+msgstr "தேடல் பக்கம்"
+
+#: sphinx/domains/std/__init__.py:616 sphinx/domains/std/__init__.py:722
+#: sphinx/ext/autosectionlabel.py:53
+#, python-format
+msgid "duplicate label %s, other instance in %s"
+msgstr "நகல் லேபிள் %கள், பிற நிகழ்வுகள் %s இல்"
+
+#: sphinx/domains/std/__init__.py:635
+#, python-format
+msgid "duplicate %s description of %s, other instance in %s"
+msgstr "%s இன் %s விளக்கம், %s இல் மற்ற நிகழ்வு"
+
+#: sphinx/domains/std/__init__.py:841
+msgid "numfig is disabled. :numref: is ignored."
+msgstr "NUMFIG முடக்கப்பட்டுள்ளது. : எண்ரெஃப்: புறக்கணிக்கப்படுகிறது."
+
+#: sphinx/domains/std/__init__.py:849
+#, python-format
+msgid "Failed to create a cross reference. Any number is not assigned: %s"
+msgstr "குறுக்கு குறிப்பை உருவாக்கத் தவறிவிட்டது. எந்த எண்ணும் ஒதுக்கப்படவில்லை: %கள்"
+
+#: sphinx/domains/std/__init__.py:861
+#, python-format
+msgid "the link has no caption: %s"
+msgstr "இணைப்புக்கு தலைப்பு இல்லை: %கள்"
+
+#: sphinx/domains/std/__init__.py:875
+#, python-format
+msgid "invalid numfig_format: %s (%r)"
+msgstr "தவறான numfig_format: %s ( %r)"
+
+#: sphinx/domains/std/__init__.py:878
+#, python-format
+msgid "invalid numfig_format: %s"
+msgstr "தவறான numfig_format: %s"
+
+#: sphinx/domains/std/__init__.py:1109
+#, python-format
+msgid "undefined label: %r"
+msgstr "வரையறுக்கப்படாத லேபிள்: %ஆர்"
+
+#: sphinx/domains/std/__init__.py:1111
+#, python-format
+msgid "Failed to create a cross reference. A title or caption not found: %r"
+msgstr "குறுக்கு குறிப்பை உருவாக்கத் தவறிவிட்டது. ஒரு தலைப்பு அல்லது தலைப்பு கிடைக்கவில்லை: %r"
+
+#: sphinx/environment/__init__.py:71
+msgid "new config"
+msgstr "புதிய கட்டமைப்பு"
+
+#: sphinx/environment/__init__.py:72
+msgid "config changed"
+msgstr "கட்டமைப்பு மாற்றப்பட்டது"
+
+#: sphinx/environment/__init__.py:73
+msgid "extensions changed"
+msgstr "நீட்டிப்புகள் மாற்றப்பட்டன"
+
+#: sphinx/environment/__init__.py:279
+msgid "build environment version not current"
+msgstr "சுற்றுச்சூழல் பதிப்பை உருவாக்குங்கள்"
+
+#: sphinx/environment/__init__.py:281
+msgid "source directory has changed"
+msgstr "மூல அடைவு மாறிவிட்டது"
+
+#: sphinx/environment/__init__.py:360
+msgid ""
+"This environment is incompatible with the selected builder, please choose "
+"another doctree directory."
+msgstr "இந்த சூழல் தேர்ந்தெடுக்கப்பட்ட பில்டருடன் பொருந்தாது, தயவுசெய்து மற்றொரு கோட்பாட்டு கோப்பகத்தைத் தேர்வுசெய்க."
+
+#: sphinx/environment/__init__.py:459
+#, python-format
+msgid "Failed to scan documents in %s: %r"
+msgstr "%S இல் ஆவணங்களை ஸ்கேன் செய்வதில் தோல்வி: %r"
+
+#: sphinx/environment/__init__.py:596
+#, python-format
+msgid "Domain %r is not registered"
+msgstr "டொமைன் %ஆர் பதிவு செய்யப்படவில்லை"
+
+#: sphinx/environment/__init__.py:730
+msgid "document isn't included in any toctree"
+msgstr "எந்த டோக்ட்ரீயிலும் ஆவணம் சேர்க்கப்படவில்லை"
+
+#: sphinx/environment/__init__.py:766
+msgid "self referenced toctree found. Ignored."
+msgstr "சுய குறிப்பிடப்பட்ட டோக்ட்ரீ கண்டுபிடிக்கப்பட்டது. புறக்கணிக்கப்பட்டது."
+
+#: sphinx/environment/adapters/indexentries.py:69
+#, python-format
+msgid "see %s"
+msgstr "%கள் பார்க்கவும்"
+
+#: sphinx/environment/adapters/indexentries.py:73
+#, python-format
+msgid "see also %s"
+msgstr "%கள் மேலும் காண்க"
+
+#: sphinx/environment/adapters/indexentries.py:76
+#, python-format
+msgid "unknown index entry type %r"
+msgstr "அறியப்படாத குறியீட்டு நுழைவு வகை %r"
+
+#: sphinx/environment/adapters/indexentries.py:187
+#: sphinx/templates/latex/sphinxmessages.sty_t:11
+msgid "Symbols"
+msgstr "சின்னங்கள்"
+
+#: sphinx/environment/adapters/toctree.py:297
+#, python-format
+msgid "circular toctree references detected, ignoring: %s <- %s"
+msgstr "சுற்றறிக்கை டோக்ட்ரீ குறிப்புகள் கண்டறியப்பட்டன, புறக்கணித்தல்: %s <- %s"
+
+#: sphinx/environment/adapters/toctree.py:317
+#, python-format
+msgid ""
+"toctree contains reference to document %r that doesn't have a title: no link"
+" will be generated"
+msgstr "டோக்ட்ரீ ஒரு தலைப்பு இல்லாத ஆவணம் %r க்கு குறிப்பு உள்ளது: எந்த இணைப்பும் உருவாக்கப்படாது"
+
+#: sphinx/environment/adapters/toctree.py:326
+#, python-format
+msgid "toctree contains reference to non-included document %r"
+msgstr "டோக்ட்ரீ சேர்க்கப்படாத ஆவணம் %r பற்றிய குறிப்பு உள்ளது"
+
+#: sphinx/environment/collectors/asset.py:89
+#, python-format
+msgid "image file not readable: %s"
+msgstr "படக் கோப்பு படிக்க முடியாது: %கள்"
+
+#: sphinx/environment/collectors/asset.py:108
+#, python-format
+msgid "image file %s not readable: %s"
+msgstr "படக் கோப்பு %s படிக்க முடியாதது: %s"
+
+#: sphinx/environment/collectors/asset.py:134
+#, python-format
+msgid "download file not readable: %s"
+msgstr "கோப்பைப் பதிவிறக்க முடியாது: %கள்"
+
+#: sphinx/environment/collectors/toctree.py:225
+#, python-format
+msgid "%s is already assigned section numbers (nested numbered toctree?)"
+msgstr "%கள் ஏற்கனவே பிரிவு எண்களை ஒதுக்கியுள்ளன (உள்ளமைக்கப்பட்ட எண்ணுள்ள டோக்ட்ரீ?)"
+
+#: sphinx/ext/apidoc.py:86
+#, python-format
+msgid "Would create file %s."
+msgstr "கோப்பு %s ஐ உருவாக்கும்."
+
+#: sphinx/ext/apidoc.py:318
+msgid ""
+"\n"
+"Look recursively in <MODULE_PATH> for Python modules and packages and create\n"
+"one reST file with automodule directives per package in the <OUTPUT_PATH>.\n"
+"\n"
+"The <EXCLUDE_PATTERN>s can be file and/or directory patterns that will be\n"
+"excluded from generation.\n"
+"\n"
+"Note: By default this script will not overwrite already created files."
+msgstr "பைதான் தொகுதிகள் மற்றும் தொகுப்புகளுக்கு <தொகுதி_பாத்> இல் மீண்டும் மீண்டும் பார்க்கவும் \n <uptical_path> இல் ஒரு தொகுப்புக்கு ஆட்டோமோடூல் வழிமுறைகளுடன் ஒரு ஓய்வு கோப்பு. \n\n <Excoude_pattern> கள் கோப்பு மற்றும்/அல்லது அடைவு வடிவங்களாக இருக்கலாம் \n தலைமுறையிலிருந்து விலக்கப்பட்டது. \n\n குறிப்பு: இயல்பாக இந்த ஸ்கிரிப்ட் ஏற்கனவே உருவாக்கிய கோப்புகளை மேலெழுதாது."
+
+#: sphinx/ext/apidoc.py:331
+msgid "path to module to document"
+msgstr "ஆவணத்திற்கான தொகுதிக்கான பாதை"
+
+#: sphinx/ext/apidoc.py:333
+msgid ""
+"fnmatch-style file and/or directory patterns to exclude from generation"
+msgstr "fnmatch- பாணி கோப்பு மற்றும்/அல்லது கோப்பக வடிவங்கள் தலைமுறையிலிருந்து விலக்க"
+
+#: sphinx/ext/apidoc.py:338
+msgid "directory to place all output"
+msgstr "அனைத்து வெளியீட்டையும் வைக்க அடைவு"
+
+#: sphinx/ext/apidoc.py:343
+msgid "maximum depth of submodules to show in the TOC (default: 4)"
+msgstr "TOC இல் காண்பிக்க சப்மோடூல்களின் அதிகபட்ச ஆழம் (இயல்புநிலை: 4)"
+
+#: sphinx/ext/apidoc.py:346
+msgid "overwrite existing files"
+msgstr "இருக்கும் கோப்புகளை மேலெழுதவும்"
+
+#: sphinx/ext/apidoc.py:349
+msgid ""
+"follow symbolic links. Powerful when combined with "
+"collective.recipe.omelette."
+msgstr "குறியீட்டு இணைப்புகளைப் பின்பற்றவும். Cologetive.recipe.omelette உடன் இணைந்தால் சக்திவாய்ந்தவர்."
+
+#: sphinx/ext/apidoc.py:352
+msgid "run the script without creating files"
+msgstr "கோப்புகளை உருவாக்காமல் ஸ்கிரிப்டை இயக்கவும்"
+
+#: sphinx/ext/apidoc.py:355
+msgid "put documentation for each module on its own page"
+msgstr "ஒவ்வொரு தொகுதிக்கும் ஆவணங்களை அதன் சொந்த பக்கத்தில் வைக்கவும்"
+
+#: sphinx/ext/apidoc.py:358
+msgid "include \"_private\" modules"
+msgstr "\"_ பிரைவேட்\" தொகுதிகள் சேர்க்கவும்"
+
+#: sphinx/ext/apidoc.py:360
+msgid "filename of table of contents (default: modules)"
+msgstr "உள்ளடக்க அட்டவணையின் கோப்பு பெயர் (இயல்புநிலை: தொகுதிகள்)"
+
+#: sphinx/ext/apidoc.py:362
+msgid "don't create a table of contents file"
+msgstr "உள்ளடக்கக் கோப்பின் அட்டவணையை உருவாக்க வேண்டாம்"
+
+#: sphinx/ext/apidoc.py:365
+msgid ""
+"don't create headings for the module/package packages (e.g. when the "
+"docstrings already contain them)"
+msgstr "தொகுதி/தொகுப்பு தொகுப்புகளுக்கான தலைப்புகளை உருவாக்க வேண்டாம் (எ.கா. ஆவணங்கள் ஏற்கனவே அவற்றைக் கொண்டிருக்கும்போது)"
+
+#: sphinx/ext/apidoc.py:370
+msgid "put module documentation before submodule documentation"
+msgstr "தொகுதி ஆவணங்களை சப்மோடூல் ஆவணங்களுக்கு முன் வைக்கவும்"
+
+#: sphinx/ext/apidoc.py:374
+msgid ""
+"interpret module paths according to PEP-0420 implicit namespaces "
+"specification"
+msgstr "PEP-0420 மறைமுக பெயர்வெளிகளின் விவரக்குறிப்பின் படி தொகுதி பாதைகளை விளக்குங்கள்"
+
+#: sphinx/ext/apidoc.py:378
+msgid "file suffix (default: rst)"
+msgstr "கோப்பு பின்னொட்டு (இயல்புநிலை: rst)"
+
+#: sphinx/ext/apidoc.py:380
+msgid "generate a full project with sphinx-quickstart"
+msgstr "ஸ்பின்க்ஸ்-க்யூக்ஸ்டார்ட்டுடன் ஒரு முழு திட்டத்தை உருவாக்கவும்"
+
+#: sphinx/ext/apidoc.py:383
+msgid "append module_path to sys.path, used when --full is given"
+msgstr "sys.path உடன் தொகுதி_பாத், --full கொடுக்கப்படும் போது பயன்படுத்தப்படுகிறது"
+
+#: sphinx/ext/apidoc.py:385
+msgid "project name (default: root module name)"
+msgstr "திட்ட பெயர் (இயல்புநிலை: ரூட் தொகுதி பெயர்)"
+
+#: sphinx/ext/apidoc.py:387
+msgid "project author(s), used when --full is given"
+msgstr "திட்ட ஆசிரியர் (கள்), -ஃபுல் வழங்கப்படும் போது பயன்படுத்தப்படுகிறது"
+
+#: sphinx/ext/apidoc.py:389
+msgid "project version, used when --full is given"
+msgstr "திட்ட பதிப்பு, -ஃபுல் வழங்கப்படும் போது பயன்படுத்தப்படுகிறது"
+
+#: sphinx/ext/apidoc.py:391
+msgid "project release, used when --full is given, defaults to --doc-version"
+msgstr "திட்ட வெளியீடு, --full வழங்கப்படும் போது பயன்படுத்தப்படுகிறது, இயல்புநிலை--டாக்-பதவியே"
+
+#: sphinx/ext/apidoc.py:394
+msgid "extension options"
+msgstr "நீட்டிப்பு விருப்பங்கள்"
+
+#: sphinx/ext/apidoc.py:427
+#, python-format
+msgid "%s is not a directory."
+msgstr "%கள் ஒரு அடைவு அல்ல."
+
+#: sphinx/ext/autosectionlabel.py:49
+#, python-format
+msgid "section \"%s\" gets labeled as \"%s\""
+msgstr "\"%கள்\" பிரிவு \"%கள்\" என்று பெயரிடப்படுகிறது"
+
+#: sphinx/ext/coverage.py:46
+#, python-format
+msgid "invalid regex %r in %s"
+msgstr "%s இல் தவறான ரீஜெக்ஸ் %r"
+
+#: sphinx/ext/coverage.py:75
+#, python-format
+msgid ""
+"Testing of coverage in the sources finished, look at the results in "
+"%(outdir)spython.txt."
+msgstr "முடிக்கப்பட்ட ஆதாரங்களில் கவரேஜ் சோதனை செய்வது, %(வெளிப்புற) spython.txt இல் முடிவுகளைப் பாருங்கள்."
+
+#: sphinx/ext/coverage.py:89
+#, python-format
+msgid "invalid regex %r in coverage_c_regexes"
+msgstr "கவரேஜ்_சி_ரெஜெக்ஸில் தவறான ரீஜெக்ஸ் %ஆர்"
+
+#: sphinx/ext/coverage.py:157
+#, python-format
+msgid "undocumented c api: %s [%s] in file %s"
+msgstr "ஆவணப்படுத்தப்படாத சி ஏபிஐ: கோப்பு %s இல் %s [ %s]"
+
+#: sphinx/ext/coverage.py:189
+#, python-format
+msgid "module %s could not be imported: %s"
+msgstr "தொகுதி %கள் இறக்குமதி செய்ய முடியவில்லை: %கள்"
+
+#: sphinx/ext/coverage.py:340
+#, python-format
+msgid "undocumented python function: %s :: %s"
+msgstr "ஆவணமற்ற பைதான் செயல்பாடு: %s :: %s"
+
+#: sphinx/ext/coverage.py:356
+#, python-format
+msgid "undocumented python class: %s :: %s"
+msgstr "ஆவணமற்ற பைதான் வகுப்பு: %கள் :: %கள்"
+
+#: sphinx/ext/coverage.py:369
+#, python-format
+msgid "undocumented python method: %s :: %s :: %s"
+msgstr "ஆவணமற்ற பைதான் முறை: %கள் :: %s :: %s"
+
+#: sphinx/ext/doctest.py:115
+#, python-format
+msgid "missing '+' or '-' in '%s' option."
+msgstr "'%s' விருப்பத்தில் '+' அல்லது '-' காணவில்லை."
+
+#: sphinx/ext/doctest.py:120
+#, python-format
+msgid "'%s' is not a valid option."
+msgstr "'%கள்' சரியான விருப்பம் அல்ல."
+
+#: sphinx/ext/doctest.py:134
+#, python-format
+msgid "'%s' is not a valid pyversion option"
+msgstr "'%கள்' என்பது செல்லுபடியாகும் பைவெர்ஷன் விருப்பம் அல்ல"
+
+#: sphinx/ext/doctest.py:220
+msgid "invalid TestCode type"
+msgstr "தவறான டெஸ்ட்கோட் வகை"
+
+#: sphinx/ext/doctest.py:281
+#, python-format
+msgid ""
+"Testing of doctests in the sources finished, look at the results in "
+"%(outdir)s/output.txt."
+msgstr "முடிக்கப்பட்ட ஆதாரங்களில் ஆவணங்களின் சோதனை, %(வெளிப்புற) s/output.txt இன் முடிவுகளைப் பாருங்கள்."
+
+#: sphinx/ext/doctest.py:438
+#, python-format
+msgid "no code/output in %s block at %s:%s"
+msgstr "%s இல் %s தொகுதியில் குறியீடு/வெளியீடு இல்லை: %s: %s"
+
+#: sphinx/ext/doctest.py:526
+#, python-format
+msgid "ignoring invalid doctest code: %r"
+msgstr "தவறான ஆவணக் குறியீட்டை புறக்கணித்தல்: %r"
+
+#: sphinx/ext/duration.py:77
+msgid ""
+"====================== slowest reading durations ======================="
+msgstr "==================== மெதுவாக வாசிப்பு காலங்கள் ========================="
+
+#: sphinx/ext/extlinks.py:82
+#, python-format
+msgid ""
+"hardcoded link %r could be replaced by an extlink (try using %r instead)"
+msgstr "ஹார்ட்கோட் செய்யப்பட்ட இணைப்பு %R ஐ எக்ஸ்ட்லிங்க் மூலம் மாற்றலாம் (அதற்கு பதிலாக %R ஐப் பயன்படுத்த முயற்சிக்கவும்)"
+
+#: sphinx/ext/graphviz.py:135
+msgid "Graphviz directive cannot have both content and a filename argument"
+msgstr "கிராப்விஸ் டைரெக்டிவ் உள்ளடக்கம் மற்றும் கோப்பு பெயர் வாதம் இரண்டையும் கொண்டிருக்க முடியாது"
+
+#: sphinx/ext/graphviz.py:145
+#, python-format
+msgid "External Graphviz file %r not found or reading it failed"
+msgstr "வெளிப்புற கிராப்விஸ் கோப்பு %r கண்டுபிடிக்கப்படவில்லை அல்லது அதைப் படிப்பது தோல்வியுற்றது"
+
+#: sphinx/ext/graphviz.py:152
+msgid "Ignoring \"graphviz\" directive without content."
+msgstr "உள்ளடக்கம் இல்லாமல் \"கிராஃப்விஸ்\" உத்தரவைப் புறக்கணித்தல்."
+
+#: sphinx/ext/graphviz.py:268
+#, python-format
+msgid "graphviz_dot executable path must be set! %r"
+msgstr "braphviz_dot இயங்கக்கூடிய பாதை அமைக்கப்பட வேண்டும்! %r"
+
+#: sphinx/ext/graphviz.py:303
+#, python-format
+msgid ""
+"dot command %r cannot be run (needed for graphviz output), check the "
+"graphviz_dot setting"
+msgstr "DOT கட்டளை %R ஐ இயக்க முடியாது (கிராஃப்விஸ் வெளியீட்டிற்கு தேவை), கிராஃப்விஸ்_டோட் அமைப்பைச் சரிபார்க்கவும்"
+
+#: sphinx/ext/graphviz.py:310
+#, python-format
+msgid ""
+"dot exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "பிழை பிழையுடன் வெளியேறியது: \n [stderr] \n %r \n [stdout] \n %r"
+
+#: sphinx/ext/graphviz.py:313
+#, python-format
+msgid ""
+"dot did not produce an output file:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "புள்ளி ஒரு வெளியீட்டு கோப்பை உருவாக்கவில்லை: \n [stderr] \n %r \n [stdout] \n %r"
+
+#: sphinx/ext/graphviz.py:329
+#, python-format
+msgid "graphviz_output_format must be one of 'png', 'svg', but is %r"
+msgstr "braphviz_output_format 'png', 'svg' இல் ஒன்றாக இருக்க வேண்டும், ஆனால் %r ஆகும்"
+
+#: sphinx/ext/graphviz.py:333 sphinx/ext/graphviz.py:386
+#: sphinx/ext/graphviz.py:423
+#, python-format
+msgid "dot code %r: %s"
+msgstr "புள்ளி குறியீடு %r: %s"
+
+#: sphinx/ext/graphviz.py:436 sphinx/ext/graphviz.py:444
+#, python-format
+msgid "[graph: %s]"
+msgstr "[வரைபடம்: %கள்]"
+
+#: sphinx/ext/graphviz.py:438 sphinx/ext/graphviz.py:446
+msgid "[graph]"
+msgstr "[வரைபடம்]"
+
+#: sphinx/ext/imgconverter.py:39
+#, python-format
+msgid ""
+"Unable to run the image conversion command %r. 'sphinx.ext.imgconverter' requires ImageMagick by default. Ensure it is installed, or set the 'image_converter' option to a custom conversion command.\n"
+"\n"
+"Traceback: %s"
+msgstr "பட மாற்று கட்டளை %r ஐ இயக்க முடியவில்லை. 'sphinx.ext.imgconverter' இயல்புநிலையாக இமேஜ்மேஜிக் தேவைப்படுகிறது. இது நிறுவப்பட்டிருப்பதை உறுதிசெய்க, அல்லது தனிப்பயன் மாற்று கட்டளைக்கு 'படம்_கன்வெர்ட்டர்' விருப்பத்தை அமைக்கவும். \n\n ட்ரேஸ்பேக்: %கள்"
+
+#: sphinx/ext/imgconverter.py:48 sphinx/ext/imgconverter.py:72
+#, python-format
+msgid ""
+"convert exited with error:\n"
+"[stderr]\n"
+"%r\n"
+"[stdout]\n"
+"%r"
+msgstr "பிழையுடன் வெளியேறுதல்: \n [stderr] \n %r \n [stdout] \n %r"
+
+#: sphinx/ext/imgconverter.py:67
+#, python-format
+msgid "convert command %r cannot be run, check the image_converter setting"
+msgstr "கட்டளை %r ஐ இயக்க முடியாது, பட_கன்வெர்ட்டர் அமைப்பை சரிபார்க்கவும்"
+
+#: sphinx/ext/imgmath.py:158
+#, python-format
+msgid ""
+"LaTeX command %r cannot be run (needed for math display), check the "
+"imgmath_latex setting"
+msgstr "Latex கட்டளை %R ஐ இயக்க முடியாது (கணித காட்சிக்கு தேவை), imgmath_latex அமைப்பைச் சரிபார்க்கவும்"
+
+#: sphinx/ext/imgmath.py:173
+#, python-format
+msgid ""
+"%s command %r cannot be run (needed for math display), check the imgmath_%s "
+"setting"
+msgstr "%s கட்டளை %R ஐ இயக்க முடியாது (கணித காட்சிக்கு தேவை), imgmath_ %s அமைப்பை சரிபார்க்கவும்"
+
+#: sphinx/ext/imgmath.py:327
+#, python-format
+msgid "display latex %r: %s"
+msgstr "லேடெக்ஸ் %ஆர்: %கள் காட்சி"
+
+#: sphinx/ext/imgmath.py:361
+#, python-format
+msgid "inline latex %r: %s"
+msgstr "இன்லைன் லேடெக்ஸ் %ஆர்: %கள்"
+
+#: sphinx/ext/imgmath.py:368 sphinx/ext/mathjax.py:53
+msgid "Link to this equation"
+msgstr "இந்த சமன்பாட்டிற்கான இணைப்பு"
+
+#: sphinx/ext/intersphinx.py:195
+#, python-format
+msgid "intersphinx inventory has moved: %s -> %s"
+msgstr "இன்டெர்ஸ்பின்க்ஸ் சரக்கு நகர்ந்தது: %s -> %s"
+
+#: sphinx/ext/intersphinx.py:230
+#, python-format
+msgid "loading intersphinx inventory from %s..."
+msgstr "%s இலிருந்து இன்டர்ஸ்பின்க்ஸ் சரக்குகளை ஏற்றுகிறது ..."
+
+#: sphinx/ext/intersphinx.py:244
+msgid ""
+"encountered some issues with some of the inventories, but they had working "
+"alternatives:"
+msgstr "சில சரக்குகளுடன் சில சிக்கல்களை எதிர்கொண்டது, ஆனால் அவர்கள் வேலை மாற்று வழிகளைக் கொண்டிருந்தனர்:"
+
+#: sphinx/ext/intersphinx.py:250
+msgid "failed to reach any of the inventories with the following issues:"
+msgstr "பின்வரும் சிக்கல்களுடன் எந்த சரக்குகளையும் அடையத் தவறிவிட்டது:"
+
+#: sphinx/ext/intersphinx.py:303
+#, python-format
+msgid "(in %s v%s)"
+msgstr "( %s v %s இல்)"
+
+#: sphinx/ext/intersphinx.py:305
+#, python-format
+msgid "(in %s)"
+msgstr "( %s இல்)"
+
+#: sphinx/ext/intersphinx.py:538
+#, python-format
+msgid "inventory for external cross-reference not found: %r"
+msgstr ""
+
+#: sphinx/ext/intersphinx.py:546
+#, python-format
+msgid "invalid external cross-reference suffix: %r"
+msgstr ""
+
+#: sphinx/ext/intersphinx.py:557
+#, python-format
+msgid "domain for external cross-reference not found: %r"
+msgstr ""
+
+#: sphinx/ext/intersphinx.py:750
+#, python-format
+msgid "external %s:%s reference target not found: %s"
+msgstr "வெளிப்புற %s: %S குறிப்பு இலக்கு காணப்படவில்லை: %s"
+
+#: sphinx/ext/intersphinx.py:775
+#, python-format
+msgid "intersphinx identifier %r is not string. Ignored"
+msgstr "இன்டர்ஸ்பின்க்ஸ் அடையாளங்காட்டி %ஆர் சரம் அல்ல. புறக்கணிக்கப்பட்டது"
+
+#: sphinx/ext/intersphinx.py:797
+#, python-format
+msgid "Failed to read intersphinx_mapping[%s], ignored: %r"
+msgstr "Intersphinx_mapph [ %s], புறக்கணிக்கப்பட்டது: %r"
+
+#: sphinx/ext/linkcode.py:69 sphinx/ext/viewcode.py:199
+msgid "[source]"
+msgstr "[மூல]"
+
+#: sphinx/ext/todo.py:69
+msgid "Todo"
+msgstr "டோடோ"
+
+#: sphinx/ext/todo.py:102
+#, python-format
+msgid "TODO entry found: %s"
+msgstr "டோடோ நுழைவு காணப்பட்டது: %கள்"
+
+#: sphinx/ext/todo.py:161
+msgid "<<original entry>>"
+msgstr "<< அசல் நுழைவு >>"
+
+#: sphinx/ext/todo.py:163
+#, python-format
+msgid "(The <<original entry>> is located in %s, line %d.)"
+msgstr "(<< அசல் நுழைவு >> %s, வரி %d இல் அமைந்துள்ளது.)"
+
+#: sphinx/ext/todo.py:173
+msgid "original entry"
+msgstr "அசல் நுழைவு"
+
+#: sphinx/ext/viewcode.py:256
+msgid "highlighting module code... "
+msgstr "தொகுதி குறியீட்டை முன்னிலைப்படுத்துகிறது ..."
+
+#: sphinx/ext/viewcode.py:284
+msgid "[docs]"
+msgstr "[டாக்ஸ்]"
+
+#: sphinx/ext/viewcode.py:304
+msgid "Module code"
+msgstr "தொகுதி குறியீடு"
+
+#: sphinx/ext/viewcode.py:310
+#, python-format
+msgid "<h1>Source code for %s</h1>"
+msgstr "<h1> %s </h1> க்கான மூலக் குறியீடு"
+
+#: sphinx/ext/viewcode.py:336
+msgid "Overview: module code"
+msgstr "கண்ணோட்டம்: தொகுதி குறியீடு"
+
+#: sphinx/ext/viewcode.py:337
+msgid "<h1>All modules for which code is available</h1>"
+msgstr "<H1> எந்த குறியீடு கிடைக்கும் அனைத்து தொகுதிகளும் </H1>"
+
+#: sphinx/ext/autodoc/__init__.py:135
+#, python-format
+msgid "invalid value for member-order option: %s"
+msgstr "உறுப்பினர்-வரிசை விருப்பத்திற்கான தவறான மதிப்பு: %கள்"
+
+#: sphinx/ext/autodoc/__init__.py:143
+#, python-format
+msgid "invalid value for class-doc-from option: %s"
+msgstr "வகுப்பு-டாக்-ஃப்ரம் விருப்பத்திற்கான தவறான மதிப்பு: %கள்"
+
+#: sphinx/ext/autodoc/__init__.py:399
+#, python-format
+msgid "invalid signature for auto%s (%r)"
+msgstr "ஆட்டோ%s (%r) க்கான தவறான கையொப்பம்"
+
+#: sphinx/ext/autodoc/__init__.py:515
+#, python-format
+msgid "error while formatting arguments for %s: %s"
+msgstr "%s: %s க்கான வாதங்களை வடிவமைக்கும்போது பிழை"
+
+#: sphinx/ext/autodoc/__init__.py:798
+#, python-format
+msgid ""
+"autodoc: failed to determine %s.%s (%r) to be documented, the following exception was raised:\n"
+"%s"
+msgstr "ஆட்டோடோக்:%s.%s (%r) ஐ ஆவணப்படுத்தத் தவறிவிட்டது, பின்வரும் விதிவிலக்கு எழுப்பப்பட்டது: \n %கள்"
+
+#: sphinx/ext/autodoc/__init__.py:893
+#, python-format
+msgid ""
+"don't know which module to import for autodocumenting %r (try placing a "
+"\"module\" or \"currentmodule\" directive in the document, or giving an "
+"explicit module name)"
+msgstr "தன்னியக்கமயமாக்கல் %r க்கு எந்த தொகுதி இறக்குமதி செய்ய வேண்டும் என்று தெரியவில்லை (ஆவணத்தில் ஒரு \"தொகுதி\" அல்லது \"தற்போதைய உருவம்\" கட்டளையை வைக்க முயற்சிக்கவும் அல்லது வெளிப்படையான தொகுதி பெயரைக் கொடுக்கவும்)"
+
+#: sphinx/ext/autodoc/__init__.py:937
+#, python-format
+msgid "A mocked object is detected: %r"
+msgstr "கேலி செய்யப்பட்ட பொருள் கண்டறியப்பட்டது: %r"
+
+#: sphinx/ext/autodoc/__init__.py:956
+#, python-format
+msgid "error while formatting signature for %s: %s"
+msgstr "%s: %s க்கான கையொப்பத்தை வடிவமைக்கும்போது பிழை"
+
+#: sphinx/ext/autodoc/__init__.py:1019
+msgid "\"::\" in automodule name doesn't make sense"
+msgstr "\"::\" ஆட்டோமோடூல் பெயரில் அர்த்தமல்ல"
+
+#: sphinx/ext/autodoc/__init__.py:1026
+#, python-format
+msgid "signature arguments or return annotation given for automodule %s"
+msgstr "தானியங்கு %s க்கு வழங்கப்பட்ட கையொப்ப வாதங்கள் அல்லது திரும்ப சிறுகுறிப்பு"
+
+#: sphinx/ext/autodoc/__init__.py:1039
+#, python-format
+msgid ""
+"__all__ should be a list of strings, not %r (in module %s) -- ignoring "
+"__all__"
+msgstr "__all__ என்பது சரங்களின் பட்டியலாக இருக்க வேண்டும், %R (தொகுதி %s இல்) அல்ல - __all__ ஐ புறக்கணிக்கிறது"
+
+#: sphinx/ext/autodoc/__init__.py:1105
+#, python-format
+msgid ""
+"missing attribute mentioned in :members: option: module %s, attribute %s"
+msgstr "குறிப்பிடப்பட்ட பண்புக்கூறு பின்வருமாறு: உறுப்பினர்கள்: விருப்பம்: தொகுதி %கள், பண்புக்கூறு %கள்"
+
+#: sphinx/ext/autodoc/__init__.py:1327 sphinx/ext/autodoc/__init__.py:1404
+#: sphinx/ext/autodoc/__init__.py:2824
+#, python-format
+msgid "Failed to get a function signature for %s: %s"
+msgstr "%S: %s க்கான செயல்பாட்டு கையொப்பத்தைப் பெறுவதில் தோல்வி"
+
+#: sphinx/ext/autodoc/__init__.py:1618
+#, python-format
+msgid "Failed to get a constructor signature for %s: %s"
+msgstr "%S: %s க்கு ஒரு கட்டமைப்பாளர் கையொப்பத்தைப் பெறுவதில் தோல்வி"
+
+#: sphinx/ext/autodoc/__init__.py:1745
+#, python-format
+msgid "Bases: %s"
+msgstr "தளங்கள்: %கள்"
+
+#: sphinx/ext/autodoc/__init__.py:1759
+#, python-format
+msgid "missing attribute %s in object %s"
+msgstr "பொருள் %s இல் உள்ள பண்புக்கூறு %s"
+
+#: sphinx/ext/autodoc/__init__.py:1858 sphinx/ext/autodoc/__init__.py:1895
+#: sphinx/ext/autodoc/__init__.py:1990
+#, python-format
+msgid "alias of %s"
+msgstr "%கள் மாற்றுப்பெயர்"
+
+#: sphinx/ext/autodoc/__init__.py:1878
+#, python-format
+msgid "alias of TypeVar(%s)"
+msgstr "டைப்வாரின் மாற்றுப்பெயர் (%கள்)"
+
+#: sphinx/ext/autodoc/__init__.py:2216 sphinx/ext/autodoc/__init__.py:2316
+#, python-format
+msgid "Failed to get a method signature for %s: %s"
+msgstr "%S க்கு ஒரு முறை கையொப்பத்தைப் பெறுவதில் தோல்வி: %s"
+
+#: sphinx/ext/autodoc/__init__.py:2447
+#, python-format
+msgid "Invalid __slots__ found on %s. Ignored."
+msgstr "தவறான __ ஸ்லாட் __ %s இல் காணப்படுகிறது. புறக்கணிக்கப்பட்டது."
+
+#: sphinx/ext/autodoc/preserve_defaults.py:190
+#, python-format
+msgid "Failed to parse a default argument value for %r: %s"
+msgstr "%R: %s க்கான இயல்புநிலை வாத மதிப்பை அலசுவதில் தோல்வி"
+
+#: sphinx/ext/autodoc/type_comment.py:132
+#, python-format
+msgid "Failed to update signature for %r: parameter not found: %s"
+msgstr "%R க்கான கையொப்பத்தை புதுப்பிக்கத் தவறிவிட்டது: அளவுரு காணப்படவில்லை: %s"
+
+#: sphinx/ext/autodoc/type_comment.py:135
+#, python-format
+msgid "Failed to parse type_comment for %r: %s"
+msgstr "%R: %s க்கு Type_comment ஐ பாகுபடுத்துவதில் தோல்வி"
+
+#: sphinx/ext/autosummary/__init__.py:251
+#, python-format
+msgid "autosummary references excluded document %r. Ignored."
+msgstr "தன்னியக்க குறிப்புகள் விலக்கப்பட்ட ஆவணம் %r. புறக்கணிக்கப்பட்டது."
+
+#: sphinx/ext/autosummary/__init__.py:253
+#, python-format
+msgid ""
+"autosummary: stub file not found %r. Check your autosummary_generate "
+"setting."
+msgstr "தன்னியக்க: STUB கோப்பு காணப்படவில்லை %r. உங்கள் தன்னியக்க_ஜெனரேட் அமைப்பை சரிபார்க்கவும்."
+
+#: sphinx/ext/autosummary/__init__.py:272
+msgid "A captioned autosummary requires :toctree: option. ignored."
+msgstr "தலைப்பிடப்பட்ட தன்னியக்க தேவைப்படுகிறது: டோக்ட்ரீ: விருப்பம். புறக்கணிக்கப்பட்டது."
+
+#: sphinx/ext/autosummary/__init__.py:325
+#, python-format
+msgid ""
+"autosummary: failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "தன்னியக்க: %s ஐ இறக்குமதி செய்வதில் தோல்வி. \n சாத்தியமான குறிப்புகள்: \n %கள்"
+
+#: sphinx/ext/autosummary/__init__.py:339
+#, python-format
+msgid "failed to parse name %s"
+msgstr "பெயர் %s என்ற பெயரை அலசத் தவறிவிட்டது"
+
+#: sphinx/ext/autosummary/__init__.py:344
+#, python-format
+msgid "failed to import object %s"
+msgstr "பொருள் %s ஐ இறக்குமதி செய்வதில் தோல்வி"
+
+#: sphinx/ext/autosummary/__init__.py:802
+#, python-format
+msgid "autosummary_generate: file not found: %s"
+msgstr "autosummary_generate: கோப்பு கிடைக்கவில்லை: %s"
+
+#: sphinx/ext/autosummary/__init__.py:810
+msgid ""
+"autosummary generates .rst files internally. But your source_suffix does not"
+" contain .rst. Skipped."
+msgstr ""
+
+#: sphinx/ext/autosummary/generate.py:200
+#: sphinx/ext/autosummary/generate.py:358
+#, python-format
+msgid ""
+"autosummary: failed to determine %r to be documented, the following exception was raised:\n"
+"%s"
+msgstr "தன்னியக்க: ஆவணப்படுத்தப்பட வேண்டிய %R ஐ தீர்மானிக்கத் தவறிவிட்டது, பின்வரும் விதிவிலக்கு எழுப்பப்பட்டது: \n %கள்"
+
+#: sphinx/ext/autosummary/generate.py:470
+#, python-format
+msgid "[autosummary] generating autosummary for: %s"
+msgstr "[தன்னியக்க] தன்னியக்கத்தை உருவாக்குதல்: %கள்"
+
+#: sphinx/ext/autosummary/generate.py:474
+#, python-format
+msgid "[autosummary] writing to %s"
+msgstr "[தன்னியக்க] %கள் எழுதுதல்"
+
+#: sphinx/ext/autosummary/generate.py:517
+#, python-format
+msgid ""
+"[autosummary] failed to import %s.\n"
+"Possible hints:\n"
+"%s"
+msgstr "[தன்னியக்க] %s ஐ இறக்குமதி செய்யத் தவறிவிட்டது. \n சாத்தியமான குறிப்புகள்: \n %கள்"
+
+#: sphinx/ext/autosummary/generate.py:690
+msgid ""
+"\n"
+"Generate ReStructuredText using autosummary directives.\n"
+"\n"
+"sphinx-autogen is a frontend to sphinx.ext.autosummary.generate. It generates\n"
+"the reStructuredText files from the autosummary directives contained in the\n"
+"given input files.\n"
+"\n"
+"The format of the autosummary directive is documented in the\n"
+"``sphinx.ext.autosummary`` Python module and can be read using::\n"
+"\n"
+"  pydoc sphinx.ext.autosummary\n"
+msgstr "தன்னியக்க வழிமுறைகளைப் பயன்படுத்தி மறுசீரமைப்பு டெக்ஸ்டை உருவாக்கவும். \n\n ஸ்பின்க்ஸ்-ஆட்டோஜென் என்பது sphinx.ext.autosummary.generate க்கு ஒரு முன்னணியில் உள்ளது. இது உருவாக்குகிறது \n இல் உள்ள தன்னியக்க வழிமுறைகளிலிருந்து மறுசீரமைப்பு செய்யப்பட்ட கோப்புகள் \n வழங்கப்பட்ட உள்ளீட்டு கோப்புகள். \n\n தன்னியக்க உத்தரவின் வடிவம் ஆவணப்படுத்தப்பட்டுள்ளது \n `` sphinx.ext.autosummary`` பைதான் தொகுதி மற்றும் பயன்படுத்தி படிக்கலாம் :: \n\n   pydoc sphinx.ext.autosummary"
+
+#: sphinx/ext/autosummary/generate.py:707
+msgid "source files to generate rST files for"
+msgstr "RST கோப்புகளை உருவாக்க மூல கோப்புகள்"
+
+#: sphinx/ext/autosummary/generate.py:711
+msgid "directory to place all output in"
+msgstr "அனைத்து வெளியீட்டையும் வைக்க கோப்பகம்"
+
+#: sphinx/ext/autosummary/generate.py:714
+#, python-format
+msgid "default suffix for files (default: %(default)s)"
+msgstr "கோப்புகளுக்கான இயல்புநிலை பின்னொட்டு (இயல்புநிலை: %(இயல்புநிலை) கள்)"
+
+#: sphinx/ext/autosummary/generate.py:718
+#, python-format
+msgid "custom template directory (default: %(default)s)"
+msgstr "தனிப்பயன் வார்ப்புரு அடைவு (இயல்புநிலை: %(இயல்புநிலை) கள்)"
+
+#: sphinx/ext/autosummary/generate.py:722
+#, python-format
+msgid "document imported members (default: %(default)s)"
+msgstr "ஆவணம் இறக்குமதி செய்யப்பட்ட உறுப்பினர்கள் (இயல்புநிலை: %(இயல்புநிலை) கள்)"
+
+#: sphinx/ext/autosummary/generate.py:726
+#, python-format
+msgid ""
+"document exactly the members in module __all__ attribute. (default: "
+"%(default)s)"
+msgstr "உறுப்பினர்களை தொகுதி __all__ பண்புக்கூறில் சரியாக ஆவணப்படுத்தவும். (இயல்புநிலை: %(இயல்புநிலை) கள்)"
+
+#: sphinx/ext/napoleon/__init__.py:341 sphinx/ext/napoleon/docstring.py:728
+msgid "Keyword Arguments"
+msgstr "முக்கிய வாதங்கள்"
+
+#: sphinx/ext/napoleon/docstring.py:682
+msgid "Example"
+msgstr "உதாரணமாக"
+
+#: sphinx/ext/napoleon/docstring.py:683
+msgid "Examples"
+msgstr "எடுத்துக்காட்டுகள்"
+
+#: sphinx/ext/napoleon/docstring.py:744
+msgid "Notes"
+msgstr "குறிப்புகள்"
+
+#: sphinx/ext/napoleon/docstring.py:753
+msgid "Other Parameters"
+msgstr "பிற அளவுருக்கள்"
+
+#: sphinx/ext/napoleon/docstring.py:789
+msgid "Receives"
+msgstr "பெறுகிறது"
+
+#: sphinx/ext/napoleon/docstring.py:793
+msgid "References"
+msgstr "குறிப்புகள்"
+
+#: sphinx/ext/napoleon/docstring.py:825
+msgid "Warns"
+msgstr "எச்சரிக்கைகள்"
+
+#: sphinx/ext/napoleon/docstring.py:829
+msgid "Yields"
+msgstr "மகசூல்"
+
+#: sphinx/ext/napoleon/docstring.py:987
+#, python-format
+msgid "invalid value set (missing closing brace): %s"
+msgstr "தவறான மதிப்பு தொகுப்பு (நிறைவு பிரேஸைக் காணவில்லை): %கள்"
+
+#: sphinx/ext/napoleon/docstring.py:994
+#, python-format
+msgid "invalid value set (missing opening brace): %s"
+msgstr "தவறான மதிப்பு தொகுப்பு (தொடக்க பிரேஸைக் காணவில்லை): %கள்"
+
+#: sphinx/ext/napoleon/docstring.py:1001
+#, python-format
+msgid "malformed string literal (missing closing quote): %s"
+msgstr "தவறாக சரம் லிட்டரல் (நிறைவு மேற்கோளைக் காணவில்லை): %கள்"
+
+#: sphinx/ext/napoleon/docstring.py:1008
+#, python-format
+msgid "malformed string literal (missing opening quote): %s"
+msgstr "தவறான சரம் நேரடி (தொடக்க மேற்கோள்களைக் காணவில்லை"
+
+#: sphinx/locale/__init__.py:228
+msgid "Attention"
+msgstr "கவனம்"
+
+#: sphinx/locale/__init__.py:229
+msgid "Caution"
+msgstr "எச்சரிக்கை"
+
+#: sphinx/locale/__init__.py:230
+msgid "Danger"
+msgstr "ஆபத்து"
+
+#: sphinx/locale/__init__.py:231
+msgid "Error"
+msgstr "பிழை"
+
+#: sphinx/locale/__init__.py:232
+msgid "Hint"
+msgstr "குறிப்பு"
+
+#: sphinx/locale/__init__.py:233
+msgid "Important"
+msgstr "முக்கியமான"
+
+#: sphinx/locale/__init__.py:234
+msgid "Note"
+msgstr "குறிப்பு"
+
+#: sphinx/locale/__init__.py:235
+msgid "See also"
+msgstr "மேலும் காண்க"
+
+#: sphinx/locale/__init__.py:236
+msgid "Tip"
+msgstr "உதவிக்குறிப்பு"
+
+#: sphinx/locale/__init__.py:237
+msgid "Warning"
+msgstr "எச்சரிக்கை"
+
+#: sphinx/templates/latex/longtable.tex_t:52
+#: sphinx/templates/latex/sphinxmessages.sty_t:8
+msgid "continued from previous page"
+msgstr "முந்தைய பக்கத்திலிருந்து தொடர்கிறது"
+
+#: sphinx/templates/latex/longtable.tex_t:63
+#: sphinx/templates/latex/sphinxmessages.sty_t:9
+msgid "continues on next page"
+msgstr "அடுத்த பக்கத்தில் தொடர்கிறது"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:10
+msgid "Non-alphabetical"
+msgstr "மக்கள்தொகை அல்லாத"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:12
+msgid "Numbers"
+msgstr "எண்கள்"
+
+#: sphinx/templates/latex/sphinxmessages.sty_t:13
+msgid "page"
+msgstr "பக்கம்"
+
+#: sphinx/themes/agogo/layout.html:38 sphinx/themes/basic/globaltoc.html:10
+#: sphinx/themes/basic/localtoc.html:12 sphinx/themes/scrolls/layout.html:41
+msgid "Table of Contents"
+msgstr "உள்ளடக்க அட்டவணை"
+
+#: sphinx/themes/agogo/layout.html:43 sphinx/themes/basic/layout.html:141
+#: sphinx/themes/basic/search.html:11 sphinx/themes/basic/search.html:23
+msgid "Search"
+msgstr "தேடல்"
+
+#: sphinx/themes/agogo/layout.html:46 sphinx/themes/basic/searchbox.html:16
+#: sphinx/themes/basic/searchfield.html:18
+msgid "Go"
+msgstr "போ"
+
+#: sphinx/themes/agogo/layout.html:90 sphinx/themes/basic/sourcelink.html:15
+msgid "Show Source"
+msgstr "மூலத்தைக் காட்டு"
+
+#: sphinx/themes/basic/defindex.html:11
+msgid "Overview"
+msgstr "கண்ணோட்டம்"
+
+#: sphinx/themes/basic/defindex.html:15
+msgid "Welcome! This is"
+msgstr "வரவேற்பு! இது"
+
+#: sphinx/themes/basic/defindex.html:16
+msgid "the documentation for"
+msgstr "ஆவணங்கள்"
+
+#: sphinx/themes/basic/defindex.html:17
+msgid "last updated"
+msgstr "கடைசியாக புதுப்பிக்கப்பட்டது"
+
+#: sphinx/themes/basic/defindex.html:20
+msgid "Indices and tables:"
+msgstr "குறியீடுகள் மற்றும் அட்டவணைகள்:"
+
+#: sphinx/themes/basic/defindex.html:23
+msgid "Complete Table of Contents"
+msgstr "உள்ளடக்கங்களின் முழுமையான அட்டவணை"
+
+#: sphinx/themes/basic/defindex.html:24
+msgid "lists all sections and subsections"
+msgstr "அனைத்து பிரிவுகளையும் துணைப்பிரிவுகளையும் பட்டியலிடுகிறது"
+
+#: sphinx/themes/basic/defindex.html:26
+msgid "search this documentation"
+msgstr "இந்த ஆவணத்தைத் தேடுங்கள்"
+
+#: sphinx/themes/basic/defindex.html:28
+msgid "Global Module Index"
+msgstr "உலகளாவிய தொகுதி அட்டவணை"
+
+#: sphinx/themes/basic/defindex.html:29
+msgid "quick access to all modules"
+msgstr "அனைத்து தொகுதிகளுக்கும் விரைவான அணுகல்"
+
+#: sphinx/themes/basic/defindex.html:31
+msgid "all functions, classes, terms"
+msgstr "அனைத்து செயல்பாடுகள், வகுப்புகள், விதிமுறைகள்"
+
+#: sphinx/themes/basic/genindex-single.html:33
+#, python-format
+msgid "Index &ndash; %(key)s"
+msgstr "குறியீட்டு & ndash; %(விசைகள்"
+
+#: sphinx/themes/basic/genindex-single.html:61
+#: sphinx/themes/basic/genindex-split.html:24
+#: sphinx/themes/basic/genindex-split.html:38
+#: sphinx/themes/basic/genindex.html:73
+msgid "Full index on one page"
+msgstr "ஒரு பக்கத்தில் முழு குறியீடு"
+
+#: sphinx/themes/basic/genindex-split.html:16
+msgid "Index pages by letter"
+msgstr "கடிதம் மூலம் குறியீட்டு பக்கங்கள்"
+
+#: sphinx/themes/basic/genindex-split.html:25
+msgid "can be huge"
+msgstr "மிகப்பெரியதாக இருக்க முடியும்"
+
+#: sphinx/themes/basic/layout.html:26
+msgid "Navigation"
+msgstr "வழிசெலுத்தல்"
+
+#: sphinx/themes/basic/layout.html:126
+#, python-format
+msgid "Search within %(docstitle)s"
+msgstr "%(டாக்ஸ்டிடில்) கள் தேடுங்கள்"
+
+#: sphinx/themes/basic/layout.html:135
+msgid "About these documents"
+msgstr "இந்த ஆவணங்களைப் பற்றி"
+
+#: sphinx/themes/basic/layout.html:144 sphinx/themes/basic/layout.html:188
+#: sphinx/themes/basic/layout.html:190
+msgid "Copyright"
+msgstr "பதிப்புரிமை"
+
+#: sphinx/themes/basic/layout.html:194 sphinx/themes/basic/layout.html:200
+#, python-format
+msgid "&#169; %(copyright_prefix)s %(copyright)s."
+msgstr "&#169; %(பதிப்புரிமை_பிரெஃபிக்ஸ்) எஸ் %(பதிப்புரிமை) கள்."
+
+#: sphinx/themes/basic/layout.html:212
+#, python-format
+msgid "Last updated on %(last_updated)s."
+msgstr "கடைசியாக %(last_updated) s இல் புதுப்பிக்கப்பட்டது."
+
+#: sphinx/themes/basic/layout.html:215
+#, python-format
+msgid ""
+"Created using <a href=\"https://www.sphinx-doc.org/\">Sphinx</a> "
+"%(sphinx_version)s."
+msgstr "<a href=\"https://www.sphinx-doc.org/\"> ஸ்பின்க்ஸ் </மற்றும்> %(ஸ்பின்க்ஸ் பதிப்புகள்."
+
+#: sphinx/themes/basic/opensearch.xml:4
+#, python-format
+msgid "Search %(docstitle)s"
+msgstr "தேடல் %(டாக்ஸ்டிடில்) கள்"
+
+#: sphinx/themes/basic/relations.html:12
+msgid "Previous topic"
+msgstr "முந்தைய தலைப்பு"
+
+#: sphinx/themes/basic/relations.html:14
+msgid "previous chapter"
+msgstr "முந்தைய அத்தியாயம்"
+
+#: sphinx/themes/basic/relations.html:19
+msgid "Next topic"
+msgstr "அடுத்த தலைப்பு"
+
+#: sphinx/themes/basic/relations.html:21
+msgid "next chapter"
+msgstr "அடுத்த அத்தியாயம்"
+
+#: sphinx/themes/basic/search.html:28
+msgid ""
+"Please activate JavaScript to enable the search\n"
+"    functionality."
+msgstr "தேடலை இயக்க ஜாவாஸ்கிரிப்டை செயல்படுத்தவும் \n     செயல்பாடு."
+
+#: sphinx/themes/basic/search.html:36
+msgid ""
+"Searching for multiple words only shows matches that contain\n"
+"    all words."
+msgstr "பல சொற்களைத் தேடுவது காண்பிக்கும் போட்டிகளை மட்டுமே காட்டுகிறது \n     அனைத்து வார்த்தைகளும்."
+
+#: sphinx/themes/basic/search.html:43
+msgid "search"
+msgstr "தேடல்"
+
+#: sphinx/themes/basic/searchbox.html:12
+msgid "Quick search"
+msgstr "விரைவு தேடல்"
+
+#: sphinx/themes/basic/sourcelink.html:12
+msgid "This Page"
+msgstr "இந்த பக்கம்"
+
+#: sphinx/themes/basic/changes/frameset.html:5
+#: sphinx/themes/basic/changes/versionchanges.html:12
+#, python-format
+msgid "Changes in Version %(version)s &#8212; %(docstitle)s"
+msgstr "பதிப்பு %(பதிப்பு) S &#8212; %(டாக்ஸ்டிடில்) கள்"
+
+#: sphinx/themes/basic/changes/rstsource.html:5
+#, python-format
+msgid "%(filename)s &#8212; %(docstitle)s"
+msgstr "%(கோப்பு பெயர்) எஸ் &#8212; %(டாக்ஸ்டிடில்) கள்"
+
+#: sphinx/themes/basic/changes/versionchanges.html:17
+#, python-format
+msgid "Automatically generated list of changes in version %(version)s"
+msgstr "பதிப்பு %(பதிப்பு) S இல் மாற்றங்களின் பட்டியல் தானாக உருவாக்கப்படுகிறது"
+
+#: sphinx/themes/basic/changes/versionchanges.html:18
+msgid "Library changes"
+msgstr "நூலக மாற்றங்கள்"
+
+#: sphinx/themes/basic/changes/versionchanges.html:23
+msgid "C API changes"
+msgstr "சி ஏபிஐ மாற்றங்கள்"
+
+#: sphinx/themes/basic/changes/versionchanges.html:25
+msgid "Other changes"
+msgstr "பிற மாற்றங்கள்"
+
+#: sphinx/themes/basic/static/searchtools.js:112
+msgid "Search Results"
+msgstr "தேடல் முடிவுகள்"
+
+#: sphinx/themes/basic/static/searchtools.js:114
+msgid ""
+"Your search did not match any documents. Please make sure that all words are"
+" spelled correctly and that you've selected enough categories."
+msgstr "உங்கள் தேடல் எந்த ஆவணங்களுக்கும் பொருந்தவில்லை. எல்லா சொற்களும் சரியாக உச்சரிக்கப்பட்டுள்ளன என்பதையும், நீங்கள் போதுமான வகைகளைத் தேர்ந்தெடுத்துள்ளீர்கள் என்பதையும் உறுதிப்படுத்தவும்."
+
+#: sphinx/themes/basic/static/searchtools.js:118
+msgid ""
+"Search finished, found ${resultCount} page(s) matching the search query."
+msgstr "தேடல் முடிந்தது, தேடல் வினவலுடன் பொருந்தக்கூடிய $ {resultCount} பக்கம் (கள்) கிடைத்தது."
+
+#: sphinx/themes/basic/static/searchtools.js:246
+msgid "Searching"
+msgstr "தேடி"
+
+#: sphinx/themes/basic/static/searchtools.js:262
+msgid "Preparing search..."
+msgstr "தேடலைத் தயாரித்தல் ..."
+
+#: sphinx/themes/basic/static/searchtools.js:463
+msgid ", in "
+msgstr ", இல்"
+
+#: sphinx/themes/basic/static/sphinx_highlight.js:112
+msgid "Hide Search Matches"
+msgstr "தேடல் போட்டிகளை மறைக்கவும்"
+
+#: sphinx/themes/classic/layout.html:20
+#: sphinx/themes/classic/static/sidebar.js_t:57
+msgid "Collapse sidebar"
+msgstr "பக்கப்பட்டி சரிவு"
+
+#: sphinx/themes/classic/static/sidebar.js_t:48
+msgid "Expand sidebar"
+msgstr "பக்கப்பட்டியை விரிவாக்குங்கள்"
+
+#: sphinx/themes/haiku/layout.html:24
+msgid "Contents"
+msgstr "உள்ளடக்கங்கள்"
+
+#: sphinx/transforms/__init__.py:128
+msgid "could not calculate translation progress!"
+msgstr "மொழிபெயர்ப்பு முன்னேற்றத்தை கணக்கிட முடியவில்லை!"
+
+#: sphinx/transforms/__init__.py:133
+msgid "no translated elements!"
+msgstr "மொழிபெயர்க்கப்பட்ட கூறுகள் இல்லை!"
+
+#: sphinx/transforms/__init__.py:250
+#, python-format
+msgid ""
+"4 column based index found. It might be a bug of extensions you use: %r"
+msgstr "4 நெடுவரிசை அடிப்படையிலான குறியீடு காணப்பட்டது. இது நீங்கள் பயன்படுத்தும் நீட்டிப்புகளின் பிழையாக இருக்கலாம்: %r"
+
+#: sphinx/transforms/__init__.py:291
+#, python-format
+msgid "Footnote [%s] is not referenced."
+msgstr "அடிக்குறிப்பு [%கள்] குறிப்பிடப்படவில்லை."
+
+#: sphinx/transforms/__init__.py:297
+msgid "Footnote [#] is not referenced."
+msgstr "அடிக்குறிப்பு [#] குறிப்பிடப்படவில்லை."
+
+#: sphinx/transforms/i18n.py:205 sphinx/transforms/i18n.py:270
+msgid ""
+"inconsistent footnote references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "மொழிபெயர்க்கப்பட்ட செய்தியில் சீரற்ற அடிக்குறிப்பு குறிப்புகள். அசல்: {0}, மொழிபெயர்க்கப்பட்டுள்ளது: {1}"
+
+#: sphinx/transforms/i18n.py:245
+msgid ""
+"inconsistent references in translated message. original: {0}, translated: "
+"{1}"
+msgstr "மொழிபெயர்க்கப்பட்ட செய்தியில் சீரற்ற குறிப்புகள். அசல்: {0}, மொழிபெயர்க்கப்பட்டுள்ளது: {1}"
+
+#: sphinx/transforms/i18n.py:285
+msgid ""
+"inconsistent citation references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "மொழிபெயர்க்கப்பட்ட செய்தியில் சீரற்ற மேற்கோள் குறிப்புகள். அசல்: {0}, மொழிபெயர்க்கப்பட்டுள்ளது: {1}"
+
+#: sphinx/transforms/i18n.py:302
+msgid ""
+"inconsistent term references in translated message. original: {0}, "
+"translated: {1}"
+msgstr "மொழிபெயர்க்கப்பட்ட செய்தியில் சீரற்ற கால குறிப்புகள். அசல்: {0}, மொழிபெயர்க்கப்பட்டுள்ளது: {1}"
+
+#: sphinx/transforms/post_transforms/__init__.py:116
+msgid ""
+"Could not determine the fallback text for the cross-reference. Might be a "
+"bug."
+msgstr "குறுக்கு குறிப்புக்கான குறைவடையும் உரையை தீர்மானிக்க முடியவில்லை. ஒரு பிழையாக இருக்கலாம்."
+
+#: sphinx/transforms/post_transforms/__init__.py:158
+#, python-format
+msgid "more than one target found for 'any' cross-reference %r: could be %s"
+msgstr "'எந்த' குறுக்கு-குறிப்பு %r க்கு ஒன்றுக்கு மேற்பட்ட இலக்குகள் காணப்படுகின்றன: %s ஆக இருக்கலாம்"
+
+#: sphinx/transforms/post_transforms/__init__.py:209
+#, python-format
+msgid "%s:%s reference target not found: %s"
+msgstr "%கள்: %S குறிப்பு இலக்கு காணப்படவில்லை: %s"
+
+#: sphinx/transforms/post_transforms/__init__.py:212
+#, python-format
+msgid "%r reference target not found: %s"
+msgstr "%r குறிப்பு இலக்கு காணப்படவில்லை: %கள்"
+
+#: sphinx/transforms/post_transforms/images.py:89
+#, python-format
+msgid "Could not fetch remote image: %s [%d]"
+msgstr "தொலை படத்தைப் பெற முடியவில்லை: %கள் [ %d]"
+
+#: sphinx/transforms/post_transforms/images.py:117
+#, python-format
+msgid "Could not fetch remote image: %s [%s]"
+msgstr "தொலை படத்தைப் பெற முடியவில்லை: %கள் [ %கள்]"
+
+#: sphinx/transforms/post_transforms/images.py:135
+#, python-format
+msgid "Unknown image format: %s..."
+msgstr "அறியப்படாத பட வடிவம்: %கள் ..."
+
+#: sphinx/util/__init__.py:168
+#, python-format
+msgid "undecodable source characters, replacing with \"?\": %r"
+msgstr "தீர்மானிக்க முடியாத மூல எழுத்துக்கள், \"?\""
+
+#: sphinx/util/display.py:78
+msgid "skipped"
+msgstr "தவிர்க்கப்பட்டது"
+
+#: sphinx/util/display.py:83
+msgid "failed"
+msgstr "தோல்வி"
+
+#: sphinx/util/docfields.py:87
+#, python-format
+msgid ""
+"Problem in %s domain: field is supposed to use role '%s', but that role is "
+"not in the domain."
+msgstr "%எஸ் டொமைனில் சிக்கல்: புலம் ' %கள்' பாத்திரத்தைப் பயன்படுத்த வேண்டும், ஆனால் அந்த பங்கு டொமைனில் இல்லை."
+
+#: sphinx/util/docutils.py:295
+#, python-format
+msgid "unknown directive or role name: %s:%s"
+msgstr "அறியப்படாத உத்தரவு அல்லது பங்கு பெயர்: %s: %s"
+
+#: sphinx/util/docutils.py:591
+#, python-format
+msgid "unknown node type: %r"
+msgstr "அறியப்படாத முனை வகை: %r"
+
+#: sphinx/util/i18n.py:94
+#, python-format
+msgid "reading error: %s, %s"
+msgstr "வாசிப்பு பிழை: %கள், %கள்"
+
+#: sphinx/util/i18n.py:101
+#, python-format
+msgid "writing error: %s, %s"
+msgstr "எழுதும் பிழை: %கள், %கள்"
+
+#: sphinx/util/i18n.py:125
+#, python-format
+msgid "locale_dir %s does not exist"
+msgstr "locale_dir %s இல்லை"
+
+#: sphinx/util/i18n.py:215
+#, python-format
+msgid ""
+"Invalid date format. Quote the string by single quote if you want to output "
+"it directly: %s"
+msgstr "தவறான தேதி வடிவம். நீங்கள் நேரடியாக வெளியிட விரும்பினால் ஒற்றை மேற்கோள் மூலம் சரத்தை மேற்கோள் காட்டுங்கள்: %கள்"
+
+#: sphinx/util/nodes.py:386
+#, python-format
+msgid ""
+"%r is deprecated for index entries (from entry %r). Use 'pair: %s' instead."
+msgstr "குறியீட்டு உள்ளீடுகளுக்கு (நுழைவு %r இலிருந்து) %R நீக்கப்படுகிறது. அதற்கு பதிலாக 'ஜோடி: %கள்' ஐப் பயன்படுத்தவும்."
+
+#: sphinx/util/nodes.py:439
+#, python-format
+msgid "toctree contains ref to nonexisting file %r"
+msgstr "டோக்ட்ரீ இல்லாத கோப்பு %r க்கு ரெஃப் உள்ளது"
+
+#: sphinx/util/nodes.py:637
+#, python-format
+msgid "exception while evaluating only directive expression: %s"
+msgstr "விதிவிலக்கு மட்டுமே வழிநடத்தும் வெளிப்பாட்டை மட்டுமே மதிப்பிடுகிறது: %கள்"
+
+#: sphinx/util/rst.py:71
+#, python-format
+msgid "default role %s not found"
+msgstr "இயல்புநிலை பங்கு %கள் காணப்படவில்லை"
+
+#: sphinx/writers/html5.py:100 sphinx/writers/html5.py:109
+msgid "Link to this definition"
+msgstr "இந்த வரையறைக்கு இணைப்பு"
+
+#: sphinx/writers/html5.py:397
+#, python-format
+msgid "numfig_format is not defined for %s"
+msgstr "Numfig_format %s க்கு வரையறுக்கப்படவில்லை"
+
+#: sphinx/writers/html5.py:407
+#, python-format
+msgid "Any IDs not assigned for %s node"
+msgstr "%ஒரு முனைக்கு ஒதுக்கப்படவில்லை"
+
+#: sphinx/writers/html5.py:462
+msgid "Link to this term"
+msgstr "இந்த காலத்திற்கான இணைப்பு"
+
+#: sphinx/writers/html5.py:496 sphinx/writers/html5.py:501
+msgid "Link to this heading"
+msgstr "இந்த தலைப்புக்கான இணைப்பு"
+
+#: sphinx/writers/html5.py:505
+msgid "Link to this table"
+msgstr "இந்த அட்டவணையுடன் இணைப்பு"
+
+#: sphinx/writers/html5.py:548
+msgid "Link to this code"
+msgstr "இந்த குறியீட்டிற்கான இணைப்பு"
+
+#: sphinx/writers/html5.py:550
+msgid "Link to this image"
+msgstr "இந்த படத்துடன் இணைப்பு"
+
+#: sphinx/writers/html5.py:552
+msgid "Link to this toctree"
+msgstr "இந்த டோக்ட்ரீயுடன் இணைக்கவும்"
+
+#: sphinx/writers/html5.py:688
+msgid "Could not obtain image size. :scale: option is ignored."
+msgstr "பட அளவைப் பெற முடியவில்லை. : அளவு: விருப்பம் புறக்கணிக்கப்படுகிறது."
+
+#: sphinx/writers/latex.py:335
+#, python-format
+msgid "unknown %r toplevel_sectioning for class %r"
+msgstr "அறியப்படாத %r toplevel_sectioning class %r"
+
+#: sphinx/writers/latex.py:386
+msgid "too large :maxdepth:, ignored."
+msgstr "மிகப் பெரியது: மேக்ஸ்டெப்ட் :, புறக்கணிக்கப்பட்டது."
+
+#: sphinx/writers/latex.py:625
+msgid "document title is not a single Text node"
+msgstr "ஆவண தலைப்பு ஒரு உரை முனை அல்ல"
+
+#: sphinx/writers/latex.py:656 sphinx/writers/texinfo.py:626
+msgid ""
+"encountered title node not in section, topic, table, admonition or sidebar"
+msgstr "பிரிவு, தலைப்பு, அட்டவணை, அறிவுரை அல்லது பக்கப்பட்டியில் இல்லாத தலைப்பு முனை"
+
+#: sphinx/writers/latex.py:959 sphinx/writers/manpage.py:259
+#: sphinx/writers/texinfo.py:641
+msgid "Footnotes"
+msgstr "அடிக்குறிப்புகள்"
+
+#: sphinx/writers/latex.py:1028
+msgid ""
+"both tabularcolumns and :widths: option are given. :widths: is ignored."
+msgstr "அட்டவணை மற்றும்: அகலங்கள்: விருப்பம் வழங்கப்படுகின்றன. : அகலம்: புறக்கணிக்கப்படுகிறது."
+
+#: sphinx/writers/latex.py:1388
+#, python-format
+msgid "dimension unit %s is invalid. Ignored."
+msgstr "பரிமாண அலகு %s தவறானது. புறக்கணிக்கப்பட்டது."
+
+#: sphinx/writers/latex.py:1722
+#, python-format
+msgid "unknown index entry type %s found"
+msgstr "அறியப்படாத குறியீட்டு நுழைவு வகை %கள் காணப்படுகின்றன"
+
+#: sphinx/writers/manpage.py:305 sphinx/writers/text.py:907
+#, python-format
+msgid "[image: %s]"
+msgstr "[படங்கள்]"
+
+#: sphinx/writers/manpage.py:306 sphinx/writers/text.py:908
+msgid "[image]"
+msgstr "[படம்]"
+
+#: sphinx/writers/texinfo.py:1197
+msgid "caption not inside a figure."
+msgstr "தலைப்பு ஒரு உருவத்திற்குள் இல்லை."
+
+#: sphinx/writers/texinfo.py:1284
+#, python-format
+msgid "unimplemented node type: %r"
+msgstr "செயல்படுத்தப்படாத முனை வகை: %r"

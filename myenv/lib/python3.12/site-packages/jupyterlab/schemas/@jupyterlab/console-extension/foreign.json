@@ -1,0 +1,16 @@
+{
+  "title": "Code Console Foreign plugin",
+  "description": "Code Console Foreign plugin settings.",
+  "jupyter.lab.menus": {
+    "context": [
+      {
+        "command": "console:toggle-show-all-kernel-activity",
+        "selector": ".jp-CodeConsole",
+        "rank": 20
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

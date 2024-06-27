@@ -1,0 +1,11 @@
+{# A button that, when clicked, will trigger a search popup overlay.
+ #
+ # As this function will only work when JavaScript is enabled, we add it through JavaScript.
+ #}
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="{{ _('Search') }}" aria-label="{{ _('Search') }}" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>

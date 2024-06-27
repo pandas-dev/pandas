@@ -1,0 +1,60 @@
+/**
+ * Navigation text links in the navbar
+ */
+.navbar-nav {
+  ul {
+    display: block;
+    list-style: none;
+
+    // Reduce padding of nested `ul` items a bit
+    ul {
+      padding: 0 0 0 1rem;
+    }
+  }
+
+  // Navbar links - do not have an underline by default
+  li {
+    display: flex;
+    flex-direction: column;
+
+    a {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+      @include link-style-text;
+    }
+  }
+
+  /**
+   * Togglable expand/collapse
+   * This is only applicable to the primary sidebar which has these checkboxes
+   */
+  .toctree-checkbox {
+    position: absolute;
+    display: none;
+  }
+
+  .toctree-checkbox {
+    ~ ul {
+      display: none;
+    }
+    ~ label i {
+      transform: rotate(0deg);
+    }
+  }
+  .toctree-checkbox:checked {
+    ~ ul {
+      display: block;
+    }
+    ~ label i {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+// Don't display the `site navigation` in the header menu
+.bd-header .navbar-nav > p.sidebar-header-items__title {
+  display: none;
+}

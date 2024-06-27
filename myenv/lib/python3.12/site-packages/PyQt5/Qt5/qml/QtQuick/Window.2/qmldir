@@ -1,0 +1,5 @@
+module QtQuick.Window
+plugin windowplugin
+classname QtQuick2WindowPlugin
+typeinfo plugins.qmltypes
+designersupported

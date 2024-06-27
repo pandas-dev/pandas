@@ -1,0 +1,1491 @@
+{
+  "checks": [
+    {
+      "id": "Qch7DwouX1",
+      "name": "Low Utilization Amazon EC2 Instances",
+      "description": "Checks the Amazon Elastic Compute Cloud (Amazon EC2) instances that were running at any time during the last 14 days and alerts you if the daily CPU utilization was 10% or less and network I/O was 5 MB or less on 4 or more days. Running instances generate hourly usage charges. Although some scenarios can result in low utilization by design, you can often lower your costs by managing the number and size of your instances.\n<br><br>\nEstimated monthly savings are calculated by using the current usage rate for On-Demand Instances and the estimated number of days the instance might be underutilized. Actual savings will vary if you are using Reserved Instances or Spot Instances, or if the instance is not running for a full day. To get daily utilization data, download the report for this check. \n<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An instance had 10% or less daily average CPU utilization and 5 MB or less network I/O on at least 4 of the previous 14 days.<br>\n<br>\n<b>Recommended Action</b><br>\nConsider stopping or terminating instances that have low utilization, or scale the number of instances by using Auto Scaling. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Stop_Start.html\" target=\"_blank\">Stop and Start Your Instance</a>, <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html\" target=\"_blank\">Terminate Your Instance</a>, and <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">What is Auto Scaling?</a><br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-monitoring.html\" target=\"_blank\">Monitoring Amazon EC2</a><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html\" target=\"_blank\">Instance Metadata and User Data</a><br>\n<a href=\"http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/Welcome.html\" target=\"_blank\">Amazon CloudWatch Developer Guide</a><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">Auto Scaling Developer Guide</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Region/AZ",
+        "Instance ID",
+        "Instance Name",
+        "Instance Type",
+        "Estimated Monthly Savings",
+        "Day 1",
+        "Day 2",
+        "Day 3",
+        "Day 4",
+        "Day 5",
+        "Day 6",
+        "Day 7",
+        "Day 8",
+        "Day 9",
+        "Day 10",
+        "Day 11",
+        "Day 12",
+        "Day 13",
+        "Day 14",
+        "14-Day Average CPU Utilization",
+        "14-Day Average Network I/O",
+        "Number of Days Low Utilization"
+      ]
+    },
+    {
+      "id": "hjLMh88uM8",
+      "name": "Idle Load Balancers",
+      "description": "Checks your Elastic Load Balancing configuration for load balancers that are not actively used. Any load balancer that is configured accrues charges. If a load balancer has no associated back-end instances or if network traffic is severely limited, the load balancer is not being used effectively.<br />\n<br />\n<b>Alert Criteria</b><br />\nYellow: A load balancer has no active back-end instances.<br />\nYellow: A load balancer has no healthy back-end instances.<br />\nYellow: A load balancer has had less than 100 requests per day for the last 7 days.<br />\n<br />\n<b>Recommended Action</b><br />\nIf your load balancer has no active back-end instances, consider registering instances or deleting your load balancer. See <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_DeReg_Reg_Instances.html#RegisteringInstances\" target=\"_blank\">Registering Your Amazon EC2 Instances with Your Load Balancer</a> or <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_EndLoadBalancing02.html\" target=\"_blank\">Delete Your Load Balancer</a>.<br />\nIf your load balancer has no healthy back-end instances, see <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/ts-elb-healthcheck.html\" target=\"_blank\">Troubleshooting Elastic Load Balancing: Health Check Configuration</a>.<br />\nIf your load balancer has had a low request count, consider deleting your load balancer. See <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/US_EndLoadBalancing02.html\" target=\"_blank\">Delete Your Load Balancer</a>.<br />\n<br />\n<b>Additional Resources</b><br />\n<a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/UserScenarios.html\" target=\"_blank\">Managing Load Balancers</a><br />\n<a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-troubleshooting.html\" target=\"_blank\">Troubleshoot Elastic Load Balancing</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "Reason",
+        "Estimated Monthly Savings"
+      ]
+    },
+    {
+      "id": "DAvU99Dc4C",
+      "name": "Underutilized Amazon EBS Volumes",
+      "description": "Checks Amazon Elastic Block Store (Amazon EBS) volume configurations and warns when volumes appear to be underused. Charges begin when a volume is created. If a volume remains unattached or has very low write activity (excluding boot volumes) for a period of time, the volume is probably not being used.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A volume is unattached or had less than 1 IOPS per day for the past 7 days.<br>\n<br>\n<b>Recommended Action</b><br>\nConsider creating a snapshot and deleting the volume to reduce costs. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-snapshot.html\" target=\"_blank\">Creating an Amazon EBS Snapshot</a> and <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html\" target=\"_blank\">Deleting an Amazon EBS Volume</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html\" target=\"_blank\">Amazon Elastic Block Store (Amazon EBS)</a><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-volume-status.html\" target=\"_blank\">Monitoring the Status of Your Volumes</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Region",
+        "Volume ID",
+        "Volume Name",
+        "Volume Type",
+        "Volume Size",
+        "Monthly Storage Cost",
+        "Snapshot ID",
+        "Snapshot Name",
+        "Snapshot Age"
+      ]
+    },
+    {
+      "id": "Z4AUBRNSmz",
+      "name": "Unassociated Elastic IP Addresses",
+      "description": "Checks for Elastic IP addresses (EIPs) that are not associated with a running Amazon Elastic Compute Cloud (Amazon EC2) instance. EIPs are static IP addresses designed for dynamic cloud computing. Unlike traditional static IP addresses, EIPs can mask the failure of an instance or Availability Zone by remapping a public IP address to another instance in your account. A nominal charge is imposed for an EIP that is not associated with a running instance.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An allocated Elastic IP address (EIP) is not associated with a running Amazon EC2 instance.<br>\n<br>\n<b>Recommended Action</b><br>\nAssociate the EIP with a running active instance, or release the unassociated EIP. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html#using-instance-addressing-eips-associating-different\" target=\"_blank\">Associating an Elastic IP Address with a Different Running Instance</a> and <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html#using-instance-addressing-eips-releasing\" target=\"_blank\">Releasing an Elastic IP Address</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html\" target=\"_blank\">Elastic IP Addresses</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Region",
+        "IP Address"
+      ]
+    },
+    {
+      "id": "HCP4007jGY",
+      "name": "Security Groups - Specific Ports Unrestricted",
+      "description": "Checks security groups for rules that allow unrestricted access (0.0.0.0/0) to specific ports. Unrestricted access increases opportunities for malicious activity (hacking, denial-of-service attacks, loss of data). The ports with highest risk are flagged red, and those with less risk are flagged yellow. Ports flagged green are typically used by applications that require unrestricted access, such as HTTP and SMTP.\n<br>\nIf you have intentionally configured your security groups in this manner, we recommend using additional security measures to secure your infrastructure (such as IP tables).\n<br>\n<br>Note: Security groups created by AWS Directory Services are flagged as red or yellow, but do not pose a security risk and can be safely ignored or suppressed. Refer to <a href=\"https://aws.amazon.com/premiumsupport/faqs/#AWS_Trusted_Advisor\" target=\"_blank\">Trusted Advisor FAQ</a> for more details.\n<br>\n<br>\n<b>Alert Criteria</b>\n<br>\nGreen: Access to port 80, 25, 443, or 465 is unrestricted.<br>\nRed: Access to port 20, 21, 1433, 1434, 3306, 3389, 4333, 5432, or 5500 is unrestricted.<br>\nYellow: Access to any other port is unrestricted.\n<br>\n<br>\n<b>Recommended Action</b>\n<br>\nRestrict access to only those IP addresses that require it. To restrict access to a specific IP address, set the suffix to /32 (for example, 192.0.2.10/32). Be sure to delete overly permissive rules after creating rules that are more restrictive.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html\" target=\"_blank\">Amazon EC2 Security Groups</a><br>\n<a href=\"http://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers\" target=\"_blank\">List of TCP and UDP port numbers</a> (Wikipedia)<br>\n<a href=\"http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing\" target=\"_blank\">Classless Inter-Domain Routing</a> (Wikipedia)",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "Security Group Name",
+        "Security Group ID",
+        "Protocol",
+        "Status",
+        "Ports"
+      ]
+    },
+    {
+      "id": "1iG5NDGVre",
+      "name": "Security Groups - Unrestricted Access",
+      "description": "Checks security groups for rules that allow unrestricted access to a resource. Unrestricted access increases opportunities for malicious activity (hacking, denial-of-service attacks, loss of data).\n<br>\n<br>Note: Security groups created by AWS Directory Services are flagged as red, but do not pose a security risk and can be safely ignored or suppressed. Refer to <a href=\"https://aws.amazon.com/premiumsupport/faqs/#AWS_Trusted_Advisor\" target=\"_blank\">Trusted Advisor FAQ</a> for more details.\n<br>\n<br>\n<b>Alert Criteria</b>\n<br>\nRed: A security group rule has a source IP address with a /0 suffix for ports other than 25, 80, or 443.\n<br>\n<br>\n<b>Recommended Action</b>\n<br>\nRestrict access to only those IP addresses that require it. To restrict access to a specific IP address, set the suffix to /32 (for example, 192.0.2.10/32). Be sure to delete overly permissive rules after creating rules that are more restrictive.\n<br>\n<br>\n<b>Additional Resources</b>\n<br><a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html\" target=\"_blank\">Amazon EC2 Security Groups</a><br>\n<a href=\"https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing\" target=\"_blank\">Classless Inter-Domain Routing</a> (Wikipedia)",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "Security Group Name",
+        "Security Group ID",
+        "Protocol",
+        "Port",
+        "Status",
+        "IP Range"
+      ]
+    },
+    {
+      "id": "zXCkfM1nI3",
+      "name": "IAM Use",
+      "description": "Checks for your use of AWS Identity and Access Management (IAM). You can use IAM to create users, groups, and roles in AWS, and you can use permissions to control access to AWS resources. \n<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: No IAM users have been created for this account.\n<br>\n<br>\n<b>Recommended Action</b><br>\nCreate one or more IAM users and groups in your account. You can then create additional users whose permissions are limited to perform specific tasks in your AWS environment. For more information, see <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/IAMGettingStarted.html\" target=\"_blank\">Getting Started</a>. \n<br><br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_Introduction.html\" target=\"_blank\">What Is IAM?</a>",
+      "category": "security",
+      "metadata": []
+    },
+    {
+      "id": "Pfx0RwqBli",
+      "name": "Amazon S3 Bucket Permissions",
+      "description": "Checks buckets in Amazon Simple Storage Service (Amazon S3) that have open access permissions or allow access to any authenticated AWS user. Bucket permissions that grant List access can result in higher than expected charges if objects in the bucket are listed by unintended users at a high frequency. Bucket permissions that grant Upload/Delete access create potential security vulnerabilities by allowing users that to add, modify, or remove items in a bucket.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: The bucket ACL allows List access for \"Everyone\" or \"Any Authenticated AWS User\".<br>\nYellow: A bucket policy allows any kind of open access.<br>\nYellow: Bucket policy has statements that grant public access. The “Block public and cross-account access to buckets that have public policies” setting is turned on and has restricted access to only authorized users of that account until public statements are removed.<br>\nYellow: Trusted Advisor does not have permission to check the policy, or the policy could not be evaluated for other reasons.<br>\nRed: The bucket ACL allows Upload/Delete access for \"Everyone\" or \"Any Authenticated AWS User\".<br>\n<br>\n<b>Recommended Action</b><br>\nIf a bucket allows open access, determine if open access is truly needed. If not, update the bucket permissions to restrict access to the owner or specific users. Use Amazon S3 Block Public Access to control the settings that allow public access to your data. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/user-guide/set-permissions.html\" target=\"_blank\">Setting Bucket and Object Access Permissions</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html\" target=\"_blank\">Managing Access Permissions to Your Amazon S3 Resources</a>",
+      "category": "security",
+      "metadata": [
+        "Region Name",
+        "Region API Parameter",
+        "Bucket Name",
+        "ACL Allows List",
+        "ACL Allows Upload/Delete",
+        "Status",
+        "Policy Allows Access",
+        "Ignored Bucket Name"
+      ]
+    },
+    {
+      "id": "7DAFEmoDos",
+      "name": "MFA on Root Account",
+      "description": "Checks the root account and warns if multi-factor authentication (MFA) is not enabled. For increased security, we recommend that you protect your account by using MFA, which requires a user to enter a unique authentication code from their MFA hardware or virtual device when interacting with the AWS console and associated websites.\n<br>\n<br>\n<b>Alert Criteria</b><br>\nRed: MFA is not enabled on the root account.\n<br>\n<br>\n<b>Recommended Action</b><br>\nLog in to your root account and activate an MFA device. See <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/MFADeviceStatus.html\" target=\"_blank\">Checking MFA Status</a> and <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/MFADeviceSetup.html\" target=\"_blank\">Setting Up an MFA Device</a>.\n<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingMFA.html\" target=\"_blank\">Using Multi-Factor Authentication (MFA) Devices with AWS</a>",
+      "category": "security",
+      "metadata": []
+    },
+    {
+      "id": "Yw2K9puPzl",
+      "name": "IAM Password Policy",
+      "description": "Checks the password policy for your account and warns when a password policy is not enabled, or if password content requirements have not been enabled. Password content requirements increase the overall security of your AWS environment by enforcing the creation of strong user passwords. When you create or change a password policy, the change is enforced immediately for new users but does not require existing users to change their passwords. \n<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A password policy is enabled, but at least one content requirement is not enabled.  \n<br>\nRed: No password policy is enabled. \n<br>\n<br>\n<b>Recommended Action</b><br>\nIf some content requirements are not enabled, consider enabling them. If no password policy is enabled, create and configure one. See <a href=\"http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html\" target=\"_blank\">Setting an Account Password Policy for IAM Users</a>. \n<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/IAM/latest/UserGuide/Credentials-ManagingPasswords.html\" target=\"_blank\">Managing Passwords</a>",
+      "category": "security",
+      "metadata": [
+        "Password Policy",
+        "Uppercase",
+        "Lowercase",
+        "Number",
+        "Non-alphanumeric",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "nNauJisYIT",
+      "name": "Amazon RDS Security Group Access Risk",
+      "description": "Checks security group configurations for Amazon Relational Database Service (Amazon RDS) and warns when a security group rule might grant overly permissive access to your database. Recommended configuration for any security group rule is to allow access from specific Amazon Elastic Compute Cloud (Amazon EC2) security groups or from a specific IP address. Data for Amazon Relational Database Service (Amazon RDS) instances created in the Asia Pacific (Seoul) region (sa-east-1) is not available. We are working to fix this issue as soon as possible.\n<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A DB security group rule references an Amazon EC2 security group that grants global access on one of these ports: 20, 21, 22, 1433, 1434, 3306, 3389, 4333, 5432, 5500.\n<br>\nYellow: A DB security group rule grants access to more than a single IP address (the CIDR rule suffix is not /0 or /32).\n<br>\nRed: A DB security group rule grants global access (the CIDR rule suffix is /0).\n<br>\n<br>\n<b>Recommended Action</b><br>\nReview your security group rules and restrict access to authorized IP addresses or IP ranges. To edit a security group, use the <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_AuthorizeDBSecurityGroupIngress.html\" target=\"_blank\">AuthorizeDBSecurityGroupIngress</a> API or the AWS Management Console. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithSecurityGroups.html\" target=\"_blank\">Working with DB Security Groups</a>.\n<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html\" target=\"_blank\">Amazon RDS Security Groups</a><br>\n<a href=\"https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing\" target=\"_blank\">Classless Inter-Domain Routing</a><br>\n<a href=\"https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers\" target=\"_blank\">List of TCP and UDP port numbers</a>",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "RDS Security Group Name",
+        "Ingress Rule",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "H7IgTzjTYb",
+      "name": "Amazon EBS Snapshots",
+      "description": "Checks the age of the snapshots for your Amazon Elastic Block Store (Amazon EBS) volumes (available or in-use). Even though Amazon EBS volumes are replicated, failures can occur. Snapshots are persisted to Amazon Simple Storage Service (Amazon S3) for durable storage and point-in-time recovery.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: The most recent volume snapshot is between 7 and 30 days old.<br>\nRed: The most recent volume snapshot is more than 30 days old.<br>\nRed: The volume does not have a snapshot.<br>\n<br>\n<b>Recommended Action</b><br>\nCreate weekly or monthly snapshots of your volumes. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-snapshot.html\" target=\"_blank\">Creating an Amazon EBS Snapshot</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html\" target=\"_blank\">Amazon Elastic Block Store (Amazon EBS)</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Volume ID",
+        "Volume Name",
+        "Snapshot ID",
+        "Snapshot Name",
+        "Snapshot Age",
+        "Volume Attachment",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "wuy7G1zxql",
+      "name": "Amazon EC2 Availability Zone Balance",
+      "description": "Checks the distribution of Amazon Elastic Compute Cloud (Amazon EC2) instances across Availability Zones in a region. Availability Zones are distinct locations that are designed to be insulated from failures in other Availability Zones and to provide inexpensive, low-latency network connectivity to other Availability Zones in the same region. By launching instances in multiple Availability Zones in the same region, you can help protect your applications from a single point of failure.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: The region has instances in multiple zones, but the distribution is uneven (the difference between the highest and lowest instance counts in utilized Availability Zones is greater than 20%).<br>\nRed: The region has instances only in a single Availability Zone.<br>\n<br>\n<b>Recommended Action</b><br>\nBalance your Amazon EC2 instances evenly across multiple Availability Zones. You can do this by launching instances manually or by using Auto Scaling to do it automatically. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/LaunchingAndUsingInstances.html\" target=\"_blank\">Launch Your Instance</a> and <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SetUpASLBApp.html\" target=\"_blank\">Load Balance Your Auto Scaling Group</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/GettingStartedGuide/Welcome.html\" target=\"_blank\">Auto Scaling Getting Started Guide</a><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">Auto Scaling Developer Guide</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Instances in Zone a",
+        "Instances in Zone b",
+        "Instances in Zone c",
+        "Instances in Zone d",
+        "Instances in Zone e",
+        "Instances in Zone f",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "iqdCTZKCUp",
+      "name": "Load Balancer Optimization",
+      "description": "Checks your load balancer configuration. To help increase the level of fault tolerance in Amazon Elastic Compute Cloud (EC2) when using Elastic Load Balancing, we recommend running an equal number of instances across multiple Availability Zones in a region. A load balancer that is configured accrues charges, so this is a cost-optimization check as well.<br/>\n<br/>\n<b>Alert Criteria</b><br/>\nYellow: A load balancer is enabled for a single Availability Zone.<br/>\nYellow: A load balancer is enabled for an Availability Zone that has no active instances.<br/>\nYellow: The Amazon EC2 instances that are registered with a load balancer are unevenly distributed across Availability Zones. (The difference between the highest and lowest instance counts in utilized Availability Zones is more than 1, and the difference is more than 20% of the highest count.)<br/>\n<br/>\n<b>Recommended Action</b><br/>\nEnsure that your load balancer points to active and healthy instances in at least two Availability Zones. For more information, see <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/enable-disable-az.html#US_AddLBAvailabilityZone\" target=\"_blank\">Add Availability Zone</a>.<br/>\nIf your load balancer is configured for an Availability Zone with no healthy instances, or if there is an imbalance of instances across the Availability Zones, determine if all the Availability Zones are necessary. Omit any unnecessary Availability Zones and ensure there is a balanced distribution of instances across the remaining Availability Zones. For more information, see <a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/enable-disable-az.html#US_ShrinkLBApp04\" target=\"_blank\">Remove Availability Zone</a>.<br/>\n<br/>\n<b>Additional Resources</b><br/>\n<a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#AZ-Region\" target=\"_blank\">Availability Zones and Regions</a><br/>\n<a href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/UserScenarios.html\" target=\"_blank\">Managing Load Balancers</a><br/>\n<a href=\"http://aws.amazon.com/articles/1636185810492479\" target=\"_blank\">Best Practices in Evaluating Elastic Load Balancing</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "# of Zones",
+        "Instances in Zone a",
+        "Instances in Zone b",
+        "Instances in Zone c",
+        "Instances in Zone d",
+        "Instances in Zone e",
+        "Instances in Zone f",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "S45wrEXrLz",
+      "name": "VPN Tunnel Redundancy",
+      "description": "Checks the number of tunnels that are active for each of your VPNs. A VPN should have two tunnels configured at all times to provide redundancy in case of outage or planned maintenance of the devices at the AWS endpoint. For some hardware, only one tunnel is active at a time (see the <a href=\"http://docs.aws.amazon.com/AmazonVPC/latest/NetworkAdminGuide/Welcome.html\" target=\"_blank\">Amazon Virtual Private Cloud Network Administrator Guide</a>). If a VPN has no active tunnels, charges for the VPN might still apply.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A VPN has one active tunnel (this is normal for some hardware).<br>\nYellow: A VPN has no active tunnels.<br>\n<br>\n<b>Recommended Action</b><br>\nBe sure that two tunnels are configured for your VPN connection, and that both are active if your hardware supports it. If you no longer need a VPN connection, you can delete it to avoid charges. For more information, see <a href=\"http://docs.aws.amazon.com/AmazonVPC/latest/NetworkAdminGuide/Introduction.html\" target=\"_blank\">Your Customer Gateway</a> or <a href=\"http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html#delete-vpn\" target=\"_blank\">Deleting a VPN connection</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AmazonVPC/latest/NetworkAdminGuide/Welcome.html\" target=\"_blank\">Amazon Virtual Private Cloud Network Administrator Guide</a><br>\n<a href=\"http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html\" target=\"_blank\">Adding a Hardware Virtual Private Gateway to Your VPC</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "VPN ID",
+        "VPC",
+        "Virtual Private Gateway",
+        "Customer Gateway",
+        "Active Tunnels",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "ZRxQlPsb6c",
+      "name": "High Utilization Amazon EC2 Instances",
+      "description": "Checks the Amazon Elastic Compute Cloud (Amazon EC2) instances that were running at any time during the last 14 days and alerts you if the daily CPU utilization was more than 90% on 4 or more days. Consistent high utilization can indicate optimized, steady performance, but it can also indicate that an application does not have enough resources. To get daily CPU utilization data, download the report for this check.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An instance had more than 90% daily average CPU utilization on at least 4 of the previous 14 days.\n<br><br>\n<b>Recommended Action</b><br>\nConsider adding more instances. For information about scaling the number of instances based on demand, see <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">What is Auto Scaling?</a>\n<br><br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-monitoring.html\" target=\"_blank\">Monitoring Amazon EC2</a><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html\" target=\"_blank\">Instance Metadata and User Data</a><br>\n<a href=\"http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/Welcome.html\" target=\"_blank\">Amazon CloudWatch Developer Guide</a><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">Auto Scaling Developer Guide</a>",
+      "category": "performance",
+      "metadata": [
+        "Region/AZ",
+        "Instance ID",
+        "Instance Name",
+        "Instance Type",
+        "Day 1",
+        "Day 2",
+        "Day 3",
+        "Day 4",
+        "Day 5",
+        "Day 6",
+        "Day 7",
+        "Day 8",
+        "Day 9",
+        "Day 10",
+        "Day 11",
+        "Day 12",
+        "Day 13",
+        "Day 14",
+        "14-Day Average CPU Utilization",
+        "Number of Days over 90% CPU Utilization"
+      ]
+    },
+    {
+      "id": "8CNsSllI5v",
+      "name": "Auto Scaling Group Resources",
+      "description": "Checks the availability of resources associated with launch configurations and your Auto Scaling groups. Auto Scaling groups that point to unavailable resources cannot launch new Amazon Elastic Compute Cloud (Amazon EC2) instances. When properly configured, Auto Scaling causes the number of Amazon EC2 instances to increase seamlessly during demand spikes and decrease automatically during demand lulls. Auto Scaling groups and launch configurations that point to unavailable resources do not operate as intended.<br>\n<br>\n<b>Alert Criteria</b><br>\nRed: An Auto Scaling group is associated with a deleted load balancer.<br>\nRed: A launch configuration is associated with a deleted Amazon Machine Image (AMI).<br>\n<br>\n<b>Recommended Action</b><br>\nIf the load balancer has been deleted, either create a new load balancer and then create a new Auto Scaling group with the new load balancer, or create a new Auto Scaling group without the load balancer. For information about creating a new Auto Scaling group with a new load balancer, see <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-register-lbs-with-asg.html\" target=\"_blank\">Set Up an Auto-Scaled and Load-Balanced Application</a>. For information about creating a new Auto Scaling group without a load balancer, see \"Create Auto Scaling Group\" in <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/USBasicSetup-Console.html\" target=\"_blank\">Getting Started With Auto Scaling Using the Console</a>.<br>\nIf the AMI has been deleted, create a new launch configuration using a valid AMI and associate it with an Auto Scaling group. See \"Create Launch Configuration\" in <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/USBasicSetup-Console.html\" target=\"_blank\">Getting Started With Auto Scaling Using the Console</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ts-as-ami.html\" target=\"_blank\">Troubleshooting Auto Scaling: Amazon EC2 AMIs</a><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/ts-as-loadbalancer.html\" target=\"_blank\">Troubleshooting Auto Scaling: Load Balancer Configuration</a><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">Auto Scaling Developer Guide</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Auto Scaling Group Name",
+        "Launch Configuration Name",
+        "Launch Type",
+        "Launch Name",
+        "Resource Type",
+        "Resource Name",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "opQPADkZvH",
+      "name": "Amazon RDS Backups",
+      "description": "Checks for automated backups of Amazon RDS DB instances. By default, backups are enabled with a retention period of 1 day. Backups reduce the risk of unexpected data loss and allow for point-in-time recovery. Data for Amazon Relational Database Service (Amazon RDS) instances created in the Asia Pacific (Seoul) region (sa-east-1) is not available. We are working to fix this issue as soon as possible.<br>\n<br>\n<b>Alert Criteria</b><br>\nRed: A DB instance has the backup retention period set to 0 days.<br>\n<br>\n<b>Recommended Action</b><br>\nSet the retention period for the automated DB instance backup to 1 to 35 days as appropriate to the requirements of your application. See <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html\" target=\"_blank\">Working With Automated Backups</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_GettingStarted.html\" target=\"_blank\">Getting Started with Amazon RDS</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region/AZ",
+        "DB Instance",
+        "VPC ID",
+        "Backup Retention Period",
+        "Status"
+      ]
+    },
+    {
+      "id": "f2iK5R6Dep",
+      "name": "Amazon RDS Multi-AZ",
+      "description": "Checks for DB instances that are deployed in a single Availability Zone. Multi-AZ deployments enhance database availability by synchronously replicating to a standby instance in a different Availability Zone. During planned database maintenance or the failure of a DB instance or Availability Zone, Amazon RDS automatically fails over to the standby so that database operations can resume quickly without administrative intervention. Because Multi-AZ deployments for the SQL Server engine use a different mechanism for synchronization, this check does not examine SQL Server instances. <br>Data for Amazon Relational Database Service (Amazon RDS) instances created in the Asia Pacific (Seoul) region (sa-east-1) is not available. We are working to fix this issue as soon as possible.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A DB instance is deployed in a single Availability Zone.<br>\n<br>\n<b>Recommended Action</b><br>\nIf your application requires high availability, modify your DB instance to enable Multi-AZ deployment. See <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html\" target=\"_blank\">High Availability (Multi-AZ)</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html\" target=\"_blank\">Regions and Availability Zones</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region/AZ",
+        "DB Instance",
+        "VPC ID",
+        "Multi-AZ",
+        "Status"
+      ]
+    },
+    {
+      "id": "CLOG40CDO8",
+      "name": "Auto Scaling Group Health Check",
+      "description": "Examines the health check configuration for Auto Scaling groups. If Elastic Load Balancing is being used for an Auto Scaling group, the recommended configuration is to enable an Elastic Load Balancing health check. If an Elastic Load Balancing health check is not used, Auto Scaling can only act upon the health of the Amazon Elastic Compute Cloud (Amazon EC2) instance and not on the application that is running on the instance.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An Auto Scaling group has an associated load balancer, but the Elastic Load Balancing health check is not enabled.<br>\nYellow: An Auto Scaling group does not have an associated load balancer, but the Elastic Load Balancing health check is enabled.<br>\n<br>\n<b>Recommended Action</b><br>\nIf the Auto Scaling group has an associated load balancer, but the Elastic Load Balancing health check is not enabled, see <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-add-elb-healthcheck.html\" target=\"_blank\">Add an Elastic Load Balancing Health Check to your Auto Scaling Group</a>.<br>\nIf the Elastic Load Balancing health check is enabled, but no load balancer is associated with the Auto Scaling group, see <a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-register-lbs-with-asg.html\" target=\"_blank\">Set Up an Auto-Scaled and Load-Balanced Application</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/WhatIsAutoScaling.html\" target=\"_blank\">Auto Scaling Developer Guide</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Auto Scaling Group Name",
+        "Load Balancer Associated",
+        "Health Check",
+        "Status"
+      ]
+    },
+    {
+      "id": "BueAdJ7NrP",
+      "name": "Amazon S3 Bucket Logging",
+      "description": "Checks the logging configuration of Amazon Simple Storage Service (Amazon S3) buckets. When server access logging is enabled, detailed access logs are delivered hourly to a bucket that you choose. An access log record contains details about each request, such as the request type, the resources specified in the request, and the time and date the request was processed. By default, bucket logging is not enabled; you should enable logging if you want to perform security audits or learn more about users and usage patterns.<br /><br/>\nWhen logging is initially enabled, the configuration is automatically validated; however, future modifications can result in logging failures. This check examines explicit Amazon S3 bucket permissions, but it does not examine associated bucket policies that might override the bucket permissions.<br/>\n<br />\n<b>Alert Criteria</b><br />\nYellow: The bucket does not have server access logging enabled.<br/>\nYellow: The target bucket permissions do not include the root account, so Trusted Advisor cannot check it.<br/>\nRed: The target bucket does not exist.<br />\nRed: The target bucket and the source bucket have different owners.<br />\nRed: The log deliverer does not have write permissions for the target bucket.<br />\n<br />\n<b>Recommended Action</b><br />\nEnable bucket logging for most buckets. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/enable-logging-console.html\" target=\"_blank\">Enabling Logging Using the Console</a> and <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/enable-logging-programming.html\" target=\"_blank\">Enabling Logging Programmatically</a>. <br/>\nIf the target bucket permissions do not include the root account and you want Trusted Advisor to check the logging status, add the root account as a grantee. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/EditingBucketPermissions.html\" target=\"_blank\">Editing Bucket Permissions</a>.<br/>\nIf the target bucket does not exist, select an existing bucket as a target or create a new one and select it. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html\" target=\"_blank\">Managing Bucket Logging</a>.<br/>\nIf the target and source have different owners, change the target bucket to one that has the same owner as the source bucket. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html\" target=\"_blank\">Managing Bucket Logging</a>.<br/>\nIf the log deliverer does not have write permissions for the target (Write not enabled), grant Upload/Delete permissions to the Log Delivery group. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/EditingBucketPermissions.html\" target=\"_blank\">Editing Bucket Permissions</a>.\n<br />\n<br />\n<b>Additional Resources</b><br />\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/BucketOperations.html\" target=\"_blank\">Working with Buckets</a><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html\" target=\"_blank\">Server Access Logging</a><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/LogFormat.html\" target=\"_blank\">Server Access Log Format</a><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/deleting-log-files-lifecycle.html\" target=\"_blank\">Deleting Log Files</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Bucket Name",
+        "Target Name",
+        "Target Exists",
+        "Same Owner",
+        "Write Enabled",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "PPkZrjsH2q",
+      "name": "Amazon EBS Provisioned IOPS (SSD) Volume Attachment Configuration",
+      "description": "Checks for Provisioned IOPS (SSD) volumes that are attached to an Amazon EBS-optimizable Amazon Elastic Compute Cloud (Amazon EC2) instance that is not EBS-optimized. Provisioned IOPS (SSD) volumes in the Amazon Elastic Block Store (Amazon EBS) are designed to deliver the expected performance only when they are attached to an EBS-optimized instance.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An Amazon EC2 instance that can be EBS-optimized has an attached Provisioned IOPS (SSD) volume but the instance is not EBS-optimized.<br>\n<br>\n<b>Recommended Action</b><br>\nCreate a new instance that is EBS-optimized, detach the volume, and reattach the volume to your new instance. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html\" target=\"_blank\">Amazon EBS-Optimized Instances</a> and <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-attaching-volume.html\" target=\"_blank\">Attaching an Amazon EBS Volume to an Instance</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html\" target=\"_blank\">Amazon EBS Volume Types</a><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSPerformance.html\" target=\"_blank\">Amazon EBS Volume Performance</a>",
+      "category": "performance",
+      "metadata": [
+        "Region/AZ",
+        "Volume ID",
+        "Volume Name",
+        "Volume Attachment",
+        "Instance ID",
+        "Instance Type",
+        "EBS Optimized",
+        "Status"
+      ]
+    },
+    {
+      "id": "tfg86AVHAZ",
+      "name": "Large Number of Rules in an EC2 Security Group",
+      "description": "Checks each Amazon Elastic Compute Cloud (EC2) security group for an excessive number of rules. If a security group has a large number of rules, performance can be degraded.\n<br>\nFor more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html\" target=\"_blank\">Amazon EC2 Security Groups</a>.\n<br>\n<br>\n<b>Alert Criteria</b>\n<br>\nYellow: An Amazon EC2-VPC security group has more than 50 rules.\n<br>\nYellow: An Amazon EC2-Classic security group has more than 100 rules.\n<br>\n<br>\n<b>Recommended Action</b>\n<br>\nReduce the number of rules in a security group by deleting unnecessary or overlapping rules. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#deleting-security-group-rule\" target=\"_blank\">Deleting Rules from a Security Group</a>.\n<br>\n<br>\n<b>Additional Resources</b>\n<br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#concepts-security\" target=\"_blank\">Amazon EC2 Security Groups</a>",
+      "category": "performance",
+      "metadata": [
+        "Region",
+        "Security Group Name",
+        "Group ID",
+        "Description",
+        "Instance Count",
+        "VPC ID",
+        "Total Inbound Rules",
+        "Total Outbound Rules"
+      ]
+    },
+    {
+      "id": "j3DFqYTe29",
+      "name": "Large Number of EC2 Security Group Rules Applied to an Instance",
+      "description": "Checks for Amazon Elastic Compute Cloud (EC2) instances that have a large number of security group rules. Performance can be degraded if an instance has a large number of rules.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: An Amazon EC2-VPC instance has more than 50 security group rules.<br>\nYellow: An Amazon EC2-Classic instance has more than 100 security group rules.<br>\n<br>\n<b>Recommended Action</b><br>\nReduce the number of rules associated with an instance by deleting unnecessary or overlapping rules. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#deleting-security-group-rule\" target=\"_blank\">Deleting Rules from a Security Group</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#concepts-security\" target=\"_blank\">Amazon EC2 Security Groups</a>",
+      "category": "performance",
+      "metadata": [
+        "Region",
+        "Instance ID",
+        "Instance Name",
+        "VPC ID",
+        "Total Inbound Rules",
+        "Total Outbound Rules"
+      ]
+    },
+    {
+      "id": "Ti39halfu8",
+      "name": "Amazon RDS Idle DB Instances",
+      "description": "Checks the configuration of your Amazon Relational Database Service (Amazon RDS) for any DB instances that appear to be idle. If a DB instance has not had a connection for a prolonged period of time, you can delete the instance to reduce costs. If persistent storage is needed for data on the instance, you can use lower-cost options such as taking and retaining a DB snapshot. Manually created DB snapshots are retained until you delete them. Data for Amazon RDS instances created in the Asia Pacific (Seoul) region (sa-east-1) is not available. We are working to fix this issue as soon as possible.<br> \n<br> \n<b>Alert Criteria</b><br> \nYellow: An active DB instance has not had a connection in the last 7 days.<br> \n<br> \n<b>Recommended Action</b><br> \nConsider taking a snapshot of the idle DB instance and then either stopping it or deleting it. Stopping the DB instance removes some of the costs for it, but does not remove storage costs. A stopped instance keeps all automated backups based upon the configured retention period. Stopping a DB instance usually incurs additional costs when compared to deleting the instance and then retaining only the final snapshot. See <href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html\" an Amazon RDS DB Instance Temporarily</a> and <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DeleteInstance.html\" target=\"_blank\">Deleting a DB Instance with a Final Snapshot</a>.<br> \n<br> \n<b>Additional Resources</b><br> \n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_CommonTasks.BackupRestore.html\" target=\"_blank\">Back Up and Restore</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Region",
+        "DB Instance Name",
+        "Multi-AZ",
+        "Instance Type",
+        "Storage Provisioned (GB)",
+        "Days Since Last Connection",
+        "Estimated Monthly Savings (On Demand)"
+      ]
+    },
+    {
+      "id": "B913Ef6fb4",
+      "name": "Amazon Route 53 Alias Resource Record Sets",
+      "description": "Checks for resource record sets that can be changed to alias resource record sets to improve performance and save money. An alias resource record set routes DNS queries to an AWS resource (for example, an Elastic Load Balancing load balancer or an Amazon S3 bucket) or to another Route 53 resource record set. When you use alias resource record sets, Route 53 routes your DNS queries to AWS resources free of charge.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A resource record set is a CNAME to an Amazon S3 website.<br>\nYellow: A resource record set is a CNAME to an Amazon CloudFront distribution.<br>\nYellow: A resource record set is a CNAME to an Elastic Load Balancing load balancer.<br>\n<br>\n<b>Recommended Action</b><br>\nReplace the listed CNAME resource record sets with alias resource record sets; see <a href=\"https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingAliasRRSets.html\" target=\"_blank\">Choosing Between Alias and Non-Alias Resource Record Sets</a>. You also need to change the record type from CNAME to A or AAAA, depending on the AWS resource; see <a href=\"https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-values.html\" target=\"_blank\">Values that You Specify When You Create or Edit Amazon Route 53 Resource Record Sets</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-aws-resources.html\" target=\"_blank\">Routing Queries to AWS Resources</a>",
+      "category": "performance",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Resource Record Set Type",
+        "Resource Record Set Identifier",
+        "Alias Target",
+        "Status"
+      ]
+    },
+    {
+      "id": "cF171Db240",
+      "name": "Amazon Route 53 Name Server Delegations",
+      "description": "Checks for Amazon Route 53 hosted zones for which your domain registrar or DNS is not using the correct Route 53 name servers. When you create a hosted zone, Route 53 assigns a delegation set of four name servers. The names of these servers are ns-###.awsdns-##.com, .net, .org, and .co.uk, where ### and ## typically represent different numbers. Before Route 53 can route DNS queries for your domain, you must update your registrar's name server configuration to remove the name servers that the registrar assigned and add all four name servers in the Route 53 delegation set. For maximum availability, you must add all four Route 53 name servers.<br/>\n<br/>\n<b>Alert Criteria</b><br/>\nYellow: A hosted zone for which the registrar for your domain does not use all four of the Route 53 name servers in the delegation set.<br/>\n<br/>\n<b>Recommended Action</b><br/>\nAdd or update name server records with your registrar or with the current DNS service for your domain to include all four of the name servers in your Route 53 delegation set. To find these values, see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/GetInfoAboutHostedZone.html\" target=\"_blank\">Getting the Name Servers for a Hosted Zone</a>. For information about adding or updating name server records, see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/creating-migrating.html\" target=\"_blank\">Creating and Migrating Domains and Subdomains to Amazon Route&nbsp;53</a>.<br/>\n<br/>\n<b>Additional Resources</b><br/>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html\" target=\"_blank\">Working with Hosted Zones</a> <br/>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Number of Name Server Delegations Used"
+      ]
+    },
+    {
+      "id": "C056F80cR3",
+      "name": "Amazon Route 53 High TTL Resource Record Sets",
+      "description": "Checks for resource record sets that can benefit from having a lower time-to-live (TTL) value. TTL is the number of seconds that a resource record set is cached by DNS resolvers. When you specify a long TTL, DNS resolvers take longer to request updated DNS records, which can cause unnecessary delay in rerouting traffic (for example, when DNS Failover detects and responds to a failure of one of your endpoints).<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: A resource record set whose routing policy is Failover has a TTL greater than 60 seconds.<br>\nYellow: A resource record set with an associated health check has a TTL greater than 60 seconds.<br>\n<br>\n<b>Recommended Action</b><br>\nEnter a TTL value of 60 seconds for the listed resource record sets. For more information, see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/rrsets-working-with.html\" target=\"_blank\">Working with Resource Record Sets</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html\" target=\"_blank\">Amazon Route&nbsp;53 Health Checks and DNS Failover</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Resource Record Set Type",
+        "Resource Record Set ID",
+        "TTL",
+        "Status"
+      ]
+    },
+    {
+      "id": "k3J2hns32g",
+      "name": "Overutilized Amazon EBS Magnetic Volumes",
+      "description": "Checks for Amazon Elastic Block Store (EBS) Magnetic volumes that are potentially overutilized and might benefit from a more efficient configuration. A Magnetic volume is designed for applications with moderate or bursty I/O requirements, and the IOPS rate is not guaranteed. It delivers approximately 100 IOPS on average, with a best-effort ability to burst to hundreds of IOPS. For consistently higher IOPS, you can use a Provisioned IOPS (SSD) volume. For bursty IOPS, you can use a General Purpose (SSD) volume. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html\" target=\"_blank\">Amazon EBS Volume Types</a>.<br />\n<br />\nFor a list of instance types that support EBS-optimized behavior, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html\" target=\"_blank\">Amazon EBS-Optimized Instances</a>.\n<br /><br />\nTo get daily utilization metrics, download the report for this check. The detailed report shows a column for each of the last 14 days. If there is no active EBS volume, the cell is empty. If there is insufficient data to make a reliable measurement, the cell contains \"N/A\". If there is sufficient data, the cell contains the daily median and the percentage of the variance in relation to the median (for example, \"256 / 20%\").<br /><br />\n<b>Alert Criteria</b><br />\nYellow: An Amazon EBS Magnetic volume is attached to an instance that can be EBS-optimized or is part of a cluster compute network with a daily median of more than 95 IOPS, and varies by less than 10% of the median value for at least 7 of the past 14 days.<br />\n<br />\n<b>Recommended Action</b><br />\nFor consistently higher IOPS, you can use a Provisioned IOPS (SSD) volume. For bursty IOPS, you can use a General Purpose (SSD) volume. For more information, see <a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html\" target=\"_blank\">Amazon EBS Volume Types</a>.<br />\n<br />\n<b>Additional Resources</b><br />\n<a href=\"http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html\" target=\"_blank\">Amazon Elastic Block Store (Amazon EBS)</a>",
+      "category": "performance",
+      "metadata": [
+        "Region",
+        "Volume ID",
+        "Volume Name",
+        "Day 1",
+        "Day 2",
+        "Day 3",
+        "Day 4",
+        "Day 5",
+        "Day 6",
+        "Day 7",
+        "Day 8",
+        "Day 9",
+        "Day 10",
+        "Day 11",
+        "Day 12",
+        "Day 13",
+        "Day 14",
+        "Number of Days Over",
+        "Max Daily Median",
+        "Status"
+      ]
+    },
+    {
+      "id": "796d6f3D83",
+      "name": "CloudFront Content Delivery Optimization",
+      "description": "Checks for cases where data transfer from Amazon Simple Storage Service (Amazon S3) buckets could be accelerated by using Amazon CloudFront, the AWS global content delivery service. When you configure CloudFront to deliver your content, requests for your content are automatically routed to the nearest edge location where content is cached, so it can be delivered to your users with the best possible performance. A high ratio of data transferred out to the data stored in the bucket indicates that you could benefit from using Amazon CloudFront to deliver the data. \n<br />\nTo estimate the retrieval activity of users, only data transferred by using a GET request is counted for this check. In addition, the transfer activity from the last 24 hours is not included. \n<br />\n<br />\n<b>Alert Criteria</b><br />\nYellow: The amount of data transferred out of the bucket to your users by GET requests in the 30 days preceding the check is at least 25 times greater than the average amount of data stored in the bucket.<br/>\nRed: The amount of data transferred out of the bucket to your users by GET requests in the 30 days preceding the check is at least 10 TB and at least 25 times greater than the average amount of data stored in the bucket.\n<br />\n<br />\n<b>Recommended Action</b><br />\nConsider using CloudFront for better performance; see <a href=\"http://aws.amazon.com/cloudfront/details\" target=\"_blank\">Amazon CloudFront Product Details</a>. \n<br/>\nIf the data transferred is 10 TB per month or more, see <a href=\"http://aws.amazon.com/cloudfront/pricing\" target=\"_blank\">Amazon CloudFront Pricing</a> to explore possible cost savings.\n<br />\n<br />\n<b>Additional Resources</b><br />\n<a href=\"http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html\" target=\"_blank\">Amazon CloudFront Developer Guide</a><br/>\n<a href=\"http://aws.amazon.com/solutions/case-studies/pbs/\" target=_blank\">AWS Case Study: PBS</a>",
+      "category": "performance",
+      "metadata": [
+        "Region",
+        "Bucket Name",
+        "S3 Storage (GB)",
+        "Data Transfer Out (GB)",
+        "Ratio of Transfer to Storage",
+        "Status"
+      ]
+    },
+    {
+      "id": "51fC20e7I2",
+      "name": "Amazon Route 53 Latency Resource Record Sets",
+      "description": "Checks for Amazon Route 53 latency record sets that are configured inefficiently. To allow Amazon Route 53 to route queries to the region with the lowest network latency, you should create latency resource record sets for a particular domain name (such as example.com) in different regions. If you create only one latency resource record set for a domain name, all queries are routed to one region, and you pay extra for latency-based routing without getting the benefits.\n<br>\n<br>\n<b>Alert Criteria</b>\n<br>\nYellow: Only one latency resource record set is configured for a particular domain name.\n<br>\n<br>\n<b>Recommended Action</b>\n<br>\nIf you have resources in multiple regions, be sure to define a latency resource record set for each region; see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html#routing-policy-latency\" target=\"_blank\">Latency-Based Routing</a>.<br>\nIf you have resources in only one region, consider creating resources in more than one region and define latency resource record sets for each; see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html#routing-policy-latency\" target=\"_blank\">Latency-Based Routing</a>.<br>\nIf you don't want to use multiple regions, you should use a simple resource record set; see  <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/rrsets-working-with.html\" target=\"_blank\">Working with Resource Record Sets</a>.\n<br>\n<br>\n<b>Additional Resources</b>\n<br>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html\" target=\"_blank\">Amazon Route 53 Developer Guide</a><br>\n<a href=\"http://aws.amazon.com/route53/pricing/\" target=\"_blank\">Amazon Route 53 Pricing</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Resource Record Set Type"
+      ]
+    },
+    {
+      "id": "c9D319e7sG",
+      "name": "Amazon Route 53 MX Resource Record Sets and Sender Policy Framework",
+      "description": "For each MX resource record set, checks for a TXT resource record set that contains a corresponding SPF value. The SPF (Sender Policy Framework) value specifies the servers that are authorized to send email for your domain. This helps reduce spam by detecting and stopping email address spoofing. (Resource record sets that use the experimental SPF type are no longer recommended.)\n<br/>\n<br/>\n<b>Alert Criteria</b>\n<br/>\nYellow: An MX resource record set does not have a TXT resource record set that contains a corresponding SPF value.\n<br/><br/>\n<b>Recommended Action</b>\n<br/>\nFor each MX resource record set, create a TXT resource record set that contains an SPF value; see <a href=\"http://www.open-spf.org/SPF_Record_Syntax\" target=\"_blank\">Sender Policy Framework: SPF Record Syntax</a> and <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/RRSchanges_console.html\" target=\"_blank\">Creating Resource Record Sets By Using the Amazon Route 53 Console</a>.\n<br/><br/>\n<b>Additional Information</b>\n<br/>\n<a href=\"http://en.wikipedia.org/wiki/Sender_Policy_Framework\" target=\"_blank\">Sender Policy Framework</a> (Wikipedia)<br/>\n<a href=\"http://en.wikipedia.org/wiki/MX_record\" target=\"_blank\">MX record</a> (Wikipedia)",
+      "category": "security",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Status"
+      ]
+    },
+    {
+      "id": "b73EEdD790",
+      "name": "Amazon Route 53 Failover Resource Record Sets",
+      "description": "Checks for Amazon Route 53 failover resource record sets that are misconfigured. When Amazon Route 53 health checks determine that the primary resource is unhealthy, Amazon Route 53 responds to queries with a secondary, backup resource record set. You must create correctly configured primary and secondary resource record sets for failover to work.\n<br/>\n<br/>\n<b>Alert Criteria</b><br/>\nYellow: A primary failover resource record set does not have a corresponding secondary resource record set.<br/>\nYellow: A secondary failover resource record set does not have a corresponding primary resource record set.<br/>\nYellow: Primary and secondary resource record sets that have the same name are associated with the same health check.\n<br/><br/>\n<b>Recommended Action</b><br/>\nIf a failover resource set is missing, create the corresponding resource record set; see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/creating-failover-rrsets.html\" target=\"_blank\">Creating Failover Resource Record Sets</a>.<br/>\nIf your resource record sets are associated with the same health check, create separate health checks for each one; see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-deleting.html\" target=\"_blank\">Creating, Updating, and Deleting Health Checks</a>.\n<br/>\n<br/>\n<b>Additional Information</b><br/>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html\" target=\"_blank\">Amazon Route 53 Health Checks and DNS Failover</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Resource Record Set Type",
+        "Reason"
+      ]
+    },
+    {
+      "id": "Cb877eB72b",
+      "name": "Amazon Route 53 Deleted Health Checks",
+      "description": "Checks for resource record sets that are associated with health checks that have been deleted. Amazon Route 53 does not prevent you from deleting a health check that is associated with one or more resource record sets. If you delete a health check without updating the associated resource record sets, the routing of DNS queries for your DNS failover configuration will not work as intended.\n<br/>\n<br/>\n<b>Alert Criteria</b><br/>\nYellow: A resource record set is associated with a health check that has been deleted.\n<br/><br/>\n<b>Recommended Action</b><br/>\nCreate a new health check and associate it with the resource record set; see <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-deleting.html\" target=\"_blank\">Creating, Updating, and Deleting Health Checks</a> and <a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-adding-to-rrsets.html\" target=\"_blank\">Adding Health Checks to Resource Record Sets</a>.\n<br/>\n<br/>\n<b>Additional Information</b><br/>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html\" target=\"_blank\">Amazon Route 53 Health Checks and DNS Failover</a><br/>\n<a href=\"http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-simple-configs.html\" target=\"_blank\">How Health Checks Work in Simple Amazon Route 53 Configurations</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Hosted Zone Name",
+        "Hosted Zone ID",
+        "Resource Record Set Name",
+        "Resource Record Set Type",
+        "Resource Record Set Identifier"
+      ]
+    },
+    {
+      "id": "vjafUGJ9H0",
+      "name": "AWS CloudTrail Logging",
+      "description": "Checks for your use of AWS CloudTrail. CloudTrail provides increased visibility into activity in your AWS account by recording information about AWS API calls made on the account. You can use these logs to determine, for example, what actions a particular user has taken during a specified time period or which users have taken actions on a particular resource during a specified time period. Because CloudTrail delivers log files to an Amazon Simple Storage Service (Amazon S3) bucket, CloudTrail must have write permissions for the bucket. If a trail applies to all regions (the default when creating a new trail), the trail appears multiple times in the Trusted Advisor report.<br /><br />\n<b>Alert Criteria</b><br/>\nYellow: CloudTrail reports log delivery errors for a trail.<br/>\nRed: A trail has not been created for a region, or logging is turned off for a trail.\n<br/><br/>\n<b>Recommended Action</b><br/>\nTo create a trail and start logging from the console, go to the <a href=\"https://console.aws.amazon.com/cloudtrail/home\" target=\"_blank\">AWS CloudTrail console</a>. <br/>\nTo start logging, see <a href=\"https://docs.aws.amazon.com/awscloudtrail/latest/userguide/create_trail_using_cli.html#stopstartclil\" target=\"_blank\">Stopping and Starting Logging for a Trail</a>. <br/>\nIf you receive log delivery errors, check to make sure that the bucket exists and that the necessary policy is attached to the bucket; see <a href=\"https://docs.aws.amazon.com/awscloudtrail/latest/userguide/create_trail_bucket_policy.html\" target=\"_blank\">Amazon S3 Bucket Policy</a>.\n<br/><br/>\n<b>Additional Resources</b><br />\n<a href=\"https://docs.aws.amazon.com/awscloudtrail/latest/userguide/whatisawscloudtrail.html\" target=\"_blank\">AWS CloudTrail User Guide</a><br/>\n<a href=\"https://docs.aws.amazon.com/awscloudtrail/latest/userguide/what_is_cloud_trail_supported_regions.html\" target=\"_blank\">Supported Regions</a><br/>\n<a href=\"https://docs.aws.amazon.com/awscloudtrail/latest/userguide/what_is_cloud_trail_supported_services.html\" target=\"_blank\">Supported Services</a>",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "Trail Name",
+        "Logging Status",
+        "Bucket Name",
+        "Last Delivery Error",
+        "Status"
+      ]
+    },
+    {
+      "id": "a2sEc6ILx",
+      "name": "ELB Listener Security",
+      "description": "Checks for load balancers with listeners that do not use recommended security configurations for encrypted communication. AWS recommends using a secure protocol (HTTPS or SSL), up-to-date security policies, and ciphers and protocols that are secure.<br/>\nWhen you use a secure protocol for a front-end connection (client to load balancer), the requests are encrypted between your clients and the load balancer, which is more secure.<br/>\nElastic Load Balancing provides predefined security policies  with ciphers and protocols that adhere to AWS security best practices. New versions of predefined policies are released as new configurations become available. <br/><br/>\n<b>Alert Criteria</b><br/>\nYellow: A load balancer has no listener that uses a secure protocol (HTTPS or SSL). <br/>\nYellow: A load balancer listener uses an outdated predefined SSL security policy. <br/>\nYellow: A load balancer listener uses a cipher or protocol that is not recommended. <br/>\nRed: A load balancer listener uses an insecure cipher or protocol.<br/><br/>\n<b>Recommended Action</b>\n<ul><li>If the traffic to your load balancer must be secure, use either the HTTPS or the SSL protocol for the front-end connection.</li>\n<li>Upgrade your load balancer to the latest version of the predefined SSL security policy.</li> \n<li>Use only the recommended ciphers and protocols.</li> </ul>\nFor more information, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-listener-config.html\">Listener Configurations for Elastic Load Balancing</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/using-elb-listenerconfig-quickref.html\">Listener Configurations Quick Reference</a><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/ssl-config-update.html\">Update SSL Negotiation Configuration of Your Load Balancer</a><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-ssl-security-policy.html\">SSL Negotiation Configurations for Elastic Load Balancing</a><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-security-policy-table.html\">SSL Security Policy Table</a><br/>\n",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "Load Balancer Port",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "xSqX82fQu",
+      "name": "ELB Security Groups",
+      "description": "Checks for load balancers configured with a missing security group or a security group that allows access to ports that are not configured for the load balancer. If a security group associated with a load balancer is deleted, the load balancer does not work as expected. If a security group allows access to ports that are not configured for the load balancer, the risk of loss of data or malicious attacks increases. <br/><br/>\n<b>Alert Criteria</b><br/>\nYellow: The inbound rules of an Amazon VPC security group associated with a load balancer allow access to ports that are not defined in the load balancer's listener configuration. <br/>\nRed: A security group associated with a load balancer does not exist. <br/><br/>\n<b>Recommended Action</b><br/>\nConfigure the security group rules to restrict access to only those ports and protocols that are defined in the load balancer listener configuration, plus the ICMP protocol to support Path MTU Discovery. See <a target=\"_blank\" href=\"https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html\">Listeners for Your Classic Load Balancer</a> and <a target=\"_blank\" href=\"https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-groups.html#elb-vpc-security-groups\">Security Groups for Load Balancers in a VPC</a>.<br/>\nIf a security group is missing, apply a new security group to the load balancer. Create security group rules that restrict access to only those ports and protocols that are defined in the load balancer listener configuration. See <a target=\"_blank\" href=\"https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-groups.html#elb-vpc-security-groups\">Security Groups for Load Balancers in a VPC</a>. <br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html\">Elastic Load Balancing User Guide</a> <br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-configure-load-balancer.html\">Configure Your Classic Load Balancer</a>",
+      "category": "security",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "Status",
+        "Security Group IDs",
+        "Reason"
+      ]
+    },
+    {
+      "id": "xdeXZKIUy",
+      "name": "ELB Cross-Zone Load Balancing",
+      "description": "With Cross-zone load balancing turned off, there is a risk of service unavailability due to uneven distribution of traffic or backend overloading. This problem can occur when clients incorrectly cache DNS information, or when there are an unequal number of instances in each Availability Zone (for example, if you have taken down some instances for maintenance).\n<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow: Cross-zone load balancing is not enabled for a load balancer.<br/><br/>\n<b>Recommended Action</b><br/>\nConfirm that the Amazon EC2 instances registered with the load balancer are launched in multiple Availability Zones, and then enable cross-zone load balancing for the load balancer. For more information, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#AZ-Region\">Availability Zones and Regions</a> and <a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/enable-disable-crosszone-lb.html\">Enable or Disable Cross-Zone Load Balancing for Your Load Balancer</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#request-routing\">Request Routing</a><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html\">Elastic Load Balancing Concepts</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "7qGXsKIUw",
+      "name": "ELB Connection Draining",
+      "description": "Checks for load balancers that do not have connection draining enabled. When connection draining is not enabled and you remove (deregister) an Amazon EC2 instance from a load balancer, the load balancer stops routing traffic to that instance and closes the connection. When connection draining is enabled, the load balancer stops sending new requests to the deregistered instance but keeps the connection open to serve active requests.<br/><br/>\n<b>Alert Criteria</b><br/> \nYellow: Connection draining is not enabled for a load balancer.<br/><br/> \n<b>Recommended Action</b><br/>\nEnable connection draining for the load balancer. For more information, see <a target=\"_blank\" href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#conn-drain\">Connection Draining</a> and <a target=\"_blank\" href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/config-conn-drain.html\">Enable or Disable Connection Draining for Your Load Balancer</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html\">Elastic Load Balancing Concepts</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Load Balancer Name",
+        "Status",
+        "Reason"
+      ]
+    },
+    {
+      "id": "N415c450f2",
+      "name": "CloudFront Header Forwarding and Cache Hit Ratio",
+      "description": "Checks the HTTP request headers that CloudFront currently receives from the client and forwards to your origin server. Some headers, such as Date or User-Agent, significantly reduce the cache hit ratio (the proportion of requests that are served from a CloudFront edge cache). This increases the load on your origin and reduces performance because CloudFront must forward more requests to your origin.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: One or more request headers that CloudFront forwards to your origin might significantly reduce your cache hit ratio.<br>\n<br>\n<b>Recommended Action</b><br>\nConsider whether the request headers provide enough benefit to justify the negative effect on the cache hit ratio. If your origin returns the same object regardless of the value of a given header, we recommend that you don't configure CloudFront to forward that header to the origin. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/header-caching.html\" target=\"_blank\">Configuring CloudFront to Cache Objects Based on Request Headers</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cache-hit-ratio.html#cache-hit-ratio-request-headers\" target=\"_blank\">Increasing the Proportion of Requests that Are Served from CloudFront Edge Caches</a><br>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cache-statistics.html\" target=\"_blank\">CloudFront Cache Statistics Reports</a><br>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html#request-custom-headers-behavior\" target=\"_blank\">HTTP Request Headers and CloudFront Behavior</a>",
+      "category": "performance",
+      "metadata": [
+        "Status",
+        "Distribution ID",
+        "Distribution Domain Name",
+        "Cache Behavior Path Pattern",
+        "Headers"
+      ]
+    },
+    {
+      "id": "N425c450f2",
+      "name": "CloudFront Custom SSL Certificates in the IAM Certificate Store",
+      "description": "Checks the SSL certificates for CloudFront alternate domain names in the IAM certificate store and alerts you if the certificate is expired, will soon expire, uses outdated encryption, or is not configured correctly for the distribution. When a custom certificate for an alternate domain name expires, browsers that display your CloudFront content might show a warning message about the security of your website. Certificates that are encrypted by using the SHA-1 hashing algorithm are being deprecated by web browsers such as Chrome and Firefox.  If a certificate doesn't contain any domain names that match either Origin Domain Name or the domain name in the Host header of viewer requests, CloudFront returns an HTTP status code 502 (bad gateway) to the user. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS\" target=\"_blank\">Using Alternate Domain Names and HTTPS</a>.<br>\n<br>\n<b>Alert Criteria</b><br>\nRed: A custom SSL certificate is expired.<br>\nYellow: A custom SSL certificate expires in the next seven days.<br>\nYellow: A custom SSL certificate was encrypted by using the SHA-1 hashing algorithm.<br>\nYellow: One or more of the alternate domain names in the distribution don't appear either in the Common Name field or the Subject Alternative Names field of the custom SSL certificate.<br>\n<br>\n<b>Recommended Action</b><br>\nRenew an expired certificate or a certificate that is about to expire.<br>\nReplace a certificate that was encrypted by using the SHA-1 hashing algorithm with a certificate that is encrypted by using the SHA-256 hashing algorithm.<br>\nReplace the certificate with a certificate that contains the applicable values in the Common Name or Subject Alternative Domain Names fields.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html\" target=\"_blank\">Using an HTTPS Connection to Access Your Objects</a>",
+      "category": "security",
+      "metadata": [
+        "Status",
+        "Distribution ID",
+        "Distribution Domain Name",
+        "Certificate Name",
+        "Reason"
+      ]
+    },
+    {
+      "id": "N430c450f2",
+      "name": "CloudFront SSL Certificate on the Origin Server",
+      "description": "Checks your origin server for SSL certificates that are expired, about to expire, missing, or that use outdated encryption. If a certificate is expired, CloudFront responds to requests for your content with HTTP status code 502, Bad Gateway. Certificates that were encrypted by using the SHA-1 hashing algorithm are being deprecated by web browsers such as Chrome and Firefox. Depending on the number of SSL certificates that you have associated with your CloudFront distributions, this check might add a few cents per month to your bill with your web hosting provider, for example, AWS if you're using EC2 or ELB as the origin for your CloudFront distribution. This check does not validate your origin certificate chain or certificate authorities; you can check these in your CloudFront configuration. <br>\n<br>\n<b>Alert Criteria</b><br>\nRed: An SSL certificate on your origin has expired or is missing.<br>\nYellow: An SSL certificate on your origin expires in the next seven days.<br>\nYellow: An SSL certificate on your origin was encrypted by using the SHA-1 hashing algorithm.<br>\nYellow: An SSL certificate on your origin can't be located. The connection might have failed due to timeout, unmatched CNAME and hostname, or other HTTPS connection problems.<br>\n<br>\n<b>Recommended Action</b><br>\nRenew the certificate on your origin if it has expired or is about to expire.<br>\nAdd a certificate if one does not exist.<br>\nReplace a certificate that was encrypted by using the SHA-1 hashing algorithm with a certificate that is encrypted by using the SHA-256 hashing algorithm.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS\" target=\"_blank\">Using Alternate Domain Names and HTTPS</a>",
+      "category": "security",
+      "metadata": [
+        "Status",
+        "Distribution ID",
+        "Distribution Domain Name",
+        "Origin",
+        "Reason"
+      ]
+    },
+    {
+      "id": "Bh2xRR2FGH",
+      "name": "Amazon EC2 to EBS Throughput Optimization",
+      "description": "Checks for Amazon EBS volumes whose performance might be affected by the maximum throughput capability of the Amazon EC2 instance they are attached to. \r\nTo optimize performance, you should ensure that the maximum throughput of an EC2 instance is greater than the aggregate maximum throughput of the attached EBS volumes. \r\nThis check computes the total EBS volume throughput for each five-minute period in the preceding day (UTC) for each EBS-optimized instance and alerts you if usage in more than half of those periods was greater than 95% of the maximum throughput of the EC2 instance.<br/><br/> \r\n<b>Alert Criteria</b><br/> Yellow: In the preceding day (UTC), the aggregate throughput (megabytes/sec) of the EBS volumes attached to the EC2 instance exceeded 95% of the published throughput between the instance and the EBS volumes more than 50% of time.<br/><br/> \r\n<b>Recommended Action</b><br/> Compare the maximum throughput of your EBS volumes \r\n(see <a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html\" target=\"_blank\">Amazon EBS Volume Types</a>) \r\nwith the maximum throughput of the EC2 instance they are attached to \r\n(see <a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html#ebs-optimization-support\" target=\"_blank\">Instance Types That Support EBS Optimization</a>). \r\nConsider attaching your volumes to an instance that supports higher throughput to EBS for optimal performance.<br/><br/> \r\n<b>Additional Resources</b><br/><a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html\" target=\"_blank\">Amazon EBS Volume Types</a><br/> \r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html\" target=\"_blank\">Amazon EBS-Optimized Instances</a><br/> \r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-volume-status.html\" target=\"_blank\">Monitoring the Status of Your Volumes</a><br/> \r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-attaching-volume.html\" target=\"_blank\">Attaching an Amazon EBS Volume to an Instance</a><br/> \r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-detaching-volume.html\" target=\"_blank\">Detaching an Amazon EBS Volume from an Instance</a><br/> \r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html\" target=\"_blank\">Deleting an Amazon EBS Volume</a> ",
+      "category": "performance",
+      "metadata": [
+        "Region",
+        "Instance ID",
+        "Instance Type",
+        "Status",
+        "Time Near Maximum"
+      ]
+    },
+    {
+      "id": "N420c450f2",
+      "name": "CloudFront Alternate Domain Names",
+      "description": "Checks Amazon CloudFront distributions for alternate domain names (CNAMES) that have incorrectly configured DNS settings. If a CloudFront distribution includes alternate domain names, the DNS configuration for the domains must route DNS queries to that distribution.<br/>\n<br/>\n<b>Alert Criteria</b><br/>\nRed: A CloudFront distribution includes alternate domain names, but the DNS configuration is not correctly set up with a CNAME record or an Amazon Route 53 alias resource record.<br/>\nYellow: A CloudFront distribution includes alternate domain names, but Trusted Advisor could not evaluate the DNS configuration because there were too many redirects.<br/>\nYellow: A CloudFront distribution includes alternate domain names, but Trusted Advisor could not evaluate the DNS configuration for some other reason, most likely because of a timeout.\n<br/><br/>\n<b>Recommended Action</b><br/>\nUpdate the DNS configuration to route DNS queries to the CloudFront distribution; see <a href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/CNAMEs.html\" target=\"_blank\">Using Alternate Domain Names (CNAMEs)</a>. If you're using Amazon Route 53 as your DNS service, see <a href=\"https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-cloudfront-distribution.html\" target=\"_blank\">Routing Traffic to an Amazon CloudFront Web Distribution by Using Your Domain Name</a>. If the check timed out, try refreshing the check.<br/>\n<br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html\">Amazon CloudFront Developer Guide</a>",
+      "category": "performance",
+      "metadata": [
+        "Status",
+        "Distribution ID",
+        "Distribution Domain Name",
+        "Alternate Domain Name",
+        "Reason"
+      ]
+    },
+    {
+      "id": "DqdJqYeRm5",
+      "name": "IAM Access Key Rotation",
+      "description": "Checks for active IAM access keys that have not been rotated in the last 90 days.  When you rotate your access keys regularly, you reduce the chance that a compromised key could be used without your knowledge to access resources. For the purposes of this check, the last rotation date and time is when the access key was created or most recently activated. The access key number and date come from the <b>access_key_1_last_rotated</b> and <b>access_key_2_last_rotated</b> information in the most recent IAM credential report. Because the regeneration frequency of a credential report  is restricted, refreshing this check might not reflect recent changes (for details, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html\">Getting Credential Reports for Your AWS Account</a>).<br/>\nIn order to create and rotate access keys, a user must have the appropriate permissions. For more information, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_delegate-permissions_examples.html#creds-policies-credentials\">Allow Users to Manage Their Own Passwords, Access Keys, and SSH Keys</a>.<br/><br/>\n<b>Alert Criteria</b><br/>\nGreen: The access key is active and has been rotated in the last 90 days.<br/>\nYellow: The access key is active and has been rotated in the last 2 years, but more than 90 days ago.<br/>\nRed: The access key is active and has not been rotated in the last 2 years.<br/><br/>\n<b>Recommended Action</b><br/>\nRotate access keys on a regular basis. See <a target=\"_blank\" href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_RotateAccessKey\">Rotating Access Keys</a> and <a target=\"_blank\" href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html\">Managing Access Keys for IAM Users</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html\">IAM Best Practices</a><br/>\n<a target=\"_blank\" href=\"https://blogs.aws.amazon.com/security/post/Tx15CIT22V4J8RP/How-to-rotate-access-keys-for-IAM-users\">How to rotate access keys for IAM users</a> (AWS blog)",
+      "category": "security",
+      "metadata": [
+        "Status",
+        "IAM User",
+        "Access Key",
+        "Key Last Rotated",
+        "Reason"
+      ]
+    },
+    {
+      "id": "12Fnkpl8Y5",
+      "name": "Exposed Access Keys",
+      "description": "Checks popular code repositories for access keys that have been exposed to the public and for irregular Amazon Elastic Compute Cloud (Amazon EC2) usage that could be the result of a compromised access key. An access key consists of an access key ID and the corresponding secret access key. Exposed access keys pose a security risk to your account and other users, could lead to excessive charges from unauthorized activity or abuse, and violate the <a target=\"_blank\" href=\"https://aws.amazon.com/agreement/\">AWS Customer Agreement</a>. If your access key is exposed, take immediate action to secure your account. To protect your account from excessive charges, AWS temporarily limits your ability to create certain AWS resources when exposed access keys are identified. This does not make your account secure; it only partially limits the unauthorized usage for which you could be charged. Note: This check does not guarantee the identification of exposed access keys or compromised EC2 instances. You are ultimately responsible for the safety and security of your access keys and AWS resources.   <br/><br/>\nIf a deadline is shown for an access key, AWS may suspend your AWS account if the unauthorized usage is not stopped by that date. If you believe an alert is in error, <a href=\"https://console.aws.amazon.com/support/home?#/case/create?issueType=customer-service&serviceCode=customer-account&categoryCode=security\" target=\"_blank\">contact AWS Support</a>.<br/><br/>\nThe information displayed in Trusted Advisor may not reflect the most recent state of your account. No exposed access keys are marked as resolved until all exposed access keys on the account have been resolved. This data synchronization can take up to one week.<br/><br/>\n<b>Alert Criteria</b><br/>\nRed: Potentially compromised - AWS has identified an access key ID and corresponding secret access key that have been exposed on the Internet and may have been compromised (used).<br/>\nRed: Exposed - AWS has identified an access key ID and corresponding secret access key that have been exposed on the Internet.<br/>\nRed: Suspected - Irregular Amazon EC2 usage indicates that an access key may have been compromised, but it has not been identified as exposed on the Internet.<br/><br/>\n<b>Recommended Action</b><br/>\nDelete the affected access key as soon as possible. If the key is associated with an IAM user, see <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html\" target=\"_blank\">Managing Access Keys for IAM Users</a>.<br/><br/>\nCheck your account for unauthorized usage. Log in to the <a href=\"https://console.aws.amazon.com/\" target=\"_blank\">AWS Management Console</a> and check each service console for suspicious resources. Pay special attention to running Amazon EC2 instances, Spot Instance requests, access keys, and IAM users. You can also check overall usage on the <a href=\"https://console.aws.amazon.com/billing/home#/\" target=\"_blank\">Billing & Cost Management Dashboard</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html\" target=\"_blank\">Best Practices for Managing AWS Access Keys</a><br/>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws-security-audit-guide.html\" target=\"_blank\">AWS Security Audit Guidelines</a>",
+      "category": "security",
+      "metadata": [
+        "Access Key ID",
+        "User Name (IAM or Root)",
+        "Fraud Type",
+        "Case ID",
+        "Time Updated",
+        "Location",
+        "Deadline",
+        "Usage (USD per Day)"
+      ]
+    },
+    {
+      "id": "G31sQ1E9U",
+      "name": "Underutilized Amazon Redshift Clusters",
+      "description": "Checks your Amazon Redshift configuration for clusters that appear to be underutilized. If an Amazon Redshift cluster has not had a connection for a prolonged period of time or is using a low amount of CPU, you can use lower-cost options such as downsizing the cluster or shutting down the cluster and taking a final snapshot. Final snapshots are retained even after you delete your cluster.<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow: A running cluster has not had a connection in the last 7 days.<br/>\nYellow: A running cluster had less than 5% cluster-wide average CPU utilization for 99% of the last 7 days.<br/><br/>\n<b>Recommended Action</b><br/>\nConsider shutting down the cluster and taking a final snapshot, or downsizing the cluster. See <a href=\"https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#rs-mgmt-shutdown-delete-cluster\" target=\"_blank\">Shutting Down and Deleting Clusters</a> and <a href=\"https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#cluster-resize-intro\" target=\"_blank\">Resizing a Cluster</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/Welcome.html\" target=\"_blank\">Amazon CloudWatch Developer Guide</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Status",
+        "Region",
+        "Cluster",
+        "Instance Type",
+        "Reason",
+        "Estimated Monthly Savings"
+      ]
+    },
+    {
+      "id": "1e93e4c0b5",
+      "name": "Amazon EC2 Reserved Instance Lease Expiration",
+      "description": "Checks for Amazon EC2 Reserved Instances that are scheduled to expire within the next 30 days or have expired in the preceding 30 days. Reserved Instances do not renew automatically; you can continue using an EC2 instance covered by the reservation without interruption, but you will be charged On-Demand rates. New Reserved Instances can have the same parameters as the expired ones, or you can purchase Reserved Instances with different parameters.<br/>\r\nThe estimated monthly savings we show is the difference between the On-Demand and Reserved Instance rates for the same instance type.<br/><br/>\r\n<b>Alert Criteria</b><br/>\r\nYellow: The Reserved Instance lease expires in less than 30 days.<br/>\r\nYellow: The Reserved Instance lease expired in the preceding 30 days.<br/><br/>\r\n<b>Recommended Action</b><br/>\r\nConsider purchasing a new Reserved Instance to replace the one that is nearing the end of its term. For more information, see <a href=\"https://aws.amazon.com/ec2/purchasing-options/reserved-instances/buyer/\" target=\"_blank\">How to Purchase Reserved Instances</a> and <a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-concepts-buying.html\" target=\"_blank\">Buying Reserved Instances</a>.<br/><br/> \r\n<b>Additional Resources</b><br/>\r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts-on-demand-reserved-instances.html\" target=\"_blank\">Reserved Instances</a><br/>\r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html\" target=\"_blank\">Instance Types</a>",
+      "category": "cost_optimizing",
+      "metadata": [
+        "Status",
+        "Zone",
+        "Instance Type",
+        "Platform",
+        "Instance Count",
+        "Current Monthly Cost",
+        "Estimated Monthly Savings",
+        "Expiration Date",
+        "Reserved Instance ID",
+        "Reason"
+      ]
+    },
+    {
+      "id": "R365s2Qddf",
+      "name": "Amazon S3 Bucket Versioning",
+      "description": "Checks for Amazon Simple Storage Service buckets that do not have versioning enabled, or have versioning suspended. When versioning is enabled, you can easily recover from both unintended user actions and application failures. Versioning allows you to preserve, retrieve, and restore any version of any object stored in a bucket. You can use lifecycle rules to manage all versions of your objects as well as their associated costs by automatically archiving objects to the Glacier storage class or removing them after a specified time period. You can also choose to require multi-factor authentication (MFA) for any object deletions or configuration changes to your buckets. <br/><br/>\nVersioning cannot be disabled after it has been enabled, but it can be suspended, which prevents new versions of objects from being created. Using versioning can increase your costs for Amazon S3, because you pay for storage of multiple versions of an object.<br/><br/>\n<b>Alert Criteria</b><br/>\nGreen: Versioning is enabled for the bucket.<br/>\nYellow: Versioning is not enabled for the bucket.<br/>\nYellow: Versioning is suspended for the bucket.<br/><br/>\n<b>Recommended Action</b><br/>\nEnable bucket versioning on most buckets to prevent accidental deletion or overwriting. See <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html\" target=\"_blank\">Using Versioning</a> and <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/manage-versioning-examples.html\" target=\"_blank\">Enabling Versioning Programmatically</a>. <br/><br/>\nIf bucket versioning is suspended, consider reenabling versioning. For information on working with objects in a versioning-suspended bucket, see <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/VersionSuspendedBehavior.html\" target=\"_blank\">Managing Objects in a Versioning-Suspended Bucket</a>.<br/><br/>\nWhen versioning is enabled or suspended, you can define lifecycle configuration rules to mark certain object versions as expired or to permanently remove unneeded object versions. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html\" target=\"_blank\">Object Lifecycle Management</a>. <br/><br/>\nMFA Delete requires additional authentication when the versioning status of the bucket is changed or when versions of an object are deleted. It requires the user to enter credentials and a code from an approved authentication device. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html#MultiFactorAuthenticationDelete\" target=\"_blank\">MFA Delete</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonS3/latest/UG/BucketOperations.html\" target=\"_blank\">Working with Buckets</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Region",
+        "Bucket Name",
+        "Versioning",
+        "MFA Delete Enabled",
+        "Status"
+      ]
+    },
+    {
+      "id": "0t121N1Ty3",
+      "name": "AWS Direct Connect Connection Redundancy",
+      "description": "Checks for regions that have only one AWS Direct Connect connection. Connectivity to your AWS resources should have two Direct Connect connections configured at all times to provide redundancy in case a device is unavailable.<br/>\n<b>Note:</b> Results for this check are automatically refreshed several times daily, and refresh requests are not allowed. It might take a few hours for changes to appear.<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow:  The region has only one Direct Connect connection.<br/><br/>\n<b>Recommended Action</b><br/>\nConfigure an additional Direct Connect connection in this region to protect against device unavailability. For more information, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getting_started.html\">Configure Redundant Connections with AWS Direct Connect</a>. To protect against site unavailability and add location redundancy, configure the additional Direct Connect connection to a different Direct Connect location.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getting_started.html\">Getting Started with AWS Direct Connect</a><br/>\n<a target=\"_blank\" href=\"https://aws.amazon.com/directconnect/faqs/\">AWS Direct Connect FAQs</a> ",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Status",
+        "Region",
+        "Timestamp",
+        "Location",
+        "Connection ID"
+      ]
+    },
+    {
+      "id": "8M012Ph3U5",
+      "name": "AWS Direct Connect Location Redundancy",
+      "description": "Checks for regions with one or more AWS Direct Connect connections and only one AWS Direct Connect location. Connectivity to your AWS resources should have Direct Connect connections configured to different Direct Connect locations to provide redundancy in case a location is unavailable.<br/>\n<b>Note:</b> Results for this check are automatically refreshed several times daily, and refresh requests are not allowed. It might take a few hours for changes to appear.<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow:  The Direct Connect connections in the region are not configured to different locations.<br/><br/>\n<b>Recommended Action</b><br/>\nConfigure a Direct Connect connection that uses a different Direct Connect location to protect against location unavailability. For more information, see <a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getting_started.html\">Getting Started with AWS Direct Connect</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getting_started.html\">Getting Started with AWS Direct Connect</a><br/>\n<a target=\"_blank\" href=\"https://aws.amazon.com/directconnect/faqs/\">AWS Direct Connect FAQs</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Status",
+        "Region",
+        "Timestamp",
+        "Location",
+        "Connection Details"
+      ]
+    },
+    {
+      "id": "4g3Nt5M1Th",
+      "name": "AWS Direct Connect Virtual Interface Redundancy",
+      "description": "Checks for virtual private gateways with Direct Connect virtual interfaces (VIFs) that are not configured on at least two Direct Connect connections. Connectivity to your virtual private gateway should have multiple virtual interfaces configured across multiple Direct Connect connections and locations to provide redundancy in case a device or location is unavailable. <br/>\n<b>Note:</b> Results for this check are automatically refreshed several times daily, and refresh requests are not allowed. It might take a few hours for changes to appear.<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow:  A virtual private gateway has less than two virtual interfaces, or the interfaces are not configured to multiple Direct Connect connections. <br/><br/>\n<b>Recommended Action</b><br/>\nConfigure at least two virtual interfaces that are configured to two Direct Connect connections to protect against device or location unavailability. See <a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getstarted.html#createvirtualinterface\">Create a Virtual Interface.</a><br/><br/>\n<b>Additional Resources</b><br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/getting_started.html\">Getting Started with AWS Direct Connect</a><br/>\n<a target=\"_blank\" href=\"https://aws.amazon.com/directconnect/faqs/\">AWS Direct Connect FAQs</a> \n<br/>\n<a target=\"_blank\" href=\"https://docs.aws.amazon.com/directconnect/latest/UserGuide/WorkingWithVirtualInterfaces.html\">Working With AWS Direct Connect Virtual Interfaces</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Status",
+        "Region",
+        "Timestamp",
+        "Gateway ID",
+        "Location for VIF",
+        "Connection ID for VIF"
+      ]
+    },
+    {
+      "id": "xuy7H1avtl",
+      "name": "Amazon Aurora DB Instance Accessibility",
+      "description": "Checks for cases where an Amazon Aurora DB cluster has both private and public instances. When your primary instance fails, a replica can be promoted to a primary instance. If that replica is private, users who have only public access would no longer be able to connect to the database after failover. It's best practice for all the DB instances in a cluster to have the same accessibility.<br/><br/>\n<b>Alert Criteria</b><br/>\nYellow: The instances in an Aurora DB cluster have different accessibility (a mix of public and private).<br/><br/>\n<b>Recommended Action</b><br/>\nModify the <b>Publicly Accessible</b> setting of the instances in the DB cluster so that they are all either public or private. For details, see the instructions for MySQL instances at <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ModifyInstance.MySQL.html\" target=\"_blank\">Modifying a DB Instance Running the MySQL Database Engine</a>.<br/><br/>\n<b>Additional Resources</b><br/>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance\" target=\"_blank\">Fault Tolerance for an Aurora DB Cluster</a>",
+      "category": "fault_tolerance",
+      "metadata": [
+        "Status",
+        "Region",
+        "Cluster",
+        "Public DB Instances",
+        "Private DB Instances",
+        "Reason"
+      ]
+    },
+    {
+      "id": "ePs02jT06w",
+      "name": "Amazon EBS Public Snapshots",
+      "description": "Checks the permission settings for your Amazon Elastic Block Store (Amazon EBS) volume snapshots and alerts you if any snapshots are marked as public. When you make a snapshot public, you give all AWS accounts and users access to all the data on the snapshot. If you want to share a snapshot with particular users or accounts, mark the snapshot as private, and then specify the user or accounts you want to share the snapshot data with. <b>Note</b>: Results for this check are automatically refreshed several times daily, and refresh requests are not allowed. It might take a few hours for changes to appear.<br/><br/>\r\n<b>Alert Criteria</b><br/>\r\nRed: The EBS volume snapshot is marked as public.<br/><br/>\r\n<b>Recommended Action</b><br/>\r\nUnless you are certain you want to share all the data in the snapshot with all AWS accounts and users, modify the permissions: mark the snapshot as private, and then specify the accounts that you want to give permissions to. For more information, see <a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html\" target=\"_blank\">Sharing an Amazon EBS Snapshot</a>. Note: For temporary technical reasons, items in this check cannot be excluded from view in the Trusted Advisor console.<br/><br/> \r\n<b>Additional Resources</b><br/>\r\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html\" target=\"_blank\">Amazon EBS Snapshots</a>",
+      "category": "security",
+      "metadata": [
+        "Status",
+        "Region",
+        "Volume ID",
+        "Snapshot ID",
+        "Description"
+      ]
+    },
+    {
+      "id": "rSs93HQwa1",
+      "name": "Amazon RDS Public Snapshots",
+      "description": "Checks the permission settings for your Amazon Relational Database Service (Amazon RDS) DB snapshots and alerts you if any snapshots are marked as public. When you make a snapshot public, you give all AWS accounts and users access to all the data on the snapshot. If you want to share a snapshot with particular users or accounts, mark the snapshot as private, and then specify the user or accounts you want to share the snapshot data with. <b>Note</b>: Results for this check are automatically refreshed several times daily, and refresh requests are not allowed. It might take a few hours for changes to appear.<br/><br/>\r\n<b>Alert Criteria</b><br/>\r\nRed: The RDS  snapshot is marked as public.<br/><br/>\r\n<b>Recommended Action</b><br/>\r\nUnless you are certain you want to share all the data in the snapshot with all AWS accounts and users, modify the permissions: mark the snapshot as private, and then specify the accounts that you want to give permissions to. For more information, see <a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ShareSnapshot.html\" target=\"_blank\">Sharing a DB Snapshot or DB Cluster Snapshot</a>. Note: For temporary technical reasons, items in this check cannot be excluded from view in the Trusted Advisor console.<br/><br/> \r\n<b>Additional Resources</b><br/>\r\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_CommonTasks.BackupRestore.html\" target=\"_blank\">Backing Up and Restoring Amazon RDS DB Instances</a>",
+      "category": "security",
+      "metadata": [
+        "Status",
+        "Region",
+        "DB Instance or Cluster ID",
+        "Snapshot ID"
+      ]
+    },
+    {
+      "id": "0Xc6LMYG8P",
+      "name": "EC2 On-Demand Instances",
+      "description": "Checks for usage that is more than 80% of the EC2 On-Demand Instances Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html\" target=\"_blank\">EC2 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "hJ7NN0l7J9",
+      "name": "SES Daily Sending Quota",
+      "description": "Checks for usage that is more than 80% of the SES Daily Sending Quota Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html\" target=\"_blank\">SES Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "tV7YY0l7J9",
+      "name": "EBS Provisioned IOPS (SSD) Volume Aggregate IOPS",
+      "description": "Checks for usage that is more than 80% of the EBS Provisioned IOPS (SSD) Volume Aggregate IOPS Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "gI7MM0l7J9",
+      "name": "EBS Provisioned IOPS SSD (io1) Volume Storage",
+      "description": "Checks for usage that is more than 80% of the EBS Provisioned IOPS SSD (io1) Volume Storage Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "eI7KK0l7J9",
+      "name": "EBS Active Snapshots",
+      "description": "Checks for usage that is more than 80% of the EBS Active Snapshots Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dH7RR0l6J9",
+      "name": "EBS General Purpose SSD (gp2) Volume Storage",
+      "description": "Checks for usage that is more than 80% of the EBS General Purpose SSD (gp2) Volume Storage Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "cG7HH0l7J9",
+      "name": "EBS Magnetic (standard) Volume Storage",
+      "description": "Checks for usage that is more than 80% of the EBS Magnetic (standard) Volume Storage Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "aW9HH0l8J6",
+      "name": "EC2-Classic Elastic IP Addresses",
+      "description": "Checks for usage that is more than 80% of the EC2-Classic Elastic IP Addresses Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html\" target=\"_blank\">EC2 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "iH7PP0l7J9",
+      "name": "EC2 Reserved Instance Leases",
+      "description": "Checks for usage that is more than 80% of the EC2 Reserved Instance Leases Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html\" target=\"_blank\">EC2 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "bW7HH0l7J9",
+      "name": "Kinesis Shards per Region",
+      "description": "Checks for usage that is more than 80% of the Kinesis Shards per Region Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html\" target=\"_blank\">Kinesis Streams Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "gW7HH0l7J9",
+      "name": "CloudFormation Stacks",
+      "description": "Checks for usage that is more than 80% of the CloudFormation Stacks Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html\" target=\"_blank\">CloudFormation Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "aW7HH0l7J9",
+      "name": "Auto Scaling Launch Configurations",
+      "description": "Checks for usage that is more than 80% of the Auto Scaling Launch Configurations Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/autoscaling/latest/userguide/as-account-limits.html\" target=\"_blank\">Auto Scaling Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "fW7HH0l7J9",
+      "name": "Auto Scaling Groups",
+      "description": "Checks for usage that is more than 80% of the Auto Scaling Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/autoscaling/latest/userguide/as-account-limits.html\" target=\"_blank\">Auto Scaling Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "jL7PP0l7J9",
+      "name": "VPC",
+      "description": "Checks for usage that is more than 80% of the VPC Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br> \n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html#vpc-limits-vpcs-subnets\" target=\"_blank\">VPC Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "kM7QQ0l7J9",
+      "name": "VPC Internet Gateways",
+      "description": "Checks for usage that is more than 80% of the VPC Internet Gateways Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html#vpc-limits-gateways\" target=\"_blank\">VPC Gateway Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "lN7RR0l7J9",
+      "name": "EC2-VPC Elastic IP Address",
+      "description": "Checks for usage that is more than 80% of the EC2-VPC Elastic IP Address Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html#vpc-limits-eips\" target=\"_blank\">VPC Elastic IP Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "nO7SS0l7J9",
+      "name": "IAM Instance Profiles",
+      "description": "Checks for usage that is more than 80% of the IAM Instance Profiles Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "oQ7TT0l7J9",
+      "name": "IAM Roles",
+      "description": "Checks for usage that is more than 80% of the IAM Roles Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "pR7UU0l7J9",
+      "name": "IAM Policies",
+      "description": "Checks for usage that is more than 80% of the IAM Policies Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "qS7VV0l7J9",
+      "name": "IAM Users",
+      "description": "Checks for usage that is more than 80% of the IAM Users Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "rT7WW0l7J9",
+      "name": "IAM Server Certificates",
+      "description": "Checks for usage that is more than 80% of the IAM Server Certificates Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "sU7XX0l7J9",
+      "name": "IAM Group",
+      "description": "Checks for usage that is more than 80% of the IAM Group Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html\" target=\"_blank\">IAM Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "iK7OO0l7J9",
+      "name": "ELB Classic Load Balancers",
+      "description": "Checks for usage that is more than 80% of the ELB Classic Load Balancers. Application Load Balancers and Network Load Balancers have a separate limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br/>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_elastic_load_balancer\" target=\"_blank\">AWS Service Limits - Elastic Load Balancing default service limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "7fuccf1Mx7",
+      "name": "RDS Cluster Roles",
+      "description": "Checks for usage that is more than 80% of the RDS Cluster Roles Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "jtlIMO3qZM",
+      "name": "RDS Cluster Parameter Groups",
+      "description": "Checks for usage that is more than 80% of the RDS Cluster Parameter Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "gjqMBn6pjz",
+      "name": "RDS Clusters",
+      "description": "Checks for usage that is more than 80% of the RDS Clusters Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "UUDvOa5r34",
+      "name": "RDS Reserved Instances",
+      "description": "Checks for usage that is more than 80% of the RDS Reserved Instances Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "jEhCtdJKOY",
+      "name": "RDS Subnets per Subnet Group",
+      "description": "Checks for usage that is more than 80% of the RDS Subnets per Subnet Group Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dYWBaXaaMM",
+      "name": "RDS Subnet Groups",
+      "description": "Checks for usage that is more than 80% of the RDS Subnet Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "3Njm0DJQO9",
+      "name": "RDS Option Groups",
+      "description": "Checks for usage that is more than 80% of the RDS Option Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "keAhfbH5yb",
+      "name": "RDS Event Subscriptions",
+      "description": "Checks for usage that is more than 80% of the RDS Event Subscriptions Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dV84wpqRUs",
+      "name": "RDS DB Manual Snapshots",
+      "description": "Checks for usage that is more than 80% of the RDS DB Manual Snapshots Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "P1jhKWEmLa",
+      "name": "RDS Total Storage Quota",
+      "description": "Checks for usage that is more than 80% of the RDS Total Storage Quota Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "jEECYg2YVU",
+      "name": "RDS DB Parameter Groups",
+      "description": "Checks for usage that is more than 80% of the RDS DB Parameter Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "pYW8UkYz2w",
+      "name": "RDS Read Replicas per Master",
+      "description": "Checks for usage that is more than 80% of the RDS Read Replicas per Master Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "gfZAn3W7wl",
+      "name": "RDS DB Security Groups",
+      "description": "Checks for usage that is more than 80% of the RDS DB Security Groups Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "XG0aXHpIEt",
+      "name": "RDS DB Instances",
+      "description": "Checks for usage that is more than 80% of the RDS DB Instances Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dBkuNCvqn5",
+      "name": "RDS Max Auths per Security Group",
+      "description": "Checks for usage that is more than 80% of the RDS Max Auths per Security Group Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html\" target=\"_blank\">RDS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "wH7DD0l3J9",
+      "name": "EBS Throughput Optimized HDD (st1) Volume Storage",
+      "description": "Checks for usage that is more than 80% of the EBS Throughput Optimized HDD (st1) Volume Storage Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "gH5CC0e3J9",
+      "name": "EBS Cold HDD (sc1) Volume Storage",
+      "description": "Checks for usage that is more than 80% of the EBS Cold HDD (sc1) Volume Storage Limit. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ebs\" target=\"_blank\">EBS Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "6gtQddfEw6",
+      "name": "DynamoDB Read Capacity",
+      "description": "Checks for usage that is more than 80% of the DynamoDB Provisioned Throughput Limit for Reads per Account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_dynamodb\" target=\"_blank\">DynamoDB Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "c5ftjdfkMr",
+      "name": "DynamoDB Write Capacity",
+      "description": "Checks for usage that is more than 80% of the DynamoDB Provisioned Throughput Limit for Writes per Account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_dynamodb\" target=\"_blank\">DynamoDB Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "ru4xfcdfMr",
+      "name": "Route 53 Max Health Checks",
+      "description": "Checks for usage that is more than 80% of the Route 53 Health Checks Limit per account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html\" target=\"_blank\">Route 53 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dx3xfcdfMr",
+      "name": "Route 53 Hosted Zones",
+      "description": "Checks for usage that is more than 80% of the Route 53 Hosted Zones Limit per account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html\" target=\"_blank\">Route 53 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "ty3xfcdfMr",
+      "name": "Route 53 Reusable Delegation Sets",
+      "description": "Checks for usage that is more than 80% of the Route 53 Reusable Delegation Sets Limit per account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html\" target=\"_blank\">Route 53 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dx3xfbjfMr",
+      "name": "Route 53 Traffic Policies",
+      "description": "Checks for usage that is more than 80% of the Route 53 Traffic Policies Limit per account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html\" target=\"_blank\">Route 53 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "dx8afcdfMr",
+      "name": "Route 53 Traffic Policy Instances",
+      "description": "Checks for usage that is more than 80% of the Route 53 Traffic Policy Instances Limit per account. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html\" target=\"_blank\">Route 53 Limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "EM8b3yLRTr",
+      "name": "ELB Application Load Balancers",
+      "description": "Checks for usage that is more than 80% of the ELB Application Load Balancers Limit. Classic Load Balancers and Network Load Balancers have separate limits. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br/>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_elastic_load_balancer\" target=\"_blank\">AWS Service Limits - Elastic Load Balancing default service limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    },
+    {
+      "id": "8wIqYSt25K",
+      "name": "ELB Network Load Balancers",
+      "description": "Checks for usage that is more than 80% of the ELB Network Load Balancers Limit. Classic Load Balancers and Application Load Balancers have separate limits. Values are based on a snapshot, so your current usage might differ. Limit and usage data can take up to 24 hours to reflect any changes. In cases where limits have been recently increased, you may temporarily see utilization that exceeds the limit.<br/>\n<br>\n<b>Alert Criteria</b><br>\nYellow: 80% of limit reached.<br>\nRed: 100% of limit reached.<br>\nBlue: Trusted Advisor was unable to retrieve utilization or limits in one or more regions.<br>\n<br>\n<b>Recommended Action</b><br>\nIf you anticipate exceeding a service limit, open a case in Support Center to <a href=\"https://aws.amazon.com/support/createCase?type=service_limit_increase\" target=\"_blank\">request a limit increase</a>.<br>\n<br>\n<b>Additional Resources</b><br>\n<a href=\"https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_elastic_load_balancer\" target=\"_blank\">AWS Service Limits - Elastic Load Balancing default service limits</a>",
+      "category": "service_limits",
+      "metadata": [
+        "Region",
+        "Service",
+        "Limit Name",
+        "Limit Amount",
+        "Current Usage",
+        "Status"
+      ]
+    }
+  ]
+}

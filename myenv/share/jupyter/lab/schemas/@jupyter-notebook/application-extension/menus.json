@@ -1,0 +1,79 @@
+{
+  "title": "Jupyter Notebook Menu Entries",
+  "description": "Jupyter Notebook Menu Entries",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "command": "application:rename",
+            "rank": 4.5
+          },
+          {
+            "command": "notebook:trust",
+            "rank": 20
+          },
+          {
+            "type": "separator",
+            "rank": 30
+          },
+          {
+            "command": "filemenu:close-and-cleanup",
+            "rank": 40
+          },
+          {
+            "command": "application:close",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "submenu",
+            "disabled": true,
+            "submenu": {
+              "id": "jp-mainmenu-view-appearance"
+            }
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-run",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 1000
+          },
+          {
+            "type": "submenu",
+            "rank": 1010,
+            "submenu": {
+              "id": "jp-runmenu-change-cell-type",
+              "label": "Cell Type",
+              "items": [
+                {
+                  "command": "notebook:change-cell-to-code",
+                  "rank": 0
+                },
+                {
+                  "command": "notebook:change-cell-to-markdown",
+                  "rank": 0
+                },
+                {
+                  "command": "notebook:change-cell-to-raw",
+                  "rank": 0
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

@@ -1,0 +1,11 @@
+{# As the theme switcher will only work when JavaScript is enabled, we add it through JavaScript.
+ #}
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="{{ _('light/dark') }}" aria-label="{{ _('light/dark') }}" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>

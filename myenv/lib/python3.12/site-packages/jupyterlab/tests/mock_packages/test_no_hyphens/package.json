@@ -1,0 +1,24 @@
+{
+  "name": "test_no_hyphens",
+  "version": "3.0.2",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "build:labextension": "jupyter labextension build .",
+    "clean": "rimraf ./test_no_hyphens/labextension"
+  },
+  "dependencies": {
+    "@jupyterlab/launcher": "^4.0.0"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.0.0",
+    "rimraf": "^3.0.2"
+  },
+  "files": [
+    "index.js"
+  ],
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "./test_no_hyphens/labextension"
+  }
+}

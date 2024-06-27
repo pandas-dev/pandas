@@ -1,0 +1,9 @@
+{% extends "!layout.html" %}
+
+{% block header %}
+{{ super() }}
+<span id="forkongithub"><a href="https://github.com/airspeed-velocity/asv">Fork me on GitHub</a></span>
+{% endblock %}
+
+{# Custom CSS overrides #}
+{% set css_files = css_files + ['_static/asv-doc.css', '_static/gh_fork.css'] %}

@@ -1,0 +1,14 @@
+{
+  "title": "Console Completer",
+  "description": "Console completer settings.",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "completer:invoke-console",
+      "keys": ["Tab"],
+      "selector": ".jp-CodeConsole-promptCell .jp-mod-completer-enabled"
+    }
+  ],
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

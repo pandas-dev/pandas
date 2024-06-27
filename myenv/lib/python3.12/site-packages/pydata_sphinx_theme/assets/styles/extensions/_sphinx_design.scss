@@ -1,0 +1,260 @@
+/*******************************************************************************
+ * Special-cases for the sphinx-design library, mainly to make it compatible
+ * with the dark/light themes of pydata-sphinx-theme.
+ *
+ * NOTE: sphinx-design uses !important quite liberally, so here we must do the
+ * same for our overrides to have any effect.
+ */
+@use "../variables/color" as pst-color;
+@use "sass:meta";
+@use "sass:color";
+
+/*******************************************************************************
+  * Color and variables
+  *
+  * This is a list of the semantic color names from sphinx-design (we only
+  * need to override variables that sphinx-design has actually defined).
+  * https://github.com/executablebooks/sphinx-design/blob/9226a12a/style/_colors.scss#L31-L43
+  */
+$sd-semantic-color-names: (
+  "primary",
+  "secondary",
+  "success",
+  "info",
+  "warning",
+  "danger",
+  "light",
+  "muted",
+  "dark",
+  "black",
+  "white"
+);
+
+/**
+  * Here we create some extra --pst-color-* variables and use
+  * them to override the value of the corresponding sphinx-design variables.
+  * This is easier than re-writing the sphinx-design rules. Even easier would be
+  * directly assigning our values to the --sd-color-* variables, but then our
+  * downstream users couldn't override *our* colors and have it affect buttons
+  * and badges.
+  *
+  * First, define the extra keys needed to cover the full range of semantic
+  * color names used in sphinx-design, then merge them with the names we
+  * already define for our own needs.
+  * see https://sphinx-design.readthedocs.io/en/latest/css_variables.html
+  */
+$extra-semantic-colors: (
+  "white": $foundation-white,
+  "light": (
+    light: $foundation-light-gray,
+    bg-light: color.scale($foundation-light-gray, $lightness: 30%),
+    dark: $foundation-light-gray,
+    bg-dark: color.scale($foundation-light-gray, $lightness: -30%),
+  ),
+  "muted": (
+    light: $foundation-muted-gray,
+    bg-light: color.scale($foundation-muted-gray, $lightness: 30%),
+    dark: $foundation-light-gray,
+    bg-dark: color.scale($foundation-muted-gray, $lightness: -30%),
+  ),
+  "dark": $foundation-dark-gray,
+  "black": $foundation-black,
+);
+
+$all-colors: map-merge($pst-semantic-colors, $extra-semantic-colors);
+
+@mixin create-sd-colors($value, $name) {
+  // define the pst variables, so that downstream user overrides will work
+  --pst-color-#{$name}: #{$value};
+  // we are now using a11y-combination to calculate the text color - this is based
+  // on the WCAG color contrast guidelines
+  --pst-color-#{$name}-text: #{a11y-combination($value)};
+  //TODO: highlight seems to be used for buttons @trallard to fix on a11y follow-up work
+  --pst-color-#{$name}-highlight: #{darken($value, 15%)};
+  // override the sphinx-design variables
+  --sd-color-#{$name}: var(--pst-color-#{$name});
+  --sd-color-#{$name}-text: var(--pst-color-#{$name}-text);
+  //TODO: highlight seems to be used for buttons @trallard to fix on a11y follow-up work
+  --sd-color-#{$name}-highlight: var(--pst-color-#{$name}-highlight);
+}
+
+// Now we override the --sd-color-* variables.
+@each $mode in (light, dark) {
+  html[data-theme="#{$mode}"] {
+    // check if this color is defined differently for light/dark
+    @each $name in $sd-semantic-color-names {
+      $definition: map-get($all-colors, $name);
+      @if type-of($definition) == map {
+        @each $key, $value in $definition {
+          @if str-index($key, $mode) != null {
+            // since now we define the bg colours in the semantic colours and not
+            // by changing opacity, we need to check if the key contains bg and the
+            // correct mode (light/dark)
+            @if str-index($key, "bg") != null {
+              --sd-color-#{$name}-bg: #{$value};
+              // create local variable
+              $bg-var: --sd-color-#{$name}-bg;
+              $value: check-color($value);
+              --sd-color-#{$name}-bg-text: #{a11y-combination($value)};
+            } @else {
+              $value: check-color($value);
+              @include create-sd-colors($value, $name);
+            }
+          }
+        }
+      } @else {
+        $value: map-get($all-colors, $name);
+        @include create-sd-colors($value, $name);
+      }
+    }
+  }
+}
+
+// Make sure the color border variables are set using our variables
+@each $mode in (light, dark) {
+  html[data-theme="#{$mode}"] {
+    --sd-color-card-border: var(--pst-color-border);
+  }
+}
+
+/*******************************************************************************
+  * shadows
+  */
+html[data-theme="light"] {
+  .sd-shadow-xs,
+  .sd-shadow-sm,
+  .sd-shadow-md,
+  .sd-shadow-lg {
+    @include box-shadow();
+  }
+}
+
+/*******************************************************************************
+  * cards
+  */
+
+.bd-content .sd-card {
+  border: 1px solid var(--pst-color-border);
+
+  // TODO - --pst-color-panel-background is not defined... where is this coming from?
+  .sd-card-header {
+    background-color: var(--pst-color-panel-background);
+    border-bottom: 1px solid var(--pst-color-border);
+  }
+  .sd-card-footer {
+    background-color: var(--pst-color-panel-background);
+    border-top: 1px solid var(--pst-color-border);
+  }
+
+  .sd-card-body {
+    background-color: var(--pst-color-panel-background);
+  }
+}
+/*******************************************************************************
+  * tabs
+  */
+
+.bd-content .sd-tab-set {
+  > input {
+    // Active tab label
+    &:checked + label {
+      border-color: transparent transparent var(--pst-color-primary); // top LR bottom
+      color: var(--pst-color-primary);
+    }
+
+    // Hover label
+    &:not(:checked) + label:hover {
+      border-color: var(--pst-color-secondary);
+      color: var(--pst-color-secondary);
+    }
+  }
+
+  // Tab label
+  > label {
+    color: var(--pst-color-text-muted);
+    border-top: 0.125rem solid transparent; // so hover isn't just color change
+    padding-top: 0.5em; // same as bottom padding, so hover overline looks OK
+    // Hovered label
+    html &:hover {
+      color: var(--pst-color-secondary);
+      border-color: var(--pst-color-secondary);
+    }
+  }
+}
+
+/*******************************************************************************
+* Dropdowns
+*/
+
+details.sd-dropdown {
+  // Remove all borders to over-ride SD behavior, and we'll add our own later
+  border: 0px !important;
+  summary.sd-card-header {
+    border: 0 !important;
+    & + div.sd-summary-content {
+      border: 0;
+    }
+  }
+  // Drop shadow should behave same as admonitions
+  @include box-shadow();
+
+  // Header is where the "clickable" box goes
+  summary.sd-card-header {
+    display: flex;
+    align-items: center;
+    position: relative; // So background color works
+    font-weight: 600;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+
+    // Set a variable that we can re-use for colors later
+    // We must set this in the current and content sibling container
+    // so that it is defined in both places
+    --pst-sd-dropdown-color: var(--pst-gray-500);
+    --pst-sd-dropdown-bg-color: var(--pst-color-surface);
+    & + div.sd-summary-content {
+      --pst-sd-dropdown-color: var(--sd-color-card-border);
+    }
+    @each $name in $sd-semantic-color-names {
+      &.sd-bg-#{$name} {
+        --pst-sd-dropdown-color: var(--sd-color-#{$name});
+        --pst-sd-dropdown-bg-color: var(--sd-color-#{$name}-bg);
+        // Otherwise it won't be defined in the sibling element
+        & + div.sd-summary-content {
+          --pst-sd-dropdown-color: var(--sd-color-#{$name});
+          --pst-sd-dropdown-bg-color: var(--sd-color-#{$name}-bg);
+        }
+      }
+      &.sd-bg-text-#{$name} {
+        // Use the WCAG conformant text color
+        color: var(--sd-color-#{$name}-bg-text) !important;
+      }
+    }
+
+    // Background color and border are grey by default
+    background-color: unset !important;
+    @include background-from-color-variable(--pst-sd-dropdown-bg-color);
+
+    // Add a left border with the same structure as our admonitions
+    border-left: 0.2rem solid var(--pst-sd-dropdown-color) !important;
+    & + div.sd-summary-content {
+      border-left: 0.2rem solid var(--pst-sd-dropdown-color) !important;
+      border-bottom-left-radius: calc(0.25rem - 1px);
+      background-color: var(--pst-color-on-background);
+    }
+    span.sd-summary-icon {
+      display: inline-flex;
+      align-items: center;
+      color: var(--pst-sd-dropdown-color) !important;
+      svg {
+        opacity: 1;
+      }
+    }
+
+    // Positioning of the caret
+    .sd-summary-up,
+    .sd-summary-down {
+      top: 0.7rem;
+    }
+  }
+}

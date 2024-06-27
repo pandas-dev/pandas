@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: PyQt5-Qt5
+Version: 5.15.14
+Summary: The subset of a Qt installation needed by PyQt5.
+Home-page: https://www.riverbankcomputing.com/software/pyqt/
+Author: Riverbank Computing Limited
+Author-email: info@riverbankcomputing.com
+License: LGPL v3
+Platform: Linux
+Platform: macOS
+Platform: Windows
+
+This package contains the subset of a Qt installation that is required by
+PyQt5.  It would normally be installed automatically by pip when
+you install PyQt5.
+
+This package is licensed under the terms of the LGPL v3.

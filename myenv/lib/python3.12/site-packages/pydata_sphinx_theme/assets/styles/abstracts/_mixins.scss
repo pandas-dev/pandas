@@ -1,0 +1,22 @@
+/*********************************************
+* SASS Mixins
+*********************************************/
+
+/**
+ * A consistent box shadow style we apply across elements.
+ */
+@mixin box-shadow() {
+  box-shadow: 0 0.2rem 0.5rem var(--pst-color-shadow),
+    0 0 0.0625rem var(--pst-color-shadow) !important;
+}
+
+/**
+   * Set background of some cell outputs to white-ish to make sure colors work
+   * This is because many libraries make output that only looks good on white
+   */
+@mixin cell-output-background {
+  color: var(--pst-color-on-background);
+  background-color: var(--pst-color-text-base);
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+}

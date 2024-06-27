@@ -1,0 +1,24 @@
+// Override bootstrap variables
+$spacer: 1rem;
+
+$container-max-widths: (
+  sm: 540px,
+  md: 720px,
+  lg: 960px,
+  xl: 1400px,
+);
+
+$grid-breakpoints: (
+  xs: 0,
+  sm: 540px,
+  md: 720px,
+  lg: 960px,
+  xl: 1200px,
+);
+
+$dropdown-link-hover-bg: var(--pst-color-surface);
+// --pst-color-surface can also be assigned to the dark variant because it is
+// scoped to different values depending on light/dark theme
+$dropdown-dark-link-hover-bg: var(--pst-color-surface);
+$dropdown-link-active-bg: var(--pst-color-surface);
+$dropdown-dark-link-active-bg: var(--pst-color-surface);

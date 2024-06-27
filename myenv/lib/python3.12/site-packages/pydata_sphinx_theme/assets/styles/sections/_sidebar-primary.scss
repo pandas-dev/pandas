@@ -1,0 +1,235 @@
+/**
+ * The primary sidebar on the left.
+ * e.g., between-pages navigation.
+ */
+
+.bd-sidebar-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: calc(100vh - var(--pst-header-height));
+  position: sticky;
+  top: var(--pst-header-height);
+  @include make-col(3);
+
+  // Borders padding and whitespace
+  padding: 2rem 1rem 1rem 1rem;
+  border-right: 1px solid var(--pst-color-border);
+  background-color: var(--pst-color-background);
+  overflow-y: auto;
+
+  font-size: var(--pst-sidebar-font-size-mobile);
+  @include media-breakpoint-up($breakpoint-sidebar-primary) {
+    font-size: var(--pst-sidebar-font-size);
+  }
+
+  // override bootstrap when navlink are displayed in the sidebar
+  .nav-link {
+    font-size: var(--pst-sidebar-font-size-mobile);
+  }
+
+  &.no-sidebar {
+    border-right: 0;
+  }
+
+  &.hide-on-wide {
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      display: none;
+    }
+  }
+
+  // Headers shouldn't be colored in the sidebars and some extensions add headers
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--pst-color-text-base);
+  }
+
+  .sidebar-primary-items__start,
+  .sidebar-primary-items__end {
+    .sidebar-primary-item {
+      padding: 0.5rem 0;
+    }
+  }
+
+  // Hide the sidebar header items on widescreen since they are visible in the header
+  .sidebar-header-items {
+    display: flex;
+    flex-direction: column;
+
+    .sidebar-header-items__title {
+      font-weight: var(--pst-sidebar-header-font-weight);
+      font-size: var(--pst-sidebar-header-font-size);
+      color: var(--pst-color-text-base);
+      margin-bottom: 0.5rem;
+    }
+
+    // The dropdown toggle for extra links just shows them all instead.
+    .nav-item.dropdown {
+      // On mobile, the dropdown behaves like any other link, no hiding
+      button {
+        display: none;
+      }
+
+      .dropdown-menu {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        margin: 0;
+        border: none;
+        background-color: inherit;
+        font-size: inherit;
+      }
+    }
+
+    // Center header items get displayed vertically, end items are displayed horizontally
+    .sidebar-header-items__center {
+      display: flex;
+      flex-direction: column;
+    }
+
+    // Positioning end items
+    .sidebar-header-items__end {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      display: none;
+    }
+  }
+
+  .sidebar-primary-items__start {
+    // Add a border on mobile to separate it from the header sidebar area
+    border-top: 1px solid var(--pst-color-border);
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      border-top: none;
+    }
+  }
+
+  .sidebar-primary-items__end {
+    margin-top: auto;
+    margin-bottom: 1em;
+  }
+  .list-caption {
+    list-style: none;
+    padding-left: 0px;
+  }
+  li {
+    position: relative;
+    // If it has children, add a bit more padding to wrap the content to avoid
+    // overlapping with the <label>
+    &.has-children {
+      > .reference {
+        padding-right: 30px;
+      }
+    }
+  }
+  // Navigation item chevrons
+  label.toctree-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 30px;
+    width: 30px;
+
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover {
+      background: var(--pst-color-surface);
+    }
+
+    i {
+      display: inline-block;
+      font-size: 0.75rem;
+      text-align: center;
+      &:hover {
+        color: var(--pst-color-primary);
+      }
+    }
+  }
+  .label-parts {
+    width: 100%;
+    height: 100%;
+    &:hover {
+      background: none;
+    }
+    i {
+      width: 30px;
+      position: absolute;
+      top: 0.3em; // aligning chevron with text
+      right: 0em; // aligning chevron to the right
+    }
+  }
+}
+
+/* Between-page links and captions */
+nav.bd-links {
+  margin-right: -1rem;
+
+  @include media-breakpoint-up($breakpoint-sidebar-primary) {
+    display: block;
+  }
+
+  ul {
+    list-style: none;
+
+    // Reduce padding of nested `ul` items a bit
+    ul {
+      padding: 0 0 0 1rem;
+    }
+  }
+
+  li > a {
+    display: block;
+    padding: 0.25rem 0.65rem;
+    @include link-sidebar;
+    box-shadow: none;
+
+    &.reference.external {
+      &:after {
+        font: var(--fa-font-solid);
+        content: var(--pst-icon-external-link);
+        font-size: 0.75em;
+        margin-left: 0.3em;
+      }
+    }
+  }
+
+  .current {
+    > a {
+      @include link-sidebar-current;
+      background-color: transparent;
+    }
+  }
+
+  // Title
+  p.bd-links__title {
+    font-size: var(--pst-sidebar-header-font-size);
+    font-weight: var(--pst-sidebar-header-font-weight);
+    margin-bottom: 0.5rem;
+  }
+
+  // Toctree captions
+  p.caption {
+    font-weight: var(--pst-sidebar-header-font-weight);
+    position: relative;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--pst-color-text-base);
+    &:first-child {
+      margin-top: 0;
+    }
+
+    font-size: var(--pst-sidebar-font-size-mobile);
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      font-size: var(--pst-sidebar-font-size);
+    }
+  }
+}

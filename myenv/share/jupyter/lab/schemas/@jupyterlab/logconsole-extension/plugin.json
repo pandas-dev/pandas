@@ -1,0 +1,46 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:list",
+  "jupyter.lab.setting-icon-label": "Log Console",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 9.9
+          },
+          {
+            "command": "logconsole:open",
+            "rank": 9.95
+          },
+          {
+            "type": "separator",
+            "rank": 9.99
+          }
+        ]
+      }
+    ],
+    "context": [
+      { "command": "logconsole:open", "selector": ".jp-Notebook", "rank": 60 }
+    ]
+  },
+  "title": "Log Console",
+  "description": "Log Console settings.",
+  "properties": {
+    "maxLogEntries": {
+      "type": "number",
+      "title": "Log entry count limit",
+      "description": "Maximum number of log entries to store in memory",
+      "default": 1000
+    },
+    "flash": {
+      "type": "boolean",
+      "title": "Status Bar Item flash",
+      "description": "Whether to flash on new log message or not",
+      "default": true
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

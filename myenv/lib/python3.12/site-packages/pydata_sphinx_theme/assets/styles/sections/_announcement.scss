@@ -1,0 +1,53 @@
+.bd-header-version-warning,
+.bd-header-announcement {
+  min-height: 3rem;
+  width: 100%;
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.5rem 12.5%; // Horizontal padding so the width is 75%
+  // One breakpoint less than $breakpoint-sidebar-primary. See variables/_layout.scss for more info.
+  @include media-breakpoint-down(lg) {
+    // Announcements can take a bit more width on mobile
+    padding: 0.5rem 2%;
+  }
+
+  p {
+    font-weight: bold;
+    margin: 0;
+  }
+
+  &:after {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    content: "";
+    z-index: -1; // So it doesn't hover over the content
+  }
+
+  &:empty {
+    display: none;
+  }
+
+  // Ensure there is enough contrast against the background
+  a {
+    color: var(--pst-color-inline-code-links);
+  }
+}
+
+// Bg color is now defined in the theme color palette - using our secondary color
+.bd-header-announcement {
+  &:after {
+    background-color: var(--pst-color-secondary-bg);
+  }
+}
+
+.bd-header-version-warning {
+  &:after {
+    background-color: var(--pst-color-danger-bg);
+  }
+}

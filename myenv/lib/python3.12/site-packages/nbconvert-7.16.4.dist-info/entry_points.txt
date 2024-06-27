@@ -1,0 +1,19 @@
+[console_scripts]
+jupyter-dejavu = nbconvert.nbconvertapp:dejavu_main
+jupyter-nbconvert = nbconvert.nbconvertapp:main
+
+[nbconvert.exporters]
+asciidoc = nbconvert.exporters:ASCIIDocExporter
+custom = nbconvert.exporters:TemplateExporter
+html = nbconvert.exporters:HTMLExporter
+latex = nbconvert.exporters:LatexExporter
+markdown = nbconvert.exporters:MarkdownExporter
+notebook = nbconvert.exporters:NotebookExporter
+pdf = nbconvert.exporters:PDFExporter
+python = nbconvert.exporters:PythonExporter
+qtpdf = nbconvert.exporters:QtPDFExporter
+qtpng = nbconvert.exporters:QtPNGExporter
+rst = nbconvert.exporters:RSTExporter
+script = nbconvert.exporters:ScriptExporter
+slides = nbconvert.exporters:SlidesExporter
+webpdf = nbconvert.exporters:WebPDFExporter

@@ -1,0 +1,14 @@
+{
+  "title": "File Editor Completer",
+  "description": "File editor completer settings.",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "completer:invoke-file",
+      "keys": ["Tab"],
+      "selector": ".jp-FileEditor .jp-mod-completer-enabled"
+    }
+  ],
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

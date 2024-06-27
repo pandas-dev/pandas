@@ -1,0 +1,5 @@
+{%- macro cell_id_anchor(cell) -%}
+    {% if cell.id | length > 0 -%}
+        id="{{ ('cell-id=' ~ cell.id) | escape_html -}}"
+    {%- endif %}
+{%- endmacro %}

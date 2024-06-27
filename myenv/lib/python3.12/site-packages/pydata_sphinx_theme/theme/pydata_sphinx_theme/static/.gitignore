@@ -1,0 +1,16 @@
+# theme generated webpack outputs
+scripts/pydata-sphinx-theme.js
+scripts/pydata-sphinx-theme.js.map
+styles/pydata-sphinx-theme.css
+styles/pydata-sphinx-theme.css.map
+
+# bootstrap generated webpack outputs
+scripts/bootstrap.js
+scripts/bootstrap.js.LICENSE.txt
+scripts/bootstrap.js.map
+styles/bootstrap.css
+styles/bootstrap.css.map
+
+# webpack files
+webpack-macros.html
+vendor/*

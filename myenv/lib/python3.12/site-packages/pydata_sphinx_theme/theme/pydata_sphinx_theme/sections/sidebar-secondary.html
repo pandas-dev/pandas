@@ -1,0 +1,7 @@
+{% if theme_secondary_sidebar_items -%}
+<div class="sidebar-secondary-items sidebar-secondary__inner">
+{% for toc_item in theme_secondary_sidebar_items %}
+  <div class="sidebar-secondary-item">{% include toc_item %}</div>
+{% endfor %}
+</div>
+{%- endif %}

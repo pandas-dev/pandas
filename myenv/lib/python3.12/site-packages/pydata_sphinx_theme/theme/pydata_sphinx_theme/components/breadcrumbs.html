@@ -1,0 +1,31 @@
+{%- block breadcrumbs %}
+{#
+  If we have more than 3 parents (excluding the home page) then we remove
+  The ones in the middle and add an ellipsis.
+#}
+{% if parents|length>2 %}
+{% set parents=[parents[0], {"title": '<i class="fa-solid fa-ellipsis"></i>'}, parents[-1]] %}
+{% endif %}
+
+{#- Hide breadcrumbs on the home page #}
+{% if title and pagename != root_doc %}
+<nav aria-label="{{ _('Breadcrumb') }}">
+  <ul class="bd-breadcrumbs">
+    {# Home icon #}
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="{{ pathto(root_doc) }}" class="nav-link" aria-label="{{ _('Home') }}">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    {%- for doc in parents %}
+    {% if doc.link %}
+    <li class="breadcrumb-item"><a href="{{ doc.link|e }}" class="nav-link">{{ doc.title }}</a></li>
+    {% else %}
+    <li class="breadcrumb-item">{{ doc.title }}</li>
+    {% endif %}
+    {%- endfor %}
+    <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+  </ul>
+</nav>
+{% endif %}
+{%- endblock %}

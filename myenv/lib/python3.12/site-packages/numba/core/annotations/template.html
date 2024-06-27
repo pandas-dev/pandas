@@ -1,0 +1,144 @@
+<html>
+
+<head>
+
+<style>
+
+.annotation_table {
+    color: #000000;
+    font-family: monospace;
+    margin: 5px;
+    width: 100%;
+}
+
+/* override JupyterLab style */
+.annotation_table td {
+    text-align: left;
+    background-color: transparent; 
+    padding: 1px;
+}
+
+.annotation_table code
+{
+    background-color: transparent; 
+    white-space: normal;
+}
+
+/* End override JupyterLab style */
+
+tr:hover {
+    background-color: rgba(92, 200, 249, 0.25);
+}
+
+td.object_tag summary ,
+td.lifted_tag summary{
+    font-weight: bold;
+    display: list-item;
+}
+
+span.lifted_tag {
+    color: #00cc33;
+}
+
+span.object_tag {
+    color: #cc3300;
+}
+
+
+td.lifted_tag {
+    background-color: #cdf7d8;
+}
+
+td.object_tag {
+    background-color: #ffd3d3;
+}
+
+code.ir_code {
+    color: grey;
+    font-style: italic;
+}
+
+.metadata {
+    border-bottom: medium solid black;
+    display: inline-block;
+    padding: 5px;
+    width: 100%;
+}
+
+.annotations {
+padding: 5px;
+}
+
+.hidden {
+display: none;
+}
+
+.buttons {
+padding: 10px;
+cursor: pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+    {% for func_key in func_data.keys() %}
+
+        {% set loop1 = loop %}
+
+        <div class="metadata">
+        Function name: {{func_data[func_key]['funcname']}}<br />
+        in file: {{func_data[func_key]['filename']}}<br />
+        with signature: {{func_key[1]|e}}
+        </div>
+
+        <div class="annotations">
+
+        <table class="annotation_table tex2jax_ignore">
+            {%- for num, line in func_data[func_key]['python_lines'] -%}
+                {%- if func_data[func_key]['ir_lines'][num] %}
+                    <tr><td class="{{func_data[func_key]['python_tags'][num]}}">
+                        <details>
+                            <summary>
+                                <code>
+                                {{num}}:
+                                {{func_data[func_key]['python_indent'][num]}}{{line|e}}
+                                </code>
+                            </summary>
+                            <table class="annotation_table">
+                                <tbody>
+                                    {%- for ir_line, ir_line_type in func_data[func_key]['ir_lines'][num] %}
+                                        <tr class="ir_code func{{loop1.index0}}_ir">
+                                            <td><code>&nbsp;
+                                            {{- func_data[func_key]['python_indent'][num]}}
+                                            {{func_data[func_key]['ir_indent'][num][loop.index0]}}{{ir_line|e -}}
+                                            <span class="object_tag">{{ir_line_type}}</span>
+                                            </code>
+                                            </td>
+                                        </tr>
+                                    {%- endfor -%}
+                                </tbody>
+                            </table>
+                            </details>
+                    </td></tr>
+                {% else -%}
+                    <tr><td style=" padding-left: 22px;" class="{{func_data[func_key]['python_tags'][num]}}">
+                        <code>
+                            {{num}}:
+                            {{func_data[func_key]['python_indent'][num]}}{{line|e}}
+                        </code>
+                    </td></tr>
+                {%- endif -%}
+            {%- endfor -%}
+        </table>
+        </div>
+
+        <br /><br /><br />
+
+    {% endfor %}
+
+</body>
+
+</html>

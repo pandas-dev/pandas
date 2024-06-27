@@ -1,0 +1,44 @@
+{
+  "title": "Code Completion",
+  "description": "Code Completion settings.",
+  "jupyter.lab.setting-icon": "completer:widget",
+  "jupyter.lab.setting-icon-label": "Code Completer",
+  "jupyter.lab.transform": true,
+  "properties": {
+    "availableProviders": {
+      "title": "Completion providers rank setting.",
+      "description": "Providers with higher rank will be shown before the ones with lower rank, providers with negative rank are disabled.",
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "default": {
+        "CompletionProvider:context": 500,
+        "CompletionProvider:kernel": 550
+      }
+    },
+    "providerTimeout": {
+      "title": "Default timeout for a provider.",
+      "description": "If a provider can not return the response for a completer request before timeout, the result of this provider will be ignored. Value is in millisecond",
+      "type": "number",
+      "default": 1000
+    },
+    "showDocumentationPanel": {
+      "title": "Show the documentation panel.",
+      "description": "Documentation panel setting.",
+      "type": "boolean",
+      "default": false
+    },
+    "autoCompletion": {
+      "title": "Enable autocompletion.",
+      "description": "Autocompletion setting.",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

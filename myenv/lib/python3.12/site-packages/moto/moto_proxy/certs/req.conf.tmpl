@@ -1,0 +1,13 @@
+[req]
+prompt=no
+default_md = sha256
+distinguished_name = dn
+req_extensions = req_ext
+[dn]
+commonName=amazonaws.com
+[req_ext]
+subjectAltName=@alt_names
+[alt_names]
+DNS.1=amazonaws.com
+DNS.2={{full_name}}
+DNS.3={{wildcard_name}}

@@ -1,0 +1,49 @@
+{
+    "commit_hash": "22b920c6d0d54112ccbc020eddba9ea7a2d204f3", 
+    "date": 1378902176000, 
+    "params": {
+        "arch": "x86_64", 
+        "cpu": "Intel(R) Core(TM) i5-2520M CPU @ 2.50GHz (4 cores)", 
+        "machine": "cheetah", 
+        "numpy": "1.8", 
+        "os": "Linux (Fedora 20)", 
+        "python": "2.7", 
+        "ram": "8.2G"
+    }, 
+    "python": "2.7", 
+    "requirements": {
+        "numpy": "1.8"
+    }, 
+    "results": {
+    	"time_AAA_failure": null,
+    	"time_AAA_skip": NaN,
+        "time_coordinates.time_latitude": 0.0004540278911590576, 
+        "time_quantity.time_quantity_array_conversion": 0.0017511451244354248, 
+        "time_quantity.time_quantity_init_array": 0.0009337139129638672, 
+        "time_quantity.time_quantity_init_scalar": 8.364510536193848e-05, 
+        "time_quantity.time_quantity_scalar_conversion": 0.00028171396255493165, 
+        "time_quantity.time_quantity_ufunc_sin": 0.001310124158859253, 
+        "time_units.mem_unit": 344, 
+        "time_units.time_simple_unit_parse": 0.00012511448860168457, 
+        "time_units.time_unit_compose": 0.0016420300006866455, 
+        "time_units.time_unit_parse": 0.00037211203575134277, 
+        "time_units.time_unit_to": 6.909289360046387e-05, 
+        "time_units.time_very_simple_unit_parse": 1.186551809310913e-05,
+	"time_other.time_parameterized": {
+	    "params": [["1", "2", "3"]],
+	    "result": [1, 2, 3]
+	},
+	"time_ci_small": {"result": 1, "stats": [{"ci_99": [0.9, 1.1], "q_25": 1, "q_75": 1}]},
+	"time_ci_big": {"result": 1, "stats": [{"ci_99": [0.5, 2.5], "q_25": 0.5, "q_75": 2.5}]},
+	"time_with_version_match": 1,
+	"time_with_version_mismatch_bench": 1,
+	"time_with_version_mismatch_other": 1,
+	"time_secondary.track_value": 42
+    },
+    "benchmark_version": {
+    	"time_with_version_match": "1",
+    	"time_with_version_mismatch_bench": "1",
+    	"time_with_version_mismatch_other": "1"
+    },
+    "version": 1
+}

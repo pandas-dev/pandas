@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) Jupyter Development Team.
+Distributed under the terms of the Modified BSD License.
+-->
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>{% block title %}{{page_title | e}}{% endblock %}</title>
+
+  {% block favicon %}<link rel="shortcut icon" type="image/x-icon" href="/static/favicons/favicon.ico">{% endblock %}
+
+</head>
+
+<body>
+
+{% block stylesheet %}
+<style type="text/css">
+/* disable initial hide */
+div#header, div#site {
+    display: block;
+}
+</style>
+{% endblock %}
+{% block site %}
+
+<div class="error">
+    {% block h1_error %}
+    <h1>{{status_code | e}} : {{status_message | e}}</h1>
+    {% endblock h1_error %}
+    {% block error_detail %}
+    {% if message %}
+    <p>The error was:</p>
+    <div class="traceback-wrapper">
+    <pre class="traceback">{{message | e}}</pre>
+    </div>
+    {% endif %}
+    {% endblock %}
+</header>
+
+{% endblock %}
+
+{% block script %}
+<script type='text/javascript'>
+window.onload = function () {
+  var tb = document.getElementsByClassName('traceback')[0];
+  tb.scrollTop = tb.scrollHeight;
+  {% if message %}
+  console.error("{{message | e}}")
+  {% endif %}
+};
+</script>
+{% endblock script %}
+
+</body>
+
+</html>

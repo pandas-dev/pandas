@@ -1,0 +1,5 @@
+// create a specific css file to build bootstrap css
+// the objective is to split css coming from bootstrap from the one coming from
+// the theme itself
+@import "variables/bootstrap";
+@import "~bootstrap/scss/bootstrap";
