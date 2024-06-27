@@ -265,9 +265,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             raise AttributeError(self._validation_msg)
 
     @classmethod
-    def from_spmatrix(
-        cls, data, index=None, columns=None, fill_value=None
-    ) -> DataFrame:
+    def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
 
@@ -278,22 +276,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         index, columns : Index, optional
             Row and column labels to use for the resulting DataFrame.
             Defaults to a RangeIndex.
-        fill_value : scalar, optional
-            The scalar value not stored in the columns. By default, this
-            depends on the dtype of ``data``.
-
-            =========== ==========
-            dtype       na_value
-            =========== ==========
-            float       ``np.nan``
-            complex     ``np.nan``
-            int         ``0``
-            bool        ``False``
-            datetime64  ``pd.NaT``
-            timedelta64 ``pd.NaT``
-            =========== ==========
-
-            The default value may be overridden by specifying a ``fill_value``.
 
         Returns
         -------
@@ -309,12 +291,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3, dtype=float)
-        >>> pd.DataFrame.sparse.from_spmatrix(mat, fill_value=0.0)
+        >>> mat = scipy.sparse.eye(3, dtype=int)
+        >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
-        0  1.0  0.0  0.0
-        1  0.0  1.0  0.0
-        2  0.0  0.0  1.0
+        0    1    0    0
+        1    0    1    0
+        2    0    0    1
         """
         from pandas._libs.sparse import IntIndex
 
@@ -331,7 +313,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indices = data.indices
         indptr = data.indptr
         array_data = data.data
-        dtype = SparseDtype(array_data.dtype, fill_value)
+        dtype = SparseDtype(array_data.dtype)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
@@ -411,8 +393,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         cols, rows, data = [], [], []
         for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
-            if sp_arr.fill_value != 0:
-                raise ValueError("fill value must be 0 when converting to COO matrix")
 
             row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
