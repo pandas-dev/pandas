@@ -10,11 +10,11 @@ from datetime import (
 )
 from decimal import Decimal
 import locale
+import zoneinfo
 
 from dateutil.parser import parse
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import (
@@ -432,9 +432,11 @@ class TestTimeConversionFormats:
                 ["2010-01-01 12:00:00 Z", "2010-01-01 12:00:00 Z"],
                 [
                     Timestamp(
-                        "2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)
-                    ),  # pytz coerces to UTC
-                    Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(0)),
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=0))
+                    ),
+                    Timestamp(
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=0))
+                    ),
                 ],
             ],
         ],
@@ -1169,6 +1171,7 @@ class TestToDatetime:
 
     def test_to_datetime_tz_pytz(self, cache):
         # see gh-8260
+        pytz = pytest.importorskip("pytz")
         us_eastern = pytz.timezone("US/Eastern")
         arr = np.array(
             [
@@ -1699,7 +1702,9 @@ class TestToDatetime:
             ["2020-10-26 00:00:00+06:00", Timestamp("2018-01-01", tz="US/Pacific")],
             [
                 "2020-10-26 00:00:00+06:00",
-                datetime(2020, 1, 1, 18, tzinfo=pytz.timezone("Australia/Melbourne")),
+                datetime(2020, 1, 1, 18).astimezone(
+                    zoneinfo.ZoneInfo("Australia/Melbourne")
+                ),
             ],
         ],
     )
@@ -2351,7 +2356,7 @@ class TestToDatetimeMisc:
     )
     def test_to_datetime_iso8601_with_timezone_valid(self, input, format):
         # https://github.com/pandas-dev/pandas/issues/12649
-        expected = Timestamp(2020, 1, 1, tzinfo=pytz.UTC)
+        expected = Timestamp(2020, 1, 1, tzinfo=timezone.utc)
         result = to_datetime(input, format=format)
         assert result == expected
 
@@ -2778,7 +2783,7 @@ class TestToDatetimeInferFormat:
         # GH 41047
         ser = Series([ts + zero_tz])
         result = to_datetime(ser)
-        tz = pytz.utc if zero_tz == "Z" else None
+        tz = timezone.utc if zero_tz == "Z" else None
         expected = Series([Timestamp(ts, tz=tz)])
         tm.assert_series_equal(result, expected)
 
@@ -3182,7 +3187,7 @@ class TestOrigin:
     )
     def test_epoch(self, units, epochs):
         epoch_1960 = Timestamp(1960, 1, 1)
-        units_from_epochs = list(range(5))
+        units_from_epochs = np.arange(5, dtype=np.int64)
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
         )
@@ -3213,7 +3218,7 @@ class TestOrigin:
     def test_invalid_origins_tzinfo(self):
         # GH16842
         with pytest.raises(ValueError, match="must be tz-naive"):
-            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
+            to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=timezone.utc))
 
     def test_incorrect_value_exception(self):
         # GH47495
