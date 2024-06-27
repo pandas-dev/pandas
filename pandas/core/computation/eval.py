@@ -193,9 +193,9 @@ def eval(
     corresponding bitwise operators.  :class:`~pandas.Series` and
     :class:`~pandas.DataFrame` objects are supported and behave as they would
     with plain ol' Python evaluation.
-    
+
     .. warning::
-    
+
         ``eval`` can run arbitrary code which can make you vulnerable to code
          injection and untrusted data.
 
