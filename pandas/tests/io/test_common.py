@@ -600,7 +600,7 @@ def test_encoding_errors_badtype(encoding_errors, format):
         if encoding_errors != "strict":
             expected_error = "encoding_errors must be a string, got "
             expected_error += f"{type(encoding_errors).__name__}"
-            with pytest.raises(TypeError, match=expected_error):
+            with pytest.raises(ValueError, match=expected_error):
                 reader(content)
         else:
             df = reader(content)
