@@ -67,6 +67,7 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
