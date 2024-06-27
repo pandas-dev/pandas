@@ -138,7 +138,7 @@ def _preparse(
     f=_compose(
         _replace_locals, _replace_booleans, _rewrite_assign, clean_backtick_quoted_toks
     ),
-) -> str:
+) -> (str, str):
     """
     Compose a collection of tokenization functions.
 
@@ -164,7 +164,13 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))
+    tokens = [x for x in tokenize_string(source)]
+    assigner = None
+    for i in tokens:
+        if i[0] == 100:
+            assigner = i[1]
+            break
+    return tokenize.untokenize(f(x) for x in tokens), assigner
 
 
 def _is_type(t):
@@ -336,6 +342,18 @@ def add_ops(op_classes):
     return f
 
 
+def set_original_assigner(node, assigner):
+    if assigner is None:
+        return
+    if node.body is not None and len(node.body) > 0:
+        for el in node.body:
+            if isinstance(el, ast.Assign) and el.targets is not None and len(el.targets) > 0:
+                for tar in el.targets:
+                    if isinstance(tar, ast.Name):
+                        tar.id = assigner
+                        return
+
+
 @disallow(_unsupported_nodes)
 @add_ops(_op_classes)
 class BaseExprVisitor(ast.NodeVisitor):
@@ -400,9 +418,15 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def visit(self, node, **kwargs):
         if isinstance(node, str):
-            clean = self.preparser(node)
+            is_pandas_visitor = isinstance(self, PandasExprVisitor)
+            if is_pandas_visitor:
+                clean, assigner = self.preparser(node)
+            else:
+                clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
+                if is_pandas_visitor:
+                    set_original_assigner(node, assigner)
             except SyntaxError as e:
                 if any(iskeyword(x) for x in clean.split()):
                     e.msg = "Python keyword not valid identifier in numexpr query"
