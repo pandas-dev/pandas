@@ -591,7 +591,7 @@ def test_encoding_errors(encoding_errors, format):
 
 
 @pytest.mark.parametrize("encoding_errors", [0, None, "strict"])
-def test_encoding_errors_badtype(encoding_errors, format):
+def test_encoding_errors_badtype(encoding_errors):
     # GH 59075
     if format == "csv":
         content = StringIO("A,B\n1,2\n3,4\n")
