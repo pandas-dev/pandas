@@ -1,8 +1,8 @@
 # PDEP-17: Backwards compatibility and deprecation policy
 
-- Created: June 2024
+- Created: 27 June 2024
 - Status: Under discussion
-- Discussion:
+- Discussion: [#59125](https://github.com/pandas-dev/pandas/issues/59125)
 - Author: [Abdulaziz Aloqeely](https://github.com/Aloqeely)
 - Revision: 1
 
@@ -71,7 +71,7 @@ Defining a release policy is not part of this PDEP's scope, but, the final minor
 - It is the version where deprecations planned for removal in the next major release get switched from a ``DeprecationWarning`` to a more visible ``FutureWarning``.
 - ``FutureWarning`` deprecations released in it will immediately be removed in the next major release.
 
-And so, this document recommends a minimum of 6 months between the final minor version and the next major release.
+And so, this document recommends a minimum of 6 months between the final minor version and the major release after it.
 
 ### Enforcement of deprecations
 
@@ -81,4 +81,4 @@ When one enforces a deprecation, they should:
 
 ### PDEP-17 History
 
-- June 2024: Initial version.
+- 27 June 2024: Initial version.
