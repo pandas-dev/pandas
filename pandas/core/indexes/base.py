@@ -6810,7 +6810,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc: int | list[int] | np.ndarray) -> Self:
+    def delete(self, loc: int | np.integer | list[int] | npt.NDArray[np.int_]) -> Self:
         """
         Make new Index with passed location(-s) deleted.
 
