@@ -1281,7 +1281,7 @@ class TestLocBaseIndependent:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
-    @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
+    @pytest.mark.parametrize("dtype", [np.complex128, np.float64, np.int64, bool])
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
@@ -1296,13 +1296,13 @@ class TestLocBaseIndependent:
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
-        result = df.loc[itr_idx].values
+        result = np.nan_to_num(df.loc[itr_idx].values)
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for GH#34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(cols, SparseDtype(dtype, fill_value=0))
+        expected = np.full(cols, SparseDtype(dtype))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_loc_getitem_listlike_all_retains_sparse(self):
@@ -1314,18 +1314,16 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
+        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5, dtype=np.int64))
         result = df.loc[range(2)]
         expected = DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
-            dtype=SparseDtype("float64", 0.0),
+            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]],
+            dtype=SparseDtype(np.int64),
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[range(2)].loc[range(1)]
-        expected = DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
-        )
+        expected = DataFrame([[1, 0, 0, 0, 0]], dtype=SparseDtype(np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sparse_series(self):

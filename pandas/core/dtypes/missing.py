@@ -618,6 +618,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     nan
     >>> na_value_for_dtype(np.dtype("float64"))
     nan
+    >>> na_value_for_dtype(np.dtype("complex128"))
+    nan
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
@@ -629,7 +631,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     elif dtype.kind in "mM":
         unit = np.datetime_data(dtype)[0]
         return dtype.type("NaT", unit)
-    elif dtype.kind == "f":
+    elif dtype.kind in "fc":
         return np.nan
     elif dtype.kind in "iu":
         if compat:

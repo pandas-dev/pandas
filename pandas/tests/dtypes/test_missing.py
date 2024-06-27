@@ -697,6 +697,9 @@ def test_array_equivalent_index_with_tuples():
         ("f2", np.nan),
         ("f4", np.nan),
         ("f8", np.nan),
+        # Complex
+        ("c8", np.nan),
+        ("c16", np.nan),
         # Object
         ("O", np.nan),
         # Interval

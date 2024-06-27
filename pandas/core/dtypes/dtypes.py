@@ -1666,7 +1666,7 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    `SparseDtype` is used as the data type for :class:`SparseArray`, enabling
+    ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
     more efficient storage of data that contains a significant number of
     repetitive values typically represented by a fill value. It supports any
     scalar dtype as the underlying data type of the non-fill values.
@@ -1677,19 +1677,20 @@ class SparseDtype(ExtensionDtype):
         The dtype of the underlying array storing the non-fill value values.
     fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
-        depends on `dtype`.
+        depends on ``dtype``.
 
         =========== ==========
         dtype       na_value
         =========== ==========
         float       ``np.nan``
+        complex     ``np.nan``
         int         ``0``
         bool        ``False``
         datetime64  ``pd.NaT``
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The default value may be overridden by specifying a `fill_value`.
+        The default value may be overridden by specifying a ``fill_value``.
 
     Attributes
     ----------
