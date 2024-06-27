@@ -595,15 +595,10 @@ def test_encoding_errors_badtype(encoding_errors):
     # GH 59075
     content = StringIO("A,B\n1,2\n3,4\n")
     reader = partial(pd.read_csv, encoding_errors=encoding_errors)
-    if encoding_errors != "strict":
-        expected_error = "encoding_errors must be a string, got "
-        expected_error += f"{type(encoding_errors).__name__}"
-        with pytest.raises(ValueError, match=expected_error):
-            reader(content)
-    else:
-        df = reader(content)
-        expected = pd.DataFrame({"A": [1, 3], "B": [2, 4]})
-        tm.assert_frame_equal(df, expected)
+    expected_error = "encoding_errors must be a string, got "
+    expected_error += f"{type(encoding_errors).__name__}"
+    with pytest.raises(ValueError, match=expected_error):
+        reader(content)
 
 
 def test_bad_encdoing_errors():
