@@ -969,7 +969,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 else:
                     return obj
 
-    def _get_object_parser(self, json) -> DataFrame | Series:
+    def _get_object_parser(self, json: str) -> DataFrame | Series:
         """
         Parses a json document into a pandas object.
         """
@@ -985,16 +985,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "date_unit": self.date_unit,
             "dtype_backend": self.dtype_backend,
         }
-        obj = None
         if typ == "frame":
-            obj = FrameParser(json, **kwargs).parse()
-
-        if typ == "series" or obj is None:
+            return FrameParser(json, **kwargs).parse()
+        elif typ == "series":
             if not isinstance(dtype, bool):
                 kwargs["dtype"] = dtype
-            obj = SeriesParser(json, **kwargs).parse()
-
-        return obj
+            return SeriesParser(json, **kwargs).parse()
+        else:
+            raise ValueError(f"{typ=} must be 'frame' or 'series'.")
 
     def close(self) -> None:
         """
@@ -1107,7 +1105,6 @@ class Parser:
         self.convert_dates = convert_dates
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
-        self.obj: DataFrame | Series | None = None
         self.dtype_backend = dtype_backend
 
     @final
@@ -1121,26 +1118,22 @@ class Parser:
             raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
     @final
-    def parse(self):
-        self._parse()
+    def parse(self) -> DataFrame | Series:
+        obj = self._parse()
 
-        if self.obj is None:
-            return None
         if self.convert_axes:
-            self._convert_axes()
-        self._try_convert_types()
-        return self.obj
+            obj = self._convert_axes(obj)
+        obj = self._try_convert_types(obj)
+        return obj
 
-    def _parse(self) -> None:
+    def _parse(self) -> DataFrame | Series:
         raise AbstractMethodError(self)
 
     @final
-    def _convert_axes(self) -> None:
+    def _convert_axes(self, obj: DataFrame | Series) -> DataFrame | Series:
         """
         Try to convert axes.
         """
-        obj = self.obj
-        assert obj is not None  # for mypy
         for axis_name in obj._AXIS_ORDERS:
             ax = obj._get_axis(axis_name)
             ser = Series(ax, dtype=ax.dtype, copy=False)
@@ -1153,9 +1146,10 @@ class Parser:
             )
             if result:
                 new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
-                setattr(self.obj, axis_name, new_axis)
+                setattr(obj, axis_name, new_axis)
+        return obj
 
-    def _try_convert_types(self) -> None:
+    def _try_convert_types(self, obj: DataFrame | Series) -> DataFrame | Series:
         raise AbstractMethodError(self)
 
     @final
@@ -1292,42 +1286,31 @@ class Parser:
 class SeriesParser(Parser):
     _default_orient = "index"
     _split_keys = ("name", "index", "data")
-    obj: Series | None
 
-    def _parse(self) -> None:
+    def _parse(self) -> Series:
         data = ujson_loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = Series(**decoded)
+            return Series(**decoded)
         else:
-            self.obj = Series(data)
+            return Series(data)
 
-    def _try_convert_types(self) -> None:
-        if self.obj is None:
-            return
-        obj, result = self._try_convert_data(
-            "data", self.obj, convert_dates=self.convert_dates
-        )
-        if result:
-            self.obj = obj
+    def _try_convert_types(self, obj: Series) -> Series:
+        obj, _ = self._try_convert_data("data", obj, convert_dates=self.convert_dates)
+        return obj
 
 
 class FrameParser(Parser):
     _default_orient = "columns"
     _split_keys = ("columns", "index", "data")
-    obj: DataFrame | None
 
-    def _parse(self) -> None:
+    def _parse(self) -> DataFrame:
         json = self.json
         orient = self.orient
 
-        if orient == "columns":
-            self.obj = DataFrame(
-                ujson_loads(json, precise_float=self.precise_float), dtype=None
-            )
-        elif orient == "split":
+        if orient == "split":
             decoded = {
                 str(k): v
                 for k, v in ujson_loads(json, precise_float=self.precise_float).items()
@@ -1341,33 +1324,33 @@ class FrameParser(Parser):
                 orig_names,
                 is_potential_multi_index(orig_names, None),
             )
-            self.obj = DataFrame(dtype=None, **decoded)
+            return DataFrame(dtype=None, **decoded)
         elif orient == "index":
-            self.obj = DataFrame.from_dict(
+            return DataFrame.from_dict(
                 ujson_loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
         elif orient == "table":
-            self.obj = parse_table_schema(json, precise_float=self.precise_float)
+            return parse_table_schema(json, precise_float=self.precise_float)
         else:
-            self.obj = DataFrame(
+            # includes orient == "columns"
+            return DataFrame(
                 ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
+    @final
     def _process_converter(
         self,
+        obj: DataFrame,
         f: Callable[[Hashable, Series], tuple[Series, bool]],
         filt: Callable[[Hashable], bool] | None = None,
-    ) -> None:
+    ) -> DataFrame:
         """
         Take a conversion function and possibly recreate the frame.
         """
         if filt is None:
             filt = lambda col: True
-
-        obj = self.obj
-        assert obj is not None  # for mypy
 
         needs_new_obj = False
         new_obj = {}
@@ -1383,48 +1366,43 @@ class FrameParser(Parser):
             # possibly handle dup columns
             new_frame = DataFrame(new_obj, index=obj.index)
             new_frame.columns = obj.columns
-            self.obj = new_frame
+            return new_frame
+        return obj
 
-    def _try_convert_types(self) -> None:
-        if self.obj is None:
-            return
+    def _try_convert_types(self, obj: DataFrame) -> DataFrame:
         if self.convert_dates:
-            self._try_convert_dates()
+            # our columns to parse
+            convert_dates_list_bool = self.convert_dates
+            if isinstance(convert_dates_list_bool, bool):
+                convert_dates_list_bool = []
+            convert_dates = set(convert_dates_list_bool)
 
-        self._process_converter(
-            lambda col, c: self._try_convert_data(col, c, convert_dates=False)
+            def is_ok(col) -> bool:
+                """
+                Return if this col is ok to try for a date parse.
+                """
+                if col in convert_dates:
+                    return True
+                if not self.keep_default_dates:
+                    return False
+                if not isinstance(col, str):
+                    return False
+
+                col_lower = col.lower()
+                if (
+                    col_lower.endswith(("_at", "_time"))
+                    or col_lower == "modified"
+                    or col_lower == "date"
+                    or col_lower == "datetime"
+                    or col_lower.startswith("timestamp")
+                ):
+                    return True
+                return False
+
+            obj = self._process_converter(
+                obj, lambda col, c: self._try_convert_to_date(c), filt=is_ok
+            )
+
+        return self._process_converter(
+            obj, lambda col, c: self._try_convert_data(col, c, convert_dates=False)
         )
-
-    def _try_convert_dates(self) -> None:
-        if self.obj is None:
-            return
-
-        # our columns to parse
-        convert_dates_list_bool = self.convert_dates
-        if isinstance(convert_dates_list_bool, bool):
-            convert_dates_list_bool = []
-        convert_dates = set(convert_dates_list_bool)
-
-        def is_ok(col) -> bool:
-            """
-            Return if this col is ok to try for a date parse.
-            """
-            if col in convert_dates:
-                return True
-            if not self.keep_default_dates:
-                return False
-            if not isinstance(col, str):
-                return False
-
-            col_lower = col.lower()
-            if (
-                col_lower.endswith(("_at", "_time"))
-                or col_lower == "modified"
-                or col_lower == "date"
-                or col_lower == "datetime"
-                or col_lower.startswith("timestamp")
-            ):
-                return True
-            return False
-
-        self._process_converter(lambda col, c: self._try_convert_to_date(c), filt=is_ok)
