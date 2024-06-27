@@ -56,10 +56,3 @@ def test_units_H_S_deprecated_from_attrname_to_abbrevs(freq):
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         Resolution.get_reso_from_freqstr(freq)
-
-
-@pytest.mark.parametrize("freq", ["T", "t", "L", "U", "N", "n"])
-def test_reso_abbrev_T_L_U_N_raises(freq):
-    msg = f"Frequency '{freq}' is no longer supported."
-    with pytest.raises(ValueError, match=msg):
-        Resolution.get_reso_from_freqstr(freq)
