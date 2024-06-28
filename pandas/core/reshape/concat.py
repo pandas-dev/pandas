@@ -400,6 +400,7 @@ def concat(
         raise ValueError(
             f"The 'sort' keyword only accepts boolean values; {sort} was passed."
         )
+    sort = bool(sort)
 
     objs, keys, ndims = _clean_keys_and_objs(objs, keys)
 
@@ -519,7 +520,7 @@ def _get_result(
             res = concat_compat(arrs, axis=0)
 
             if ignore_index:
-                new_index = default_index(len(res))
+                new_index: Index = default_index(len(res))
             else:
                 new_index = _get_concat_axis_series(
                     objs,
@@ -656,7 +657,7 @@ def _get_concat_axis_series(
             raise ValueError(f"Indexes have overlapping values: {overlap}")
         return concat_axis
     elif keys is None:
-        names: list[Hashable] = [None] * len(objs)
+        result_names: list[Hashable] = [None] * len(objs)
         num = 0
         has_names = False
         for i, x in enumerate(objs):
@@ -666,17 +667,17 @@ def _get_concat_axis_series(
                     f"object of type '{type(x).__name__}'"
                 )
             if x.name is not None:
-                names[i] = x.name
+                result_names[i] = x.name
                 has_names = True
             else:
-                names[i] = num
+                result_names[i] = num
                 num += 1
         if has_names:
-            return Index(names)
+            return Index(result_names)
         else:
             return default_index(len(objs))
     else:
-        return ensure_index(keys).set_names(names)
+        return ensure_index(keys).set_names(names)  # type: ignore[arg-type]
 
 
 def _get_concat_axis_dataframe(
@@ -689,12 +690,12 @@ def _get_concat_axis_dataframe(
     verify_integrity: bool,
 ) -> Index:
     """Return result concat axis when concatenating DataFrame objects."""
-    indexes = (x.axes[axis] for x in objs)
+    indexes_gen = (x.axes[axis] for x in objs)
 
     if ignore_index:
-        return default_index(sum(len(i) for i in indexes))
+        return default_index(sum(len(i) for i in indexes_gen))
     else:
-        indexes = list(indexes)
+        indexes = list(indexes_gen)
 
     if keys is None:
         if levels is not None:
