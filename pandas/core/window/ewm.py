@@ -377,8 +377,10 @@ class ExponentialMovingWindow(BaseWindow):
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
                 if not self.adjust:
-                    raise NotImplementedError('None of com, span, or alpha can be specified if '
-                                              'times is provided and adjust=False')
+                    raise NotImplementedError(
+                        "None of com, span, or alpha can be specified if "
+                        "times is provided and adjust=False"
+                    )
                 self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
                 self._com = 1.0

@@ -103,7 +103,7 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
 
 
 def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit, adjust):
-    #GH 54328
+    # GH 54328
     tz = tz_aware_fixture
     halflife = "23 days"
     times = (
@@ -155,30 +155,44 @@ def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
 def test_ewma_times_adjust_false_with_disallowed_com():
     # GH 54328
     with pytest.raises(
-            NotImplementedError, match='None of com, span, or alpha can be specified if times is provided and adjust=False'
+        NotImplementedError,
+        match="None of com, span, or alpha can be specified if times is provided and adjust=False",
     ):
         Series(range(1)).ewm(
-            0.1, adjust=False, times=date_range("2000", freq="D", periods=1), halflife='1D'
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            halflife="1D",
         )
 
 
 def test_ewma_times_adjust_false_with_disallowed_alpha():
     # GH 54328
     with pytest.raises(
-            NotImplementedError, match='None of com, span, or alpha can be specified if times is provided and adjust=False'
+        NotImplementedError,
+        match="None of com, span, or alpha can be specified if times is provided and adjust=False",
     ):
         Series(range(1)).ewm(
-            0.1, adjust=False, times=date_range("2000", freq="D", periods=1), alpha=0.5, halflife='1D'
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            alpha=0.5,
+            halflife="1D",
         )
 
 
 def test_ewma_times_adjust_false_with_disallowed_span():
     # GH 54328
     with pytest.raises(
-            NotImplementedError, match='None of com, span, or alpha can be specified if times is provided and adjust=False'
+        NotImplementedError,
+        match="None of com, span, or alpha can be specified if times is provided and adjust=False",
     ):
         Series(range(1)).ewm(
-            0.1, adjust=False, times=date_range("2000", freq="D", periods=1), span=10, halflife='1D'
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            span=10,
+            halflife="1D",
         )
 
 
