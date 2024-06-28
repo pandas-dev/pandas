@@ -428,7 +428,7 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(self, other, raise_on_upcast: bool = False) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -455,7 +455,7 @@ class Block(PandasObject, libinternals.Block):
                 isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
             )
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1
@@ -463,9 +463,9 @@ class Block(PandasObject, libinternals.Block):
             and is_float_dtype(other.dtype)
             and lib.has_only_ints_or_nan(other)
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
 
-        if warn_on_upcast:
+        if raise_on_upcast:
             raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
         if self.values.dtype == new_dtype:
             raise AssertionError(
@@ -1098,7 +1098,7 @@ class Block(PandasObject, libinternals.Block):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
-            nb = self.coerce_to_target_dtype(value, warn_on_upcast=True)
+            nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
@@ -1169,7 +1169,7 @@ class Block(PandasObject, libinternals.Block):
                 if not is_list_like(new):
                     # using just new[indexer] can't save us the need to cast
                     return self.coerce_to_target_dtype(
-                        new, warn_on_upcast=True
+                        new, raise_on_upcast=True
                     ).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
@@ -1630,11 +1630,11 @@ class EABackedBlock(Block):
         except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             else:
@@ -1730,13 +1730,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 else:

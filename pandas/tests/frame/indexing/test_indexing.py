@@ -1886,7 +1886,6 @@ def test_add_new_column_infer_string():
 
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
-    # but checks for warnings instead of errors.
     def _check_setitem_invalid(self, df, invalid, indexer):
         orig_df = df.copy()
 

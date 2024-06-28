@@ -432,7 +432,6 @@ class TestDeprecatedIndexers:
 
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
-    # but checks for warnings instead of errors.
     def _check_setitem_invalid(self, ser, invalid, indexer):
         orig_ser = ser.copy()
 
