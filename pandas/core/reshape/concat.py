@@ -18,11 +18,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_iterator,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_bool
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -519,15 +515,18 @@ def _get_result(
 
             res = concat_compat(arrs, axis=0)
 
-            new_index = _get_concat_axis_series(
-                objs,
-                ignore_index,
-                bm_axis,
-                keys,
-                levels,
-                verify_integrity,
-                names,
-            )
+            if ignore_index:
+                new_index = default_index(len(res))
+            else:
+                new_index = _get_concat_axis_series(
+                    objs,
+                    ignore_index,
+                    bm_axis,
+                    keys,
+                    levels,
+                    verify_integrity,
+                    names,
+                )
 
             mgr = type(sample._mgr).from_array(res, index=new_index)
 
@@ -613,10 +612,8 @@ def new_axes(
             objs,
             axis,
             ignore_index,
-            bm_axis,
             keys,
             names,
-            axis,
             levels,
             verify_integrity,
         )
@@ -645,7 +642,12 @@ def _get_concat_axis_series(
         return default_index(len(objs))
     elif bm_axis == 0:
         indexes = [x.index for x in objs]
-        concat_axis = _make_concat_multiindex(indexes, keys, levels, names)
+        if keys is None:
+            if levels is not None:
+                raise ValueError("levels supported only when keys is not None")
+            concat_axis = _concat_indexes(indexes)
+        else:
+            concat_axis = _make_concat_multiindex(indexes, keys, levels, names)
         if verify_integrity and not concat_axis.is_unique:
             overlap = concat_axis[concat_axis.duplicated()].unique()
             raise ValueError(f"Indexes have overlapping values: {overlap}")
@@ -724,12 +726,14 @@ def _clean_keys_and_objs(
         if keys is None:
             keys = objs.keys()
         objs = [objs[k] for k in keys]
-    elif not is_list_like(objs):
+    elif isinstance(objs, (ABCSeries, ABCDataFrame, str)):
         raise TypeError(
             "first argument must be an iterable of pandas "
             f'objects, you passed an object of type "{type(objs).__name__}"'
         )
-    elif is_iterator(objs):
+    elif isinstance(objs, (list, tuple, np.ndarray)):
+        pass
+    else:
         objs = list(objs)
 
     if len(objs) == 0:

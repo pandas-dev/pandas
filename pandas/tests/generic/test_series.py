@@ -94,12 +94,9 @@ class TestSeries:
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
                 if method == "concat" and name == "filename":
+                    objs = kwargs["objs"]
                     value = "+".join(
-                        [
-                            getattr(obj, name)
-                            for obj in other.objs
-                            if getattr(obj, name, None)
-                        ]
+                        [getattr(obj, name) for obj in objs if getattr(obj, name, None)]
                     )
                     object.__setattr__(self, name, value)
                 else:
