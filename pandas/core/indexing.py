@@ -2130,7 +2130,7 @@ class _iLocIndexer(_LocationIndexer):
                 dtype = self.obj.dtypes.iloc[loc]
                 if dtype not in (np.void, object) and not self.obj.empty:
                     # - Exclude np.void, as that is a special case for expansion.
-                    #   We want to warn for
+                    #   We want to raise for
                     #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'a'] = .3
                     #   but not for
