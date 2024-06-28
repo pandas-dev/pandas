@@ -46,7 +46,6 @@ from pandas._libs import (
     lib,
     properties,
 )
-from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -175,7 +174,6 @@ from pandas.core.internals.construction import (
     treat_as_nested,
 )
 from pandas.core.methods import selectn
-from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
@@ -6546,6 +6544,7 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = ...,
     ) -> DataFrame | None: ...
 
+
 def drop_duplicates(
     self,
     subset: Hashable | Sequence[Hashable] | None = None,
@@ -6640,7 +6639,7 @@ def drop_duplicates(
 
     To remove duplicates based on index, use ``index=True``.
 
-    >>> df = pd.DataFrame({'A': [1, 2, 3]}, index=[0, 1, 1])
+    >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 1])
     >>> df.drop_duplicates(index=True)
         A
     0   1
@@ -6648,8 +6647,8 @@ def drop_duplicates(
 
     To remove duplicates based on index and keep last occurrences, use ``keep='last'`` with ``index=True``.
 
-    >>> df = pd.DataFrame({'A': [1, 2, 3]}, index=[0, 1, 1])
-    >>> df.drop_duplicates(index=True, keep='last')
+    >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 1])
+    >>> df.drop_duplicates(index=True, keep="last")
         A
     0   1
     1   3
@@ -6672,7 +6671,6 @@ def drop_duplicates(
         return None
     else:
         return result
-
 
     def duplicated(
         self,
