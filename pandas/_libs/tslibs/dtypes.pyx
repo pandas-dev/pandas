@@ -1,9 +1,6 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
 from enum import Enum
-import warnings
-
-from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.np_datetime cimport (
@@ -339,7 +336,7 @@ cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
-cdef dict c_DEPR_ABBREVS = {
+cdef dict c_REMOVED_ABBREVS = {
     "H": "h",
     "BH": "bh",
     "CBH": "cbh",
@@ -361,6 +358,8 @@ cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w": "W",
     "MIN": "min",
 }
+
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 
 class FreqGroup(Enum):
@@ -451,19 +450,10 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
-        cdef:
-            str abbrev
         try:
-            if freq in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[freq]
-                warnings.warn(
-                    f"\'{freq}\' is deprecated and will be removed in a future "
-                    f"version. Please use \'{abbrev}\' "
-                    f"instead of \'{freq}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                freq = abbrev
+            if freq in c_REMOVED_ABBREVS:
+
+                raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
             attr_name = _abbrev_to_attrnames[freq]
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
@@ -474,16 +464,8 @@ class Resolution(Enum):
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
-            if split_freq[0] in c_DEPR_ABBREVS:
-                abbrev = c_DEPR_ABBREVS[split_freq[0]]
-                warnings.warn(
-                    f"\'{split_freq[0]}\' is deprecated and will be removed in a "
-                    f"future version. Please use \'{abbrev}\' "
-                    f"instead of \'{split_freq[0]}\'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                split_freq[0] = abbrev
+            if split_freq[0] in c_REMOVED_ABBREVS:
+                raise ValueError(INVALID_FREQ_ERR_MSG.format(split_freq[0]))
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
