@@ -161,7 +161,10 @@ static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
 }
 
 static PyModuleDef_Slot pandas_parser_slots[] = {
-    {Py_mod_exec, pandas_parser_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_parser_exec},
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_parsermodule = {
     PyModuleDef_HEAD_INIT,
