@@ -67,6 +67,7 @@ class TestUpdate:
                 ser.update(other)
         else:
             ser.update(other)
+            tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
         "values, other, expected",
