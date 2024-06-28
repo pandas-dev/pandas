@@ -18,7 +18,6 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_list_like,
-    is_numeric_dtype,
     is_scalar,
 )
 
