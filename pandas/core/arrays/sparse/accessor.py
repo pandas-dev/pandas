@@ -291,12 +291,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3, dtype=float)
+        >>> mat = scipy.sparse.eye(3, dtype=int)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
-        0  1.0    0    0
-        1    0  1.0    0
-        2    0    0  1.0
+        0    1    0    0
+        1    0    1    0
+        2    0    0    1
         """
         from pandas._libs.sparse import IntIndex
 
@@ -313,7 +313,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indices = data.indices
         indptr = data.indptr
         array_data = data.data
-        dtype = SparseDtype(array_data.dtype, 0)
+        dtype = SparseDtype(array_data.dtype)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
@@ -393,8 +393,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         cols, rows, data = [], [], []
         for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
-            if sp_arr.fill_value != 0:
-                raise ValueError("fill value must be 0 when converting to COO matrix")
 
             row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
