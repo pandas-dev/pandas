@@ -16,12 +16,12 @@ Enhancements
 
 .. _whatsnew_300.enhancements.enhancement1:
 
-enhancement1
+Enhancement1
 ^^^^^^^^^^^^
 
 .. _whatsnew_300.enhancements.enhancement2:
 
-enhancement2
+Enhancement2
 ^^^^^^^^^^^^
 
 .. _whatsnew_300.enhancements.other:
@@ -59,7 +59,7 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_300.notable_bug_fixes.groupby_unobs_and_na:
 
-Improved behavior in groupby for ``observed=False``
+Improved behavior in GroupBy for ``observed=False``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A number of bugs have been fixed due to improved handling of unobserved groups (:issue:`55738`). All remarks in this section equally impact :class:`.SeriesGroupBy`.
@@ -117,7 +117,7 @@ These improvements also fixed certain bugs in groupby:
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
-notable_bug_fix2
+Notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
@@ -268,7 +268,7 @@ Copy-on-Write utilizes a lazy copy mechanism that defers copying the data until
 necessary. Use ``.copy`` to trigger an eager copy. The copy keyword has no effect
 starting with 3.0, so it can be safely removed from your code.
 
-Other Deprecations
+Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
 - Deprecated :func:`core.internals.api.make_block`, use public APIs instead (:issue:`56815`)
@@ -314,7 +314,7 @@ Renamed the following offset aliases (:issue:`57986`):
 |:class:`BYearEnd`              |      ``BY``      |     ``BYE``      |
 +-------------------------------+------------------+------------------+
 
-Other Removals
+Other removals
 ^^^^^^^^^^^^^^
 - :class:`.DataFrameGroupBy.idxmin`, :class:`.DataFrameGroupBy.idxmax`, :class:`.SeriesGroupBy.idxmin`, and :class:`.SeriesGroupBy.idxmax` will now raise a ``ValueError`` when used with ``skipna=False`` and an NA value is encountered (:issue:`10694`)
 - :func:`concat` no longer ignores empty objects when determining output dtypes (:issue:`39122`)
@@ -551,7 +551,7 @@ MultiIndex
 - :meth:`MultiIndex.insert` would not insert NA value correctly at unified location of index -1 (:issue:`59003`)
 -
 
-I/O
+IO
 ^^^
 - Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping`` elements. (:issue:`57915`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
@@ -577,7 +577,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` that causes a shift to the right when the frequency multiplier is greater than one. (:issue:`57587`)
 -
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.__len__` and :meth:`.SeriesGroupBy.__len__` would raise when the grouping contained NA values and ``dropna=False`` (:issue:`58644`)
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)

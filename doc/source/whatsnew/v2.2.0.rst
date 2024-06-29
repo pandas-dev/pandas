@@ -17,7 +17,7 @@ Upcoming changes in pandas 3.0
 
 pandas 3.0 will bring two bigger changes to the default behavior of pandas.
 
-Copy-on-Write
+Copy-on-write
 ^^^^^^^^^^^^^
 
 The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
@@ -99,7 +99,7 @@ Enhancements
 
 .. _whatsnew_220.enhancements.adbc_support:
 
-ADBC Driver support in to_sql and read_sql
+ADBC driver support in to_sql and read_sql
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_sql` and :meth:`~DataFrame.to_sql` now work with `Apache Arrow ADBC
@@ -653,7 +653,7 @@ Set the following option to opt into the future behavior:
 
     In [9]: pd.set_option("future.no_silent_downcasting", True)
 
-Other Deprecations
+Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated :attr:`offsets.Day.delta`, :attr:`offsets.Hour.delta`, :attr:`offsets.Minute.delta`, :attr:`offsets.Second.delta`, :attr:`offsets.Milli.delta`, :attr:`offsets.Micro.delta`, :attr:`offsets.Nano.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
@@ -858,7 +858,7 @@ MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.get_indexer` not raising ``ValueError`` when ``method`` provided and index is non-monotonic (:issue:`53452`)
 
-I/O
+IO
 ^^^
 - Bug in :func:`read_csv` where ``engine="python"`` did not respect ``chunksize`` arg when ``skiprows`` was specified (:issue:`56323`)
 - Bug in :func:`read_csv` where ``engine="python"`` was causing a ``TypeError`` when a callable ``skiprows`` and a chunk size was specified (:issue:`55677`)
@@ -886,7 +886,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` discarding string columns (:issue:`56142`)
 - Bug in :meth:`Series.plot` when reusing an ``ax`` object failing to raise when a ``how`` keyword is passed (:issue:`55953`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, and :meth:`.SeriesGroupBy.idxmax` would not retain :class:`.Categorical` dtype when the index was a :class:`.CategoricalIndex` that contained NA values (:issue:`54234`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` when ``observed=False`` and ``f="idxmin"`` or ``f="idxmax"`` would incorrectly raise on unobserved categories (:issue:`54234`)
