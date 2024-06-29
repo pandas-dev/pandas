@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -47,6 +47,9 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -520,7 +523,7 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation: 'any'")
+        raise TypeError("datetime64 type does not support operation 'any'")
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -576,7 +579,7 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation: 'all'")
+        raise TypeError("datetime64 type does not support operation 'all'")
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 

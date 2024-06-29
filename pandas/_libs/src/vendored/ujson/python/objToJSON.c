@@ -410,8 +410,8 @@ static void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
   npyarr->type_num = PyArray_DESCR(obj)->type_num;
 
   if (GET_TC(tc)->transpose) {
-    npyarr->dim = PyArray_DIM(obj, npyarr->ndim);
-    npyarr->stride = PyArray_STRIDE(obj, npyarr->ndim);
+    npyarr->dim = PyArray_DIM(obj, (int)npyarr->ndim);
+    npyarr->stride = PyArray_STRIDE(obj, (int)npyarr->ndim);
     npyarr->stridedim = npyarr->ndim;
     npyarr->index[npyarr->ndim] = 0;
     npyarr->inc = -1;
@@ -452,8 +452,8 @@ static void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     return;
   }
   const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
-  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
+  npyarr->dim = PyArray_DIM(arrayobj, (int)npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, (int)npyarr->stridedim);
   npyarr->dataptr += npyarr->stride;
 
   NpyArr_freeItemValue(obj, tc);
@@ -524,8 +524,8 @@ static int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
   }
   const PyArrayObject *arrayobj = (const PyArrayObject *)npyarr->array;
 
-  npyarr->dim = PyArray_DIM(arrayobj, npyarr->stridedim);
-  npyarr->stride = PyArray_STRIDE(arrayobj, npyarr->stridedim);
+  npyarr->dim = PyArray_DIM(arrayobj, (int)npyarr->stridedim);
+  npyarr->stride = PyArray_STRIDE(arrayobj, (int)npyarr->stridedim);
   npyarr->index[npyarr->stridedim] = 0;
 
   ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;

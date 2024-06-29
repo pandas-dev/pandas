@@ -1,9 +1,11 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import dateutil.tz
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -276,7 +278,7 @@ class TestDatetimeIndexRendering:
             result = idx._summary()
             assert result == expected
 
-    @pytest.mark.parametrize("tz", [None, pytz.utc, dateutil.tz.tzutc()])
+    @pytest.mark.parametrize("tz", [None, timezone.utc, dateutil.tz.tzutc()])
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_repr_etc_smoke(self, tz, freq):
         # only really care that it works

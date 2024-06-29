@@ -24,9 +24,9 @@ class TestSeries:
 
         result = methodcaller(func, ["L1", "L2"])(ser)
         assert ser.index.name is None
-        assert ser.index.names == ("l1", "l2")
+        assert ser.index.names == ["l1", "l2"]
         assert result.index.name is None
-        assert result.index.names == ("L1", "L2")
+        assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
         ser = Series([1])
