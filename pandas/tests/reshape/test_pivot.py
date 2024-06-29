@@ -2769,3 +2769,17 @@ class TestPivot:
         result = df.unstack(sort=False)
         result.iloc[0, 0] = -1
         tm.assert_frame_equal(df, df_orig)
+
+    def test_pivot_empty_with_datetime(self):
+        # GH#59126
+        df = DataFrame(
+            {
+                "timestamp": Series([], dtype=pd.DatetimeTZDtype(tz="UTC")),
+                "category": Series([], dtype=str),
+                "value": Series([], dtype=str),
+            }
+        )
+        df_pivoted = df.pivot_table(
+            index="category", columns="value", values="timestamp"
+        )
+        assert df_pivoted.empty

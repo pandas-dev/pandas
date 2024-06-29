@@ -596,6 +596,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
+- Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 
 Sparse
 ^^^^^^
