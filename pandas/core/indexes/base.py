@@ -3406,7 +3406,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_difference_result(other, result)
 
     def _difference(self, other, sort):
-        # overridden by RangeIndex
+        # overridden by RangeIndex, PeriodIndex
         this = self
         if isinstance(self, ABCCategoricalIndex) and self.hasnans and other.hasnans:
             this = this.dropna()
@@ -6208,6 +6208,12 @@ class Index(IndexOpsMixin, PandasObject):
             except (TypeError, ValueError):
                 # let's instead try with a straight Index
                 self = Index(self._values)
+
+        elif self.inferred_type == 'string' and isinstance(other, ABCPeriodIndex):
+            try:
+                return self.astype(other.dtype), other
+            except:
+                return self, other
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses

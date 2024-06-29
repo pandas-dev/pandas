@@ -514,6 +514,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             )
         return self + periods
 
+    def _difference(self, other, sort=None):
+        if not isinstance(other, PeriodIndex):
+            self, other = self._maybe_downcast_for_indexing(other)
+
+        return super()._difference(other, sort=sort)
+
 
 def period_range(
     start=None,
