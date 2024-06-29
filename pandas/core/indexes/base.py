@@ -6209,12 +6209,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # let's instead try with a straight Index
                 self = Index(self._values)
 
-        elif self.inferred_type == "string" and isinstance(other, ABCPeriodIndex):
-            try:
-                return self.astype(other.dtype), other
-            except (TypeError, ValueError):
-                return self, other
-
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_downcast_for_indexing(self)
