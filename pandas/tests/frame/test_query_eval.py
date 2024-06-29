@@ -202,8 +202,13 @@ class TestDataFrameEval:
         expected = df["a"]
         tm.assert_series_equal(expected, res)
 
-    def test_extension_array_eval(self, engine, parser):
+    def test_extension_array_eval(self, engine, parser, request):
         # GH#58748
+        if engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr does not support extension array dtypes"
+            )
+            request.node.add_marker(mark)
         df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
         result = df.eval("a / b", engine=engine, parser=parser)
         expected = Series(pd.array([0.25, 0.40, 0.50]))
