@@ -555,7 +555,7 @@ def test_explicit_encoding(io_class, mode, msg):
             expected.to_csv(buffer, mode=f"w{mode}")
 
 
-@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("encoding_errors", ["strict", "replace"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_encoding_errors(encoding_errors, format):
     # GH39450
@@ -588,6 +588,17 @@ def test_encoding_errors(encoding_errors, format):
             decoded = bad_encoding.decode(errors=encoding_errors)
             expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
             tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("encoding_errors", [0, None])
+def test_encoding_errors_badtype(encoding_errors):
+    # GH 59075
+    content = StringIO("A,B\n1,2\n3,4\n")
+    reader = partial(pd.read_csv, encoding_errors=encoding_errors)
+    expected_error = "encoding_errors must be a string, got "
+    expected_error += f"{type(encoding_errors).__name__}"
+    with pytest.raises(ValueError, match=expected_error):
+        reader(content)
 
 
 def test_bad_encdoing_errors():

@@ -230,6 +230,7 @@ Other API changes
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 - :func:`read_table`'s ``parse_dates`` argument defaults to ``None`` to improve consistency with :func:`read_csv` (:issue:`57476`)
 - Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
+- Passing a :class:`Series` input to :func:`json_normalize` will now retain the :class:`Series` :class:`Index`, previously output had a new :class:`RangeIndex` (:issue:`51452`)
 - Updated :meth:`DataFrame.to_excel` so that the output spreadsheet has no styling. Custom styling can still be done using :meth:`Styler.to_excel` (:issue:`54154`)
 - pickle and HDF (``.h5``) files created with Python 2 are no longer explicitly supported (:issue:`57387`)
 - pickled objects from pandas version less than ``1.0.0`` are no longer supported (:issue:`57155`)
@@ -558,6 +559,7 @@ I/O
 - Bug in :meth:`DataFrame.to_stata` when writing :class:`DataFrame` and ``byteorder=`big```. (:issue:`58969`)
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Bug in :meth:`HDFStore.get` was failing to save data of dtype datetime64[s] correctly (:issue:`59004`)
+- Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
@@ -598,7 +600,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
--
+- Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
