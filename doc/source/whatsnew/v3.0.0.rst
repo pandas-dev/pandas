@@ -486,8 +486,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
--
+
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -509,8 +508,6 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
--
 
 Numeric
 ^^^^^^^
@@ -568,8 +565,6 @@ IO
 
 Period
 ^^^^^^
--
--
 
 Plotting
 ^^^^^^^^
@@ -633,8 +628,7 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
--
--
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.contributors:

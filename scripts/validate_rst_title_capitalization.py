@@ -50,6 +50,7 @@ CAPITALIZATION_EXCLUSIONS = {
     "Categorical",
     "CategoricalDtype",
     "CategoricalIndex",
+    "Copy-on-Write",
     "CustomBusinessDay",
     "CustomBusinessHour",
     "CustomBusinessMonthBegin",
@@ -82,6 +83,7 @@ CAPITALIZATION_EXCLUSIONS = {
     "HTML",
     "I",
     "IO",
+    "I/O",
     "IPython",
     "Index",
     "Interval",
@@ -95,6 +97,8 @@ CAPITALIZATION_EXCLUSIONS = {
     "LZMA",
     "LastWeekOfMonth",
     "Liveserve",
+    "M",
+    "ME",
     "March",
     "Matplotlib",
     "May",
@@ -121,6 +125,8 @@ CAPITALIZATION_EXCLUSIONS = {
     "PyPy",
     "PyTables",
     "Python",
+    "Q",
+    "QE",
     "QuarterBegin",
     "QuarterEnd",
     "QuarterOffset",
@@ -151,6 +157,8 @@ CAPITALIZATION_EXCLUSIONS = {
     "WeekOfMonth",
     "XPORT",
     "XX",
+    "Y",
+    "YE",
     "YearBegin",
     "YearEnd",
     "YearOffset",
@@ -239,9 +247,9 @@ def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
             line_no_last_elem = line[:-1]
             line_chars = set(line_no_last_elem)
             if (
-                len(line_chars) == 1
-                and line_chars.pop() in symbols
-                and len(line_no_last_elem) == len(previous_line)
+                    len(line_chars) == 1
+                    and line_chars.pop() in symbols
+                    and len(line_no_last_elem) == len(previous_line)
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
             previous_line = line_no_last_elem

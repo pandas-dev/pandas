@@ -17,7 +17,7 @@ Upcoming changes in pandas 3.0
 
 pandas 3.0 will bring two bigger changes to the default behavior of pandas.
 
-Copy-on-write
+Copy-on-Write
 ^^^^^^^^^^^^^
 
 The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
@@ -858,7 +858,7 @@ MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.get_indexer` not raising ``ValueError`` when ``method`` provided and index is non-monotonic (:issue:`53452`)
 
-IO
+I/O
 ^^^
 - Bug in :func:`read_csv` where ``engine="python"`` did not respect ``chunksize`` arg when ``skiprows`` was specified (:issue:`56323`)
 - Bug in :func:`read_csv` where ``engine="python"`` was causing a ``TypeError`` when a callable ``skiprows`` and a chunk size was specified (:issue:`55677`)
