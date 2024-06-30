@@ -214,6 +214,13 @@ class TestDataFrameEval:
         expected = Series(pd.array([0.25, 0.40, 0.50]))
         tm.assert_series_equal(result, expected)
 
+    def test_complex_eval(self, engine, parser):
+        # GH#21374
+        df = DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
+        result = df.eval("a/b", engine=engine, parser=parser)
+        expected = Series([1.5 + 0.5j])
+        tm.assert_series_equal(result, expected)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
