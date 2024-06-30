@@ -122,7 +122,7 @@ def format_array_from_datetime(
     str format=None,
     na_rep: str | float = "NaT",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
-    fast_strftime=True,
+    strftime_pystr=True,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -136,7 +136,7 @@ def format_array_from_datetime(
     na_rep : optional, default is None
           a nat format
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
-    fast_strftime : bool, default True
+    strftime_pystr : bool, default True
           If `True` (default) and the format permits it, a faster formatting
           method will be used. See `convert_strftime_format`.
 
@@ -188,11 +188,11 @@ def format_array_from_datetime(
     # Sanity check - these flags are exclusive
     assert not (basic_format_day and basic_format)
 
-    if not basic_format_day and not basic_format and fast_strftime:
-        # Preprocessing for fast_strftime
+    if not basic_format_day and not basic_format and strftime_pystr:
+        # Preprocessing for strftime_pystr
         if format is None:
             # We'll fallback to the Timestamp.str method
-            fast_strftime = False
+            strftime_pystr = False
         else:
             try:
                 # Try to get the string formatting template for this format
@@ -201,7 +201,7 @@ def format_array_from_datetime(
                 )
             except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
-                fast_strftime = False
+                strftime_pystr = False
 
     for i in range(N):
         # Analogous to: utc_val = values[i]
@@ -228,7 +228,7 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f".{dts.us // 1000:03d}"
 
-        elif fast_strftime:
+        elif strftime_pystr:
 
             if tz is None:
                 pandas_datetime_to_datetimestruct(val, reso, &dts)
@@ -256,7 +256,7 @@ def format_array_from_datetime(
                 ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
 
                 # Use string formatting for faster strftime
-                res = ts._fast_strftime(str_format, locale_dt_strings)
+                res = ts._strftime_pystr(str_format, locale_dt_strings)
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)

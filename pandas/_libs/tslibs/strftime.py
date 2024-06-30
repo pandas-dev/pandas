@@ -139,10 +139,10 @@ def convert_strftime_format(
 
     This method can be tested on a single instance of
 
-     - `Timestamp`, through `Timestamp._fast_strftime`. The result may be compared
+     - `Timestamp`, through `Timestamp._strftime_pystr`. The result may be compared
        with `Timestamp.strftime`
 
-     - `Period` through `Period._fast_strftime`. The result may be compared
+     - `Period` through `Period._strftime_pystr`. The result may be compared
         with `Period.strftime`.
 
     On array-like objects, this method is used in several places:

@@ -236,7 +236,7 @@ class TestTimestampRendering:
 
         # This is not OS-dependent
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
-        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "0002"
+        assert stamp._strftime_pystr(str_tmp, loc_dt_s) == "0002"
 
     def test_timestamp_repr_strftime_small_shortyear_date(self):
         stamp = Timestamp("1902-01-01")
@@ -245,7 +245,7 @@ class TestTimestampRendering:
         # Make sure we have zero-padding, consistent with python strftime doc
         assert stamp.strftime("%y") == "02", f"actual: {stamp.strftime('%y')}"
         str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
-        assert stamp._fast_strftime(str_tmp, loc_dt_s) == "02"
+        assert stamp._strftime_pystr(str_tmp, loc_dt_s) == "02"
 
     def test_timestamp_repr_strftime_negative_date(self):
         stamp = Timestamp("-0020-01-01")
@@ -259,12 +259,12 @@ class TestTimestampRendering:
             stamp.strftime("%y")
 
         str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
-        assert Timestamp("-0020-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-20"
-        assert Timestamp("-0002-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-2"
+        assert Timestamp("-0020-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-20"
+        assert Timestamp("-0002-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-2"
 
         str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
-        assert Timestamp("-2020-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-2020"
-        assert Timestamp("-0200-01-01")._fast_strftime(str_tmp, loc_dt_s) == "-200"
+        assert Timestamp("-2020-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-2020"
+        assert Timestamp("-0200-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-200"
 
         with pytest.raises(NonExistentTimeError):
             Timestamp("-0020-01-01", tz="US/Eastern")
@@ -281,7 +281,7 @@ class TestTimestampRendering:
     )
     def test_strftime_locale(self, locale_str):
         """
-        Test that `convert_strftime_format` and `fast_strftime`
+        Test that `convert_strftime_format` and `strftime_pystr`
         work well together and rely on runtime locale
         """
 
@@ -302,7 +302,7 @@ class TestTimestampRendering:
             # Timestamp
             am_ts = Timestamp(2020, 1, 1, 1)
             assert am_local == am_ts.strftime("%p")
-            assert am_local == am_ts._fast_strftime(str_tmp, loc_s)
+            assert am_local == am_ts._strftime_pystr(str_tmp, loc_s)
             pm_ts = Timestamp(2020, 1, 1, 13)
             assert pm_local == pm_ts.strftime("%p")
-            assert pm_local == pm_ts._fast_strftime(str_tmp, loc_s)
+            assert pm_local == pm_ts._strftime_pystr(str_tmp, loc_s)

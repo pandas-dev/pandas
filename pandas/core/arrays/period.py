@@ -773,7 +773,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         actually format my specific types
         """
         return libperiod.period_array_strftime(
-            self.asi8, self.dtype._dtype_code, na_rep, date_format, fast_strftime=True
+            self.asi8, self.dtype._dtype_code, na_rep, date_format, strftime_pystr=True
         )
 
     # ------------------------------------------------------------------

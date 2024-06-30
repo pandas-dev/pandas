@@ -1362,7 +1362,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
 
 
 def period_array_strftime(
-    ndarray values, int dtype_code, object na_rep, str date_format, bint fast_strftime
+    ndarray values, int dtype_code, object na_rep, str date_format, bint strftime_pystr
 ):
     """
     Vectorized Period.strftime used for PeriodArray._format_native_types.
@@ -1374,7 +1374,7 @@ def period_array_strftime(
         Corresponds to PeriodDtype._dtype_code
     na_rep : any
     date_format : str or None
-    fast_strftime : bool
+    strftime_pystr : bool
         If `True` and the format permits it, a faster formatting
         method will be used. See `convert_strftime_format`.
     """
@@ -1400,7 +1400,7 @@ def period_array_strftime(
         # None or bytes already
         date_fmt_bytes = date_format
 
-    if fast_strftime and date_format is not None:
+    if strftime_pystr and date_format is not None:
         try:
             # Try to get the string formatting template for this format
             fast_fmt, fast_loc = convert_strftime_format(date_format, target="period")
@@ -1421,7 +1421,7 @@ def period_array_strftime(
             # freq = frequency_corresponding_to_dtype_code(dtype_code)
             # per = Period(ordinal, freq=freq)
             # if fast_fmt:
-            #     item_repr = per._fast_strftime(fast_fmt, fast_loc)
+            #     item_repr = per._strftime_pystr(fast_fmt, fast_loc)
             # elif date_format:
             #     item_repr = per.strftime(date_format)
             # else:
@@ -2596,7 +2596,7 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def _fast_strftime(self, fmt_str: str, locale_dt_strings: object) -> str:
+    def _strftime_pystr(self, fmt_str: str, locale_dt_strings: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
         `fmt_str` and `locale_dt_strings` should be created using
@@ -2612,7 +2612,7 @@ cdef class _Period(PeriodMixin):
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
         >>> fast_fmt, loc_dt_strs = convert_strftime_format('%F-Q%q', target="period")
-        >>> a._fast_strftime(fast_fmt, loc_dt_strs)
+        >>> a._strftime_pystr(fast_fmt, loc_dt_strs)
         '2006-Q1'
         """
         value = self.ordinal
