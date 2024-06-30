@@ -84,9 +84,6 @@ if TYPE_CHECKING:
         Hashable,
         Iterator,
     )
-from typing import cast
-
-from pandas._typing import Dtype
 
 try:
     import pyarrow as pa
@@ -1451,7 +1448,7 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.COMPLEX_DTYPES + cast(list[Dtype], tm.FLOAT_NUMPY_DTYPES))
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
 def complex_or_float_dtype(request):
     """
     Parameterized fixture for complex and numpy float dtypes.
