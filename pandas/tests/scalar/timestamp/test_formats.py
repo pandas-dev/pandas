@@ -9,7 +9,6 @@ import pprint
 
 import dateutil.tz
 import pytest
-
 from pytz.exceptions import NonExistentTimeError
 
 from pandas.compat import (

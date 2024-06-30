@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.tslibs.strftime import (
     UnsupportedStrFmtDirective,
+    _create_escape_sequence,
     get_current_locale_specific_string,
 )
 
@@ -104,11 +105,11 @@ class TestConvertStrftimeFormat:
                 "(ms={ms:03d} us={us:06d} ns={ns:09d})",
             ),
             (
-                "20%y-%m-%d__foo__%I:%M:%S%p",
-                "20%(shortyear)02d-%(month)02d-%(day)02d__foo__"
-                "%(hour12)02d:%(min)02d:%(sec)02d%(ampm)s",
-                "20{shortyear:02d}-{month:02d}-{day:02d}__foo__"
-                "{hour12:02d}:{min:02d}:{sec:02d}{ampm:s}",
+                "20%y-%m-%d__f{o}o__%I:%M:%S%%%p",
+                "20%(shortyear)02d-%(month)02d-%(day)02d__f{o}o__"
+                "%(hour12)02d:%(min)02d:%(sec)02d%%%(ampm)s",
+                "20{shortyear:02d}-{month:02d}-{day:02d}__f{{o}}o__"
+                "{hour12:02d}:{min:02d}:{sec:02d}%%{ampm:s}",
             ),
         ),
     )
@@ -177,3 +178,10 @@ class TestConvertStrftimeFormat:
 
         with pytest.raises(ValueError, match="Unsupported directive"):
             convert_strftime_format("%O", target="datetime", new_style_fmt=True)
+
+
+def test_create_escape_sequence():
+    txt = "-*"
+    esc = _create_escape_sequence(txt, init_esc="*", prefix="-")
+    assert esc not in txt
+    assert esc == "--*"

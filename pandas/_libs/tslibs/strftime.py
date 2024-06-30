@@ -225,54 +225,53 @@ def convert_strftime_format(
             if key in strftime_fmt:
                 raise UnsupportedStrFmtDirective(f"Unsupported directive: '{key}'")
 
+    # Find an escape sequence, that we will use to replace all '%' signs
+    esc = _create_escape_sequence(strftime_fmt, init_esc="-+", prefix="-")
+
+    # Escape the %% before searching for directives (we will put them back at the end)
+    strftime_fmt = strftime_fmt.replace("%%", esc * 2)
+
     # Mapping between strftime and string formatting, according to both styles
     if new_style_fmt:
-        esc = "/_+\\"
-
-        # Escape the %% before searching for directives, same as strftime
-        strftime_fmt = strftime_fmt.replace("%%", esc)
-
-        esc_l = "+^_\\"
-        esc_r = "/_^+"
+        # Escape single curly braces
+        strftime_fmt = strftime_fmt.replace("{", "{{").replace("}", "}}")
 
         # Create the output by replacing all directives
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
-                # for example replace "%d" by "{day:02d}" but with escaped { }
-                strftime_fmt = strftime_fmt.replace(
-                    key, f"{esc_l}{_name}:{_fmt}{esc_r}"
-                )
+                # for example replace "%d" by "{day:02d}"
+                strftime_fmt = strftime_fmt.replace(key, f"{{{_name}:{_fmt}}}")
 
         # If there are remaining percent signs, be conservative and fallback
         if "%" in strftime_fmt:
             raise UnsupportedStrFmtDirective("Unsupported directive found")
 
-        # Restore the %% into %
-        strftime_fmt = strftime_fmt.replace(esc, "%")
-
-        # Escape remaining curly braces
-        strftime_fmt = strftime_fmt.replace("{", "{{").replace("}", "}}")
-
-        # Finally replace our placeholders
-        strftime_fmt = strftime_fmt.replace(esc_l, "{").replace(esc_r, "}")
-
     else:
-        esc = "/_^+"
-
-        # Escape the %% before searching for directives, same as strftime
-        strftime_fmt = strftime_fmt.replace("%%", esc * 2)
-
         # Create the output by replacing all directives
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
                 # for example replace "%d" by "%(day)02d" but with escaped %
                 strftime_fmt = strftime_fmt.replace(key, f"{esc}({_name}){_fmt}")
 
-        # If there are remaining percent signs, be conservative and fallback
+        # If there are remaining percent signs, raise 'unsupported directive' so that
+        # the caller can fallback to OS C strftime engine.
         if "%" in strftime_fmt:
             raise UnsupportedStrFmtDirective("Unsupported directive found")
 
-        # Finally replace our placeholder
-        strftime_fmt = strftime_fmt.replace(esc, "%")
+    # Restore the escaped %%
+    strftime_fmt = strftime_fmt.replace(esc, "%")
 
     return strftime_fmt, get_current_locale_specific_string()
+
+
+def _create_escape_sequence(txt: str, init_esc: str = "+", prefix: str = "-") -> str:
+    """Return a unique string that does not exist in txt, by prepending as many
+    `prefix` as necessary to the initial proposal `init_esc`."""
+
+    if init_esc in prefix:
+        raise ValueError("`ini_esc` must not be a subset of `prefix`")
+
+    # Prepend `ini_esc` with `str_to_add` as many times as necessary
+    while init_esc in txt:
+        init_esc = prefix + init_esc
+    return init_esc
