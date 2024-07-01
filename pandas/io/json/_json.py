@@ -1176,8 +1176,10 @@ class Parser:
 
             elif self.dtype is True:
                 pass
-            else:
-                # dtype to force
+            elif not _should_convert_dates(
+                convert_dates, self.keep_default_dates, name
+            ):
+                # convert_dates takes precedence over columns listed in dtypes
                 dtype = (
                     self.dtype.get(name) if isinstance(self.dtype, dict) else self.dtype
                 )
@@ -1244,7 +1246,7 @@ class Parser:
         Try to parse a ndarray like into a date column.
 
         Try to coerce object in epoch/iso formats and integer/float in epoch
-        formats. Return a boolean if parsing was successful.
+        formats.
         """
         # no conversion on empty
         if not len(data):
@@ -1339,70 +1341,46 @@ class FrameParser(Parser):
                 ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
-    @final
-    def _process_converter(
-        self,
-        obj: DataFrame,
-        f: Callable[[Hashable, Series], tuple[Series, bool]],
-        filt: Callable[[Hashable], bool] | None = None,
-    ) -> DataFrame:
-        """
-        Take a conversion function and possibly recreate the frame.
-        """
-        if filt is None:
-            filt = lambda col: True
-
-        needs_new_obj = False
-        new_obj = {}
-        for i, (col, c) in enumerate(obj.items()):
-            if filt(col):
-                new_data, result = f(col, c)
-                if result:
-                    c = new_data
-                    needs_new_obj = True
-            new_obj[i] = c
-
-        if needs_new_obj:
-            # possibly handle dup columns
-            new_frame = DataFrame(new_obj, index=obj.index)
-            new_frame.columns = obj.columns
-            return new_frame
-        return obj
-
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
-        if self.convert_dates:
-            # our columns to parse
-            convert_dates_list_bool = self.convert_dates
-            if isinstance(convert_dates_list_bool, bool):
-                convert_dates_list_bool = []
-            convert_dates = set(convert_dates_list_bool)
-
-            def is_ok(col) -> bool:
-                """
-                Return if this col is ok to try for a date parse.
-                """
-                if col in convert_dates:
-                    return True
-                if not self.keep_default_dates:
-                    return False
-                if not isinstance(col, str):
-                    return False
-
-                col_lower = col.lower()
-                if (
-                    col_lower.endswith(("_at", "_time"))
-                    or col_lower == "modified"
-                    or col_lower == "date"
-                    or col_lower == "datetime"
-                    or col_lower.startswith("timestamp")
-                ):
-                    return True
-                return False
-
-            obj = self._process_converter(
-                obj, lambda col, c: self._try_convert_to_date(c), filt=is_ok
+        arrays = []
+        for col_label, series in obj.items():
+            result, _ = self._try_convert_data(
+                col_label,
+                series,
+                convert_dates=_should_convert_dates(
+                    self.convert_dates,
+                    keep_default_dates=self.keep_default_dates,
+                    col=col_label,
+                ),
             )
-
-        return self._process_converter(
-            obj, lambda col, c: self._try_convert_data(col, c, convert_dates=False)
+            arrays.append(result.array)
+        return DataFrame._from_arrays(
+            arrays, obj.columns, obj.index, verify_integrity=False
         )
+
+
+def _should_convert_dates(
+    convert_dates: bool | list[str],
+    keep_default_dates: bool,
+    col: Hashable,
+) -> bool:
+    """
+    Return bool whether a DataFrame column should be cast to datetime.
+    """
+    if convert_dates is False:
+        # convert_dates=True means follow keep_default_dates
+        return False
+    elif not isinstance(convert_dates, bool) and col in set(convert_dates):
+        return True
+    elif not keep_default_dates:
+        return False
+    elif not isinstance(col, str):
+        return False
+    col_lower = col.lower()
+    if (
+        col_lower.endswith(("_at", "_time"))
+        or col_lower in {"modified", "date", "datetime"}
+        or col_lower.startswith("timestamp")
+    ):
+        return True
+    return False
