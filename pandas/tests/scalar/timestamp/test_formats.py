@@ -229,7 +229,7 @@ class TestTimestampRendering:
 
         # Make sure we have zero-padding, consistent with python strftime doc
         # Note: current behaviour of strftime with %Y is OS-dependent
-        if is_platform_linux() and not ISMUSL and not WASM:
+        if WASM or (is_platform_linux() and not ISMUSL):
             assert stamp.strftime("%Y") == "2", f"Actual: {stamp.strftime('%Y')}"
         else:
             assert stamp.strftime("%Y") == "0002", f"Actual: {stamp.strftime('%Y')}"
