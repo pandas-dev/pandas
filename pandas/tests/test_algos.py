@@ -990,21 +990,18 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]"])
-    def test_isin_datetimelike_strings_deprecated(self, dtype):
+    def test_isin_datetimelike_strings_returns_false(self, dtype):
         # GH#53111
         dta = date_range("2013-01-01", periods=3)._values
         arr = Series(dta.view("i8")).array.view(dtype)
 
         vals = [str(x) for x in arr]
-        msg = "The behavior of 'isin' with dtype=.* is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = algos.isin(arr, vals)
-        assert res.all()
+        res = algos.isin(arr, vals)
+        assert not res.any()
 
         vals2 = np.array(vals, dtype=str)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res2 = algos.isin(arr, vals2)
-        assert res2.all()
+        res2 = algos.isin(arr, vals2)
+        assert not res2.any()
 
     def test_isin_dt64tz_with_nat(self):
         # the all-NaT values used to get inferred to tznaive, which was evaluated
@@ -1267,6 +1264,7 @@ class TestValueCounts:
             ],
             dtype=dtype,
         )
+
         res = ser.value_counts()
 
         exp_index = Index(

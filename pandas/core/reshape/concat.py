@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     overload,
@@ -46,6 +45,7 @@ from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Mapping,
@@ -560,7 +560,7 @@ class _Concatenator:
 
             # combine as columns in a frame
             else:
-                data = dict(zip(range(len(self.objs)), self.objs))
+                data = dict(enumerate(self.objs))
 
                 # GH28330 Preserves subclassed objects through concat
                 cons = sample._constructor_expanddim
@@ -874,7 +874,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
-        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
+        new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
         new_levels.append(new_index.unique())
         single_codes = new_index.unique().get_indexer(new_index)

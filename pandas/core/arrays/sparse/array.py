@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -87,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):

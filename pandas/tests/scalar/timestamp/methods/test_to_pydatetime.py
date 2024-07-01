@@ -3,7 +3,7 @@ from datetime import (
     timedelta,
 )
 
-import pytz
+import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 import pandas.util._test_decorators as td
@@ -43,6 +43,7 @@ class TestTimestampToPyDatetime:
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_pydatetime_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
         stamp = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         dtval = stamp.to_pydatetime()
         assert stamp == dtval

@@ -5,7 +5,6 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Union,
     cast,
 )
@@ -53,7 +52,10 @@ if not pa_version_under10p1:
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         ArrayLike,
