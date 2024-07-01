@@ -1465,10 +1465,20 @@ class Timestamp(_Timestamp):
         """
         Return new Timestamp object representing current time local to tz.
 
+        This method returns a new `Timestamp` object that represents the current time.
+        If a timezone is provided, the current time will be localized to that timezone.
+        Otherwise, it returns the current local time.
+
         Parameters
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.today : Return the current time in the local timezone.
 
         Examples
         --------

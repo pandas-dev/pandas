@@ -453,10 +453,6 @@ class Resolution(Enum):
         """
         cdef:
             str abbrev
-        if freq in {"T", "t", "L", "l", "U", "u", "N", "n"}:
-            raise ValueError(
-                f"Frequency \'{freq}\' is no longer supported."
-            )
         try:
             if freq in c_DEPR_ABBREVS:
                 abbrev = c_DEPR_ABBREVS[freq]
