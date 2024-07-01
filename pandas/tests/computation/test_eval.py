@@ -773,7 +773,7 @@ class TestTypeCasting:
                 "to complex 128 "
                 "https://github.com/pydata/numexpr/issues/492"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         assert df.values.dtype == dtype
         assert res.values.dtype == dtype
         tm.assert_frame_equal(res, eval(s), check_exact=False)
