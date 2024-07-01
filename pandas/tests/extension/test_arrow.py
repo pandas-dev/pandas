@@ -3536,3 +3536,13 @@ def test_map_numeric_na_action():
     result = ser.map(lambda x: 42, na_action="ignore")
     expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_microsecond():
+    series = pd.Series(
+        [946684800000000000, 946684800015000000, 946684800030000000],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = series.dt.microsecond
+    expected = pd.Series([0, 15000, 30000], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)

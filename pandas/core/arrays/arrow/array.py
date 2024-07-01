@@ -2794,7 +2794,14 @@ class ArrowExtensionArray(
 
     @property
     def _dt_microsecond(self) -> Self:
-        return type(self)(pc.microsecond(self._pa_array))
+        us = pc.microsecond(self._pa_array)
+        ms_us = pc.multiply(
+            pc.millisecond(self._pa_array), pa.scalar(1000, type=us.type)
+        )
+        s_us = pc.multiply(
+            pc.second(self._pa_array), pa.scalar(1_000_000, type=us.type)
+        )
+        return type(self)(pc.add(pc.add(ms_us, s_us), us))
 
     @property
     def _dt_minute(self) -> Self:
