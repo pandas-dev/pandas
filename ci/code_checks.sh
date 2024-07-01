@@ -244,7 +244,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.month_name SA01" \
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.normalize SA01" \
-        -i "pandas.Timestamp.now SA01" \
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02" \
