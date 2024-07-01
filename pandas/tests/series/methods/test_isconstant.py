@@ -1,9 +1,7 @@
 import numpy as np
-import pytest
 
-from pandas import (
-    Series,
-)
+from pandas import Series
+
 
 class TestSeriesIsConstant:
     def test_isconstant(self):
@@ -28,11 +26,11 @@ class TestSeriesIsConstant:
         result = s.isconstant()
         assert result
 
-        s = Series([np.nan,np.nan])
+        s = Series([np.nan, np.nan])
         result = s.isconstant()
         assert result
 
-        s = Series([np.nan,1])
+        s = Series([np.nan, 1])
         result = s.isconstant()
         assert not result
 
@@ -45,11 +43,11 @@ class TestSeriesIsConstant:
         result = s.isconstant(True)
         assert result
 
-        s = Series([np.nan,np.nan])
+        s = Series([np.nan, np.nan])
         result = s.isconstant(True)
         assert result
 
-        s = Series([np.nan,1])
+        s = Series([np.nan, 1])
         result = s.isconstant(True)
         assert result
 
@@ -58,7 +56,7 @@ class TestSeriesIsConstant:
         assert result
 
     def test_isconstant_mixed_types(self):
-        s = Series([2, '2', 2])
+        s = Series([2, "2", 2])
         result = s.isconstant()
         assert not result
 

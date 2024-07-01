@@ -25,7 +25,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import numba
 
 from pandas._libs import (
     lib,
@@ -5424,14 +5423,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return super().isnull()
 
-    def isconstant(self, dropna = False):
+    def isconstant(self, dropna=False):
         """
         Return if the series has constant values.
 
         Parameters
         ----------
         dropna : bool, default False
-        If True, NaN values will be ignored. If False, NaN values will be considered 
+        If True, NaN values will be ignored. If False, NaN values will be considered
         in the determination of whether the series has constant values.
 
         Returns
@@ -5462,7 +5461,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             v = remove_na_arraylike(v)
         if v.shape[0] == 0 or not notna(v).any():
             return True
-        return (v[0] == v).all()    
+        return (v[0] == v).all()
 
     # error: Cannot determine type of 'notna'
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
