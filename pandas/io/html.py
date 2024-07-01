@@ -1150,8 +1150,7 @@ def read_html(
 
         .. versionadded:: 2.1.0
 
-
-    skip_blank_lines: bool, default True
+    skip_blank_lines : bool, default True
         Whether lines containing only spaces should be skipped or not.
 
     Returns
