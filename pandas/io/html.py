@@ -1208,9 +1208,7 @@ def read_html(
 
     validate_header_arg(header)
     check_dtype_backend(dtype_backend)
-    print("Value passed ", io.getvalue())
     io = stringify_path(io)
-    print("Inside html.py ", io.getvalue())
     return _parse(
         flavor=flavor,
         io=io,
