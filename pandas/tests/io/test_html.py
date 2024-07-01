@@ -1242,6 +1242,32 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_preserve_rows_with_spaces(self, flavor_read_html):
+        result = flavor_read_html(
+            StringIO(
+                """
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                </tr>
+                <tr>
+                    <td>  </td>
+                    <td> </td>
+                </tr>
+            </table>
+        """
+            ),
+            skip_blank_lines=False,
+        )[0]
+        expected = DataFrame(data=[["a", "b"], ["  ", " "]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_ignore_empty_rows_when_inferring_header(self, flavor_read_html):
         result = flavor_read_html(
             StringIO(

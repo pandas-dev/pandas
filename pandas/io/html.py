@@ -1149,7 +1149,8 @@ def read_html(
     {storage_options}
 
         .. versionadded:: 2.1.0
-    
+
+
     skip_blank_lines: bool, default True
         Whether lines containing only spaces should be skipped or not.
 
@@ -1228,5 +1229,5 @@ def read_html(
         extract_links=extract_links,
         dtype_backend=dtype_backend,
         storage_options=storage_options,
-        skip_blank_lines=skip_blank_lines
+        skip_blank_lines=skip_blank_lines,
     )
