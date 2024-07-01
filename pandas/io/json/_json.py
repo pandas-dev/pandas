@@ -1190,8 +1190,8 @@ class Parser:
                         return data, False
 
         if convert_dates:
-            new_data, result = self._try_convert_to_date(data)
-            if result:
+            new_data = self._try_convert_to_date(data)
+            if new_data is not data:
                 return new_data, True
 
         converted = False
@@ -1241,7 +1241,7 @@ class Parser:
         return data, converted
 
     @final
-    def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:
+    def _try_convert_to_date(self, data: Series) -> Series:
         """
         Try to parse a ndarray like into a date column.
 
@@ -1250,7 +1250,7 @@ class Parser:
         """
         # no conversion on empty
         if not len(data):
-            return data, False
+            return data
 
         new_data = data
 
@@ -1261,7 +1261,7 @@ class Parser:
             try:
                 new_data = data.astype("int64")
             except OverflowError:
-                return data, False
+                return data
             except (TypeError, ValueError):
                 pass
 
@@ -1273,16 +1273,15 @@ class Parser:
                 | (new_data._values == iNaT)
             )
             if not in_range.all():
-                return data, False
+                return data
 
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+                return to_datetime(new_data, errors="raise", unit=date_unit)
             except (ValueError, OverflowError, TypeError):
                 continue
-            return new_data, True
-        return data, False
+        return data
 
 
 class SeriesParser(Parser):
