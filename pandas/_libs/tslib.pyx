@@ -122,7 +122,7 @@ def format_array_from_datetime(
     str format=None,
     na_rep: str | float = "NaT",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
-    strftime_pystr=True,
+    _use_pystr_engine=True,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -136,7 +136,7 @@ def format_array_from_datetime(
     na_rep : optional, default is None
           a nat format
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
-    strftime_pystr : bool, default True
+    _use_pystr_engine : bool, default True
           If `True` (default) and the format permits it, a faster formatting
           method will be used. See `convert_strftime_format`.
 
@@ -188,11 +188,11 @@ def format_array_from_datetime(
     # Sanity check - these flags are exclusive
     assert not (basic_format_day and basic_format)
 
-    if not basic_format_day and not basic_format and strftime_pystr:
-        # Preprocessing for strftime_pystr
+    if not basic_format_day and not basic_format and _use_pystr_engine:
+        # Preprocessing for _use_pystr_engine
         if format is None:
             # We'll fallback to the Timestamp.str method
-            strftime_pystr = False
+            _use_pystr_engine = False
         else:
             try:
                 # Try to get the string formatting template for this format
@@ -201,7 +201,7 @@ def format_array_from_datetime(
                 )
             except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
-                strftime_pystr = False
+                _use_pystr_engine = False
 
     for i in range(N):
         # Analogous to: utc_val = values[i]
@@ -228,7 +228,7 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f".{dts.us // 1000:03d}"
 
-        elif strftime_pystr:
+        elif _use_pystr_engine:
 
             if tz is None:
                 pandas_datetime_to_datetimestruct(val, reso, &dts)

@@ -1362,7 +1362,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
 
 
 def period_array_strftime(
-    ndarray values, int dtype_code, object na_rep, str date_format, bint strftime_pystr
+    ndarray values, int dtype_code, object na_rep, str date_format, bint _use_pystr_engine
 ):
     """
     Vectorized Period.strftime used for PeriodArray._format_native_types.
@@ -1374,7 +1374,7 @@ def period_array_strftime(
         Corresponds to PeriodDtype._dtype_code
     na_rep : any
     date_format : str or None
-    strftime_pystr : bool
+    _use_pystr_engine : bool
         If `True` and the format permits it, a faster formatting
         method will be used. See `convert_strftime_format`.
     """
@@ -1400,7 +1400,7 @@ def period_array_strftime(
         # None or bytes already
         date_fmt_bytes = date_format
 
-    if strftime_pystr and date_format is not None:
+    if _use_pystr_engine and date_format is not None:
         try:
             # Try to get the string formatting template for this format
             fast_fmt, fast_loc = convert_strftime_format(date_format, target="period")

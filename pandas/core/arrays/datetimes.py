@@ -776,7 +776,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             format=date_format,
             na_rep=na_rep,
             reso=self._creso,
-            strftime_pystr=True,
+            _use_pystr_engine=True,
         )
 
     # -----------------------------------------------------------------

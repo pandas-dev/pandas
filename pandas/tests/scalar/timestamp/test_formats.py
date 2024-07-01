@@ -281,7 +281,7 @@ class TestTimestampRendering:
     )
     def test_strftime_locale(self, locale_str):
         """
-        Test that `convert_strftime_format` and `strftime_pystr`
+        Test that `convert_strftime_format` and `_strftime_pystr`
         work well together and rely on runtime locale
         """
 
