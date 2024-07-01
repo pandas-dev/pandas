@@ -507,6 +507,9 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
+                if len(text) == 0:
+                    text = self._text_getter(td)
+
                 if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
@@ -1027,6 +1030,7 @@ def read_html(
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
+    skip_blank_lines: bool = True,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1145,6 +1149,9 @@ def read_html(
     {storage_options}
 
         .. versionadded:: 2.1.0
+    
+    skip_blank_lines: bool, default True
+        Whether lines containing only spaces should be skipped or not.
 
     Returns
     -------
@@ -1201,9 +1208,9 @@ def read_html(
 
     validate_header_arg(header)
     check_dtype_backend(dtype_backend)
-
+    print("Value passed ", io.getvalue())
     io = stringify_path(io)
-
+    print("Inside html.py ", io.getvalue())
     return _parse(
         flavor=flavor,
         io=io,
@@ -1223,4 +1230,5 @@ def read_html(
         extract_links=extract_links,
         dtype_backend=dtype_backend,
         storage_options=storage_options,
+        skip_blank_lines=skip_blank_lines
     )
