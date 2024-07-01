@@ -201,7 +201,6 @@ starting with 3.0, so it can be safely removed from your code.
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 
-- Deprecated :meth:`series.values`, now don't drops the ``tz`` from ``dt64tz``, converts ``interval`` to ``object``, converts ``period`` to ``object``.
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
