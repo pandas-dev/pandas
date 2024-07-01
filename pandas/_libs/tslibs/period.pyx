@@ -1362,7 +1362,11 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
 
 
 def period_array_strftime(
-    ndarray values, int dtype_code, object na_rep, str date_format, bint _use_pystr_engine
+    ndarray values,
+    int dtype_code,
+    object na_rep,
+    str date_format,
+    bint _use_pystr_engine,
 ):
     """
     Vectorized Period.strftime used for PeriodArray._format_native_types.
