@@ -758,16 +758,25 @@ class TestTypeCasting:
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.core.sctypes[x] for x in ['uint', 'int', 'float']))
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
-    def test_binop_typecasting(self, engine, parser, op, float_numpy_dtype, left_right):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((5, 3)), dtype=float_numpy_dtype
-        )
+    def test_binop_typecasting(
+        self, engine, parser, op, complex_or_float_dtype, left_right, request
+    ):
+        # GH#21374
+        dtype = complex_or_float_dtype
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dtype)
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
-        assert df.values.dtype == float_numpy_dtype
-        assert res.values.dtype == float_numpy_dtype
-        tm.assert_frame_equal(res, eval(s))
+        if dtype == "complex64" and engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr issue with complex that are upcast "
+                "to complex 128 "
+                "https://github.com/pydata/numexpr/issues/492"
+            )
+            request.applymarker(mark)
+        assert df.values.dtype == dtype
+        assert res.values.dtype == dtype
+        tm.assert_frame_equal(res, eval(s), check_exact=False)
 
 
 # -------------------------------------

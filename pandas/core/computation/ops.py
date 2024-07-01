@@ -18,7 +18,6 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_list_like,
-    is_numeric_dtype,
     is_scalar,
 )
 
@@ -328,31 +327,6 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
-    """
-    Cast an expression inplace.
-
-    Parameters
-    ----------
-    terms : Op
-        The expression that should cast.
-    acceptable_dtypes : list of acceptable numpy.dtype
-        Will not cast if term's dtype in this list.
-    dtype : str or numpy.dtype
-        The dtype to cast to.
-    """
-    dt = np.dtype(dtype)
-    for term in terms:
-        if term.type in acceptable_dtypes:
-            continue
-
-        try:
-            new_value = term.value.astype(dt)
-        except AttributeError:
-            new_value = dt.type(term.value)
-        term.update(new_value)
-
-
 def is_term(obj) -> bool:
     return isinstance(obj, Term)
 
@@ -507,32 +481,6 @@ class BinOp(Op):
             )
         ):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
-
-
-class Div(BinOp):
-    """
-    Div operator to special case casting.
-
-    Parameters
-    ----------
-    lhs, rhs : Term or Op
-        The Terms or Ops in the ``/`` expression.
-    """
-
-    def __init__(self, lhs, rhs) -> None:
-        super().__init__("/", lhs, rhs)
-
-        if not is_numeric_dtype(lhs.return_type) or not is_numeric_dtype(
-            rhs.return_type
-        ):
-            raise TypeError(
-                f"unsupported operand type(s) for {self.op}: "
-                f"'{lhs.return_type}' and '{rhs.return_type}'"
-            )
-
-        # do not upcast float32s to float64 un-necessarily
-        acceptable_dtypes = [np.float32, np.float64]
-        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float64)
 
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
