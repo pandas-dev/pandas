@@ -268,7 +268,7 @@ skiprows : int, list of int or Callable, optional
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
-    Number of rows of file to read. Useful for reading pieces of large files.
+    Maximum number of rows of data to return (excluding the column header). Useful for reading pieces of large files.
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
