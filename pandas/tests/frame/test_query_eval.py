@@ -208,7 +208,7 @@ class TestDataFrameEval:
             mark = pytest.mark.xfail(
                 reason="numexpr does not support extension array dtypes"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
         result = df.eval("a / b", engine=engine, parser=parser)
         expected = Series(pd.array([0.25, 0.40, 0.50]))
