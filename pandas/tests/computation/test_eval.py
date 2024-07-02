@@ -557,9 +557,7 @@ class TestEval:
 
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
-        warn = None
-        if PY312 and not (engine == "numexpr" and parser == "pandas"):
-            warn = DeprecationWarning
+        warn = DeprecationWarning if PY312 else None
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
 
