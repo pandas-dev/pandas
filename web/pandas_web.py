@@ -280,6 +280,7 @@ class Preprocessors:
         PDEP's in different status from the directory tree and GitHub.
         """
         KNOWN_STATUS = {
+            "Draft",
             "Under discussion",
             "Accepted",
             "Implemented",
