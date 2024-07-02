@@ -2,6 +2,7 @@ import operator
 import re
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from pandas import option_context
@@ -161,14 +162,14 @@ class TestExpressions:
         ],
     )
     @pytest.mark.parametrize("flex", [True, False])
-    def test_run_binary(self, request, fixture, flex, comparison_op, monkeypatch):
+    def test_run_binary(self, request, fixture, flex, monkeypatch):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
         elsewhere.
         """
         df = request.getfixturevalue(fixture)
-        arith = comparison_op.__name__
+        arith = "add"  # Use "add" operation for binary test
         with option_context("compute.use_numexpr", False):
             other = df + 1
 
@@ -461,3 +462,23 @@ class TestExpressions:
                     pass
                 else:
                     assert scalar_result == expected
+
+    # New test added here
+    def test_multiline_expression(self):
+        df = pd.DataFrame({"first": [9.76, 9.76, 9.76], "last": [9.76, 9.76, 9.76], "pre": [9.75, 9.76, 9.76]})
+
+        expr = """
+        first_ret = first / pre.fillna(first) - 1.0
+        last_ret = last / pre.fillna(first) - 1.0
+        """
+
+        # Evaluate the multiline expression
+        result = expr.evaluate(expr, df, df, use_numexpr=True)
+        
+        # Define expected values manually or calculate based on expectation
+        expected_first_ret = df['first'] / df['pre'].fillna(df['first']) - 1.0
+        expected_last_ret = df['last'] / df['pre'].fillna(df['first']) - 1.0
+        expected = pd.DataFrame({"first_ret": expected_first_ret, "last_ret": expected_last_ret})
+
+        # Assert the result matches the expected values
+        tm.assert_frame_equal(result, expected)

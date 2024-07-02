@@ -143,6 +143,7 @@ def _align_core(terms):
                     )
 
                 obj = ti.reindex(reindexer, axis=axis)
+                # Update the term value without converting to ndarray
                 terms[i].update(obj)
 
     return typ, _zip_axes_from_type(typ, axes)
