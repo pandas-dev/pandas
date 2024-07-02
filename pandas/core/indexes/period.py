@@ -11,6 +11,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     Period,
     Resolution,
@@ -347,7 +348,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             of self.freq.  Note IncompatibleFrequency subclasses ValueError.
         """
         if isinstance(other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            if isinstance(self.freq, Tick):
+            if isinstance(self.freq, (Tick, Day)):
                 # _check_timedeltalike_freq_compat will raise if incompatible
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta

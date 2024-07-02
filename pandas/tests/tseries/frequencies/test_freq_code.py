@@ -28,7 +28,6 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ((1.04, "h"), (3744, "s")),
         ((1, "D"), (1, "D")),
         ((0.342931, "h"), (1234551600, "us")),
-        ((1.2345, "D"), (106660800, "ms")),
     ],
 )
 def test_resolution_bumping(args, expected):

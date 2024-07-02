@@ -628,32 +628,32 @@ class TestTimedelta64ArithmeticUnsorted:
     # -------------------------------------------------------------
 
     def test_tdi_ops_attributes(self):
-        rng = timedelta_range("2 days", periods=5, freq="2D", name="x")
+        rng = timedelta_range("2 days", periods=5, freq="48h", name="x")
 
         result = rng + 1 * rng.freq
-        exp = timedelta_range("4 days", periods=5, freq="2D", name="x")
+        exp = timedelta_range("4 days", periods=5, freq="48h", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "2D"
+        assert result.freq == "48h"
 
         result = rng - 2 * rng.freq
-        exp = timedelta_range("-2 days", periods=5, freq="2D", name="x")
+        exp = timedelta_range("-2 days", periods=5, freq="48h", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "2D"
+        assert result.freq == "48h"
 
         result = rng * 2
         exp = timedelta_range("4 days", periods=5, freq="4D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "4D"
+        assert result.freq == "96h"
 
         result = rng / 2
         exp = timedelta_range("1 days", periods=5, freq="D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "D"
+        assert result.freq == "24h"
 
         result = -rng
         exp = timedelta_range("-2 days", periods=5, freq="-2D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "-2D"
+        assert result.freq == "-48h"
 
         rng = timedelta_range("-2 days", periods=5, freq="D", name="x")
 
@@ -1007,7 +1007,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.date_range("2012-01-02", periods=3, tz=tz)
+        expected = pd.date_range("2012-01-02", periods=3, tz=tz, freq="24h")
 
         tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1015,7 +1015,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(ts + tdarr, expected)
         tm.assert_equal(tdarr + ts, expected)
 
-        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
+        expected2 = pd.date_range("2011-12-31", periods=3, freq="-24h", tz=tz)
         expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdarr, expected2)
@@ -1822,6 +1822,16 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = TimedeltaIndex(["1 Day", "2 Days", "0 Days"] * 3)
         expected = tm.box_expected(expected, box_with_array)
 
+        if isinstance(three_days, offsets.Day):
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                tdarr % three_days
+            with pytest.raises(TypeError, match=msg):
+                divmod(tdarr, three_days)
+            with pytest.raises(TypeError, match=msg):
+                tdarr // three_days
+            return
+
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
@@ -1864,6 +1874,12 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = ["0 Days", "1 Day", "0 Days"] + ["3 Days"] * 6
         expected = TimedeltaIndex(expected)
         expected = tm.box_expected(expected, box_with_array)
+
+        if isinstance(three_days, offsets.Day):
+            msg = "Cannot divide Day by TimedeltaArray"
+            with pytest.raises(TypeError, match=msg):
+                three_days % tdarr
+            return
 
         result = three_days % tdarr
         tm.assert_equal(result, expected)

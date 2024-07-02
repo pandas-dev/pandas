@@ -912,6 +912,7 @@ class TestPeriodIndex:
         result = result.to_timestamp(end_freq)
 
         expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
+        result.index._data._freq = result.index.freq._maybe_to_hours()
         tm.assert_series_equal(result, expected)
 
     def test_resample_with_offset_month(self):

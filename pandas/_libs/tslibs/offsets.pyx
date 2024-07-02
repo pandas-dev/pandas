@@ -776,6 +776,11 @@ cdef class BaseOffset:
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
 
+    def _maybe_to_hours(self):
+        if not isinstance(self, Day):
+            return self
+        return Hour(self.n * 24)
+
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
@@ -954,8 +959,6 @@ cdef class Tick(SingleConstructorOffset):
     # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
-        if type(self) is Day:
-            return Hour(self.n * 24)
         if type(self) is Hour:
             return Minute(self.n * 60)
         if type(self) is Minute:
@@ -1102,7 +1105,7 @@ cdef class Tick(SingleConstructorOffset):
         self.normalize = False
 
 
-cdef class Day(Tick):
+cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
@@ -1132,10 +1135,50 @@ cdef class Day(Tick):
     >>> ts + Day(-4)
     Timestamp('2022-12-05 15:00:00')
     """
+    _adjust_dst = True
+    _attributes = tuple(["n", "normalize"])
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n)
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Day offset with `normalize=True` are not allowed."
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    @apply_wraps
+    def _apply(self, other):
+        if isinstance(other, Day):
+            # TODO: why isn't this handled in __add__?
+            return Day(self.n + other.n)
+        return other + np.timedelta64(self.n, "D")
+
+    def _apply_array(self, dtarr):
+        return dtarr + np.timedelta64(self.n, "D")
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        """
+        Return a string representing the frequency.
+
+        Examples
+        --------
+        >>> pd.Day(5).freqstr
+        '5D'
+
+        >>> pd.offsets.Day(1).freqstr
+        'D'
+        """
+        if self.n != 1:
+            return str(self.n) + "D"
+        return "D"
 
 
 cdef class Hour(Tick):
@@ -1360,16 +1403,13 @@ cdef class Nano(Tick):
 def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
+        seconds = delta.days * 86400 + delta.seconds
+        if seconds % 3600 == 0:
+            return Hour(seconds / 3600)
+        elif seconds % 60 == 0:
+            return Minute(seconds / 60)
         else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
+            return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
         if nanos % 1_000_000 == 0:
@@ -4838,7 +4878,7 @@ cpdef to_offset(freq, bint is_period=False):
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
-    <Day>
+    <24 * Hours>
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
@@ -4918,7 +4958,7 @@ cpdef to_offset(freq, bint is_period=False):
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
 
-                if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
+                if prefix in {"h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or
                     #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
@@ -4936,6 +4976,12 @@ cpdef to_offset(freq, bint is_period=False):
 
                 if result is None:
                     result = offset
+                elif isinstance(result, Day) and isinstance(offset, Tick):
+                    # e.g. "1D1H" is treated like "25H"
+                    result = Hour(result.n * 24) + offset
+                elif isinstance(offset, Day) and isinstance(result, Tick):
+                    # e.g. "1H1D" is treated like "25H"
+                    result = result + Hour(offset.n * 24)
                 else:
                     result = result + offset
         except (ValueError, TypeError) as err:

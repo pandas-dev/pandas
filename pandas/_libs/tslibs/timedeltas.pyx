@@ -2406,6 +2406,7 @@ cdef bint _should_cast_to_timedelta(object obj):
 cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
-    freq = to_offset(freq)
+    # In this context it is unambiguous that "D" represents 24 hours
+    freq = to_offset(freq)._maybe_to_hours()
     freq.nanos  # raises on non-fixed freq
     return delta_to_nanoseconds(freq, creso)

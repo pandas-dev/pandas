@@ -813,6 +813,8 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz)
         expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz)
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -833,6 +835,8 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz)
         expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz)
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)

@@ -113,6 +113,7 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
+    Day,
 )
 
 cdef:
@@ -1823,6 +1824,10 @@ cdef class _Period(PeriodMixin):
             # i.e. np.timedelta64("nat")
             return NaT
 
+        if isinstance(other, Day):
+            # Periods are timezone-naive, so we treat Day as Tick-like
+            other = np.timedelta64(other.n, "D")
+
         try:
             inc = delta_to_nanoseconds(other, reso=self._dtype._creso, round_ok=False)
         except ValueError as err:
@@ -1844,7 +1849,7 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if is_any_td_scalar(other):
+        if is_any_td_scalar(other) or isinstance(other, Day):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)

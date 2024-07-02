@@ -1230,6 +1230,8 @@ def interval_range(
             raise ValueError(
                 f"freq must be numeric or convertible to DateOffset, got {freq}"
             ) from err
+        if isinstance(start, Timedelta) or isinstance(end, Timedelta):
+            freq = freq._maybe_to_hours()
 
     # verify type compatibility
     if not all(

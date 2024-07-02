@@ -473,8 +473,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 if end is not None:
                     end = end.tz_localize(None)
 
-            if isinstance(freq, Tick):
-                i8values = generate_regular_range(start, end, periods, freq, unit=unit)
+            if isinstance(freq, Tick) or (tz is None and isinstance(freq, Day)):
+                i8values = generate_regular_range(
+                    start, end, periods, freq._maybe_to_hours(), unit=unit
+                )
             else:
                 xdr = _generate_range(
                     start=start, end=end, periods=periods, offset=freq, unit=unit
@@ -934,7 +936,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
+        new_freq = self.freq
+        if self.freq is not None and self.freq._adjust_dst:
+            # TODO: in some cases we may be able to retain, e.g. if old and new
+            # tz are both fixed offsets, or if no DST-crossings occur.
+            # The latter is value-dependent behavior that we may want to avoid.
+            # Or could convert e.g. "D" to "24h", see GH#51716
+            new_freq = None
+        return self._simple_new(self._ndarray, dtype=dtype, freq=new_freq)
 
     @dtl.ravel_compat
     def tz_localize(

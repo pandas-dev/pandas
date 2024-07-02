@@ -246,7 +246,7 @@ class TestTimestampRound:
         # check that all rounding modes are accurate to int64 precision
         # see GH#22591
         dt = Timestamp(timestamp).as_unit("ns")
-        unit = to_offset(freq).nanos
+        unit = to_offset(freq)._maybe_to_hours().nanos
 
         # test floor
         result = dt.floor(freq)

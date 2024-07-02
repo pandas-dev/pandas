@@ -1852,6 +1852,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
+
             if isinstance(self._on, PeriodIndex):
                 # error: Incompatible types in assignment (expression has type
                 # "float", variable has type "Optional[int]")
@@ -1859,6 +1860,9 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
+                # In this context we treat Day as 24H
+                # TODO: will this cause trouble with tzaware cases?
+                freq = freq._maybe_to_hours()
                 try:
                     unit = dtype_to_unit(self._on.dtype)  # type: ignore[arg-type]
                 except TypeError:

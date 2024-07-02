@@ -30,6 +30,7 @@ __all__ = [
     "get_unit_from_dtype",
     "periods_per_day",
     "periods_per_second",
+    "Day",
     "guess_datetime_format",
     "add_overflowsafe",
     "get_supported_dtype",
@@ -61,6 +62,7 @@ from pandas._libs.tslibs.np_datetime import (
 )
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
+    Day,
     Tick,
     to_offset,
 )

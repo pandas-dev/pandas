@@ -177,7 +177,7 @@ class TestTimedeltaIndex:
         # non-conforming freq
         msg = (
             "Inferred frequency None from passed values does not conform to "
-            "passed frequency D"
+            "passed frequency 24h"
         )
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["1 days", "2 days", "4 days"], freq="D")

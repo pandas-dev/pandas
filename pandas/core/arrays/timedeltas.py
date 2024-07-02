@@ -14,6 +14,7 @@ from pandas._libs import (
     tslibs,
 )
 from pandas._libs.tslibs import (
+    Day,
     NaT,
     NaTType,
     Tick,
@@ -256,6 +257,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
+        if isinstance(freq, Day):
+            raise ValueError(
+                "Day offset object is not valid for TimedeltaIndex, "
+                "pass e.g. 24H instead."
+            )
+
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
 
         if dtype is not None:
@@ -273,6 +280,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
+
+        if isinstance(freq, Day):
+            raise TypeError("TimedeltaArray/Index freq must be a Tick or None")
 
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError(

@@ -350,9 +350,9 @@ class TestPartialSetting:
             columns=["A", "B", "C", "D"],
         )
 
-        expected = pd.concat(
-            [df_orig, DataFrame({"A": 7}, index=dates[-1:] + dates.freq)], sort=True
-        )
+        exp_index = dates[-1:] + dates.freq
+        exp_index.freq = dates.freq
+        expected = pd.concat([df_orig, DataFrame({"A": 7}, index=exp_index)], sort=True)
         df = df_orig.copy()
         df.loc[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)

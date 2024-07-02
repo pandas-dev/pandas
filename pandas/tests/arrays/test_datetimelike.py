@@ -93,9 +93,9 @@ class SharedTests:
         """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         if self.array_cls is PeriodArray:
-            arr = self.array_cls(data, freq="D")
+            arr = self.array_cls(data, freq="24h")
         else:
-            arr = self.index_cls(data, freq="D")._data
+            arr = self.index_cls(data, freq="24h")._data
         return arr
 
     def test_compare_len1_raises(self, arr1d):

@@ -9,6 +9,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    Day,
     Resolution,
     Timedelta,
     to_offset,
@@ -114,7 +115,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     >>> pd.TimedeltaIndex(np.arange(5) * 24 * 3600 * 1e9, freq="infer")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[ns]', freq='24h')
     """
 
     _typ = "timedeltaindex"
@@ -292,14 +293,14 @@ def timedelta_range(
     --------
     >>> pd.timedelta_range(start="1 day", periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[ns]', freq='24h')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
     >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
     TimedeltaIndex(['2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[ns]', freq='24h')
 
     The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
     Only fixed frequencies can be passed, non-fixed frequencies such as
@@ -322,12 +323,22 @@ def timedelta_range(
 
     >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
     TimedeltaIndex(['1 days', '100001 days', '200001 days'],
-                   dtype='timedelta64[s]', freq='100000D')
+                   dtype='timedelta64[s]', freq='2400000h')
     """
     if freq is None and com.any_none(periods, start, end):
-        freq = "D"
+        freq = "24h"
+
+    if isinstance(freq, Day):
+        # If a user specifically passes a Day *object* we disallow it,
+        #  but if they pass a Day-like string we'll convert it to hourly below.
+        raise ValueError(
+            "Passing a Day offset to timedelta_range is not allowed, "
+            "pass an hourly offset instead"
+        )
 
     freq = to_offset(freq)
+    if freq is not None:
+        freq = freq._maybe_to_hours()
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )
