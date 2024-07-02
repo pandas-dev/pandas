@@ -346,9 +346,11 @@ class TestMultiIndexConcat:
             performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
-
         df_b = DataFrame(
-            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
+            {"name": [1, 2, 3]},
+            index=MultiIndex(
+                levels=[["x", "y"], range(1)], codes=[[0, 1, 0], [0, 0, 0]]
+            ),
         )
         with tm.assert_produces_warning(
             performance_warning, match="indexing past lexsort depth"

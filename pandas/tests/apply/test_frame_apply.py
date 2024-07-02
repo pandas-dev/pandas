@@ -368,18 +368,18 @@ def test_apply_mixed_dtype_corner():
     result = df[:0].apply(np.mean, axis=1)
     # the result here is actually kind of ambiguous, should it be a Series
     # or a DataFrame?
-    expected = Series(np.nan, index=pd.Index([], dtype="int64"))
+    expected = Series(dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 
 def test_apply_mixed_dtype_corner_indexing():
     df = DataFrame({"A": ["foo"], "B": [1.0]})
     result = df.apply(lambda x: x["A"], axis=1)
-    expected = Series(["foo"], index=[0])
+    expected = Series(["foo"], index=range(1))
     tm.assert_series_equal(result, expected)
 
     result = df.apply(lambda x: x["B"], axis=1)
-    expected = Series([1.0], index=[0])
+    expected = Series([1.0], index=range(1))
     tm.assert_series_equal(result, expected)
 
 
@@ -1037,7 +1037,7 @@ def test_result_type(int_frame_const_col):
 
     result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
     expected = df.copy()
-    expected.columns = [0, 1, 2]
+    expected.columns = range(3)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1047,7 +1047,7 @@ def test_result_type_shorter_list(int_frame_const_col):
     df = int_frame_const_col
     result = df.apply(lambda x: [1, 2], axis=1, result_type="expand")
     expected = df[["A", "B"]].copy()
-    expected.columns = [0, 1]
+    expected.columns = range(2)
     tm.assert_frame_equal(result, expected)
 
 

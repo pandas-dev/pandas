@@ -127,7 +127,7 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, axis=1, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
+        expected = Series([3.0, 4.0], index=range(2), name=0.5)
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
         tm.assert_series_equal(result, expected)

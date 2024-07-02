@@ -33,8 +33,8 @@ class BaseReshapingTests:
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
-        valid_block = pd.Series(data_missing.take([1, 1]), index=[0, 1])
-        na_block = pd.Series(data_missing.take([0, 0]), index=[2, 3])
+        valid_block = pd.Series(data_missing.take([1, 1]), index=range(2))
+        na_block = pd.Series(data_missing.take([0, 0]), index=range(2, 4))
         if in_frame:
             valid_block = pd.DataFrame({"a": valid_block})
             na_block = pd.DataFrame({"a": na_block})

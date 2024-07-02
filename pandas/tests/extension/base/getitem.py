@@ -408,7 +408,7 @@ class BaseGetitemTests:
         result = s.take([0, -1])
         expected = pd.Series(
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
-            index=[0, len(data) - 1],
+            index=range(0, 198, 99),
         )
         tm.assert_series_equal(result, expected)
 
@@ -428,7 +428,8 @@ class BaseGetitemTests:
 
         result = s.reindex([n, n + 1])
         expected = pd.Series(
-            data._from_sequence([na_value, na_value], dtype=s.dtype), index=[n, n + 1]
+            data._from_sequence([na_value, na_value], dtype=s.dtype),
+            index=range(n, n + 2, 1),
         )
         tm.assert_series_equal(result, expected)
 
