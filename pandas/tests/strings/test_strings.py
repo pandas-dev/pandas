@@ -217,6 +217,19 @@ def test_ismethods(method, expected, any_string_dtype):
     assert list(result) == expected
 
 
+def test_isascii(any_string_dtype):
+    ser = Series(
+        ["a", "bb", "123", "あ", "\n", "", " ", "¼"],
+        dtype=any_string_dtype,
+    )
+    expected_dtype = "bool" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    result = ser.str.isascii()
+    expected = Series(
+        [True, True, True, False, True, True, True, False], dtype=expected_dtype
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, expected",
     [
