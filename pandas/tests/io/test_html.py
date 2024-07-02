@@ -1261,8 +1261,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-            ),
-            skip_blank_lines=False,
+            )
         )[0]
         expected = DataFrame(data=[["a", "b"], ["  ", " "]], columns=["A", "B"])
 
@@ -1278,8 +1277,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-            ),
-            skip_blank_lines=False,
+            )
         )[0]
 
         expected = DataFrame(data=[" "])

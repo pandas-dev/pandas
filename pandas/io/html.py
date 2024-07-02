@@ -1030,7 +1030,6 @@ def read_html(
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
-    skip_blank_lines: bool = True,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1150,9 +1149,6 @@ def read_html(
 
         .. versionadded:: 2.1.0
 
-    skip_blank_lines : bool, default True
-        Whether lines containing only spaces should be skipped or not.
-
     Returns
     -------
     dfs
@@ -1228,5 +1224,5 @@ def read_html(
         extract_links=extract_links,
         dtype_backend=dtype_backend,
         storage_options=storage_options,
-        skip_blank_lines=skip_blank_lines,
+        skip_blank_lines=False,
     )
