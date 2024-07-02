@@ -309,7 +309,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         >>> pd.CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
         CategoricalDtype(categories=['x', 'y'], ordered=False, categories_dtype=object)
         """
-
         if dtype is not None:
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):

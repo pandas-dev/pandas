@@ -33,5 +33,6 @@ __all__ = [
     "PeriodArray",
     "SparseArray",
     "StringArray",
+    "ObjectStringArray",
     "TimedeltaArray",
 ]

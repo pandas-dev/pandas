@@ -623,7 +623,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype = _dtype_obj
         return dtype, fill_value
 
-    if is_valid_na_for_dtype(fill_value, dtype) and dtype.kind in "iufcmM":
+    if is_valid_na_for_dtype(fill_value, dtype) and dtype.kind in "iufcmMT":
         dtype = ensure_dtype_can_hold_na(dtype)
         fv = na_value_for_dtype(dtype)
         return dtype, fv
@@ -722,11 +722,13 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                 # e.g. mst is np.complex128 and dtype is np.complex64
                 dtype = mst
 
+    elif is_string_dtype(dtype) and dtype.kind == "T":
+        pass
     else:
         dtype = np.dtype(np.object_)
 
     # in case we have a string that looked like a number
-    if issubclass(dtype.type, (bytes, str)):
+    if dtype.kind in "SU":
         dtype = np.dtype(np.object_)
 
     fill_value = _ensure_dtype_type(fill_value, dtype)

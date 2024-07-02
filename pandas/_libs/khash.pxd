@@ -125,5 +125,13 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     khuint_t kh_needed_n_buckets(khuint_t element_n) nogil
 
+    # Needed to free the strings we copied in StringHashTable
+
+    khuint_t kh_end(kh_str_t* h) nogil
+
+    int kh_exist(kh_str_t* h, khuint_t x) nogil
+
+    void* kh_key(kh_str_t* h, khuint_t x) nogil
+
 
 include "khash_for_primitive_helper.pxi"

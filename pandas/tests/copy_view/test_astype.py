@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
@@ -82,6 +83,10 @@ def test_astype_numpy_to_ea():
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
+@pytest.mark.skipif(
+    np_version_gt2,
+    reason="When numpy 2.0 is available, StringArray is not backed by object array",
+)
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -95,6 +100,10 @@ def test_astype_string_and_object(dtype, new_dtype):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.skipif(
+    np_version_gt2,
+    reason="When numpy 2.0 is available, StringArray is not backed by object array",
+)
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -215,7 +224,11 @@ def test_convert_dtypes():
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if not np_version_gt2:
+        # With numpy 2.0, StringArray will no longer be backed by an object array
+        # but a numpy StringDType backed array
+        # so this equivalence doesn't hold anymore
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
     assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))

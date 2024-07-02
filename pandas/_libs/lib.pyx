@@ -675,41 +675,36 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     return True
 
 
-ctypedef fused ndarr_object:
-    ndarray[object, ndim=1]
-    ndarray[object, ndim=2]
-
 # TODO: get rid of this in StringArray and modify
 #  and go through ensure_string_array instead
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def convert_nans_to_NA(ndarr_object arr) -> ndarray:
+def convert_nans_to_NA(ndarray arr) -> ndarray:
     """
     Helper for StringArray that converts null values that
     are not pd.NA(e.g. np.nan, None) to pd.NA. Assumes elements
     have already been validated as null.
     """
     cdef:
-        Py_ssize_t i, m, n
+        Py_ssize_t i
+        Py_ssize_t n = len(arr)
         object val
-        ndarr_object result
-    result = np.asarray(arr, dtype="object")
-    if arr.ndim == 2:
-        m, n = arr.shape[0], arr.shape[1]
-        for i in range(m):
-            for j in range(n):
-                val = arr[i, j]
-                if not isinstance(val, str):
-                    result[i, j] = <object>C_NA
-    else:
-        n = len(arr)
-        for i in range(n):
-            val = arr[i]
-            if not isinstance(val, str):
-                result[i] = <object>C_NA
-    return result
+        flatiter it = cnp.PyArray_IterNew(arr)
+
+    for i in range(n):
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+
+        # Not string so has to be null since they're already validated
+        if not isinstance(val, str):
+            val = <object>C_NA
+
+        PyArray_SETITEM(arr, PyArray_ITER_DATA(it), val)
+
+        PyArray_ITER_NEXT(it)
 
 
 @cython.wraparound(False)
@@ -1475,6 +1470,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - mixed
     - unknown-array
 
+    Returns a dtype object for non-legacy numpy dtypes
+
     Raises
     ------
     TypeError
@@ -1585,6 +1582,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if inferred is not None:
         # Anything other than object-dtype should return here.
         return inferred
+    elif values.dtype.kind == "T":
+        # NumPy StringDType
+        return values.dtype
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
@@ -1600,7 +1600,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     it = PyArray_IterNew(values)
     for i in range(n):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
-        #  equivalents to `val = values[i]`
+        # equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
         PyArray_ITER_NEXT(it)
 
@@ -1911,7 +1911,10 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return self.dtype.type_num == cnp.NPY_UNICODE
+        if self.dtype.char == "T" or self.dtype.char == "U":
+            return True
+        # this lets user-defined string DTypes through
+        return issubclass(<object>self.dtype.typeobj, (np.str_, str))
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):

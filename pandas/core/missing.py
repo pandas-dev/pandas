@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     is_object_dtype,
     needs_i8_conversion,
+    needs_object_conversion,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
@@ -872,9 +873,9 @@ def _fillna_prep(
     return mask
 
 
-def _datetimelike_compat(func: F) -> F:
+def _no_buffer_protocol_compat(func: F) -> F:
     """
-    Wrapper to handle datetime64 and timedelta64 dtypes.
+    Wrapper to handle dtypes that don't support the buffer protocol
     """
 
     @wraps(func)
@@ -893,13 +894,21 @@ def _datetimelike_compat(func: F) -> F:
                 values.view("i8"), limit=limit, limit_area=limit_area, mask=mask
             )
             return result.view(values.dtype), mask
-
+        if needs_object_conversion(values.dtype):
+            if mask is None:
+                # This needs to occur before casting to int64
+                mask = isna(values)
+            result, mask = func(
+                values.astype(object), limit=limit, limit_area=limit_area, mask=mask
+            )
+            values[:] = result[:]
+            return result.astype(values.dtype), mask
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
     return cast(F, new_func)
 
 
-@_datetimelike_compat
+@_no_buffer_protocol_compat
 def _pad_1d(
     values: np.ndarray,
     limit: int | None = None,
@@ -913,7 +922,7 @@ def _pad_1d(
     return values, mask
 
 
-@_datetimelike_compat
+@_no_buffer_protocol_compat
 def _backfill_1d(
     values: np.ndarray,
     limit: int | None = None,
@@ -927,7 +936,7 @@ def _backfill_1d(
     return values, mask
 
 
-@_datetimelike_compat
+@_no_buffer_protocol_compat
 def _pad_2d(
     values: np.ndarray,
     limit: int | None = None,
@@ -943,7 +952,7 @@ def _pad_2d(
     return values, mask
 
 
-@_datetimelike_compat
+@_no_buffer_protocol_compat
 def _backfill_2d(
     values,
     limit: int | None = None,

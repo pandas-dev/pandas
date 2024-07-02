@@ -124,6 +124,10 @@ def test_numpy_ufuncs_other(index, func):
         with tm.external_error_raised(TypeError):
             func(index)
 
+    elif index.dtype == "string[python]" and func is np.isnan:
+        with tm.external_error_raised(ValueError):
+            func(index)
+
     elif is_numeric_dtype(index) and not (
         is_complex_dtype(index) and func is np.signbit
     ):

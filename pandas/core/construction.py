@@ -739,6 +739,9 @@ def _sanitize_str_dtypes(
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
+
+    # TODO: Don't cast for numpy 2.0 StringDType and directly create
+    # StringArray?
     if issubclass(result.dtype.type, str):
         # GH#16605
         # If not empty convert the data to dtype
