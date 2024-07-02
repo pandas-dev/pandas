@@ -2454,7 +2454,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
-                          object dtype_if_all_nat=None) -> "ArrayLike":
+                          object dtype_if_all_nat=None,
+                          str storage=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2477,6 +2478,8 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
+    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+        Backend storage
 
     Returns
     -------
@@ -2494,6 +2497,9 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
+
+    if storage is None:
+        storage="pyarrow_numpy"
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2699,10 +2705,13 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
+        if (
+            (using_pyarrow_string_dtype() or storage == "pyarrow")
+            and is_string_array(objects, skipna=True)
+        ):
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow_numpy")
+            dtype = StringDtype(storage=storage)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
@@ -2815,12 +2824,19 @@ def maybe_convert_objects(ndarray[object] objects,
 
         # TODO: do these after the itemsize check?
         if (result is ints or result is uints) and convert_to_nullable_dtype:
-            from pandas.core.arrays import IntegerArray
+            if storage == "pyarrow":
+                from pandas.core.dtypes.dtypes import ArrowDtype
 
-            # Set these values to 1 to be deterministic, match
-            #  IntegerDtype._internal_fill_value
-            result[mask] = 1
-            result = IntegerArray(result, mask)
+                dtype = ArrowDtype(pa.int64())
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            else:
+                from pandas.core.arrays import IntegerArray
+
+                # Set these values to 1 to be deterministic, match
+                #  IntegerDtype._internal_fill_value
+                result[mask] = 1
+                result = IntegerArray(result, mask)
+
         elif result is floats and convert_to_nullable_dtype:
             from pandas.core.arrays import FloatingArray
 
@@ -2864,7 +2880,9 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
-    cnp.dtype dtype=np.dtype(object)
+    bint convert_to_nullable_dtype=False,
+    cnp.dtype dtype=np.dtype(object),
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2882,6 +2900,8 @@ def map_infer_mask(
         input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
+    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+        Backend storage
 
     Returns
     -------
@@ -2917,7 +2937,11 @@ def map_infer_mask(
         PyArray_ITER_NEXT(result_it)
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            storage=storage,
+        )
     else:
         return result
 
@@ -2925,7 +2949,15 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+    ndarray arr,
+    object f,
+    *,
+    bint convert=True,
+    bint ignore_na=False,
+    const uint8_t[:] mask=None,
+    object na_value=None,
+    bint convert_to_nullable_dtype=False,
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2937,6 +2969,15 @@ def map_infer(
     convert : bint
     ignore_na : bint
         If True, NA values will not have f applied
+    mask : ndarray, optional
+        uint8 dtype ndarray indicating na_value to apply `f` to.
+    na_value : Any, optional
+        The input value to use for masked values.
+    convert_to_nullable_dtype : bool, default False
+        If an array-like object contains only integer or boolean values (and NaN) is
+        encountered, whether to convert and return an Boolean/IntegerArray.
+    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+        Backend storage
 
     Returns
     -------
@@ -2953,7 +2994,10 @@ def map_infer(
         if ignore_na and checknull(arr[i]):
             result[i] = arr[i]
             continue
-        val = f(arr[i])
+        elif mask is not None and na_value is not None and mask[i]:
+            val = f(na_value)
+        else:
+            val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
@@ -2962,7 +3006,12 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=True,
+            storage=storage,
+        )
     else:
         return result
 

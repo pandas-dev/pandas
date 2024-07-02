@@ -23,6 +23,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1664,7 +1665,10 @@ def map_array(
             from pandas import Series
 
             if len(mapper) == 0:
-                mapper = Series(mapper, dtype=np.float64)
+                if is_extension_array_dtype(arr.dtype) and arr.dtype.na_value is NA:
+                    mapper = Series(mapper, dtype=arr.dtype)
+                else:
+                    mapper = Series(mapper, dtype=np.float64)
             else:
                 mapper = Series(mapper)
 
@@ -1682,9 +1686,48 @@ def map_array(
     if not len(arr):
         return arr.copy()
 
-    # we must convert to python types
-    values = arr.astype(object, copy=False)
-    if na_action is None:
-        return lib.map_infer(values, mapper)
+    na_value = np.nan
+    mask = isna(arr)
+    storage = None
+    if isinstance(arr.dtype, BaseMaskedDtype):
+        arr = cast("BaseMaskedArray", arr)
+        values = arr._data
+        if arr._hasna:
+            na_value = arr.dtype.na_value
+    elif isinstance(arr.dtype, ExtensionDtype):
+        arr = cast("ExtensionArray", arr)
+        arr_dtype = arr.dtype.__repr__()
+        if "pyarrow" in arr_dtype:
+            if any(
+                time_type in arr_dtype for time_type in ["date", "time", "duration"]
+            ):
+                values = arr.astype(object, copy=False)
+            else:
+                values = arr._pa_array.to_numpy()
+            storage = "pyarrow"
+        else:
+            values = np.asarray(arr)
+        if arr._hasna:
+            na_value = arr.dtype.na_value
     else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+        # we must convert to python types
+        values = arr.astype(object, copy=False)
+
+    if na_action is None:
+        return lib.map_infer(
+            values,
+            mapper,
+            mask=mask,
+            na_value=na_value,
+            convert_to_nullable_dtype=na_value is NA,
+            storage=storage,
+        )
+    else:
+        return lib.map_infer_mask(
+            values,
+            mapper,
+            mask=mask,
+            na_value=na_value,
+            convert_to_nullable_dtype=na_value is NA,
+            storage=storage,
+        )
