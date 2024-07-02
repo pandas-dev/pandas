@@ -407,6 +407,7 @@ either the left or right tables, the values in the joined table will be
     ``right``, ``RIGHT OUTER JOIN``, Use keys from right frame only
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
+    ``leftsemi``, ``LEFT SEMI JOIN``, Filter rows on left based on occurrences in right.
     ``cross``, ``CROSS JOIN``, Create the cartesian product of rows of both frames
 
 .. ipython:: python
