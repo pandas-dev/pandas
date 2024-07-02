@@ -30,9 +30,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
 )
-from pandas.core.dtypes.missing import notna
-
-from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_handle
 
@@ -46,6 +43,8 @@ if TYPE_CHECKING:
         WriteBuffer,
         npt,
     )
+
+    from pandas.core.indexes.api import Index
 
     from pandas.io.formats.format import DataFrameFormatter
 
@@ -194,9 +193,9 @@ class CSVFormatter:
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
-            data_index = Index(
-                [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
-            )
+            # Format and replace missing entries with empty string
+            data_index = data_index.strftime(date_format=self.date_format)
+            data_index = data_index.fillna("")  # type: ignore[no-untyped-call]
         elif isinstance(data_index, ABCMultiIndex):
             data_index = data_index.remove_unused_levels()
         return data_index
@@ -317,9 +316,12 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
 
+        # Format the values. Note: `self._number_format` includes `date_format` if any
         res = df._get_values_for_csv(**self._number_format)
         data = list(res._iter_column_arrays())
 
+        # Format the index. Note that if `self.date_format` is not None the actual
+        # formatting is done beforehand, inside the `.data_index` property accessor.
         ix = self.data_index[slicer]._get_values_for_csv(**self._number_format)
         libwriters.write_csv_rows(
             data,

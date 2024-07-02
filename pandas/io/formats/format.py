@@ -40,6 +40,8 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
 )
 from pandas._libs.tslibs.nattype import NaTType
 
@@ -1610,12 +1612,20 @@ def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
     nat_rep: str = "NaT",
     date_format: str | None = None,
+    str_date_fmt: str | None = None,
+    locale_dt_strings: object | None = None,
 ) -> str:
+    """str_date_fmt, locale_dt_strings are for fast strftime"""
     if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
-        return x.strftime(date_format)
+        if str_date_fmt:
+            # Faster, using string formatting
+            return x._strftime_pystr(str_date_fmt, locale_dt_strings)
+        else:
+            # Slower
+            return x.strftime(date_format)
     else:
         # Timestamp._date_repr relies on string formatting (faster than strftime)
         return x._date_repr
@@ -1628,10 +1638,26 @@ def get_format_datetime64(
     a string as output"""
 
     if is_dates_only:
+        str_date_fmt = locale_dt_strings = None
+        if date_format is not None:
+            try:
+                # Try to get the string formatting template for this format
+                str_date_fmt, locale_dt_strings = convert_strftime_format(
+                    date_format, target="datetime"
+                )
+            except UnsupportedStrFmtDirective:
+                # Unsupported directive: fallback to standard `strftime`
+                pass
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
+            x,
+            nat_rep=nat_rep,
+            date_format=date_format,
+            str_date_fmt=str_date_fmt,
+            locale_dt_strings=locale_dt_strings,
         )
     else:
+        # Relies on datetime.str, which is fast already
+        # TODO why is date_format not used in this case ? This seems like a bug?
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
@@ -1640,10 +1666,10 @@ class _Datetime64TZFormatter(_Datetime64Formatter):
 
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
-        ido = self.values._is_dates_only
         values = self.values.astype(object)
         formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
+            is_dates_only=False,
+            date_format=self.date_format,
         )
         fmt_values = [formatter(x) for x in values]
 
@@ -1664,6 +1690,7 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         self.nat_rep = nat_rep
 
     def _format_strings(self) -> list[str]:
+        # Note: `get_format_timedelta64` uses fast formatting
         formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=False
         )

@@ -1,15 +1,26 @@
+from contextlib import nullcontext
 from datetime import (
     datetime,
+    time,
     timezone,
 )
+import locale
 import pprint
 
 import dateutil.tz
 import pytest
+from pytz.exceptions import NonExistentTimeError
 
-from pandas.compat import WASM
+from pandas.compat import (
+    ISMUSL,
+    WASM,
+    is_platform_linux,
+)
 
 from pandas import Timestamp
+import pandas._testing as tm
+
+from pandas.tseries.api import convert_strftime_format
 
 ts_no_ns = Timestamp(
     year=2019,
@@ -89,6 +100,13 @@ ts_no_us = Timestamp(
 )
 def test_isoformat(ts, timespec, expected_iso):
     assert ts.isoformat(timespec=timespec) == expected_iso
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 class TestTimestampRendering:
@@ -204,3 +222,87 @@ class TestTimestampRendering:
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
+
+    def test_timestamp_repr_strftime_small_year_date(self):
+        stamp = Timestamp("0002-01-01")
+        assert repr(stamp) == "Timestamp('2-01-01 00:00:00')"
+
+        # Make sure we have zero-padding, consistent with python strftime doc
+        # Note: current behaviour of strftime with %Y is OS-dependent
+        if WASM or (is_platform_linux() and not ISMUSL):
+            assert stamp.strftime("%Y") == "2", f"Actual: {stamp.strftime('%Y')}"
+        else:
+            assert stamp.strftime("%Y") == "0002", f"Actual: {stamp.strftime('%Y')}"
+
+        # This is not OS-dependent
+        str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
+        assert stamp._strftime_pystr(str_tmp, loc_dt_s) == "0002"
+
+    def test_timestamp_repr_strftime_small_shortyear_date(self):
+        stamp = Timestamp("1902-01-01")
+        assert repr(stamp) == "Timestamp('1902-01-01 00:00:00')"
+
+        # Make sure we have zero-padding, consistent with python strftime doc
+        assert stamp.strftime("%y") == "02", f"actual: {stamp.strftime('%y')}"
+        str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
+        assert stamp._strftime_pystr(str_tmp, loc_dt_s) == "02"
+
+    def test_timestamp_repr_strftime_negative_date(self):
+        stamp = Timestamp("-0020-01-01")
+        assert repr(stamp) == "Timestamp('-20-01-01 00:00:00')"
+
+        with pytest.raises(
+            NotImplementedError,
+            match="strftime not yet supported on Timestamps which are outside the "
+            "range of Python's standard library.",
+        ):
+            stamp.strftime("%y")
+
+        str_tmp, loc_dt_s = convert_strftime_format("%y", target="datetime")
+        assert Timestamp("-0020-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-20"
+        assert Timestamp("-0002-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-2"
+
+        str_tmp, loc_dt_s = convert_strftime_format("%Y", target="datetime")
+        assert Timestamp("-2020-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-2020"
+        assert Timestamp("-0200-01-01")._strftime_pystr(str_tmp, loc_dt_s) == "-200"
+
+        with pytest.raises(NonExistentTimeError):
+            Timestamp("-0020-01-01", tz="US/Eastern")
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_strftime_locale(self, locale_str):
+        """
+        Test that `convert_strftime_format` and `_strftime_pystr`
+        work well together and rely on runtime locale
+        """
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="datetime")
+            assert str_tmp == "%(ampm)s"
+
+            # Now what about the classes ?
+            # Timestamp
+            am_ts = Timestamp(2020, 1, 1, 1)
+            assert am_local == am_ts.strftime("%p")
+            assert am_local == am_ts._strftime_pystr(str_tmp, loc_s)
+            pm_ts = Timestamp(2020, 1, 1, 13)
+            assert pm_local == pm_ts.strftime("%p")
+            assert pm_local == pm_ts._strftime_pystr(str_tmp, loc_s)
