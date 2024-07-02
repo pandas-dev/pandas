@@ -1380,6 +1380,201 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # (simplifying the negation allows this to be done in less operations)
         return op1(self.left, other.right) & op2(other.left, self.right)
 
+    _interval_shared_docs["intersection"] = textwrap.dedent(
+        """
+    Calculates intersection between all intervals in the %(klass)s and a given
+    Interval.
+
+    The intersection of two intervals is the common points shared between both,
+    including closed endpoints. Open endpoints are not included.
+
+    Parameters
+    ----------
+    other : Interval
+        Interval to which to calculate the intersection.
+
+    Returns
+    -------
+    array
+        Array containing the Intersections between each interval and other.
+
+    See Also
+    --------
+    Interval.intersection : Calculate intersection between two Interval objects.
+
+    Examples
+    --------
+    %(examples)s
+
+    >>> intervals.intersection(pd.Interval(0, 2, 'right'))
+    array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+           None], dtype=object)
+
+    Intersection with a single value:
+
+    >>> intervals.intersection(pd.Interval(5, 8, closed='left'))
+    array([None, Interval(5, 5, closed='both'), None], dtype=object)
+    """
+    )
+
+    @Appender(
+        _interval_shared_docs["intersection"]
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
+                """\
+        >>> data = [(0, 1), (1, 5), (2, 4)]
+        >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
+        >>> intervals
+        <IntervalArray>
+        [(0, 1], (1, 5], (2, 4]]
+        Length: 3, dtype: interval[int64, right]
+        """
+            ),
+        }
+    )
+    def intersection(self, other):
+        if isinstance(other, (IntervalArray, ABCIntervalIndex)):
+            raise NotImplementedError
+        if not isinstance(other, Interval):
+            msg = f"`other` must be Interval-like, got {type(other).__name__}"
+            raise TypeError(msg)
+
+        return np.array(
+            [interval.intersection(other) for interval in self], dtype=object
+        )
+
+    _interval_shared_docs["union"] = textwrap.dedent(
+        """
+    Calculates union between each interval in the %(klass)s and a given
+    Interval.
+
+    The union of two intervals are all the values in both, including
+    closed endpoints.
+
+    Parameters
+    ----------
+    other : Interval
+        Interval to which to calculate the union.
+
+    Returns
+    -------
+    array
+        Array of arrays containing the unions between each interval and other.
+
+    See Also
+    --------
+    Interval.union : Calculate union between two Interval objects.
+
+    Examples
+    --------
+    %(examples)s
+
+    >>> intervals.union(pd.Interval(0, 2, 'right'))
+    array([[Interval(0, 2, closed='right')],
+           [Interval(0, 5, closed='right')],
+           [Interval(0, 4, closed='right')]], dtype=object)
+
+    >>> intervals.union(pd.Interval(5, 8, closed='left'))
+    array([array([Interval(0, 1, closed='right'), Interval(5, 8, closed='left')],
+                 dtype=object)                                                   ,
+           array([Interval(1, 8, closed='neither')], dtype=object),
+           array([Interval(2, 4, closed='right'), Interval(5, 8, closed='left')],
+                 dtype=object)                                                   ],
+          dtype=object)
+    """
+    )
+
+    @Appender(
+        _interval_shared_docs["union"]
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
+                """\
+        >>> data = [(0, 1), (1, 5), (2, 4)]
+        >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
+        >>> intervals
+        <IntervalArray>
+        [(0, 1], (1, 5], (2, 4]]
+        Length: 3, dtype: interval[int64, right]
+        """
+            ),
+        }
+    )
+    def union(self, other):
+        if isinstance(other, (IntervalArray, ABCIntervalIndex)):
+            raise NotImplementedError
+        if not isinstance(other, Interval):
+            msg = f"`other` must be Interval-like, got {type(other).__name__}"
+            raise TypeError(msg)
+
+        return np.array([interval.union(other) for interval in self], dtype=object)
+
+    _interval_shared_docs["difference"] = textwrap.dedent(
+        """
+    Calculates difference between each Interval in the %(klass)s and a given
+    Interval.
+
+    The difference between two intervals are the points in the first
+    interval that are not shared with the second interval.
+
+    Parameters
+    ----------
+    other : Interval
+        Interval to which to calculate the difference.
+
+    Returns
+    -------
+    array
+        Array of arrays containing the differences between each interval and other.
+
+    See Also
+    --------
+    Interval.difference : Calculate difference between two Interval objects.
+
+    Examples
+    --------
+    %(examples)s
+
+    >>> intervals.difference(pd.Interval(0, 2, 'right'))
+    array([[Interval(0, 0, closed='both')],
+           [Interval(2, 5, closed='right')],
+           [Interval(2, 4, closed='right')]], dtype=object)
+
+    >>> intervals.difference(pd.Interval(2, 3, closed='left'))
+    array([array([Interval(0, 1, closed='right')], dtype=object),
+           array([Interval(1, 2, closed='neither'), Interval(3, 5, closed='both')],
+                 dtype=object)                                                     ,
+           array([Interval(3, 4, closed='right')], dtype=object)],
+          dtype=object)
+    """
+    )
+
+    @Appender(
+        _interval_shared_docs["difference"]
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
+                """\
+        >>> data = [(0, 1), (1, 5), (2, 4)]
+        >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
+        >>> intervals
+        <IntervalArray>
+        [(0, 1], (1, 5], (2, 4]]
+        Length: 3, dtype: interval[int64, right]
+        """
+            ),
+        }
+    )
+    def difference(self, other):
+        if isinstance(other, (IntervalArray, ABCIntervalIndex)):
+            raise NotImplementedError
+        if not isinstance(other, Interval):
+            msg = f"`other` must be Interval-like, got {type(other).__name__}"
+            raise TypeError(msg)
+
+        return np.array([interval.difference(other) for interval in self], dtype=object)
+
     # ---------------------------------------------------------------------
 
     @property

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas import (
@@ -5,6 +6,7 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -65,3 +67,353 @@ class TestOverlaps:
         msg = f"`other` must be an Interval, got {type(other).__name__}"
         with pytest.raises(TypeError, match=msg):
             interval.overlaps(other)
+
+
+class TestIntersection:
+    def test_intersection_self(self):
+        interval = Interval(1, 8, "left")
+        assert interval.intersection(interval) == interval
+
+    def test_intersection_include_limits(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(7, 9, "left"),  # include left
+                Interval(0, 2, "right"),  # include right
+                Interval(1, 8, "right"),  # open limit
+            ]
+        )
+
+        expected = np.array(
+            [
+                Interval(7, 8, "left"),
+                Interval(1, 2, "both"),
+                Interval(1, 8, "neither"),
+            ]
+        )
+
+        result = np.array([interval.intersection(other) for interval in intervals])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_intersection_overlapping(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(2, 4, "both"),  # nested
+                Interval(0, 9, "both"),  # spanning
+                Interval(4, 10, "both"),  # partial
+            ]
+        )
+
+        expected = np.array(
+            [
+                Interval(2, 4, "both"),
+                Interval(1, 8, "left"),
+                Interval(4, 8, "left"),
+            ]
+        )
+
+        result = np.array([interval.intersection(other) for interval in intervals])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_intersection_adjacent(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(-5, 1, "both"),  # adjacent closed
+                Interval(8, 10, "both"),  # adjacent open
+                Interval(10, 15, "both"),  # disjoint
+            ]
+        )
+
+        expected = np.array(
+            [
+                Interval(1, 1, "both"),
+                None,
+                None,
+            ]
+        )
+
+        result = np.array([interval.intersection(other) for interval in intervals])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_intersection_timestamps(self):
+        year_2020 = Interval(
+            Timestamp("2020-01-01 00:00:00"),
+            Timestamp("2021-01-01 00:00:00"),
+            closed="left",
+        )
+
+        march_2020 = Interval(
+            Timestamp("2020-03-01 00:00:00"),
+            Timestamp("2020-04-01 00:00:00"),
+            closed="left",
+        )
+
+        result = year_2020.intersection(march_2020)
+        assert result == march_2020
+
+    @pytest.mark.parametrize(
+        "other",
+        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_intersection_invalid_type(self, other):
+        interval = Interval(0, 1)
+        msg = f"`other` must be an Interval, got {type(other).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            interval.intersection(other)
+
+
+class TestUnion:
+    def test_union_self(self):
+        interval = Interval(1, 8, "left")
+
+        result = interval.union(interval)
+
+        expected = np.array([interval], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_union_include_limits(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(7, 9, "left"),  # include left
+                Interval(0, 2, "right"),  # include right
+                Interval(1, 8, "right"),  # open limit
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array([Interval(1, 9, "left")], dtype=object),
+                np.array([Interval(0, 8, "neither")], dtype=object),
+                np.array([Interval(1, 8, "both")], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array([interval.union(other) for interval in intervals])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_union_overlapping(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(2, 4, "both"),  # nested
+                Interval(0, 9, "both"),  # spanning
+                Interval(4, 10, "both"),  # partial
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array([Interval(1, 8, "left")], dtype=object),
+                np.array([Interval(0, 9, "both")], dtype=object),
+                np.array([Interval(1, 10, "both")], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array([interval.union(other) for interval in intervals])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_union_adjacent(self):
+        other = Interval(1, 8, "left")
+
+        intervals = np.array(
+            [
+                Interval(-5, 1, "both"),  # adjacent closed
+                Interval(8, 10, "both"),  # adjacent open
+                Interval(10, 15, "both"),  # disjoint
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array([Interval(-5, 8, "left")], dtype=object),
+                np.array([Interval(1, 10, "both")], dtype=object),
+                np.array([other, Interval(10, 15, "both")], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array(
+            [interval.union(other) for interval in intervals], dtype=object
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_union_timestamps(self):
+        year_2020 = Interval(
+            Timestamp("2020-01-01 00:00:00"),
+            Timestamp("2021-01-01 00:00:00"),
+            closed="left",
+        )
+
+        year_2021 = Interval(
+            Timestamp("2021-01-01 00:00:00"),
+            Timestamp("2022-01-01 00:00:00"),
+            closed="left",
+        )
+
+        expected = np.array(
+            [
+                Interval(
+                    Timestamp("2020-01-01 00:00:00"),
+                    Timestamp("2022-01-01 00:00:00"),
+                    closed="left",
+                )
+            ],
+            dtype=object,
+        )
+
+        result = year_2020.union(year_2021)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_union_invalid_type(self, other):
+        interval = Interval(0, 1)
+        msg = f"`other` must be an Interval, got {type(other).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            interval.union(other)
+
+
+class TestDifference:
+    def test_difference_self(self):
+        interval = Interval(1, 8, "left")
+
+        result = interval.difference(interval)
+
+        expected = np.array([], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_difference_include_limits(self):
+        interval = Interval(1, 8, "left")
+
+        others = np.array(
+            [
+                Interval(7, 9, "left"),  # include right
+                Interval(0, 2, "right"),  # include left
+                Interval(1, 8, "right"),  # open limit
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array([Interval(1, 7, "left")], dtype=object),
+                np.array([Interval(2, 8, "neither")], dtype=object),
+                np.array([Interval(1, 1, "both")], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array([interval.difference(other) for other in others])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_difference_overlapping(self):
+        interval = Interval(1, 8, "left")
+
+        others = np.array(
+            [
+                Interval(2, 4, "both"),  # nested
+                Interval(0, 9, "both"),  # spanning
+                Interval(4, 10, "both"),  # partial
+                Interval(0, 8, "both"),  # extends left
+                Interval(1, 9, "both"),  # extends right
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array(
+                    [Interval(1, 2, "left"), Interval(4, 8, "neither")], dtype=object
+                ),
+                np.array([], dtype=object),
+                np.array([Interval(1, 4, "left")], dtype=object),
+                np.array([], dtype=object),
+                np.array([], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array(
+            [interval.difference(other) for other in others], dtype=object
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_difference_adjacent(self):
+        interval = Interval(1, 8, "left")
+
+        others = np.array(
+            [
+                Interval(-5, 1, "both"),  # adjacent closed
+                Interval(8, 10, "both"),  # adjacent open
+                Interval(10, 15, "both"),  # disjoint
+            ]
+        )
+
+        expected = np.array(
+            [
+                np.array([Interval(1, 8, "neither")], dtype=object),
+                np.array([interval], dtype=object),
+                np.array([interval], dtype=object),
+            ],
+            dtype=object,
+        )
+
+        result = np.array(
+            [interval.difference(other) for other in others], dtype=object
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_difference_timestamps(self):
+        year_2020 = Interval(
+            Timestamp("2020-01-01 00:00:00"),
+            Timestamp("2021-01-01 00:00:00"),
+            closed="left",
+        )
+
+        march_2020 = Interval(
+            Timestamp("2020-03-01 00:00:00"),
+            Timestamp("2020-04-01 00:00:00"),
+            closed="left",
+        )
+
+        expected = np.array(
+            [
+                Interval(
+                    Timestamp("2020-01-01 00:00:00"),
+                    Timestamp("2020-03-01 00:00:00"),
+                    closed="left",
+                ),
+                Interval(
+                    Timestamp("2020-04-01 00:00:00"),
+                    Timestamp("2021-01-01 00:00:00"),
+                    closed="left",
+                ),
+            ],
+            dtype=object,
+        )
+
+        result = year_2020.difference(march_2020)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_difference_invalid_type(self, other):
+        interval = Interval(0, 1)
+        msg = f"`other` must be an Interval, got {type(other).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            interval.difference(other)
