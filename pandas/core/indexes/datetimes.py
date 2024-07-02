@@ -1003,6 +1003,14 @@ def date_range(
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
+    
+    if unit is None and freq is not None:
+        offset = to_offset(freq)
+        if offset is not None:
+            unit = offset.n
+
+    if unit is None:
+        unit = 'ns'
 
     dtarr = DatetimeArray._generate_range(
         start=start,
