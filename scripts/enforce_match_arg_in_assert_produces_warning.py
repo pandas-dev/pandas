@@ -1,10 +1,10 @@
 """
 
-Enforce that all usages of tms.assert_produces_warning use
+Enforce that all usages of tm.assert_produces_warning use
 the "match" argument. This will help ensure that users always see
 the correct warning message.
 
-tms.assert_produces_warning(None) is excluded as no warning is
+tm.assert_produces_warning(None) is excluded as no warning is
 produced.
 
 """
@@ -32,7 +32,7 @@ class MatchArgForWarningsChecker(ast.NodeVisitor):
             # only check for attribute function of class/module tm
             if ( isinstance(node.func.value, ast.Name) and
                 node.func.value.id == "tm" ):
-                # ignore tms.assert_produces_warning(None)/tms.assert_produces_warning()
+                # ignore tm.assert_produces_warning(None)/tm.assert_produces_warning()
                 if ( len(node.args) == 0 or
                     (isinstance(node.args[0], ast.Constant) and
                     node.args[0].value is None) ):
