@@ -33,10 +33,7 @@ from pandas._libs.tslibs.parsing import get_rule_month
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import is_numeric_dtype
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -112,20 +109,16 @@ def infer_freq(
     >>> pd.infer_freq(idx)
     'D'
     """
+    from pandas.api.types import is_datetime64_any_dtype
     from pandas.core.api import DatetimeIndex
 
-    if isinstance(index, ABCSeries):
-        values = index._values
-        if not (
-            lib.is_np_dtype(values.dtype, "mM")
-            or isinstance(values.dtype, DatetimeTZDtype)
-            or values.dtype == object
-        ):
-            raise TypeError(
-                "cannot infer freq from a non-convertible dtype "
-                f"on a Series of {index.dtype}"
-            )
-        index = values
+    if isinstance(index, ABCSeries) and not (
+        is_datetime64_any_dtype(index) or index.dtype == object
+    ):
+        raise TypeError(
+            "cannot infer freq from a non-convertible dtype "
+            f"on a Series of {index.dtype}"
+        )
 
     inferer: _FrequencyInferer
 
