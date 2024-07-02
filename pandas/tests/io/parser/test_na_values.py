@@ -119,6 +119,7 @@ def test_default_na_values(all_parsers):
         "-1.#QNAN",
         "#N/A",
         "N/A",
+        "N / A",
         "n/a",
         "NA",
         "<NA>",

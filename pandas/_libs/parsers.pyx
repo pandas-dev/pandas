@@ -1378,6 +1378,7 @@ STR_NA_VALUES = {
     "#N/A N/A",
     "#N/A",
     "N/A",
+    "N / A",
     "n/a",
     "NA",
     "<NA>",
