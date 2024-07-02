@@ -65,6 +65,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
+    prepare_function_arguments,
 )
 from pandas.core.window.common import (
     flex_binary_moment,
@@ -1458,14 +1459,14 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            numba_args = args
+            numba_args, kwargs = prepare_function_arguments(func, args, kwargs, 1)
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
             else:
                 apply_func = generate_numba_table_func(
-                    func, **get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs)
                 )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
