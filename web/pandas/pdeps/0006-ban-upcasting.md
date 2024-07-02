@@ -6,6 +6,8 @@
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli) ([original issue](https://github.com/pandas-dev/pandas/issues/39584) by [Joris Van den Bossche](https://github.com/jorisvandenbossche))
 - Revision: 1
 
+[TOC]
+
 ## Abstract
 
 The suggestion is that setitem-like operations would
