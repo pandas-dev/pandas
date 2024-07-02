@@ -400,3 +400,6 @@ class TestTesting(Base):
 
 def test_set_module():
     assert pd.DataFrame.__module__ == "pandas"
+    assert pd.Period.__module__ == "pandas"
+    assert pd.Timestamp.__module__ == "pandas"
+    assert pd.Timedelta.__module__ == "pandas"
