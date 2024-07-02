@@ -110,7 +110,12 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-class NamedAgg(NamedTuple):
+class _BaseNamedAgg(NamedTuple):
+    column: Hashable
+    aggfunc: AggScalar
+
+
+class NamedAgg(_BaseNamedAgg):
     """
     Helper for column specific aggregation with control over output column names.
 
@@ -123,6 +128,10 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+    *args : tuple, optional
+        Args passed to aggfunc.
+    **kwargs : dict, optional
+        Kwargs passed to aggfunc.
 
     See Also
     --------
@@ -140,8 +149,20 @@ class NamedAgg(NamedTuple):
     2           1      12.0
     """
 
-    column: Hashable
-    aggfunc: AggScalar
+    def __new__(cls, column, aggfunc, *args, **kwargs):
+        if not isinstance(aggfunc, str):
+            aggfunc = cls._get_wrapped_aggfunc(aggfunc, *args, **kwargs)
+        self = _BaseNamedAgg.__new__(cls, column, aggfunc)
+        return self
+
+    @staticmethod
+    def _get_wrapped_aggfunc(function, *initial_args, **initial_kwargs):
+        def wrapped_aggfunc(*new_args, **new_kwargs):
+            final_args = new_args + initial_args
+            final_kwargs = {**initial_kwargs, **new_kwargs}
+            return function(*final_args, **final_kwargs)
+
+        return wrapped_aggfunc
 
 
 class SeriesGroupBy(GroupBy[Series]):
