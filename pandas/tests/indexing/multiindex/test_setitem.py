@@ -213,13 +213,11 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(result, exp)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[4, "c"] = arr + 0.5
-        result = df.loc[4, "c"]
-        exp = exp + 0.5
-        tm.assert_series_equal(result, exp)
+        # Upcast so that we can add .5
+        df = df.astype({"c": "float64"})
+        df.loc[4, "c"] = arr + 0.5
 
         # scalar ok
         df.loc[4, "c"] = 10

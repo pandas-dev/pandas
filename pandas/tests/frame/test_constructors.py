@@ -2522,11 +2522,13 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuO"):
-            warn = None
+        should_raise = not lib.is_np_dtype(df.dtypes.iloc[0], "fciuO")
+        if should_raise:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.iloc[0, 0] = 0
+                df.iloc[0, 1] = 0
+            return
         else:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             df.iloc[0, 0] = 0
             df.iloc[0, 1] = 0
         if not copy:
