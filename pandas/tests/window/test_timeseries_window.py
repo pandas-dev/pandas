@@ -671,7 +671,7 @@ class TestRollingTS:
         # GH-32385
         df = DataFrame({"column": []}, index=[])
         result = df.rolling("5s").min()
-        expected = DataFrame({"column": []}, index=[])
+        expected = DataFrame({"column": []}, index=[], dtype="float64")
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_on_multi_index_level(self):

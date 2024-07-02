@@ -77,7 +77,7 @@ class TestReindexSetIndex:
         df1["d"] = []
         result = df1.reset_index()
         expected = DataFrame(columns=["a", "b", "c", "d"], index=range(0)).astype(
-            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64, "d": np.float64}
+            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64, "d": np.object_}
         )
         tm.assert_frame_equal(result, expected)
 

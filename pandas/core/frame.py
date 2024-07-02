@@ -82,6 +82,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
+    ensure_dtype_can_hold_na,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -13045,6 +13046,8 @@ class DataFrame(NDFrame, OpsMixin):
         C        1 days 12:00:00
         Name: 0.5, dtype: object
         """
+        from pandas.core.dtypes.common import is_object_dtype
+
         validate_percentile(q)
         axis = self._get_axis_number(axis)
 
@@ -13059,16 +13062,14 @@ class DataFrame(NDFrame, OpsMixin):
                 interpolation=interpolation,
                 method=method,
             )
-            if method == "single":
-                res = res_df.iloc[0]
-            else:
-                # cannot directly iloc over sparse arrays
-                res = res_df.T.iloc[:, 0]
+            res = res_df.iloc[0]
             if axis == 1 and len(self) == 0:
                 # GH#41544 try to get an appropriate dtype
-                dtype = find_common_type(list(self.dtypes))
-                if needs_i8_conversion(dtype):
-                    return res.astype(dtype)
+                dtype = "float64"
+                cdtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
+                    dtype = cdtype
+                return res.astype(dtype)
             return res
 
         q = Index(q, dtype=np.float64)
@@ -13076,6 +13077,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if axis == 1:
             data = data.T
+            if data.shape[0] == 0:
+                # The transpose has no rows, so the original has no columns, meaning we
+                # have no dtype information. Since this is quantile, default to float64
+                data = data.astype("float64")
 
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
@@ -13085,7 +13090,7 @@ class DataFrame(NDFrame, OpsMixin):
             if axis == 1:
                 # GH#41544 try to get an appropriate dtype
                 cdtype = find_common_type(list(self.dtypes))
-                if needs_i8_conversion(cdtype):
+                if needs_i8_conversion(cdtype) or is_object_dtype(cdtype):
                     dtype = cdtype
 
             res = self._constructor([], index=q, columns=cols, dtype=dtype)
@@ -13096,6 +13101,21 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
+
+        # handle degenerate case
+        if len(data) == 0:
+            from pandas import array
+
+            result = self._constructor(
+                {
+                    idx: array(len(q) * [np.nan], dtype=ensure_dtype_can_hold_na(dtype))
+                    for idx, dtype in enumerate(data.dtypes)
+                },
+                index=q,
+            )
+            result.columns = data.columns
+            return result
+
         if method == "single":
             res = data._mgr.quantile(qs=q, interpolation=interpolation)
         elif method == "table":
@@ -13105,13 +13125,6 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Invalid interpolation: {interpolation}. "
                     f"Interpolation must be in {valid_interpolation}"
                 )
-            # handle degenerate case
-            if len(data) == 0:
-                if data.ndim == 2:
-                    dtype = find_common_type(list(self.dtypes))
-                else:
-                    dtype = self.dtype
-                return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
             q_idx = np.quantile(np.arange(len(data)), q, method=interpolation)
 
