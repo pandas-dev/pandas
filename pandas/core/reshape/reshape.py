@@ -934,7 +934,20 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         [k for k in range(frame.columns.nlevels - 1, -1, -1) if k not in set_levels]
     )
 
-    result = stack_reshape(frame, level, set_levels, stack_cols)
+    result: Series | DataFrame
+    if not isinstance(frame.columns, MultiIndex):
+        # GH#58817 Fast path when we're stacking the columns of a non-MultiIndex.
+        # When columns are homogeneous EAs, we pass through object
+        # dtype but this is still slightly faster than the normal path.
+        if len(frame.columns) > 0 and frame._is_homogeneous_type:
+            dtype = frame._mgr.blocks[0].dtype
+        else:
+            dtype = None
+        result = frame._constructor_sliced(
+            frame._values.reshape(-1, order="F"), dtype=dtype
+        )
+    else:
+        result = stack_reshape(frame, level, set_levels, stack_cols)
 
     # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
@@ -1016,6 +1029,8 @@ def stack_reshape(
     -------
     The data of behind the stacked DataFrame.
     """
+    # non-MultIndex takes a fast path.
+    assert isinstance(frame.columns, MultiIndex)
     # If we need to drop `level` from columns, it needs to be in descending order
     drop_levnums = sorted(level, reverse=True)
 
@@ -1025,18 +1040,14 @@ def stack_reshape(
         if len(frame.columns) == 1:
             data = frame.copy(deep=False)
         else:
-            if not isinstance(frame.columns, MultiIndex) and not isinstance(idx, tuple):
-                # GH#57750 - if the frame is an Index with tuples, .loc below will fail
-                column_indexer = idx
-            else:
-                # Take the data from frame corresponding to this idx value
-                if len(level) == 1:
-                    idx = (idx,)
-                gen = iter(idx)
-                column_indexer = tuple(
-                    next(gen) if k in set_levels else slice(None)
-                    for k in range(frame.columns.nlevels)
-                )
+            # Take the data from frame corresponding to this idx value
+            if len(level) == 1:
+                idx = (idx,)
+            gen = iter(idx)
+            column_indexer = tuple(
+                next(gen) if k in set_levels else slice(None)
+                for k in range(frame.columns.nlevels)
+            )
             data = frame.loc[:, column_indexer]
 
         if len(level) < frame.columns.nlevels:
