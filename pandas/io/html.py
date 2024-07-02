@@ -507,6 +507,9 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
+                if len(text) == 0:
+                    text = self._text_getter(td)
+
                 if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
@@ -1201,9 +1204,7 @@ def read_html(
 
     validate_header_arg(header)
     check_dtype_backend(dtype_backend)
-
     io = stringify_path(io)
-
     return _parse(
         flavor=flavor,
         io=io,
@@ -1223,4 +1224,5 @@ def read_html(
         extract_links=extract_links,
         dtype_backend=dtype_backend,
         storage_options=storage_options,
+        skip_blank_lines=False,
     )
