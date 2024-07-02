@@ -249,7 +249,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
         -i "pandas.Timestamp.timetuple SA01" \
         -i "pandas.Timestamp.timetz SA01" \
