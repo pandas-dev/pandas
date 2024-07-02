@@ -892,7 +892,7 @@ class MPLPlot(ABC):
 
         elif self.subplots and self.legend:
             for ax in self.axes:
-                if ax.get_visible():
+                if ax.get_visible() and ax.get_label():
                     ax.legend(loc="best")
 
     @final
