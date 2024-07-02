@@ -6017,17 +6017,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
+            objs = kwargs["objs"]
             # propagate attrs only if all concat arguments have the same attrs
-            if all(bool(obj.attrs) for obj in other.objs):
+            if all(bool(obj.attrs) for obj in objs):
                 # all concatenate arguments have non-empty attrs
-                attrs = other.objs[0].attrs
-                have_same_attrs = all(obj.attrs == attrs for obj in other.objs[1:])
+                attrs = objs[0].attrs
+                have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
-            allows_duplicate_labels = all(
-                x.flags.allows_duplicate_labels for x in other.objs
-            )
+            allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
             self.flags.allows_duplicate_labels = allows_duplicate_labels
 
         return self
