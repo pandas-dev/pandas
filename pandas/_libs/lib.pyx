@@ -2052,6 +2052,26 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     return True
 
 
+def is_datetime_naive_array(values: ndarray) -> bool:
+    """
+    Check values have are datetime naive.
+    Doesn't check values are datetime-like types.
+    """
+    cdef:
+        Py_ssize_t j, n = len(values)
+        object tz
+
+    if n == 0:
+        return False
+
+    for j in range(n):
+        tz = getattr(values[j], "tzinfo", None)
+        if tz is not None:
+            return False
+
+    return True
+
+
 @cython.internal
 cdef class TimedeltaValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
