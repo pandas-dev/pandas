@@ -318,6 +318,8 @@ ignore = [
   "RUF007",
   # mutable-class-default
   "RUF012",
+  # type-comparison
+  "E721",
 
   # Additional pylint rules
   # literal-membership
