@@ -2161,7 +2161,7 @@ a JSON string with two fields, ``schema`` and ``data``.
        {
            "A": [1, 2, 3],
            "B": ["a", "b", "c"],
-           "C": pd.date_range("2016-01-01", freq="d", periods=3),
+           "C": pd.date_range("2016-01-01", freq="D", periods=3),
        },
        index=pd.Index(range(3), name="idx"),
    )
@@ -2270,7 +2270,7 @@ round-trippable manner.
        {
            "foo": [1, 2, 3, 4],
            "bar": ["a", "b", "c", "d"],
-           "baz": pd.date_range("2018-01-01", freq="d", periods=4),
+           "baz": pd.date_range("2018-01-01", freq="D", periods=4),
            "qux": pd.Categorical(["a", "b", "c", "c"]),
        },
        index=pd.Index(range(4), name="idx"),

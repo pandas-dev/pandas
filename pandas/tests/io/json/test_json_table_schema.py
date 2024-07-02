@@ -32,7 +32,7 @@ def df_schema():
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
-            "C": pd.date_range("2016-01-01", freq="d", periods=4),
+            "C": pd.date_range("2016-01-01", freq="D", periods=4),
             "D": pd.timedelta_range("1h", periods=4, freq="min"),
         },
         index=pd.Index(range(4), name="idx"),
@@ -45,12 +45,12 @@ def df_table():
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
-            "C": pd.date_range("2016-01-01", freq="d", periods=4),
+            "C": pd.date_range("2016-01-01", freq="D", periods=4),
             "D": pd.timedelta_range("1h", periods=4, freq="min"),
             "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
             "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
             "G": [1.0, 2.0, 3, 4.0],
-            "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
+            "H": pd.date_range("2016-01-01", freq="D", periods=4, tz="US/Central"),
         },
         index=pd.Index(range(4), name="idx"),
     )
@@ -687,7 +687,7 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=4)},
+            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -699,7 +699,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central"
                 )  # added in # GH 35973
             },
         ],
@@ -738,7 +738,7 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=4)},
+            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -750,7 +750,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central"
                 )  # added in # GH 35973
             },
         ],
@@ -772,15 +772,15 @@ class TestTableOrientReader:
             pd.Index(range(4)),
             pd.date_range(
                 "2020-08-30",
-                freq="d",
+                freq="D",
                 periods=4,
             )._with_freq(None),
             pd.date_range(
-                "2020-08-30", freq="d", periods=4, tz="US/Central"
+                "2020-08-30", freq="D", periods=4, tz="US/Central"
             )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
-                    pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
+                    pd.date_range("2020-08-30", freq="D", periods=2, tz="US/Central"),
                     ["x", "y"],
                 ],
             ),
@@ -790,10 +790,10 @@ class TestTableOrientReader:
         "vals",
         [
             {"floats": [1.1, 2.2, 3.3, 4.4]},
-            {"dates": pd.date_range("2020-08-30", freq="d", periods=4)},
+            {"dates": pd.date_range("2020-08-30", freq="D", periods=4)},
             {
                 "timezones": pd.date_range(
-                    "2020-08-30", freq="d", periods=4, tz="Europe/London"
+                    "2020-08-30", freq="D", periods=4, tz="Europe/London"
                 )
             },
         ],
@@ -810,12 +810,12 @@ class TestTableOrientReader:
             {
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
-                "C": pd.date_range("2016-01-01", freq="d", periods=4),
+                "C": pd.date_range("2016-01-01", freq="D", periods=4),
                 # 'D': pd.timedelta_range('1h', periods=4, freq='min'),
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
+                "H": pd.date_range("2016-01-01", freq="D", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),
