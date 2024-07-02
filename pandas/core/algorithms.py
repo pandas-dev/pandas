@@ -62,6 +62,7 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1665,7 +1666,11 @@ def map_array(
             from pandas import Series
 
             if len(mapper) == 0:
-                if is_extension_array_dtype(arr.dtype) and arr.dtype.na_value is NA:
+                if (
+                    is_extension_array_dtype(arr.dtype)
+                    and not isinstance(arr.dtype, IntervalDtype)
+                    and arr.dtype.na_value is NA
+                ):
                     mapper = Series(mapper, dtype=arr.dtype)
                 else:
                     mapper = Series(mapper, dtype=np.float64)
