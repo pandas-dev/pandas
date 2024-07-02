@@ -359,7 +359,7 @@ cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "MIN": "min",
 }
 
-INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
+cdef str INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 
 class FreqGroup(Enum):

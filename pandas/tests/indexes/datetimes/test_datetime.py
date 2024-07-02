@@ -134,7 +134,7 @@ class TestDatetimeIndex:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["2H", "2BH", "2S"])
-    def test_CBH_deprecated(self, freq):
+    def test_CBH_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
