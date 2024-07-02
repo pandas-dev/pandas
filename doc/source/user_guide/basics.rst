@@ -158,7 +158,7 @@ a set of specialized cython routines that are especially fast when dealing with 
 Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 
 .. csv-table::
-    :header: "Operation", "0.11.0 (ms)", "Prior Version (ms)", "Ratio to Prior"
+   :header: "Operation", "With speedup (ms)", "Without speedup (ms)", "Ratio"  
     :widths: 25, 25, 25, 25
 
     ``df1 > df2``, 13.32, 125.35,  0.1063
