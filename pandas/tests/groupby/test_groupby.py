@@ -2985,3 +2985,10 @@ def test_groupby_agg_namedagg_with_duplicate_columns():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_keys_1length_list():
+    # GH#58945
+    df = DataFrame({"x": [10, 20, 30], "y": ["a", "b", "c"]})
+    result = df.groupby(["x"]).groups
+    assert all(isinstance(key, tuple) for key in result.keys())
