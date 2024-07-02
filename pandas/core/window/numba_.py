@@ -150,7 +150,7 @@ def generate_numba_ewm_func(
                             # is to be used in conjunction with vals[i+1]
                             old_wt *= old_wt_factor ** deltas[start + j - 1]
                             if not adjust and com == 1:
-                                # update alpha "on the fly" for irregular-interval time series
+                                # update in case of irregular-interval time series
                                 new_wt = 1.0 - old_wt
                         else:
                             weighted = old_wt_factor * weighted
@@ -328,7 +328,7 @@ def generate_numba_ewm_table_func(
                             # is to be used in conjunction with vals[i+1]
                             old_wt[j] *= old_wt_factor ** deltas[i - 1]
                             if not adjust and com == 1:
-                                # update alpha "on the fly" for irregular-interval time series
+                                # update in case of irregular-interval time series
                                 new_wt = 1.0 - old_wt[j]
                         else:
                             weighted[j] = old_wt_factor * weighted[j]
