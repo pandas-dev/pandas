@@ -440,6 +440,7 @@ class Grouping:
         in_axis: bool = False,
         dropna: bool = True,
         uniques: ArrayLike | None = None,
+        key_dtype_str: bool = False,
     ) -> None:
         self.level = level
         self._orig_grouper = grouper
@@ -452,6 +453,7 @@ class Grouping:
         self.in_axis = in_axis
         self._dropna = dropna
         self._uniques = uniques
+        self.key_dtype_str = key_dtype_str
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -666,6 +668,8 @@ class Grouping:
         codes, uniques = self._codes_and_uniques
         uniques = Index._with_infer(uniques, name=self.name)
         cats = Categorical.from_codes(codes, uniques, validate=False)
+        if not self.key_dtype_str:
+            cats = [(i,) for i in cats]
         return self._index.groupby(cats)
 
     @property
@@ -893,6 +897,7 @@ def get_grouper(
                 observed=observed,
                 in_axis=in_axis,
                 dropna=dropna,
+                key_dtype_str=key_dtype_str,
             )
             if not isinstance(gpr, Grouping)
             else gpr
@@ -905,9 +910,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, dropna=dropna, key_dtype_str=key_dtype_str
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 
