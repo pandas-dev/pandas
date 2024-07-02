@@ -13,7 +13,6 @@ from hypothesis import (
     given,
 )
 import pytest
-import pytz
 
 import pandas as pd
 from pandas._testing._hypothesis import (
@@ -34,11 +33,11 @@ def test_on_offset_implementations(dt, offset):
     #   (dt + offset) - offset == dt
     try:
         compare = (dt + offset) - offset
-    except (pytz.NonExistentTimeError, pytz.AmbiguousTimeError):
+    except ValueError:
         # When dt + offset does not exist or is DST-ambiguous, assume(False) to
         # indicate to hypothesis that this is not a valid test case
         # DST-ambiguous example (GH41906):
-        # dt = datetime.datetime(1900, 1, 1, tzinfo=pytz.timezone('Africa/Kinshasa'))
+        # dt = datetime.datetime(1900, 1, 1, tzinfo=ZoneInfo('Africa/Kinshasa'))
         # offset = MonthBegin(66)
         assume(False)
 
