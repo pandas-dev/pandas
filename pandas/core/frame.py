@@ -46,7 +46,6 @@ from pandas._libs import (
     lib,
     properties,
 )
-from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
@@ -175,7 +174,6 @@ from pandas.core.internals.construction import (
     treat_as_nested,
 )
 from pandas.core.methods import selectn
-from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
@@ -1386,7 +1384,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return Styler(self)
 
-    _shared_docs["items"] = r"""
+    _shared_docs[
+        "items"
+    ] = r"""
         Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
@@ -6554,6 +6554,7 @@ class DataFrame(NDFrame, OpsMixin):
         keep: DropKeep = "first",
         inplace: bool = False,
         ignore_index: bool = False,
+        index: bool = False,
     ) -> DataFrame | None:
         """
         Return DataFrame with duplicate rows removed.
@@ -6577,6 +6578,9 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
+
+        index : bool, default ``False``
+            If ``True``, drop duplicates based on the index instead of columns.
 
         Returns
         -------
@@ -6634,6 +6638,22 @@ class DataFrame(NDFrame, OpsMixin):
         1  Yum Yum   cup     4.0
         2  Indomie   cup     3.5
         4  Indomie  pack     5.0
+
+        To remove duplicates based on index, use ``index=True``.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 1])
+        >>> df.drop_duplicates(index=True)
+            A
+        0   1
+        1   2
+
+        To remove duplicates based on index and keep last occurrences, use ``keep='last'`` with ``index=True``.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 1])
+        >>> df.drop_duplicates(index=True, keep="last")
+            A
+        0   1
+        1   3
         """
         if self.empty:
             return self.copy(deep=False)
@@ -6641,7 +6661,10 @@ class DataFrame(NDFrame, OpsMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
 
-        result = self[-self.duplicated(subset, keep=keep)]
+        if index:
+            subset = self.index.names
+
+        result = self[-self.duplicated(subset=subset, keep=keep)]
         if ignore_index:
             result.index = default_index(len(result))
 
@@ -9077,7 +9100,9 @@ class DataFrame(NDFrame, OpsMixin):
             dropna=dropna,
         )
 
-    _shared_docs["pivot"] = """
+    _shared_docs[
+        "pivot"
+    ] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -9221,7 +9246,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs["pivot_table"] = """
+    _shared_docs[
+        "pivot_table"
+    ] = """
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
@@ -10498,9 +10525,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = Index(
                 [other.name],
-                name=self.index.names
-                if isinstance(self.index, MultiIndex)
-                else self.index.name,
+                name=(
+                    self.index.names
+                    if isinstance(self.index, MultiIndex)
+                    else self.index.name
+                ),
             )
             row_df = other.to_frame().T
             # infer_objects is needed for
