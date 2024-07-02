@@ -165,11 +165,11 @@ def test_readjson_chunks_series(request, engine):
     s = pd.Series({"A": 1, "B": 2})
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    unchunked = read_json(strio, lines=True, typ="Series", engine=engine)
+    unchunked = read_json(strio, lines=True, typ="series", engine=engine)
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
     with read_json(
-        strio, lines=True, typ="Series", chunksize=1, engine=engine
+        strio, lines=True, typ="series", chunksize=1, engine=engine
     ) as reader:
         chunked = pd.concat(reader)
 
