@@ -148,8 +148,8 @@ def test_len_nan_group():
 
 def test_groupby_timedelta_median():
     # issue 57926
-    expected = Series(data=Timedelta("1d"), index=["foo"])
-    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1d")]})
+    expected = Series(data=Timedelta("1D"), index=["foo"])
+    df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1D")]})
     gb = df.groupby("label")["timedelta"]
     actual = gb.median()
     tm.assert_series_equal(actual, expected, check_names=False)
@@ -2445,7 +2445,7 @@ def test_rolling_wrong_param_min_period():
     test_df.columns = ["name", "val"]
 
     result_error_msg = (
-        r"^[a-zA-Z._]*\(\) got an unexpected keyword argument 'min_period'$"
+        r"^[a-zA-Z._]*\(\) got an unexpected keyword argument 'min_period'"
     )
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
@@ -2985,6 +2985,17 @@ def test_groupby_agg_namedagg_with_duplicate_columns():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multi_index_codes():
+    # GH#54347
+    df = DataFrame(
+        {"A": [1, 2, 3, 4], "B": [1, float("nan"), 2, float("nan")], "C": [2, 4, 6, 8]}
+    )
+    df_grouped = df.groupby(["A", "B"], dropna=False).sum()
+
+    index = df_grouped.index
+    tm.assert_index_equal(index, MultiIndex.from_frame(index.to_frame()))
 
 
 def test_groupby_keys_1length_list():
