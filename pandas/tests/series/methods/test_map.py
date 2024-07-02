@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -233,8 +234,11 @@ def test_map_empty(request, index):
 
     s = Series(index)
     result = s.map({})
-
-    if is_extension_array_dtype(s.dtype) and s.dtype.na_value is pd.NA:
+    if (
+        is_extension_array_dtype(s.dtype)
+        and not isinstance(s.dtype, IntervalDtype)
+        and s.dtype.na_value is pd.NA
+    ):
         na_value = s.dtype.na_value
         dtype = s.dtype
     else:

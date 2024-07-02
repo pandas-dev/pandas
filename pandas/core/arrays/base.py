@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    IntervalDtype,
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
@@ -2345,12 +2344,13 @@ class ExtensionArray:
             a MultiIndex will be returned.
         """
         result = map_array(self, mapper, na_action=na_action)
-        if isinstance(self.dtype, NumpyEADtype):
-            return pd_array(result, dtype=NumpyEADtype(result.dtype))
-        if isinstance(self.dtype, IntervalDtype):
-            return result
+        if isinstance(result, ExtensionArray):
+            if isinstance(self.dtype, NumpyEADtype):
+                return pd_array(result, dtype=NumpyEADtype(result.dtype))
+            else:
+                return result
         elif isinstance(result, np.ndarray):
-            return pd_array(result)
+            return pd_array(result, result.dtype)
         else:
             return result
 
