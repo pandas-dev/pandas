@@ -236,7 +236,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         values = list(values)
     elif isinstance(values, ABCIndex):
         return values._values
-    elif isinstance(values, ABCSeries):
+    elif isinstance(values, ABCSeries) and values.dtype.kind != "S":
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
