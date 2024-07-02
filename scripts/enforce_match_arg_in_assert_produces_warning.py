@@ -1,6 +1,3 @@
-# 30th June - spent 1hr 20min
-# 1st July - spent close to 1hr 30min
-
 """
 
 Enforce that all usages of tms.assert_produces_warning use
