@@ -120,6 +120,8 @@ These improvements also fixed certain bugs in groupby:
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
+- :meth:`.DataFrame.to_json` was producing corrupted record (data incompatible with schema) if 'index' was the name of a column and index.name is empty (which is replaced with generic 'index' internally), now it will fail on check if index.name is in columns (:issue:`58925`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.api_breaking:
 

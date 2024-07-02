@@ -2287,6 +2287,8 @@ Please note that the literal string 'index' as the name of an :class:`Index`
 is not round-trippable, nor are any names beginning with ``'level_'`` within a
 :class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
 indicate missing values and the subsequent read cannot distinguish the intent.
+The string 'index' as a column name with empty :class:`Index` or if it is
+'index' will raise a ``ValueError``.
 
 .. ipython:: python
    :okwarning:
