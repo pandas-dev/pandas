@@ -1778,6 +1778,16 @@ class Timestamp(_Timestamp):
         """
         Return time object with same time but with tzinfo=None.
 
+        This method extracts the time part of the `Timestamp` object, excluding any
+        timezone information. It returns a `datetime.time` object which only represents
+        the time (hours, minutes, seconds, and microseconds).
+
+        See Also
+        --------
+        Timestamp.date : Return date object with same year, month and day.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')
