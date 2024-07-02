@@ -314,6 +314,19 @@ class TestPeriodIndex:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
 
+    def test_difference_mismatched_dtypes(self, sort):
+        # GH58971
+        index = period_range("2022-01-01", periods=5, freq="M")
+        other = pd.Index(["2022-02", "2022-03"])
+
+        idx_diff = index.difference(other, sort)
+        expected = PeriodIndex(["2022-01", "2022-04", "2022-05"], freq="M")
+        tm.assert_index_equal(idx_diff, expected)
+
+        idx_diff = other.difference(index, sort)
+        expected = pd.Index([])
+        tm.assert_index_equal(idx_diff, expected)
+
     def test_difference_freq(self, sort):
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved
