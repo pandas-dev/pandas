@@ -35,7 +35,7 @@ class MatchArgForWarningsChecker(ast.NodeVisitor):
                 # ignore tm.assert_produces_warning(None)/tm.assert_produces_warning()
                 if ( len(node.args) == 0 or
                     (isinstance(node.args[0], ast.Constant) and
-                    node.args[0].value is None) ):
+                    ( node.args[0].value is None or node.args[0].value is False))):
                     return
                 if not any(keyword.arg == "match" for keyword in node.keywords):
                     self.error_set.append((node.lineno, node.col_offset))
