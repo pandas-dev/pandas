@@ -288,21 +288,19 @@ class _Unstacker:
 
         dtype = values.dtype
 
-        # if our mask is all True, then we can use our existing dtype
-        if mask_all:
-            dtype = values.dtype
-            new_values = np.empty(result_shape, dtype=dtype)
-        else:
-            if isinstance(dtype, ExtensionDtype):
-                # GH#41875
-                # We are assuming that fill_value can be held by this dtype,
-                #  unlike the non-EA case that promotes.
-                cls = dtype.construct_array_type()
-                new_values = cls._empty(result_shape, dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            # GH#41875
+            # We are assuming that fill_value can be held by this dtype,
+            #  unlike the non-EA case that promotes.
+            cls = dtype.construct_array_type()
+            new_values = cls._empty(result_shape, dtype=dtype)
+            if not mask_all:
                 new_values[:] = fill_value
-            else:
+        else:
+            if not mask_all:
                 dtype, fill_value = maybe_promote(dtype, fill_value)
-                new_values = np.empty(result_shape, dtype=dtype)
+            new_values = np.empty(result_shape, dtype=dtype)
+            if not mask_all:
                 new_values.fill(fill_value)
 
         name = dtype.name
