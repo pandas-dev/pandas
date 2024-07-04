@@ -1,5 +1,4 @@
 """
-
 Enforce that all usages of tm.assert_produces_warning use
 the "match" argument. This will help ensure that users always see
 the correct warning message.
@@ -8,6 +7,9 @@ tm.assert_produces_warning(None), tm.assert_produces_warning()
 and tm.assert_produces_warning(False) are excluded as no warning is
 produced.
 
+This is meant to be run as a pre-commit hook - to run it manually, you can do:
+
+    pre-commit run enforce-match-arg-in-assert-produces-warning --all-files
 """
 
 
@@ -68,14 +70,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("paths", nargs="*")
 
     args = parser.parse_args(argv)
-    isMatchMissing = False
+    is_match_missing = False
 
     for filename in args.paths:
         with open(filename, encoding="utf-8") as fd:
             content = fd.read()
-            isMatchMissing = check_for_match_arg(content, filename) | isMatchMissing
+            is_match_missing = check_for_match_arg(content, filename) | is_match_missing
 
-    if isMatchMissing:
+    if is_match_missing:
         sys.exit(1)
 
 
