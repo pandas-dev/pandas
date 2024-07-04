@@ -92,7 +92,7 @@ class BaseReduceTests:
             )
         else:
             expected = grp.apply(
-                lambda x: getattr(x, op_name)(skipna=skipna), include_groups=False
+                lambda x: getattr(x.astype(ser.dtype), op_name)(skipna=skipna), include_groups=False
             )
 
         tm.assert_almost_equal(result, expected, check_dtype=False, atol=1e-6)
