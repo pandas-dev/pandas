@@ -610,7 +610,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             ts, &dts, &out_bestunit, &out_local,
             &out_tzoffset, False
         )
-        if not string_to_dts_failed:
+        if not string_to_dts_failed and not dayfirst:
             reso = get_supported_reso(out_bestunit)
             check_dts_bounds(&dts, reso)
             obj = _TSObject()

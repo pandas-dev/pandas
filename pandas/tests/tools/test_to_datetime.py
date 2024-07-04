@@ -3007,11 +3007,9 @@ class TestDatetimeParsingWrappers:
             result2 = Timestamp(date_str)
             assert result2 == expected
 
-        warn = UserWarning if dayfirst else None
-        with tm.assert_produces_warning(warn, match="Could not infer format"):
-            result3 = to_datetime(
-                date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
-            )
+        result3 = to_datetime(
+            date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
+        )
 
         result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[0]
 
