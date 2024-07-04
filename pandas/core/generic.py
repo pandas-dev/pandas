@@ -6653,7 +6653,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
         dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
             Back-end data type applied to the resultant :class:`DataFrame` or
-            :class:`Series` (still experimental). Behavior is as follows:
+            :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns with nullable-dtype-backed
             * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`

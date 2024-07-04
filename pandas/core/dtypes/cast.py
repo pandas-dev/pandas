@@ -1012,7 +1012,7 @@ def convert_dtypes(
         object array contains pd.NA.
     dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behavior is as follows:
+        (still experimental). Behaviour is as follows:
 
         * ``"numpy_nullable"``: returns with nullable-dtype-backed
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
