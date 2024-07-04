@@ -32,10 +32,7 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 import uuid
 
 from dateutil.tz import (
@@ -83,6 +80,7 @@ from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )
@@ -150,6 +148,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
+        ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
@@ -1445,6 +1444,21 @@ def complex_dtype(request):
     * complex
     * 'complex64'
     * 'complex128'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
+def complex_or_float_dtype(request):
+    """
+    Parameterized fixture for complex and numpy float dtypes.
+
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * float
+    * 'float32'
+    * 'float64'
     """
     return request.param
 

@@ -412,7 +412,7 @@ def test_to_numpy_dtype(as_series):
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -454,7 +454,7 @@ def test_to_numpy_na_value_numpy_dtype(
             [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )

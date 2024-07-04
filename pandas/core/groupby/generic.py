@@ -9,18 +9,19 @@ which here returns a DataFrameGroupBy object.
 from __future__ import annotations
 
 from collections import abc
+from collections.abc import Callable
 from functools import partial
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NamedTuple,
     TypeVar,
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -121,6 +123,10 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
 
     Examples
     --------
@@ -680,7 +686,8 @@ class SeriesGroupBy(GroupBy[Series]):
         b    1
         dtype: int64
         """
-        ids, ngroups = self._grouper.group_info
+        ids = self._grouper.ids
+        ngroups = self._grouper.ngroups
         val = self.obj._values
         codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
@@ -1206,7 +1213,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1259,7 +1266,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
@@ -2726,6 +2733,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Compute pairwise correlation.
 
+        .. deprecated:: 3.0.0
+
         Pairwise correlation is computed between rows or columns of
         DataFrame with rows or columns of Series or DataFrame. DataFrames
         are first aligned along both axes before computing the
@@ -2785,6 +2794,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2    0.755929  NaN
         3    0.576557  NaN
         """
+        warnings.warn(
+            "DataFrameGroupBy.corrwith is deprecated",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "corrwith",
             other=other,

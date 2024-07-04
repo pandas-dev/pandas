@@ -59,18 +59,12 @@ class TestIndexConstructor:
             ser = Index(["a", 1])
         tm.assert_index_equal(ser, expected)
 
-    def test_inference_on_pandas_objects(self):
+    @pytest.mark.parametrize("klass", [Series, Index])
+    def test_inference_on_pandas_objects(self, klass):
         # GH#56012
-        idx = Index([pd.Timestamp("2019-12-31")], dtype=object)
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = Index(idx)
-        assert result.dtype != np.object_
-
-        ser = Series([pd.Timestamp("2019-12-31")], dtype=object)
-
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            result = Index(ser)
-        assert result.dtype != np.object_
+        obj = klass([pd.Timestamp("2019-12-31")], dtype=object)
+        result = Index(obj)
+        assert result.dtype == np.object_
 
     def test_constructor_not_read_only(self):
         # GH#57130

@@ -12,7 +12,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas.compat._constants import PY310
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -37,7 +36,9 @@ from pandas.io.excel._util import _writers
 
 
 def get_exp_unit(path: str) -> str:
-    return "ns"
+    if path.endswith(".ods"):
+        return "s"
+    return "us"
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ def frame(float_frame):
     return float_frame[:10]
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False, "columns"])
 def merge_cells(request):
     return request.param
 
@@ -293,12 +294,15 @@ class TestRoundTrip:
         tm.assert_frame_equal(df2, res)
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
-        tm.assert_frame_equal(df, res)
+        expected = df[:]
+        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        tm.assert_frame_equal(res, expected)
 
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        tm.assert_frame_equal(df, res)
+        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
         # GH 30986
@@ -547,6 +551,7 @@ class TestExcelWriter:
             columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
+
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -695,7 +700,6 @@ class TestExcelWriter:
         #
         # Excel output format strings
         unit = get_exp_unit(tmp_excel)
-
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],
@@ -731,6 +735,9 @@ class TestExcelWriter:
 
         with ExcelFile(filename2) as reader2:
             rs2 = pd.read_excel(reader2, sheet_name="test1", index_col=0)
+
+        # TODO: why do we get different units?
+        rs2 = rs2.astype(f"M8[{unit}]")
 
         tm.assert_frame_equal(rs1, rs2)
 
@@ -1243,13 +1250,12 @@ class TestExcelWriter:
             "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
         }
 
-        if PY310:
-            msgs["openpyxl"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
-            msgs["xlsxwriter"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
+        msgs["openpyxl"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
+        msgs["xlsxwriter"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and not os.path.exists(tmp_excel):

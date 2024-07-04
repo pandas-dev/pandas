@@ -147,7 +147,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+    tz : zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or str
         Set the Timezone of the data.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -242,7 +242,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
     >>> idx
     DatetimeIndex(['2020-01-01 10:00:00+00:00', '2020-02-01 11:00:00+00:00'],
-    dtype='datetime64[ns, UTC]', freq=None)
+    dtype='datetime64[s, UTC]', freq=None)
     """
 
     _typ = "datetimeindex"
@@ -473,7 +473,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Examples
         --------
         >>> idx = pd.DatetimeIndex(
-        ...     ["2023-01-01", "2023-01-02", "2023-02-01", "2023-02-02"]
+        ...     ["2023-01-01", "2023-01-02", "2023-02-01", "2023-02-02"],
+        ...     dtype="M8[ns]",
         ... )
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
@@ -1069,6 +1070,13 @@ def bdate_range(
     Returns
     -------
     DatetimeIndex
+        Fixed frequency DatetimeIndex.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex.
 
     Notes
     -----
