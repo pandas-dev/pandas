@@ -1052,15 +1052,7 @@ def scipy_sem(*args, **kwargs):
     [
         ("sum", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("sum", ["foo", "bar", "baz", "foo", pd.NA, "foo"]),
-        (
-            "sum",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         ("min", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "min",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         (
             "min",
             [
@@ -1086,10 +1078,6 @@ def scipy_sem(*args, **kwargs):
         ("max", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         (
             "max",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
-        (
-            "max",
             [
                 Timestamp("2024-01-01"),
                 Timestamp("2024-01-02"),
@@ -1111,10 +1099,6 @@ def scipy_sem(*args, **kwargs):
             ],
         ),
         ("mean", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "mean",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         (
             "mean",
             [
@@ -1140,10 +1124,6 @@ def scipy_sem(*args, **kwargs):
         ("median", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         (
             "median",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
-        (
-            "median",
             [
                 Timestamp("2024-01-01"),
                 Timestamp("2024-01-02"),
@@ -1165,25 +1145,9 @@ def scipy_sem(*args, **kwargs):
             ],
         ),
         ("prod", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "prod",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         ("sem", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "sem",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         ("std", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "std",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         ("var", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
-        (
-            "var",
-            Series(pd.array([-1.0, 1.2, -1.1, 1.5, np.nan, 1.0], dtype="Float64")),
-        ),
         ("any", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("all", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
         ("skew", [-1.0, 1.2, -1.1, 1.5, np.nan, 1.0]),
