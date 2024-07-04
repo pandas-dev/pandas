@@ -1164,8 +1164,8 @@ def take(
     if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
         # GH#52981
         raise TypeError(
-            "pd.api.extensions.take requires a numpy.ndarray, "
-            f"ExtensionArray, Index, or Series, got {type(arr).__name__}."
+            "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
+            f"Index, Series, or NumpyExtensionArray got {type(arr).__name__}."
         )
 
     indices = ensure_platform_int(indices)

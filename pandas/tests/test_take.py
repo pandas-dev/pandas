@@ -5,6 +5,7 @@ import pytest
 
 from pandas._libs import iNaT
 
+from pandas import array
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 
@@ -307,3 +308,10 @@ class TestExtensionTake:
         )
         with pytest.raises(TypeError, match=msg):
             algos.take(arr, [0, 0])
+
+    def test_take_NumpyExtensionArray(self):
+        # GH#59177
+        arr = array([1 + 1j, 2, 3])  # NumpyEADtype('complex128') (NumpyExtensionArray)
+        assert algos.take(arr, [2]) == 2
+        arr = array([1, 2, 3])  # Int64Dtype() (ExtensionArray)
+        assert algos.take(arr, [2]) == 2
