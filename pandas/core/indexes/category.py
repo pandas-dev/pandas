@@ -378,7 +378,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
         if self.categories._typ == "rangeindex":
-            container = self.categories
+            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
+                self.categories
+            )
         else:
             container = self._engine
         return contains(self, key, container=container)
