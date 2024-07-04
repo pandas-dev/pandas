@@ -304,7 +304,7 @@ class TestExtensionTake:
         arr = [1, 2, 3]
         msg = (
             "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
-            "Index, or Series, got list"
+            "Index, Series, or NumpyExtensionArray got list"
         )
         with pytest.raises(TypeError, match=msg):
             algos.take(arr, [0, 0])
