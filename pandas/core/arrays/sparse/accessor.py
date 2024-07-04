@@ -98,8 +98,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...     ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
         ... )
         >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-        with 3 stored elements in COOrdinate format>
+        <COOrdinate sparse matrix of dtype 'float64'
+            with 3 stored elements and shape (3, 4)>
 
         >>> A.todense()
         matrix([[0., 0., 1., 2.],
@@ -186,8 +186,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ...     row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
         ... )
         >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-        with 3 stored elements in COOrdinate format>
+        <COOrdinate sparse matrix of dtype 'float64'
+            with 3 stored elements and shape (3, 4)>
         >>> A.todense()
         matrix([[0., 0., 1., 3.],
         [3., 0., 0., 0.],
@@ -291,12 +291,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3, dtype=float)
+        >>> mat = scipy.sparse.eye(3, dtype=int)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
-        0  1.0    0    0
-        1    0  1.0    0
-        2    0    0  1.0
+        0    1    0    0
+        1    0    1    0
+        2    0    0    1
         """
         from pandas._libs.sparse import IntIndex
 
@@ -313,7 +313,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indices = data.indices
         indptr = data.indptr
         array_data = data.data
-        dtype = SparseDtype(array_data.dtype, 0)
+        dtype = SparseDtype(array_data.dtype)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
@@ -380,8 +380,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         --------
         >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.to_coo()
-        <4x1 sparse matrix of type '<class 'numpy.int64'>'
-                with 2 stored elements in COOrdinate format>
+        <COOrdinate sparse matrix of dtype 'int64'
+            with 2 stored elements and shape (4, 1)>
         """
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
@@ -393,8 +393,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         cols, rows, data = [], [], []
         for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
-            if sp_arr.fill_value != 0:
-                raise ValueError("fill value must be 0 when converting to COO matrix")
 
             row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))

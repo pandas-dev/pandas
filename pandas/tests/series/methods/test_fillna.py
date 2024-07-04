@@ -6,7 +6,6 @@ from datetime import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas import (
     Categorical,
@@ -411,7 +410,7 @@ class TestSeriesFillNA:
                 Timestamp("2011-01-02 10:00", tz=tz),
                 Timestamp("2011-01-03 10:00"),
                 Timestamp("2011-01-02 10:00", tz=tz),
-            ]
+            ],
         )
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
@@ -861,7 +860,7 @@ class TestFillnaPad:
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
-        series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
+        series = Series([datetime(2015, 1, 1, tzinfo=timezone.utc), 1])
         result = series.ffill()
         tm.assert_series_equal(series, result)
 
@@ -923,16 +922,16 @@ class TestFillnaPad:
         # GH#14872
 
         data = Series(
-            [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
+            [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc)]
         )
 
         filled = data.bfill()
 
         expected = Series(
             [
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
             ]
         )
 

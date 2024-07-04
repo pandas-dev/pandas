@@ -4,7 +4,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -14,6 +13,8 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.util.numba_ import jit_user_function
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import Scalar
 
 
@@ -227,10 +228,10 @@ def generate_numba_table_func(
             stop = end[i]
             window = values[start:stop]
             count_nan = np.sum(np.isnan(window), axis=0)
-            sub_result = numba_func(window, *args)
             nan_mask = len(window) - count_nan >= minimum_periods
+            if nan_mask.any():
+                result[i, :] = numba_func(window, *args)
             min_periods_mask[i, :] = nan_mask
-            result[i, :] = sub_result
         result = np.where(min_periods_mask, result, np.nan)
         return result
 

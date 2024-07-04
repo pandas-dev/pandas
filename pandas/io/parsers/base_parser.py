@@ -7,7 +7,6 @@ from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
     final,
     overload,
@@ -78,6 +77,7 @@ from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterable,
         Mapping,
         Sequence,
@@ -745,11 +745,13 @@ class ParserBase:
                 if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
+                    values_str = [str(val) for val in values]
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
-                        values,
+                        values_str,
                         dtype=cast_type,
                         true_values=self.true_values,
                         false_values=self.false_values,
+                        none_values=self.na_values,
                     )
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)

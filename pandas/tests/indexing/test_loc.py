@@ -711,7 +711,7 @@ class TestLocBaseIndependent:
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True)
+        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("ms")
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
@@ -865,6 +865,7 @@ class TestLocBaseIndependent:
                 "val": Series([0, 1, 0, 1, 2], dtype=np.int64),
             }
         )
+        expected["date"] = expected["date"].astype("M8[ns]")
         rhs = df.loc[0:2]
         rhs.index = df.index[2:5]
         df.loc[2:4] = rhs
@@ -1280,7 +1281,7 @@ class TestLocBaseIndependent:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
-    @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
+    @pytest.mark.parametrize("dtype", [np.complex128, np.float64, np.int64, bool])
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
@@ -1295,13 +1296,13 @@ class TestLocBaseIndependent:
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
-        result = df.loc[itr_idx].values
+        result = np.nan_to_num(df.loc[itr_idx].values)
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for GH#34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(cols, SparseDtype(dtype, fill_value=0))
+        expected = np.full(cols, SparseDtype(dtype))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_loc_getitem_listlike_all_retains_sparse(self):
@@ -1313,18 +1314,16 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
+        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5, dtype=np.int64))
         result = df.loc[range(2)]
         expected = DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
-            dtype=SparseDtype("float64", 0.0),
+            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]],
+            dtype=SparseDtype(np.int64),
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[range(2)].loc[range(1)]
-        expected = DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
-        )
+        expected = DataFrame([[1, 0, 0, 0, 0]], dtype=SparseDtype(np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sparse_series(self):
@@ -1814,7 +1813,7 @@ class TestLocWithMultiIndex:
         result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
         expected = DataFrame(
             {"a": [0, 4], "b": [0, 4]},
-            index=DatetimeIndex(["2010-01-01", "2010-01-05"]),
+            index=DatetimeIndex(["2010-01-01", "2010-01-05"]).as_unit("ns"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2082,7 +2081,7 @@ class TestLocSetitemWithExpansion:
         expected = Series([v[0].tz_convert("UTC"), df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
 
-        v = df.loc[df.new_col == "new", "time"] + Timedelta("1s")
+        v = df.loc[df.new_col == "new", "time"] + Timedelta("1s").as_unit("s")
         df.loc[df.new_col == "new", "time"] = v
         tm.assert_series_equal(df.loc[df.new_col == "new", "time"], v)
 

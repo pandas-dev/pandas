@@ -27,6 +27,10 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         both doctests/regular tests, just append "--doctest-modules"/"--doctest-cython"
         to extra_args.
 
+    See Also
+    --------
+    pytest.main : The main entry point for pytest testing framework.
+
     Examples
     --------
     >>> pd.test()  # doctest: +SKIP
