@@ -99,7 +99,7 @@ jobs:
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
-        python: [["cp39", "3.9"], ["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"]]
+        python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"]]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}

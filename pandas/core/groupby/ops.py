@@ -12,7 +12,6 @@ import collections
 import functools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Generic,
     final,
 )
@@ -70,6 +69,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Hashable,
         Iterator,
