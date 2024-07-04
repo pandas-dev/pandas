@@ -7,10 +7,8 @@ from pandas import (
     Series,
 )
 
-pytest.importorskip("matplotlib")
+mpl = pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
-
-import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 

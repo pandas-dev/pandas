@@ -14,6 +14,7 @@ from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
+    pa_version_under17p0,
 )
 
 import pandas as pd
@@ -985,6 +986,7 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
 
@@ -1032,7 +1034,9 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
-    @pytest.mark.xfail(reason="pa.pandas_compat passes 'datetime64' to .astype")
+    @pytest.mark.xfail(
+        pa_version_under17p0, reason="pa.pandas_compat passes 'datetime64' to .astype"
+    )
     def test_columns_dtypes_not_invalid(self, pa):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -1128,9 +1132,11 @@ class TestParquetPyArrow(Base):
 class TestParquetFastParquet(Base):
     @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
     def test_basic(self, fp, df_full):
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         df = df_full
 
-        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz=tz)
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)

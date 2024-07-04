@@ -1,8 +1,11 @@
-from datetime import time
+from datetime import (
+    time,
+    timezone,
+)
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
 
@@ -65,7 +68,7 @@ class TestAtTime:
         assert len(rs) == 0
 
     @pytest.mark.parametrize(
-        "hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=pytz.UTC)]
+        "hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=timezone.utc)]
     )
     def test_at_time_errors(self, hour):
         # GH#24043
@@ -83,7 +86,7 @@ class TestAtTime:
         # GH#24043
         dti = date_range("2018", periods=3, freq="h", tz="US/Pacific")
         df = DataFrame(list(range(len(dti))), index=dti)
-        result = df.at_time(time(4, tzinfo=pytz.timezone("US/Eastern")))
+        result = df.at_time(time(4, tzinfo=zoneinfo.ZoneInfo("US/Eastern")))
         expected = df.iloc[1:2]
         tm.assert_frame_equal(result, expected)
 

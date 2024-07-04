@@ -1197,7 +1197,14 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
-    _ = getattr(grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 
