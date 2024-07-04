@@ -428,7 +428,7 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, raise_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(self, other, raise_on_upcast: bool) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -713,7 +713,7 @@ class Block(PandasObject, libinternals.Block):
             if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
-                blk = self.coerce_to_target_dtype(value)
+                blk = self.coerce_to_target_dtype(value, raise_on_upcast=False)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
@@ -1237,7 +1237,7 @@ class Block(PandasObject, libinternals.Block):
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
-                block = self.coerce_to_target_dtype(other)
+                block = self.coerce_to_target_dtype(other, raise_on_upcast=False)
                 return block.where(orig_other, cond)
 
             else:
@@ -1431,7 +1431,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            nb = self.coerce_to_target_dtype(fill_value)
+            nb = self.coerce_to_target_dtype(fill_value, raise_on_upcast=False)
             return nb.shift(periods, fill_value=fill_value)
 
         else:
@@ -1669,13 +1669,13 @@ class EABackedBlock(Block):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
 
                 else:
