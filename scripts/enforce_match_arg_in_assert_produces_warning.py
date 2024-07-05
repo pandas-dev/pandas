@@ -11,12 +11,15 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run enforce-match-arg-in-assert-produces-warning --all-files
 """
-
+from __future__ import annotations
 
 import argparse
 import ast
-from collections.abc import Sequence
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
