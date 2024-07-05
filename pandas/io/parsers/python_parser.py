@@ -419,7 +419,7 @@ class PythonParser(ParserBase):
             if c in parse_date_cols:
                 # GH#26203 Do not convert columns which get converted to dates
                 # but replace nans to ensure to_datetime works
-                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)
+                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)  # pyright: ignore[reportArgumentType]
                 np.putmask(values, mask, np.nan)
                 result[c] = values
                 continue
@@ -519,9 +519,9 @@ class PythonParser(ParserBase):
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
                         values_str,
                         dtype=cast_type,
-                        true_values=self.true_values,
-                        false_values=self.false_values,
-                        none_values=self.na_values,
+                        true_values=self.true_values,  # pyright: ignore[reportCallIssue]
+                        false_values=self.false_values,  # pyright: ignore[reportCallIssue]
+                        none_values=self.na_values,  # pyright: ignore[reportCallIssue]
                     )
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)
