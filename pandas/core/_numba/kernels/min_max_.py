@@ -31,8 +31,6 @@ def sliding_min_max(
     nobs = 0
     output = np.empty(N, dtype=result_dtype)
     na_pos = []
-    # Use deque once numba supports it
-    # https://github.com/numba/numba/issues/7417
     Q: list = []
     W: list = []
     for i in range(N):
@@ -46,21 +44,17 @@ def sliding_min_max(
             ai = values[k]
             if not np.isnan(ai):
                 nobs += 1
-            elif is_max:
-                ai = -np.inf
             else:
-                ai = np.inf
-            # Discard previous entries if we find new min or max
+                ai = -np.inf if is_max else np.inf
             if is_max:
-                while Q and ((ai >= values[Q[-1]]) or values[Q[-1]] != values[Q[-1]]):
+                while Q and ((ai >= values[Q[-1]]) or np.isnan(values[Q[-1]])):
                     Q.pop()
             else:
-                while Q and ((ai <= values[Q[-1]]) or values[Q[-1]] != values[Q[-1]]):
+                while Q and ((ai <= values[Q[-1]]) or np.isnan(values[Q[-1]])):
                     Q.pop()
             Q.append(k)
             W.append(k)
 
-        # Discard entries outside and left of current window
         while Q and Q[0] <= start[i] - 1:
             Q.pop(0)
         while W and W[0] <= start[i] - 1:
@@ -68,14 +62,10 @@ def sliding_min_max(
                 nobs -= 1
             W.pop(0)
 
-        # Save output based on index in input value array
         if Q and curr_win_size > 0 and nobs >= min_periods:
             output[i] = values[Q[0]]
         else:
-            if values.dtype.kind != "i":
-                output[i] = np.nan
-            else:
-                na_pos.append(i)
+            output[i] = np.nan
 
     return output, na_pos
 
@@ -100,27 +90,31 @@ def grouped_min_max(
         if lab < 0:
             continue
 
-        if values.dtype.kind == "i" or not np.isnan(val):
+        if not np.isnan(val):
             nobs[lab] += 1
         else:
-            # NaN value cannot be a min/max value
             continue
 
         if nobs[lab] == 1:
-            # First element in group, set output equal to this
             output[lab] = val
-            continue
-
-        if is_max:
-            if val > output[lab]:
-                output[lab] = val
         else:
-            if val < output[lab]:
-                output[lab] = val
+            if is_max:
+                if val > output[lab]:
+                    output[lab] = val
+            else:
+                if val < output[lab]:
+                    output[lab] = val
 
-    # Set labels that don't satisfy min_periods as np.nan
     for lab, count in enumerate(nobs):
         if count < min_periods:
-            na_pos.append(lab)
+            output[lab] = np.nan
 
     return output, na_pos
+
+# Example usage:
+if __name__ == "__main__":
+    import pandas as pd
+
+    s = pd.Series([np.nan, 0, 1], dtype="Float64")
+    print((s / s).max())  # <NA>
+    print((s / s).groupby([9, 9, 9]).max().iat[0])  # <NA>
