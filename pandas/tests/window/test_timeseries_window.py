@@ -101,7 +101,7 @@ class TestRollingTS:
         # column is valid
         df = df.copy()
         df["C"] = date_range("20130101", periods=len(df))
-        df.rolling(window="2d", on="C").sum()
+        df.rolling(window="2D", on="C").sum()
 
         # invalid columns
         msg = "window must be an integer"
@@ -109,7 +109,7 @@ class TestRollingTS:
             df.rolling(window="2d", on="B")
 
         # ok even though on non-selected
-        df.rolling(window="2d", on="C").B.sum()
+        df.rolling(window="2D", on="C").B.sum()
 
     def test_monotonic_on(self):
         # on/index must be monotonic
@@ -682,7 +682,7 @@ class TestRollingTS:
                 [date_range("20190101", periods=3), range(2)], names=["date", "seq"]
             ),
         )
-        result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
+        result = df.rolling("10D", on=df.index.get_level_values("date")).sum()
         expected = DataFrame(
             {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
         )

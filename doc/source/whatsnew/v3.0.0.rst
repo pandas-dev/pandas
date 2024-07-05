@@ -279,6 +279,8 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
 - Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
+- Deprecated lowercase strings ``d``, ``b`` and ``c`` denoting frequencies in :class:`Day`, :class:`BusinessDay` and :class:`CustomBusinessDay` in favour of ``D``, ``B`` and ``C`` (:issue:`58998`)
+- Deprecated lowercase strings ``w``, ``w-mon``, ``w-tue``, etc. denoting frequencies in :class:`Week` in favour of ``W``, ``W-MON``, ``W-TUE``, etc. (:issue:`58998`)
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)

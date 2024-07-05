@@ -420,7 +420,7 @@ def test_groupby_drop_nan_with_multi_index():
             ),
         ),
         "datetime64[ns]",
-        "period[d]",
+        "period[D]",
         "Sparse[float]",
     ],
 )
@@ -437,7 +437,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
-    elif dtype in ("datetime64[ns]", "period[d]"):
+    elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}

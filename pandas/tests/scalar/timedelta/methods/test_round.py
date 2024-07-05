@@ -38,7 +38,7 @@ class TestTimedeltaRound:
             ("min", "1 days 02:35:00", "-1 days 02:35:00"),
             ("12min", "1 days 02:36:00", "-1 days 02:36:00"),
             ("h", "1 days 03:00:00", "-1 days 03:00:00"),
-            ("d", "1 days", "-1 days"),
+            ("D", "1 days", "-1 days"),
         ],
     )
     def test_round(self, freq, s1, s2):

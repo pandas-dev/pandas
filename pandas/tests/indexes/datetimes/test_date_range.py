@@ -791,6 +791,26 @@ class TestDateRanges:
         with pytest.raises(ValueError, match=msg):
             date_range("1/1/2000", periods=2, freq=freq)
 
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2W", "2w"),
+            ("2W-WED", "2w-wed"),
+            ("2B", "2b"),
+            ("2D", "2d"),
+            ("2C", "2c"),
+        ],
+    )
+    def test_date_range_depr_lowercase_frequency(self, freq, freq_depr):
+        # GH#58998
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        "in a future version."
+
+        expected = date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateRangeTZ:
     """Tests for date_range with timezones"""
