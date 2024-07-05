@@ -239,7 +239,9 @@ def test_resample_how_ohlc(unit):
 def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
-    ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
+    msg = "'d' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
     df = DataFrame({"A": data, "B": data}, index=ind)
 
     def fn(x, a=1):
@@ -334,7 +336,9 @@ def test_resample_basic_from_daily(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
-    result = s.resample("w-sun").last()
+    msg = "'w-sun' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample("w-sun").last()
 
     assert len(result) == 3
     assert (result.index.dayofweek == [6, 6, 6]).all()
@@ -1190,7 +1194,9 @@ def test_anchored_lowercase_buglet(unit):
     dates = date_range("4/16/2012 20:00", periods=50000, freq="s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
-    ts.resample("d").mean()
+    msg = "'d' is deprecated and will be removed in a future version."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ts.resample("d").mean()
 
 
 def test_upsample_apply_functions(unit):
@@ -1531,9 +1537,9 @@ def test_groupby_with_dst_time_change(unit):
     )
 
     df = DataFrame([1, 2], index=index)
-    result = df.groupby(Grouper(freq="1d")).last()
+    result = df.groupby(Grouper(freq="1D")).last()
     expected_index_values = date_range(
-        "2016-11-02", "2016-11-24", freq="d", tz="America/Chicago"
+        "2016-11-02", "2016-11-24", freq="D", tz="America/Chicago"
     ).as_unit(unit)
 
     index = DatetimeIndex(expected_index_values)
@@ -2018,7 +2024,7 @@ def test_resample_empty_series_with_tz():
 def test_resample_M_Q_Y_raises(freq):
     msg = f"Invalid frequency: {freq}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
 
@@ -2027,9 +2033,30 @@ def test_resample_M_Q_Y_raises(freq):
 def test_resample_BM_BQ_raises(freq):
     msg = f"Invalid frequency: {freq}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+@pytest.mark.parametrize(
+    "freq,freq_depr,data",
+    [
+        ("1W-SUN", "1w-sun", ["2013-01-06"]),
+        ("1D", "1d", ["2013-01-01"]),
+        ("1B", "1b", ["2013-01-01"]),
+        ("1C", "1c", ["2013-01-01"]),
+    ],
+)
+def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
+    msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+
+    s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample(freq_depr).mean()
+
+    exp_dti = DatetimeIndex(data=data, dtype="datetime64[ns]", freq=freq)
+    expected = Series(2.0, index=exp_dti)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_ms_closed_right(unit):
@@ -2129,6 +2156,6 @@ def test_arrow_timestamp_resample(tz):
 def test_resample_A_raises(freq):
     msg = f"Invalid frequency: {freq[1:]}"
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
