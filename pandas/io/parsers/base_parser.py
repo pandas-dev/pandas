@@ -28,7 +28,6 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
@@ -38,10 +37,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-)
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -55,12 +50,9 @@ from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
     BooleanArray,
-    Categorical,
-    ExtensionArray,
     FloatingArray,
     IntegerArray,
 )
-from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -83,7 +75,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         DtypeArg,
-        DtypeObj,
         Hashable,
         HashableT,
         Scalar,
@@ -171,7 +162,7 @@ class ParserBase:
 
         self._first_chunk = True
 
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
@@ -569,80 +560,6 @@ class ParserBase:
 
         return result, na_count
 
-    @final
-    def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
-        """
-        Cast values to specified type
-
-        Parameters
-        ----------
-        values : ndarray or ExtensionArray
-        cast_type : np.dtype or ExtensionDtype
-           dtype to cast values to
-        column : string
-            column name - used only for error reporting
-
-        Returns
-        -------
-        converted : ndarray or ExtensionArray
-        """
-        if isinstance(cast_type, CategoricalDtype):
-            known_cats = cast_type.categories is not None
-
-            if not is_object_dtype(values.dtype) and not known_cats:
-                # TODO: this is for consistency with
-                # c-parser which parses all categories
-                # as strings
-                values = lib.ensure_string_array(
-                    values, skipna=False, convert_na_value=False
-                )
-
-            cats = Index(values).unique().dropna()
-            values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
-            )
-
-        # use the EA's implementation of casting
-        elif isinstance(cast_type, ExtensionDtype):
-            array_type = cast_type.construct_array_type()
-            try:
-                if isinstance(cast_type, BooleanDtype):
-                    # error: Unexpected keyword argument "true_values" for
-                    # "_from_sequence_of_strings" of "ExtensionArray"
-                    values_str = [str(val) for val in values]
-                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
-                        values_str,
-                        dtype=cast_type,
-                        true_values=self.true_values,
-                        false_values=self.false_values,
-                        none_values=self.na_values,
-                    )
-                else:
-                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
-            except NotImplementedError as err:
-                raise NotImplementedError(
-                    f"Extension Array: {array_type} must implement "
-                    "_from_sequence_of_strings in order to be used in parser methods"
-                ) from err
-
-        elif isinstance(values, ExtensionArray):
-            values = values.astype(cast_type, copy=False)
-        elif issubclass(cast_type.type, str):
-            # TODO: why skipna=True here and False above? some tests depend
-            #  on it here, but nothing fails if we change it above
-            #  (as no tests get there as of 2022-12-06)
-            values = lib.ensure_string_array(
-                values, skipna=True, convert_na_value=False
-            )
-        else:
-            try:
-                values = astype_array(values, cast_type, copy=True)
-            except ValueError as err:
-                raise ValueError(
-                    f"Unable to convert column {column} to type {cast_type}"
-                ) from err
-        return values
-
     @overload
     def _do_date_conversions(
         self,
@@ -775,56 +692,6 @@ class ParserBase:
             )
 
         return usecols
-
-    @final
-    def _validate_usecols_arg(self, usecols):
-        """
-        Validate the 'usecols' parameter.
-
-        Checks whether or not the 'usecols' parameter contains all integers
-        (column selection by index), strings (column by name) or is a callable.
-        Raises a ValueError if that is not the case.
-
-        Parameters
-        ----------
-        usecols : list-like, callable, or None
-            List of columns to use when parsing or a callable that can be used
-            to filter a list of table columns.
-
-        Returns
-        -------
-        usecols_tuple : tuple
-            A tuple of (verified_usecols, usecols_dtype).
-
-            'verified_usecols' is either a set if an array-like is passed in or
-            'usecols' if a callable or None is passed in.
-
-            'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
-            is passed in or None if a callable or None is passed in.
-        """
-        msg = (
-            "'usecols' must either be list-like of all strings, all unicode, "
-            "all integers or a callable."
-        )
-        if usecols is not None:
-            if callable(usecols):
-                return usecols, None
-
-            if not is_list_like(usecols):
-                # see gh-20529
-                #
-                # Ensure it is iterable container but not string.
-                raise ValueError(msg)
-
-            usecols_dtype = lib.infer_dtype(usecols, skipna=False)
-
-            if usecols_dtype not in ("empty", "integer", "string"):
-                raise ValueError(msg)
-
-            usecols = set(usecols)
-
-            return usecols, usecols_dtype
-        return usecols, None
 
     @final
     def _clean_index_names(self, columns, index_col) -> tuple[list | None, list, list]:
@@ -1071,3 +938,53 @@ def validate_parse_dates_presence(
         missing_cols = ", ".join(sorted(missing))
         raise ValueError(f"Missing column provided to 'parse_dates': '{missing_cols}'")
     return unique_cols
+
+
+def _validate_usecols_arg(usecols):
+    """
+    Validate the 'usecols' parameter.
+
+    Checks whether or not the 'usecols' parameter contains all integers
+    (column selection by index), strings (column by name) or is a callable.
+    Raises a ValueError if that is not the case.
+
+    Parameters
+    ----------
+    usecols : list-like, callable, or None
+        List of columns to use when parsing or a callable that can be used
+        to filter a list of table columns.
+
+    Returns
+    -------
+    usecols_tuple : tuple
+        A tuple of (verified_usecols, usecols_dtype).
+
+        'verified_usecols' is either a set if an array-like is passed in or
+        'usecols' if a callable or None is passed in.
+
+        'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
+        is passed in or None if a callable or None is passed in.
+    """
+    msg = (
+        "'usecols' must either be list-like of all strings, all unicode, "
+        "all integers or a callable."
+    )
+    if usecols is not None:
+        if callable(usecols):
+            return usecols, None
+
+        if not is_list_like(usecols):
+            # see gh-20529
+            #
+            # Ensure it is iterable container but not string.
+            raise ValueError(msg)
+
+        usecols_dtype = lib.infer_dtype(usecols, skipna=False)
+
+        if usecols_dtype not in ("empty", "integer", "string"):
+            raise ValueError(msg)
+
+        usecols = set(usecols)
+
+        return usecols, usecols_dtype
+    return usecols, None
