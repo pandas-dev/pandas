@@ -46,7 +46,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas import (
-    ArrowDtype,
     DataFrame,
     DatetimeIndex,
     StringDtype,
@@ -141,12 +140,6 @@ class ParserBase:
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
         self.cache_dates = kwds.pop("cache_dates", True)
-
-        self._date_conv = _make_date_converter(
-            date_format=self.date_format,
-            dayfirst=self.dayfirst,
-            cache_dates=self.cache_dates,
-        )
 
         # validate header options for mi
         self.header = kwds.get("header")
@@ -355,9 +348,12 @@ class ParserBase:
 
         for i, arr in enumerate(index):
             if try_parse_dates and self._should_parse_dates(i):
-                arr = self._date_conv(
+                arr = date_converter(
                     arr,
                     col=self.index_names[i] if self.index_names is not None else None,
+                    dayfirst=self.dayfirst,
+                    cache_dates=self.cache_dates,
+                    date_format=self.date_format,
                 )
 
             if self.na_filter:
@@ -667,16 +663,25 @@ class ParserBase:
         names: Sequence[Hashable] | Index,
         data: Mapping[Hashable, ArrayLike] | DataFrame,
     ) -> Mapping[Hashable, ArrayLike] | DataFrame:
-        if isinstance(self.parse_dates, list):
-            return _process_date_conversion(
-                data,
-                self._date_conv,
-                self.parse_dates,
-                self.index_col,
-                self.index_names,
-                names,
-                dtype_backend=self.dtype_backend,
+        if not isinstance(self.parse_dates, list):
+            return data
+        for colspec in self.parse_dates:
+            if isinstance(colspec, int) and colspec not in data:
+                colspec = names[colspec]
+            if (isinstance(self.index_col, list) and colspec in self.index_col) or (
+                isinstance(self.index_names, list) and colspec in self.index_names
+            ):
+                continue
+            result = date_converter(
+                data[colspec],
+                col=colspec,
+                dayfirst=self.dayfirst,
+                cache_dates=self.cache_dates,
+                date_format=self.date_format,
             )
+            # error: Unsupported target for indexed assignment
+            # ("Mapping[Hashable, ExtensionArray | ndarray[Any, Any]] | DataFrame")
+            data[colspec] = result  # type: ignore[index]
 
         return data
 
@@ -910,40 +915,37 @@ class ParserBase:
         return index, columns, col_dict
 
 
-def _make_date_converter(
+def date_converter(
+    date_col,
+    col: Hashable,
     dayfirst: bool = False,
     cache_dates: bool = True,
     date_format: dict[Hashable, str] | str | None = None,
 ):
-    def converter(date_col, col: Hashable):
-        if date_col.dtype.kind in "Mm":
-            return date_col
+    if date_col.dtype.kind in "Mm":
+        return date_col
 
-        date_fmt = (
-            date_format.get(col) if isinstance(date_format, dict) else date_format
+    date_fmt = date_format.get(col) if isinstance(date_format, dict) else date_format
+
+    str_objs = lib.ensure_string_array(np.asarray(date_col))
+    try:
+        result = tools.to_datetime(
+            str_objs,
+            format=date_fmt,
+            utc=False,
+            dayfirst=dayfirst,
+            cache=cache_dates,
         )
+    except (ValueError, TypeError):
+        # test_usecols_with_parse_dates4
+        # test_multi_index_parse_dates
+        return str_objs
 
-        str_objs = lib.ensure_string_array(date_col)
-        try:
-            result = tools.to_datetime(
-                str_objs,
-                format=date_fmt,
-                utc=False,
-                dayfirst=dayfirst,
-                cache=cache_dates,
-            )
-        except (ValueError, TypeError):
-            # test_usecols_with_parse_dates4
-            # test_multi_index_parse_dates
-            return str_objs
-
-        if isinstance(result, DatetimeIndex):
-            arr = result.to_numpy()
-            arr.flags.writeable = True
-            return arr
-        return result._values
-
-    return converter
+    if isinstance(result, DatetimeIndex):
+        arr = result.to_numpy()
+        arr.flags.writeable = True
+        return arr
+    return result._values
 
 
 parser_defaults = {
@@ -984,42 +986,6 @@ parser_defaults = {
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
     "dtype_backend": lib.no_default,
 }
-
-
-def _process_date_conversion(
-    data_dict: Mapping[Hashable, ArrayLike] | DataFrame,
-    converter: Callable,
-    parse_spec: list,
-    index_col,
-    index_names,
-    columns: Sequence[Hashable] | Index,
-    dtype_backend=lib.no_default,
-) -> Mapping[Hashable, ArrayLike] | DataFrame:
-    for colspec in parse_spec:
-        if isinstance(colspec, int) and colspec not in data_dict:
-            colspec = columns[colspec]
-        if (isinstance(index_col, list) and colspec in index_col) or (
-            isinstance(index_names, list) and colspec in index_names
-        ):
-            continue
-        elif dtype_backend == "pyarrow":
-            import pyarrow as pa
-
-            dtype = data_dict[colspec].dtype
-            if isinstance(dtype, ArrowDtype) and (
-                pa.types.is_timestamp(dtype.pyarrow_dtype)
-                or pa.types.is_date(dtype.pyarrow_dtype)
-            ):
-                continue
-
-        # Pyarrow engine returns Series which we need to convert to
-        # numpy array before converter, its a no-op for other parsers
-        result = converter(np.asarray(data_dict[colspec]), col=colspec)
-        # error: Unsupported target for indexed assignment
-        # ("Mapping[Hashable, ExtensionArray | ndarray[Any, Any]] | DataFrame")
-        data_dict[colspec] = result  # type: ignore[index]
-
-    return data_dict
 
 
 def get_na_values(col, na_values, na_fvalues, keep_default_na: bool):

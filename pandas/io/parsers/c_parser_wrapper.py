@@ -30,6 +30,7 @@ from pandas.io.common import (
 from pandas.io.parsers.base_parser import (
     ParserBase,
     ParserError,
+    date_converter,
     is_index_col,
     validate_parse_dates_presence,
 )
@@ -345,9 +346,12 @@ class CParserWrapper(ParserBase):
 
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
-            values = self._date_conv(
+            values = date_converter(
                 values,
                 col=self.index_names[index] if self.index_names is not None else None,
+                dayfirst=self.dayfirst,
+                cache_dates=self.cache_dates,
+                date_format=self.date_format,
             )
         return values
 
