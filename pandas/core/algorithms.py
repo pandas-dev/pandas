@@ -68,6 +68,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -1161,7 +1162,10 @@ def take(
     ... )
     array([ 10,  10, -10])
     """
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+    if not isinstance(
+        arr,
+        (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCNumpyExtensionArray),
+    ):
         # GH#52981
         raise TypeError(
             "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "

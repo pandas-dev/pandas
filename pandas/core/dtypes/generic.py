@@ -145,7 +145,6 @@ ABCExtensionArray = cast(
             "periodarray",
             "datetimearray",
             "timedeltaarray",
-            "npy_extension",
         },
     ),
 )
