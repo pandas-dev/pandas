@@ -45,7 +45,7 @@ def _get_sys_info() -> dict[str, JSONSerializable]:
     language_code, encoding = locale.getlocale()
     return {
         "commit": _get_commit_hash(),
-        "python": ".".join([str(i) for i in sys.version_info]),
+        "python": platform.python_version(),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
         "OS-release": uname_result.release,
@@ -70,33 +70,25 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
         "pytz",
         "dateutil",
         # install / build,
-        "setuptools",
         "pip",
         "Cython",
-        # test
-        "pytest",
-        "hypothesis",
         # docs
         "sphinx",
-        # Other, need a min version
-        "blosc",
-        "feather",
-        "xlsxwriter",
-        "lxml.etree",
-        "html5lib",
-        "pymysql",
-        "psycopg2",
-        "jinja2",
         # Other, not imported.
         "IPython",
-        "pandas_datareader",
     ]
+    # Optional dependencies
     deps.extend(list(VERSIONS))
 
     result: dict[str, JSONSerializable] = {}
     for modname in deps:
-        mod = import_optional_dependency(modname, errors="ignore")
-        result[modname] = get_version(mod) if mod else None
+        try:
+            mod = import_optional_dependency(modname, errors="ignore")
+        except Exception:
+            # Dependency conflicts may cause a non ImportError
+            result[modname] = "N/A"
+        else:
+            result[modname] = get_version(mod) if mod else None
     return result
 
 
