@@ -31,6 +31,7 @@ from pandas.io.parsers.base_parser import (
     ParserBase,
     ParserError,
     is_index_col,
+    validate_parse_dates_presence,
 )
 
 if TYPE_CHECKING:
@@ -160,7 +161,7 @@ class CParserWrapper(ParserBase):
                 )
 
         # error: Cannot determine type of 'names'
-        self._validate_parse_dates_presence(self.names)  # type: ignore[has-type]
+        validate_parse_dates_presence(self.parse_dates, self.names)  # type: ignore[has-type]
         self._set_noconvert_columns()
 
         # error: Cannot determine type of 'names'

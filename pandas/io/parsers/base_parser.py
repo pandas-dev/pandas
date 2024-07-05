@@ -32,14 +32,12 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -127,7 +125,6 @@ class ParserBase:
                 "for the 'parse_dates' parameter"
             )
         self.parse_dates: bool | list = parse_dates
-        self._parse_date_cols: set = set()
         self.date_parser = kwds.pop("date_parser", lib.no_default)
         self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
@@ -186,52 +183,6 @@ class ParserBase:
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
-
-    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> set:
-        """
-        Check if parse_dates are in columns.
-
-        If user has provided names for parse_dates, check if those columns
-        are available.
-
-        Parameters
-        ----------
-        columns : list
-            List of names of the dataframe.
-
-        Returns
-        -------
-        The names of the columns which will get parsed later if a list
-        is given as specification.
-
-        Raises
-        ------
-        ValueError
-            If column to parse_date is not in dataframe.
-
-        """
-        if not isinstance(self.parse_dates, list):
-            return set()
-
-        # get only columns that are references using names (str), not by index
-        missing_cols = ", ".join(
-            sorted(
-                {
-                    col
-                    for col in self.parse_dates
-                    if isinstance(col, str) and col not in columns
-                }
-            )
-        )
-        if missing_cols:
-            raise ValueError(
-                f"Missing column provided to 'parse_dates': '{missing_cols}'"
-            )
-        # Convert positions to actual column names
-        return {
-            col if (isinstance(col, str) or col in columns) else columns[col]
-            for col in self.parse_dates
-        }
 
     def close(self) -> None:
         pass
@@ -420,7 +371,7 @@ class ParserBase:
                 assert self.index_names is not None
                 col_name = self.index_names[i]
                 if col_name is not None:
-                    col_na_values, col_na_fvalues = _get_na_values(
+                    col_na_values, col_na_fvalues = get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
                 else:
@@ -450,90 +401,6 @@ class ParserBase:
         index = ensure_index_from_sequences(arrays, names)
 
         return index
-
-    @final
-    def _convert_to_ndarrays(
-        self,
-        dct: Mapping,
-        na_values,
-        na_fvalues,
-        converters=None,
-        dtypes=None,
-    ) -> dict[Any, np.ndarray]:
-        result = {}
-        for c, values in dct.items():
-            conv_f = None if converters is None else converters.get(c, None)
-            if isinstance(dtypes, dict):
-                cast_type = dtypes.get(c, None)
-            else:
-                # single dtype or None
-                cast_type = dtypes
-
-            if self.na_filter:
-                col_na_values, col_na_fvalues = _get_na_values(
-                    c, na_values, na_fvalues, self.keep_default_na
-                )
-            else:
-                col_na_values, col_na_fvalues = set(), set()
-
-            if c in self._parse_date_cols:
-                # GH#26203 Do not convert columns which get converted to dates
-                # but replace nans to ensure to_datetime works
-                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)
-                np.putmask(values, mask, np.nan)
-                result[c] = values
-                continue
-
-            if conv_f is not None:
-                # conv_f applied to data before inference
-                if cast_type is not None:
-                    warnings.warn(
-                        (
-                            "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will be used."
-                        ),
-                        ParserWarning,
-                        stacklevel=find_stack_level(),
-                    )
-
-                try:
-                    values = lib.map_infer(values, conv_f)
-                except ValueError:
-                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
-                    values = lib.map_infer_mask(values, conv_f, mask)
-
-                cvals, na_count = self._infer_types(
-                    values,
-                    set(col_na_values) | col_na_fvalues,
-                    cast_type is None,
-                    try_num_bool=False,
-                )
-            else:
-                is_ea = is_extension_array_dtype(cast_type)
-                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
-                # skip inference if specified dtype is object
-                # or casting to an EA
-                try_num_bool = not (cast_type and is_str_or_ea_dtype)
-
-                # general type inference and conversion
-                cvals, na_count = self._infer_types(
-                    values,
-                    set(col_na_values) | col_na_fvalues,
-                    cast_type is None,
-                    try_num_bool,
-                )
-
-                # type specified in dtype param or cast_type is an EA
-                if cast_type is not None:
-                    cast_type = pandas_dtype(cast_type)
-                if cast_type and (cvals.dtype != cast_type or is_ea):
-                    if not is_ea and na_count > 0:
-                        if is_bool_dtype(cast_type):
-                            raise ValueError(f"Bool column has NA values in column {c}")
-                    cvals = self._cast_types(cvals, cast_type, c)
-
-            result[c] = cvals
-        return result
 
     @final
     def _set_noconvert_dtype_columns(
@@ -580,6 +447,7 @@ class ParserBase:
             return x
 
         if isinstance(self.parse_dates, list):
+            validate_parse_dates_presence(self.parse_dates, names)
             for val in self.parse_dates:
                 noconvert_columns.add(_set(val))
 
@@ -1154,7 +1022,7 @@ def _process_date_conversion(
     return data_dict
 
 
-def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
+def get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
     """
     Get the NaN values for a given column.
 
@@ -1191,3 +1059,49 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
 
 def is_index_col(col) -> bool:
     return col is not None and col is not False
+
+
+def validate_parse_dates_presence(
+    parse_dates: bool | list, columns: Sequence[Hashable]
+) -> set:
+    """
+    Check if parse_dates are in columns.
+
+    If user has provided names for parse_dates, check if those columns
+    are available.
+
+    Parameters
+    ----------
+    columns : list
+        List of names of the dataframe.
+
+    Returns
+    -------
+    The names of the columns which will get parsed later if a list
+    is given as specification.
+
+    Raises
+    ------
+    ValueError
+        If column to parse_date is not in dataframe.
+
+    """
+    if not isinstance(parse_dates, list):
+        return set()
+
+    missing = set()
+    unique_cols = set()
+    for col in parse_dates:
+        if isinstance(col, str):
+            if col not in columns:
+                missing.add(col)
+            else:
+                unique_cols.add(col)
+        elif col in columns:
+            unique_cols.add(col)
+        else:
+            unique_cols.add(columns[col])
+    if missing:
+        missing_cols = ", ".join(sorted(missing))
+        raise ValueError(f"Missing column provided to 'parse_dates': '{missing_cols}'")
+    return unique_cols
