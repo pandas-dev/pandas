@@ -31,7 +31,7 @@ For the purposes of this PDEP, the last minor release before a major release wil
 
 ## General policy
 
-This policy applies to the public API. Anything not part of the public API or is marked as "Experimental" may be changed or removed at anytime.
+This policy applies to the [public API][1]. Anything not part of the [public API][1] or is marked as "Experimental" may be changed or removed at anytime.
 
 - Breaking backwards compatibility should benefit more than it harms users.
 - Breaking changes should go through a deprecation cycle before being implemented.
@@ -82,3 +82,5 @@ When one enforces a deprecation, they should:
 ### PDEP-17 History
 
 - 27 June 2024: Initial version.
+
+[1]: https://pandas.pydata.org/docs/reference/index.html
