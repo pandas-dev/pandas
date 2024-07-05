@@ -42,7 +42,7 @@ Some bug fixes may require breaking backwards compatibility. In these cases, a d
 
 ## Deprecation process
 
-Whenever there are plans to break backwards compatibility, a deprecation must be introduced. The deprecation will preserve the existing behavior while emitting a warning that the behavior will be changing in a future version.
+Deprecation provides a way to warn developers and give them time to adapt their code to the new functionality before the old behavior is eventually removed.
 
 A deprecation's warning message should:
 - Provide information on what is changing.
