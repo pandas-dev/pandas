@@ -274,45 +274,33 @@ class ParserBase:
         self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
-        if not is_index_col(self.index_col) or not self.index_col:
-            index = None
-        else:
-            simple_index = self._get_simple_index(alldata, columns)
-            index = self._agg_index(simple_index)
+        if isinstance(self.index_col, list) and len(self.index_col):
+            to_remove = []
+            index = []
+            for idx in self.index_col:
+                if isinstance(idx, str):
+                    raise ValueError(f"Index {idx} invalid")
+                to_remove.append(idx)
+                index.append(alldata[idx])
+            # remove index items from content and columns, don't pop in
+            # loop
+            for i in sorted(to_remove, reverse=True):
+                alldata.pop(i)
+                if not self._implicit_index:
+                    columns.pop(i)
+            index = self._agg_index(index)
 
-        # add names for the index
-        if indexnamerow:
-            coffset = len(indexnamerow) - len(columns)
-            assert index is not None
-            index = index.set_names(indexnamerow[:coffset])
+            # add names for the index
+            if indexnamerow:
+                coffset = len(indexnamerow) - len(columns)
+                index = index.set_names(indexnamerow[:coffset])
+        else:
+            index = None
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
 
         return index, columns
-
-    @final
-    def _get_simple_index(self, data, columns):
-        def ix(col):
-            if not isinstance(col, str):
-                return col
-            raise ValueError(f"Index {col} invalid")
-
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            i = ix(idx)
-            to_remove.append(i)
-            index.append(data[i])
-
-        # remove index items from content and columns, don't pop in
-        # loop
-        for i in sorted(to_remove, reverse=True):
-            data.pop(i)
-            if not self._implicit_index:
-                columns.pop(i)
-
-        return index
 
     @final
     def _clean_mapping(self, mapping):
