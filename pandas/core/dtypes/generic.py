@@ -139,13 +139,7 @@ ABCExtensionArray = cast(
         "ABCExtensionArray",
         "_typ",
         # Note: IntervalArray and SparseArray are included bc they have _typ="extension"
-        {
-            "extension",
-            "categorical",
-            "periodarray",
-            "datetimearray",
-            "timedeltaarray",
-        },
+        {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
     ),
 )
 ABCNumpyExtensionArray = cast(
