@@ -162,7 +162,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.plot PR02" \
-        -i "pandas.Series.pop RT03,SA01" \
+        -i "pandas.Series.pop SA01" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
@@ -231,7 +231,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
@@ -245,13 +244,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.month_name SA01" \
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.normalize SA01" \
-        -i "pandas.Timestamp.now SA01" \
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
         -i "pandas.Timestamp.timetuple SA01" \
         -i "pandas.Timestamp.timetz SA01" \
@@ -261,7 +258,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.to_period PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
-        -i "pandas.Timestamp.tz SA01" \
         -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \

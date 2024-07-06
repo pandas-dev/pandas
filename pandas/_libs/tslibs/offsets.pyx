@@ -4890,16 +4890,16 @@ cpdef to_offset(freq, bint is_period=False):
                             )
                         name = c_PERIOD_TO_OFFSET_FREQSTR.get(name.upper())
 
-                    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed "
-                            f"in a future version, please use "
-                            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                            f" instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                            )
-                        name = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
+                if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+                    warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
+                        f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                        f" instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                        )
+                    name = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
@@ -4948,7 +4948,12 @@ cpdef to_offset(freq, bint is_period=False):
     if result is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
-    if is_period and not hasattr(result, "_period_dtype_code"):
+    try:
+        has_period_dtype_code = hasattr(result, "_period_dtype_code")
+    except ValueError:
+        has_period_dtype_code = False
+
+    if is_period and not has_period_dtype_code:
         if isinstance(freq, str):
             raise ValueError(f"{result.name} is not supported as period frequency")
         else:
