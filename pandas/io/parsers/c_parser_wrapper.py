@@ -290,7 +290,7 @@ class CParserWrapper(ParserBase):
                 else:
                     values = data.pop(self.index_col[i])
 
-                values = self._maybe_parse_dates(values, i, try_parse_dates=True)
+                values = self._maybe_parse_dates(values, i)
                 arrays.append(values)
 
             index = ensure_index_from_sequences(arrays)
@@ -344,8 +344,8 @@ class CParserWrapper(ParserBase):
             ]
         return names
 
-    def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
-        if try_parse_dates and self._should_parse_dates(index):
+    def _maybe_parse_dates(self, values, index: int):
+        if self._should_parse_dates(index):
             values = date_converter(
                 values,
                 col=self.index_names[index] if self.index_names is not None else None,

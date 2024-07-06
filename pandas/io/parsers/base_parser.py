@@ -321,12 +321,12 @@ class ParserBase:
         return clean
 
     @final
-    def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
+    def _agg_index(self, index) -> Index:
         arrays = []
         converters = self._clean_mapping(self.converters)
 
         for i, arr in enumerate(index):
-            if try_parse_dates and self._should_parse_dates(i):
+            if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
                     col=self.index_names[i] if self.index_names is not None else None,
