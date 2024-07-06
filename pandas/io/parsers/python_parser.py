@@ -59,6 +59,7 @@ from pandas.io.common import (
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    evaluate_callable_usecols,
     get_na_values,
     parser_defaults,
     validate_parse_dates_presence,
@@ -774,7 +775,7 @@ class PythonParser(ParserBase):
         col_indices: set[int] | list[int]
         if self.usecols is not None:
             if callable(self.usecols):
-                col_indices = self._evaluate_usecols(self.usecols, usecols_key)
+                col_indices = evaluate_callable_usecols(self.usecols, usecols_key)
             elif any(isinstance(u, str) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError(

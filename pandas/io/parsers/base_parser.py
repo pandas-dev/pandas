@@ -324,6 +324,7 @@ class ParserBase:
     def _agg_index(self, index) -> Index:
         arrays = []
         converters = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
         for i, arr in enumerate(index):
             if self._should_parse_dates(i):
@@ -351,8 +352,6 @@ class ParserBase:
                     )
                 else:
                     col_na_values, col_na_fvalues = set(), set()
-
-            clean_dtypes = self._clean_mapping(self.dtype)
 
             cast_type = None
             index_converter = False
@@ -619,35 +618,6 @@ class ParserBase:
                 ParserWarning,
                 stacklevel=find_stack_level(),
             )
-
-    @overload
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object],
-        names: Iterable[Hashable],
-    ) -> set[int]: ...
-
-    @overload
-    def _evaluate_usecols(
-        self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT: ...
-
-    @final
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object] | SequenceT,
-        names: Iterable[Hashable],
-    ) -> SequenceT | set[int]:
-        """
-        Check whether or not the 'usecols' parameter
-        is a callable.  If so, enumerates the 'names'
-        parameter and returns a set of indices for
-        each entry in 'names' that evaluates to True.
-        If not a callable, returns 'usecols'.
-        """
-        if callable(usecols):
-            return {i for i, name in enumerate(names) if usecols(name)}
-        return usecols
 
     @final
     def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:
@@ -976,3 +946,32 @@ def _validate_usecols_arg(usecols):
 
         return usecols, usecols_dtype
     return usecols, None
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object],
+    names: Iterable[Hashable],
+) -> set[int]: ...
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: SequenceT, names: Iterable[Hashable]
+) -> SequenceT: ...
+
+
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object] | SequenceT,
+    names: Iterable[Hashable],
+) -> SequenceT | set[int]:
+    """
+    Check whether or not the 'usecols' parameter
+    is a callable.  If so, enumerates the 'names'
+    parameter and returns a set of indices for
+    each entry in 'names' that evaluates to True.
+    If not a callable, returns 'usecols'.
+    """
+    if callable(usecols):
+        return {i for i, name in enumerate(names) if usecols(name)}
+    return usecols
