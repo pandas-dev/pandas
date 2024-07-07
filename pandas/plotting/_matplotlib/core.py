@@ -2037,7 +2037,11 @@ class PiePlot(MPLPlot):
 
     def __init__(self, data, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        if (data < 0).any().any():
+        # Handle the case where data is a PyArrow series
+        any_result = (data < 0).any()
+        if isinstance(any_result, bool):
+            any_result = np.bool_(any_result)
+        if any_result.any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
@@ -2052,7 +2056,7 @@ class PiePlot(MPLPlot):
             warnings.warn(
                 f"PiePlot ignores the '{kwd}' keyword",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=3,  # Changed find_stack_level() to 3 for compatibility
             )
         return False
 
