@@ -2473,6 +2473,28 @@ def test_dt_properties(prop, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("microsecond", [2000, 5, 0])
+def test_dt_microsecond(microsecond):
+    # GH 59183
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2024,
+                month=7,
+                day=7,
+                second=5,
+                microsecond=microsecond,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.microsecond
+    expected = pd.Series([microsecond, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_dt_is_month_start_end():
     ser = pd.Series(
         [
