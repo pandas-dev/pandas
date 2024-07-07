@@ -2979,8 +2979,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  User 11
         2  User 12
 
-        >>> from adbc_driver_sqlite import dbapi # doctest:+SKIP
-        >>> with dbapi.connect("sqlite://") as conn: # doctest:+SKIP
+        >>> from adbc_driver_sqlite import dbapi  # doctest:+SKIP
+        >>> with dbapi.connect("sqlite://") as conn:  # doctest:+SKIP
         ...     df.to_sql(name="users", con=conn)
         3
         """  # noqa: E501
