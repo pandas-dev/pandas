@@ -128,9 +128,8 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.has_index_names = False
-        if "has_index_names" in kwds:
-            self.has_index_names = kwds["has_index_names"]
+        # Passed from read_excel
+        self.has_index_names = kwds.get("has_index_names", False)
 
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
@@ -300,9 +299,10 @@ class PythonParser(ParserBase):
             return index, conv_columns, col_dict
 
         # handle new style for names in index
-        count_empty_content_vals = count_empty_vals(content[0])
         indexnamerow = None
-        if self.has_index_names and count_empty_content_vals == len(columns):
+        if self.has_index_names and sum(
+            int(v == "" or v is None) for v in content[0]
+        ) == len(columns):
             indexnamerow = content[0]
             content = content[1:]
 
@@ -1522,10 +1522,6 @@ class FixedWidthFieldParser(PythonParser):
             for line in lines
             if any(not isinstance(e, str) or e.strip() for e in line)
         ]
-
-
-def count_empty_vals(vals) -> int:
-    return sum(1 for v in vals if v == "" or v is None)
 
 
 def _validate_skipfooter_arg(skipfooter: int) -> int:
