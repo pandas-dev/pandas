@@ -10,9 +10,11 @@ import re
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     DefaultDict,
     Literal,
     cast,
+    final,
 )
 import warnings
 
@@ -27,12 +29,29 @@ from pandas.errors import (
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas.core import algorithms
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.indexes.api import Index
 
 from pandas.io.common import (
     dedup_names,
@@ -40,7 +59,9 @@ from pandas.io.common import (
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    get_na_values,
     parser_defaults,
+    validate_parse_dates_presence,
 )
 
 if TYPE_CHECKING:
@@ -53,13 +74,13 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        DtypeObj,
         ReadCsvBuffer,
         Scalar,
         T,
     )
 
     from pandas import (
-        Index,
         MultiIndex,
         Series,
     )
@@ -157,7 +178,6 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         self._no_thousands_columns = self._set_no_thousand_columns()
 
         if len(self.decimal) != 1:
@@ -369,6 +389,165 @@ class PythonParser(ParserBase):
             clean_conv,
             clean_dtypes,
         )
+
+    @final
+    def _convert_to_ndarrays(
+        self,
+        dct: Mapping,
+        na_values,
+        na_fvalues,
+        converters=None,
+        dtypes=None,
+    ) -> dict[Any, np.ndarray]:
+        result = {}
+        parse_date_cols = validate_parse_dates_presence(self.parse_dates, self.columns)
+        for c, values in dct.items():
+            conv_f = None if converters is None else converters.get(c, None)
+            if isinstance(dtypes, dict):
+                cast_type = dtypes.get(c, None)
+            else:
+                # single dtype or None
+                cast_type = dtypes
+
+            if self.na_filter:
+                col_na_values, col_na_fvalues = get_na_values(
+                    c, na_values, na_fvalues, self.keep_default_na
+                )
+            else:
+                col_na_values, col_na_fvalues = set(), set()
+
+            if c in parse_date_cols:
+                # GH#26203 Do not convert columns which get converted to dates
+                # but replace nans to ensure to_datetime works
+                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)  # pyright: ignore[reportArgumentType]
+                np.putmask(values, mask, np.nan)
+                result[c] = values
+                continue
+
+            if conv_f is not None:
+                # conv_f applied to data before inference
+                if cast_type is not None:
+                    warnings.warn(
+                        (
+                            "Both a converter and dtype were specified "
+                            f"for column {c} - only the converter will be used."
+                        ),
+                        ParserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
+                try:
+                    values = lib.map_infer(values, conv_f)
+                except ValueError:
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
+                    values = lib.map_infer_mask(values, conv_f, mask)
+
+                cvals, na_count = self._infer_types(
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool=False,
+                )
+            else:
+                is_ea = is_extension_array_dtype(cast_type)
+                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
+                # skip inference if specified dtype is object
+                # or casting to an EA
+                try_num_bool = not (cast_type and is_str_or_ea_dtype)
+
+                # general type inference and conversion
+                cvals, na_count = self._infer_types(
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool,
+                )
+
+                # type specified in dtype param or cast_type is an EA
+                if cast_type is not None:
+                    cast_type = pandas_dtype(cast_type)
+                if cast_type and (cvals.dtype != cast_type or is_ea):
+                    if not is_ea and na_count > 0:
+                        if is_bool_dtype(cast_type):
+                            raise ValueError(f"Bool column has NA values in column {c}")
+                    cvals = self._cast_types(cvals, cast_type, c)
+
+            result[c] = cvals
+        return result
+
+    @final
+    def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
+        """
+        Cast values to specified type
+
+        Parameters
+        ----------
+        values : ndarray or ExtensionArray
+        cast_type : np.dtype or ExtensionDtype
+           dtype to cast values to
+        column : string
+            column name - used only for error reporting
+
+        Returns
+        -------
+        converted : ndarray or ExtensionArray
+        """
+        if isinstance(cast_type, CategoricalDtype):
+            known_cats = cast_type.categories is not None
+
+            if not is_object_dtype(values.dtype) and not known_cats:
+                # TODO: this is for consistency with
+                # c-parser which parses all categories
+                # as strings
+                values = lib.ensure_string_array(
+                    values, skipna=False, convert_na_value=False
+                )
+
+            cats = Index(values).unique().dropna()
+            values = Categorical._from_inferred_categories(
+                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
+            )
+
+        # use the EA's implementation of casting
+        elif isinstance(cast_type, ExtensionDtype):
+            array_type = cast_type.construct_array_type()
+            try:
+                if isinstance(cast_type, BooleanDtype):
+                    # error: Unexpected keyword argument "true_values" for
+                    # "_from_sequence_of_strings" of "ExtensionArray"
+                    values_str = [str(val) for val in values]
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
+                        values_str,
+                        dtype=cast_type,
+                        true_values=self.true_values,  # pyright: ignore[reportCallIssue]
+                        false_values=self.false_values,  # pyright: ignore[reportCallIssue]
+                        none_values=self.na_values,  # pyright: ignore[reportCallIssue]
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
+            except NotImplementedError as err:
+                raise NotImplementedError(
+                    f"Extension Array: {array_type} must implement "
+                    "_from_sequence_of_strings in order to be used in parser methods"
+                ) from err
+
+        elif isinstance(values, ExtensionArray):
+            values = values.astype(cast_type, copy=False)
+        elif issubclass(cast_type.type, str):
+            # TODO: why skipna=True here and False above? some tests depend
+            #  on it here, but nothing fails if we change it above
+            #  (as no tests get there as of 2022-12-06)
+            values = lib.ensure_string_array(
+                values, skipna=True, convert_na_value=False
+            )
+        else:
+            try:
+                values = astype_array(values, cast_type, copy=True)
+            except ValueError as err:
+                raise ValueError(
+                    f"Unable to convert column {column} to type {cast_type}"
+                ) from err
+        return values
 
     @cache_readonly
     def _have_mi_columns(self) -> bool:
