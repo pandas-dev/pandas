@@ -893,7 +893,13 @@ class MPLPlot(ABC):
         elif self.subplots and self.legend:
             for ax in self.axes:
                 if ax.get_visible():
-                    ax.legend(loc="best")
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "No artists with labels found to put in legend.",
+                            UserWarning,
+                        )
+                        ax.legend(loc="best")
 
     @final
     @staticmethod

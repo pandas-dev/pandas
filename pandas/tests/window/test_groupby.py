@@ -582,7 +582,7 @@ class TestRolling:
 
         groups = df.groupby("group")
         df["count_to_date"] = groups.cumcount()
-        rolling_groups = groups.rolling("10d", on="eventTime")
+        rolling_groups = groups.rolling("10D", on="eventTime")
         result = rolling_groups.apply(lambda df: df.shape[0])
         expected = DataFrame(
             [
@@ -623,11 +623,14 @@ class TestRolling:
                 "date": date_range(end="20190101", periods=6, unit=unit),
             }
         )
-        result = (
-            df.groupby("group")
-            .rolling("3d", on="date", closed="left")["column1"]
-            .count()
-        )
+        msg = "'d' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = (
+                df.groupby("group")
+                .rolling("3d", on="date", closed="left")["column1"]
+                .count()
+            )
         dti = DatetimeIndex(
             [
                 "2018-12-27",
