@@ -2983,8 +2983,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with dbapi.connect("sqlite://") as conn: # doctest:+SKIP
         ...     df.to_sql(name="users", con=conn)
         3
-
-
         """  # noqa: E501
         from pandas.io import sql
 
