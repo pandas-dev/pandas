@@ -606,7 +606,7 @@ class PythonParser(ParserBase):
                     # serve as the 'line' for parsing
                     if have_mi_columns and hr > 0:
                         if clear_buffer:
-                            self._clear_buffer()
+                            self.buf.clear()
                         columns.append([None] * len(columns[-1]))
                         return columns, num_original_columns, unnamed_cols
 
@@ -688,7 +688,7 @@ class PythonParser(ParserBase):
                     num_original_columns = len(this_columns)
 
             if clear_buffer:
-                self._clear_buffer()
+                self.buf.clear()
 
             first_line: list[Scalar] | None
             if names is not None:
@@ -1094,9 +1094,6 @@ class PythonParser(ParserBase):
         return self._search_replace_num_columns(
             lines=lines, search=self.decimal, replace="."
         )
-
-    def _clear_buffer(self) -> None:
-        self.buf = []
 
     def _get_index_name(
         self,
