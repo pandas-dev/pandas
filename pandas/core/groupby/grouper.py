@@ -679,7 +679,7 @@ class Grouping:
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            cats = [(key,) for key in cats]
+            cats = [(key,) for key in cats]  # type: ignore[assignment]
         return self._index.groupby(cats)
 
     @property
