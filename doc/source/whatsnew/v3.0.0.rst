@@ -45,10 +45,11 @@ Other enhancements
 - :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
 - :meth:`DataFrame.pivot_table` and :func:`pivot_table` now allow the passing of keyword arguments to ``aggfunc`` through ``**kwargs`` (:issue:`57884`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
+- :meth:`Series.dt.day_of_week` now returns ``int8`` dtype (:issue:`58185`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
-
+-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
 
