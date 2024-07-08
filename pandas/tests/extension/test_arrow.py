@@ -2437,13 +2437,13 @@ def test_unsupported_dt(data):
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
-        ["microsecond", 5],
+        ["microsecond", 2000],
         ["month", 1],
         ["nanosecond", 6],
         ["quarter", 1],
         ["second", 7],
         ["date", date(2023, 1, 2)],
-        ["time", time(3, 4, 7, 5)],
+        ["time", time(3, 4, 7, 2000)],
     ],
 )
 def test_dt_properties(prop, expected):
@@ -2456,7 +2456,7 @@ def test_dt_properties(prop, expected):
                 hour=3,
                 minute=4,
                 second=7,
-                microsecond=5,
+                microsecond=2000,
                 nanosecond=6,
             ),
             None,
@@ -2470,6 +2470,28 @@ def test_dt_properties(prop, expected):
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("microsecond", [2000, 5, 0])
+def test_dt_microsecond(microsecond):
+    # GH 59183
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2024,
+                month=7,
+                day=7,
+                second=5,
+                microsecond=microsecond,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.microsecond
+    expected = pd.Series([microsecond, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
