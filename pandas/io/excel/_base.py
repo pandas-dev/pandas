@@ -829,7 +829,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             # header indexes reference rows after removing skiprows, so we
             # create an index map from the without-skiprows to the
             # original indexes.
-            ixmap: Union[range, list[int]]
+            ixmap: range | list[int]
             if skiprows is None:
                 ixmap = range(len(data))
             elif is_integer(skiprows):
