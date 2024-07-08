@@ -13328,6 +13328,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series.str.contains: Test if pattern or regex is contained within a
             string of a Series or Index.
 
+        Notes
+        -----
+            ``__iter__`` is used (and not ``__contains__``) to iterate over values
+            when checking if it contains the elements in DataFrame.
+
         Examples
         --------
         >>> df = pd.DataFrame(
