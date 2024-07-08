@@ -13330,7 +13330,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-            We use `__iter__` (and not `__contains__`) to iterate over values
+            ``__iter__`` is used (and not ``__contains__``) to iterate over values
             when checking if it contains the elements in DataFrame.
 
         Examples
