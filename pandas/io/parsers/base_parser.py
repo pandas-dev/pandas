@@ -276,19 +276,19 @@ class ParserBase:
         index: Index | None
         if isinstance(self.index_col, list) and len(self.index_col):
             to_remove = []
-            index = []
+            indexes = []
             for idx in self.index_col:
                 if isinstance(idx, str):
                     raise ValueError(f"Index {idx} invalid")
                 to_remove.append(idx)
-                index.append(alldata[idx])
+                indexes.append(alldata[idx])
             # remove index items from content and columns, don't pop in
             # loop
             for i in sorted(to_remove, reverse=True):
                 alldata.pop(i)
                 if not self._implicit_index:
                     columns.pop(i)
-            index = self._agg_index(index)
+            index = self._agg_index(indexes)
 
             # add names for the index
             if indexnamerow:
