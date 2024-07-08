@@ -232,3 +232,20 @@ class TestMultiIndexBasic:
             [("a", "b", "c"), (np.nan, np.nan, np.nan), ("d", "", "")]
         )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("operation", ["div", "mul", "add", "sub"])
+    def test_groupyby_rename_categories_operation_with_multiindex(self, operation):
+        # GH#51500
+        data = DataFrame(
+            [["C", "B", "B"], ["B", "A", "A"], ["B", "A", "B"]], columns=["0", "1", "2"]
+        )
+        data["0"] = data["0"].astype("category")
+        data["0"] = data["0"].cat.rename_categories({"C": "B", "B": "C"})
+
+        a = data.groupby(by=["0", "1"])["2"].value_counts()
+        b = data.groupby(by=["0", "1"]).size()
+
+        result = getattr(a, operation)(b)
+        expected = getattr(a, operation)(b.sort_index(ascending=False))
+
+        tm.assert_series_equal(result, expected)
