@@ -9,7 +9,7 @@ Package overview
 pandas is a `Python <https://www.python.org>`__ package that provides fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
-fundamental high-level building block for python's practical, **real-world** data
+fundamental high-level building block for Python's practical, **real-world** data
 analysis. Additionally, it seeks to become **the
 most powerful and flexible open source data analysis/manipulation tool
 available in any language**. It is already well on its way toward this goal.
