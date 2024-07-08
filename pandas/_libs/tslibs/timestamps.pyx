@@ -1139,7 +1139,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,
@@ -1170,7 +1170,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def asm8(self) -> np.datetime64:
         """
-        Return numpy datetime64 format in nanoseconds.
+        Return numpy datetime64 format with same precision.
 
         See Also
         --------

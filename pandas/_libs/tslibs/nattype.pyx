@@ -1516,7 +1516,7 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,
