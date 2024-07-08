@@ -134,8 +134,10 @@ class ExponentialMovingWindow(BaseWindow):
     Provide exponentially weighted (EW) calculations.
 
     Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
-    provided if ``times`` is not provided. If ``times`` is provided,
+    provided if ``times`` is not provided. If ``times`` is provided and ``adjust=True``,
     ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
+    If ``times`` is provided and ``adjust=False``, ``halflife`` must be the only
+    provided decay-specification parameter.
 
     Parameters
     ----------
@@ -358,8 +360,6 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.times = times
         if self.times is not None:
-            if not self.adjust:
-                raise NotImplementedError("times is not supported with adjust=False.")
             times_dtype = getattr(self.times, "dtype", None)
             if not (
                 is_datetime64_dtype(times_dtype)
@@ -376,6 +376,11 @@ class ExponentialMovingWindow(BaseWindow):
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
+                if not self.adjust:
+                    raise NotImplementedError(
+                        "None of com, span, or alpha can be specified if "
+                        "times is provided and adjust=False"
+                    )
                 self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
                 self._com = 1.0
