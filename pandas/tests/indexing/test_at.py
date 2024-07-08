@@ -24,12 +24,8 @@ import pandas._testing as tm
 def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
-    expected = DataFrame(
-        {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_selection_methods_of_assigned_col():

@@ -9,7 +9,6 @@ import pytest
 from pandas.errors import IndexingError
 
 from pandas import (
-    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -528,10 +527,9 @@ class TestiLocBaseIndependent:
         assert len(df._mgr.blocks) == 1
 
         # if the assigned values cannot be held by existing integer arrays,
-        #  we cast
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        #  we raise
+        with pytest.raises(TypeError, match="Invalid value"):
             df.iloc[:, 0] = df.iloc[:, 0] + 0.5
-        assert len(df._mgr.blocks) == 2
 
         expected = df.copy()
 
@@ -1445,7 +1443,5 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
-        expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)

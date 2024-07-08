@@ -1280,20 +1280,19 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        msg = "Setting an item of incompatible dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
@@ -1313,13 +1312,12 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        msg = "Setting an item of incompatible dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
 
         dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):

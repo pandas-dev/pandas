@@ -152,17 +152,8 @@ class TestDataFrameUpdate:
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.update({"c": Series(["foo"], index=[0])})
-
-        expected = DataFrame(
-            {
-                "a": [1, 3],
-                "b": [np.nan, 2],
-                "c": Series(["foo", np.nan], dtype="object"),
-            }
-        )
-        tm.assert_frame_equal(df, expected)
 
     def test_update_modify_view(self, using_infer_string):
         # GH#47188

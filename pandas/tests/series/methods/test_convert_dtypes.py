@@ -231,7 +231,7 @@ class TestSeriesConvertDtypes:
         copy = series.copy(deep=True)
 
         if result.notna().sum() > 0 and result.dtype in ["interval[int64, right]"]:
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            with pytest.raises(TypeError, match="Invalid value"):
                 result[result.notna()] = np.nan
         else:
             result[result.notna()] = np.nan
