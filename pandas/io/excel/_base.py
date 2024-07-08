@@ -817,20 +817,27 @@ class BaseExcelReader(Generic[_WorkbookT]):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ):
-        try:
 
+        if callable(skiprows):
+            # In order to avoid calling skiprows multiple times on
+            # every row, we just do it here and keep the resulting
+            # list for passing it down to the parser.
+            skiprows = [ix for ix in range(len(data)) if skiprows(ix)]
+            if len(skiprows) == 0:
+                skiprows = None
+
+        try:
             # header indexes reference rows after removing skiprows, so we
             # create an index map from the without-skiprows to the
             # original indexes.
+            ixmap: Union[range, list[int]]
             if skiprows is None:
-                ixmap = list(range(len(data)))
+                ixmap = range(len(data))
             elif is_integer(skiprows):
-                ixmap = list(range(skiprows, len(data)))
+                ixmap = range(skiprows, len(data))
             elif is_list_like(skiprows):
                 skiprows_set = set(cast(Sequence[int], skiprows))
-                ixmap = [ix for ix, _ in enumerate(data) if ix not in skiprows_set]
-            elif callable(skiprows):
-                ixmap = [ix for ix, _ in enumerate(data) if not skiprows(ix)]
+                ixmap = [ix for ix in range(len(data)) if ix not in skiprows_set]
             else:
                 raise ValueError(
                     "skiprows must be an integer or a list of integers"
