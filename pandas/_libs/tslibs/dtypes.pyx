@@ -335,14 +335,6 @@ PERIOD_TO_OFFSET_FREQSTR = {
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
-# Map deprecated resolution abbreviations to correct resolution abbreviations
-cdef dict c_REMOVED_ABBREVS = {
-    "H": "h",
-    "BH": "bh",
-    "CBH": "cbh",
-    "S": "s",
-}
-
 cdef dict c_DEPR_UNITS = {
     "w": "W",
     "d": "D",
@@ -356,6 +348,16 @@ cdef dict c_DEPR_UNITS = {
 
 cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "w": "W",
+    "w-mon": "W-MON",
+    "w-tue": "W-TUE",
+    "w-wed": "W-WED",
+    "w-thu": "W-THU",
+    "w-fri": "W-FRI",
+    "w-sat": "W-SAT",
+    "w-sun": "W-SUN",
+    "d": "D",
+    "b": "B",
+    "c": "C",
     "MIN": "min",
 }
 
@@ -451,21 +453,17 @@ class Resolution(Enum):
         True
         """
         try:
-            if freq in c_REMOVED_ABBREVS:
-
-                raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
             attr_name = _abbrev_to_attrnames[freq]
-        except KeyError:
+        except KeyError as exc:
+            msg = INVALID_FREQ_ERR_MSG.format(freq)
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
             split_freq = freq.split("-")
             if len(split_freq) != 2:
-                raise
+                raise ValueError(msg) from exc
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
-                raise
-            if split_freq[0] in c_REMOVED_ABBREVS:
-                raise ValueError(INVALID_FREQ_ERR_MSG.format(split_freq[0]))
+                raise ValueError(msg) from exc
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)

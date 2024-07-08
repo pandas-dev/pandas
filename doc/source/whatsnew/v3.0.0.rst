@@ -279,6 +279,8 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
 - Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
+- Deprecated lowercase strings ``d``, ``b`` and ``c`` denoting frequencies in :class:`Day`, :class:`BusinessDay` and :class:`CustomBusinessDay` in favour of ``D``, ``B`` and ``C`` (:issue:`58998`)
+- Deprecated lowercase strings ``w``, ``w-mon``, ``w-tue``, etc. denoting frequencies in :class:`Week` in favour of ``W``, ``W-MON``, ``W-TUE``, etc. (:issue:`58998`)
 - Deprecated parameter ``method`` in :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like` (:issue:`58667`)
 - Deprecated strings ``w``, ``d``, ``MIN``, ``MS``, ``US`` and ``NS`` denoting units in :class:`Timedelta` in favour of ``W``, ``D``, ``min``, ``ms``, ``us`` and ``ns`` (:issue:`59051`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
@@ -565,8 +567,8 @@ I/O
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
+- Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
--
 
 Period
 ^^^^^^
@@ -598,6 +600,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
+- Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 
 Sparse
 ^^^^^^
@@ -617,6 +620,7 @@ Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
+- Bug in :func:`eval` on :class:`complex` including division ``/`` discards imaginary part. (:issue:`21374`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
