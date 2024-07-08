@@ -2472,10 +2472,23 @@ cdef class _Period(PeriodMixin):
         """
         Return the period of now's date.
 
+        The `now` method provides a convenient way to generate a period
+        object for the current date and time. This can be particularly
+        useful in financial and economic analysis, where data is often
+        collected and analyzed in regular intervals (e.g., hourly, daily,
+        monthly). By specifying the frequency, users can create periods
+        that match the granularity of their data.
+
         Parameters
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Period : Represents a period of time.
+        Period.to_timestamp : Return the Timestamp representation of the Period.
 
         Examples
         --------

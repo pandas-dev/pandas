@@ -95,7 +95,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
         -i "pandas.Period.month SA01" \
-        -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
