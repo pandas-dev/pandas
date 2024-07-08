@@ -232,7 +232,7 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
             # Make an exception for the comps argument in isin.
             raise TypeError(
                 f"{func_name} requires a Series, Index, "
-                f"ExtensionArray, np.ndarray or NumpyExtensionArray"
+                f"ExtensionArray, np.ndarray or NumpyExtensionArray "
                 f"got {type(values).__name__}."
             )
 
