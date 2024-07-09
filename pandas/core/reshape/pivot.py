@@ -31,7 +31,6 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
 )
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
@@ -358,15 +357,11 @@ def __internal_pivot_table(
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.index.levels), names=table.index.names
-            )
+            m = MultiIndex.from_product(table.index.levels, names=table.index.names)
             table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.columns.levels), names=table.columns.names
-            )
+            m = MultiIndex.from_product(table.columns.levels, names=table.columns.names)
             table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if sort is True and isinstance(table, ABCDataFrame):
