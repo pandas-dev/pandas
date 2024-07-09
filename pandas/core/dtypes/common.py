@@ -1327,6 +1327,12 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
 
+    See Also
+    --------
+    pandas.api.types.is_string_dtype : Check whether the provided array or dtype is of the string dtype.
+    pandas.api.types.is_float_dtype : Check whether the provided array or dtype is of a float dtype.
+    pandas.api.types.is_integer_dtype : Check whether the provided array or dtype is of an integer dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_extension_array_dtype
