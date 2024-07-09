@@ -19,7 +19,6 @@ cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit
-cdef str INVALID_FREQ_ERR_MSG
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pyx file
