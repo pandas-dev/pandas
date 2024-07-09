@@ -6040,7 +6040,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if all(bool(obj.attrs) for obj in objs):
                 # all concatenate arguments have non-empty attrs
                 attrs = objs[0].attrs
-                have_same_attrs = all((obj.attrs == attrs).all() if isinstance(obj.attrs, np.darray) else obj.attrs == attrs for obj in objs[1:])
+                have_same_attrs = all(
+                    (obj.attrs == attrs).all()
+                    if isinstance(obj.attrs, np.darray)
+                    else obj.attrs == attrs
+                    for obj in objs[1:]
+                )
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
