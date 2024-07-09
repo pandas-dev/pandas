@@ -56,7 +56,6 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -4907,16 +4906,6 @@ cpdef to_offset(freq, bint is_period=False):
                     stride_sign = -1 if stride.startswith("-") else 1
                 if not stride:
                     stride = 1
-
-                if prefix in c_DEPR_ABBREVS:
-                    warnings.warn(
-                        f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    prefix = c_DEPR_ABBREVS[prefix]
 
                 if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or
