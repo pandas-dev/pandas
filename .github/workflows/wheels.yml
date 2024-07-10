@@ -147,7 +147,7 @@ jobs:
       - name: Define CIBW_BUILD_FRONTEND environment variable
         if: ${{ matrix.python[0] == 'cp313t' }}
         run: |
-          echo "CIBW_BUILD_FRONTEND='pip; args: --no-build-isolation'" >> "$GITHUB_ENV"
+          echo 'CIBW_BUILD_FRONTEND="pip; args: --no-build-isolation"' >> "$GITHUB_ENV"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.1
