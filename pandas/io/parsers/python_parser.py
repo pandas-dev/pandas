@@ -309,13 +309,13 @@ class PythonParser(ParserBase):
         data, columns = self._exclude_implicit_index(alldata)
 
         conv_data = self._convert_data(data)
-        conv_data = self._do_date_conversions(columns, conv_data)
+        date_data = self._do_date_conversions(columns, conv_data)
 
         index, result_columns = self._make_index(
-            conv_data, alldata, columns, indexnamerow
+            date_data, list(conv_data.values()), columns, indexnamerow
         )
 
-        return index, result_columns, conv_data
+        return index, result_columns, date_data
 
     def _exclude_implicit_index(
         self,
