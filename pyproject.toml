@@ -159,6 +159,12 @@ test-command = """
 before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
+[tool.cibuildwheel.linux]
+before-build = "bash {project}/scripts/cibw_before_build.sh"
+
+[tool.cibuildwheel.macos]
+before-build = "bash {project}/scripts/cibw_before_build.sh"
+
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"

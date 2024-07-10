@@ -142,6 +142,13 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
+      # TODO: Remove this and installing build deps in cibw_before_build.sh
+      # after NumPy can be built with a released Cython
+      - name: Define CIBW_BUILD_FRONTEND environment variable
+        if: ${{ matrix.python[0] == 'cp313t' }}
+        run: |
+          echo "CIBW_BUILD_FRONTEND='pip; args: --no-build-isolation'" >> "$GITHUB_ENV"
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.1
         with:
