@@ -204,7 +204,8 @@ jobs:
   # NOTE: this job is similar to the one in unit-tests.yml except for the fact
   # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
   build_pyodide_wheels:
-    name: Build wheel for cp312-pyodide_wasm32
+    name: Build wheel for pyodide_wasm32
+
     # Run on schedule, manual (workflow dispatch), and push events
     # Skip on PRs, because these are running in the unit tests job already
 
