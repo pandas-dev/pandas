@@ -313,7 +313,7 @@ class PythonParser(ParserBase):
 
         if not self._implicit_index:
             # propagate index dtype
-            alldata = list(conv_data.values())
+            alldata = list(conv_data.values())  # type: ignore[arg-type]
 
         index, result_columns = self._make_index(
             date_data, alldata, columns, indexnamerow
