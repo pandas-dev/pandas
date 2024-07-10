@@ -635,7 +635,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         1  1  5  6
         2  7  8  9
         >>> df.groupby(by=["a"]).groups
-        {1: [0, 1], 7: [2]}
+        {(1,): [0, 1], (7,): [2]}
 
         For Resampler:
 
