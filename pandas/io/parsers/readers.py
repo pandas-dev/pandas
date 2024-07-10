@@ -17,7 +17,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypedDict,
@@ -70,6 +69,7 @@ from pandas.io.parsers.python_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Mapping,
@@ -674,6 +674,14 @@ def _read(
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
+
+    # Check type of encoding_errors
+    errors = kwds.get("encoding_errors", "strict")
+    if not isinstance(errors, str):
+        raise ValueError(
+            f"encoding_errors must be a string, got {type(errors).__name__}"
+        )
+
     if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
@@ -1534,7 +1542,10 @@ class TextFileReader(abc.Iterator):
         if self.nrows is not None:
             if self._currow >= self.nrows:
                 raise StopIteration
-            size = min(size, self.nrows - self._currow)
+            if size is None:
+                size = self.nrows - self._currow
+            else:
+                size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
     def __enter__(self) -> Self:

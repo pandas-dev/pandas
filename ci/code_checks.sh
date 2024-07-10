@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.get_loc_level PR07" \
         -i "pandas.MultiIndex.levshape SA01" \
         -i "pandas.MultiIndex.names SA01" \
-        -i "pandas.MultiIndex.nlevels SA01" \
         -i "pandas.MultiIndex.remove_unused_levels RT03,SA01" \
         -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
         -i "pandas.MultiIndex.set_levels RT03,SA01" \
@@ -92,12 +91,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.to_frame RT03" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
-        -i "pandas.NamedAgg SA01" \
         -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
         -i "pandas.Period.month SA01" \
-        -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
@@ -156,7 +153,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.ge SA01" \
         -i "pandas.Series.gt SA01" \
         -i "pandas.Series.list.__getitem__ SA01" \
         -i "pandas.Series.list.flatten SA01" \
@@ -165,7 +161,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.plot PR02" \
-        -i "pandas.Series.pop RT03,SA01" \
+        -i "pandas.Series.pop SA01" \
         -i "pandas.Series.prod RT03" \
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
@@ -212,11 +208,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.update PR07,SA01" \
-        -i "pandas.Timedelta.as_unit SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
-        -i "pandas.Timedelta.days SA01" \
         -i "pandas.Timedelta.floor SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
@@ -236,7 +230,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.ctime SA01" \
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
-        -i "pandas.Timestamp.floor SA01" \
         -i "pandas.Timestamp.fold GL08" \
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
@@ -250,13 +243,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.month_name SA01" \
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.normalize SA01" \
-        -i "pandas.Timestamp.now SA01" \
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
         -i "pandas.Timestamp.timetuple SA01" \
         -i "pandas.Timestamp.timetz SA01" \
@@ -266,7 +257,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.to_period PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
-        -i "pandas.Timestamp.tz SA01" \
         -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.tzname SA01" \
@@ -465,8 +455,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.stata.StataReader.variable_labels RT03,SA01" \
         -i "pandas.io.stata.StataWriter.write_file SA01" \
         -i "pandas.json_normalize RT03,SA01" \
-        -i "pandas.merge PR07" \
-        -i "pandas.merge_asof PR07,RT03" \
         -i "pandas.period_range RT03,SA01" \
         -i "pandas.plotting.andrews_curves RT03,SA01" \
         -i "pandas.plotting.lag_plot RT03,SA01" \

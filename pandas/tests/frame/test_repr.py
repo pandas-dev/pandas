@@ -38,10 +38,10 @@ class TestDataFrameRepr:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) is str  # noqa: E721
+        assert type(df.__repr__()) is str
 
         ser = df[cols[0]]
-        assert type(ser.__repr__()) is str  # noqa: E721
+        assert type(ser.__repr__()) is str
 
     def test_repr_bytes_61_lines(self):
         # GH#12857

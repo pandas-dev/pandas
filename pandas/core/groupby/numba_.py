@@ -7,7 +7,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -20,6 +19,8 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import Scalar
 
 

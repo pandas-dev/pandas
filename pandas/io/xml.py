@@ -9,7 +9,6 @@ from os import PathLike
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 from pandas._libs import lib
@@ -35,7 +34,10 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from xml.etree.ElementTree import Element
 
     from lxml import etree

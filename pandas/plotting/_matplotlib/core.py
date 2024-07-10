@@ -586,7 +586,7 @@ class MPLPlot(ABC):
                 fig.set_size_inches(self.figsize)
             axes = self.ax
 
-        axes = flatten_axes(axes)
+        axes = np.fromiter(flatten_axes(axes), dtype=object)
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
@@ -893,7 +893,13 @@ class MPLPlot(ABC):
         elif self.subplots and self.legend:
             for ax in self.axes:
                 if ax.get_visible():
-                    ax.legend(loc="best")
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "No artists with labels found to put in legend.",
+                            UserWarning,
+                        )
+                        ax.legend(loc="best")
 
     @final
     @staticmethod

@@ -594,7 +594,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Returns
         -------
-        datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+        zoneinfo.ZoneInfo,, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
 
         See Also
@@ -624,7 +624,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         ... )
         >>> idx.tz
         datetime.timezone.utc
-        """
+        """  # noqa: E501
         # GH 18595
         return getattr(self.dtype, "tz", None)
 
@@ -863,7 +863,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
@@ -923,7 +923,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
                         dtype='datetime64[ns]', freq='h')
-        """
+        """  # noqa: E501
         tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
@@ -955,7 +955,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -1081,7 +1081,7 @@ default 'raise'
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
-        """
+        """  # noqa: E501
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta
@@ -2119,6 +2119,32 @@ default 'raise'
 
         >>> idx.is_year_start
         array([False, False,  True])
+
+        This method, when applied to Series with datetime values under
+        the ``.dt`` accessor, will lose information about Business offsets.
+
+        >>> dates = pd.Series(pd.date_range("2020-10-30", periods=4, freq="BYS"))
+        >>> dates
+        0   2021-01-01
+        1   2022-01-03
+        2   2023-01-02
+        3   2024-01-01
+        dtype: datetime64[ns]
+
+        >>> dates.dt.is_year_start
+        0    True
+        1    False
+        2    False
+        3    True
+        dtype: bool
+
+        >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
+        >>> idx
+        DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
+                      dtype='datetime64[ns]', freq='BYS-JAN')
+
+        >>> idx.is_year_start
+        array([ True,  True,  True,  True])
         """,
     )
     is_year_end = _field_accessor(

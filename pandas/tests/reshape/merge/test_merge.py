@@ -1367,8 +1367,8 @@ class TestMerge:
                 ),
             ),
             (
-                TimedeltaIndex(["1d", "2d", "3d"]),
-                TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
+                TimedeltaIndex(["1D", "2D", "3D"]),
+                TimedeltaIndex(["1D", "2D", "3D", pd.NaT, pd.NaT, pd.NaT]),
             ),
         ],
     )

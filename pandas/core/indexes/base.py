@@ -8,7 +8,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     NoReturn,
@@ -193,6 +192,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Sequence,
@@ -7528,7 +7528,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         index_like = list(index_like)
 
     if isinstance(index_like, list):
-        if type(index_like) is not list:  # noqa: E721
+        if type(index_like) is not list:
             # must check for exactly list here because of strict type
             # check in clean_index_list
             index_like = list(index_like)
