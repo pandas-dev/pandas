@@ -59,18 +59,25 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
-one,two
-1,2.5
-2,3.5
-3,4.5
-4,5.5"""
+one,two,three
+1,2.5,11
+2,3.5,12
+3,4.5,13
+4,5.5,14"""
     expected = DataFrame(
-        [[1, "2.5"], [2, "3.5"], [3, "4.5"], [4, "5.5"]], columns=["one", "two"]
+        [[1, "2.5", 11], [2, "3.5", 12], [3, "4.5", 13], [4, "5.5", 14]],
+        columns=["one", "two", "three"],
     )
     expected["one"] = expected["one"].astype(np.float64)
     expected["two"] = expected["two"].astype(object)
+    expected["three"] = expected["three"].astype(np.uint32)
+    expected.set_index("three", inplace=True)
 
-    result = parser.read_csv(StringIO(data), dtype={"one": np.float64, 1: str})
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"one": np.float64, 1: str, "three": np.uint32},
+        index_col="three",
+    )
     tm.assert_frame_equal(result, expected)
 
 
