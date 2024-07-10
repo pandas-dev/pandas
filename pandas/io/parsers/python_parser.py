@@ -311,8 +311,12 @@ class PythonParser(ParserBase):
         conv_data = self._convert_data(data)
         date_data = self._do_date_conversions(columns, conv_data)
 
+        if not self._implicit_index:
+            # propagate index dtype
+            alldata = list(conv_data.values())
+
         index, result_columns = self._make_index(
-            date_data, list(conv_data.values()), columns, indexnamerow
+            date_data, alldata, columns, indexnamerow
         )
 
         return index, result_columns, date_data
