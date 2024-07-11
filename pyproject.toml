@@ -122,7 +122,6 @@ all = ['adbc-driver-postgresql>=0.10.0',
 # TODO: Remove after setuptools support is dropped.
 [tool.setuptools]
 include-package-data = true
-script-files = ["scripts/cibw_before_build.sh"]  # Needed for building wheels
 
 [tool.setuptools.packages.find]
 include = ["pandas", "pandas.*"]
