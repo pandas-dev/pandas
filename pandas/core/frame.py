@@ -4554,8 +4554,8 @@ class DataFrame(NDFrame, OpsMixin):
         For example, ```it's` > `that's``` will raise an error,
         as it forms a quoted string (``'s > `that'``) with a backtick inside.
 
-        See also the Python documentation about lexical analysis
-        (https://docs.python.org/3/reference/lexical_analysis.html)
+        See also the `Python documentation about lexical analysis
+        <https://docs.python.org/3/reference/lexical_analysis.html>`__
         in combination with the source code in :mod:`pandas.core.computation.parsing`.
 
         Examples
