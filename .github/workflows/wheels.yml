@@ -100,6 +100,13 @@ jobs:
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        include:
+        # 'pip' is the default
+        - cibw_build_frontend: pip
+        # TODO: Remove this and installing build deps in cibw_before_build.sh
+        # after NumPy can be built with a released Cython
+        - python: ["cp313t", "3.13"]
+          cibw_build_frontend: 'pip; args: --no-build-isolation'
         exclude:
         - buildplat: [windows-2022, win_amd64]
           python: ["cp313t", "3.13"]
@@ -142,13 +149,6 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
-      # TODO: Remove this and installing build deps in cibw_before_build.sh
-      # after NumPy can be built with a released Cython
-      - name: Define CIBW_BUILD_FRONTEND environment variable
-        if: ${{ matrix.python[0] == 'cp313t' }}
-        run: |
-          echo -e 'CIBW_BUILD_FRONTEND="pip; args: --no-build-isolation"' >> "$GITHUB_ENV"
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.1
         with:
@@ -157,6 +157,7 @@ jobs:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_FREE_THREADED_SUPPORT: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend }}
 
       - name: Set up Python
         uses: mamba-org/setup-micromamba@v1
