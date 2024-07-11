@@ -103,10 +103,11 @@ jobs:
         include:
         # 'pip' is the default
         - cibw_build_frontend: pip
-        # TODO: Remove this and installing build deps in cibw_before_build.sh
-        # after NumPy can be built with a released Cython
+        # TODO: Remove this plus installing build deps in cibw_before_build.sh
+        # and test deps in cibw_before_test.sh after pandas can be built with a released NumPy/Cython
         - python: ["cp313t", "3.13"]
           cibw_build_frontend: 'pip; args: --no-build-isolation'
+        # TODO: Build free-threaded wheels for Windows
         exclude:
         - buildplat: [windows-2022, win_amd64]
           python: ["cp313t", "3.13"]
