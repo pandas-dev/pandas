@@ -5,5 +5,5 @@ FREE_THREADED_BUILD="$(python -c "import sysconfig; print(bool(sysconfig.get_con
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
     python -m pip install -U pip
     python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython
-    python -m pip install ninja meson-python
+    python -m pip install ninja meson-python versioneer[toml]
 fi
