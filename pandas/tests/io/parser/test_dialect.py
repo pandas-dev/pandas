@@ -13,10 +13,6 @@ from pandas.errors import ParserWarning
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture
 def custom_dialect():

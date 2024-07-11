@@ -41,21 +41,13 @@ class TestDataFrameBlockInternals:
         assert dti.freq == "D"
         assert dti[1] == ts
 
-    def test_cast_internals(self, float_frame):
-        msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            casted = DataFrame(float_frame._mgr, dtype=int)
-        expected = DataFrame(float_frame._series, dtype=int)
-        tm.assert_frame_equal(casted, expected)
+    def test_cast_internals_raises(self, float_frame):
+        msg = "Passing a BlockManager is unsupported"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, dtype=int)
 
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            casted = DataFrame(float_frame._mgr, dtype=np.int32)
-        expected = DataFrame(float_frame._series, dtype=np.int32)
-        tm.assert_frame_equal(casted, expected)
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, dtype=np.int32)
 
     def test_consolidate(self, float_frame):
         float_frame["E"] = 7.0

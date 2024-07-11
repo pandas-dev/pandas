@@ -1729,13 +1729,9 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
-        ):
-            result = DataFrame(float_frame._mgr, index=index, columns=columns)
-        tm.assert_index_equal(result.index, Index(index))
-        tm.assert_index_equal(result.columns, Index(columns))
+        msg = "Passing a BlockManager is unsupported"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, index=index, columns=columns)
 
     def test_constructor_mix_series_nonseries(self, float_frame):
         df = DataFrame(
@@ -2732,6 +2728,13 @@ class TestDataFrameConstructors:
         obj2 = cons([ts2])
         res_dtype2 = tm.get_dtype(obj2)
         assert res_dtype2 == "M8[us, US/Pacific]", res_dtype2
+
+    def test_constructor_manager_raises(self, float_frame):
+        index = list(float_frame.index[:5])
+
+        msg = "Passing a BlockManager is unsupported"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(float_frame._mgr, index=index)
 
 
 class TestDataFrameConstructorIndexInference:

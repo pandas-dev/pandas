@@ -46,9 +46,6 @@ except ImportError:
 
 pytestmark = [
     pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
 ]
 
 

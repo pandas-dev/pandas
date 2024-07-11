@@ -13,10 +13,6 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture(params=[True, False])
 def buffer(request):

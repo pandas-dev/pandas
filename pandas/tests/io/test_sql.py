@@ -58,11 +58,6 @@ if TYPE_CHECKING:
     import sqlalchemy
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
-
 @pytest.fixture
 def sql_strings():
     return {

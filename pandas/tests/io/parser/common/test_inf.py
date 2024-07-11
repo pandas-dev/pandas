@@ -10,10 +10,6 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 

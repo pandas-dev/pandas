@@ -712,13 +712,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(data, BlockManager):
             if not allow_mgr:
                 # GH#52419
-                warnings.warn(
-                    f"Passing a {type(data).__name__} to {type(self).__name__} "
-                    "is deprecated and will raise in a future version. "
-                    "Use public APIs instead.",
-                    DeprecationWarning,
-                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
-                )
+                raise TypeError(f"Passing a {type(data).__name__} is unsupported")
 
             data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments

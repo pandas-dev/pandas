@@ -17,10 +17,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "
@@ -36,10 +32,6 @@ _msg_pyarrow_requires_names = (
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame is deprecated:DeprecationWarning"
-)
 
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
