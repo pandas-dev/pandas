@@ -533,19 +533,33 @@ def json_normalize(
     meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
-    def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
+    def _recursive_meta_extract(data, meta_remaining_path, meta_key, seen_meta) -> None:
+        if isinstance(data, dict):
+            if len(meta_remaining_path) > 1:
+                if meta_remaining_path[0] in data:
+                    _recursive_meta_extract(data[meta_remaining_path[0]], meta_remaining_path[1:], meta_key, seen_meta)
+                else:
+                    if errors == "ignore":
+                        seen_meta[meta_key] = np.nan
+                    raise KeyError(f"SubKey {meta_remaining_path[0]} of key {meta_key} not found in meta data.")
+            else:
+                seen_meta[meta_key] = _pull_field(data, meta_remaining_path[0])
+
+    def _recursive_extract(data, passed_path, remaining_path, seen_meta, level: int = 0) -> None:
         if isinstance(data, dict):
             data = [data]
-        if len(path) > 1:
+        if len(remaining_path) > 1:
             for obj in data:
                 for val, key in zip(_meta, meta_keys):
-                    if level + 1 == len(val):
+                    if level + 1 == len(val) and passed_path == val[:-1]:
                         seen_meta[key] = _pull_field(obj, val[-1])
+                    elif level + 1 < len(val) and passed_path == val[:level] and remaining_path[0] != val[level]:
+                        _recursive_meta_extract(obj, val[level:], key, seen_meta)
 
-                _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
+                _recursive_extract(obj[remaining_path[0]], passed_path + remaining_path[:1], remaining_path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_records(obj, path[0])
+                recs = _pull_records(obj, remaining_path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -556,14 +570,14 @@ def json_normalize(
                 # For repeating the metadata later
                 lengths.append(len(recs))
                 for val, key in zip(_meta, meta_keys):
-                    if level + 1 > len(val):
+                    if key in seen_meta:
                         meta_val = seen_meta[key]
                     else:
                         meta_val = _pull_field(obj, val[level:])
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 
-    _recursive_extract(data, record_path, {}, level=0)
+    _recursive_extract(data, [], record_path, {}, level=0)
 
     result = DataFrame(records)
 
