@@ -164,7 +164,7 @@ repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales"
+before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
