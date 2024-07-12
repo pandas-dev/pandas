@@ -95,6 +95,11 @@ class TestDatetimeArray(base.ExtensionTests):
             return None
         return super()._get_expected_exception(op_name, obj, other)
 
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        if op_name == "std":
+            return "timedelta64[ns]"
+        return arr.dtype
+
     def _supports_accumulation(self, ser, op_name: str) -> bool:
         return op_name in ["cummin", "cummax"]
 

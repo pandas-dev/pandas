@@ -525,7 +525,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
     ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna, axis=axis)
+            result = getattr(self, name)(skipna=skipna, axis=axis)
+            if kwargs.get("keepdims"):
+                return self._from_sequence([result], dtype=self.dtype)
+            return result
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
