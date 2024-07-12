@@ -106,7 +106,7 @@ jobs:
         # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
         include:
           - buildplat: [ubuntu-22.04, pyodide_wasm32]
-          - python: ["cp312", "3.12"]
+            python: ["cp312", "3.12"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
