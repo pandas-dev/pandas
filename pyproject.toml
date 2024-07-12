@@ -177,6 +177,16 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
+[[tool.cibuildwheel.overrides]]
+select = "*pyodide*"
+test-requires = "pytest>=7.3.2 hypothesis>=6.46.1"
+# Pyodide repairs wheels on its own, using auditwheel-emscripten
+repair-wheel-command = ""
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"

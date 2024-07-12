@@ -391,6 +391,7 @@ jobs:
         env:
           PYTHON_GIL: 0
 
+  # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
     # Note: the Python version, Emscripten toolchain version are determined
     # by the Pyodide version. The appropriate versions can be found in the
