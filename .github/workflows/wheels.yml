@@ -154,6 +154,15 @@ jobs:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
+      - name: Build wheels (Pyodide)
+        uses: pypa/cibuildwheel@v2.19.2
+        with:
+          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+        if: ${{ matrix.buildplat[1] == 'pyodide_wasm32' }}
+        env:
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_PLATFORM: pyodide
+
       - name: Set up Python
         uses: mamba-org/setup-micromamba@v1
         with:
