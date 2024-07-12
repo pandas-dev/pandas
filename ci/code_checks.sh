@@ -70,10 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03" \
-        -i "pandas.DataFrame.median RT03" \
-        -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
         -i "pandas.MultiIndex.append PR07,SA01" \
@@ -166,7 +162,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.skew RT03,SA01" \
+        -i "pandas.Series.skew SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
