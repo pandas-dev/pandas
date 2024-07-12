@@ -4083,7 +4083,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self, ignore_index: bool = False) -> Series:
+    def explode(
+        self, ignore_index: bool = False, column_offset: bool = False
+    ) -> Series:
         """
         Transform each element of a list-like to a row.
 
@@ -4091,6 +4093,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+        column_offset : bool, default False
+            If True, the resulting index will be labeled row offset with column offset.
 
         Returns
         -------
@@ -4148,6 +4153,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             index: Index = default_index(len(values))
         else:
             index = self.index.repeat(counts)
+
+        if column_offset:
+            columns = [item for count in counts for item in range(count)]
+            index = MultiIndex.from_arrays([index, columns])
 
         return self._constructor(values, index=index, name=self.name, copy=False)
 
