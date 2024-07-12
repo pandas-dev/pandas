@@ -115,6 +115,37 @@ def test_bins_not_monotonic():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        [0.2, 1.4, 2.5, 6.2, 9.7, 2.1],
+        np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575]),
+        np.array([10, 15, 13, 12, 23, 25, 28, 59, 60]),
+        range(5),
+    ],
+)
+@pytest.mark.parametrize(
+    "bin_str", ["auto", "fd", "doane", "scott", "stone", "rice", "sturges", "sqrt"]
+)
+def test_bins_from_string(data, bin_str):
+    # we make sure calling cut(df, str) is equivalent
+    # to calling cut(df, bins=np.histogram_bin_edges(df,str))
+    expected = cut(data, bins=np.histogram_bin_edges(data, bins=bin_str))
+    result = cut(data, bin_str)
+    tm.assert_categorical_equal(result, expected, check_dtype=False)
+
+
+def test_bins_from_invalid_string():
+    # we make sure calling cut(df, str) with invalid string
+    # throws an error
+    bin_str = "INVALID_STR"
+    msg = f"{bin_str!r} is not a valid estimator for `bins`"
+    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
+
+    with pytest.raises(ValueError, match=msg):
+        cut(data, bin_str)
+
+
+@pytest.mark.parametrize(
     "x, bins, expected",
     [
         (
