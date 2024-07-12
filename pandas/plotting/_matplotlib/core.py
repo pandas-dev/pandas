@@ -1388,7 +1388,37 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
-        return c_values
+
+        return self._prevalidate_c_values(c_values)
+
+    def _prevalidate_c_values(self, c_values):
+        # if c_values contains strings, pre-check whether these are valid mpl colors
+        # should we determine c_values are valid to this point, no changes are made
+        # to the object
+
+        # check if c_values contains strings. no need to check numerics as these
+        # will be validated for us in .Axes.scatter._parse_scatter_color_args(...)
+        if not (
+            np.iterable(c_values) and len(c_values) > 0 and isinstance(c_values[0], str)
+        ):
+            return c_values
+
+        try:
+            _ = mpl.colors.to_rgba_array(c_values)
+
+            # similar to above, if this conversion is successful, remaining validation
+            # will be done in .Axes.scatter._parse_scatter_color_args(...)
+            return c_values
+
+        except (TypeError, ValueError) as _:
+            # invalid color strings, build numerics based off this
+            # map N unique str to N evenly spaced values [0, 1], colors
+            # will be automattically assigned based off this mapping
+            unique = np.unique(c_values)
+            colors = np.linspace(0, 1, len(unique))
+            color_mapping = dict(zip(unique, colors))
+
+            return np.array(list(map(color_mapping.get, c_values)))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
