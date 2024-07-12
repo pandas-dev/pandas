@@ -1337,6 +1337,11 @@ class ScatterPlot(PlanePlot):
         norm, cmap = self._get_norm_and_cmap(c_values, color_by_categorical)
         cb = self._get_colorbar(c_values, c_is_column)
 
+        orig_invalid_colors = not self._are_valid_colors(c_values)
+        if orig_invalid_colors:
+            unique_color_labels, c_values = self._convert_str_to_colors(c_values)
+            cb = False
+
         if self.legend:
             label = self.label
         else:
@@ -1367,6 +1372,15 @@ class ScatterPlot(PlanePlot):
                 label,  # type: ignore[arg-type]
             )
 
+        if orig_invalid_colors:
+            for s in unique_color_labels:
+                self._append_legend_handles_labels(
+                    # error: Argument 2 to "_append_legend_handles_labels" of
+                    # "MPLPlot" has incompatible type "Hashable"; expected "str"
+                    scatter,
+                    s,  # type: ignore[arg-type]
+                )
+
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
         errors_y = self._get_errorbars(label=y, index=0, xerr=False)
         if len(errors_x) > 0 or len(errors_y) > 0:
@@ -1388,37 +1402,31 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+        return c_values
 
-        return self._prevalidate_c_values(c_values)
-
-    def _prevalidate_c_values(self, c_values):
-        # if c_values contains strings, pre-check whether these are valid mpl colors
-        # should we determine c_values are valid to this point, no changes are made
-        # to the object
-
+    def _are_valid_colors(self, c_values):
         # check if c_values contains strings. no need to check numerics as these
         # will be validated for us in .Axes.scatter._parse_scatter_color_args(...)
         if not (
             np.iterable(c_values) and len(c_values) > 0 and isinstance(c_values[0], str)
         ):
-            return c_values
+            return True
 
         try:
-            _ = mpl.colors.to_rgba_array(c_values)
-
             # similar to above, if this conversion is successful, remaining validation
             # will be done in .Axes.scatter._parse_scatter_color_args(...)
-            return c_values
+            _ = mpl.colors.to_rgba_array(c_values)
+            return True
 
         except (TypeError, ValueError) as _:
-            # invalid color strings, build numerics based off this
-            # map N unique str to N evenly spaced values [0, 1], colors
-            # will be automattically assigned based off this mapping
-            unique = np.unique(c_values)
-            colors = np.linspace(0, 1, len(unique))
-            color_mapping = dict(zip(unique, colors))
+            return False
 
-            return np.array(list(map(color_mapping.get, c_values)))
+    def _convert_str_to_colors(self, c_values):
+        unique = np.unique(c_values)
+        colors = np.linspace(0, 1, len(unique))
+        color_mapping = dict(zip(unique, colors))
+
+        return unique, np.array(list(map(color_mapping.get, c_values)))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
