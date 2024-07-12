@@ -873,6 +873,14 @@ class TestUnique:
         expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_unique_NumpyExtensionArray(self):
+        arr_complex = pd.array(
+            [1 + 1j, 2, 3]
+        )  # NumpyEADtype('complex128') => NumpyExtensionArray
+        result = pd.unique(arr_complex)
+        expected = pd.array([1 + 1j, 2 + 0j, 3 + 0j])
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
@@ -1638,7 +1646,10 @@ class TestDuplicated:
         expected = np.empty(len(uniques), dtype=object)
         expected[:] = uniques
 
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(arr)
@@ -1657,7 +1668,11 @@ class TestDuplicated:
     )
     def test_unique_complex_numbers(self, array, expected):
         # GH 17927
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
+
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(array)

@@ -70,10 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03" \
-        -i "pandas.DataFrame.median RT03" \
-        -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
         -i "pandas.MultiIndex.append PR07,SA01" \
@@ -95,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
         -i "pandas.Period.month SA01" \
-        -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
@@ -167,7 +162,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.skew RT03,SA01" \
+        -i "pandas.Series.skew SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \

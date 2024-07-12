@@ -428,7 +428,7 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(self, other, raise_on_upcast: bool) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -455,7 +455,7 @@ class Block(PandasObject, libinternals.Block):
                 isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
             )
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1
@@ -463,17 +463,10 @@ class Block(PandasObject, libinternals.Block):
             and is_float_dtype(other.dtype)
             and lib.has_only_ints_or_nan(other)
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
 
-        if warn_on_upcast:
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                "and will raise an error in a future version of pandas. "
-                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
-                "please explicitly cast to a compatible dtype first.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        if raise_on_upcast:
+            raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
         if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "
@@ -720,7 +713,7 @@ class Block(PandasObject, libinternals.Block):
             if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
-                blk = self.coerce_to_target_dtype(value)
+                blk = self.coerce_to_target_dtype(value, raise_on_upcast=False)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
@@ -1105,7 +1098,7 @@ class Block(PandasObject, libinternals.Block):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
-            nb = self.coerce_to_target_dtype(value, warn_on_upcast=True)
+            nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
@@ -1176,7 +1169,7 @@ class Block(PandasObject, libinternals.Block):
                 if not is_list_like(new):
                     # using just new[indexer] can't save us the need to cast
                     return self.coerce_to_target_dtype(
-                        new, warn_on_upcast=True
+                        new, raise_on_upcast=True
                     ).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
@@ -1244,7 +1237,7 @@ class Block(PandasObject, libinternals.Block):
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
-                block = self.coerce_to_target_dtype(other)
+                block = self.coerce_to_target_dtype(other, raise_on_upcast=False)
                 return block.where(orig_other, cond)
 
             else:
@@ -1438,7 +1431,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            nb = self.coerce_to_target_dtype(fill_value)
+            nb = self.coerce_to_target_dtype(fill_value, raise_on_upcast=False)
             return nb.shift(periods, fill_value=fill_value)
 
         else:
@@ -1637,11 +1630,11 @@ class EABackedBlock(Block):
         except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             else:
@@ -1676,13 +1669,13 @@ class EABackedBlock(Block):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
 
                 else:
@@ -1737,13 +1730,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 else:

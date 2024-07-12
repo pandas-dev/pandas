@@ -100,6 +100,13 @@ jobs:
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"]]
+
+        # Build Pyodide wheels and upload them to Anaconda.org
+        # NOTE: this job is similar to the one in unit-tests.yml except for the fact
+        # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
+        include:
+          - buildplat: [ubuntu-22.04, pyodide_wasm32]
+            python: ["cp312", "3.12"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -140,12 +147,13 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.1
+        uses: pypa/cibuildwheel@v2.19.2
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_PLATFORM: ${{ matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide' || 'auto' }}
 
       - name: Set up Python
         uses: mamba-org/setup-micromamba@v1
