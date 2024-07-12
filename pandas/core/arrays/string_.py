@@ -522,11 +522,17 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().astype(dtype, copy)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         if name in ["min", "max"]:
             result = getattr(self, name)(skipna=skipna, axis=axis)
-            if kwargs.get("keepdims"):
+            if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
             return result
 
