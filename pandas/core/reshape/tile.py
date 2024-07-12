@@ -75,7 +75,7 @@ def cut(
     ----------
     x : array-like
         The input array to be binned. Must be 1-dimensional.
-    bins : int, sequence of scalars, or IntervalIndex
+    bins : int, str, sequence of scalars or IntervalIndex
         The criteria to bin by.
 
         * int : Defines the number of equal-width bins in the range of `x`. The
@@ -85,6 +85,14 @@ def cut(
           width. No extension of the range of `x` is done.
         * IntervalIndex : Defines the exact bins to be used. Note that
           IntervalIndex for `bins` must be non-overlapping.
+        * str : If bins is a string from a list of accepted strings, bin
+          calculation is dispatched to np.histogram_bin_edges. Which then
+          uses the method chosen to calculate the optimal bin width and
+          consequently the number of bins from the data that falls within the
+          requested range.
+          Supported strings = ["auto", "auto", "fd", "doane", "scott",
+                               "stone", "rice", "sturges", "sqrt"]
+          Please check np.histogram_bin_edges documentation for more details.
 
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
@@ -130,7 +138,7 @@ def cut(
 
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
-        For scalar or sequence `bins`, this is an ndarray with the computed
+        For scalar, str or sequence `bins`, this is an ndarray with the computed
         bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
         an IntervalIndex `bins`, this is equal to `bins`.
 
@@ -142,6 +150,8 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    np.histogram_bin_edges : Bin calculation dispatched to this method when
+        `bins` is a string.
 
     Notes
     -----
@@ -239,6 +249,12 @@ def cut(
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
+
+    Passing an str for 'bins' dispatches the bin calculation to np.histogram_bin_edges
+
+    >>> pd.cut(np.array([1, 7, 5, 4]), "auto")
+    [NaN, (5.0, 7.0], (3.0, 5.0], (3.0, 5.0]]
+    Categories (3, interval[float64, right]): [(1.0, 3.0] < (3.0, 5.0] < (5.0, 7.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -252,6 +268,11 @@ def cut(
     elif isinstance(bins, IntervalIndex):
         if bins.is_overlapping:
             raise ValueError("Overlapping IntervalIndex is not accepted.")
+
+    elif isinstance(bins, str):
+        # GH 59165
+        # Raises ValueError if string is not supported
+        bins = np.histogram_bin_edges(x, bins)
 
     else:
         bins = Index(bins)
