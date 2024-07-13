@@ -1342,7 +1342,7 @@ class ScatterPlot(PlanePlot):
         # colored by uniqueness of the strings, such same strings get same color
         create_colors = not self._are_valid_colors(c_values)
         if create_colors:
-            color_mapping, c_values = self._uniquely_color_strs(c_values)
+            custom_color_mapping, c_values = self._uniquely_color_strs(c_values)
             cb = False  # no colorbar; opt for legend
 
         if self.legend:
@@ -1380,7 +1380,7 @@ class ScatterPlot(PlanePlot):
             ax.legend(
                 handles=[
                     mpl.patches.Circle((0, 0), facecolor=color, label=string)
-                    for string, color in color_mapping.items()
+                    for string, color in custom_color_mapping.items()
                 ]
             )
 
@@ -1408,7 +1408,7 @@ class ScatterPlot(PlanePlot):
         return c_values
 
     def _are_valid_colors(self, c_values: np.ndarray | list):
-        # check if c_values contains strings and if these strings are valid mpl colors
+        # check if c_values contains strings and if these strings are valid mpl colors.
         # no need to check numerics as these (and mpl colors) will be validated for us
         # in .Axes.scatter._parse_scatter_color_args(...)
         try:
@@ -1424,10 +1424,16 @@ class ScatterPlot(PlanePlot):
         self, c_values: np.ndarray | list
     ) -> tuple[dict, np.ndarray]:
         # well, almost uniquely color them (up to 949)
-        possible_colors = list(mpl.colors.XKCD_COLORS.values())  # Hex representations
-        shuffle(possible_colors)  # TODO: find better way of getting colors
-
         unique = np.unique(c_values)
+
+        # for up to 7, lets keep colors consistent
+        if len(unique) <= 7:
+            possible_colors = list(mpl.colors.BASE_COLORS.values())  # Hex
+        # explore better ways to handle this case
+        else:
+            possible_colors = list(mpl.colors.XKCD_COLORS.values())  # Hex
+            shuffle(possible_colors)
+
         colors = [possible_colors[i % len(possible_colors)] for i in range(len(unique))]
         color_mapping = dict(zip(unique, colors))
 
