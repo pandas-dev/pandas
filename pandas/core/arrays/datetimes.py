@@ -2275,6 +2275,19 @@ default 'raise'
     # -----------------------------------------------------------------
     # Reductions
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims and isinstance(result, np.ndarray):
+            if name == "std":
+                from pandas.core.arrays import TimedeltaArray
+
+                return TimedeltaArray._from_sequence(result)
+            else:
+                return self._from_sequence(result, dtype=self.dtype)
+        return result
+
     def std(
         self,
         axis=None,

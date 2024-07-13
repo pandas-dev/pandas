@@ -1986,7 +1986,10 @@ class ExtensionArray:
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:
-            result = np.array([result])
+            if name in ["min", "max"]:
+                result = self._from_sequence([result], dtype=self.dtype)
+            else:
+                result = np.array([result])
 
         return result
 

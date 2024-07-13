@@ -956,6 +956,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         delta = delta.view("i8")
         return lib.item_from_zerodim(delta)
 
+    # ------------------------------------------------------------------
+    # Reductions
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims and isinstance(result, np.ndarray):
+            return self._from_sequence(result, dtype=self.dtype)
+        return result
+
 
 def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     """
