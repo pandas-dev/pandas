@@ -67,7 +67,10 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+    get_unit_from_pa_dtype,
+)
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
@@ -505,6 +508,16 @@ class TestArrowArray(base.ExtensionTests):
             #  behavior which does not support this.
             return False
 
+        if pa.types.is_boolean(pa_dtype) and op_name in [
+            "median",
+            "std",
+            "var",
+            "skew",
+            "kurt",
+            "sem",
+        ]:
+            return False
+
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
@@ -540,18 +553,9 @@ class TestArrowArray(base.ExtensionTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if all_numeric_reductions in {"skew", "kurt"} and (
-            dtype._is_numeric or dtype.kind == "b"
-        ):
+        if all_numeric_reductions in {"skew", "kurt"} and dtype._is_numeric:
             request.applymarker(xfail_mark)
 
-        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
-            "sem",
-            "std",
-            "var",
-            "median",
-        }:
-            request.applymarker(xfail_mark)
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -574,8 +578,23 @@ class TestArrowArray(base.ExtensionTests):
         return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        pa_type = arr._pa_array.type
+
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
+        elif pa.types.is_temporal(pa_type):
+            if op_name in ["std", "sem"]:
+                if pa.types.is_duration(pa_type):
+                    cmp_dtype = arr.dtype
+                elif pa.types.is_date(pa_type):
+                    cmp_dtype = ArrowDtype(pa.duration("s"))
+                elif pa.types.is_time(pa_type):
+                    unit = get_unit_from_pa_dtype(pa_type)
+                    cmp_dtype = ArrowDtype(pa.duration(unit))
+                else:
+                    cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
+            else:
+                cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
             if op_name not in ["median", "var", "std"]:
                 cmp_dtype = arr.dtype
@@ -583,6 +602,8 @@ class TestArrowArray(base.ExtensionTests):
                 cmp_dtype = "float64[pyarrow]"
         elif op_name in ["median", "var", "std", "mean", "skew"]:
             cmp_dtype = "float64[pyarrow]"
+        elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
+            cmp_dtype = "uint64[pyarrow]"
         else:
             cmp_dtype = {
                 "i": "int64[pyarrow]",
@@ -598,6 +619,10 @@ class TestArrowArray(base.ExtensionTests):
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
+        elif op_name == "std" and pa.types.is_date64(data._pa_array.type) and skipna:
+            # overflow
+            mark = pytest.mark.xfail(reason="Cannot cast")
+            request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
