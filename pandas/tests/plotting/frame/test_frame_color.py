@@ -207,6 +207,21 @@ class TestDataFrameColor:
             ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
         assert ax.collections[0].colorbar is None
 
+    def test_scatter_with_c_column_name_without_colors(self):
+        df = DataFrame(
+            {
+                "dataX": range(100),
+                "dataY": range(100),
+                "state": ["NY", "MD", "MA", "CA"] * 25,
+            }
+        )
+        df.plot.scatter("dataX", "dataY", c="state")
+
+        with tm.assert_produces_warning(None):
+            ax = df.plot.scatter(x=0, y=1, c="state")
+
+        assert len(np.unique(ax.collections[0].get_facecolor())) == 4  # 4 states
+
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
