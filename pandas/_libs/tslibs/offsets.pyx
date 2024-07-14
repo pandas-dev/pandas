@@ -4676,6 +4676,7 @@ prefix_mapping = {
         Hour,  # 'h'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
+        LastWeekOfMonth,  # 'LWOM'
         FY5253,
         FY5253Quarter,
     ]
