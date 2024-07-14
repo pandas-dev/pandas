@@ -1300,6 +1300,7 @@ cdef class Seen:
         bint object_          # seen_object
         bint complex_         # seen_complex
         bint datetime_        # seen_datetime
+        bint date_            # seen_date
         bint coerce_numeric   # coerce data to numeric
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
@@ -1328,6 +1329,7 @@ cdef class Seen:
         self.object_ = False
         self.complex_ = False
         self.datetime_ = False
+        self.date_ = False
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
@@ -2613,6 +2615,13 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif PyDate_Check(val):
+            if convert_non_numeric:
+                seen.date_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True
@@ -2656,21 +2665,46 @@ def maybe_convert_objects(ndarray[object] objects,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if is_datetime_with_singletz_array(objects):
-            from pandas import DatetimeIndex
+        if storage == "pyarrow":
+            from pandas.core.dtypes.dtypes import ArrowDtype
 
-            try:
-                dti = DatetimeIndex(objects)
-            except OutOfBoundsDatetime:
-                # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
-                pass
+            if isinstance(val, datetime):
+                objects[mask] = None
             else:
-                # unbox to DatetimeArray
-                return dti._data
-        seen.object_ = True
+                objects[mask] = np.datetime64("NaT")
+            datetime64_array = objects.astype(val.dtype)
+            pa_array = pa.array(datetime64_array)
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+        else:
+            if is_datetime_with_singletz_array(objects):
+                from pandas import DatetimeIndex
+
+                try:
+                    dti = DatetimeIndex(objects)
+                except OutOfBoundsDatetime:
+                    # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
+                    pass
+                else:
+                    # unbox to DatetimeArray
+                    return dti._data
+            seen.object_ = True
 
     elif seen.datetime_:
-        if is_datetime_or_datetime64_array(objects):
+        if storage == "pyarrow":
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            if isinstance(val, datetime):
+                objects[mask] = None
+            else:
+                objects[mask] = np.datetime64("NaT")
+            datetime64_array = objects.astype(val.dtype)
+            pa_array = pa.array(datetime64_array)
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+        elif is_datetime_or_datetime64_array(objects):
             from pandas import DatetimeIndex
 
             try:
@@ -2681,6 +2715,16 @@ def maybe_convert_objects(ndarray[object] objects,
                 # unbox to ndarray[datetime64[ns]]
                 return dti._data._ndarray
         seen.object_ = True
+
+    elif seen.date_:
+        if storage == "pyarrow":
+
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            objects[mask] = None
+            pa_array = pa.array(objects)
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
 
     elif seen.timedelta_:
         if is_timedelta_or_timedelta64_array(objects):
@@ -2914,17 +2958,16 @@ def map_infer_mask(
 
         ndarray result = np.empty(n, dtype=dtype)
 
-        flatiter arr_it = PyArray_IterNew(arr)
         flatiter result_it = PyArray_IterNew(result)
 
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
-                val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
+                val = arr[i]
             else:
                 val = na_value
         else:
-            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
+            val = arr[i]
             val = f(val)
 
             if cnp.PyArray_IsZeroDim(val):
@@ -2932,14 +2975,13 @@ def map_infer_mask(
                 val = val.item()
 
         PyArray_SETITEM(result, PyArray_ITER_DATA(result_it), val)
-
-        PyArray_ITER_NEXT(arr_it)
         PyArray_ITER_NEXT(result_it)
 
     if convert:
         return maybe_convert_objects(
             result,
             convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=True,
             storage=storage,
         )
     else:

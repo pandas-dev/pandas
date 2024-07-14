@@ -279,7 +279,7 @@ class TestArrowArray(base.ExtensionTests):
         if data_missing.dtype.kind in "mM":
             result = data_missing.map(lambda x: x, na_action=na_action)
             expected = data_missing
-            tm.assert_extension_array_equal(result, expected, check_dtype=False)
+            tm.assert_extension_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
             expected = data_missing
