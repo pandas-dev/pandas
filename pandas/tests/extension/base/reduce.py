@@ -4,7 +4,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_numeric_dtype
 
 
 class BaseReduceTests:
@@ -119,8 +118,6 @@ class BaseReduceTests:
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
         ser = pd.Series(data)
-        if not is_numeric_dtype(ser.dtype):
-            pytest.skip(f"{ser.dtype} is not numeric dtype")
 
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")
