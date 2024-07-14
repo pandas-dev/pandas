@@ -1329,6 +1329,10 @@ def test_agg_reduce(axis, float_frame):
     expected = expected.T if axis in {1, "columns"} else expected
     tm.assert_frame_equal(result, expected)
 
+    msg = "func given to frame_apply cannot contain an index relabeling when axis is 1"
+    with pytest.raises(NotImplementedError, match=msg):
+        float_frame.agg(row1=(name1, "sum"), row2=(name2, "max"), axis=1)
+
 
 def test_nuiscance_columns():
     # GH 15015
