@@ -1718,12 +1718,10 @@ def map_array(
         arr = cast("ExtensionArray", arr)
         arr_dtype = arr.dtype.__repr__()
         if "pyarrow" in arr_dtype:
-            if any(
-                time_type in arr_dtype for time_type in ["date", "time", "duration"]
-            ):
+            if any(time_type in arr_dtype for time_type in ["duration"]):
                 values = arr.astype(object, copy=False)
             else:
-                values = arr._pa_array.to_numpy()
+                values = np.asarray(arr)
             storage = "pyarrow"
         else:
             values = np.asarray(arr)
