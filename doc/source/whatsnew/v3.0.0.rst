@@ -116,9 +116,18 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
-.. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_300.notable_bug_fixes.improved_error_message_agg:
 
-notable_bug_fix2
+Improved error message for :meth:`DataFrame.agg`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When :meth:`DataFrame.agg` is called with ``axis=1`` and a ``func`` which relabels the result index, the :func:`relabel_result` function iterates over result columns rather than the result rows, causing a confusing chain of ``KeyError`` exceptions (:issue:`58807`).
+
+This error is now handled in :func:`frame_apply` by throwing a ``NotImplementedError`` with a more explicit error message.
+
+.. _whatsnew_300.notable_bug_fixes.notable_bug_fix3:
+
+notable_bug_fix3
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
