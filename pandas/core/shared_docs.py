@@ -49,6 +49,8 @@ behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
+
+If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 {examples}"""
 
 _shared_docs["compare"] = """
