@@ -1198,7 +1198,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt"]:
+        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
