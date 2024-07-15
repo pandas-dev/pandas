@@ -99,8 +99,7 @@ def frame_apply(
     elif axis == 1:
         if columns:
             raise NotImplementedError(
-                "func given to frame_apply cannot contain "
-                "an index relabeling when axis is 1"
+                f"Named aggregation is not supported when {axis=}."
             )
         klass = FrameColumnApply
 
