@@ -59,6 +59,7 @@ from pandas.io.common import (
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    evaluate_callable_usecols,
     get_na_values,
     parser_defaults,
     validate_parse_dates_presence,
@@ -127,9 +128,8 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.has_index_names = False
-        if "has_index_names" in kwds:
-            self.has_index_names = kwds["has_index_names"]
+        # Passed from read_excel
+        self.has_index_names = kwds.get("has_index_names", False)
 
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
@@ -299,9 +299,10 @@ class PythonParser(ParserBase):
             return index, conv_columns, col_dict
 
         # handle new style for names in index
-        count_empty_content_vals = count_empty_vals(content[0])
         indexnamerow = None
-        if self.has_index_names and count_empty_content_vals == len(columns):
+        if self.has_index_names and sum(
+            int(v == "" or v is None) for v in content[0]
+        ) == len(columns):
             indexnamerow = content[0]
             content = content[1:]
 
@@ -605,7 +606,7 @@ class PythonParser(ParserBase):
                     # serve as the 'line' for parsing
                     if have_mi_columns and hr > 0:
                         if clear_buffer:
-                            self._clear_buffer()
+                            self.buf.clear()
                         columns.append([None] * len(columns[-1]))
                         return columns, num_original_columns, unnamed_cols
 
@@ -687,7 +688,7 @@ class PythonParser(ParserBase):
                     num_original_columns = len(this_columns)
 
             if clear_buffer:
-                self._clear_buffer()
+                self.buf.clear()
 
             first_line: list[Scalar] | None
             if names is not None:
@@ -774,7 +775,7 @@ class PythonParser(ParserBase):
         col_indices: set[int] | list[int]
         if self.usecols is not None:
             if callable(self.usecols):
-                col_indices = self._evaluate_usecols(self.usecols, usecols_key)
+                col_indices = evaluate_callable_usecols(self.usecols, usecols_key)
             elif any(isinstance(u, str) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError(
@@ -1093,9 +1094,6 @@ class PythonParser(ParserBase):
         return self._search_replace_num_columns(
             lines=lines, search=self.decimal, replace="."
         )
-
-    def _clear_buffer(self) -> None:
-        self.buf = []
 
     def _get_index_name(
         self,
@@ -1524,10 +1522,6 @@ class FixedWidthFieldParser(PythonParser):
             for line in lines
             if any(not isinstance(e, str) or e.strip() for e in line)
         ]
-
-
-def count_empty_vals(vals) -> int:
-    return sum(1 for v in vals if v == "" or v is None)
 
 
 def _validate_skipfooter_arg(skipfooter: int) -> int:
