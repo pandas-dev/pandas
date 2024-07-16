@@ -1172,80 +1172,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(df, df.replace(Series({"b": {}})))
 
     @pytest.mark.parametrize(
-        "to_replace, method, expected",
-        [
-            (0, "bfill", {"A": [1, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]}),
-            (
-                np.nan,
-                "bfill",
-                {"A": [0, 1, 2], "B": [5.0, 7.0, 7.0], "C": ["a", "b", "c"]},
-            ),
-            ("d", "ffill", {"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]}),
-            (
-                [0, 2],
-                "bfill",
-                {"A": [1, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]},
-            ),
-            (
-                [1, 2],
-                "pad",
-                {"A": [0, 0, 0], "B": [5, np.nan, 7], "C": ["a", "b", "c"]},
-            ),
-            (
-                (1, 2),
-                "bfill",
-                {"A": [0, 2, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]},
-            ),
-            (
-                ["b", "c"],
-                "ffill",
-                {"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "a", "a"]},
-            ),
-        ],
-    )
-    def test_replace_method(self, to_replace, method, expected):
-        # GH 19632
-        df = DataFrame({"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]})
-
-        msg = "The 'method' keyword in DataFrame.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.replace(to_replace=to_replace, value=None, method=method)
-        expected = DataFrame(expected)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "replace_dict, final_data",
-        [({"a": 1, "b": 1}, [[3, 3], [2, 2]]), ({"a": 1, "b": 2}, [[3, 1], [2, 3]])],
-    )
-    def test_categorical_replace_with_dict(self, replace_dict, final_data):
-        # GH 26988
-        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
-
-        final_data = np.array(final_data)
-
-        a = pd.Categorical(final_data[:, 0], categories=[3, 2])
-
-        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
-
-        expected = DataFrame({"a": a, "b": b})
-        msg2 = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = df.replace(replace_dict, 3)
-        tm.assert_frame_equal(result, expected)
-        msg = (
-            r"Attributes of DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are "
-            "different"
-        )
-        with pytest.raises(AssertionError, match=msg):
-            # ensure non-inplace call does not affect original
-            tm.assert_frame_equal(df, expected)
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            return_value = df.replace(replace_dict, 3, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(df, expected)
-
-    @pytest.mark.parametrize(
         "df, to_replace, exp",
         [
             (
@@ -1306,13 +1232,8 @@ class TestDataFrameReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
-        msg2 = (
-            "DataFrame.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
-        )
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                df.replace(lambda x: x.strip())
+            df.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
@@ -1346,6 +1267,30 @@ class TestDataFrameReplace:
         expected = obj.copy()
         result = obj.replace(1.0, 0.0)
         tm.assert_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "replace_dict, final_data",
+        [({"a": 1, "b": 1}, [[2, 2], [2, 2]]), ({"a": 1, "b": 2}, [[2, 1], [2, 2]])],
+    )
+    def test_categorical_replace_with_dict(self, replace_dict, final_data):
+        # GH 26988
+        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
+
+        final_data = np.array(final_data)
+
+        a = pd.Categorical(final_data[:, 0], categories=[1, 2])
+        b = pd.Categorical(final_data[:, 1], categories=[1, 2])
+
+        expected = DataFrame({"a": a, "b": b})
+        result = df.replace(replace_dict, 2)
+        tm.assert_frame_equal(result, expected)
+        msg = r"DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are " "different"
+        with pytest.raises(AssertionError, match=msg):
+            # ensure non-inplace call does not affect original
+            tm.assert_frame_equal(df, expected)
+        return_value = df.replace(replace_dict, 2, inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(df, expected)
 
     def test_replace_value_category_type(self):
         """
@@ -1392,15 +1337,17 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe
-        msg = (
-            r"The behavior of Series\.replace \(and DataFrame.replace\) "
-            "with CategoricalDtype"
+        input_df = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"d": "z"})
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            input_df = input_df.replace("d", "z")
-            input_df = input_df.replace("obj1", "obj9")
-            result = input_df.replace("cat2", "catX")
+        input_df = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"obj1": "obj9"})
+        )
+        result = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"cat2": "catX"})
+        )
 
+        result = result.astype({"col1": "int64", "col3": "float64", "col5": "object"})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_dict_category_type(self):
@@ -1425,12 +1372,11 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe using a dict
-        msg = (
-            r"The behavior of Series\.replace \(and DataFrame.replace\) "
-            "with CategoricalDtype"
+        result = input_df.apply(
+            lambda x: x.cat.rename_categories(
+                {"a": "z", "obj1": "obj9", "cat1": "catX"}
+            )
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
         tm.assert_frame_equal(result, expected)
 

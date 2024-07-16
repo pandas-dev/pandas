@@ -23,7 +23,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -67,6 +66,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterator,
         Mapping,
@@ -157,6 +157,7 @@ def _convert_arrays_to_dataframe(
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
+    idx_len = content.shape[0]
     arrays = convert_object_array(
         list(content.T),
         dtype=None,
@@ -177,9 +178,9 @@ def _convert_arrays_to_dataframe(
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
-        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
-        df.columns = columns
-        return df
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=range(idx_len), verify_integrity=False
+        )
     else:
         return DataFrame(columns=columns)
 
@@ -473,8 +474,9 @@ def read_sql_query(
     --------
     >>> from sqlalchemy import create_engine  # doctest: +SKIP
     >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> sql_query = "SELECT int_column FROM test_data"  # doctest: +SKIP
     >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
-    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
+    ...     data = pd.read_sql_query(sql_query, conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -1012,7 +1014,7 @@ class SQLTable(PandasObject):
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
         if self.index is not None:
-            temp = self.frame.copy()
+            temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
                 temp.reset_index(inplace=True)
@@ -2380,7 +2382,9 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
+            total_inserted = cur.adbc_ingest(
+                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+            )
 
         self.con.commit()
         return total_inserted

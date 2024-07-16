@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import (
+    Callable,
+    Sequence,
+)
 from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     DefaultDict,
     Optional,
     TypedDict,
@@ -140,8 +142,14 @@ class StylerRenderer:
         self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
+            int, Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
+            int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render(
@@ -460,6 +468,12 @@ class StylerRenderer:
         ] * (self.index.nlevels - sum(self.hide_index_) - 1)
 
         name = self.data.columns.names[r]
+
+        is_display = name is not None and not self.hide_column_names
+        value = name if is_display else self.css["blank_value"]
+        display_value = (
+            self._display_funcs_column_names[r](value) if is_display else None
+        )
         column_name = [
             _element(
                 "th",
@@ -468,10 +482,9 @@ class StylerRenderer:
                     if name is None
                     else f"{self.css['index_name']} {self.css['level']}{r}"
                 ),
-                name
-                if (name is not None and not self.hide_column_names)
-                else self.css["blank_value"],
+                value,
                 not all(self.hide_index_),
+                display_value=display_value,
             )
         ]
 
@@ -553,6 +566,9 @@ class StylerRenderer:
                 f"{self.css['index_name']} {self.css['level']}{c}",
                 self.css["blank_value"] if name is None else name,
                 not self.hide_index_[c],
+                display_value=(
+                    None if name is None else self._display_funcs_index_names[c](name)
+                ),
             )
             for c, name in enumerate(self.data.index.names)
         ]
@@ -1005,6 +1021,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1035,7 +1052,7 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
-        When instantiating a Styler, default formatting can be applied be setting the
+        When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
           - ``styler.format.formatter``: default None.
@@ -1261,6 +1278,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1425,6 +1443,7 @@ class StylerRenderer:
         Returns
         -------
         Styler
+            Returns itself for chaining.
 
         See Also
         --------
@@ -1560,6 +1579,140 @@ class StylerRenderer:
 
         return self
 
+    def format_index_names(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: Axis = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+        hyperlinks: str | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Format the text display value of index names or column names.
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : {0, "index", 1, "columns"}
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers.
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers.
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
+
+        Returns
+        -------
+        Styler
+            Returns itself for chaining.
+
+        Raises
+        ------
+        ValueError
+            If the `formatter` is a string and the dtypes are incompatible.
+
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index labels
+            or column headers.
+
+        Notes
+        -----
+        This method has a similar signature to :meth:`Styler.format_index`. Since
+        `names` are generally label based, and often not numeric, the typical features
+        expected to be more frequently used here are ``escape`` and ``hyperlinks``.
+
+        .. warning::
+            `Styler.format_index_names` is ignored when using the output format
+            `Styler.to_excel`, since Excel and Python have inherrently different
+            formatting structures.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [[1, 2], [3, 4]],
+        ...     index=pd.Index(["a", "b"], name="idx"),
+        ... )
+        >>> df  # doctest: +SKIP
+             0  1
+        idx
+        a    1  2
+        b    3  4
+        >>> df.style.format_index_names(lambda x: x.upper(), axis=0)  # doctest: +SKIP
+             0  1
+        IDX
+        a    1  2
+        b    3  4
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index_names, self.index
+        else:
+            display_funcs_, obj = self._display_funcs_column_names, self.columns
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                level is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+                hyperlinks is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for lvl in levels_:
+            format_func = _maybe_wrap_formatter(
+                formatter.get(lvl),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+                hyperlinks=hyperlinks,
+            )
+            display_funcs_[lvl] = format_func
+
+        return self
+
 
 def _element(
     html_element: str,
@@ -1571,7 +1724,7 @@ def _element(
     """
     Template to return container with information for a <td></td> or <th></th> element.
     """
-    if "display_value" not in kwargs:
+    if "display_value" not in kwargs or kwargs["display_value"] is None:
         kwargs["display_value"] = value
     return {
         "type": html_element,

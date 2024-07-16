@@ -29,7 +29,7 @@ class BaseReshapingTests:
         assert dtype == data.dtype
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
-        assert isinstance(result._mgr.arrays[0], ExtensionArray)
+        assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
@@ -106,7 +106,7 @@ class BaseReshapingTests:
                 "B": data[3:7],
             }
         )
-        result = pd.concat([df1, df2], axis=1, copy=False)
+        result = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_with_reindex(self, data):

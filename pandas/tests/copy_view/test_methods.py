@@ -176,13 +176,6 @@ def test_methods_series_copy_keyword(request, method, copy):
     assert np.shares_memory(get_array(ser2), get_array(ser))
 
 
-@pytest.mark.parametrize("copy", [True, None, False])
-def test_transpose_copy_keyword(copy):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.transpose(copy=copy)
-    assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
-
-
 # -----------------------------------------------------------------------------
 # DataFrame methods returning new DataFrame using shallow copy
 
@@ -1112,26 +1105,26 @@ def test_putmask_aligns_rhs_no_reference(dtype):
     assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
-@pytest.mark.parametrize(
-    "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
-)
-def test_putmask_dont_copy_some_blocks(val, exp, warn):
+@pytest.mark.parametrize("val, exp, raises", [(5.5, True, True), (5, False, False)])
+def test_putmask_dont_copy_some_blocks(val, exp, raises: bool):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+    if raises:
+        with pytest.raises(TypeError, match="Invalid value"):
+            df[indexer] = val
+    else:
         df[indexer] = val
-
-    assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
-    # TODO(CoW): Could split blocks to avoid copying the whole block
-    assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
-    assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
-    assert df._mgr._has_no_reference(1) is not exp
-    assert not df._mgr._has_no_reference(2)
-    tm.assert_frame_equal(view, df_orig)
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        # TODO(CoW): Could split blocks to avoid copying the whole block
+        assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
+        assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
+        assert df._mgr._has_no_reference(1) is not exp
+        assert not df._mgr._has_no_reference(2)
+        tm.assert_frame_equal(view, df_orig)
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
@@ -1415,11 +1408,10 @@ def test_inplace_arithmetic_series_with_reference():
     tm.assert_series_equal(ser_orig, view)
 
 
-@pytest.mark.parametrize("copy", [True, False])
-def test_transpose(copy):
+def test_transpose():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
-    result = df.transpose(copy=copy)
+    result = df.transpose()
     assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
     result.iloc[0, 0] = 100

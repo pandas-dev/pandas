@@ -63,15 +63,59 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-def test_apply_args(float_frame, axis, raw, engine, request):
-    if engine == "numba":
-        mark = pytest.mark.xfail(reason="numba engine doesn't support args")
-        request.node.add_marker(mark)
+@pytest.mark.parametrize("nopython", [True, False])
+def test_apply_args(float_frame, axis, raw, engine, nopython):
+    engine_kwargs = {"nopython": nopython}
     result = float_frame.apply(
-        lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
+        lambda x, y: x + y,
+        axis,
+        args=(1,),
+        raw=raw,
+        engine=engine,
+        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
+
+    # GH:58712
+    result = float_frame.apply(
+        lambda x, a, b: x + a + b,
+        args=(1,),
+        b=2,
+        raw=raw,
+        engine=engine,
+        engine_kwargs=engine_kwargs,
+    )
+    expected = float_frame + 3
+    tm.assert_frame_equal(result, expected)
+
+    if engine == "numba":
+        # keyword-only arguments are not supported in numba
+        with pytest.raises(
+            pd.errors.NumbaUtilError,
+            match="numba does not support keyword-only arguments",
+        ):
+            float_frame.apply(
+                lambda x, a, *, b: x + a + b,
+                args=(1,),
+                b=2,
+                raw=raw,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
+
+        with pytest.raises(
+            pd.errors.NumbaUtilError,
+            match="numba does not support keyword-only arguments",
+        ):
+            float_frame.apply(
+                lambda *x, b: x[0] + x[1] + b,
+                args=(1,),
+                b=2,
+                raw=raw,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
 
 
 def test_apply_categorical_func():
@@ -402,7 +446,7 @@ def test_apply_yield_list(float_frame):
 
 def test_apply_reduce_Series(float_frame):
     float_frame.iloc[::2, float_frame.columns.get_loc("A")] = np.nan
-    expected = float_frame.mean(1)
+    expected = float_frame.mean(axis=1)
     result = float_frame.apply(np.mean, axis=1)
     tm.assert_series_equal(result, expected)
 
@@ -1209,7 +1253,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1286,6 +1330,14 @@ def test_agg_reduce(axis, float_frame):
     tm.assert_frame_equal(result, expected)
 
 
+def test_named_agg_reduce_axis1_raises(float_frame):
+    name1, name2 = float_frame.axes[0].unique()[:2].sort_values()
+    msg = "Named aggregation is not supported when axis=1."
+    for axis in [1, "columns"]:
+        with pytest.raises(NotImplementedError, match=msg):
+            float_frame.agg(row1=(name1, "sum"), row2=(name2, "max"), axis=axis)
+
+
 def test_nuiscance_columns():
     # GH 15015
     df = DataFrame(
@@ -1309,7 +1361,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1317,7 +1369,7 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    msg = "does not support reduction"
+    msg = "does not support operation"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 
@@ -1489,7 +1541,7 @@ def test_apply_dtype(col):
 
 def test_apply_mutating():
     # GH#35462 case where applied func pins a new BlockManager to a row
-    df = DataFrame({"a": range(100), "b": range(100, 200)})
+    df = DataFrame({"a": range(10), "b": range(10, 20)})
     df_orig = df.copy()
 
     def func(row):

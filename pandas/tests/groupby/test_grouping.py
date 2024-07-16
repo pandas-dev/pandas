@@ -822,6 +822,35 @@ class TestGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_tuple_keys_handle_multiindex(self):
+        # https://github.com/pandas-dev/pandas/issues/21340
+        df = DataFrame(
+            {
+                "num1": [0, 8, 9, 4, 3, 3, 5, 9, 3, 6],
+                "num2": [3, 8, 6, 4, 9, 2, 1, 7, 0, 9],
+                "num3": [6, 5, 7, 8, 5, 1, 1, 10, 7, 8],
+                "category_tuple": [
+                    (0, 1),
+                    (0, 1),
+                    (0, 1),
+                    (0, 4),
+                    (2, 3),
+                    (2, 3),
+                    (2, 3),
+                    (2, 3),
+                    (5,),
+                    (6,),
+                ],
+                "category_string": list("aaabbbbcde"),
+            }
+        )
+        expected = df.sort_values(by=["category_tuple", "num1"])
+        result = df.groupby("category_tuple").apply(
+            lambda x: x.sort_values(by="num1"), include_groups=False
+        )
+        expected = expected[result.columns]
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
 
 # get_group
 # --------------------------------
@@ -1044,7 +1073,6 @@ class TestIteration:
         grouped = df.groupby(["k1", "k2"])
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
-        # pylint: disable-next=unnecessary-comprehension
         groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 

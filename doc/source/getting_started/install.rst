@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10, 3.11 and 3.12.
+See :ref:`Python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
@@ -161,7 +161,7 @@ Python terminal.
 
     >>> import pandas as pd
     >>> pd.test()
-    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.10/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
@@ -269,6 +269,8 @@ SciPy                     1.10.0             computation     Miscellaneous stati
 xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
+.. _install.excel_dependencies:
+
 Excel files
 ^^^^^^^^^^^
 
@@ -346,7 +348,7 @@ SQLAlchemy                2.0.0              postgresql,     SQL support for dat
                                              sql-other
 psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
 pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
-adbc-driver-postgresql    0.8.0              postgresql      ADBC Driver for PostgreSQL
+adbc-driver-postgresql    0.10.0             postgresql      ADBC Driver for PostgreSQL
 adbc-driver-sqlite        0.8.0              sql-other       ADBC Driver for SQLite
 ========================= ================== =============== =============================================================
 
@@ -361,7 +363,7 @@ Dependency                Minimum Version    pip extra        Notes
 PyTables                  3.8.0              hdf5             HDF5-based reading / writing
 blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
-fastparquet               2023.04.0          -                Parquet reading / writing (pyarrow is default)
+fastparquet               2023.10.0          -                Parquet reading / writing (pyarrow is default)
 pyarrow                   10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.2.0              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing

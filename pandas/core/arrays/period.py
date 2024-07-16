@@ -5,7 +5,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     TypeVar,
     cast,
@@ -54,7 +53,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -76,7 +74,10 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         AnyArrayLike,
@@ -135,11 +136,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     dtype : PeriodDtype, optional
         A PeriodDtype instance from which to extract a `freq`. If both
         `freq` and `dtype` are specified, then the frequencies must match.
-    freq : str or DateOffset
-        The `freq` to use for the array. Mostly applicable when `values`
-        is an ndarray of integers, when `freq` is required. When `values`
-        is a PeriodArray (or box around), it's checked that ``values.freq``
-        matches `freq`.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
@@ -224,20 +220,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(
-        self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
-    ) -> None:
-        if freq is not None:
-            # GH#52462
-            warnings.warn(
-                "The 'freq' keyword in the PeriodArray constructor is deprecated "
-                "and will be removed in a future version. Pass 'dtype' instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            freq = validate_dtype_freq(dtype, freq)
-            dtype = PeriodDtype(freq)
-
+    def __init__(self, values, dtype: Dtype | None = None, copy: bool = False) -> None:
         if dtype is not None:
             dtype = pandas_dtype(dtype)
             if not isinstance(dtype, PeriodDtype):
@@ -847,19 +830,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         else:
             return self
 
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing,
-            #  similar to dtl._period_dispatch
-            dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
-            # error: Incompatible return value type (got "Union[ExtensionArray,
-            # ndarray[Any, Any]]", expected "PeriodArray")
-            return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
-
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -985,6 +955,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         delta = delta.view("i8")
         return lib.item_from_zerodim(delta)
+
+    # ------------------------------------------------------------------
+    # Reductions
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims and isinstance(result, np.ndarray):
+            return self._from_sequence(result, dtype=self.dtype)
+        return result
 
 
 def raise_on_incompatible(left, right) -> IncompatibleFrequency:

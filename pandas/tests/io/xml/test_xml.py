@@ -14,6 +14,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     EmptyDataError,
@@ -485,6 +486,7 @@ def test_empty_string_etree(val):
         read_xml(data, parser="etree")
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_wrong_file_path(parser):
     filename = os.path.join("does", "not", "exist", "books.xml")
 
@@ -1036,7 +1038,7 @@ def test_utf16_encoding(xml_baby_names, parser):
         UnicodeError,
         match=(
             "UTF-16 stream does not start with BOM|"
-            "'utf-16-le' codec can't decode byte"
+            "'utf-16(-le)?' codec can't decode byte"
         ),
     ):
         read_xml(xml_baby_names, encoding="UTF-16", parser=parser)
