@@ -7476,7 +7476,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     from pandas.core.indexes.multi import MultiIndex
 
     if len(sequences) == 0:
-        return []
+        return Index([])
     elif len(sequences) == 1:
         if names is not None:
             names = names[0]
