@@ -6,11 +6,9 @@ import os
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
-    Callable,
     ContextManager,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -58,7 +56,6 @@ from pandas._testing.asserters import (
     assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
-    assert_is_valid_plot_return_object,
     assert_metadata_equivalent,
     assert_numpy_array_equal,
     assert_period_array_equal,
@@ -87,6 +84,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         Dtype,
         NpDtype,
@@ -108,6 +107,7 @@ ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]
@@ -290,17 +290,11 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Index(expected)
+        expected = Index(expected)
     elif box_cls is Series:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Series(expected)
+        expected = Series(expected)
     elif box_cls is DataFrame:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Series(expected).to_frame()
+        expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
@@ -538,8 +532,8 @@ def shares_memory(left, right) -> bool:
             left._mask, right._mask
         )
 
-    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
-        arr = left._mgr.arrays[0]
+    if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
+        arr = left._mgr.blocks[0].values
         return shares_memory(arr, right)
 
     raise NotImplementedError(type(left), type(right))
@@ -565,7 +559,6 @@ __all__ = [
     "assert_indexing_slices_equivalent",
     "assert_interval_array_equal",
     "assert_is_sorted",
-    "assert_is_valid_plot_return_object",
     "assert_metadata_equivalent",
     "assert_numpy_array_equal",
     "assert_period_array_equal",

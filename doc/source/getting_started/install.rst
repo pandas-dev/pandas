@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10, 3.11 and 3.12.
+See :ref:`Python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
@@ -161,7 +161,7 @@ Python terminal.
 
     >>> import pandas as pd
     >>> pd.test()
-    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.10/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0

@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -87,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):
@@ -717,6 +719,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         value : scalar
         limit : int, optional
+            Not supported for SparseArray, must be None.
         copy: bool, default True
             Ignored for SparseArray.
 
@@ -736,6 +739,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
+        if limit is not None:
+            raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
@@ -1250,7 +1255,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action=None) -> Self:
+    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
         """
         Map categories using an input mapping or function.
 

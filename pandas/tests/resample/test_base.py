@@ -436,7 +436,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
     empty_series_dti = Series([], index, dtype)
     with tm.assert_produces_warning(warn, match=msg):
-        rs = empty_series_dti.resample("d", group_keys=False)
+        rs = empty_series_dti.resample("D", group_keys=False)
     try:
         getattr(rs, resample_method)()
     except DataError:
@@ -557,7 +557,8 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
     method = getattr(rs, how)
     result = method(skipna=skipna)
 
-    gb = df.groupby(df.shape[0] * [pd.to_datetime("2020-01-31")])
+    ts = pd.to_datetime("2020-01-31").as_unit("ns")
+    gb = df.groupby(df.shape[0] * [ts])
     expected = getattr(gb, how)(skipna=skipna)
     expected.index.freq = "ME"
     tm.assert_frame_equal(result, expected)
