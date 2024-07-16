@@ -46,7 +46,7 @@ endif
 
 cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
-  add_global_arguments('-Xfreethreading_compatible=true', language : 'cython')
+  add_project_arguments('-Xfreethreading_compatible=true', language : 'cython')
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options
