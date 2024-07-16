@@ -652,6 +652,9 @@ class PlotAccessor(PandasObject):
     ----------
     data : Series or DataFrame
         The object for which the method is called.
+
+    Attributes
+    ----------
     x : label or position, default None
         Only used if data is a DataFrame.
     y : label, position or list of label, positions, default None
