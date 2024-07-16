@@ -100,10 +100,6 @@ class TestPeriodArray(base.ExtensionTests):
         else:
             return super().check_reduce(ser, op_name, skipna)
 
-    @pytest.mark.parametrize("periods", [1, -2])
-    def test_diff(self, data, periods):
-        super().test_diff(data, periods)
-
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
