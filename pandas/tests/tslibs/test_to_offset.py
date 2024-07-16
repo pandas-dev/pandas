@@ -31,6 +31,7 @@ import pandas._testing as tm
         ("2SME-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
         ("2SMS-15", offsets.SemiMonthBegin(2)),
+        ("LWOM-MON", offsets.LastWeekOfMonth()),
     ],
 )
 def test_to_offset(freq_input, expected):
