@@ -148,6 +148,11 @@ class TestFromRecords:
         assert len(result) == 0
         assert len(result.columns) == 0
 
+        result = DataFrame.from_records([], index=[])
+        assert len(result) == 0
+        assert len(result.columns) == 0
+        assert len(result.index) == 0
+
     def test_from_records_dictlike(self):
         # test the dict methods
         df = DataFrame(
