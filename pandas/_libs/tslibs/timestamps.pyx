@@ -1139,7 +1139,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,
@@ -1170,7 +1170,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def asm8(self) -> np.datetime64:
         """
-        Return numpy datetime64 format in nanoseconds.
+        Return numpy datetime64 format with same precision.
 
         See Also
         --------
@@ -1465,10 +1465,20 @@ class Timestamp(_Timestamp):
         """
         Return new Timestamp object representing current time local to tz.
 
+        This method returns a new `Timestamp` object that represents the current time.
+        If a timezone is provided, the current time will be localized to that timezone.
+        Otherwise, it returns the current local time.
+
         Parameters
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.today : Return the current time in the local timezone.
 
         Examples
         --------
@@ -1767,6 +1777,16 @@ class Timestamp(_Timestamp):
     def time(self):
         """
         Return time object with same time but with tzinfo=None.
+
+        This method extracts the time part of the `Timestamp` object, excluding any
+        timezone information. It returns a `datetime.time` object which only represents
+        the time (hours, minutes, seconds, and microseconds).
+
+        See Also
+        --------
+        Timestamp.date : Return date object with same year, month and day.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
 
         Examples
         --------
@@ -2367,6 +2387,17 @@ timedelta}, default 'raise'
     def tz(self):
         """
         Alias for tzinfo.
+
+        The `tz` property provides a simple and direct way to retrieve the timezone
+        information of a `Timestamp` object. It is particularly useful when working
+        with time series data that includes timezone information, allowing for easy
+        access and manipulation of the timezone context.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
 
         Examples
         --------
