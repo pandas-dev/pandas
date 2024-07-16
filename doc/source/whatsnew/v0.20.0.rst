@@ -308,15 +308,26 @@ The new orient ``'table'`` for :meth:`DataFrame.to_json`
 will generate a `Table Schema`_ compatible string representation of
 the data.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.DataFrame(
-       {'A': [1, 2, 3],
-        'B': ['a', 'b', 'c'],
-        'C': pd.date_range('2016-01-01', freq='d', periods=3)},
-       index=pd.Index(range(3), name='idx'))
-   df
-   df.to_json(orient='table')
+   In [38]: df = pd.DataFrame(
+      ....: {'A': [1, 2, 3],
+      ....:  'B': ['a', 'b', 'c'],
+      ....:  'C': pd.date_range('2016-01-01', freq='d', periods=3)},
+      ....: index=pd.Index(range(3), name='idx'))
+   In [39]: df
+   Out[39]:
+        A  B          C
+   idx
+   0    1  a 2016-01-01
+   1    2  b 2016-01-02
+   2    3  c 2016-01-03
+
+   [3 rows x 3 columns]
+
+   In [40]: df.to_json(orient='table')
+   Out[40]:
+   '{"schema":{"fields":[{"name":"idx","type":"integer"},{"name":"A","type":"integer"},{"name":"B","type":"string"},{"name":"C","type":"datetime"}],"primaryKey":["idx"],"pandas_version":"1.4.0"},"data":[{"idx":0,"A":1,"B":"a","C":"2016-01-01T00:00:00.000"},{"idx":1,"A":2,"B":"b","C":"2016-01-02T00:00:00.000"},{"idx":2,"A":3,"B":"c","C":"2016-01-03T00:00:00.000"}]}'
 
 
 See :ref:`IO: Table Schema for more information <io.table_schema>`.

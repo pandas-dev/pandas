@@ -4473,7 +4473,7 @@ class DataFrame(NDFrame, OpsMixin):
             or punctuations (besides underscores) or starting with digits must be
             surrounded by backticks. (For example, a column named "Area (cm^2)" would
             be referenced as ```Area (cm^2)```). Column names which are Python keywords
-            (like "list", "for", "import", etc) cannot be used.
+            (like "if", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
@@ -4554,8 +4554,8 @@ class DataFrame(NDFrame, OpsMixin):
         For example, ```it's` > `that's``` will raise an error,
         as it forms a quoted string (``'s > `that'``) with a backtick inside.
 
-        See also the Python documentation about lexical analysis
-        (https://docs.python.org/3/reference/lexical_analysis.html)
+        See also the `Python documentation about lexical analysis
+        <https://docs.python.org/3/reference/lexical_analysis.html>`__
         in combination with the source code in :mod:`pandas.core.computation.parsing`.
 
         Examples
@@ -13327,6 +13327,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series.isin: Equivalent method on Series.
         Series.str.contains: Test if pattern or regex is contained within a
             string of a Series or Index.
+
+        Notes
+        -----
+            ``__iter__`` is used (and not ``__contains__``) to iterate over values
+            when checking if it contains the elements in DataFrame.
 
         Examples
         --------
