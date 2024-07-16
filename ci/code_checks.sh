@@ -70,10 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03" \
-        -i "pandas.DataFrame.median RT03" \
-        -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
         -i "pandas.MultiIndex.append PR07,SA01" \
@@ -95,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
         -i "pandas.Period.month SA01" \
-        -i "pandas.Period.now SA01" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
@@ -167,7 +162,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.skew RT03,SA01" \
+        -i "pandas.Series.skew SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
@@ -244,13 +239,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.month_name SA01" \
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.normalize SA01" \
-        -i "pandas.Timestamp.now SA01" \
         -i "pandas.Timestamp.quarter SA01" \
         -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.time SA01" \
         -i "pandas.Timestamp.timestamp SA01" \
         -i "pandas.Timestamp.timetuple SA01" \
         -i "pandas.Timestamp.timetz SA01" \
@@ -317,11 +310,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_period_dtype SA01" \
         -i "pandas.api.types.is_re PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
-        -i "pandas.api.types.is_signed_integer_dtype SA01" \
         -i "pandas.api.types.is_sparse SA01" \
         -i "pandas.api.types.is_string_dtype SA01" \
         -i "pandas.api.types.is_timedelta64_ns_dtype SA01" \
-        -i "pandas.api.types.is_unsigned_integer_dtype SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.api.types.union_categoricals RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \

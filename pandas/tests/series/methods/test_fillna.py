@@ -158,9 +158,8 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             ser2[1] = "foo"
-        tm.assert_series_equal(ser2, expected)
 
     def test_timedelta_fillna(self, frame_or_series, unit):
         # GH#3371
