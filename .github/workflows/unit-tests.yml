@@ -388,8 +388,6 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
-        env:
-          PYTHON_GIL: 0
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
