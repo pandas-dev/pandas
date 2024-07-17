@@ -3,10 +3,11 @@ from functools import partial
 import string
 import subprocess
 import sys
-import textwrap
 
 import numpy as np
 import pytest
+
+from pandas.compat import WASM
 
 import pandas as pd
 from pandas import Series
@@ -171,10 +172,10 @@ def test_version_tag():
     version = Version(pd.__version__)
     try:
         version > Version("0.0.1")
-    except TypeError:
+    except TypeError as err:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
-        )
+        ) from err
 
 
 @pytest.mark.parametrize(
@@ -234,6 +235,7 @@ def test_temp_setattr(with_exception):
     assert ser.name == "first"
 
 
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
 @pytest.mark.single_cpu
 def test_str_size():
     # GH#21758
@@ -247,21 +249,3 @@ def test_str_size():
     ]
     result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
     assert int(result) == int(expected)
-
-
-@pytest.mark.single_cpu
-def test_bz2_missing_import():
-    # Check whether bz2 missing import is handled correctly (issue #53857)
-    code = """
-        import sys
-        sys.modules['bz2'] = None
-        import pytest
-        import pandas as pd
-        from pandas.compat import get_bz2_file
-        msg = 'bz2 module not available.'
-        with pytest.raises(RuntimeError, match=msg):
-            get_bz2_file()
-    """
-    code = textwrap.dedent(code)
-    call = [sys.executable, "-c", code]
-    subprocess.check_output(call)

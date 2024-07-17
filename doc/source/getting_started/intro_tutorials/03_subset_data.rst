@@ -101,7 +101,7 @@ selection brackets ``[]``.
 .. note::
     The inner square brackets define a
     :ref:`Python list <python:tut-morelists>` with column names, whereas
-    the outer brackets are used to select the data from a pandas
+    the outer square brackets are used to select the data from a pandas
     ``DataFrame`` as seen in the previous example.
 
 The returned data type is a pandas DataFrame:
@@ -300,7 +300,7 @@ want to select.
         </li>
     </ul>
 
-When using the column names, row labels or a condition expression, use
+When using column names, row labels or a condition expression, use
 the ``loc`` operator in front of the selection brackets ``[]``. For both
 the part before and after the comma, you can use a single label, a list
 of labels, a slice of labels, a conditional expression or a colon. Using
@@ -342,7 +342,7 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight in the usage of ``loc`` and ``iloc``.
+See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight into the usage of ``loc`` and ``iloc``.
 
 .. raw:: html
 
@@ -354,13 +354,11 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
         <h4>REMEMBER</h4>
 
 -  When selecting subsets of data, square brackets ``[]`` are used.
--  Inside these brackets, you can use a single column/row label, a list
+-  Inside these square brackets, you can use a single column/row label, a list
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
--  Select specific rows and/or columns using ``loc`` when using the row
-   and column names.
--  Select specific rows and/or columns using ``iloc`` when using the
-   positions in the table.
+-  Use ``loc`` for label-based selection (using row/column names).
+-  Use ``iloc`` for position-based selection (using table positions).
 -  You can assign new values to a selection based on ``loc``/``iloc``.
 
 .. raw:: html

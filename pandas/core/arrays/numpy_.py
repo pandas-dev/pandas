@@ -150,7 +150,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):

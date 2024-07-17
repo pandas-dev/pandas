@@ -5,7 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("categories", [["b", "a", "c"], ["a", "b", "c", "d"]])
 def test_factorize(categories, ordered):
     cat = pd.Categorical(
@@ -87,3 +86,11 @@ def test_diff():
     df = ser.to_frame(name="A")
     with pytest.raises(TypeError, match=msg):
         df.diff()
+
+
+def test_hash_read_only_categorical():
+    # GH#58481
+    idx = pd.Index(pd.Index(["a", "b", "c"], dtype="object").values)
+    cat = pd.CategoricalDtype(idx)
+    arr = pd.Series(["a", "b"], dtype=cat).values
+    assert hash(arr.dtype) == hash(arr.dtype)

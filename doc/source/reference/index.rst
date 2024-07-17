@@ -24,13 +24,14 @@ The following subpackages are public.
   `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`_ package
   which has classes in addition to those that occur in pandas for type-hinting.
 
-In addition, public functions in ``pandas.io`` and ``pandas.tseries`` submodules
-are mentioned in the documentation.
+In addition, public functions in ``pandas.io``, ``pandas.tseries``, ``pandas.util`` submodules
+are explicitly mentioned in the documentation. Further APIs in these modules are not guaranteed
+to be stable.
 
 
 .. warning::
 
-    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
+    The ``pandas.core``, ``pandas.compat`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
 
 .. If you update this toctree, also update the manual toctree in the
 .. main index.rst.template
@@ -61,7 +62,6 @@ are mentioned in the documentation.
 ..
     .. toctree::
 
-        api/pandas.Index.holds_integer
         api/pandas.Index.nlevels
         api/pandas.Index.sort
 

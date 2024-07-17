@@ -55,15 +55,15 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
     scalar_array = pd.array([scalar] * len(data), dtype=data.dtype)
 
     # TODO also add len-1 array (np.array([scalar], dtype=data.dtype.numpy_dtype))
-    for scalar in [scalar, data.dtype.type(scalar)]:
+    for val in [scalar, data.dtype.type(scalar)]:
         if is_bool_not_implemented(data, all_arithmetic_operators):
             msg = "operator '.*' not implemented for bool dtypes"
             with pytest.raises(NotImplementedError, match=msg):
-                op(data, scalar)
+                op(data, val)
             with pytest.raises(NotImplementedError, match=msg):
                 op(data, scalar_array)
         else:
-            result = op(data, scalar)
+            result = op(data, val)
             expected = op(data, scalar_array)
             tm.assert_extension_array_equal(result, expected)
 
@@ -214,13 +214,13 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
         msg = "operator '.*' not implemented for bool dtypes"
         err = NotImplementedError
 
-    for other in [other, np.array(other)]:
+    for val in [other, np.array(other)]:
         with pytest.raises(err, match=msg):
-            op(data, other)
+            op(data, val)
 
         s = pd.Series(data)
         with pytest.raises(err, match=msg):
-            op(s, other)
+            op(s, val)
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])

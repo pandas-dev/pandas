@@ -11,12 +11,8 @@ from typing import (
 )
 import uuid
 
-from pandas._config import using_copy_on_write
-
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
-
-from pandas import set_option
 
 from pandas.io.common import get_handle
 
@@ -70,9 +66,8 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
-    >>> with set_timezone('US/Eastern'):
+    >>> with set_timezone("US/Eastern"):
     ...     tzlocal().tzname(datetime(2021, 1, 1))
-    ...
     'EST'
     """
     import time
@@ -96,9 +91,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 
 
 @contextmanager
-def ensure_clean(
-    filename=None, return_filelike: bool = False, **kwargs: Any
-) -> Generator[Any, None, None]:
+def ensure_clean(filename=None) -> Generator[Any, None, None]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -110,12 +103,6 @@ def ensure_clean(
     ----------
     filename : str (optional)
         suffix of the created file.
-    return_filelike : bool (default False)
-        if True, returns a file-like which is *always* cleaned. Necessary for
-        savefig and other functions which want to append extensions.
-    **kwargs
-        Additional keywords are passed to open().
-
     """
     folder = Path(tempfile.gettempdir())
 
@@ -126,19 +113,11 @@ def ensure_clean(
 
     path.touch()
 
-    handle_or_str: str | IO = str(path)
-    encoding = kwargs.pop("encoding", None)
-    if return_filelike:
-        kwargs.setdefault("mode", "w+b")
-        if encoding is None and "b" not in kwargs["mode"]:
-            encoding = "utf-8"
-        handle_or_str = open(path, encoding=encoding, **kwargs)
+    handle_or_str = str(path)
 
     try:
         yield handle_or_str
     finally:
-        if not isinstance(handle_or_str, str):
-            handle_or_str.close()
         if path.is_file():
             path.unlink()
 
@@ -177,81 +156,28 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
         csv.unregister_dialect(name)
 
 
-@contextmanager
-def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
-    from pandas.core.computation import expressions as expr
-
-    if min_elements is None:
-        min_elements = expr._MIN_ELEMENTS
-
-    olduse = expr.USE_NUMEXPR
-    oldmin = expr._MIN_ELEMENTS
-    set_option("compute.use_numexpr", use)
-    expr._MIN_ELEMENTS = min_elements
-    try:
-        yield
-    finally:
-        expr._MIN_ELEMENTS = oldmin
-        set_option("compute.use_numexpr", olduse)
-
-
-def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
 
-    if not warn:
-        from contextlib import nullcontext
+    if PYPY:
+        if not extra_warnings:
+            from contextlib import nullcontext
 
-        return nullcontext()
-
-    if PYPY and not extra_warnings:
-        from contextlib import nullcontext
-
-        return nullcontext()
-    elif PYPY and extra_warnings:
-        return assert_produces_warning(
-            extra_warnings,
-            match="|".join(extra_match),
-        )
-    else:
-        if using_copy_on_write():
-            warning = ChainedAssignmentError
-            match = (
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment"
-            )
+            return nullcontext()
         else:
-            warning = FutureWarning  # type: ignore[assignment]
-            # TODO update match
-            match = "ChainedAssignmentError"
+            return assert_produces_warning(
+                extra_warnings,
+                match=extra_match,
+            )
+    else:
+        warning = ChainedAssignmentError
+        match = (
+            "A value is trying to be set on a copy of a DataFrame or Series "
+            "through chained assignment"
+        )
         if extra_warnings:
             warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
             warning,
-            match="|".join((match, *extra_match)),
+            match=(match, *extra_match),
         )
-
-
-def assert_cow_warning(warn=True, match=None, **kwargs):
-    """
-    Assert that a warning is raised in the CoW warning mode.
-
-    Parameters
-    ----------
-    warn : bool, default True
-        By default, check that a warning is raised. Can be turned off by passing False.
-    match : str
-        The warning message to match against, if different from the default.
-    kwargs
-        Passed through to assert_produces_warning
-    """
-    from pandas._testing import assert_produces_warning
-
-    if not warn:
-        from contextlib import nullcontext
-
-        return nullcontext()
-
-    if not match:
-        match = "Setting a value on a view"
-
-    return assert_produces_warning(FutureWarning, match=match, **kwargs)

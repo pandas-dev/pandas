@@ -4,7 +4,6 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -28,16 +27,20 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
     import pyarrow
 
     from pandas._typing import (
-        Dtype,
         DtypeObj,
         Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -159,7 +162,10 @@ def _coerce_to_data_and_mask(
         return values, mask, dtype, inferred_type
 
     original = values
-    values = np.array(values, copy=copy)
+    if not copy:
+        values = np.asarray(values)
+    else:
+        values = np.array(values, copy=copy)
     inferred_type = None
     if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
@@ -168,7 +174,10 @@ def _coerce_to_data_and_mask(
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
-        values = np.array(values, dtype=default_dtype, copy=copy)
+        if not copy:
+            values = np.asarray(values, dtype=default_dtype)
+        else:
+            values = np.array(values, dtype=default_dtype, copy=copy)
 
     elif values.dtype.kind not in "iuf":
         name = dtype_cls.__name__.strip("_")
@@ -207,14 +216,14 @@ def _coerce_to_data_and_mask(
                     inferred_type not in ["floating", "mixed-integer-float"]
                     and not mask.any()
                 ):
-                    values = np.array(original, dtype=dtype, copy=False)
+                    values = np.asarray(original, dtype=dtype)
                 else:
-                    values = np.array(original, dtype="object", copy=False)
+                    values = np.asarray(original, dtype="object")
 
     # we copy as need to coerce here
     if mask.any():
         values = values.copy()
-        values[mask] = cls._internal_fill_value
+        values[mask] = dtype_cls._internal_fill_value
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float
@@ -270,7 +279,7 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 

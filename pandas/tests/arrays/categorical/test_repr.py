@@ -17,7 +17,8 @@ from pandas import (
 
 
 class TestCategoricalReprWithFactor:
-    def test_print(self, factor, using_infer_string):
+    def test_print(self, using_infer_string):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         if using_infer_string:
             expected = [
                 "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",

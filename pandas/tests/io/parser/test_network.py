@@ -2,6 +2,7 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
+
 from io import BytesIO
 import logging
 import re
@@ -74,6 +75,7 @@ def tips_df(datapath):
 
 
 @pytest.mark.single_cpu
+@pytest.mark.network
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:

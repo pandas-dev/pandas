@@ -6,7 +6,7 @@ The next steps provides the easiest and recommended way to set up your
 environment to use pandas. Other installation options can be found in
 the [advanced installation page]({{ base_url}}docs/getting_started/install.html).
 
-1. Download [Anaconda](https://www.anaconda.com/distribution/) for your operating system and
+1. Download [Anaconda](https://www.anaconda.com/download/) for your operating system and
    the latest Python version, run the installer, and follow the steps. Please note:
 
     - It is not needed (and discouraged) to install Anaconda as root or administrator.
@@ -42,7 +42,7 @@ The book we recommend to learn pandas is [Python for Data Analysis](https://amzn
 by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
 <a href="https://amzn.to/3DyLaJc">
-    <img alt="Python for Data Analysis" src="{{ base_url }}static/img/pydata_book.gif"/>
+    <img alt="Python for Data Analysis" src="{{ base_url }}static/img/books/pydata_book.gif"/>
 </a>
 
 ## Videos

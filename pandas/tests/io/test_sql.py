@@ -19,10 +19,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat import (
-    pa_version_under13p0,
-    pa_version_under14p1,
-)
+from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -368,7 +365,7 @@ def create_and_load_postgres_datetz(conn):
         Timestamp("2000-01-01 08:00:00", tz="UTC"),
         Timestamp("2000-06-01 07:00:00", tz="UTC"),
     ]
-    return Series(expected_data, name="DateColWithTz")
+    return Series(expected_data, name="DateColWithTz").astype("M8[us, UTC]")
 
 
 def check_iris_frame(frame: DataFrame):
@@ -620,13 +617,13 @@ def mysql_pymysql_engine():
 def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
     create_and_load_iris(mysql_pymysql_engine, iris_path)
     create_and_load_iris_view(mysql_pymysql_engine)
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
 def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
     create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
-    yield mysql_pymysql_engine
+    return mysql_pymysql_engine
 
 
 @pytest.fixture
@@ -667,13 +664,13 @@ def postgresql_psycopg2_engine():
 def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
     create_and_load_iris(postgresql_psycopg2_engine, iris_path)
     create_and_load_iris_view(postgresql_psycopg2_engine)
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
 def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
     create_and_load_types(postgresql_psycopg2_engine, types_data, "postgres")
-    yield postgresql_psycopg2_engine
+    return postgresql_psycopg2_engine
 
 
 @pytest.fixture
@@ -713,7 +710,7 @@ def postgresql_adbc_iris(postgresql_adbc_conn, iris_path):
     except mgr.ProgrammingError:  # note arrow-adbc issue 1022
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -730,7 +727,7 @@ def postgresql_adbc_types(postgresql_adbc_conn, types_data):
 
         create_and_load_types_postgresql(conn, new_data)
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -784,7 +781,7 @@ def sqlite_str_iris(sqlite_str, iris_path):
 def sqlite_engine_iris(sqlite_engine, iris_path):
     create_and_load_iris(sqlite_engine, iris_path)
     create_and_load_iris_view(sqlite_engine)
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -805,7 +802,7 @@ def sqlite_str_types(sqlite_str, types_data):
 @pytest.fixture
 def sqlite_engine_types(sqlite_engine, types_data):
     create_and_load_types(sqlite_engine, types_data, "sqlite")
-    yield sqlite_engine
+    return sqlite_engine
 
 
 @pytest.fixture
@@ -845,7 +842,7 @@ def sqlite_adbc_iris(sqlite_adbc_conn, iris_path):
     except mgr.ProgrammingError:
         conn.rollback()
         create_and_load_iris_view(conn)
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -867,7 +864,7 @@ def sqlite_adbc_types(sqlite_adbc_conn, types_data):
         create_and_load_types_sqlite3(conn, new_data)
         conn.commit()
 
-    yield conn
+    return conn
 
 
 @pytest.fixture
@@ -881,14 +878,14 @@ def sqlite_buildin():
 def sqlite_buildin_iris(sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     create_and_load_iris_view(sqlite_buildin)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 @pytest.fixture
 def sqlite_buildin_types(sqlite_buildin, types_data):
     types_data = [tuple(entry.values()) for entry in types_data]
     create_and_load_types_sqlite3(sqlite_buildin, types_data)
-    yield sqlite_buildin
+    return sqlite_buildin
 
 
 mysql_connectable = [
@@ -1373,6 +1370,30 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
         pandasSQL.drop_table("test_insert_conflict")
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+def test_to_sql_on_public_schema(conn, request):
+    if "sqlite" in conn or "mysql" in conn:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="test for public schema only specific to postgresql"
+            )
+        )
+
+    conn = request.getfixturevalue(conn)
+
+    test_data = DataFrame([[1, 2.1, "a"], [2, 3.1, "b"]], columns=list("abc"))
+    test_data.to_sql(
+        name="test_public_schema",
+        con=conn,
+        if_exists="append",
+        index=False,
+        schema="public",
+    )
+
+    df_out = sql.read_sql_table("test_public_schema", conn, schema="public")
+    tm.assert_frame_equal(test_data, df_out)
+
+
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_insertion_method_on_conflict_update(conn, request):
     # GH 14553: Example in to_sql docstring
@@ -1485,26 +1506,6 @@ SELECT * FROM groups;
     result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
     expected = DataFrame({"group_id": [1], "name": "name"})
     tm.assert_frame_equal(result, expected)
-
-
-def test_execute_typeerror(sqlite_engine_iris):
-    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="`pandas.io.sql.execute` is deprecated and "
-            "will be removed in the future version.",
-        ):
-            sql.execute("select * from iris", sqlite_engine_iris)
-
-
-def test_execute_deprecated(sqlite_conn_iris):
-    # GH50185
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="`pandas.io.sql.execute` is deprecated and "
-        "will be removed in the future version.",
-    ):
-        sql.execute("select * from iris", sqlite_conn_iris)
 
 
 def flavor(conn_name):
@@ -1796,7 +1797,7 @@ def test_api_date_parsing(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
-@pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
+@pytest.mark.parametrize("error", ["raise", "coerce"])
 @pytest.mark.parametrize(
     "read_sql, text, mode",
     [
@@ -1820,7 +1821,7 @@ def test_api_custom_dateparsing_error(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
-    expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
+    expected = types_data_frame.astype({"DateCol": "datetime64[s]"})
 
     result = read_sql(
         text,
@@ -1843,10 +1844,12 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-        if not pa_version_under13p0:
-            # TODO: is this astype safe?
-            expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
-
+    if conn_name == "postgresql_adbc_types" and pa_version_under14p1:
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
+    elif "postgres" in conn_name or "mysql" in conn_name:
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
+    else:
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2229,12 +2232,14 @@ def test_api_chunksize_read(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
     if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="categorical dtype not implemented for ADBC postgres driver",
-                strict=True,
+        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
+        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="categorical dtype not implemented for ADBC postgres driver",
+                    strict=True,
+                )
             )
-        )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
@@ -2294,9 +2299,16 @@ def test_api_escaped_table_name(conn, request):
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
     if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="pyarrow->pandas throws ValueError", strict=True)
-        )
+        pa = pytest.importorskip("pyarrow")
+        if not (
+            Version(pa.__version__) >= Version("16.0")
+            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyarrow->pandas throws ValueError", strict=True
+                )
+            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2596,7 +2608,7 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
             self.conn.close()
 
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
             sql.read_sql("SELECT 1", conn)
 
 
@@ -2822,7 +2834,9 @@ def test_datetime_with_timezone_table(conn, request):
     conn = request.getfixturevalue(conn)
     expected = create_and_load_postgres_datetz(conn)
     result = sql.read_sql_table("datetz", conn)
-    tm.assert_frame_equal(result, expected.to_frame())
+
+    exp_frame = expected.to_frame()
+    tm.assert_frame_equal(result, exp_frame)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2834,7 +2848,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
     # For dbs that support timestamps with timezones, should get back UTC
     # otherwise naive data should be returned
     expected = DataFrame(
-        {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific")}
+        {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific", unit="us")}
     )
     assert expected.to_sql(name="test_datetime_tz", con=conn, index=False) == 3
 
@@ -2852,7 +2866,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
     if "sqlite" in conn_name:
         # read_sql_query does not return datetime type like read_sql_table
         assert isinstance(result.loc[0, "A"], str)
-        result["A"] = to_datetime(result["A"])
+        result["A"] = to_datetime(result["A"]).dt.as_unit("us")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2863,7 +2877,9 @@ def test_out_of_bounds_datetime(conn, request):
     data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
     assert data.to_sql(name="test_datetime_obb", con=conn, index=False) == 1
     result = sql.read_sql_table("test_datetime_obb", conn)
-    expected = DataFrame([pd.NaT], columns=["date"])
+    expected = DataFrame(
+        np.array([datetime(9999, 1, 1)], dtype="M8[us]"), columns=["date"]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -2872,7 +2888,7 @@ def test_naive_datetimeindex_roundtrip(conn, request):
     # GH 23510
     # Ensure that a naive DatetimeIndex isn't converted to UTC
     conn = request.getfixturevalue(conn)
-    dates = date_range("2018-01-01", periods=5, freq="6h")._with_freq(None)
+    dates = date_range("2018-01-01", periods=5, freq="6h", unit="us")._with_freq(None)
     expected = DataFrame({"nums": range(5)}, index=dates)
     assert expected.to_sql(name="foo_table", con=conn, index_label="info_date") == 5
     result = sql.read_sql_table("foo_table", conn, index_col="info_date")
@@ -2924,7 +2940,10 @@ def test_datetime(conn, request):
     # with read_table -> type information from schema used
     result = sql.read_sql_table("test_datetime", conn)
     result = result.drop("index", axis=1)
-    tm.assert_frame_equal(result, df)
+
+    expected = df[:]
+    expected["A"] = expected["A"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
 
     # with read_sql -> no type information -> sqlite has no native
     result = sql.read_sql_query("SELECT * FROM test_datetime", conn)
@@ -2932,9 +2951,7 @@ def test_datetime(conn, request):
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"])
-        tm.assert_frame_equal(result, df)
-    else:
-        tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2949,16 +2966,17 @@ def test_datetime_NaT(conn, request):
 
     # with read_table -> type information from schema used
     result = sql.read_sql_table("test_datetime", conn)
-    tm.assert_frame_equal(result, df)
+    expected = df[:]
+    expected["A"] = expected["A"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
 
     # with read_sql -> no type information -> sqlite has no native
     result = sql.read_sql_query("SELECT * FROM test_datetime", conn)
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"], errors="coerce")
-        tm.assert_frame_equal(result, df)
-    else:
-        tm.assert_frame_equal(result, df)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -3647,6 +3665,13 @@ def dtype_backend_expected():
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
 
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
+
         else:
             pa = pytest.importorskip("pyarrow")
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
@@ -3735,20 +3760,6 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
         }
     )
     tm.assert_frame_equal(result, expected)
-
-
-def test_keyword_deprecation(sqlite_engine):
-    conn = sqlite_engine
-    # GH 54397
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "arguments 'name' and 'con' will be keyword-only."
-    )
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-    df.to_sql("example", conn)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_sql("example", conn, None, if_exists="replace")
 
 
 def test_bigint_warning(sqlite_engine):
@@ -3957,6 +3968,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
     expected = DataFrame(
         [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
     )
+    expected["created_dt"] = expected["created_dt"].astype("M8[us, UTC]")
     tm.assert_frame_equal(result, expected)
 
     # Cleanup

@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from datetime import datetime
 from inspect import signature
 from io import StringIO
@@ -21,13 +22,9 @@ from pandas.errors import (
 from pandas import (
     DataFrame,
     Index,
-    Timestamp,
     compat,
 )
 import pandas._testing as tm
-
-from pandas.io.parsers import TextFileReader
-from pandas.io.parsers.c_parser_wrapper import CParserWrapper
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -37,62 +34,13 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-def test_override_set_noconvert_columns():
-    # see gh-17351
-    #
-    # Usecols needs to be sorted in _set_noconvert_columns based
-    # on the test_usecols_with_parse_dates test from test_usecols.py
-    class MyTextFileReader(TextFileReader):
-        def __init__(self) -> None:
-            self._currow = 0
-            self.squeeze = False
-
-    class MyCParserWrapper(CParserWrapper):
-        def _set_noconvert_columns(self):
-            if self.usecols_dtype == "integer":
-                # self.usecols is a set, which is documented as unordered
-                # but in practice, a CPython set of integers is sorted.
-                # In other implementations this assumption does not hold.
-                # The following code simulates a different order, which
-                # before GH 17351 would cause the wrong columns to be
-                # converted via the parse_dates parameter
-                self.usecols = list(self.usecols)
-                self.usecols.reverse()
-            return CParserWrapper._set_noconvert_columns(self)
-
-    data = """a,b,c,d,e
-0,1,2014-01-01,09:00,4
-0,1,2014-01-02,10:00,4"""
-
-    parse_dates = [[1, 2]]
-    cols = {
-        "a": [0, 0],
-        "c_d": [Timestamp("2014-01-01 09:00:00"), Timestamp("2014-01-02 10:00:00")],
-    }
-    expected = DataFrame(cols, columns=["c_d", "a"])
-
-    parser = MyTextFileReader()
-    parser.options = {
-        "usecols": [0, 2, 3],
-        "parse_dates": parse_dates,
-        "delimiter": ",",
-    }
-    parser.engine = "c"
-    parser._engine = MyCParserWrapper(StringIO(data), **parser.options)
-
-    result = parser.read()
-    tm.assert_frame_equal(result, expected)
-
-
 def test_read_csv_local(all_parsers, csv1):
     prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
 
     fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result.index = result.index.as_unit("ns")
+
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -114,6 +62,7 @@ def test_read_csv_local(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
         ),
     )
@@ -194,9 +143,6 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -218,6 +164,7 @@ def test_read_csv_dataframe(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
         ),
     )
@@ -472,51 +419,41 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
 
 
 @pytest.mark.parametrize(
-    "kwargs,expected",
+    "kwargs,expected_data",
     [
         # gh-8661, gh-8679: this should ignore six lines, including
         # lines with trailing whitespace and blank lines.
         (
             {
                 "header": None,
-                "delim_whitespace": True,
+                "sep": r"\s+",
                 "skiprows": [0, 1, 2, 3, 5, 6],
                 "skip_blank_lines": True,
             },
-            DataFrame([[1.0, 2.0, 4.0], [5.1, np.nan, 10.0]]),
+            [[1.0, 2.0, 4.0], [5.1, np.nan, 10.0]],
         ),
         # gh-8983: test skipping set of rows after a row with trailing spaces.
         (
             {
-                "delim_whitespace": True,
+                "sep": r"\s+",
                 "skiprows": [1, 2, 3, 5, 6],
                 "skip_blank_lines": True,
             },
-            DataFrame({"A": [1.0, 5.1], "B": [2.0, np.nan], "C": [4.0, 10]}),
+            {"A": [1.0, 5.1], "B": [2.0, np.nan], "C": [4.0, 10]},
         ),
     ],
 )
-def test_trailing_spaces(all_parsers, kwargs, expected):
+def test_trailing_spaces(all_parsers, kwargs, expected_data):
     data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"  # noqa: E501
     parser = all_parsers
 
     if parser.engine == "pyarrow":
-        msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match="the 'pyarrow' engine does not support"):
             parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
         return
-
+    expected = DataFrame(expected_data)
     result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
     tm.assert_frame_equal(result, expected)
-
-
-def test_raise_on_sep_with_delim_whitespace(all_parsers):
-    # see gh-6607
-    data = "a b c\n1 2 3"
-    parser = all_parsers
-
-    with pytest.raises(ValueError, match="you can only specify one"):
-        parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
 def test_read_filepath_or_buffer(all_parsers):
@@ -527,8 +464,7 @@ def test_read_filepath_or_buffer(all_parsers):
         parser.read_csv(filepath_or_buffer=b"input")
 
 
-@pytest.mark.parametrize("delim_whitespace", [True, False])
-def test_single_char_leading_whitespace(all_parsers, delim_whitespace):
+def test_single_char_leading_whitespace(all_parsers):
     # see gh-9710
     parser = all_parsers
     data = """\
@@ -538,19 +474,16 @@ b
 a
 b\n"""
 
-    expected = DataFrame({"MyColumn": list("abab")})
-
     if parser.engine == "pyarrow":
         msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
-                StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
+                StringIO(data),
+                skipinitialspace=True,
             )
         return
-
-    result = parser.read_csv(
-        StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
-    )
+    expected = DataFrame({"MyColumn": list("abab")})
+    result = parser.read_csv(StringIO(data), skipinitialspace=True, sep=r"\s+")
     tm.assert_frame_equal(result, expected)
 
 
@@ -793,37 +726,6 @@ def test_read_csv_names_not_accepting_sets(all_parsers):
         parser.read_csv(StringIO(data), names=set("QAZ"))
 
 
-def test_read_table_delim_whitespace_default_sep(all_parsers):
-    # GH: 35958
-    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
-    parser = all_parsers
-
-    if parser.engine == "pyarrow":
-        msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
-        with pytest.raises(ValueError, match=msg):
-            parser.read_table(f, delim_whitespace=True)
-        return
-    result = parser.read_table(f, delim_whitespace=True)
-    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("delimiter", [",", "\t"])
-def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
-    # GH: 35958
-    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
-    parser = all_parsers
-    msg = (
-        "Specified a delimiter with both sep and "
-        "delim_whitespace=True; you can only specify one."
-    )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
-
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
-
-
 def test_read_csv_delimiter_and_sep_no_default(all_parsers):
     # GH#39823
     f = StringIO("a,b\n1,2")
@@ -847,22 +749,6 @@ def test_read_csv_line_break_as_separator(kwargs, all_parsers):
     )
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), **kwargs)
-
-
-@pytest.mark.parametrize("delimiter", [",", "\t"])
-def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
-    # GH: 35958
-    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
-    parser = all_parsers
-    msg = (
-        "Specified a delimiter with both sep and "
-        "delim_whitespace=True; you can only specify one."
-    )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, sep=delimiter)
-
-    with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 
 @skip_pyarrow

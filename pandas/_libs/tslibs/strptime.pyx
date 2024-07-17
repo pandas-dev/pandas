@@ -58,7 +58,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.np_datetime cimport (
@@ -132,7 +131,7 @@ cdef bint parse_today_now(
         if infer_reso:
             creso = NPY_DATETIMEUNIT.NPY_FR_us
         if utc:
-            ts = <_Timestamp>Timestamp.utcnow()
+            ts = <_Timestamp>Timestamp.now(timezone.utc)
             iresult[0] = ts._as_creso(creso)._value
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
@@ -253,7 +252,10 @@ cdef class DatetimeParseState:
         # found_naive_str refers to a string that was parsed to a timezone-naive
         #  datetime.
         self.found_naive_str = False
+        self.found_aware_str = False
         self.found_other = False
+
+        self.out_tzoffset_vals = set()
 
         self.creso = creso
         self.creso_ever_changed = False
@@ -293,6 +295,58 @@ cdef class DatetimeParseState:
                                  "tz-naive values")
         return tz
 
+    cdef tzinfo check_for_mixed_inputs(
+        self,
+        tzinfo tz_out,
+        bint utc,
+    ):
+        cdef:
+            bint is_same_offsets
+            float tz_offset
+
+        if self.found_aware_str and not utc:
+            # GH#17697, GH#57275
+            # 1) If all the offsets are equal, return one offset for
+            #    the parsed dates to (maybe) pass to DatetimeIndex
+            # 2) If the offsets are different, then do not force the parsing
+            #    and raise a ValueError: "cannot parse datetimes with
+            #    mixed time zones unless `utc=True`" instead
+            is_same_offsets = len(self.out_tzoffset_vals) == 1
+            if not is_same_offsets or (self.found_naive or self.found_other):
+                # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+                raise ValueError(
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+            elif tz_out is not None:
+                # GH#55693
+                tz_offset = self.out_tzoffset_vals.pop()
+                tz_out2 = timezone(timedelta(seconds=tz_offset))
+                if not tz_compare(tz_out, tz_out2):
+                    # e.g. (array_strptime)
+                    #  test_to_datetime_mixed_offsets_with_utc_false_removed
+                    # e.g. test_to_datetime_mixed_tzs_mixed_types (array_to_datetime)
+                    raise ValueError(
+                        "Mixed timezones detected. Pass utc=True in to_datetime "
+                        "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                    )
+                # e.g. (array_strptime)
+                #  test_guess_datetime_format_with_parseable_formats
+                # e.g. test_to_datetime_mixed_types_matching_tzs (array_to_datetime)
+            else:
+                # e.g. test_to_datetime_iso8601_with_timezone_valid (array_strptime)
+                tz_offset = self.out_tzoffset_vals.pop()
+                tz_out = timezone(timedelta(seconds=tz_offset))
+        elif not utc:
+            if tz_out and (self.found_other or self.found_naive_str):
+                # found_other indicates a tz-naive int, float, dt64, or date
+                # e.g. test_to_datetime_mixed_awareness_mixed_types (array_to_datetime)
+                raise ValueError(
+                    "Mixed timezones detected. Pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+        return tz_out
+
 
 def array_strptime(
     ndarray[object] values,
@@ -300,7 +354,7 @@ def array_strptime(
     bint exact=True,
     errors="raise",
     bint utc=False,
-    NPY_DATETIMEUNIT creso=NPY_FR_ns,
+    NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
 ):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -310,8 +364,8 @@ def array_strptime(
     values : ndarray of string-like objects
     fmt : string-like regex
     exact : matches must be exact if True, search if False
-    errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
-    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    errors : string specifying error handling, {'raise', 'coerce'}
+    creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
     """
 
@@ -320,12 +374,8 @@ def array_strptime(
         npy_datetimestruct dts
         int64_t[::1] iresult
         object val
-        bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
-        bint is_same_offsets
-        set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
@@ -334,7 +384,7 @@ def array_strptime(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
 
-    assert is_raise or is_ignore or is_coerce
+    assert is_raise or is_coerce
 
     _validate_fmt(fmt)
     format_regex, locale_time = _get_format_regex(fmt)
@@ -420,15 +470,15 @@ def array_strptime(
                     ) from err
                 if out_local == 1:
                     nsecs = out_tzoffset * 60
-                    out_tzoffset_vals.add(nsecs)
-                    seen_datetime_offset = True
+                    state.out_tzoffset_vals.add(nsecs)
+                    state.found_aware_str = True
                     tz = timezone(timedelta(minutes=out_tzoffset))
                     value = tz_localize_to_utc_single(
                         value, tz, ambiguous="raise", nonexistent=None, creso=creso
                     )
                 else:
                     tz = None
-                    out_tzoffset_vals.add("naive")
+                    state.out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
                 iresult[i] = value
                 continue
@@ -477,12 +527,12 @@ def array_strptime(
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
                     nsecs = nsecs // 10**3
 
-                out_tzoffset_vals.add(nsecs)
-                seen_datetime_offset = True
+                state.out_tzoffset_vals.add(nsecs)
+                state.found_aware_str = True
             else:
                 state.found_naive_str = True
                 tz = None
-                out_tzoffset_vals.add("naive")
+                state.out_tzoffset_vals.add("naive")
 
         except ValueError as ex:
             ex.args = (
@@ -501,35 +551,7 @@ def array_strptime(
                 raise
             return values, None
 
-    if seen_datetime_offset and not utc:
-        is_same_offsets = len(out_tzoffset_vals) == 1
-        if not is_same_offsets or (state.found_naive or state.found_other):
-            result2 = _array_strptime_object_fallback(
-                values, fmt=fmt, exact=exact, errors=errors, utc=utc
-            )
-            return result2, None
-        elif tz_out is not None:
-            # GH#55693
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out2 = timezone(timedelta(seconds=tz_offset))
-            if not tz_compare(tz_out, tz_out2):
-                # e.g. test_to_datetime_mixed_offsets_with_utc_false_deprecated
-                result2 = _array_strptime_object_fallback(
-                    values, fmt=fmt, exact=exact, errors=errors, utc=utc
-                )
-                return result2, None
-            # e.g. test_guess_datetime_format_with_parseable_formats
-        else:
-            # e.g. test_to_datetime_iso8601_with_timezone_valid
-            tz_offset = out_tzoffset_vals.pop()
-            tz_out = timezone(timedelta(seconds=tz_offset))
-    elif not utc:
-        if tz_out and (state.found_other or state.found_naive_str):
-            # found_other indicates a tz-naive int, float, dt64, or date
-            result2 = _array_strptime_object_fallback(
-                values, fmt=fmt, exact=exact, errors=errors, utc=utc
-            )
-            return result2, None
+    tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
     if infer_reso:
         if state.creso_ever_changed:
@@ -690,7 +712,7 @@ cdef tzinfo _parse_with_format(
             elif len(s) <= 6:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
             else:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
+                item_reso[0] = NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
             us = int(s)
@@ -789,157 +811,6 @@ cdef tzinfo _parse_with_format(
     dts.us = us
     dts.ps = ns * 1000
     return tz
-
-
-def _array_strptime_object_fallback(
-    ndarray[object] values,
-    str fmt,
-    bint exact=True,
-    errors="raise",
-    bint utc=False,
-):
-
-    cdef:
-        Py_ssize_t i, n = len(values)
-        npy_datetimestruct dts
-        int64_t iresult
-        object val
-        tzinfo tz
-        bint is_raise = errors=="raise"
-        bint is_ignore = errors=="ignore"
-        bint is_coerce = errors=="coerce"
-        bint iso_format = format_is_iso(fmt)
-        NPY_DATETIMEUNIT creso, out_bestunit, item_reso
-        int out_local = 0, out_tzoffset = 0
-        bint string_to_dts_succeeded = 0
-
-    assert is_raise or is_ignore or is_coerce
-
-    item_reso = NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    format_regex, locale_time = _get_format_regex(fmt)
-
-    result = np.empty(n, dtype=object)
-
-    dts.us = dts.ps = dts.as = 0
-
-    for i in range(n):
-        val = values[i]
-        try:
-            if isinstance(val, str):
-                if len(val) == 0 or val in nat_strings:
-                    result[i] = NaT
-                    continue
-            elif checknull_with_nat_and_na(val):
-                result[i] = NaT
-                continue
-            elif PyDateTime_Check(val):
-                result[i] = Timestamp(val)
-                continue
-            elif PyDate_Check(val):
-                result[i] = Timestamp(val)
-                continue
-            elif cnp.is_datetime64_object(val):
-                result[i] = Timestamp(val)
-                continue
-            elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    and (val != val or val == NPY_NAT)
-            ):
-                result[i] = NaT
-                continue
-            else:
-                val = str(val)
-
-            if fmt == "ISO8601":
-                string_to_dts_succeeded = not string_to_dts(
-                    val, &dts, &out_bestunit, &out_local,
-                    &out_tzoffset, False, None, False
-                )
-            elif iso_format:
-                string_to_dts_succeeded = not string_to_dts(
-                    val, &dts, &out_bestunit, &out_local,
-                    &out_tzoffset, False, fmt, exact
-                )
-            if string_to_dts_succeeded:
-                # No error reported by string_to_dts, pick back up
-                # where we left off
-                creso = get_supported_reso(out_bestunit)
-                try:
-                    value = npy_datetimestruct_to_datetime(creso, &dts)
-                except OverflowError as err:
-                    raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
-                    ) from err
-                if out_local == 1:
-                    tz = timezone(timedelta(minutes=out_tzoffset))
-                    value = tz_localize_to_utc_single(
-                        value, tz, ambiguous="raise", nonexistent=None, creso=creso
-                    )
-                else:
-                    tz = None
-                ts = Timestamp._from_value_and_reso(value, creso, tz)
-                result[i] = ts
-                continue
-
-            if parse_today_now(val, &iresult, utc, NPY_FR_ns):
-                result[i] = Timestamp(val)
-                continue
-
-            # Some ISO formats can't be parsed by string_to_dts
-            # For example, 6-digit YYYYMD. So, if there's an error, and a format
-            # was specified, then try the string-matching code below. If the format
-            # specified was 'ISO8601', then we need to error, because
-            # only string_to_dts handles mixed ISO8601 formats.
-            if not string_to_dts_succeeded and fmt == "ISO8601":
-                raise ValueError(f"Time data {val} is not ISO8601 format")
-
-            tz = _parse_with_format(
-                val, fmt, exact, format_regex, locale_time, &dts, &item_reso
-            )
-            try:
-                iresult = npy_datetimestruct_to_datetime(item_reso, &dts)
-            except OverflowError as err:
-                raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {val}"
-                ) from err
-            if tz is not None:
-                iresult = tz_localize_to_utc_single(
-                    iresult, tz, ambiguous="raise", nonexistent=None, creso=item_reso
-                )
-            ts = Timestamp._from_value_and_reso(iresult, item_reso, tz)
-            result[i] = ts
-
-        except (ValueError, OutOfBoundsDatetime) as ex:
-            ex.args = (
-                f"{str(ex)}, at position {i}. You might want to try:\n"
-                "    - passing `format` if your strings have a consistent format;\n"
-                "    - passing `format='ISO8601'` if your strings are "
-                "all ISO8601 but not necessarily in exactly the same format;\n"
-                "    - passing `format='mixed'`, and the format will be "
-                "inferred for each element individually. "
-                "You might want to use `dayfirst` alongside this.",
-            )
-            if is_coerce:
-                result[i] = NaT
-                continue
-            elif is_raise:
-                raise
-            return values
-
-    import warnings
-
-    from pandas.util._exceptions import find_stack_level
-    warnings.warn(
-        "In a future version of pandas, parsing datetimes with mixed time "
-        "zones will raise an error unless `utc=True`. Please specify `utc=True` "
-        "to opt in to the new behaviour and silence this warning. "
-        "To create a `Series` with mixed offsets and `object` dtype, "
-        "please use `apply` and `datetime.datetime.strptime`",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-
-    return result
 
 
 class TimeRE(_TimeRE):

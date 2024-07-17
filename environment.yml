@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython=3.0.5
+  - cython~=3.0.5
   - meson[ninja]=1.2.1
   - meson-python=0.13.1
 
@@ -17,6 +17,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-qt>=4.2.0
+  - pytest-localserver
   - pyqt>=5.15.9
   - coverage
 
@@ -29,7 +30,7 @@ dependencies:
   - beautifulsoup4>=4.11.2
   - blosc
   - bottleneck>=1.3.6
-  - fastparquet>=2022.12.0
+  - fastparquet>=2023.10.0
   - fsspec>=2022.11.0
   - html5lib>=1.1
   - hypothesis>=6.46.1
@@ -68,17 +69,17 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv>=0.5.1
+  - asv>=0.6.1
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
   # code checks
-  - flake8=6.0.0  # run in subprocess over docstring examples
-  - mypy=1.4.1  # pre-commit uses locally installed mypy
+  - flake8=6.1.0  # run in subprocess over docstring examples
+  - mypy=1.9.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
-  - pre-commit>=2.15.0
+  - pre-commit>=3.6.0
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -86,7 +87,7 @@ dependencies:
   - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme=0.13
+  - pydata-sphinx-theme=0.14
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
@@ -98,12 +99,12 @@ dependencies:
   - types-setuptools
 
   # documentation (jupyter notebooks)
-  - nbconvert>=6.4.5
+  - nbconvert>=7.11.0
   - nbsphinx
   - pandoc
   - ipywidgets
   - nbformat
-  - notebook>=6.0.3
+  - notebook>=7.0.6
   - ipykernel
 
   # web
@@ -115,9 +116,7 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
-      - adbc-driver-postgresql>=0.8.0
+      - adbc-driver-postgresql>=0.10.0
       - adbc-driver-sqlite>=0.8.0
-      - dataframe-api-compat>=0.1.7
-      - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.7

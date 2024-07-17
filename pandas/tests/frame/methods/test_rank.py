@@ -31,13 +31,6 @@ class TestRank:
         "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
-    @pytest.fixture(params=["average", "min", "max", "first", "dense"])
-    def method(self, request):
-        """
-        Fixture for trying all rank methods
-        """
-        return request.param
-
     def test_rank(self, float_frame):
         sp_stats = pytest.importorskip("scipy.stats")
 
@@ -225,8 +218,7 @@ class TestRank:
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis="columns"))
 
     @pytest.mark.parametrize("ax", [0, 1])
-    @pytest.mark.parametrize("m", ["average", "min", "max", "first", "dense"])
-    def test_rank_methods_frame(self, ax, m):
+    def test_rank_methods_frame(self, ax, rank_method):
         sp_stats = pytest.importorskip("scipy.stats")
 
         xs = np.random.default_rng(2).integers(0, 21, (100, 26))
@@ -236,16 +228,19 @@ class TestRank:
         for vals in [xs, xs + 1e6, xs * 1e-6]:
             df = DataFrame(vals, columns=cols)
 
-            result = df.rank(axis=ax, method=m)
+            result = df.rank(axis=ax, method=rank_method)
             sprank = np.apply_along_axis(
-                sp_stats.rankdata, ax, vals, m if m != "first" else "ordinal"
+                sp_stats.rankdata,
+                ax,
+                vals,
+                rank_method if rank_method != "first" else "ordinal",
             )
             sprank = sprank.astype(np.float64)
             expected = DataFrame(sprank, columns=cols).astype("float64")
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
-    def test_rank_descending(self, method, dtype):
+    def test_rank_descending(self, rank_method, dtype):
         if "i" in dtype:
             df = self.df.dropna().astype(dtype)
         else:
@@ -255,18 +250,18 @@ class TestRank:
         expected = (df.max() - df).rank()
         tm.assert_frame_equal(res, expected)
 
-        expected = (df.max() - df).rank(method=method)
+        expected = (df.max() - df).rank(method=rank_method)
 
         if dtype != "O":
-            res2 = df.rank(method=method, ascending=False, numeric_only=True)
+            res2 = df.rank(method=rank_method, ascending=False, numeric_only=True)
             tm.assert_frame_equal(res2, expected)
 
-        res3 = df.rank(method=method, ascending=False, numeric_only=False)
+        res3 = df.rank(method=rank_method, ascending=False, numeric_only=False)
         tm.assert_frame_equal(res3, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_rank_2d_tie_methods(self, method, axis, dtype):
+    def test_rank_2d_tie_methods(self, rank_method, axis, dtype):
         df = self.df
 
         def _check2d(df, expected, method="average", axis=0):
@@ -276,14 +271,14 @@ class TestRank:
                 df = df.T
                 exp_df = exp_df.T
 
-            result = df.rank(method=method, axis=axis)
+            result = df.rank(method=rank_method, axis=axis)
             tm.assert_frame_equal(result, exp_df)
 
         frame = df if dtype is None else df.astype(dtype)
-        _check2d(frame, self.results[method], method=method, axis=axis)
+        _check2d(frame, self.results[rank_method], method=rank_method, axis=axis)
 
     @pytest.mark.parametrize(
-        "method,exp",
+        "rank_method,exp",
         [
             ("dense", [[1.0, 1.0, 1.0], [1.0, 0.5, 2.0 / 3], [1.0, 0.5, 1.0 / 3]]),
             (
@@ -312,11 +307,11 @@ class TestRank:
             ),
         ],
     )
-    def test_rank_pct_true(self, method, exp):
+    def test_rank_pct_true(self, rank_method, exp):
         # see gh-15630.
 
         df = DataFrame([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]])
-        result = df.rank(method=method, pct=True)
+        result = df.rank(method=rank_method, pct=True)
 
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
@@ -324,9 +319,7 @@ class TestRank:
     @pytest.mark.single_cpu
     def test_pct_max_many_rows(self):
         # GH 18271
-        df = DataFrame(
-            {"A": np.arange(2**24 + 1), "B": np.arange(2**24 + 1, 0, -1)}
-        )
+        df = DataFrame({"A": np.arange(2**24 + 1), "B": np.arange(2**24 + 1, 0, -1)})
         result = df.rank(pct=True).max()
         assert (result == 1).all()
 
@@ -454,10 +447,10 @@ class TestRank:
         ],
     )
     def test_rank_inf_nans_na_option(
-        self, frame_or_series, method, na_option, ascending, expected
+        self, frame_or_series, rank_method, na_option, ascending, expected
     ):
         obj = frame_or_series([np.inf, np.nan, -np.inf])
-        result = obj.rank(method=method, na_option=na_option, ascending=ascending)
+        result = obj.rank(method=rank_method, na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 

@@ -254,10 +254,13 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
-        (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_ndarray"),
+        (
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            "_ndarray",
+        ),
         # tz-aware Datetime
         (
-            DatetimeArray(
+            DatetimeArray._from_sequence(
                 np.array(
                     ["2000-01-01T12:00:00", "2000-01-02T12:00:00"], dtype="M8[ns]"
                 ),
@@ -267,7 +270,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(arr, attr, index_or_series, request):
+def test_array(arr, attr, index_or_series):
     box = index_or_series
 
     result = box(arr, copy=False).array
@@ -303,17 +306,16 @@ def test_array_multiindex_raises():
         (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
-            DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array(["2000", "2001"], dtype="M8[ns]")),
             np.array(["2000", "2001"], dtype="M8[ns]"),
         ),
         # tz-aware stays tz`-aware
         (
-            DatetimeArray(
-                np.array(
-                    ["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]"
-                ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
-            ),
+            DatetimeArray._from_sequence(
+                np.array(["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]")
+            )
+            .tz_localize("UTC")
+            .tz_convert("US/Central"),
             np.array(
                 [
                     Timestamp("2000-01-01", tz="US/Central"),
@@ -323,8 +325,8 @@ def test_array_multiindex_raises():
         ),
         # Timedelta
         (
-            TimedeltaArray(
-                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"), freq="h"
+            TimedeltaArray._from_sequence(
+                np.array([0, 3600000000000], dtype="i8").view("m8[ns]")
             ),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
@@ -381,7 +383,7 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
 
 @pytest.mark.parametrize("as_series", [True, False])
-def test_to_numpy_dtype(as_series, unit):
+def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
@@ -410,7 +412,7 @@ def test_to_numpy_dtype(as_series, unit):
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -452,7 +454,7 @@ def test_to_numpy_na_value_numpy_dtype(
             [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -497,22 +499,23 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data, expected_data",
     [
         (
             {"a": pd.array([1, 2, None])},
-            np.array([[1.0], [2.0], [np.nan]], dtype=float),
+            [[1.0], [2.0], [np.nan]],
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
-            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
+            [[1, 1], [2, 2], [3, 3]],
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, expected):
+def test_to_numpy_dataframe_single_block(data, expected_data):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
     result = df.to_numpy(dtype=float, na_value=np.nan)
+    expected = np.array(expected_data, dtype=float)
     tm.assert_numpy_array_equal(result, expected)
 
 

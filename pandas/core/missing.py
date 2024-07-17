@@ -1,12 +1,10 @@
 """
 Routines for filling missing data.
 """
+
 from __future__ import annotations
 
-from functools import (
-    partial,
-    wraps,
-)
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -34,6 +32,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_bool_dtype,
     is_numeric_dtype,
     is_numeric_v_string_like,
     is_object_dtype,
@@ -103,21 +102,34 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
 
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
-    for x in nonna:
-        if is_numeric_v_string_like(arr, x):
-            # GH#29553 prevent numpy deprecation warnings
-            pass
-        else:
-            if potential_na:
-                new_mask = np.zeros(arr.shape, dtype=np.bool_)
-                new_mask[arr_mask] = arr[arr_mask] == x
+    if (
+        is_numeric_dtype(arr.dtype)
+        and not is_bool_dtype(arr.dtype)
+        and is_bool_dtype(nonna.dtype)
+    ):
+        pass
+    elif (
+        is_bool_dtype(arr.dtype)
+        and is_numeric_dtype(nonna.dtype)
+        and not is_bool_dtype(nonna.dtype)
+    ):
+        pass
+    else:
+        for x in nonna:
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                pass
             else:
-                new_mask = arr == x
+                if potential_na:
+                    new_mask = np.zeros(arr.shape, dtype=np.bool_)
+                    new_mask[arr_mask] = arr[arr_mask] == x
+                else:
+                    new_mask = arr == x
 
-                if not isinstance(new_mask, np.ndarray):
-                    # usually BooleanArray
-                    new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-            mask |= new_mask
+                    if not isinstance(new_mask, np.ndarray):
+                        # usually BooleanArray
+                        new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+                mask |= new_mask
 
     if na_mask.any():
         mask |= isna(arr)
@@ -130,8 +142,7 @@ def clean_fill_method(
     method: Literal["ffill", "pad", "bfill", "backfill"],
     *,
     allow_nearest: Literal[False] = ...,
-) -> Literal["pad", "backfill"]:
-    ...
+) -> Literal["pad", "backfill"]: ...
 
 
 @overload
@@ -139,8 +150,7 @@ def clean_fill_method(
     method: Literal["ffill", "pad", "bfill", "backfill", "nearest"],
     *,
     allow_nearest: Literal[True],
-) -> Literal["pad", "backfill", "nearest"]:
-    ...
+) -> Literal["pad", "backfill", "nearest"]: ...
 
 
 def clean_fill_method(
@@ -304,7 +314,16 @@ def get_interp_index(method, index: Index) -> Index:
         # prior default
         from pandas import Index
 
-        index = Index(np.arange(len(index)))
+        if isinstance(index.dtype, DatetimeTZDtype) or lib.is_np_dtype(
+            index.dtype, "mM"
+        ):
+            # Convert datetime-like indexes to int64
+            index = Index(index.view("i8"))
+
+        elif not is_numeric_dtype(index.dtype):
+            # We keep behavior consistent with prior versions of pandas for
+            # non-numeric, non-datetime indexes
+            index = Index(range(len(index)))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
@@ -312,13 +331,17 @@ def get_interp_index(method, index: Index) -> Index:
             or isinstance(index.dtype, DatetimeTZDtype)
             or lib.is_np_dtype(index.dtype, "mM")
         )
-        if method not in methods and not is_numeric_or_datetime:
-            raise ValueError(
-                "Index column must be numeric or datetime type when "
-                f"using {method} method other than linear. "
-                "Try setting a numeric or datetime index column before "
-                "interpolating."
-            )
+        valid = NP_METHODS + SP_METHODS
+        if method in valid:
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+        else:
+            raise ValueError(f"Can not interpolate with method={method}.")
 
     if isna(index).any():
         raise NotImplementedError(
@@ -338,6 +361,7 @@ def interpolate_2d_inplace(
     limit_direction: str = "forward",
     limit_area: str | None = None,
     fill_value: Any | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -385,6 +409,7 @@ def interpolate_2d_inplace(
             limit_area=limit_area_validated,
             fill_value=fill_value,
             bounds_error=False,
+            mask=mask,
             **kwargs,
         )
 
@@ -429,6 +454,7 @@ def _interpolate_1d(
     fill_value: Any | None = None,
     bounds_error: bool = False,
     order: int | None = None,
+    mask=None,
     **kwargs,
 ) -> None:
     """
@@ -442,8 +468,10 @@ def _interpolate_1d(
     -----
     Fills 'yvalues' in-place.
     """
-
-    invalid = isna(yvalues)
+    if mask is not None:
+        invalid = mask
+    else:
+        invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
@@ -452,20 +480,20 @@ def _interpolate_1d(
     if valid.all():
         return
 
-    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
-    all_nans = set(np.flatnonzero(invalid))
+    # These index pointers to invalid values... i.e. {0, 1, etc...
+    all_nans = np.flatnonzero(invalid)
 
     first_valid_index = find_valid_index(how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
-    start_nans = set(range(first_valid_index))
+    start_nans = np.arange(first_valid_index)
 
     last_valid_index = find_valid_index(how="last", is_valid=valid)
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
-    end_nans = set(range(1 + last_valid_index, len(valid)))
+    end_nans = np.arange(1 + last_valid_index, len(valid))
 
-    # Like the sets above, preserve_nans contains indices of invalid values,
+    # preserve_nans contains indices of invalid values,
     # but in this case, it is the final set of indices that need to be
     # preserved as NaN after the interpolation.
 
@@ -474,27 +502,25 @@ def _interpolate_1d(
     # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: list | set
     if limit_direction == "forward":
-        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+        preserve_nans = np.union1d(start_nans, _interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
-        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+        preserve_nans = np.union1d(end_nans, _interp_limit(invalid, 0, limit))
     else:
         # both directions... just use _interp_limit
-        preserve_nans = set(_interp_limit(invalid, limit, limit))
+        preserve_nans = np.unique(_interp_limit(invalid, limit, limit))
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284
     if limit_area == "inside":
         # preserve NaNs on the outside
-        preserve_nans |= start_nans | end_nans
+        preserve_nans = np.union1d(preserve_nans, start_nans)
+        preserve_nans = np.union1d(preserve_nans, end_nans)
     elif limit_area == "outside":
         # preserve NaNs on the inside
-        mid_nans = all_nans - start_nans - end_nans
-        preserve_nans |= mid_nans
-
-    # sort preserve_nans and convert to list
-    preserve_nans = sorted(preserve_nans)
+        mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
+        mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
+        preserve_nans = np.union1d(preserve_nans, mid_nans)
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
@@ -520,7 +546,10 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    if is_datetimelike:
+    if mask is not None:
+        mask[:] = False
+        mask[preserve_nans] = True
+    elif is_datetimelike:
         yvalues[preserve_nans] = NaT.value
     else:
         yvalues[preserve_nans] = np.nan
@@ -593,7 +622,12 @@ def _interpolate_scipy_wrapper(
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        terp = alt_methods[method]
+        terp = alt_methods.get(method, None)
+        if terp is None:
+            raise ValueError(f"Can not interpolate with method={method}.")
+
+        # Make sure downcast is not in kwargs for alt methods
+        kwargs.pop("downcast", None)
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
@@ -783,58 +817,6 @@ def _cubicspline_interpolate(
     return P(x)
 
 
-def _interpolate_with_limit_area(
-    values: np.ndarray,
-    method: Literal["pad", "backfill"],
-    limit: int | None,
-    limit_area: Literal["inside", "outside"],
-) -> None:
-    """
-    Apply interpolation and limit_area logic to values along a to-be-specified axis.
-
-    Parameters
-    ----------
-    values: np.ndarray
-        Input array.
-    method: str
-        Interpolation method. Could be "bfill" or "pad"
-    limit: int, optional
-        Index limit on interpolation.
-    limit_area: {'inside', 'outside'}
-        Limit area for interpolation.
-
-    Notes
-    -----
-    Modifies values in-place.
-    """
-
-    invalid = isna(values)
-    is_valid = ~invalid
-
-    if not invalid.all():
-        first = find_valid_index(how="first", is_valid=is_valid)
-        if first is None:
-            first = 0
-        last = find_valid_index(how="last", is_valid=is_valid)
-        if last is None:
-            last = len(values)
-
-        pad_or_backfill_inplace(
-            values,
-            method=method,
-            limit=limit,
-        )
-
-        if limit_area == "inside":
-            invalid[first : last + 1] = False
-        elif limit_area == "outside":
-            invalid[:first] = invalid[last + 1 :] = False
-        else:
-            raise ValueError("limit_area should be 'inside' or 'outside'")
-
-        values[invalid] = np.nan
-
-
 def pad_or_backfill_inplace(
     values: np.ndarray,
     method: Literal["pad", "backfill"] = "pad",
@@ -863,27 +845,6 @@ def pad_or_backfill_inplace(
     -----
     Modifies values in-place.
     """
-    if limit_area is not None:
-        np.apply_along_axis(
-            # error: Argument 1 to "apply_along_axis" has incompatible type
-            # "partial[None]"; expected
-            # "Callable[..., Union[_SupportsArray[dtype[<nothing>]],
-            # Sequence[_SupportsArray[dtype[<nothing>]]],
-            # Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
-            # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-            # Sequence[Sequence[Sequence[Sequence[_
-            # SupportsArray[dtype[<nothing>]]]]]]]]"
-            partial(  # type: ignore[arg-type]
-                _interpolate_with_limit_area,
-                method=method,
-                limit=limit,
-                limit_area=limit_area,
-            ),
-            axis,
-            values,
-        )
-        return
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -897,8 +858,7 @@ def pad_or_backfill_inplace(
 
     func = get_fill_func(method, ndim=2)
     # _pad_2d and _backfill_2d both modify tvalues inplace
-    func(tvalues, limit=limit)
-    return
+    func(tvalues, limit=limit, limit_area=limit_area)
 
 
 def _fillna_prep(
@@ -909,7 +869,6 @@ def _fillna_prep(
     if mask is None:
         mask = isna(values)
 
-    mask = mask.view(np.uint8)
     return mask
 
 
@@ -919,16 +878,23 @@ def _datetimelike_compat(func: F) -> F:
     """
 
     @wraps(func)
-    def new_func(values, limit: int | None = None, mask=None):
+    def new_func(
+        values,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        mask=None,
+    ):
         if needs_i8_conversion(values.dtype):
             if mask is None:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            result, mask = func(
+                values.view("i8"), limit=limit, limit_area=limit_area, mask=mask
+            )
             return result.view(values.dtype), mask
 
-        return func(values, limit=limit, mask=mask)
+        return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
     return cast(F, new_func)
 
@@ -937,9 +903,12 @@ def _datetimelike_compat(func: F) -> F:
 def _pad_1d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None and not mask.all():
+        _fill_limit_area_1d(mask, limit_area)
     algos.pad_inplace(values, mask, limit=limit)
     return values, mask
 
@@ -948,9 +917,12 @@ def _pad_1d(
 def _backfill_1d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None and not mask.all():
+        _fill_limit_area_1d(mask, limit_area)
     algos.backfill_inplace(values, mask, limit=limit)
     return values, mask
 
@@ -959,23 +931,28 @@ def _backfill_1d(
 def _pad_2d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
-):
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None:
+        _fill_limit_area_2d(mask, limit_area)
 
     if values.size:
         algos.pad_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
     return values, mask
 
 
 @_datetimelike_compat
 def _backfill_2d(
-    values, limit: int | None = None, mask: npt.NDArray[np.bool_] | None = None
+    values,
+    limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ):
     mask = _fillna_prep(values, mask)
+    if limit_area is not None:
+        _fill_limit_area_2d(mask, limit_area)
 
     if values.size:
         algos.backfill_2d_inplace(values, mask, limit=limit)
@@ -983,6 +960,63 @@ def _backfill_2d(
         # for test coverage
         pass
     return values, mask
+
+
+def _fill_limit_area_1d(
+    mask: npt.NDArray[np.bool_], limit_area: Literal["outside", "inside"]
+) -> None:
+    """Prepare 1d mask for ffill/bfill with limit_area.
+
+    Caller is responsible for checking at least one value of mask is False.
+    When called, mask will no longer faithfully represent when
+    the corresponding are NA or not.
+
+    Parameters
+    ----------
+    mask : np.ndarray[bool, ndim=1]
+        Mask representing NA values when filling.
+    limit_area : { "outside", "inside" }
+        Whether to limit filling to outside or inside the outer most non-NA value.
+    """
+    neg_mask = ~mask
+    first = neg_mask.argmax()
+    last = len(neg_mask) - neg_mask[::-1].argmax() - 1
+    if limit_area == "inside":
+        mask[:first] = False
+        mask[last + 1 :] = False
+    elif limit_area == "outside":
+        mask[first + 1 : last] = False
+
+
+def _fill_limit_area_2d(
+    mask: npt.NDArray[np.bool_], limit_area: Literal["outside", "inside"]
+) -> None:
+    """Prepare 2d mask for ffill/bfill with limit_area.
+
+    When called, mask will no longer faithfully represent when
+    the corresponding are NA or not.
+
+    Parameters
+    ----------
+    mask : np.ndarray[bool, ndim=1]
+        Mask representing NA values when filling.
+    limit_area : { "outside", "inside" }
+        Whether to limit filling to outside or inside the outer most non-NA value.
+    """
+    neg_mask = ~mask.T
+    if limit_area == "outside":
+        # Identify inside
+        la_mask = (
+            np.maximum.accumulate(neg_mask, axis=0)
+            & np.maximum.accumulate(neg_mask[::-1], axis=0)[::-1]
+        )
+    else:
+        # Identify outside
+        la_mask = (
+            ~np.maximum.accumulate(neg_mask, axis=0)
+            | ~np.maximum.accumulate(neg_mask[::-1], axis=0)[::-1]
+        )
+    mask[la_mask.T] = False
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
@@ -1003,7 +1037,7 @@ def clean_reindex_fill_method(method) -> ReindexMethod | None:
 
 def _interp_limit(
     invalid: npt.NDArray[np.bool_], fw_limit: int | None, bw_limit: int | None
-):
+) -> np.ndarray:
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
@@ -1028,27 +1062,30 @@ def _interp_limit(
 
         def _interp_limit(invalid, fw_limit, bw_limit):
             for x in np.where(invalid)[0]:
-                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                if invalid[max(0, x - fw_limit) : x + bw_limit + 1].all():
                     yield x
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array
     # 2. subtract the returned indices from N - 1
     N = len(invalid)
-    f_idx = set()
-    b_idx = set()
+    f_idx = np.array([], dtype=np.int64)
+    b_idx = np.array([], dtype=np.int64)
+    assume_unique = True
 
     def inner(invalid, limit: int):
         limit = min(limit, N)
-        windowed = _rolling_window(invalid, limit + 1).all(1)
-        idx = set(np.where(windowed)[0] + limit) | set(
-            np.where((~invalid[: limit + 1]).cumsum() == 0)[0]
+        windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
+        idx = np.union1d(
+            np.where(windowed)[0] + limit,
+            np.where((~invalid[: limit + 1]).cumsum() == 0)[0],
         )
         return idx
 
     if fw_limit is not None:
         if fw_limit == 0:
-            f_idx = set(np.where(invalid)[0])
+            f_idx = np.where(invalid)[0]
+            assume_unique = False
         else:
             f_idx = inner(invalid, fw_limit)
 
@@ -1058,26 +1095,8 @@ def _interp_limit(
             # just use forwards
             return f_idx
         else:
-            b_idx_inv = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx_inv))
+            b_idx = N - 1 - inner(invalid[::-1], bw_limit)
             if fw_limit == 0:
                 return b_idx
 
-    return f_idx & b_idx
-
-
-def _rolling_window(a: npt.NDArray[np.bool_], window: int) -> npt.NDArray[np.bool_]:
-    """
-    [True, True, False, True, False], 2 ->
-
-    [
-        [True,  True],
-        [True, False],
-        [False, True],
-        [True, False],
-    ]
-    """
-    # https://stackoverflow.com/a/6811241
-    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-    strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+    return np.intersect1d(f_idx, b_idx, assume_unique=assume_unique)

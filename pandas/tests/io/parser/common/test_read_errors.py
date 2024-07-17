@@ -2,6 +2,7 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -57,9 +58,12 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with open(path, "rb") as handle, codecs.StreamRecoder(
-        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
+    with (
+        open(path, "rb") as handle,
+        codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+        ) as stream,
+    ):
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 
@@ -130,14 +134,9 @@ def test_catch_too_many_names(all_parsers):
         else "Number of passed names did not match "
         "number of header fields in the file"
     )
-    depr_msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
 
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
@@ -168,13 +167,7 @@ def test_suppress_error_output(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame"
-
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), on_bad_lines="skip")
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
 
 
@@ -203,7 +196,6 @@ def test_warn_bad_lines(all_parsers):
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
@@ -258,19 +250,17 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(request, all_parsers):
+def test_open_file(all_parsers):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
-        err = ValueError
+        msg = "object of type 'NoneType' has no len"
+        err = TypeError
     elif parser.engine == "pyarrow":
-        msg = (
-            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
-        )
+        msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
     with tm.ensure_clean() as path:
@@ -322,7 +312,6 @@ a,b
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False

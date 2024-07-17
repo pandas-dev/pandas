@@ -1,5 +1,6 @@
 from datetime import timedelta
 import re
+import zoneinfo
 
 from dateutil.tz import gettz
 import pytest
@@ -17,68 +18,56 @@ from pandas import (
     Timestamp,
 )
 
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    # Cannot assign to a type
-    ZoneInfo = None  # type: ignore[misc, assignment]
-
 
 class TestTimestampTZLocalize:
+    @pytest.mark.skip_ubsan
     def test_tz_localize_pushes_out_of_bounds(self):
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
+        pytz = pytest.importorskip("pytz")
         msg = (
             f"Converting {Timestamp.min.strftime('%Y-%m-%d %H:%M:%S')} "
             f"underflows past {Timestamp.min}"
         )
-        pac = Timestamp.min.tz_localize("US/Pacific")
+        pac = Timestamp.min.tz_localize(pytz.timezone("US/Pacific"))
         assert pac._value > Timestamp.min._value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp.min.tz_localize("Asia/Tokyo")
+            Timestamp.min.tz_localize(pytz.timezone("Asia/Tokyo"))
 
         # tz_localize that pushes away from the boundary is OK
         msg = (
             f"Converting {Timestamp.max.strftime('%Y-%m-%d %H:%M:%S')} "
             f"overflows past {Timestamp.max}"
         )
-        tokyo = Timestamp.max.tz_localize("Asia/Tokyo")
+        tokyo = Timestamp.max.tz_localize(pytz.timezone("Asia/Tokyo"))
         assert tokyo._value < Timestamp.max._value
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp.max.tz_localize("US/Pacific")
+            Timestamp.max.tz_localize(pytz.timezone("US/Pacific"))
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
-    def test_tz_localize_ambiguous_bool(self, unit):
+    @pytest.mark.parametrize(
+        "tz",
+        [zoneinfo.ZoneInfo("US/Central"), "dateutil/US/Central", "pytz/US/Central"],
+    )
+    def test_tz_localize_ambiguous_bool(self, unit, tz):
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts = Timestamp("2015-11-01 01:00:03").as_unit(unit)
-        expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
-        expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
+        expected0 = Timestamp("2015-11-01 01:00:03-0500", tz=tz)
+        expected1 = Timestamp("2015-11-01 01:00:03-0600", tz=tz)
 
         msg = "Cannot infer dst time from 2015-11-01 01:00:03"
         with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            ts.tz_localize("US/Central")
+            ts.tz_localize(tz)
 
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            ts.tz_localize("dateutil/US/Central")
-
-        if ZoneInfo is not None:
-            try:
-                tz = ZoneInfo("US/Central")
-            except KeyError:
-                # no tzdata
-                pass
-            else:
-                with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-                    ts.tz_localize(tz)
-
-        result = ts.tz_localize("US/Central", ambiguous=True)
+        result = ts.tz_localize(tz, ambiguous=True)
         assert result == expected0
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
-        result = ts.tz_localize("US/Central", ambiguous=False)
+        result = ts.tz_localize(tz, ambiguous=False)
         assert result == expected1
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
@@ -205,9 +194,10 @@ class TestTimestampTZLocalize:
     def test_tz_localize_ambiguous_compat(self):
         # validate that pytz and dateutil are compat for dst
         # when the transition happens
+        pytz = pytest.importorskip("pytz")
         naive = Timestamp("2013-10-27 01:00:00")
 
-        pytz_zone = "Europe/London"
+        pytz_zone = pytz.timezone("Europe/London")
         dateutil_zone = "dateutil/Europe/London"
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
@@ -236,13 +226,16 @@ class TestTimestampTZLocalize:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("US/Eastern"),
+            "pytz/US/Eastern",
             gettz("US/Eastern"),
-            "US/Eastern",
+            zoneinfo.ZoneInfo("US/Eastern"),
             "dateutil/US/Eastern",
         ],
     )
     def test_timestamp_tz_localize(self, tz):
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         stamp = Timestamp("3/11/2012 04:00")
 
         result = stamp.tz_localize(tz)
@@ -294,7 +287,6 @@ class TestTimestampTZLocalize:
         ],
     )
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_shift(
         self, start_ts, tz, end_ts, shift, tz_type, unit
     ):
@@ -326,7 +318,6 @@ class TestTimestampTZLocalize:
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_NaT(self, warsaw, unit):
         # GH 8917
         tz = warsaw
@@ -334,7 +325,6 @@ class TestTimestampTZLocalize:
         result = ts.tz_localize(tz, nonexistent="NaT")
         assert result is NaT
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_raise(self, warsaw, unit):
         # GH 8917
         tz = warsaw

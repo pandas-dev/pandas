@@ -1,6 +1,7 @@
 """
 An exhaustive list of pandas methods exercising NDFrame.__finalize__.
 """
+
 import operator
 import re
 
@@ -8,7 +9,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 
 # TODO:
 # * Binary methods (mul, div, etc.)
@@ -90,7 +90,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("rename", columns={"A": "a"})),
     (pd.DataFrame, frame_data, operator.methodcaller("rename", index=lambda x: x)),
     (pd.DataFrame, frame_data, operator.methodcaller("fillna", "A")),
-    (pd.DataFrame, frame_data, operator.methodcaller("fillna", method="ffill")),
     (pd.DataFrame, frame_data, operator.methodcaller("set_index", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("reset_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("isna")),
@@ -303,16 +302,6 @@ _all_methods = [
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
         operator.methodcaller("between_time", "12:00", "13:00"),
     ),
-    (
-        pd.Series,
-        (1, pd.date_range("2000", periods=4)),
-        operator.methodcaller("last", "3D"),
-    ),
-    (
-        pd.DataFrame,
-        ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-        operator.methodcaller("last", "3D"),
-    ),
     (pd.Series, ([1, 2],), operator.methodcaller("rank")),
     (pd.DataFrame, frame_data, operator.methodcaller("rank")),
     (pd.Series, ([1, 2],), operator.methodcaller("where", np.array([True, False]))),
@@ -386,18 +375,7 @@ def idfn(x):
         return str(x)
 
 
-@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))
-def ndframe_method(request):
-    """
-    An NDFrame method returning an NDFrame.
-    """
-    return request.param
-
-
-@pytest.mark.filterwarnings(
-    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
-    "ignore:last is deprecated:FutureWarning",
-)
+@pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)
@@ -406,39 +384,6 @@ def test_finalize_called(ndframe_method):
     result = method(ndframe)
 
     assert result.attrs == {"a": 1}
-
-
-@pytest.mark.parametrize(
-    "data",
-    [
-        pd.Series(1, pd.date_range("2000", periods=4)),
-        pd.DataFrame({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-    ],
-)
-def test_finalize_first(data):
-    deprecated_msg = "first is deprecated"
-
-    data.attrs = {"a": 1}
-    with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-        result = data.first("3D")
-        assert result.attrs == {"a": 1}
-
-
-@pytest.mark.parametrize(
-    "data",
-    [
-        pd.Series(1, pd.date_range("2000", periods=4)),
-        pd.DataFrame({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-    ],
-)
-def test_finalize_last(data):
-    # GH 53710
-    deprecated_msg = "last is deprecated"
-
-    data.attrs = {"a": 1}
-    with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-        result = data.last("3D")
-        assert result.attrs == {"a": 1}
 
 
 @not_implemented_mark
@@ -544,9 +489,9 @@ def test_binops(request, args, annotate, all_binary_operators):
     ]
     if is_cmp and isinstance(left, pd.DataFrame) and isinstance(right, pd.Series):
         # in 2.0 silent alignment on comparisons was removed xref GH#28759
-        left, right = left.align(right, axis=1, copy=False)
+        left, right = left.align(right, axis=1)
     elif is_cmp and isinstance(left, pd.Series) and isinstance(right, pd.DataFrame):
-        right, left = right.align(left, axis=1, copy=False)
+        right, left = right.align(left, axis=1)
 
     result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}

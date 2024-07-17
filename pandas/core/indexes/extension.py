@@ -1,11 +1,12 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+
 from __future__ import annotations
 
+from inspect import signature
 from typing import (
     TYPE_CHECKING,
-    Callable,
     TypeVar,
 )
 
@@ -16,6 +17,8 @@ from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
     from pandas._typing import (
@@ -104,6 +107,7 @@ def _inherit_from_data(
         # error: "property" has no attribute "__name__"
         method.__name__ = name  # type: ignore[attr-defined]
         method.__doc__ = attr.__doc__
+        method.__signature__ = signature(attr)  # type: ignore[attr-defined]
     return method
 
 

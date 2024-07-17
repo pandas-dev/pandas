@@ -1,13 +1,18 @@
 """Common utilities for Numba operations"""
+
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+import inspect
+import types
+from typing import TYPE_CHECKING
+
+import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 GLOBAL_USE_NUMBA: bool = False
 
@@ -50,10 +55,15 @@ def get_jit_arguments(
         engine_kwargs = {}
 
     nopython = engine_kwargs.get("nopython", True)
-    if kwargs and nopython:
+    if kwargs:
+        # Note: in case numba supports keyword-only arguments in
+        # a future version, we should remove this check. But this
+        # seems unlikely to happen soon.
+
         raise NumbaUtilError(
-            "numba does not support kwargs with nopython=True: "
-            "https://github.com/numba/numba/issues/2916"
+            "numba does not support keyword-only arguments"
+            "https://github.com/numba/numba/issues/2916, "
+            "https://github.com/numba/numba/issues/6846"
         )
     nogil = engine_kwargs.get("nogil", False)
     parallel = engine_kwargs.get("parallel", False)
@@ -83,7 +93,57 @@ def jit_user_function(func: Callable) -> Callable:
     if numba.extending.is_jitted(func):
         # Don't jit a user passed jitted function
         numba_func = func
+    elif getattr(np, func.__name__, False) is func or isinstance(
+        func, types.BuiltinFunctionType
+    ):
+        # Not necessary to jit builtins or np functions
+        # This will mess up register_jitable
+        numba_func = func
     else:
         numba_func = numba.extending.register_jitable(func)
 
     return numba_func
+
+
+_sentinel = object()
+
+
+def prepare_function_arguments(
+    func: Callable, args: tuple, kwargs: dict
+) -> tuple[tuple, dict]:
+    """
+    Prepare arguments for jitted function. As numba functions do not support kwargs,
+    we try to move kwargs into args if possible.
+
+    Parameters
+    ----------
+    func : function
+        user defined function
+    args : tuple
+        user input positional arguments
+    kwargs : dict
+        user input keyword arguments
+
+    Returns
+    -------
+    tuple[tuple, dict]
+        args, kwargs
+
+    """
+    if not kwargs:
+        return args, kwargs
+
+    # the udf should have this pattern: def udf(value, *args, **kwargs):...
+    signature = inspect.signature(func)
+    arguments = signature.bind(_sentinel, *args, **kwargs)
+    arguments.apply_defaults()
+    # Ref: https://peps.python.org/pep-0362/
+    # Arguments which could be passed as part of either *args or **kwargs
+    # will be included only in the BoundArguments.args attribute.
+    args = arguments.args
+    kwargs = arguments.kwargs
+
+    assert args[0] is _sentinel
+    args = args[1:]
+
+    return args, kwargs

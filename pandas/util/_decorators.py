@@ -6,7 +6,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -19,7 +18,10 @@ from pandas._typing import (
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
 
 def deprecate(
@@ -122,44 +124,41 @@ def deprecate_kwarg(
     --------
     The following deprecates 'cols', using 'columns' instead
 
-    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name='columns')
-    ... def f(columns=''):
+    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name="columns")
+    ... def f(columns=""):
     ...     print(columns)
-    ...
-    >>> f(columns='should work ok')
+    >>> f(columns="should work ok")
     should work ok
 
-    >>> f(cols='should raise warning')  # doctest: +SKIP
+    >>> f(cols="should raise warning")  # doctest: +SKIP
     FutureWarning: cols is deprecated, use columns instead
       warnings.warn(msg, FutureWarning)
     should raise warning
 
-    >>> f(cols='should error', columns="can\'t pass do both")  # doctest: +SKIP
+    >>> f(cols="should error", columns="can't pass do both")  # doctest: +SKIP
     TypeError: Can only specify 'cols' or 'columns', not both
 
-    >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
+    >>> @deprecate_kwarg("old", "new", {"yes": True, "no": False})
     ... def f(new=False):
-    ...     print('yes!' if new else 'no!')
-    ...
-    >>> f(old='yes')  # doctest: +SKIP
+    ...     print("yes!" if new else "no!")
+    >>> f(old="yes")  # doctest: +SKIP
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
 
     To raise a warning that a keyword will be removed entirely in the future
 
-    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name=None)
-    ... def f(cols='', another_param=''):
+    >>> @deprecate_kwarg(old_arg_name="cols", new_arg_name=None)
+    ... def f(cols="", another_param=""):
     ...     print(cols)
-    ...
-    >>> f(cols='should raise warning')  # doctest: +SKIP
+    >>> f(cols="should raise warning")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
-    >>> f(another_param='should not raise warning')  # doctest: +SKIP
+    >>> f(another_param="should not raise warning")  # doctest: +SKIP
     should not raise warning
 
-    >>> f(cols='should raise warning', another_param='')  # doctest: +SKIP
+    >>> f(cols="should raise warning", another_param="")  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
@@ -177,9 +176,9 @@ def deprecate_kwarg(
             if old_arg_value is not None:
                 if new_arg_name is None:
                     msg = (
-                        f"the {repr(old_arg_name)} keyword is deprecated and "
+                        f"the {old_arg_name!r} keyword is deprecated and "
                         "will be removed in a future version. Please take "
-                        f"steps to stop the use of {repr(old_arg_name)}"
+                        f"steps to stop the use of {old_arg_name!r}"
                     )
                     warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                     kwargs[old_arg_name] = old_arg_value
@@ -191,22 +190,22 @@ def deprecate_kwarg(
                     else:
                         new_arg_value = mapping.get(old_arg_value, old_arg_value)
                     msg = (
-                        f"the {old_arg_name}={repr(old_arg_value)} keyword is "
+                        f"the {old_arg_name}={old_arg_value!r} keyword is "
                         "deprecated, use "
-                        f"{new_arg_name}={repr(new_arg_value)} instead."
+                        f"{new_arg_name}={new_arg_value!r} instead."
                     )
                 else:
                     new_arg_value = old_arg_value
                     msg = (
-                        f"the {repr(old_arg_name)} keyword is deprecated, "
-                        f"use {repr(new_arg_name)} instead."
+                        f"the {old_arg_name!r} keyword is deprecated, "
+                        f"use {new_arg_name!r} instead."
                     )
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
-                        f"Can only specify {repr(old_arg_name)} "
-                        f"or {repr(new_arg_name)}, not both."
+                        f"Can only specify {old_arg_name!r} "
+                        f"or {new_arg_name!r}, not both."
                     )
                     raise TypeError(msg)
                 kwargs[new_arg_name] = new_arg_value
@@ -340,7 +339,7 @@ def deprecate_nonkeyword_arguments(
     return decorate
 
 
-def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
+def doc(*docstrings: None | str | Callable, **params: object) -> Callable[[F], F]:
     """
     A decorator to take docstring templates, concatenate them and perform string
     substitution on them.
@@ -371,7 +370,7 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
                 continue
             if hasattr(docstring, "_docstring_components"):
                 docstring_components.extend(
-                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues]
+                    docstring._docstring_components  # pyright: ignore[reportAttributeAccessIssue]
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
@@ -506,3 +505,24 @@ __all__ = [
     "future_version_msg",
     "Substitution",
 ]
+
+
+def set_module(module) -> Callable[[F], F]:
+    """Private decorator for overriding __module__ on a function or class.
+
+    Example usage::
+
+        @set_module("pandas")
+        def example():
+            pass
+
+
+        assert example.__module__ == "pandas"
+    """
+
+    def decorator(func: F) -> F:
+        if module is not None:
+            func.__module__ = module
+        return func
+
+    return decorator

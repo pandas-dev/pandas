@@ -23,6 +23,7 @@ main:
 
 The rest of the items in the file will be added directly to the context.
 """
+
 import argparse
 import collections
 import datetime
@@ -118,11 +119,11 @@ class Preprocessors:
                 summary = re.sub(tag_expr, "", html)
                 try:
                     body_position = summary.index(title) + len(title)
-                except ValueError:
+                except ValueError as err:
                     raise ValueError(
                         f'Blog post "{fname}" should have a markdown header '
                         f'corresponding to its "Title" element "{title}"'
-                    )
+                    ) from err
                 summary = " ".join(summary[body_position:].split(" ")[:30])
                 posts.append(
                     {
@@ -279,6 +280,7 @@ class Preprocessors:
         PDEP's in different status from the directory tree and GitHub.
         """
         KNOWN_STATUS = {
+            "Draft",
             "Under discussion",
             "Accepted",
             "Implemented",
@@ -318,7 +320,7 @@ class Preprocessors:
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
+            f"q=is:pr is:open label:PDEP draft:false repo:{github_repo_url}",
             headers=GITHUB_API_HEADERS,
             timeout=5,
         )

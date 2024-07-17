@@ -408,6 +408,9 @@ class ReadCSVEngine(StringIORewind):
     def time_read_bytescsv(self, engine):
         read_csv(self.data(self.BytesIO_input), engine=engine)
 
+    def peakmem_read_csv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
+
 
 class ReadCSVCategorical(BaseIO):
     fname = "__test__.csv"
@@ -441,16 +444,6 @@ class ReadCSVParseDates(StringIORewind):
         two_cols = ["KORD,19990127"] * 5
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
-
-    def time_multiple_date(self, engine):
-        read_csv(
-            self.data(self.StringIO_input),
-            engine=engine,
-            sep=",",
-            header=None,
-            names=list(string.digits[:9]),
-            parse_dates=[[1, 2], [1, 3]],
-        )
 
     def time_baseline(self, engine):
         read_csv(

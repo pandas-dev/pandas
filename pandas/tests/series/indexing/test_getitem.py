@@ -1,6 +1,7 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
+
 from datetime import (
     date,
     datetime,
@@ -14,6 +15,7 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -71,19 +73,14 @@ class TestSeriesGetitemScalars:
     def test_getitem_negative_out_of_bounds(self):
         ser = Series(["a"] * 10, index=["a"] * 10)
 
-        msg = "index -11 is out of bounds for axis 0 with size 10|index out of bounds"
-        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                ser[-11]
+        with pytest.raises(KeyError, match="^-11$"):
+            ser[-11]
 
     def test_getitem_out_of_bounds_indexerror(self, datetime_series):
         # don't segfault, GH#495
-        msg = r"index \d+ is out of bounds for axis 0 with size \d+"
-        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                datetime_series[len(datetime_series)]
+        N = len(datetime_series)
+        with pytest.raises(KeyError, match=str(N)):
+            datetime_series[N]
 
     def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
         # GH#917
@@ -117,11 +114,13 @@ class TestSeriesGetitemScalars:
             ser["c"]
 
     def test_getitem_int64(self, datetime_series):
+        if np_version_gt2:
+            msg = r"^np.int64\(5\)$"
+        else:
+            msg = "^5$"
         idx = np.int64(5)
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = datetime_series[idx]
-        assert res == datetime_series.iloc[5]
+        with pytest.raises(KeyError, match=msg):
+            datetime_series[idx]
 
     def test_getitem_full_range(self):
         # github.com/pandas-dev/pandas/commit/4f433773141d2eb384325714a2776bcc5b2e20f7
@@ -217,10 +216,8 @@ class TestSeriesGetitemScalars:
     def test_getitem_bool_index_positional(self):
         # GH#48653
         ser = Series({True: 1, False: 0})
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser[0]
-        assert result == 1
+        with pytest.raises(KeyError, match="^0$"):
+            ser[0]
 
 
 class TestSeriesGetitemSlices:
@@ -383,17 +380,16 @@ class TestSeriesGetitemListLike:
 
     @pytest.mark.parametrize("box", [list, np.array, Index])
     def test_getitem_intlist_intervalindex_non_int(self, box):
-        # GH#33404 fall back to positional since ints are unambiguous
+        # GH#33404 fall back to positional since ints are unambiguous;
+        #  changed in 3.0 to never fallback
         dti = date_range("2000-01-03", periods=3)._with_freq(None)
         ii = pd.IntervalIndex.from_breaks(dti)
         ser = Series(range(len(ii)), index=ii)
 
-        expected = ser.iloc[:1]
         key = box([0])
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser[key]
-        tm.assert_series_equal(result, expected)
+        msg = r"None of \[Index\(\[0\], dtype='int(32|64)'\)\] are in the \[index\]"
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
 
     @pytest.mark.parametrize("box", [list, np.array, Index])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.uint64])
@@ -561,14 +557,15 @@ def test_getitem_generator(string_series):
 
 
 @pytest.mark.parametrize(
-    "series",
+    "data",
     [
-        Series([0, 1]),
-        Series(date_range("2012-01-01", periods=2)),
-        Series(date_range("2012-01-01", periods=2, tz="CET")),
+        [0, 1],
+        date_range("2012-01-01", periods=2),
+        date_range("2012-01-01", periods=2, tz="CET"),
     ],
 )
-def test_getitem_ndim_deprecated(series):
+def test_getitem_ndim_deprecated(data):
+    series = Series(data)
     with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         series[:, None]
 
@@ -633,11 +630,6 @@ def test_getitem_preserve_name(datetime_series):
     result = datetime_series[datetime_series > 0]
     assert result.name == datetime_series.name
 
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = datetime_series[[0, 2, 4]]
-    assert result.name == datetime_series.name
-
     result = datetime_series[5:10]
     assert result.name == datetime_series.name
 
@@ -665,21 +657,16 @@ def test_getitem_missing(datetime_series):
 
 
 def test_getitem_fancy(string_series, object_series):
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        slice1 = string_series[[1, 2, 3]]
-        slice2 = object_series[[1, 2, 3]]
-    assert string_series.index[2] == slice1.index[1]
-    assert object_series.index[2] == slice2.index[1]
-    assert string_series.iloc[2] == slice1.iloc[1]
-    assert object_series.iloc[2] == slice2.iloc[1]
+    msg = r"None of \[Index\(\[1, 2, 3\], dtype='int(32|64)'\)\] are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
+        string_series[[1, 2, 3]]
+    with pytest.raises(KeyError, match=msg):
+        object_series[[1, 2, 3]]
 
 
 def test_getitem_box_float64(datetime_series):
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        value = datetime_series[5]
-    assert isinstance(value, np.float64)
+    with pytest.raises(KeyError, match="^5$"):
+        datetime_series[5]
 
 
 def test_getitem_unordered_dup():
@@ -710,13 +697,11 @@ def test_slice_can_reorder_not_uniquely_indexed():
 
 @pytest.mark.parametrize("index_vals", ["aabcd", "aadcb"])
 def test_duplicated_index_getitem_positional_indexer(index_vals):
-    # GH 11747
+    # GH 11747; changed in 3.0 integers are treated as always-labels
     s = Series(range(5), index=list(index_vals))
 
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s[3]
-    assert result == 3
+    with pytest.raises(KeyError, match="^3$"):
+        s[3]
 
 
 class TestGetitemDeprecatedIndexers:

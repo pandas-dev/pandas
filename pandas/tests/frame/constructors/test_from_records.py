@@ -1,10 +1,12 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from decimal import Decimal
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -17,19 +19,16 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
-    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
     def test_from_records_dt64tz_frame(self):
-        # GH#51162 don't lose tz when calling from_records with DataFrame input
-        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
-        df = DataFrame({i: dti for i in range(4)})
-        with tm.assert_produces_warning(FutureWarning):
-            res = DataFrame.from_records(df)
-        tm.assert_frame_equal(res, df)
+        # GH#51697
+        df = DataFrame({"a": [1, 2, 3]})
+        with pytest.raises(TypeError, match="not supported"):
+            DataFrame.from_records(df)
 
     def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
@@ -42,7 +41,7 @@ class TestFromRecords:
         expected = DataFrame({"EXPIRY": [datetime(2005, 3, 1, 0, 0), None]})
 
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
-        dtypes = [("EXPIRY", "<M8[ns]")]
+        dtypes = [("EXPIRY", "<M8[us]")]
 
         recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
@@ -195,43 +194,6 @@ class TestFromRecords:
         for r in results:
             tm.assert_frame_equal(r, df)
 
-    def test_from_records_with_index_data(self):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        data = np.random.default_rng(2).standard_normal(10)
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index=data)
-        tm.assert_index_equal(df1.index, Index(data))
-
-    def test_from_records_bad_index_column(self):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
-        )
-
-        # should pass
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index=["C"])
-        tm.assert_index_equal(df1.index, Index(df.C))
-
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = DataFrame.from_records(df, index="C")
-        tm.assert_index_equal(df1.index, Index(df.C))
-
-        # should fail
-        msg = "|".join(
-            [
-                r"'None of \[2\] are in the columns'",
-            ]
-        )
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=2)
-
     def test_from_records_non_tuple(self):
         class Record:
             def __init__(self, *args) -> None:
@@ -279,7 +241,7 @@ class TestFromRecords:
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=timezone.utc)}
 
         # it works
         DataFrame.from_records([rec], index="begin_time")

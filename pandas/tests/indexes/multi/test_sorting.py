@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    PerformanceWarning,
-    UnsortedIndexError,
-)
+from pandas.errors import UnsortedIndexError
 
 from pandas import (
     CategoricalIndex,
@@ -135,7 +132,7 @@ def test_unsortedindex():
         df.loc(axis=0)["q", :]
 
 
-def test_unsortedindex_doc_examples():
+def test_unsortedindex_doc_examples(performance_warning):
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
         {
@@ -146,12 +143,12 @@ def test_unsortedindex_doc_examples():
     )
 
     dfm = dfm.set_index(["jim", "joe"])
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(performance_warning):
         dfm.loc[(1, "z")]
 
     msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(1\)"
     with pytest.raises(UnsortedIndexError, match=msg):
-        dfm.loc[(0, "y"):(1, "z")]
+        dfm.loc[(0, "y") : (1, "z")]
 
     assert not dfm.index._is_lexsorted()
     assert dfm.index._lexsort_depth == 1
@@ -159,7 +156,7 @@ def test_unsortedindex_doc_examples():
     # sort it
     dfm = dfm.sort_index()
     dfm.loc[(1, "z")]
-    dfm.loc[(0, "y"):(1, "z")]
+    dfm.loc[(0, "y") : (1, "z")]
 
     assert dfm.index._is_lexsorted()
     assert dfm.index._lexsort_depth == 2

@@ -101,7 +101,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return cls(scalars)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(cls, strings, *, dtype: ExtensionDtype, copy=False):
         return cls._from_sequence(
             [decimal.Decimal(x) for x in strings], dtype=dtype, copy=copy
         )
@@ -287,17 +287,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return value_counts(self.to_numpy(), dropna=dropna)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
-    #  lets us test the deprecation telling authors to implement _pad_or_backfill
-    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  lets us test a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
-    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
-    def fillna(  # type: ignore[override]
-        self,
-        value=None,
-        method=None,
-        limit: int | None = None,
-    ):
-        return super().fillna(value=value, method=method, limit=limit, copy=True)
+    def fillna(self, value=None, limit=None):
+        return super().fillna(value=value, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):

@@ -23,6 +23,8 @@ class FloatingDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = np.nan
     _default_np_dtype = np.dtype(np.float64)
     _checker = is_float_dtype
 
@@ -56,8 +58,6 @@ class FloatingDtype(NumericDtype):
 class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
-
-    .. versionadded:: 1.2.0
 
     .. warning::
 
@@ -115,14 +115,6 @@ class FloatingArray(NumericArray):
 
     _dtype_cls = FloatingDtype
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = np.nan
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "float", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = 1.0  # type: ignore[assignment]
-    _falsey_value = 0.0  # type: ignore[assignment]
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.
@@ -136,6 +128,12 @@ None
 Methods
 -------
 None
+
+See Also
+--------
+CategoricalDtype : Type for categorical data with the categories and orderedness.
+IntegerDtype : An ExtensionDtype to hold a single size & kind of integer dtype.
+StringDtype : An ExtensionDtype for string data.
 
 Examples
 --------

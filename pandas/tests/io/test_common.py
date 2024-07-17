@@ -1,6 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
+
 import codecs
 import errno
 from functools import partial
@@ -18,8 +19,10 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-import pandas.util._test_decorators as td
+from pandas.compat import (
+    WASM,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -40,16 +43,6 @@ class CustomFSPath:
     def __fspath__(self):
         return self.path
 
-
-# Functions that consume a string path and return a string or path-like object
-path_types = [str, CustomFSPath, Path]
-
-try:
-    from py.path import local as LocalPath
-
-    path_types.append(LocalPath)
-except ImportError:
-    pass
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -86,13 +79,6 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    @td.skip_if_no("py.path")
-    def test_stringify_path_localpath(self):
-        path = os.path.join("foo", "bar")
-        abs_path = os.path.abspath(path)
-        lpath = LocalPath(path)
-        assert icom.stringify_path(lpath) == abs_path
-
     def test_stringify_path_fspath(self):
         p = CustomFSPath("foo/bar.csv")
         result = icom.stringify_path(p)
@@ -105,7 +91,7 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize("path_type", path_types)
+    @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
         extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
@@ -114,7 +100,6 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
-        # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
             filename = path_type("~/" + Path(tmp).name + "/sometest")
             with icom.get_handle(filename, "w") as handles:
@@ -181,6 +166,7 @@ Look,a snake,🐍"""
             tm.assert_frame_equal(first, expected.iloc[[0]])
             tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -246,6 +232,7 @@ Look,a snake,🐍"""
         ):
             method(dummy_frame, path)
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
@@ -289,8 +276,6 @@ Look,a snake,🐍"""
         ):
             reader(path)
 
-    # TODO(CoW-warn) avoid warnings in the stata reader code
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "reader, module, path",
         [
@@ -310,7 +295,7 @@ Look,a snake,🐍"""
             (
                 pd.read_hdf,
                 "tables",
-                ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
+                ("io", "data", "legacy_hdf", "pytables_native2.h5"),
             ),
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
@@ -402,6 +387,7 @@ def mmap_file(datapath):
 
 
 class TestMMapWrapper:
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO("I am not a file")
         non_file.fileno = lambda: -1
@@ -424,6 +410,7 @@ class TestMMapWrapper:
         with pytest.raises(ValueError, match=msg):
             icom._maybe_memory_map(target, True)
 
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     def test_next(self, mmap_file):
         with open(mmap_file, encoding="utf-8") as target:
             lines = target.readlines()
@@ -483,11 +470,14 @@ class TestMMapWrapper:
             index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(UnicodeWarning):
+            with tm.assert_produces_warning(UnicodeWarning, match="byte order mark"):
                 df.to_csv(path, compression=compression_, encoding=encoding)
 
             # reading should fail (otherwise we wouldn't need the warning)
-            msg = r"UTF-\d+ stream does not start with BOM"
+            msg = (
+                r"UTF-\d+ stream does not start with BOM|"
+                r"'utf-\d+' codec can't decode byte"
+            )
             with pytest.raises(UnicodeError, match=msg):
                 pd.read_csv(path, compression=compression_, encoding=encoding)
 
@@ -565,7 +555,7 @@ def test_explicit_encoding(io_class, mode, msg):
             expected.to_csv(buffer, mode=f"w{mode}")
 
 
-@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("encoding_errors", ["strict", "replace"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_encoding_errors(encoding_errors, format):
     # GH39450
@@ -600,6 +590,17 @@ def test_encoding_errors(encoding_errors, format):
             tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize("encoding_errors", [0, None])
+def test_encoding_errors_badtype(encoding_errors):
+    # GH 59075
+    content = StringIO("A,B\n1,2\n3,4\n")
+    reader = partial(pd.read_csv, encoding_errors=encoding_errors)
+    expected_error = "encoding_errors must be a string, got "
+    expected_error += f"{type(encoding_errors).__name__}"
+    with pytest.raises(ValueError, match=expected_error):
+        reader(content)
+
+
 def test_bad_encdoing_errors():
     # GH 39777
     with tm.ensure_clean() as path:
@@ -607,6 +608,7 @@ def test_bad_encdoing_errors():
             icom.get_handle(path, "w", errors="bad")
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_errno_attribute():
     # GH 13872
     with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:

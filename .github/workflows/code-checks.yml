@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
   pull_request:
     branches:
       - main
-      - 2.1.x
+      - 2.2.x
 
 env:
   ENV_FILE: environment.yml
@@ -85,8 +85,8 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing + pylint
-      uses: pre-commit/action@v3.0.0
+    - name: Typing
+      uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' && always() }}

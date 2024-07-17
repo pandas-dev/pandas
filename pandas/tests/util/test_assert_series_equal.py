@@ -106,12 +106,11 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 
 
 @pytest.mark.parametrize("data1,data2", [(0.12345, 0.12346), (0.1235, 0.1236)])
-@pytest.mark.parametrize("dtype", ["float32", "float64", "Float32"])
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
-def test_less_precise(data1, data2, dtype, decimals):
+def test_less_precise(data1, data2, any_float_dtype, decimals):
     rtol = 10**-decimals
-    s1 = Series([data1], dtype=dtype)
-    s2 = Series([data2], dtype=dtype)
+    s1 = Series([data1], dtype=any_float_dtype)
+    s2 = Series([data2], dtype=any_float_dtype)
 
     if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
         msg = "Series values are different"
@@ -290,10 +289,7 @@ Attribute "dtype" are different
 \\[left\\]:  Int64
 \\[right\\]: int[32|64]"""
 
-    # TODO: this shouldn't raise (or should raise a better error message)
-    # https://github.com/pandas-dev/pandas/issues/56131
-    with pytest.raises(AssertionError, match="Series classes are different"):
-        tm.assert_series_equal(left, right, check_dtype=False)
+    tm.assert_series_equal(left, right, check_dtype=False)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(left, right, check_dtype=True)
@@ -372,7 +368,6 @@ def test_assert_series_equal_ignore_extension_dtype_mismatch():
     tm.assert_series_equal(left, right, check_dtype=False)
 
 
-@pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/56131")
 def test_assert_series_equal_ignore_extension_dtype_mismatch_cross_class():
     # https://github.com/pandas-dev/pandas/issues/35715
     left = Series([1, 2, 3], dtype="Int64")
@@ -456,3 +451,68 @@ def test_large_unequal_ints(dtype):
     right = Series([1577840521123543], dtype=dtype)
     with pytest.raises(AssertionError, match="Series are different"):
         tm.assert_series_equal(left, right)
+
+
+@pytest.mark.parametrize("dtype", [None, object])
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize("val", [3, 3.5])
+def test_ea_and_numpy_no_dtype_check(val, check_exact, dtype):
+    # GH#56651
+    left = Series([1, 2, val], dtype=dtype)
+    right = Series(pd.array([1, 2, val]))
+    tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+
+
+def test_assert_series_equal_int_tol():
+    # GH#56646
+    left = Series([81, 18, 121, 38, 74, 72, 81, 81, 146, 81, 81, 170, 74, 74])
+    right = Series([72, 9, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72])
+    tm.assert_series_equal(left, right, rtol=1.5)
+
+    tm.assert_frame_equal(left.to_frame(), right.to_frame(), rtol=1.5)
+    tm.assert_extension_array_equal(
+        left.astype("Int64").values, right.astype("Int64").values, rtol=1.5
+    )
+
+
+@pytest.mark.parametrize(
+    "left_idx, right_idx",
+    [
+        (
+            pd.Index([0, 0.2, 0.4, 0.6, 0.8, 1]),
+            pd.Index(np.linspace(0, 1, 6)),
+        ),
+        (
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], [0, 0.2, 0.4, 0.6, 0.8, 1]]),
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], np.linspace(0, 1, 6)]),
+        ),
+        (
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+        ),
+        pytest.param(
+            pd.Index([1, 2, 3, 4, 5, 10000000000001]),
+            pd.Index([1, 2, 3, 4, 5, 10000000000002]),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+        pytest.param(
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+    ],
+)
+def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
+    # GH#57067
+    ser1 = Series(np.zeros(6, dtype=int), left_idx)
+    ser2 = Series(np.zeros(6, dtype=int), right_idx)
+    tm.assert_series_equal(ser1, ser2)
+    tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())

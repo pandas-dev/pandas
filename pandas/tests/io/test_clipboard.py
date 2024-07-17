@@ -222,7 +222,7 @@ class TestClipboard:
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="ignores the sep argument"):
             df.to_clipboard(excel=False, sep="\t")
 
     # Tests that the default behavior of to_clipboard is tab
@@ -359,6 +359,13 @@ class TestClipboard:
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
             string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
+        elif dtype_backend == "pyarrow" and engine != "c":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["x", "y"]))
+            string_array_na = ArrowExtensionArray(pa.array(["x", None]))
+
         else:
             string_array = ArrowStringArray(pa.array(["x", "y"]))
             string_array_na = ArrowStringArray(pa.array(["x", None]))
@@ -404,13 +411,3 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
-
-    def test_to_clipboard_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_clipboard "
-            r"will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_clipboard(True, None)

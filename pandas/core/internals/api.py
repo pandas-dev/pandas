@@ -6,6 +6,7 @@ authors
 2) Use only functions exposed here (or in core.internals)
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -14,15 +15,18 @@ import warnings
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
+    ExtensionDtype,
     PeriodDtype,
 )
 
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
     check_ndim,
@@ -33,9 +37,41 @@ from pandas.core.internals.blocks import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import Dtype
+    from pandas._typing import (
+        ArrayLike,
+        Dtype,
+    )
 
     from pandas.core.internals.blocks import Block
+
+
+def _make_block(values: ArrayLike, placement: np.ndarray) -> Block:
+    """
+    This is an analogue to blocks.new_block(_2d) that ensures:
+    1) correct dimension for EAs that support 2D (`ensure_block_shape`), and
+    2) correct EA class for datetime64/timedelta64 (`maybe_coerce_values`).
+
+    The input `values` is assumed to be either numpy array or ExtensionArray:
+    - In case of a numpy array, it is assumed to already be in the expected
+      shape for Blocks (2D, (cols, rows)).
+    - In case of an ExtensionArray the input can be 1D, also for EAs that are
+      internally stored as 2D.
+
+    For the rest no preprocessing or validation is done, except for those dtypes
+    that are internally stored as EAs but have an exact numpy equivalent (and at
+    the moment use that numpy dtype), i.e. datetime64/timedelta64.
+    """
+    dtype = values.dtype
+    klass = get_block_type(dtype)
+    placement_obj = BlockPlacement(placement)
+
+    if (isinstance(dtype, ExtensionDtype) and dtype._supports_2d) or isinstance(
+        values, (DatetimeArray, TimedeltaArray)
+    ):
+        values = ensure_block_shape(values, ndim=2)
+
+    values = maybe_coerce_values(values)
+    return klass(values, ndim=2, placement=placement_obj)
 
 
 def make_block(
@@ -53,11 +89,12 @@ def make_block(
     - Block.__init__
     """
     warnings.warn(
-        # GH#40226
+        # GH#56815
         "make_block is deprecated and will be removed in a future version. "
-        "Use public APIs instead.",
+        "Use pd.api.internals.create_dataframe_from_blocks or "
+        "(recommended) higher-level public APIs instead.",
         DeprecationWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=2,
     )
 
     if dtype is not None:
@@ -65,10 +102,7 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    from pandas.core.internals.blocks import (
-        DatetimeTZBlock,
-        ExtensionBlock,
-    )
+    from pandas.core.internals.blocks import ExtensionBlock
 
     if klass is ExtensionBlock and isinstance(values.dtype, PeriodDtype):
         # GH-44681 changed PeriodArray to be stored in the 2D
@@ -79,16 +113,6 @@ def make_block(
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
-
-    elif klass is DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
-        # pyarrow calls get here
-        values = DatetimeArray._simple_new(
-            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
-            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
-            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
-            values,
-            dtype=dtype,  # type: ignore[arg-type]
-        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
@@ -119,47 +143,3 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
-
-
-def __getattr__(name: str):
-    # GH#55139
-
-    if name in [
-        "Block",
-        "ExtensionBlock",
-        "DatetimeTZBlock",
-        "create_block_manager_from_blocks",
-    ]:
-        # GH#33892
-        warnings.warn(
-            f"{name} is deprecated and will be removed in a future version. "
-            "Use public APIs instead.",
-            DeprecationWarning,
-            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
-            # on hard-coding stacklevel
-            stacklevel=2,
-        )
-
-        if name == "create_block_manager_from_blocks":
-            from pandas.core.internals.managers import create_block_manager_from_blocks
-
-            return create_block_manager_from_blocks
-
-        elif name == "Block":
-            from pandas.core.internals.blocks import Block
-
-            return Block
-
-        elif name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
-
-            return DatetimeTZBlock
-
-        elif name == "ExtensionBlock":
-            from pandas.core.internals.blocks import ExtensionBlock
-
-            return ExtensionBlock
-
-    raise AttributeError(
-        f"module 'pandas.core.internals.api' has no attribute '{name}'"
-    )

@@ -1,6 +1,7 @@
 """
 Tests for the Index constructor conducting inference.
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -60,16 +61,16 @@ class TestIndexConstructorInference:
         values = [NaT, val]
 
         idx = Index(values)
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(values[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object))
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object)[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
     @pytest.mark.parametrize("na_value", [None, np.nan])
     @pytest.mark.parametrize("vtype", [list, tuple, iter])
@@ -80,14 +81,10 @@ class TestIndexConstructorInference:
         expected = MultiIndex.from_tuples(values)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        [int, "int64", "int32", "int16", "int8", "uint64", "uint32", "uint16", "uint8"],
-    )
-    def test_constructor_int_dtype_float(self, dtype):
+    def test_constructor_int_dtype_float(self, any_int_numpy_dtype):
         # GH#18400
-        expected = Index([0, 1, 2, 3], dtype=dtype)
-        result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
+        expected = Index([0, 1, 2, 3], dtype=any_int_numpy_dtype)
+        result = Index([0.0, 1.0, 2.0, 3.0], dtype=any_int_numpy_dtype)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("cast_index", [True, False])
@@ -141,29 +138,25 @@ class TestIndexConstructorInference:
             )
 
         expected = klass([NaT, NaT])
+        if dtype[0] == "d":
+            # we infer all-NaT as second resolution
+            expected = expected.astype("M8[ns]")
         assert expected.dtype == dtype
         data = [ctor]
         data.insert(pos, nulls_fixture)
 
-        warn = None
         if nulls_fixture is NA:
             expected = Index([NA, NaT])
             mark = pytest.mark.xfail(reason="Broken with np.NaT ctor; see GH 31884")
             request.applymarker(mark)
-            # GH#35942 numpy will emit a DeprecationWarning within the
-            #  assert_index_equal calls.  Since we can't do anything
-            #  about it until GH#31884 is fixed, we suppress that warning.
-            warn = DeprecationWarning
 
         result = Index(data)
 
-        with tm.assert_produces_warning(warn):
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = Index(np.array(data, dtype=object))
 
-        with tm.assert_produces_warning(warn):
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_constructor_mixed_nat_objs_infers_object(self, swap_objs):
@@ -332,11 +325,12 @@ class TestDtypeEnforced:
     @pytest.mark.parametrize(
         "vals",
         [
-            Index(np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")])),
-            Index([datetime(2011, 1, 1), datetime(2011, 1, 2)]),
+            np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")]),
+            [datetime(2011, 1, 1), datetime(2011, 1, 2)],
         ],
     )
     def test_constructor_dtypes_to_datetime(self, cast_index, vals):
+        vals = Index(vals)
         if cast_index:
             index = Index(vals, dtype=object)
             assert isinstance(index, Index)
@@ -413,7 +407,7 @@ class TestIndexConstructorUnwrapping:
             def __init__(self, array) -> None:
                 self.array = array
 
-            def __array__(self, dtype=None) -> np.ndarray:
+            def __array__(self, dtype=None, copy=None) -> np.ndarray:
                 return self.array
 
         expected = Index(array)

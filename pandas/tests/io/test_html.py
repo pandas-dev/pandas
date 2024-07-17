@@ -112,13 +112,9 @@ def flavor_read_html(request):
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
-        msg = (
-            "Passing literal html to 'read_html' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object."
-        )
+        msg = r"\[Errno 2\] No such file or director"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(FileNotFoundError, match=msg):
             flavor_read_html(
                 """<table>
                 <thead>
@@ -156,8 +152,8 @@ class TestReadHtml:
                 np.random.default_rng(2).random((4, 3)),
                 columns=pd.Index(list("abc"), dtype=object),
             )
-            # pylint: disable-next=consider-using-f-string
-            .map("{:.3f}".format).astype(float)
+            .map("{:.3f}".format)
+            .astype(float)
         )
         out = df.to_html()
         res = flavor_read_html(
@@ -183,7 +179,12 @@ class TestReadHtml:
         if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
 
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
         else:
             pa = pytest.importorskip("pyarrow")
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
@@ -1043,30 +1044,20 @@ class TestReadHtml:
 
     def test_parse_dates_list(self, flavor_read_html):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
-        expected = df.to_html()
-        res = flavor_read_html(StringIO(expected), parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = flavor_read_html(StringIO(expected), parse_dates=["date"], index_col=0)
-        tm.assert_frame_equal(df, res[0])
 
-    def test_parse_dates_combine(self, flavor_read_html):
-        raw_dates = Series(date_range("1/1/2001", periods=10))
-        df = DataFrame(
-            {
-                "date": raw_dates.map(lambda x: str(x.date())),
-                "time": raw_dates.map(lambda x: str(x.time())),
-            }
-        )
-        res = flavor_read_html(
-            StringIO(df.to_html()), parse_dates={"datetime": [1, 2]}, index_col=1
-        )
-        newdf = DataFrame({"datetime": raw_dates})
-        tm.assert_frame_equal(newdf, res[0])
+        expected = df[:]
+        expected["date"] = expected["date"].dt.as_unit("s")
+
+        str_df = df.to_html()
+        res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
+        res = flavor_read_html(StringIO(str_df), parse_dates=["date"], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        assert os.path.isfile(data), f"{repr(data)} is not a file"
-        assert os.path.getsize(data), f"{repr(data)} is an empty file"
+        assert os.path.isfile(data), f"{data!r} is not a file"
+        assert os.path.getsize(data), f"{data!r} is an empty file"
         result = flavor_read_html(data, match="Arizona", header=1)[0]
         assert result.shape == (60, 12)
         assert "Unnamed" in result.columns[-1]
@@ -1328,8 +1319,8 @@ class TestReadHtml:
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
         [
-            (True, DataFrame(["foo"]), None),
-            (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"])),
+            (True, ["foo"], None),
+            (False, ["foo  bar  baz  qux"], DataFrame(["foo"])),
         ],
     )
     def test_displayed_only(self, displayed_only, exp0, exp1, flavor_read_html):
@@ -1354,6 +1345,7 @@ class TestReadHtml:
           </body>
         </html>"""
 
+        exp0 = DataFrame(exp0)
         dfs = flavor_read_html(StringIO(data), displayed_only=displayed_only)
         tm.assert_frame_equal(dfs[0], exp0)
 
@@ -1398,7 +1390,7 @@ class TestReadHtml:
         try:
             with open(html_encoding_file, "rb") as fobj:
                 from_string = flavor_read_html(
-                    fobj.read(), encoding=encoding, index_col=0
+                    BytesIO(fobj.read()), encoding=encoding, index_col=0
                 ).pop()
 
             with open(html_encoding_file, "rb") as fobj:
@@ -1457,9 +1449,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            # GH 49036 pylint checks for presence of __next__ for iterators
-            def __next__(self):
-                ...
+            def __next__(self): ...
 
             def __iter__(self) -> Iterator:
                 # `is_file_like` depends on the presence of

@@ -26,6 +26,7 @@ class TestAccumulator:
                 "2000-01-02",
                 "2000-01-03",
             ],
+            dtype="M8[ns]",
         )
         tm.assert_datetime_array_equal(result, expected)
 

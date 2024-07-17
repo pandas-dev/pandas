@@ -36,7 +36,7 @@ CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq", "pyqt", "pyqt5"}
+EXCLUDE_DEPS = {"tzdata", "blosc", "pyqt", "pyqt5"}
 EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
@@ -143,7 +143,7 @@ def clean_version_list(
     yaml_versions: list[str], toml_version: version.Version
 ) -> list[str]:
     for i in range(len(yaml_versions)):
-        yaml_version = yaml_versions[i]
+        yaml_version = yaml_versions[i].strip()
         operator = get_operator_from(yaml_version)
         assert operator is not None
         if "<=" in operator or ">=" in operator:

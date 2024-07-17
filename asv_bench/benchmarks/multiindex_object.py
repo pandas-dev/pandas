@@ -223,14 +223,20 @@ class CategoricalLevel:
 
 class Equals:
     def setup(self):
-        idx_large_fast = RangeIndex(100000)
-        idx_small_slow = date_range(start="1/1/2012", periods=1)
-        self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
-
+        self.mi = MultiIndex.from_product(
+            [
+                date_range("2000-01-01", periods=1000),
+                RangeIndex(1000),
+            ]
+        )
+        self.mi_deepcopy = self.mi.copy(deep=True)
         self.idx_non_object = RangeIndex(1)
 
+    def time_equals_deepcopy(self):
+        self.mi.equals(self.mi_deepcopy)
+
     def time_equals_non_object_index(self):
-        self.mi_large_slow.equals(self.idx_non_object)
+        self.mi.equals(self.idx_non_object)
 
 
 class SetOperations:

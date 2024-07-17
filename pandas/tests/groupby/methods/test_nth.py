@@ -529,7 +529,6 @@ def test_nth_multi_index_as_expected():
     ],
 )
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
-@pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A", as_index=as_index)
@@ -537,32 +536,6 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     if columns is not None:
         g = g[columns]
         expected = expected[columns]
-    result = getattr(g, op)(n)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "op, n, expected_cols",
-    [
-        ("head", -1, [0]),
-        ("head", 0, []),
-        ("head", 1, [0, 2]),
-        ("head", 7, [0, 1, 2]),
-        ("tail", -1, [1]),
-        ("tail", 0, []),
-        ("tail", 1, [1, 2]),
-        ("tail", 7, [0, 1, 2]),
-    ],
-)
-def test_groupby_head_tail_axis_1(op, n, expected_cols):
-    # GH 9772
-    df = DataFrame(
-        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        g = df.groupby([0, 0, 1], axis=1)
-    expected = df.iloc[:, expected_cols]
     result = getattr(g, op)(n)
     tm.assert_frame_equal(result, expected)
 
@@ -774,24 +747,6 @@ def test_np_ints(slice_test_df, slice_test_grouped):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_nth_with_column_axis():
-    # GH43926
-    df = DataFrame(
-        [
-            [4, 5, 6],
-            [8, 8, 7],
-        ],
-        index=["z", "y"],
-        columns=["C", "B", "A"],
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(df.iloc[1], axis=1)
-    result = gb.nth(0)
-    expected = df.iloc[:, [0, 2]]
-    tm.assert_frame_equal(result, expected)
-
-
 def test_groupby_nth_interval():
     # GH#24205
     idx_result = MultiIndex(
@@ -812,35 +767,6 @@ def test_groupby_nth_interval():
         [[0, 0, 1], [0, 1, 0]],
     )
     expected = DataFrame(val_expected, index=idx_expected, columns=["col"])
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "start, stop, expected_values, expected_columns",
-    [
-        (None, None, [0, 1, 2, 3, 4], list("ABCDE")),
-        (None, 1, [0, 3], list("AD")),
-        (None, 9, [0, 1, 2, 3, 4], list("ABCDE")),
-        (None, -1, [0, 1, 3], list("ABD")),
-        (1, None, [1, 2, 4], list("BCE")),
-        (1, -1, [1], list("B")),
-        (-1, None, [2, 4], list("CE")),
-        (-1, 2, [4], list("E")),
-    ],
-)
-@pytest.mark.parametrize("method", ["call", "index"])
-def test_nth_slices_with_column_axis(
-    start, stop, expected_values, expected_columns, method
-):
-    df = DataFrame([range(5)], columns=[list("ABCDE")])
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby([5, 5, 5, 6, 6], axis=1)
-    result = {
-        "call": lambda start, stop: gb.nth(slice(start, stop)),
-        "index": lambda start, stop: gb.nth[start:stop],
-    }[method](start, stop)
-    expected = DataFrame([expected_values], columns=[expected_columns])
     tm.assert_frame_equal(result, expected)
 
 

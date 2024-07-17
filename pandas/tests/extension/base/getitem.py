@@ -329,11 +329,10 @@ class BaseGetitemTests:
         result = s.get("Z")
         assert result is None
 
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert s.get(4) == s.iloc[4]
-            assert s.get(-1) == s.iloc[-1]
-            assert s.get(len(s)) is None
+        # As of 3.0, getitem with int keys treats them as labels
+        assert s.get(4) is None
+        assert s.get(-1) is None
+        assert s.get(len(s)) is None
 
         # GH 21257
         s = pd.Series(data)
@@ -394,7 +393,7 @@ class BaseGetitemTests:
         tm.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
-        with pytest.raises(ValueError, match=""):
+        with tm.external_error_raised(ValueError):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
     @pytest.mark.parametrize("allow_fill", [True, False])
@@ -451,7 +450,7 @@ class BaseGetitemTests:
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
         assert res.ndim == 1
-        assert res._mgr.arrays[0].ndim == 1
+        assert res._mgr.blocks[0].ndim == 1
         if hasattr(res._mgr, "blocks"):
             assert res._mgr._block.ndim == 1
 

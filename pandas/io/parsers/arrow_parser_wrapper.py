@@ -41,7 +41,7 @@ class ArrowParserWrapper(ParserBase):
 
         self._parse_kwds()
 
-    def _parse_kwds(self):
+    def _parse_kwds(self) -> None:
         """
         Validates keywords before passing to pyarrow.
         """
@@ -99,12 +99,12 @@ class ArrowParserWrapper(ParserBase):
             if callable(on_bad_lines):
                 self.parse_options["invalid_row_handler"] = on_bad_lines
             elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
-                self.parse_options[
-                    "invalid_row_handler"
-                ] = None  # PyArrow raises an exception by default
+                self.parse_options["invalid_row_handler"] = (
+                    None  # PyArrow raises an exception by default
+                )
             elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
 
-                def handle_warning(invalid_row):
+                def handle_warning(invalid_row) -> str:
                     warnings.warn(
                         f"Expected {invalid_row.expected_columns} columns, but found "
                         f"{invalid_row.actual_columns}: {invalid_row.text}",
@@ -174,8 +174,8 @@ class ArrowParserWrapper(ParserBase):
                 self.names = list(range(num_cols - len(self.names))) + self.names
                 multi_index_named = False
             frame.columns = self.names
-        # we only need the frame not the names
-        _, frame = self._do_date_conversions(frame.columns, frame)
+
+        frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
@@ -214,12 +214,12 @@ class ArrowParserWrapper(ParserBase):
                 self.dtype = pandas_dtype(self.dtype)
             try:
                 frame = frame.astype(self.dtype)
-            except TypeError as e:
+            except TypeError as err:
                 # GH#44901 reraise to keep api consistent
-                raise ValueError(e)
+                raise ValueError(str(err)) from err
         return frame
 
-    def _validate_usecols(self, usecols):
+    def _validate_usecols(self, usecols) -> None:
         if lib.is_list_like(usecols) and not all(isinstance(x, str) for x in usecols):
             raise ValueError(
                 "The pyarrow engine does not allow 'usecols' to be integer "
@@ -247,7 +247,7 @@ class ArrowParserWrapper(ParserBase):
 
         try:
             convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError:
+        except TypeError as err:
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
@@ -258,7 +258,7 @@ class ArrowParserWrapper(ParserBase):
             ):
                 raise TypeError(
                     "The 'pyarrow' engine requires all na_values to be strings"
-                )
+                ) from err
 
             raise
 
@@ -287,17 +287,23 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
-        if dtype_backend == "pyarrow":
-            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-        elif dtype_backend == "numpy_nullable":
-            # Modify the default mapping to also
-            # map null to Int64 (to match other engines)
-            dtype_mapping = _arrow_dtype_mapping()
-            dtype_mapping[pa.null()] = pd.Int64Dtype()
-            frame = table.to_pandas(types_mapper=dtype_mapping.get)
-        elif using_pyarrow_string_dtype():
-            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "make_block is deprecated",
+                DeprecationWarning,
+            )
+            if dtype_backend == "pyarrow":
+                frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+            elif dtype_backend == "numpy_nullable":
+                # Modify the default mapping to also
+                # map null to Int64 (to match other engines)
+                dtype_mapping = _arrow_dtype_mapping()
+                dtype_mapping[pa.null()] = pd.Int64Dtype()
+                frame = table.to_pandas(types_mapper=dtype_mapping.get)
+            elif using_pyarrow_string_dtype():
+                frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
 
-        else:
-            frame = table.to_pandas()
+            else:
+                frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

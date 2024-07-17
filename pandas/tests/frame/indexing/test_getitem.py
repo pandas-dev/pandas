@@ -391,19 +391,13 @@ class TestGetitemBooleanMask:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_getitem_returns_view_when_column_is_unique_in_df(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_getitem_returns_view_when_column_is_unique_in_df(self):
         # GH#45316
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         df_orig = df.copy()
         view = df["b"]
-        with tm.assert_cow_warning(warn_copy_on_write):
-            view.loc[:] = 100
-        if using_copy_on_write:
-            expected = df_orig
-        else:
-            expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
+        view.loc[:] = 100
+        expected = df_orig
         tm.assert_frame_equal(df, expected)
 
     def test_getitem_frozenset_unique_in_column(self):

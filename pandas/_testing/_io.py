@@ -7,21 +7,18 @@ import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import uuid
 import zipfile
 
-from pandas.compat import (
-    get_bz2_file,
-    get_lzma_file,
-)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         FilePath,
         ReadPickleBuffer,
@@ -89,35 +86,6 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path: str | None = None):
-    """
-    Write an object to file specified by a py.path LocalPath and read it back.
-
-    Parameters
-    ----------
-    writer : callable bound to pandas object
-        IO writing function (e.g. DataFrame.to_csv )
-    reader : callable
-        IO reading function (e.g. pd.read_csv )
-    path : str, default None
-        The path where the object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was serialized and then re-read.
-    """
-    import pytest
-
-    LocalPath = pytest.importorskip("py.path").local
-    if path is None:
-        path = "___localpath___"
-    with ensure_clean(path) as path:
-        writer(LocalPath(path))
-        obj = reader(LocalPath(path))
-    return obj
-
-
 def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     """
     Write data to a compressed file.
@@ -158,11 +126,15 @@ def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        compress_method = get_bz2_file()
+        import bz2
+
+        compress_method = bz2.BZ2File
     elif compression == "zstd":
         compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
-        compress_method = get_lzma_file()
+        import lzma
+
+        compress_method = lzma.LZMAFile
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 

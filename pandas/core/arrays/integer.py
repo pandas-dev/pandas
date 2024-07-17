@@ -23,6 +23,8 @@ class IntegerDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = 1
     _default_np_dtype = np.dtype(np.int64)
     _checker = is_integer_dtype
 
@@ -115,26 +117,18 @@ class IntegerArray(NumericArray):
 
     String aliases for the dtypes are also available. They are capitalized.
 
-    >>> pd.array([1, None, 3], dtype='Int32')
+    >>> pd.array([1, None, 3], dtype="Int32")
     <IntegerArray>
     [1, <NA>, 3]
     Length: 3, dtype: Int32
 
-    >>> pd.array([1, None, 3], dtype='UInt16')
+    >>> pd.array([1, None, 3], dtype="UInt16")
     <IntegerArray>
     [1, <NA>, 3]
     Length: 3, dtype: UInt16
     """
 
     _dtype_cls = IntegerDtype
-
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = 1
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "int", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = 1  # type: ignore[assignment]
-    _falsey_value = 0  # type: ignore[assignment]
 
 
 _dtype_docstring = """
@@ -149,6 +143,13 @@ None
 Methods
 -------
 None
+
+See Also
+--------
+Int8Dtype : 8-bit nullable integer type.
+Int16Dtype : 16-bit nullable integer type.
+Int32Dtype : 32-bit nullable integer type.
+Int64Dtype : 64-bit nullable integer type.
 
 Examples
 --------

@@ -1,4 +1,7 @@
-""" test feather-format compat """
+"""test feather-format compat"""
+
+import zoneinfo
+
 import numpy as np
 import pytest
 
@@ -36,7 +39,9 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
-    def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
+    def check_round_trip(self, df, expected=None, write_kwargs=None, **read_kwargs):
+        if write_kwargs is None:
+            write_kwargs = {}
         if expected is None:
             expected = df.copy()
 
@@ -59,6 +64,7 @@ class TestFeather:
             self.check_error_on_write(obj, ValueError, msg)
 
     def test_basic(self):
+        tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
             {
                 "string": list("abc"),
@@ -73,7 +79,7 @@ class TestFeather:
                     list(pd.date_range("20130101", periods=3)), freq=None
                 ),
                 "dttz": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    list(pd.date_range("20130101", periods=3, tz=tz)),
                     freq=None,
                 ),
                 "dt_with_null": [
@@ -90,7 +96,7 @@ class TestFeather:
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
-        assert df.dttz.dtype.tz.zone == "US/Eastern"
+        assert df.dttz.dtype.tz.key == "US/Eastern"
 
         expected = df.copy()
         expected.loc[1, "bool_with_null"] = None
@@ -140,15 +146,6 @@ class TestFeather:
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    def test_path_localpath(self):
-        df = pd.DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
-        ).reset_index()
-        result = tm.round_trip_localpath(df.to_feather, read_feather)
-        tm.assert_frame_equal(df, result)
-
     def test_passthrough_keywords(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -185,6 +182,12 @@ class TestFeather:
         if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        elif dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
 
         else:
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))

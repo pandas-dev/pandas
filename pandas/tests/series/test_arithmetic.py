@@ -241,7 +241,7 @@ class TestSeriesArithmetic:
         result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + empty.copy()
+        result = empty + empty
         assert len(result) == 0
 
     def test_add_float_plus_int(self, datetime_series):
@@ -359,12 +359,13 @@ class TestSeriesArithmetic:
             else None
         )
         ser = Series([True, None, False], dtype="boolean")
-        with tm.assert_produces_warning(warning):
+        msg = "operator is not supported by numexpr for the bool dtype"
+        with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match=msg):
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
@@ -659,12 +660,10 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            if comparison_op is operator.ne:
-                expected = expected.fillna(True).astype(bool)
-            else:
-                expected = expected.fillna(False).astype(bool)
+        if comparison_op is operator.ne:
+            expected = expected.fillna(True).astype(bool)
+        else:
+            expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
@@ -674,22 +673,12 @@ class TestSeriesComparison:
         tm.assert_numpy_array_equal(ts.index != 5, expected)
         tm.assert_numpy_array_equal(~(ts.index == 5), expected)
 
-    @pytest.mark.parametrize(
-        "left, right",
-        [
-            (
-                Series([1, 2, 3], index=list("ABC"), name="x"),
-                Series([2, 2, 2], index=list("ABD"), name="x"),
-            ),
-            (
-                Series([1, 2, 3], index=list("ABC"), name="x"),
-                Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
-            ),
-        ],
-    )
-    def test_comp_ops_df_compat(self, left, right, frame_or_series):
+    @pytest.mark.parametrize("right_data", [[2, 2, 2], [2, 2, 2, 2]])
+    def test_comp_ops_df_compat(self, right_data, frame_or_series):
         # GH 1134
         # GH 50083 to clarify that index and columns must be identically labeled
+        left = Series([1, 2, 3], index=list("ABC"), name="x")
+        right = Series(right_data, index=list("ABDC")[: len(right_data)], name="x")
         if frame_or_series is not Series:
             msg = (
                 rf"Can only compare identically-labeled \(both index and columns\) "
@@ -819,9 +808,6 @@ class TestNamePreservation:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        warn = None
-        if box in [list, tuple] and is_logical:
-            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -830,9 +816,12 @@ class TestNamePreservation:
                 return
             result = getattr(left, name)(right)
         else:
-            # GH#37374 logical ops behaving as set ops deprecated
-            with tm.assert_produces_warning(warn, match=msg):
-                result = op(left, right)
+            if is_logical and box in [list, tuple]:
+                with pytest.raises(TypeError, match=msg):
+                    # GH#52264 logical ops with dtype-less sequences deprecated
+                    op(left, right)
+                return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

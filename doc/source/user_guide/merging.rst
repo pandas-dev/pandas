@@ -249,7 +249,7 @@ a :class:`MultiIndex`) associate specific keys with each original :class:`DataFr
    p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True)
    plt.close("all");
 
-The ``keys`` argument cane override the column names
+The ``keys`` argument can override the column names
 when creating a new :class:`DataFrame` based on existing :class:`Series`.
 
 .. ipython:: python
@@ -484,7 +484,7 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-You can :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
+You can merge :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
 the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
 the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
 
@@ -763,7 +763,7 @@ Joining a single Index to a MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can join a :class:`DataFrame` with a :class:`Index` to a :class:`DataFrame` with a :class:`MultiIndex` on a level.
-The ``name`` of the :class:`Index` with match the level name of the :class:`MultiIndex`.
+The ``name`` of the :class:`Index` will match the level name of the :class:`MultiIndex`.
 
 ..  ipython:: python
 
@@ -974,7 +974,7 @@ with optional filling of missing data with ``fill_method``.
 :func:`merge_asof`
 ---------------------
 
-:func:`merge_asof` is similar to an ordered left-join except that mactches are on the
+:func:`merge_asof` is similar to an ordered left-join except that matches are on the
 nearest key rather than equal keys. For each row in the ``left`` :class:`DataFrame`,
 the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
 than the left's key. Both :class:`DataFrame` must be sorted by the key.
@@ -1073,7 +1073,7 @@ compare two :class:`DataFrame` or :class:`Series`, respectively, and summarize t
    df.compare(df2)
 
 By default, if two corresponding values are equal, they will be shown as ``NaN``.
-Furthermore, if all values in an entire row / column, the row / column will be
+Furthermore, if all values in an entire row / column are equal, that row / column will be
 omitted from the result. The remaining differences will be aligned on columns.
 
 Stack the differences on rows.

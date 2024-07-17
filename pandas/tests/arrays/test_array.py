@@ -1,10 +1,9 @@
 import datetime
 import decimal
-import re
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 import pandas._testing as tm
@@ -29,17 +28,15 @@ from pandas.tests.extension.decimal import (
 )
 
 
-@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]", "M8[m]"])
+@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]"])
 def test_dt64_array(dtype_unit):
-    # PR 53817
+    # GH#53817
     dtype_var = np.dtype(dtype_unit)
     msg = (
         r"datetime64 and timedelta64 dtype resolutions other than "
-        r"'s', 'ms', 'us', and 'ns' are deprecated. "
-        r"In future releases passing unsupported resolutions will "
-        r"raise an exception."
+        r"'s', 'ms', 'us', and 'ns' are no longer supported."
     )
-    with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+    with pytest.raises(ValueError, match=msg):
         pd.array([], dtype=dtype_var)
 
 
@@ -60,7 +57,11 @@ def test_dt64_array(dtype_unit):
             None,
             NumpyExtensionArray(np.array([], dtype=object)),
         ),
-        (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1, 2], dtype="int64"),
+            None,
+            IntegerArray._from_sequence([1, 2], dtype="Int64"),
+        ),
         (
             np.array([1.0, 2.0], dtype="float64"),
             None,
@@ -124,7 +125,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             ["2000", "2001"],
@@ -219,6 +220,14 @@ def test_dt64_array(dtype_unit):
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            None,
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
         # Boolean
         (
             [True, None],
@@ -246,6 +255,14 @@ def test_dt64_array(dtype_unit):
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
         ),
+        # Complex
+        (
+            np.array([complex(1), complex(2)], dtype=np.complex128),
+            None,
+            NumpyExtensionArray(
+                np.array([complex(1), complex(2)], dtype=np.complex128)
+            ),
+        ),
     ],
 )
 def test_array(data, dtype, expected):
@@ -268,9 +285,6 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
-cet = pytz.timezone("CET")
-
-
 @pytest.mark.parametrize(
     "data, expected",
     [
@@ -284,15 +298,15 @@ cet = pytz.timezone("CET")
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
-            DatetimeArray(np.array([1, 2], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="M8[ns]")),
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
@@ -304,61 +318,75 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
         ),
         (
             [
-                datetime.datetime(2000, 1, 1, tzinfo=cet),
-                datetime.datetime(2001, 1, 1, tzinfo=cet),
+                datetime.datetime(
+                    2000, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
+                datetime.datetime(
+                    2001, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
+                ["2000", "2001"],
+                dtype=pd.DatetimeTZDtype(
+                    tz=zoneinfo.ZoneInfo("Europe/Berlin"), unit="us"
+                ),
             ),
         ),
         # timedelta
         (
             [pd.Timedelta("1h"), pd.Timedelta("2h")],
-            TimedeltaArray._from_sequence(["1h", "2h"]),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
-        ([1, 2], IntegerArray._from_sequence([1, 2])),
-        ([1, None], IntegerArray._from_sequence([1, None])),
-        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
-        ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
+        ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),
+        ([1, None], IntegerArray._from_sequence([1, None], dtype="Int64")),
+        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
+        ([1, np.nan], IntegerArray._from_sequence([1, np.nan], dtype="Int64")),
         # float
-        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2])),
-        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA])),
-        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA])),
-        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2], dtype="Float64")),
+        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
+        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
+        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
         # integer-like float
-        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
-        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
-        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
-        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0], dtype="Float64")),
+        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
+        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
+        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
         # mixed-integer-float
-        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
-        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0], dtype="Float64")),
+        (
+            [1, np.nan, 2.0],
+            FloatingArray._from_sequence([1.0, None, 2.0], dtype="Float64"),
+        ),
         # string
         (
             ["a", "b"],
-            pd.StringDtype().construct_array_type()._from_sequence(["a", "b"]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
         ),
         (
             ["a", None],
-            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         # Boolean
-        ([True, False], BooleanArray._from_sequence([True, False])),
-        ([True, None], BooleanArray._from_sequence([True, None])),
+        ([True, False], BooleanArray._from_sequence([True, False], dtype="boolean")),
+        ([True, None], BooleanArray._from_sequence([True, None], dtype="boolean")),
     ],
 )
 def test_array_inference(data, expected):

@@ -38,10 +38,6 @@ def test_error():
             [],
             "column must be nonempty",
         ),
-        (
-            list("AC"),
-            "columns must have matching element counts",
-        ),
     ],
 )
 def test_error_multi_columns(input_subset, error_message):

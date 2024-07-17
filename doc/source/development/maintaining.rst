@@ -84,7 +84,7 @@ Here's a typical workflow for triaging a newly opened issue.
    example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
-   and example or simplify the provided one. Do acknowledge that writing
+   an example or simplify the provided one. Do acknowledge that writing
    minimal reproducible examples is hard work. If the reporter is struggling,
    you can try to write one yourself and we'll edit the original post to include it.
 
@@ -92,6 +92,9 @@ Here's a typical workflow for triaging a newly opened issue.
 
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
+
+   If this is a regression report, post the result of a ``git bisect`` run.
+   More info on this can be found in the :ref:`maintaining.regressions` section.
 
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
    until all steps have been completed. Add a comment to the issue once you have
@@ -125,7 +128,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Once you have completed the above, make sure to remove the "needs triage" label.
+   If the issue is a regression report, add the "Regression" label and the next patch
+   release milestone.
+
+   Once you have completed the above, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
@@ -151,7 +157,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -159,7 +165,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python setup.py build_ext -j 4
+    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.
@@ -326,34 +332,6 @@ a milestone before tagging, you can request the bot to backport it with:
    @Meeseeksdev backport <branch>
 
 
-.. _maintaining.asv-machine:
-
-Benchmark machine
------------------
-
-The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results
-are published to https://asv-runner.github.io/asv-collection/pandas/
-
-Configuration
-`````````````
-
-The machine can be configured with the `Ansible <http://docs.ansible.com/ansible/latest/index.html>`_ playbook in https://github.com/tomaugspurger/asv-runner.
-
-Publishing
-``````````
-
-The results are published to another GitHub repository, https://github.com/tomaugspurger/asv-collection.
-Finally, we have a cron job on our docs server to pull from https://github.com/tomaugspurger/asv-collection, to serve them from ``/speed``.
-Ask Tom or Joris for access to the webserver.
-
-Debugging
-`````````
-
-The benchmarks are scheduled by Airflow. It has a dashboard for viewing and debugging the results. You'll need to setup an SSH tunnel to view them
-
-    ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
-
-
 .. _maintaining.release:
 
 Release process
@@ -430,7 +408,7 @@ Release
     git checkout <branch>
     git pull --ff-only upstream <branch>
     git clean -xdf
-    git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
+    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
     git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
     git push upstream <branch> --follow-tags
 
@@ -460,7 +438,7 @@ which will be triggered when the tag is pushed.
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
-   - Title: ``Pandas <version>``
+   - Title: ``pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
    - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate
@@ -490,9 +468,9 @@ Post-Release
    the appropriate ones for the version you are releasing):
 
     - Log in to the server and use the correct user.
-    - `cd /var/www/html/pandas-docs/`
-    - `ln -sfn version/2.1 stable` (for a major or minor release)
-    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
+    - ``cd /var/www/html/pandas-docs/``
+    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
+    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation

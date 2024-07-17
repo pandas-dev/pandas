@@ -1,10 +1,12 @@
-""" feather-format compat """
+"""feather-format compat"""
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -50,9 +52,6 @@ def to_feather(
     df : DataFrame
     path : str, path object, or file-like object
     {storage_options}
-
-        .. versionadded:: 1.2.0
-
     **kwargs :
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
@@ -93,8 +92,6 @@ def read_feather(
         Whether to parallelize reading using multiple threads.
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
@@ -109,6 +106,15 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+        DataFrame object stored in the file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_sas : Read SAS file into a pandas DataFrame.
 
     Examples
     --------
@@ -126,9 +132,16 @@ def read_feather(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
         if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
-            return feather.read_feather(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+
+                return feather.read_feather(
+                    handles.handle, columns=columns, use_threads=bool(use_threads)
+                )
 
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)

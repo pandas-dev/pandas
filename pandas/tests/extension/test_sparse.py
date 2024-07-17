@@ -17,8 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -70,7 +68,7 @@ def data_repeated(request):
         for _ in range(count):
             yield SparseArray(make_data(request.param), fill_value=request.param)
 
-    yield gen
+    return gen
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -98,26 +96,64 @@ def data_for_compare(request):
     return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
 
 
-class BaseSparseTests:
+class TestSparseArray(base.ExtensionTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if all_numeric_reductions in [
+            "prod",
+            "median",
+            "var",
+            "std",
+            "sem",
+            "skew",
+            "kurt",
+        ]:
+            mark = pytest.mark.xfail(
+                reason="This should be viable but is not implemented"
+            )
+            request.node.add_marker(mark)
+        elif (
+            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            and data.dtype.kind == "f"
+            and not skipna
+        ):
+            mark = pytest.mark.xfail(reason="getting a non-nan float")
+            request.node.add_marker(mark)
+
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
+        if all_numeric_reductions in [
+            "prod",
+            "median",
+            "var",
+            "std",
+            "sem",
+            "skew",
+            "kurt",
+        ]:
+            mark = pytest.mark.xfail(
+                reason="This should be viable but is not implemented"
+            )
+            request.node.add_marker(mark)
+        elif (
+            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            and data.dtype.kind == "f"
+            and not skipna
+        ):
+            mark = pytest.mark.xfail(reason="ExtensionArray NA mask are different")
+            request.node.add_marker(mark)
+
+        super().test_reduce_frame(data, all_numeric_reductions, skipna)
+
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
 
-
-class TestDtype(BaseSparseTests, base.BaseDtypeTests):
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is SparseArray
-
-
-class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    pass
-
-
-class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
-    pass
-
-
-class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
         # This should be the same, aside from concat([sparse, float])
@@ -173,8 +209,6 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_merge(data, na_value)
 
-
-class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
         ser = pd.Series(data, index=[2 * i for i in range(len(data))])
         if np.isnan(ser.values.fill_value):
@@ -187,16 +221,6 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
         self._check_unsupported(data)
         super().test_reindex(data, na_value)
 
-
-class TestSetitem(BaseSparseTests, base.BaseSetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_isna(self, data_missing):
         sarr = SparseArray(data_missing)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
@@ -210,16 +234,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_limit_backfill(self, data_missing):
-        warns = (PerformanceWarning, FutureWarning)
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data, request):
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -249,11 +264,19 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
 
-class TestMethods(BaseSparseTests, base.BaseMethodsTests):
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     _combine_le_expected_dtype = "Sparse[bool]"
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr}, copy=False)
 
@@ -261,24 +284,17 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = df.fillna(filled_val)
 
         if hasattr(df._mgr, "blocks"):
-            if using_copy_on_write:
-                assert df.values.base is result.values.base
-            else:
-                assert df.values.base is not result.values.base
+            assert df.values.base is result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr, copy=False)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        if using_copy_on_write:
-            assert ser._values is result._values
-
-        else:
-            assert ser._values is not result._values
+        assert ser._values is result._values
         assert ser._values.to_dense() is arr.to_dense()
 
     @pytest.mark.xfail(reason="Not Applicable")
@@ -307,8 +323,8 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         tm.assert_series_equal(result, expected)
 
-    def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+    def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
+        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):
@@ -351,16 +367,12 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with pytest.raises(ValueError, match=msg):
             data.map(lambda x: np.nan, na_action=na_action)
 
-
-class TestCasting(BaseSparseTests, base.BaseCastingTests):
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data, nullable_string_dtype):
         # TODO: this fails bc we do not pass through nullable_string_dtype;
         #  If we did, the 0-cases would xpass
         super().test_astype_string(data)
 
-
-class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     series_scalar_exc = None
     frame_scalar_exc = None
     divmod_exc = None
@@ -389,6 +401,8 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             "rmul",
             "floordiv",
             "rfloordiv",
+            "truediv",
+            "rtruediv",
             "pow",
             "mod",
             "rmod",
@@ -397,17 +411,27 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-
-class TestComparisonOps(BaseSparseTests):
-    def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
+    def _compare_other(
+        self, ser: pd.Series, data_for_compare: SparseArray, comparison_op, other
+    ):
         op = comparison_op
 
         result = op(data_for_compare, other)
-        assert isinstance(result, SparseArray)
+        if isinstance(other, pd.Series):
+            assert isinstance(result, pd.Series)
+            assert isinstance(result.dtype, SparseDtype)
+        else:
+            assert isinstance(result, SparseArray)
         assert result.dtype.subtype == np.bool_
 
-        if isinstance(other, SparseArray):
-            fill_value = op(data_for_compare.fill_value, other.fill_value)
+        if isinstance(other, pd.Series):
+            fill_value = op(data_for_compare.fill_value, other._values.fill_value)
+            expected = SparseArray(
+                op(data_for_compare.to_dense(), np.asarray(other)),
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
+
         else:
             fill_value = np.all(
                 op(np.asarray(data_for_compare.fill_value), np.asarray(other))
@@ -418,36 +442,51 @@ class TestComparisonOps(BaseSparseTests):
                 fill_value=fill_value,
                 dtype=np.bool_,
             )
-        tm.assert_sp_array_equal(result, expected)
+        if isinstance(other, pd.Series):
+            # error: Incompatible types in assignment
+            expected = pd.Series(expected)  # type: ignore[assignment]
+        tm.assert_equal(result, expected)
 
     def test_scalar(self, data_for_compare: SparseArray, comparison_op):
-        self._compare_other(data_for_compare, comparison_op, 0)
-        self._compare_other(data_for_compare, comparison_op, 1)
-        self._compare_other(data_for_compare, comparison_op, -1)
-        self._compare_other(data_for_compare, comparison_op, np.nan)
+        ser = pd.Series(data_for_compare)
+        self._compare_other(ser, data_for_compare, comparison_op, 0)
+        self._compare_other(ser, data_for_compare, comparison_op, 1)
+        self._compare_other(ser, data_for_compare, comparison_op, -1)
+        self._compare_other(ser, data_for_compare, comparison_op, np.nan)
 
-    @pytest.mark.xfail(reason="Wrong indices")
-    def test_array(self, data_for_compare: SparseArray, comparison_op):
+    def test_array(self, data_for_compare: SparseArray, comparison_op, request):
+        if data_for_compare.dtype.fill_value == 0 and comparison_op.__name__ in [
+            "eq",
+            "ge",
+            "le",
+        ]:
+            mark = pytest.mark.xfail(reason="Wrong fill_value")
+            request.applymarker(mark)
+
         arr = np.linspace(-4, 5, 10)
-        self._compare_other(data_for_compare, comparison_op, arr)
+        ser = pd.Series(data_for_compare)
+        self._compare_other(ser, data_for_compare, comparison_op, arr)
 
-    @pytest.mark.xfail(reason="Wrong indices")
-    def test_sparse_array(self, data_for_compare: SparseArray, comparison_op):
+    def test_sparse_array(self, data_for_compare: SparseArray, comparison_op, request):
+        if data_for_compare.dtype.fill_value == 0 and comparison_op.__name__ != "gt":
+            mark = pytest.mark.xfail(reason="Wrong fill_value")
+            request.applymarker(mark)
+
+        ser = pd.Series(data_for_compare)
         arr = data_for_compare + 1
-        self._compare_other(data_for_compare, comparison_op, arr)
+        self._compare_other(ser, data_for_compare, comparison_op, arr)
         arr = data_for_compare * 2
-        self._compare_other(data_for_compare, comparison_op, arr)
+        self._compare_other(ser, data_for_compare, comparison_op, arr)
 
-
-class TestPrinting(BaseSparseTests, base.BasePrintingTests):
     @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 
+    @pytest.mark.xfail(reason="result does not match expected")
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
-class TestParsing(BaseSparseTests, base.BaseParsingTests):
-    pass
 
-
-class TestNoNumericAccumulations(base.BaseAccumulateTests):
-    pass
+def test_array_type_with_arg(dtype):
+    assert dtype.construct_array_type() is SparseArray

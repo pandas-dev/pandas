@@ -11,14 +11,15 @@ cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
 cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
 cdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
 
-cpdef freq_to_period_freqstr(freq_n, freq_name)
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR
-cdef dict c_OFFSET_DEPR_FREQSTR
-cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR
-cdef dict c_DEPR_ABBREVS
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR
+cdef dict c_OFFSET_RENAMED_FREQSTR
+cdef dict c_DEPR_UNITS
+cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit
+cdef str INVALID_FREQ_ERR_MSG
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pyx file

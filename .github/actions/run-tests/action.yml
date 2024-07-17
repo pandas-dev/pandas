@@ -7,19 +7,14 @@ runs:
       shell: bash -el {0}
 
     - name: Publish test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Test results
         path: test-data.xml
       if: failure()
 
-    - name: Report Coverage
-      run: coverage report -m
-      shell: bash -el {0}
-      if: failure()
-
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         flags: unittests
         name: codecov-pandas
