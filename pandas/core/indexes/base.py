@@ -7473,10 +7473,11 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     --------
     ensure_index
     """
+    from pandas.core.indexes.api import default_index
     from pandas.core.indexes.multi import MultiIndex
 
     if len(sequences) == 0:
-        return Index([])
+        return default_index(0)
     elif len(sequences) == 1:
         if names is not None:
             names = names[0]
