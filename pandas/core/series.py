@@ -1748,7 +1748,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         DataFrame
             DataFrame representation of Series.
-        
         See Also
         --------
         Series.to_dict : Convert Series to dict object.
