@@ -301,7 +301,7 @@ class TestMaskedArrays(base.ExtensionTests):
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
-        elif op_name in ["mean", "median", "var", "std", "skew"]:
+        elif op_name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             cmp_dtype = "Float64"
         elif op_name in ["max", "min"]:
             cmp_dtype = arr.dtype.name
@@ -323,9 +323,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 else "UInt64"
             )
         elif arr.dtype.kind == "b":
-            if op_name in ["mean", "median", "var", "std", "skew"]:
-                cmp_dtype = "Float64"
-            elif op_name in ["min", "max"]:
+            if op_name in ["min", "max"]:
                 cmp_dtype = "boolean"
             elif op_name in ["sum", "prod"]:
                 cmp_dtype = (

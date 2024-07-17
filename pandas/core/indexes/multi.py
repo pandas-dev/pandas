@@ -2316,16 +2316,32 @@ class MultiIndex(Index):
         """
         Make a new :class:`pandas.MultiIndex` with the passed list of codes deleted.
 
+        This method allows for the removal of specified labels from a MultiIndex.
+        The labels to be removed can be provided as a list of tuples if no level
+        is specified, or as a list of labels from a specific level if the level
+        parameter is provided. This can be useful for refining the structure of a
+        MultiIndex to fit specific requirements.
+
         Parameters
         ----------
         codes : array-like
             Must be a list of tuples when ``level`` is not specified.
         level : int or level name, default None
+            Level from which the labels will be dropped.
         errors : str, default 'raise'
+            If 'ignore', suppress error and existing labels are dropped.
 
         Returns
         -------
         MultiIndex
+            A new MultiIndex with the specified labels removed.
+
+        See Also
+        --------
+        MultiIndex.remove_unused_levels : Create new MultiIndex from current that
+            removes unused levels.
+        MultiIndex.reorder_levels : Rearrange levels using input order.
+        MultiIndex.rename : Rename levels in a MultiIndex.
 
         Examples
         --------
