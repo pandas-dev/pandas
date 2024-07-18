@@ -2999,11 +2999,11 @@ def test_groupby_multi_index_codes():
 
 
 def test_groupby_keys_1length_list():
-    # GH#58858
+    # GH#59179
     msg = "`groups` by one element list returns scalar is deprecated"
 
     df = DataFrame({"x": [10, 20, 30], "y": ["a", "b", "c"]})
-    expected = {(10,): [0], (20,): [1], (30,): [2]}
+    expected = {10: [0], 20: [1], 30: [2]}
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby(["x"]).groups
     tm.assert_dict_equal(result, expected)

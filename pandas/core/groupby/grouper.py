@@ -675,11 +675,11 @@ class Grouping:
             warnings.warn(
                 "`groups` by one element list returns scalar is deprecated "
                 "and will be removed. In a future version `groups` by one element "
-                "list will return tuple.",
+                "list will return tuple. Use ``df.groupby(by='a').groups`` "
+                "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            cats = [(key,) for key in cats]  # type: ignore[assignment]
         return self._index.groupby(cats)
 
     @property

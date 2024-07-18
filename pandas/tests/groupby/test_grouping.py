@@ -545,19 +545,62 @@ class TestGrouping:
 
         df = DataFrame([[1, "A"]], columns=midx)
 
+        msg = "`groups` by one element list returns scalar is deprecated"
         grouped = df.groupby("to filter").groups
         assert grouped["A"] == [0]
 
-        msg = "`groups` by one element list returns scalar is deprecated"
-
         with tm.assert_produces_warning(FutureWarning, match=msg):
             grouped = df.groupby([("to filter", "")]).groups
-        assert grouped[("A",)] == [0]
+        assert grouped["A"] == [0]
 
         df = DataFrame([[1, "A"], [2, "B"]], columns=midx)
 
+        expected = df.groupby("to filter").groups
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby([("to filter", "")]).groups
+        assert result == expected
+
+        df = DataFrame([[1, "A"], [2, "A"]], columns=midx)
+
+        expected = df.groupby("to filter").groups
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby([("to filter", "")]).groups
+        tm.assert_dict_equal(result, expected)
+
+    def test_groupby_multiindex_tuple(self):
+        # GH 17979, GH#59179
+        df = DataFrame(
+            [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+            columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
+        )
+
+        msg = "`groups` by one element list returns scalar is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df.groupby([("b", 1)]).groups
+        result = df.groupby(("b", 1)).groups
+        tm.assert_dict_equal(expected, result)
+
+        df2 = DataFrame(
+            df.values,
+            columns=MultiIndex.from_arrays(
+                [["a", "b", "b", "c"], ["d", "d", "e", "e"]]
+            ),
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df2.groupby([("b", "d")]).groups
+        result = df.groupby(("b", 1)).groups
+        tm.assert_dict_equal(expected, result)
+
+        df3 = DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df3.groupby([("b", "d")]).groups
+        result = df.groupby(("b", 1)).groups
+        tm.assert_dict_equal(expected, result)
+
     def test_groupby_multiindex_partial_indexing_equivalence(self):
-        # GH 17977
+        # GH 17977, GH#59179
         df = DataFrame(
             [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
             columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
@@ -584,7 +627,6 @@ class TestGrouping:
         tm.assert_frame_equal(expected_max, result_max)
 
         msg = "`groups` by one element list returns scalar is deprecated"
-
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
             result_groups = df.groupby([("a", 1)])["b"].groups
@@ -690,7 +732,7 @@ class TestGrouping:
         tm.assert_almost_equal(grouped._grouper.codes[0], exp_labels)
 
     def test_list_grouper_with_nat(self):
-        # GH 14715
+        # GH 14715, GH#59179
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
         grouper = Grouper(key="date", freq="YS")
@@ -698,8 +740,7 @@ class TestGrouping:
 
         # Grouper in a list grouping
         result = df.groupby([grouper])
-        expected = {(Timestamp("2011-01-01"),): list(range(364)), (pd.NaT,): [364]}
-
+        expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = result.groups
         tm.assert_dict_equal(result, expected)
@@ -976,7 +1017,7 @@ class TestIteration:
         assert groups is grouped.groups  # caching works
 
         for k, v in grouped.groups.items():
-            assert (df.loc[v]["A"] == k[0]).all()
+            assert (df.loc[v]["A"] == k).all()
 
         grouped = df.groupby(["A", "B"])
         groups = grouped.groups
