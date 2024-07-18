@@ -1712,6 +1712,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         collections.abc.MutableMapping
             Key-value representation of Series.
 
+        See Also
+        --------
+        Series.to_list: Converts Series to a list of the values.
+        Series.to_numpy: Converts Series to NumPy ndarray.
+        Series.array: ExtensionArray of the data backing this Series.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
