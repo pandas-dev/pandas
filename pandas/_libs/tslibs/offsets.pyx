@@ -4695,11 +4695,16 @@ _lite_rule_alias = {
     "YS": "YS-JAN",    # YearBegin(month=1),
     "BYE": "BYE-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
-
-    "Min": "min",
 }
 
-_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
+_dont_uppercase = {
+    "h",
+    "bh",
+    "cbh",
+    "MS",
+    "ms",
+    "s",
+}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
