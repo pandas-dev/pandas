@@ -50,19 +50,55 @@ JSON read/write round-trippable with ``orient='table'``
 
 A ``DataFrame`` can now be written to and subsequently read back via JSON while preserving metadata through usage of the ``orient='table'`` argument (see :issue:`18912` and :issue:`9146`). Previously, none of the available ``orient`` values guaranteed the preservation of dtypes and index names, amongst other metadata.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.DataFrame({'foo': [1, 2, 3, 4],
-                      'bar': ['a', 'b', 'c', 'd'],
-                      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-                      'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
-                     index=pd.Index(range(4), name='idx'))
-   df
-   df.dtypes
-   df.to_json('test.json', orient='table')
-   new_df = pd.read_json('test.json', orient='table')
-   new_df
-   new_df.dtypes
+   In [1]: df = pd.DataFrame({'foo': [1, 2, 3, 4],
+      ...:                    'bar': ['a', 'b', 'c', 'd'],
+      ...:                    'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+      ...:                    'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
+      ...:                   index=pd.Index(range(4), name='idx'))
+
+   In [2]: df
+   Out[2]:
+        foo bar        baz qux
+   idx
+   0      1   a 2018-01-01   a
+   1      2   b 2018-01-02   b
+   2      3   c 2018-01-03   c
+   3      4   d 2018-01-04   c
+
+   [4 rows x 4 columns]
+
+   In [3]: df.dtypes
+   Out[3]:
+   foo             int64
+   bar            object
+   baz    datetime64[ns]
+   qux          category
+   Length: 4, dtype: object
+
+   In [4]: df.to_json('test.json', orient='table')
+
+   In [5]: new_df = pd.read_json('test.json', orient='table')
+
+   In [6]: new_df
+   Out[6]:
+        foo bar        baz qux
+   idx
+   0      1   a 2018-01-01   a
+   1      2   b 2018-01-02   b
+   2      3   c 2018-01-03   c
+   3      4   d 2018-01-04   c
+
+   [4 rows x 4 columns]
+
+   In [7]: new_df.dtypes
+   Out[7]:
+   foo             int64
+   bar            object
+   baz    datetime64[ns]
+   qux          category
+   Length: 4, dtype: object
 
 Please note that the string ``index`` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
 

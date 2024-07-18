@@ -1749,6 +1749,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame
             DataFrame representation of Series.
 
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
+
         Examples
         --------
         >>> s = pd.Series(["a", "b", "c"], name="vals")
@@ -6567,7 +6571,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            The maximum of the values in the Series.
+            The minimum of the values in the Series.
 
         See Also
         --------
@@ -6716,7 +6720,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Sum of the values for the requested axis.
 
         See Also
         --------
@@ -6826,7 +6830,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Mean of the values for the requested axis.
 
         See Also
         --------
