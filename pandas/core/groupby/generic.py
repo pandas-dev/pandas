@@ -9,12 +9,12 @@ which here returns a DataFrameGroupBy object.
 from __future__ import annotations
 
 from collections import abc
+from collections.abc import Callable
 from functools import partial
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NamedTuple,
     TypeVar,
