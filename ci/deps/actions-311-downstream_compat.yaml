@@ -14,9 +14,9 @@ dependencies:
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
-  - pytest-xdist>=2.2.0
-  - pytest-localserver>=0.7.1
-  - pytest-qt>=4.2.0
+  - pytest-xdist>=3.4.0
+  - pytest-localserver>=0.8.1
+  - pytest-qt>=4.4.0
   - boto3
 
   # required dependencies
@@ -31,7 +31,7 @@ dependencies:
   - fastparquet>=2023.10.0
   - fsspec>=2022.11.0
   - html5lib>=1.1
-  - hypothesis>=6.46.1
+  - hypothesis>=6.84.0
   - gcsfs>=2022.11.0
   - jinja2>=3.1.2
   - lxml>=4.9.2

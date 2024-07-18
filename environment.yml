@@ -15,8 +15,8 @@ dependencies:
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
-  - pytest-xdist>=2.2.0
-  - pytest-qt>=4.2.0
+  - pytest-xdist>=3.4.0
+  - pytest-qt>=4.4.0
   - pytest-localserver
   - pyqt>=5.15.9
   - coverage
@@ -33,7 +33,7 @@ dependencies:
   - fastparquet>=2023.10.0
   - fsspec>=2022.11.0
   - html5lib>=1.1
-  - hypothesis>=6.46.1
+  - hypothesis>=6.84.0
   - gcsfs>=2022.11.0
   - ipython
   - jinja2>=3.1.2
