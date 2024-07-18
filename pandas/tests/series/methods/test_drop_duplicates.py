@@ -77,8 +77,6 @@ class TestSeriesDropDuplicates:
     def dtype(self, request):
         """
         Fixture that provides different data types for testing.
-        The parameterized fixture returns various numpy data types including
-        integer, unsigned integer, float, string, timedelta, and datetime.
         """
         return request.param
 
@@ -86,10 +84,6 @@ class TestSeriesDropDuplicates:
     def cat_series_unused_category(self, dtype, ordered):
         """
         Fixture that creates a Categorical Series with some unused categories.
-        This fixture creates a Categorical Series based on the given dtype and
-        ordered parameters. The input series contains some categories that are
-        not used in the actual data, allowing the testing of categorical
-        behavior with unused categories.
         """
         # Test case 1
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
@@ -155,10 +149,6 @@ class TestSeriesDropDuplicates:
     def cat_series(self, dtype, ordered):
         """
         Fixture that creates a Categorical Series with no unused categories.
-        This fixture creates a Categorical Series based on the given dtype and
-        ordered parameters. The input series contains categories that are all
-        used in the actual data, allowing the testing of categorical behavior
-        without unused categories.
         """
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
