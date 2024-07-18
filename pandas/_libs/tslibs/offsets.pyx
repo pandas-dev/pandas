@@ -4676,6 +4676,7 @@ prefix_mapping = {
         Hour,  # 'h'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
+        LastWeekOfMonth,  # 'LWOM'
         FY5253,
         FY5253Quarter,
     ]
@@ -4894,7 +4895,7 @@ cpdef to_offset(freq, bint is_period=False):
                         f"\'{name}\' is deprecated and will be removed "
                         f"in a future version, please use "
                         f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                        f" instead.",
+                        f"instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                         )

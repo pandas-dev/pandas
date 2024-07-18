@@ -274,45 +274,33 @@ class ParserBase:
         self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
-        if not is_index_col(self.index_col) or not self.index_col:
-            index = None
-        else:
-            simple_index = self._get_simple_index(alldata, columns)
-            index = self._agg_index(simple_index)
+        if isinstance(self.index_col, list) and len(self.index_col):
+            to_remove = []
+            indexes = []
+            for idx in self.index_col:
+                if isinstance(idx, str):
+                    raise ValueError(f"Index {idx} invalid")
+                to_remove.append(idx)
+                indexes.append(alldata[idx])
+            # remove index items from content and columns, don't pop in
+            # loop
+            for i in sorted(to_remove, reverse=True):
+                alldata.pop(i)
+                if not self._implicit_index:
+                    columns.pop(i)
+            index = self._agg_index(indexes)
 
-        # add names for the index
-        if indexnamerow:
-            coffset = len(indexnamerow) - len(columns)
-            assert index is not None
-            index = index.set_names(indexnamerow[:coffset])
+            # add names for the index
+            if indexnamerow:
+                coffset = len(indexnamerow) - len(columns)
+                index = index.set_names(indexnamerow[:coffset])
+        else:
+            index = None
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
 
         return index, columns
-
-    @final
-    def _get_simple_index(self, data, columns):
-        def ix(col):
-            if not isinstance(col, str):
-                return col
-            raise ValueError(f"Index {col} invalid")
-
-        to_remove = []
-        index = []
-        for idx in self.index_col:
-            i = ix(idx)
-            to_remove.append(i)
-            index.append(data[i])
-
-        # remove index items from content and columns, don't pop in
-        # loop
-        for i in sorted(to_remove, reverse=True):
-            data.pop(i)
-            if not self._implicit_index:
-                columns.pop(i)
-
-        return index
 
     @final
     def _clean_mapping(self, mapping):
@@ -333,12 +321,13 @@ class ParserBase:
         return clean
 
     @final
-    def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
+    def _agg_index(self, index) -> Index:
         arrays = []
         converters = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
         for i, arr in enumerate(index):
-            if try_parse_dates and self._should_parse_dates(i):
+            if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
                     col=self.index_names[i] if self.index_names is not None else None,
@@ -363,8 +352,6 @@ class ParserBase:
                     )
                 else:
                     col_na_values, col_na_fvalues = set(), set()
-
-            clean_dtypes = self._clean_mapping(self.dtype)
 
             cast_type = None
             index_converter = False
@@ -631,35 +618,6 @@ class ParserBase:
                 ParserWarning,
                 stacklevel=find_stack_level(),
             )
-
-    @overload
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object],
-        names: Iterable[Hashable],
-    ) -> set[int]: ...
-
-    @overload
-    def _evaluate_usecols(
-        self, usecols: SequenceT, names: Iterable[Hashable]
-    ) -> SequenceT: ...
-
-    @final
-    def _evaluate_usecols(
-        self,
-        usecols: Callable[[Hashable], object] | SequenceT,
-        names: Iterable[Hashable],
-    ) -> SequenceT | set[int]:
-        """
-        Check whether or not the 'usecols' parameter
-        is a callable.  If so, enumerates the 'names'
-        parameter and returns a set of indices for
-        each entry in 'names' that evaluates to True.
-        If not a callable, returns 'usecols'.
-        """
-        if callable(usecols):
-            return {i for i, name in enumerate(names) if usecols(name)}
-        return usecols
 
     @final
     def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:
@@ -988,3 +946,32 @@ def _validate_usecols_arg(usecols):
 
         return usecols, usecols_dtype
     return usecols, None
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object],
+    names: Iterable[Hashable],
+) -> set[int]: ...
+
+
+@overload
+def evaluate_callable_usecols(
+    usecols: SequenceT, names: Iterable[Hashable]
+) -> SequenceT: ...
+
+
+def evaluate_callable_usecols(
+    usecols: Callable[[Hashable], object] | SequenceT,
+    names: Iterable[Hashable],
+) -> SequenceT | set[int]:
+    """
+    Check whether or not the 'usecols' parameter
+    is a callable.  If so, enumerates the 'names'
+    parameter and returns a set of indices for
+    each entry in 'names' that evaluates to True.
+    If not a callable, returns 'usecols'.
+    """
+    if callable(usecols):
+        return {i for i, name in enumerate(names) if usecols(name)}
+    return usecols
