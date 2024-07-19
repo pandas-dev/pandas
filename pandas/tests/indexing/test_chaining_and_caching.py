@@ -285,11 +285,9 @@ class TestChaining:
             df.loc[2]["C"] = "foo"
         tm.assert_frame_equal(df, df_original)
         # TODO: Use tm.raises_chained_assignment_error() when PDEP-6 is enforced
-        with tm.raises_chained_assignment_error(
-            extra_warnings=(FutureWarning,), extra_match=(None,)
-        ):
-            df["C"][2] = "foo"
-        tm.assert_frame_equal(df, df_original)
+        with pytest.raises(TypeError, match="Invalid value"):
+            with tm.raises_chained_assignment_error():
+                df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self):
         # operating on a copy

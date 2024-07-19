@@ -1086,7 +1086,7 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - rng
 
-    @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5min", "5h", "5d"])
+    @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5min", "5h", "5D"])
     def test_parr_add_timedeltalike_tick_gt1(self, three_days, freqstr, box_with_array):
         # GH#23031 adding a time-delta-like offset to a PeriodArray that has
         # tick-like frequency with n != 1
