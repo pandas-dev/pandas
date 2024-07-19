@@ -312,7 +312,7 @@ def read_sql_table(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
         .. versionadded:: 2.0
@@ -449,7 +449,7 @@ def read_sql_query(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
         .. versionadded:: 2.0
@@ -592,7 +592,7 @@ def read_sql(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
         .. versionadded:: 2.0
@@ -1689,7 +1689,7 @@ class SQLDatabase(PandasSQL):
             is to not use nullable data types. If specified, the behavior
             is as follows:
 
-            * ``"numpy_nullable"``: returns with nullable-dtype-backed
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
             * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
             .. versionadded:: 2.0
@@ -2154,7 +2154,7 @@ class ADBCDatabase(PandasSQL):
             is to not use nullable data types. If specified, the behavior
             is as follows:
 
-            * ``"numpy_nullable"``: returns with nullable-dtype-backed
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
             * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
             .. versionadded:: 2.0

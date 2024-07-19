@@ -6672,7 +6672,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
 
-            * ``"numpy_nullable"``: returns with nullable-dtype-backed
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
             * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
             .. versionadded:: 2.0

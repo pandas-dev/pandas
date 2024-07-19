@@ -98,7 +98,7 @@ def read_feather(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`.
         * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
 
         .. versionadded:: 2.0
