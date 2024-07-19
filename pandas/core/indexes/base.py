@@ -11,8 +11,6 @@ from typing import (
     ClassVar,
     Literal,
     NoReturn,
-    Optional,
-    Union,
     cast,
     final,
     overload,
@@ -47,6 +45,7 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     DropKeep,
     Dtype,
     DtypeObj,
@@ -60,6 +59,7 @@ from pandas._typing import (
     ReindexMethod,
     Self,
     Shape,
+    SliceType,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -158,8 +158,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
@@ -315,20 +313,6 @@ def _new_Index(cls, d):
         #  "data" key not in RangeIndex
         d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
-
-
-slice_type = Optional[
-    Union[
-        str,
-        IntegerDtype,
-        FloatingDtype,
-        DatetimeTZDtype,
-        CategoricalDtype,
-        PeriodDtype,
-        IntervalDtype,
-        abc.Hashable,
-    ]
-]
 
 
 class Index(IndexOpsMixin, PandasObject):
@@ -6413,7 +6397,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level: np.str_ | int | None = None) -> npt.NDArray[np.bool_]:
+    def isin(self, values, level: str_t | int | None = None) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
 
@@ -6713,8 +6697,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_locs(
         self,
-        start: slice_type = None,
-        end: slice_type = None,
+        start: SliceType = None,
+        end: SliceType = None,
         step: int | None = None,
     ) -> tuple[int, int]:
         """
@@ -6810,7 +6794,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc: int | np.integer | list[int] | npt.NDArray[np.int_]) -> Self:
+    def delete(
+        self, loc: int | np.integer | list[int] | npt.NDArray[np.integer]
+    ) -> Self:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -7257,7 +7243,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(
-        self, axis: int | None = None, skipna: bool = True, *args, **kwargs
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -7272,7 +7258,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(IndexOpsMixin.argmax.__doc__)
     def argmax(
-        self, axis: int | None = None, skipna: bool = True, *args, **kwargs
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -7284,7 +7270,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Encountered all NA values")
         return super().argmax(skipna=skipna)
 
-    def min(self, axis: int | None = None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -7347,7 +7333,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def max(self, axis: int | None = None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
