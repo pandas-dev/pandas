@@ -359,6 +359,8 @@ cdef dict c_PERIOD_AND_OFFSET_DEPR_FREQSTR = {
     "b": "B",
     "c": "C",
     "MIN": "min",
+    "US": "us",
+    "NS": "ns",
 }
 
 cdef str INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"

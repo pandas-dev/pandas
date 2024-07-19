@@ -760,7 +760,7 @@ class TestDatetimeArray:
         with pytest.raises(ValueError, match=msg):
             pd.date_range("1/1/2000", periods=4, freq=freq)
 
-    @pytest.mark.parametrize("freq_depr", ["2MIN", "2mS", "2Us"])
+    @pytest.mark.parametrize("freq_depr", ["2MIN", "2nS", "2Us"])
     def test_date_range_uppercase_frequency_deprecated(self, freq_depr):
         # GH#9586, GH#54939
         depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
