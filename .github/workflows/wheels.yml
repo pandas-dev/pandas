@@ -101,8 +101,6 @@ jobs:
         # TODO: support PyPy?
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
-        # 'pip' is the default
-        - cibw_build_frontend: pip
         # TODO: Remove this plus installing build deps in cibw_before_build.sh
         # and test deps in cibw_before_test.sh after pandas can be built with a released NumPy/Cython
         - python: ["cp313", "3.13"]
@@ -165,7 +163,7 @@ jobs:
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend }}
+          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
           CIBW_PLATFORM: ${{ matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide' || 'auto' }}
 
       - name: Set up Python
@@ -189,6 +187,7 @@ jobs:
       - name: Test Windows Wheels
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
         shell: pwsh
+        # TODO: Remove NumPy nightly install when there's a 3.13 wheel on PyPI
         run: |
           $TST_CMD = @"
           python -m pip install hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0;
