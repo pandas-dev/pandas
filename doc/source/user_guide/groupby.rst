@@ -668,8 +668,9 @@ column, which produces an aggregated result with a hierarchical column index:
    grouped[["C", "D"]].agg(["sum", "mean", "std"])
 
 
-The resulting aggregations are named after the functions themselves. If you
-need to rename, then you can add in a chained operation for a ``Series`` like this:
+The resulting aggregations are named after the functions themselves.
+
+For a ``Series``, if you need to rename, you can add in a chained operation like this:
 
 .. ipython:: python
 
@@ -679,7 +680,18 @@ need to rename, then you can add in a chained operation for a ``Series`` like th
        .rename(columns={"sum": "foo", "mean": "bar", "std": "baz"})
    )
 
+Or, you can simply pass a list of tuples each with the name of the new column and the aggregate function:
+
+.. ipython:: python
+
+   (
+      grouped["C"]
+      .agg([("foo", "sum"), ("bar", "mean"), ("baz", "std")])
+   )
+
 For a grouped ``DataFrame``, you can rename in a similar manner:
+
+By chaining ``rename`` operation,
 
 .. ipython:: python
 
@@ -687,6 +699,16 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
        grouped[["C", "D"]].agg(["sum", "mean", "std"]).rename(
            columns={"sum": "foo", "mean": "bar", "std": "baz"}
        )
+   )
+
+Or, passing a list of tuples,
+
+.. ipython:: python
+
+   (
+      grouped[["C", "D"]].agg(
+         [("foo", "sum"), ("bar", "mean"), ("baz", "std")]
+      )
    )
 
 .. note::
