@@ -280,6 +280,7 @@ class Preprocessors:
         PDEP's in different status from the directory tree and GitHub.
         """
         KNOWN_STATUS = {
+            "Draft",
             "Under discussion",
             "Accepted",
             "Implemented",
@@ -319,7 +320,7 @@ class Preprocessors:
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
+            f"q=is:pr is:open label:PDEP draft:false repo:{github_repo_url}",
             headers=GITHUB_API_HEADERS,
             timeout=5,
         )
