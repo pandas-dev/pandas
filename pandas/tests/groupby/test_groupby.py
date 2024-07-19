@@ -2999,7 +2999,7 @@ def test_groupby_multi_index_codes():
 
 
 def test_groupby_keys_1length_list():
-    # GH#59179
+    # GH#58858
     msg = "`groups` by one element list returns scalar is deprecated"
 
     df = DataFrame({"x": [10, 20, 30], "y": ["a", "b", "c"]})

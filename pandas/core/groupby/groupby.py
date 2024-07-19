@@ -654,6 +654,15 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         >>> ser.resample("MS").groups
         {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
+        if isinstance(self.keys, list) and len(self.keys) == 1:
+            warnings.warn(
+                "`groups` by one element list returns scalar is deprecated "
+                "and will be removed. In a future version `groups` by one element "
+                "list will return tuple. Use ``df.groupby(by='a').groups`` "
+                "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._grouper.groups
 
     @final
