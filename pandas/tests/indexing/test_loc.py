@@ -3264,3 +3264,14 @@ class TestLocSeries:
             index=Index(np.array(ids).repeat(1000), dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_index_alignment_for_series(self):
+        # GH #56024
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        other = Series([200, 999], index=[1, 0])
+        df.loc[:, "a"] = other
+        expected = DataFrame({"a": [200, 999], "b": [3, 4]})
+        print(expected)
+        print(df)
+        tm.assert_frame_equal(expected, df)
+        # assert expected.equals(df)
