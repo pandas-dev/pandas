@@ -142,7 +142,7 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
-    np.histogram_bin_edges: Function to calculate only the edges of the bins
+    numpy.histogram_bin_edges: Function to calculate only the edges of the bins
         used by the histogram function.
 
     Notes
