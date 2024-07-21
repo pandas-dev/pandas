@@ -526,3 +526,5 @@ UsecolsArgType = Union[
 
 # maintaine the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
+
+SliceType = Optional[Hashable]
