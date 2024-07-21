@@ -739,10 +739,10 @@ class TestGrouping:
         msg = "`groups` by one element list returns scalar is deprecated"
 
         # Grouper in a list grouping
-        result = df.groupby([grouper])
+        gb = df.groupby([grouper])
         expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = result.groups
+            result = gb.groups
         tm.assert_dict_equal(result, expected)
 
         # Test case without a list
