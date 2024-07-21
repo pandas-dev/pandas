@@ -208,6 +208,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return complexobject_cmp((PyComplexObject *)a, (PyComplexObject *)b);
     }
     if (PyTuple_Check(a)) {
+      // compare tuple subclasses as builtin tuples
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
@@ -312,6 +313,7 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
     // and kh_complex128_hash_func doesn't respect it
     hash = complexobject_hash((PyComplexObject *)key);
   } else if (PyTuple_Check(key)) {
+    // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
   } else {
     hash = PyObject_Hash(key);
