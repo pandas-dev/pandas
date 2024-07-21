@@ -34,6 +34,7 @@ from typing import (
     cast,
     overload,
 )
+import urllib.parse
 import warnings
 
 import numpy as np
@@ -4559,14 +4560,8 @@ class DataFrame(NDFrame, OpsMixin):
         For other characters that fall outside the ASCII range (U+0001..U+007F)
         and those that are not further specified in PEP 3131,
         the query parser will raise an error.
-        This excludes whitespace different than the space character,
-        but also the hashtag (as it is used for comments) and the backtick
-        itself (backtick can also not be escaped).
-
-        In a special case, quotes that make a pair around a backtick can
-        confuse the parser.
-        For example, ```it's` > `that's``` will raise an error,
-        as it forms a quoted string (``'s > `that'``) with a backtick inside.
+        This excludes whitespace different than the space character
+        and the backtick itself (backtick cannot be escaped).
 
         See also the `Python documentation about lexical analysis
         <https://docs.python.org/3/reference/lexical_analysis.html>`__
@@ -4620,7 +4615,35 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
-        res = self.eval(expr, **kwargs)
+
+        # GH 59285
+        if any(("#" in col) or ("'" in col) or ('"' in col) for col in self.columns):
+            # Create a copy of `self` with column names escaped
+            escaped_self = self.copy()
+            escaped_self.columns = [
+                urllib.parse.quote(col) for col in escaped_self.columns
+            ]
+
+            # In expr, escape column names between backticks
+            column_name_to_escaped_name = {
+                col: urllib.parse.quote(col) for col in self.columns
+            }
+            escaped_expr = "`".join(
+                (column_name_to_escaped_name.get(token, token) if (i % 2) else token)
+                for i, token in enumerate(expr.split("`"))
+            )
+
+            # eval
+            escaped_res = escaped_self.eval(escaped_expr, **kwargs)
+
+            # If `res` is a Series or DataFrame, unescape names
+            res = escaped_res.copy()
+            if isinstance(res, Series) and res.name:
+                res.name = urllib.parse.unquote(res.name)
+            elif isinstance(res, DataFrame):
+                res.columns = [urllib.parse.unquote(col) for col in res.columns]
+        else:
+            res = self.eval(expr, **kwargs)
 
         try:
             result = self.loc[res]

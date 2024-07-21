@@ -1978,6 +1978,64 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
+def test_query_on_column_name_with_hashtag_character():
+    # GH 59285
+    df = DataFrame((1, 2, 3), columns=["a#"])
+    result = df.query("`a#` < 2")
+    expected = df[df["a#"] < 2]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_comment():
+    # GH 59285
+    df = DataFrame((1, 2, 3), columns=["a#"])
+    result = df.query("`a#` < 2  # This is a comment")
+    expected = df[df["a#"] < 2]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_column_names_with_single_quote_character():
+    df = DataFrame(
+        [
+            {"it's": 1, "that's": 2},
+            {"it's": 3, "that's": 4},
+            {"it's": -1, "that's": -2},
+            {"it's": -3, "that's": -4},
+        ]
+    )
+    result = df.query("`it's` < `that's`")
+    expected = df[df["it's"] < df["that's"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_column_names_with_double_quote_character():
+    df = DataFrame(
+        [
+            {'it"s': 1, 'that"s': 2},
+            {'it"s': 3, 'that"s': 4},
+            {'it"s': -1, 'that"s': -2},
+            {'it"s': -3, 'that"s': -4},
+        ]
+    )
+    result = df.query('`it"s` < `that"s`')
+    expected = df[df['it"s'] < df['that"s']]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_column_names_with_single_quote_and_double_quote_character():
+    df = DataFrame(
+        [
+            {"it's": 1, 'that\'s "nice"': 2},
+            {"it's": 3, 'that\'s "nice"': 4},
+            {"it's": -1, 'that\'s "nice"': -2},
+            {"it's": -3, 'that\'s "nice"': -4},
+        ]
+    )
+    result = df.query("`it's` < `that's \"nice\"`")
+    expected = df[df["it's"] < df['that\'s "nice"']]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
