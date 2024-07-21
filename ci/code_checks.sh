@@ -158,7 +158,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.product RT03" \
         -i "pandas.Series.reorder_levels RT03,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
-        -i "pandas.Series.skew SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
         -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
@@ -196,8 +195,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
-        -i "pandas.Series.to_dict SA01" \
-        -i "pandas.Series.to_frame SA01" \
         -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
