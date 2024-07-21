@@ -5913,7 +5913,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
-        if not isinstance(keys, list):
+        if not is_list_like(keys):
             keys = [keys]
 
         err_msg = (

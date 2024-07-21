@@ -44,6 +44,21 @@ def test_set_index_series():
     ser.iloc[0] = 100
     tm.assert_index_equal(df.index, expected)
 
+class TestSetMultiIndex:
+    df = DataFrame({"a": [1, 2], "b": 1.5, "c": [3, 4]})
+
+    def test_from_list(self):
+        df = self.df.set_index(["a", "b"])
+        self._assert(df)
+
+    def test_from_tuple(self):
+        df = self.df.set_index(("a", "b"))
+        self._assert(df)
+
+    def _assert(self, df):
+        assert isinstance(df.index, pd.MultiIndex)
+        assert df.index.names == ["a", "b"]
+
 
 def test_assign_index_as_series():
     df = DataFrame({"a": [1, 2], "b": 1.5})
