@@ -3568,8 +3568,6 @@ class Index(IndexOpsMixin, PandasObject):
         array([False,  True, False,  True])
         """
         casted_key = self._maybe_cast_indexer(key)
-        if isinstance(casted_key, tuple):
-            casted_key = tuple(casted_key)
         try:
             return self._engine.get_loc(casted_key)
         except KeyError as err:
