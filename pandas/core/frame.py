@@ -4627,7 +4627,7 @@ class DataFrame(NDFrame, OpsMixin):
             column_name_to_escaped = {
                 col: urllib.parse.quote(col) for col in self.columns
             }
-            # Odd-number indexes are column names
+            # A `token` with an odd-number index is a column name
             escaped_expr = "`".join(
                 (column_name_to_escaped.get(token, token) if (i % 2) else token)
                 for i, token in enumerate(expr.split("`"))
