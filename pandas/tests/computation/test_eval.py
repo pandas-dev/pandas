@@ -1994,45 +1994,27 @@ def test_query_on_expr_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
-def test_query_on_column_names_with_single_quote_character():
+@pytest.mark.parametrize(
+    "col1,col2,expr",
+    [
+        ("it's", "that's", "`it's` < `that's`"),
+        ('it"s', 'that"s', '`it"s` < `that"s`'),
+        ("it's", 'that\'s "nice"', "`it's` < `that's \"nice\"`"),
+        ("it's", "that's #cool", "`it's` < `that's #cool` # This is a comment"),
+    ],
+)
+def test_query_on_column_names_with_special_characters(col1, col2, expr):
+    # GH 59285
     df = DataFrame(
         [
-            {"it's": 1, "that's": 2},
-            {"it's": 3, "that's": 4},
-            {"it's": -1, "that's": -2},
-            {"it's": -3, "that's": -4},
+            {col1: 1, col2: 2},
+            {col1: 3, col2: 4},
+            {col1: -1, col2: -2},
+            {col1: -3, col2: -4},
         ]
     )
-    result = df.query("`it's` < `that's`")
-    expected = df[df["it's"] < df["that's"]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_query_on_column_names_with_double_quote_character():
-    df = DataFrame(
-        [
-            {'it"s': 1, 'that"s': 2},
-            {'it"s': 3, 'that"s': 4},
-            {'it"s': -1, 'that"s': -2},
-            {'it"s': -3, 'that"s': -4},
-        ]
-    )
-    result = df.query('`it"s` < `that"s`')
-    expected = df[df['it"s'] < df['that"s']]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_query_on_column_names_with_single_quote_and_double_quote_character():
-    df = DataFrame(
-        [
-            {"it's": 1, 'that\'s "nice"': 2},
-            {"it's": 3, 'that\'s "nice"': 4},
-            {"it's": -1, 'that\'s "nice"': -2},
-            {"it's": -3, 'that\'s "nice"': -4},
-        ]
-    )
-    result = df.query("`it's` < `that's \"nice\"`")
-    expected = df[df["it's"] < df['that\'s "nice"']]
+    result = df.query(expr)
+    expected = df[df[col1] < df[col2]]
     tm.assert_frame_equal(result, expected)
 
 
