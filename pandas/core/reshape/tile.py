@@ -150,7 +150,7 @@ def cut(
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
 
-    np.histogram_bin_edges can be used along with cut to calculate bins according
+    ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
     Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
