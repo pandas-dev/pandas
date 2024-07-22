@@ -482,6 +482,7 @@ class Apply(metaclass=abc.ABCMeta):
 
             df = selected_obj
             results, keys = [], []
+
             for key, how in func.items():
                 cols = df[key]
 
