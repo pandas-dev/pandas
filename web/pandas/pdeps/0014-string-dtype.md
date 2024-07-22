@@ -1,7 +1,7 @@
 # PDEP-14: Dedicated string data type for pandas 3.0
 
 - Created: May 3, 2024
-- Status: Under discussion
+- Status: Accepted
 - Discussion: https://github.com/pandas-dev/pandas/pull/58551
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1
@@ -61,7 +61,7 @@ objects (for better performance), it proposed to make `pyarrow` a new required
 runtime dependency of pandas.
 
 In the meantime, NumPy has also been working on a native variable-width string
-data type, which will be available [starting with NumPy
+data type, which was made available [starting with NumPy
 2.0](https://numpy.org/devdocs/release/2.0.0-notes.html#stringdtype-has-been-added-to-numpy).
 This can provide a potential alternative to PyArrow for implementing a string
 data type in pandas that is not backed by Python objects.
