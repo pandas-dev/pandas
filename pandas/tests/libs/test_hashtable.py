@@ -478,6 +478,14 @@ def test_hash_equal_namedtuple_with_nans():
     assert ht.objects_are_equal(a, b)
 
 
+def test_hash_equal_namedtuple_and_tuple():
+    T = namedtuple("T", ["x", "y"])
+    a = T(1, (2, 3))
+    b = (1, (2, 3))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
