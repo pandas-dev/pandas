@@ -97,18 +97,22 @@ class TestTableSchemaType:
 class TestTableOrient:
     @pytest.fixture
     def da(self):
+        """Fixture for creating a DateArray."""
         return DateArray([dt.date(2021, 10, 10)])
 
     @pytest.fixture
     def dc(self):
+        """Fixture for creating a DecimalArray."""
         return DecimalArray([decimal.Decimal(10)])
 
     @pytest.fixture
     def sa(self):
+        """Fixture for creating a StringDtype array."""
         return array(["pandas"], dtype="string")
 
     @pytest.fixture
     def ia(self):
+        """Fixture for creating an Int64Dtype array."""
         return array([10], dtype="Int64")
 
     def test_build_date_series(self, da):
