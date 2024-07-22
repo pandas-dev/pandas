@@ -362,6 +362,14 @@ any Delta table into Pandas dataframe.
 
 ## Out-of-core
 
+### [Bodo](https://bodo.ai/)
+
+Bodo is a high-performance Python computing engine that automatically parallelizes and
+optimizes your code through compilation using HPC (high-performance computing) techniques.
+Designed to operate with native pandas dataframes, Bodo compiles your pandas code to execute
+across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
+Bodo also makes distributed pandas dataframes queryable with SQL.
+
 ### [Cylon](https://cylondata.org/)
 
 Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
