@@ -406,9 +406,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_complex_imag(self):
         nan1 = complex(1, float("nan"))
@@ -418,9 +417,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_in_tuple(self):
         nan1 = (float("nan"),)
@@ -437,9 +435,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_in_namedtuple(self):
         T = namedtuple("T", ["x"])
@@ -458,9 +455,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=re.escape(repr(other))) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
 
 def test_hash_equal_tuple_with_nans():
