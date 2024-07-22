@@ -788,9 +788,7 @@ def test_get_offset():
 
     pairs = [
         ("B", BDay()),
-        ("b", BDay()),
-        ("bme", BMonthEnd()),
-        ("Bme", BMonthEnd()),
+        ("BME", BMonthEnd()),
         ("W-MON", Week(weekday=0)),
         ("W-TUE", Week(weekday=1)),
         ("W-WED", Week(weekday=2)),

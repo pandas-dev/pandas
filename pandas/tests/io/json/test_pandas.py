@@ -792,7 +792,7 @@ class TestPandasContainer:
 
     def test_typ(self):
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
-        result = read_json(StringIO(s.to_json()), typ=None)
+        result = read_json(StringIO(s.to_json()), typ="series")
         tm.assert_series_equal(result, s)
 
     def test_reconstruction_index(self):
@@ -1609,6 +1609,13 @@ class TestPandasContainer:
             },
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_to_json_with_index_as_a_column_name(self):
+        df = DataFrame(data={"index": [1, 2], "a": [2, 3]})
+        with pytest.raises(
+            ValueError, match="Overlapping names between the index and columns"
+        ):
+            df.to_json(orient="table")
 
     @pytest.mark.parametrize("dtype", [True, {"b": int, "c": int}])
     def test_read_json_table_dtype_raises(self, dtype):

@@ -202,11 +202,23 @@ class TestDataFrameEval:
         expected = df["a"]
         tm.assert_series_equal(expected, res)
 
-    def test_extension_array_eval(self, engine, parser):
+    def test_extension_array_eval(self, engine, parser, request):
         # GH#58748
+        if engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr does not support extension array dtypes"
+            )
+            request.applymarker(mark)
         df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
         result = df.eval("a / b", engine=engine, parser=parser)
-        expected = Series([0.25, 0.40, 0.50])
+        expected = Series(pd.array([0.25, 0.40, 0.50]))
+        tm.assert_series_equal(result, expected)
+
+    def test_complex_eval(self, engine, parser):
+        # GH#21374
+        df = DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
+        result = df.eval("a/b", engine=engine, parser=parser)
+        expected = Series([1.5 + 0.5j])
         tm.assert_series_equal(result, expected)
 
 
@@ -751,7 +763,7 @@ class TestDataFrameQueryNumExprPandas:
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
         df_index = date_range(
-            start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+            start="2019-01-01", freq="1D", periods=10, tz=tz, name="time"
         )
         expected = DataFrame(index=df_index)
         df = DataFrame(index=df_index)
