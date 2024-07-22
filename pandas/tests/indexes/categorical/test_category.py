@@ -21,6 +21,9 @@ from pandas.core.indexes.api import (
 class TestCategoricalIndex:
     @pytest.fixture
     def simple_index(self) -> CategoricalIndex:
+        """
+        Fixture that provides a CategoricalIndex.
+        """
         return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
