@@ -458,7 +458,7 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))) as error:
             table.get_item(other)
         assert str(error.value) == str(other)
 
