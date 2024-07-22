@@ -5,7 +5,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     cast,
 )
 
@@ -32,6 +31,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )

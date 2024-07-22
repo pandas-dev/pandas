@@ -15,7 +15,6 @@ from pandas.core.dtypes.missing import notna
 import pandas.core.algorithms as algos
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import tile_compat
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
@@ -202,9 +201,9 @@ def melt(
         if value_vars_was_not_none:
             frame = frame.iloc[:, algos.unique(idx)]
         else:
-            frame = frame.copy()
+            frame = frame.copy(deep=False)
     else:
-        frame = frame.copy()
+        frame = frame.copy(deep=False)
 
     if col_level is not None:  # allow list or other?
         # frame is a copy
@@ -266,7 +265,8 @@ def melt(
     result = frame._constructor(mdata, columns=mcolumns)
 
     if not ignore_index:
-        result.index = tile_compat(frame.index, num_cols_adjusted)
+        taker = np.tile(np.arange(len(frame)), num_cols_adjusted)
+        result.index = frame.index.take(taker)
 
     return result
 
