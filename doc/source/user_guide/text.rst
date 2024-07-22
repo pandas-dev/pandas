@@ -204,7 +204,7 @@ and replacing any remaining whitespaces with underscores:
 
 .. warning::
 
-    The type of the Series is inferred and the allowed types (i.e. strings).
+    The type of the Series is inferred and is one among the allowed types (i.e. strings).
 
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
