@@ -16,8 +16,8 @@ dependencies:
   # test dependencies
   - pytest>=7.3.2
   - pytest-cov
-  - pytest-xdist>=2.2.0
-  - hypothesis>=6.46.1
+  - pytest-xdist>=3.4.0
+  - hypothesis>=6.84.0
 
   # required
   - numpy

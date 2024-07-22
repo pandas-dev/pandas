@@ -31,6 +31,7 @@ import pandas._testing as tm
         ("2SME-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
         ("2SMS-15", offsets.SemiMonthBegin(2)),
+        ("LWOM-MON", offsets.LastWeekOfMonth()),
     ],
 )
 def test_to_offset(freq_input, expected):
@@ -203,17 +204,7 @@ def test_to_offset_lowercase_frequency_raises(freq_depr):
         to_offset(freq_depr)
 
 
-@pytest.mark.parametrize(
-    "freq_depr",
-    [
-        "2H",
-        "2BH",
-        "2MIN",
-        "2S",
-        "2Us",
-        "2NS",
-    ],
-)
+@pytest.mark.parametrize("freq_depr", ["2MIN", "2Us", "2NS"])
 def test_to_offset_uppercase_frequency_deprecated(freq_depr):
     # GH#54939
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
@@ -238,3 +229,11 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr, expected):
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = to_offset(freq_depr)
     assert result == expected
+
+
+@pytest.mark.parametrize("freq", ["2H", "2BH", "2S"])
+def test_to_offset_uppercase_frequency_raises(freq):
+    msg = f"Invalid frequency: {freq}"
+
+    with pytest.raises(ValueError, match=msg):
+        to_offset(freq)

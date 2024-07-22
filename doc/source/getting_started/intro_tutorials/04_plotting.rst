@@ -32,8 +32,10 @@ How do I create plots in pandas?
     air_quality.head()
 
 .. note::
-    The usage of the ``index_col`` and ``parse_dates`` parameters of the ``read_csv`` function to define the first (0th) column as
-    index of the resulting ``DataFrame`` and convert the dates in the column to :class:`Timestamp` objects, respectively.
+    The ``index_col=0`` and ``parse_dates=True`` parameters passed to the ``read_csv`` function define
+    the first (0th) column as index of the resulting ``DataFrame`` and convert the dates in the column
+    to :class:`Timestamp`  objects, respectively.
+
 
 .. raw:: html
 
