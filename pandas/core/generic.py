@@ -1491,13 +1491,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return res.__finalize__(self, method="__invert__")
 
     @final
-    def __nonzero__(self) -> NoReturn:
+    def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
-
-    __bool__ = __nonzero__
 
     @final
     def abs(self) -> Self:
