@@ -1,11 +1,14 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 import re
 import warnings
+import zoneinfo
 
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -161,12 +164,12 @@ class TestPeriodIndex:
             ("Y-DEC", "<YearEnd: month=12>"),
             ("Q-MAR", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
-            ("w-thu", "<Week: weekday=3>"),
+            ("W-THU", "<Week: weekday=3>"),
         ],
     )
     def test_not_subperiod(self, simple_period_range_series, rule, expected_error_msg):
         # These are incompatible period rules for resampling
-        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
+        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="W-WED")
         msg = (
             "Frequency <Week: weekday=2> cannot be resampled to "
             f"{expected_error_msg}, as they are not sub or super periods"
@@ -304,7 +307,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("America/Los_Angeles"),
+            zoneinfo.ZoneInfo("America/Los_Angeles"),
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
@@ -312,9 +315,13 @@ class TestPeriodIndex:
         # see gh-5430
         local_timezone = tz
 
-        start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
+        start = datetime(
+            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=timezone.utc
+        )
         # 1 day later
-        end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
+        end = datetime(
+            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=timezone.utc
+        )
 
         index = date_range(start, end, freq="h", name="idx")
 
@@ -336,7 +343,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("America/Los_Angeles"),
+            zoneinfo.ZoneInfo("America/Los_Angeles"),
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
@@ -353,8 +360,6 @@ class TestPeriodIndex:
             index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
-        # Especially assert that the timezone is LMT for pytz
-        assert result.index.tz == tz
 
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375

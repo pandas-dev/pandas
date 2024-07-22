@@ -14,12 +14,12 @@ from datetime import (
 )
 import functools
 import re
+import zoneinfo
 
 import numpy as np
 from numpy import ma
 from numpy.ma import mrecords
 import pytest
-import pytz
 
 from pandas._config import using_pyarrow_string_dtype
 
@@ -1908,8 +1908,7 @@ class TestDataFrameConstructors:
     def test_constructor_with_datetimes3(self):
         # GH 7594
         # don't coerce tz-aware
-        tz = pytz.timezone("US/Eastern")
-        dt = tz.localize(datetime(2012, 1, 1))
+        dt = datetime(2012, 1, 1, tzinfo=zoneinfo.ZoneInfo("US/Eastern"))
 
         df = DataFrame({"End Date": dt}, index=[0])
         assert df.iat[0, 0] == dt
@@ -2523,11 +2522,13 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuO"):
-            warn = None
+        should_raise = not lib.is_np_dtype(df.dtypes.iloc[0], "fciuO")
+        if should_raise:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.iloc[0, 0] = 0
+                df.iloc[0, 1] = 0
+            return
         else:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             df.iloc[0, 0] = 0
             df.iloc[0, 1] = 0
         if not copy:

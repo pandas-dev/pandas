@@ -25,7 +25,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     AnyStr,
-    Callable,
     Final,
     cast,
 )
@@ -74,6 +73,7 @@ from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )

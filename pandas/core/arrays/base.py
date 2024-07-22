@@ -13,7 +13,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     cast,
@@ -78,6 +77,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -1986,7 +1986,10 @@ class ExtensionArray:
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:
-            result = np.array([result])
+            if name in ["min", "max"]:
+                result = self._from_sequence([result], dtype=self.dtype)
+            else:
+                result = np.array([result])
 
         return result
 

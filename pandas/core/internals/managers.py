@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Sequence,
 )
@@ -8,7 +9,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NoReturn,
     cast,
@@ -249,7 +249,7 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [Index([])] + self.axes[1:]
+            axes = [default_index(0)] + self.axes[1:]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -263,11 +263,8 @@ class BaseBlockManager(PandasObject):
             blocks = []
         return type(self).from_blocks(blocks, axes)
 
-    def __nonzero__(self) -> bool:
+    def __bool__(self) -> bool:
         return True
-
-    # Python3 compat
-    __bool__ = __nonzero__
 
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.

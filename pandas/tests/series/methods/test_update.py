@@ -35,37 +35,39 @@ class TestUpdate:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "other, dtype, expected, warn",
+        "other, dtype, expected, raises",
         [
             # other is int
-            ([61, 63], "int32", Series([10, 61, 12], dtype="int32"), None),
-            ([61, 63], "int64", Series([10, 61, 12]), None),
-            ([61, 63], float, Series([10.0, 61.0, 12.0]), None),
-            ([61, 63], object, Series([10, 61, 12], dtype=object), None),
+            ([61, 63], "int32", Series([10, 61, 12], dtype="int32"), False),
+            ([61, 63], "int64", Series([10, 61, 12]), False),
+            ([61, 63], float, Series([10.0, 61.0, 12.0]), False),
+            ([61, 63], object, Series([10, 61, 12], dtype=object), False),
             # other is float, but can be cast to int
-            ([61.0, 63.0], "int32", Series([10, 61, 12], dtype="int32"), None),
-            ([61.0, 63.0], "int64", Series([10, 61, 12]), None),
-            ([61.0, 63.0], float, Series([10.0, 61.0, 12.0]), None),
-            ([61.0, 63.0], object, Series([10, 61.0, 12], dtype=object), None),
+            ([61.0, 63.0], "int32", Series([10, 61, 12], dtype="int32"), False),
+            ([61.0, 63.0], "int64", Series([10, 61, 12]), False),
+            ([61.0, 63.0], float, Series([10.0, 61.0, 12.0]), False),
+            ([61.0, 63.0], object, Series([10, 61.0, 12], dtype=object), False),
             # others is float, cannot be cast to int
-            ([61.1, 63.1], "int32", Series([10.0, 61.1, 12.0]), FutureWarning),
-            ([61.1, 63.1], "int64", Series([10.0, 61.1, 12.0]), FutureWarning),
-            ([61.1, 63.1], float, Series([10.0, 61.1, 12.0]), None),
-            ([61.1, 63.1], object, Series([10, 61.1, 12], dtype=object), None),
+            ([61.1, 63.1], "int32", Series([10.0, 61.1, 12.0]), True),
+            ([61.1, 63.1], "int64", Series([10.0, 61.1, 12.0]), True),
+            ([61.1, 63.1], float, Series([10.0, 61.1, 12.0]), False),
+            ([61.1, 63.1], object, Series([10, 61.1, 12], dtype=object), False),
             # other is object, cannot be cast
-            ([(61,), (63,)], "int32", Series([10, (61,), 12]), FutureWarning),
-            ([(61,), (63,)], "int64", Series([10, (61,), 12]), FutureWarning),
-            ([(61,), (63,)], float, Series([10.0, (61,), 12.0]), FutureWarning),
-            ([(61,), (63,)], object, Series([10, (61,), 12]), None),
+            ([(61,), (63,)], "int32", Series([10, (61,), 12]), True),
+            ([(61,), (63,)], "int64", Series([10, (61,), 12]), True),
+            ([(61,), (63,)], float, Series([10.0, (61,), 12.0]), True),
+            ([(61,), (63,)], object, Series([10, (61,), 12]), False),
         ],
     )
-    def test_update_dtypes(self, other, dtype, expected, warn):
+    def test_update_dtypes(self, other, dtype, expected, raises):
         ser = Series([10, 11, 12], dtype=dtype)
         other = Series(other, index=[1, 3])
-        with tm.assert_produces_warning(warn, match="item of incompatible dtype"):
+        if raises:
+            with pytest.raises(TypeError, match="Invalid value"):
+                ser.update(other)
+        else:
             ser.update(other)
-
-        tm.assert_series_equal(ser, expected)
+            tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
         "values, other, expected",
