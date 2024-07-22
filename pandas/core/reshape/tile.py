@@ -142,11 +142,16 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    numpy.histogram_bin_edges: Function to calculate only the edges of the bins
+        used by the histogram function.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
+
+    ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
+    to some predefined methods.
 
     Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
@@ -239,6 +244,16 @@ def cut(
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
+
+    Using np.histogram_bin_edges with cut
+
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4]),
+    ...     bins=np.histogram_bin_edges(np.array([1, 7, 5, 4]), bins="auto"),
+    ... )
+    ... # doctest: +ELLIPSIS
+    [NaN, (5.0, 7.0], (3.0, 5.0], (3.0, 5.0]]
+    Categories (3, interval[float64, right]): [(1.0, 3.0] < (3.0, 5.0] < (5.0, 7.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
