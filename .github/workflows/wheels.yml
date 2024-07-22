@@ -112,6 +112,7 @@ jobs:
         # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
         - buildplat: [ubuntu-22.04, pyodide_wasm32]
           python: ["cp312", "3.12"]
+          cibw_build_frontend: 'build'
         # TODO: Build free-threaded wheels for Windows
         exclude:
         - buildplat: [windows-2022, win_amd64]
