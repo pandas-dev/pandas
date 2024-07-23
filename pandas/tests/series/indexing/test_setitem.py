@@ -1179,8 +1179,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
     @pytest.fixture
     def obj(self):
         """
-        Fixture to create a Series instance using IntervalIndex
-        [(0, 1], (1, 2], (2, 3]]
+        Fixture to create a Series [(0, 1], (1, 2], (2, 3]]
         """
         idx = IntervalIndex.from_breaks(range(4))
         return Series(idx)
@@ -1202,14 +1201,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, obj, val):
         """
-        Fixture to get a Series instance with dtype:float64 using the given
-        input fixture obj and fixture val.
-        Parameters:
-            obj(Series): [(0, 1], (1, 2], (2, 3]]
-            val(Interval): (0.5, 1.5]
-
-        Returns:
-            (Series): [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
+        Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
         """
         data = [val] + list(obj[1:])
         idx = IntervalIndex(data, dtype="Interval[float64]")
