@@ -534,6 +534,9 @@ def test_groupby_raises_category_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`groups` by one element list returns scalar is deprecated"
+)
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how,
