@@ -91,9 +91,9 @@ if TYPE_CHECKING:
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
-    "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
-    "and 119 (Stata 15/16, over 32,767 variables)."
+    "versions 102, 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE),  "
+    "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
+    "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 _statafile_processing_params1 = """\
@@ -1352,8 +1352,10 @@ class StataReader(StataParser, abc.Iterator):
     def _get_nobs(self) -> int:
         if self._format_version >= 118:
             return self._read_uint64()
-        else:
+        elif self._format_version >= 103:
             return self._read_uint32()
+        else:
+            return self._read_uint16()
 
     def _get_data_label(self) -> str:
         if self._format_version >= 118:
@@ -1393,9 +1395,24 @@ class StataReader(StataParser, abc.Iterator):
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [103, 104, 105, 108, 110, 111, 113, 114, 115]:
+        if self._format_version not in [
+            102,
+            103,
+            104,
+            105,
+            108,
+            110,
+            111,
+            113,
+            114,
+            115,
+        ]:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
+        # Note 102 format will have a zero in this header position, so support
+        # relies on little-endian being set whenever this value isn't one,
+        # even though for later releases strictly speaking the value should
+        # be either one or two to be valid
         self._byteorder = ">" if self._read_int8() == 0x1 else "<"
         self._filetype = self._read_int8()
         self._path_or_buf.read(1)  # unused
