@@ -1178,25 +1178,40 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     @pytest.fixture
     def obj(self):
+        """
+        Fixture to create a Series [(0, 1], (1, 2], (2, 3]]
+        """
         idx = IntervalIndex.from_breaks(range(4))
         return Series(idx)
 
     @pytest.fixture
     def val(self):
+        """
+        Fixture to get an interval (0.5, 1.5]
+        """
         return Interval(0.5, 1.5)
 
     @pytest.fixture
     def key(self):
+        """
+        Fixture to get a key 0
+        """
         return 0
 
     @pytest.fixture
     def expected(self, obj, val):
+        """
+        Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
+        """
         data = [val] + list(obj[1:])
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
     @pytest.fixture
     def raises(self):
+        """
+        Fixture to enable raising pytest exceptions
+        """
         return True
 
 
