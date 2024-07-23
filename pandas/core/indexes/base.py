@@ -5785,13 +5785,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return sorted_index
 
-    @final
-    def sort(self, *args, **kwargs):
-        """
-        Use sort_values instead.
-        """
-        raise TypeError("cannot sort an Index object in-place, use sort_values instead")
-
     def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
