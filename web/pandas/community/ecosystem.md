@@ -370,7 +370,7 @@ Designed to operate with native pandas dataframes, Bodo compiles your pandas cod
 across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
 Bodo also makes distributed pandas dataframes queryable with SQL.
 
-The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid 
+The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid
 enterprise edition. Free licenses of Bodo (for more than 8 cores) are available
 [upon request](https://www.bodo.ai/contact) for academic and non-profit use.
 
