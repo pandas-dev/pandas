@@ -751,10 +751,10 @@ class TestMisc:
         # GH 11652
         s = Series(index=range(size), dtype=np.float64)
         s.loc[range(1)] = 42
-        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=range(1)))
 
         s.loc[range(2)] = 43
-        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=range(2)))
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170
