@@ -490,10 +490,8 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(
             df.nunique(dropna=False), Series({"A": 1, "B": 3, "C": 3})
         )
-        tm.assert_series_equal(df.nunique(axis=1), Series({0: 1, 1: 2, 2: 2}))
-        tm.assert_series_equal(
-            df.nunique(axis=1, dropna=False), Series({0: 1, 1: 3, 2: 2})
-        )
+        tm.assert_series_equal(df.nunique(axis=1), Series([1, 2, 2]))
+        tm.assert_series_equal(df.nunique(axis=1, dropna=False), Series([1, 3, 2]))
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_mean_mixed_datetime_numeric(self, tz):
@@ -707,8 +705,8 @@ class TestDataFrameAnalytics:
 
     def test_mode_empty_df(self):
         df = DataFrame([], columns=["a", "b"])
+        expected = df.copy()
         result = df.mode()
-        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
@@ -769,7 +767,7 @@ class TestDataFrameAnalytics:
 
         # excludes non-numeric
         result = mixed.min(axis=1, numeric_only=True)
-        expected = Series([1, 1, 1.0], index=[0, 1, 2])
+        expected = Series([1, 1, 1.0])
         tm.assert_series_equal(result, expected)
 
         # works when only those columns are selected
@@ -1186,21 +1184,21 @@ class TestDataFrameAnalytics:
         df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 0], index=[1, 2, 3])
+        expected = Series([0, 2, 0], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with NaTs
         df.loc[0, 3] = pd.NaT
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1], index=[1, 2, 3])
+        expected = Series([0, 2, 1], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with multi-column dt64 block
@@ -1208,11 +1206,11 @@ class TestDataFrameAnalytics:
         df._consolidate_inplace()
 
         result = df.idxmax()
-        expected = Series([1, 0, 2, 0], index=[1, 2, 3, 4])
+        expected = Series([1, 0, 2, 0], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
+        expected = Series([0, 2, 1, 2], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1829,7 +1827,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=range(2))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1852,7 +1850,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=1)
 
-        expected = Series([np.nan, np.nan], dtype=exp_dtype)
+        expected = Series([np.nan, np.nan], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1875,7 +1873,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
     # TODO: why does min_count=1 impact the resulting Windows dtype
@@ -1900,7 +1898,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=1)
 
-        expected = Series([pd.NA, pd.NA], dtype=exp_dtype)
+        expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
 

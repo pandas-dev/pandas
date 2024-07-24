@@ -74,7 +74,7 @@ def test_groupby_nonobject_dtype_mixed():
     tm.assert_series_equal(result, expected)
 
 
-def test_pass_args_kwargs(ts, tsframe):
+def test_pass_args_kwargs(ts):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
@@ -100,28 +100,31 @@ def test_pass_args_kwargs(ts, tsframe):
     tm.assert_series_equal(apply_result, agg_expected)
     tm.assert_series_equal(trans_result, trans_expected)
 
-    # DataFrame
-    for as_index in [True, False]:
-        df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
-        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-        expected = df_grouped.quantile(0.8)
-        tm.assert_frame_equal(apply_result, expected, check_names=False)
-        tm.assert_frame_equal(agg_result, expected)
 
-        apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
-        expected_seq = df_grouped.quantile([0.4, 0.8])
-        if not as_index:
-            # apply treats the op as a transform; .quantile knows it's a reduction
-            apply_result.index = range(4)
-            apply_result.insert(loc=0, column="level_0", value=[1, 1, 2, 2])
-            apply_result.insert(loc=1, column="level_1", value=[0.4, 0.8, 0.4, 0.8])
-        tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
+def test_pass_args_kwargs_dataframe(tsframe, as_index):
+    def f(x, q=None, axis=0):
+        return np.percentile(x, q, axis=axis)
 
-        agg_result = df_grouped.agg(f, q=80)
-        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
-        tm.assert_frame_equal(agg_result, expected)
-        tm.assert_frame_equal(apply_result, expected, check_names=False)
+    df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
+    agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+    apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+    expected = df_grouped.quantile(0.8)
+    tm.assert_frame_equal(apply_result, expected, check_names=False)
+    tm.assert_frame_equal(agg_result, expected)
+
+    apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
+    expected_seq = df_grouped.quantile([0.4, 0.8])
+    if not as_index:
+        # apply treats the op as a transform; .quantile knows it's a reduction
+        apply_result.index = range(4)
+        apply_result.insert(loc=0, column="level_0", value=[1, 1, 2, 2])
+        apply_result.insert(loc=1, column="level_1", value=[0.4, 0.8, 0.4, 0.8])
+    tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
+
+    agg_result = df_grouped.agg(f, q=80)
+    apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+    tm.assert_frame_equal(agg_result, expected)
+    tm.assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
@@ -828,7 +831,7 @@ def test_groupby_level_mapper(multiindex_dataframe_random_data):
 def test_groupby_level_nonmulti():
     # GH 1313, GH 13901
     s = Series([1, 2, 3, 10, 4, 5, 20, 6], Index([1, 2, 3, 1, 4, 5, 2, 6], name="foo"))
-    expected = Series([11, 22, 3, 4, 5, 6], Index(range(1, 7), name="foo"))
+    expected = Series([11, 22, 3, 4, 5, 6], Index(list(range(1, 7)), name="foo"))
 
     result = s.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
@@ -860,7 +863,7 @@ def test_groupby_level_nonmulti():
 def test_groupby_complex():
     # GH 12902
     a = Series(data=np.arange(4) * (1 + 2j), index=[0, 0, 1, 1])
-    expected = Series((1 + 2j, 5 + 10j))
+    expected = Series((1 + 2j, 5 + 10j), index=Index([0, 1]))
 
     result = a.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
@@ -1205,7 +1208,10 @@ def test_groupby_nat_exclude():
     )
     grouped = df.groupby("dt")
 
-    expected = [Index([1, 7]), Index([3, 5])]
+    expected = [
+        RangeIndex(start=1, stop=13, step=6),
+        RangeIndex(start=3, stop=7, step=2),
+    ]
     keys = sorted(grouped.groups.keys())
     assert len(keys) == 2
     for k, e in zip(keys, expected):
@@ -1955,9 +1961,9 @@ def test_groups_sort_dropna(sort, dropna):
     df = DataFrame([[2.0, 1.0], [np.nan, 4.0], [0.0, 3.0]])
     keys = [(2.0, 1.0), (np.nan, 4.0), (0.0, 3.0)]
     values = [
-        Index([0], dtype="int64"),
-        Index([1], dtype="int64"),
-        Index([2], dtype="int64"),
+        RangeIndex(0, 1),
+        RangeIndex(1, 2),
+        RangeIndex(2, 3),
     ]
     if sort:
         taker = [2, 0] if dropna else [2, 0, 1]
@@ -2665,7 +2671,9 @@ def test_groupby_method_drop_na(method):
             Series(["a", "b", "c"], name="A")
         )
     else:
-        expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
+        expected = DataFrame(
+            {"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=range(0, 6, 2)
+        )
     tm.assert_frame_equal(result, expected)
 
 

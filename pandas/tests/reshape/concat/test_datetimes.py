@@ -539,8 +539,8 @@ def test_concat_timedelta64_block():
     df = DataFrame({"time": rng})
 
     result = concat([df, df])
-    tm.assert_frame_equal(result.iloc[:10], df)
-    tm.assert_frame_equal(result.iloc[10:], df)
+    tm.assert_frame_equal(result.iloc[:10], df, check_index_type=False)
+    tm.assert_frame_equal(result.iloc[10:], df, check_index_type=False)
 
 
 def test_concat_multiindex_datetime_nat():

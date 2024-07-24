@@ -223,7 +223,6 @@ class TestMerge:
 
         out = merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
-        out.index = np.arange(len(out))
         tm.assert_frame_equal(out, merge(left, right, how=join_type, sort=True))
 
     @pytest.mark.slow

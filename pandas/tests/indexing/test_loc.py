@@ -1928,7 +1928,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1
-        tm.assert_series_equal(ser, Series([1], index=[1]))
+        tm.assert_series_equal(ser, Series([1], index=range(1, 2)))
         ser.loc[3] = 3
         tm.assert_series_equal(ser, Series([1, 3], index=[1, 3]))
 
@@ -1938,7 +1938,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1.0
-        tm.assert_series_equal(ser, Series([1.0], index=[1]))
+        tm.assert_series_equal(ser, Series([1.0], index=range(1, 2)))
         ser.loc[3] = 3.0
         tm.assert_series_equal(ser, Series([1.0, 3.0], index=[1, 3]))
 
@@ -2061,7 +2061,7 @@ class TestLocSetitemWithExpansion:
         N = len(index)
         arr = np.arange(N).astype(np.int64)
 
-        orig = DataFrame(arr, index=index, columns=[0])
+        orig = DataFrame(arr, index=index)
 
         # key that will requiring object-dtype casting in the index
         key = "kapow"
@@ -2074,7 +2074,7 @@ class TestLocSetitemWithExpansion:
         else:
             assert exp_index[-1] == key
         exp_data = np.arange(N + 1).astype(np.float64)
-        expected = DataFrame(exp_data, index=exp_index, columns=[0])
+        expected = DataFrame(exp_data, index=exp_index)
 
         # Add new row, but no new columns
         df = orig.copy()

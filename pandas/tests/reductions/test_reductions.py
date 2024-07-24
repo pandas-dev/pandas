@@ -1568,7 +1568,7 @@ class TestSeriesMode:
         # GH#42107
         ser = Series([True, False, True, pd.NA], dtype="boolean")
         result = ser.mode()
-        expected = Series({0: True}, dtype="boolean")
+        expected = Series([True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

@@ -13,6 +13,6 @@ class TestToSeries:
         idx = naive.tz_localize("US/Pacific")
 
         expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
-        result = idx.to_series(index=[0, 1])
+        result = idx.to_series(index=range(2))
         assert expected.dtype == idx.dtype
         tm.assert_series_equal(result, expected)

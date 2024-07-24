@@ -368,7 +368,7 @@ def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
         np.array([[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
-        index=Index([1, 7]),
+        index=range(1, 13, 6),
         columns=MultiIndex(
             levels=[["a", "b", "c"], ["r", "s", "t", "u", "v"]],
             codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],

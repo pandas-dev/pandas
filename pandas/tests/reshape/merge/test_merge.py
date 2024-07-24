@@ -2970,7 +2970,7 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
         df2 = df2.iloc[:0]
 
     result = merge(df1, df2, on=["A"], how="outer")
-    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    expected = DataFrame(1, index=range(1), columns=["A", "B", "C", "D"])
     if left_empty and right_empty:
         expected = expected.iloc[:0]
     elif left_empty:

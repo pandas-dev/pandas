@@ -516,7 +516,7 @@ class TestJSONNormalize:
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=[0])
+        expected = DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
