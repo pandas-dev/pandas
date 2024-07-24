@@ -5,6 +5,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from itertools import (
     product,
@@ -14,7 +15,6 @@ import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
@@ -1080,7 +1080,7 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["h", "D", "W", "2ME", "MS", "QE", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
+        self, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         # GH#55860 use index_or_series_or_array instead of box_with_array
@@ -1870,8 +1870,10 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
-        dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
+            unit
+        )
+        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)

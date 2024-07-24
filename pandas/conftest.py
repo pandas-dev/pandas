@@ -32,10 +32,7 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 import uuid
 
 from dateutil.tz import (
@@ -79,10 +76,10 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )
@@ -150,6 +147,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
+        ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
@@ -158,6 +156,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
+        ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -182,9 +181,10 @@ def pytest_collection_modifyitems(items, config) -> None:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
-if Version(hypothesis.__version__) >= Version("6.83.2"):
-    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
+hypothesis_health_checks = [
+    hypothesis.HealthCheck.too_slow,
+    hypothesis.HealthCheck.differing_executors,
+]
 
 # Hypothesis
 hypothesis.settings.register_profile(
@@ -672,47 +672,47 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": Index([f"pandas_{i}" for i in range(100)]),
-    "datetime": date_range("2020-01-01", periods=100),
-    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
-    "period": period_range("2020-01-01", periods=100, freq="D"),
-    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
-    "range": RangeIndex(100),
-    "int8": Index(np.arange(100), dtype="int8"),
-    "int16": Index(np.arange(100), dtype="int16"),
-    "int32": Index(np.arange(100), dtype="int32"),
-    "int64": Index(np.arange(100), dtype="int64"),
-    "uint8": Index(np.arange(100), dtype="uint8"),
-    "uint16": Index(np.arange(100), dtype="uint16"),
-    "uint32": Index(np.arange(100), dtype="uint32"),
-    "uint64": Index(np.arange(100), dtype="uint64"),
-    "float32": Index(np.arange(100), dtype="float32"),
-    "float64": Index(np.arange(100), dtype="float64"),
+    "string": Index([f"pandas_{i}" for i in range(10)]),
+    "datetime": date_range("2020-01-01", periods=10),
+    "datetime-tz": date_range("2020-01-01", periods=10, tz="US/Pacific"),
+    "period": period_range("2020-01-01", periods=10, freq="D"),
+    "timedelta": timedelta_range(start="1 day", periods=10, freq="D"),
+    "range": RangeIndex(10),
+    "int8": Index(np.arange(10), dtype="int8"),
+    "int16": Index(np.arange(10), dtype="int16"),
+    "int32": Index(np.arange(10), dtype="int32"),
+    "int64": Index(np.arange(10), dtype="int64"),
+    "uint8": Index(np.arange(10), dtype="uint8"),
+    "uint16": Index(np.arange(10), dtype="uint16"),
+    "uint32": Index(np.arange(10), dtype="uint32"),
+    "uint64": Index(np.arange(10), dtype="uint64"),
+    "float32": Index(np.arange(10), dtype="float32"),
+    "float64": Index(np.arange(10), dtype="float64"),
     "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index([True, False] * 5, dtype=bool),
     "complex64": Index(
-        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+        np.arange(10, dtype="complex64") + 1.0j * np.arange(10, dtype="complex64")
     ),
     "complex128": Index(
-        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+        np.arange(10, dtype="complex128") + 1.0j * np.arange(10, dtype="complex128")
     ),
-    "categorical": CategoricalIndex(list("abcd") * 25),
-    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
+    "categorical": CategoricalIndex(list("abcd") * 2),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
-    "nullable_int": Index(np.arange(100), dtype="Int64"),
-    "nullable_uint": Index(np.arange(100), dtype="UInt16"),
-    "nullable_float": Index(np.arange(100), dtype="Float32"),
-    "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
+    "nullable_int": Index(np.arange(10), dtype="Int64"),
+    "nullable_uint": Index(np.arange(10), dtype="UInt16"),
+    "nullable_float": Index(np.arange(10), dtype="Float32"),
+    "nullable_bool": Index(np.arange(10).astype(bool), dtype="boolean"),
     "string-python": Index(
-        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+        pd.array([f"pandas_{i}" for i in range(10)], dtype="string[python]")
     ),
 }
 if has_pyarrow:
-    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(10)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -951,6 +951,9 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
     ]
 )
 def ea_scalar_and_dtype(request):
+    """
+    Fixture that tests each scalar and datetime type.
+    """
     return request.param
 
 
@@ -1444,6 +1447,21 @@ def complex_dtype(request):
     * complex
     * 'complex64'
     * 'complex128'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
+def complex_or_float_dtype(request):
+    """
+    Parameterized fixture for complex and numpy float dtypes.
+
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * float
+    * 'float32'
+    * 'float64'
     """
     return request.param
 
