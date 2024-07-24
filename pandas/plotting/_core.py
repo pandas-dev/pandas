@@ -1449,6 +1449,7 @@ class PlotAccessor(PandasObject):
     def kde(
         self,
         bw_method: Literal["scott", "silverman"] | float | Callable | None = None,
+        weights: np.ndarray | None = None,
         ind: np.ndarray | int | None = None,
         **kwargs,
     ) -> PlotAccessor:
@@ -1470,6 +1471,9 @@ class PlotAccessor(PandasObject):
             'scott', 'silverman', a scalar constant or a callable.
             If None (default), 'scott' is used.
             See :class:`scipy.stats.gaussian_kde` for more information.
+        weights : NumPy array, optional
+            Weights of datapoints. This must be the same shape as dataset.
+            If None (default), the samples are assumed to be equally weighted.
         ind : NumPy array or int, optional
             Evaluation points for the estimated PDF. If None (default),
             1000 equally spaced points are used. If `ind` is a NumPy array, the
@@ -1560,7 +1564,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
+        return self(kind="kde", bw_method=bw_method, weights=weights, ind=ind, **kwargs)
 
     density = kde
 
