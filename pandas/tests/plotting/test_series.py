@@ -377,6 +377,12 @@ class TestSeriesPlots:
         _check_text_labels(ax.texts, series.index)
         assert ax.get_ylabel() == ""
 
+    def test_pie_arrow_type(self):
+        # GH 59192
+        pytest.importorskip("pyarrow")
+        ser = Series([1, 2, 3, 4], dtype="int32[pyarrow]")
+        _check_plot_works(ser.plot.pie)
+
     def test_pie_series_no_label(self):
         series = Series(
             np.random.default_rng(2).integers(1, 5),

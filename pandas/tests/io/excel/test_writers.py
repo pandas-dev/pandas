@@ -12,7 +12,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas.compat._constants import PY310
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -50,7 +49,7 @@ def frame(float_frame):
     return float_frame[:10]
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False, "columns"])
 def merge_cells(request):
     return request.param
 
@@ -1251,13 +1250,12 @@ class TestExcelWriter:
             "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
         }
 
-        if PY310:
-            msgs["openpyxl"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
-            msgs["xlsxwriter"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
+        msgs["openpyxl"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
+        msgs["xlsxwriter"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and not os.path.exists(tmp_excel):

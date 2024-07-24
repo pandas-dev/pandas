@@ -1,3 +1,4 @@
+from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
 import re
@@ -405,9 +406,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_complex_imag(self):
         nan1 = complex(1, float("nan"))
@@ -417,9 +417,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_in_tuple(self):
         nan1 = (float("nan"),)
@@ -436,14 +435,49 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
+
+    def test_nan_in_namedtuple(self):
+        T = namedtuple("T", ["x"])
+        nan1 = T(float("nan"))
+        nan2 = T(float("nan"))
+        assert nan1.x is not nan2.x
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_namedtuple(self):
+        T = namedtuple("T", ["x", "y"])
+        nan1 = T(1, (2, (float("nan"),)))
+        nan2 = T(1, (2, (float("nan"),)))
+        other = T(1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
+            table.get_item(other)
 
 
 def test_hash_equal_tuple_with_nans():
     a = (float("nan"), (float("nan"), float("nan")))
     b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
+def test_hash_equal_namedtuple_with_nans():
+    T = namedtuple("T", ["x", "y"])
+    a = T(float("nan"), (float("nan"), float("nan")))
+    b = T(float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
+def test_hash_equal_namedtuple_and_tuple():
+    T = namedtuple("T", ["x", "y"])
+    a = T(1, (2, 3))
+    b = (1, (2, 3))
     assert ht.object_hash(a) == ht.object_hash(b)
     assert ht.objects_are_equal(a, b)
 

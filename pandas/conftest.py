@@ -32,10 +32,7 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 import uuid
 
 from dateutil.tz import (
@@ -79,10 +76,10 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )
@@ -184,9 +181,10 @@ def pytest_collection_modifyitems(items, config) -> None:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
-if Version(hypothesis.__version__) >= Version("6.83.2"):
-    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
+hypothesis_health_checks = [
+    hypothesis.HealthCheck.too_slow,
+    hypothesis.HealthCheck.differing_executors,
+]
 
 # Hypothesis
 hypothesis.settings.register_profile(
@@ -953,6 +951,9 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
     ]
 )
 def ea_scalar_and_dtype(request):
+    """
+    Fixture that tests each scalar and datetime type.
+    """
     return request.param
 
 
@@ -1446,6 +1447,21 @@ def complex_dtype(request):
     * complex
     * 'complex64'
     * 'complex128'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
+def complex_or_float_dtype(request):
+    """
+    Parameterized fixture for complex and numpy float dtypes.
+
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * float
+    * 'float32'
+    * 'float64'
     """
     return request.param
 
