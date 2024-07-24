@@ -558,6 +558,11 @@ def is_string_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of the string dtype.
 
+    See Also
+    --------
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                is of the string dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_string_dtype
