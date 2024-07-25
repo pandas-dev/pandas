@@ -256,6 +256,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
+        If ``data`` is Series then is ignored.
     name : Hashable, default None
         The name to give to the Series.
     copy : bool, default False
@@ -1712,6 +1713,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         collections.abc.MutableMapping
             Key-value representation of Series.
 
+        See Also
+        --------
+        Series.to_list: Converts Series to a list of the values.
+        Series.to_numpy: Converts Series to NumPy ndarray.
+        Series.array: ExtensionArray of the data backing this Series.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
@@ -1748,6 +1755,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         DataFrame
             DataFrame representation of Series.
+
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
 
         Examples
         --------
@@ -6567,7 +6578,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            The maximum of the values in the Series.
+            The minimum of the values in the Series.
 
         See Also
         --------
@@ -6716,7 +6727,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Sum of the values for the requested axis.
 
         See Also
         --------
@@ -6826,7 +6837,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Mean of the values for the requested axis.
 
         See Also
         --------
