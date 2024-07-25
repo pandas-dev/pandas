@@ -120,9 +120,11 @@ class TestStata:
         expected["a"] = expected["a"].astype(np.int32)
         tm.assert_frame_equal(read_df, expected, check_index_type=True)
 
-    @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
-    def test_read_dta1(self, file, datapath):
-        file = datapath("io", "data", "stata", f"{file}.dta")
+    # Note this test starts at format version 108 as the missing code for double
+    # was different prior to this (see GH 58149) and would therefore fail
+    @pytest.mark.parametrize("version", [108, 110, 111, 113, 114, 115, 117, 118, 119])
+    def test_read_dta1(self, version, datapath):
+        file = datapath("io", "data", "stata", f"stata1_{version}.dta")
         parsed = self.read_dta(file)
 
         # Pandas uses np.nan as missing value.
@@ -135,6 +137,18 @@ class TestStata:
         # this is an oddity as really the nan should be float64, but
         # the casting doesn't fail so need to match stata here
         expected["float_miss"] = expected["float_miss"].astype(np.float32)
+
+        # Column names too long for older Stata formats
+        if version <= 108:
+            expected = expected.rename(
+                columns={
+                    "float_miss": "f_miss",
+                    "double_miss": "d_miss",
+                    "byte_miss": "b_miss",
+                    "int_miss": "i_miss",
+                    "long_miss": "l_miss",
+                }
+            )
 
         tm.assert_frame_equal(parsed, expected)
 
@@ -913,6 +927,23 @@ class TestStata:
         for i in range(27):
             row = [StataMissingValue(keys[i + (j * 27)]) for j in range(5)]
             data.append(row)
+        expected = DataFrame(data, columns=columns)
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"{file}.dta"), convert_missing=True
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    # Note this test starts at format version 108 as the missing code for double
+    # was different prior to this (see GH 58149) and would therefore fail
+    @pytest.mark.parametrize("file", ["stata8_108", "stata8_110", "stata8_111"])
+    def test_missing_value_conversion_compat(self, file, datapath):
+        columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
+        smv = StataMissingValue(101)
+        keys = sorted(smv.MISSING_VALUES.keys())
+        data = []
+        row = [StataMissingValue(keys[j * 27]) for j in range(5)]
+        data.append(row)
         expected = DataFrame(data, columns=columns)
 
         parsed = read_stata(
@@ -2034,6 +2065,52 @@ the string values returned are correct."""
         )
 
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
+
+    @pytest.mark.parametrize("version", [113, 114, 115, 117, 118, 119])
+    def test_read_data_int_validranges(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-127, 100], dtype=np.int8),
+                "int": np.array([-32767, 32740], dtype=np.int16),
+                "long": np.array([-2147483647, 2147483620], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize("version", [104, 105, 108, 110, 111])
+    def test_read_data_int_validranges_compat(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-128, 126], dtype=np.int8),
+                "int": np.array([-32768, 32766], dtype=np.int16),
+                "long": np.array([-2147483648, 2147483646], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    # The byte type was not supported prior to the 104 format
+    @pytest.mark.parametrize("version", [102, 103])
+    def test_read_data_int_validranges_compat_nobyte(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-128, 126], dtype=np.int16),
+                "int": np.array([-32768, 32766], dtype=np.int16),
+                "long": np.array([-2147483648, 2147483646], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
 
 
 @pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114])

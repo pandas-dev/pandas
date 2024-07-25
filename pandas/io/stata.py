@@ -983,6 +983,19 @@ class StataParser:
                 np.float64(struct.unpack("<d", float64_max)[0]),
             ),
         }
+        self.OLD_VALID_RANGE = {
+            "b": (-128, 126),
+            "h": (-32768, 32766),
+            "l": (-2147483648, 2147483646),
+            "f": (
+                np.float32(struct.unpack("<f", float32_min)[0]),
+                np.float32(struct.unpack("<f", float32_max)[0]),
+            ),
+            "d": (
+                np.float64(struct.unpack("<d", float64_min)[0]),
+                np.float64(struct.unpack("<d", float64_max)[0]),
+            ),
+        }
 
         self.OLD_TYPE_MAPPING = {
             98: 251,  # byte
@@ -1808,11 +1821,18 @@ the string values returned are correct."""
         replacements = {}
         for i in range(len(data.columns)):
             fmt = self._typlist[i]
-            if fmt not in self.VALID_RANGE:
-                continue
+            if self._format_version <= 111:
+                if fmt not in self.OLD_VALID_RANGE:
+                    continue
 
-            fmt = cast(str, fmt)  # only strs in VALID_RANGE
-            nmin, nmax = self.VALID_RANGE[fmt]
+                fmt = cast(str, fmt)  # only strs in OLD_VALID_RANGE
+                nmin, nmax = self.OLD_VALID_RANGE[fmt]
+            else:
+                if fmt not in self.VALID_RANGE:
+                    continue
+
+                fmt = cast(str, fmt)  # only strs in VALID_RANGE
+                nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 
             # appreciably faster to do this with ndarray instead of Series
@@ -1827,7 +1847,10 @@ the string values returned are correct."""
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
-                    missing_value = StataMissingValue(um)
+                    if self._format_version <= 111:
+                        missing_value = StataMissingValue(self.MISSING_VALUES[fmt])
+                    else:
+                        missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
                     replacement.iloc[loc] = missing_value
