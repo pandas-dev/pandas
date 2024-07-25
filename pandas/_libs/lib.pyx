@@ -96,8 +96,9 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
 )
-from pandas._libs.tslibs.timestamps import Timestamp
+
 from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
