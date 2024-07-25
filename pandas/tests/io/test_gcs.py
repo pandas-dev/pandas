@@ -7,6 +7,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under17p0
+
 from pandas import (
     DataFrame,
     Index,
@@ -52,7 +54,7 @@ def gcs_buffer():
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
-def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
+def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
     """
     Test that many to/read functions support GCS.
 
@@ -91,6 +93,13 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
                 to_local = pathlib.Path(path.replace("gs://", "")).absolute().as_uri()
                 return pa_fs.LocalFileSystem(to_local)
 
+        request.applymarker(
+            pytest.mark.xfail(
+                not pa_version_under17p0,
+                raises=TypeError,
+                reason="pyarrow 17 broke the mocked filesystem",
+            )
+        )
         with monkeypatch.context() as m:
             m.setattr(pa_fs, "FileSystem", MockFileSystem)
             df1.to_parquet(path)
