@@ -1848,7 +1848,9 @@ the string values returned are correct."""
                 replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
                     if self._format_version <= 111:
-                        missing_value = StataMissingValue(self.MISSING_VALUES[fmt])
+                        missing_value = StataMissingValue(
+                            float(self.MISSING_VALUES[fmt])
+                        )
                     else:
                         missing_value = StataMissingValue(um)
 
