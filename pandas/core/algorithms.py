@@ -1720,9 +1720,11 @@ def map_array(
         if "pyarrow" in arr_dtype:
             storage = "pyarrow"
             if "date" in arr_dtype:
-                values = np.fromiter(arr._pa_array, dtype='O')
+                values = np.fromiter(arr._pa_array, dtype="O")
             else:
                 values = np.asarray(arr)
+        else:
+            values = np.asarray(arr)
         if arr._hasna:
             na_value = arr.dtype.na_value
     else:
