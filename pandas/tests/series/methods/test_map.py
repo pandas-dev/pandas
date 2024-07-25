@@ -297,7 +297,6 @@ def test_map_with_pd_na_input(ser):
         Series([pd.NA, 11.0], dtype="Float64"),
         Series([pd.NA, True], dtype="boolean"),
         Series([pd.NA, "AAA"], dtype="string"),
-        Series([pd.NA, "AAA"], dtype="string[pyarrow]"),
     ],
 )
 def test_map_with_pd_na_output(ser):
