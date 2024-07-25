@@ -1007,7 +1007,7 @@ class StataParser:
 
         # These missing values are the generic '.' in Stata, and are used
         # to replace nans
-        self.MISSING_VALUES = {
+        self.MISSING_VALUES: dict[str, int | np.float32 | np.float64] = {
             "b": 101,
             "h": 32741,
             "l": 2147483621,
