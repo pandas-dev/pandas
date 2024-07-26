@@ -328,7 +328,7 @@ class ParserBase:
         clean_dtypes = self._clean_mapping(self.dtype)
 
         if self.index_names is not None:
-            names = self.index_names
+            names: Iterable = self.index_names
         else:
             names = itertools.cycle([None])
         for i, (arr, name) in enumerate(zip(index, names)):
