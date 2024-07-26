@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import warnings
 
@@ -55,6 +54,8 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -362,6 +363,13 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the timedelta64 dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_period_dtype : Check whether an array-like or dtype is of the
+        Period dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_timedelta64_dtype
@@ -550,6 +558,11 @@ def is_string_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of the string dtype.
 
+    See Also
+    --------
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                is of the string dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_string_dtype
@@ -707,6 +720,15 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
         Whether or not the array or dtype is of a signed integer dtype
         and not an instance of timedelta64.
 
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype: Check whether the provided array or dtype
+        is of a numeric dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_signed_integer_dtype
@@ -762,6 +784,15 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of an unsigned integer dtype.
+
+    See Also
+    --------
+    api.types.is_signed_integer_dtype : Check whether the provided array
+        or dtype is of an signed integer dtype.
+    api.types.is_integer_dtype : Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype : Check whether the provided array or dtype
+        is of a numeric dtype.
 
     Examples
     --------
@@ -872,6 +903,15 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     -------
     bool
         Whether or not the array or dtype is of the datetime64 dtype.
+
+    See Also
+    --------
+    api.types.is_datetime64_dtype : Check whether an array-like or dtype is of the
+        datetime64 dtype.
+    api.is_datetime64_ns_dtype : Check whether the provided array or dtype is of the
+        datetime64[ns] dtype.
+    api.is_datetime64tz_dtype : Check whether an array-like or dtype is of a
+        DatetimeTZDtype dtype.
 
     Examples
     --------

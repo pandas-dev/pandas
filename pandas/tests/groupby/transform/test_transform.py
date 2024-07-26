@@ -1104,7 +1104,14 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         return
 
     args = get_groupby_method_args(reduction_func, obj)
-    result = g.transform(func, *args)
+    if func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1468,8 +1475,12 @@ def test_as_index_no_change(keys, df, groupby_func):
     args = get_groupby_method_args(groupby_func, df)
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
-    warn = FutureWarning if groupby_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
+    if groupby_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         result = gb_as_index_true.transform(groupby_func, *args)
     with tm.assert_produces_warning(warn, match=msg):
@@ -1580,3 +1591,12 @@ def test_min_one_dim_no_type_coercion():
 
     expected = DataFrame({"Y": [9435, -5465765, -5465765, 0, 9435]}, dtype="int32")
     tm.assert_frame_equal(expected, result)
+
+
+def test_nan_in_cumsum_group_label():
+    # GH#58811
+    df = DataFrame({"A": [1, None], "B": [2, 3]}, dtype="Int16")
+    gb = df.groupby("A")["B"]
+    result = gb.cumsum()
+    expected = Series([2, None], dtype="Int16", name="B")
+    tm.assert_series_equal(expected, result)

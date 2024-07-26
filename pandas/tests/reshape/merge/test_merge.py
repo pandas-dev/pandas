@@ -1367,8 +1367,8 @@ class TestMerge:
                 ),
             ),
             (
-                TimedeltaIndex(["1d", "2d", "3d"]),
-                TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
+                TimedeltaIndex(["1D", "2D", "3D"]),
+                TimedeltaIndex(["1D", "2D", "3D", pd.NaT, pd.NaT, pd.NaT]),
             ),
         ],
     )
@@ -1451,8 +1451,8 @@ class TestMerge:
         )
 
         # make each underlying block array / column array read-only
-        for arr in data1._mgr.arrays:
-            arr.flags.writeable = False
+        for block in data1._mgr.blocks:
+            block.values.flags.writeable = False
 
         data1.merge(data2)  # no error
 
@@ -2970,7 +2970,7 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
         df2 = df2.iloc[:0]
 
     result = merge(df1, df2, on=["A"], how="outer")
-    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    expected = DataFrame(1, index=range(1), columns=["A", "B", "C", "D"])
     if left_empty and right_empty:
         expected = expected.iloc[:0]
     elif left_empty:

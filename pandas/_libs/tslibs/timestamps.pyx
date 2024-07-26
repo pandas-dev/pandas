@@ -820,9 +820,20 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
 
+        A leap year is a year, which has 366 days (instead of 365) including 29th of
+        February as an intercalary day. Leap years are years which are multiples of
+        four with the exception of years divisible by 100 but not by 400.
+
         Returns
         -------
         bool
+            True if year is a leap year, else False
+
+        See Also
+        --------
+        Period.is_leap_year : Return True if the period’s year is in a leap year.
+        DatetimeIndex.is_leap_year : Boolean indicator if the date belongs to a
+            leap year.
 
         Examples
         --------
@@ -1128,7 +1139,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,
@@ -1159,7 +1170,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def asm8(self) -> np.datetime64:
         """
-        Return numpy datetime64 format in nanoseconds.
+        Return numpy datetime64 format with same precision.
 
         See Also
         --------
@@ -1363,11 +1374,11 @@ class Timestamp(_Timestamp):
         Timezone info.
     nanosecond : int, optional, default 0
         Value of nanosecond.
-    tz : str, pytz.timezone, dateutil.tz.tzfile or None
+    tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
         Unit used for conversion if ts_input is of type int or float. The
-        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
 
         For float inputs, the result will be stored in nanoseconds, and
@@ -1406,6 +1417,11 @@ class Timestamp(_Timestamp):
     >>> pd.Timestamp(1513393355.5, unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
 
+    This converts an int representing a Unix-epoch in units of weeks
+
+    >>> pd.Timestamp(1535, unit='W')
+    Timestamp('1999-06-03 00:00:00')
+
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
 
@@ -1430,7 +1446,7 @@ class Timestamp(_Timestamp):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
         Notes
@@ -1449,10 +1465,20 @@ class Timestamp(_Timestamp):
         """
         Return new Timestamp object representing current time local to tz.
 
+        This method returns a new `Timestamp` object that represents the current time.
+        If a timezone is provided, the current time will be localized to that timezone.
+        Otherwise, it returns the current local time.
+
         Parameters
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.today : Return the current time in the local timezone.
 
         Examples
         --------
@@ -1658,6 +1684,14 @@ class Timestamp(_Timestamp):
         """
         Return the daylight saving time (DST) adjustment.
 
+        This method returns the DST adjustment as a `datetime.timedelta` object
+        if the Timestamp is timezone-aware and DST is applicable.
+
+        See Also
+        --------
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
@@ -1671,6 +1705,12 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        See Also
+        --------
+        DatetimeIndex.isocalendar : Return a 3-tuple containing ISO year,
+            week number, and weekday for the given DatetimeIndex object.
+        datetime.date.isocalendar : The equivalent method for `datetime.date` objects.
 
         Examples
         --------
@@ -1737,6 +1777,16 @@ class Timestamp(_Timestamp):
     def time(self):
         """
         Return time object with same time but with tzinfo=None.
+
+        This method extracts the time part of the `Timestamp` object, excluding any
+        timezone information. It returns a `datetime.time` object which only represents
+        the time (hours, minutes, seconds, and microseconds).
+
+        See Also
+        --------
+        Timestamp.date : Return date object with same year, month and day.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
 
         Examples
         --------
@@ -2177,6 +2227,12 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        See Also
+        --------
+        Timestamp.ceil : Round up a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.floor : Round down the datetime values in a Series.
+
         Notes
         -----
         If the Timestamp has a timezone, flooring will take place relative to the
@@ -2266,6 +2322,12 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        See Also
+        --------
+        Timestamp.floor : Round down a Timestamp to the specified resolution.
+        Timestamp.round : Round a Timestamp to the specified resolution.
+        Series.dt.ceil : Ceil the datetime values in a Series.
+
         Notes
         -----
         If the Timestamp has a timezone, ceiling will take place relative to the
@@ -2326,6 +2388,17 @@ timedelta}, default 'raise'
         """
         Alias for tzinfo.
 
+        The `tz` property provides a simple and direct way to retrieve the timezone
+        information of a `Timestamp` object. It is particularly useful when working
+        with time series data that includes timezone information, allowing for easy
+        access and manipulation of the timezone context.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+
         Examples
         --------
         >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
@@ -2351,7 +2424,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 
@@ -2451,9 +2524,14 @@ default 'raise'
         """
         Convert timezone-aware Timestamp to another time zone.
 
+        This method is used to convert a timezone-aware Timestamp object to a
+        different time zone. The original UTC time remains the same; only the
+        time zone information is changed. If the Timestamp is timezone-naive, a
+        TypeError is raised.
+
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -2465,6 +2543,13 @@ default 'raise'
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        See Also
+        --------
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        DatetimeIndex.tz_convert : Convert a DatetimeIndex to another time zone.
+        DatetimeIndex.tz_localize : Localize a DatetimeIndex to a specific time zone.
+        datetime.datetime.astimezone : Convert a datetime object to another time zone.
 
         Examples
         --------
@@ -2550,13 +2635,13 @@ default 'raise'
 
         Replace timezone (not a conversion):
 
-        >>> import pytz
-        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> import zoneinfo
+        >>> ts.replace(tzinfo=zoneinfo.ZoneInfo('US/Pacific'))
         Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
 
         Analogous for ``pd.NaT``:
 
-        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        >>> pd.NaT.replace(tzinfo=zoneinfo.ZoneInfo('US/Pacific'))
         NaT
         """
 
@@ -2708,6 +2793,12 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        See Also
+        --------
+        Timestamp.dayofweek : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isoweekday : Return the day of the week with Monday=1, Sunday=7.
+        datetime.date.weekday : Equivalent method in datetime module.
 
         Examples
         --------

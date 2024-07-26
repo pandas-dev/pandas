@@ -374,7 +374,7 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({0: pd.Series(data)})
+        df = expected = pd.DataFrame(pd.Series(data))
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
