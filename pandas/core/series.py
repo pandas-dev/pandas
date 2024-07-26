@@ -1829,13 +1829,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    185.0
         Name: Max Speed, dtype: float64
 
-
         We can group by a level of the index:
         >>> ser.groupby(level=0).mean()
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
-
 
         We can group by a condition applied to the Series values:
         >>> ser.groupby(ser > 100).mean()
