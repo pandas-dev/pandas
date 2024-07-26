@@ -1098,7 +1098,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0
