@@ -8,7 +8,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.errors import IndexingError
 
@@ -461,9 +461,7 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't multiply arrow strings"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't multiply arrow strings")
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
         # set float64 to avoid upcast when setting nan
@@ -689,7 +687,7 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases

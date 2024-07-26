@@ -6,7 +6,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import (
     IS64,
@@ -465,7 +465,7 @@ class TestDataFrameAnalytics:
                 getattr(df, op)()
 
     @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="sum doesn't work for arrow strings"
+        using_string_dtype(), reason="sum doesn't work for arrow strings"
     )
     def test_reduce_mixed_frame(self):
         # GH 6806
@@ -1960,9 +1960,7 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_pyarrow_string_dtype(), reason="sum doesn't work with arrow strings"
-)
+@pytest.mark.xfail(using_string_dtype(), reason="sum doesn't work with arrow strings")
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))

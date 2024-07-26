@@ -6,7 +6,7 @@ from typing import (
     Any,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -120,7 +120,7 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
+        if dtype_backend is lib.no_default and not using_string_dtype():
             return feather.read_feather(
                 handles.handle, columns=columns, use_threads=bool(use_threads)
             )
@@ -137,7 +137,7 @@ def read_feather(
         elif dtype_backend == "pyarrow":
             return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
 
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             raise NotImplementedError

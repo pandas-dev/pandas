@@ -13,7 +13,7 @@ import time
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import IS64
 import pandas.util._test_decorators as td
@@ -1492,7 +1492,7 @@ class TestPandasContainer:
 
     # TODO: We are casting to string which coerces None to NaN before casting back
     # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="incorrect na conversion")
+    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
     def test_to_json_from_json_columns_dtypes(self, orient):
         # GH21892 GH33205
@@ -1751,7 +1751,7 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="Adjust expected when infer_string is default, no bug here, "
         "just a complicated parametrization",
     )
