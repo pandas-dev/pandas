@@ -1816,8 +1816,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     20.0
         Name: Max Speed, dtype: float64
 
-        We can pass a list of values (Here: ["a", "b", "a", "b"]) to
-        group the Series data by custom labels:
+        We can pass a list of values to
+        group the Series data by custom labels (Here: ["a", "b", "a", "b"]):
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
