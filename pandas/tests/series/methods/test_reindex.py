@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     NA,
@@ -22,9 +22,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.xfail(
-    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
-)
+@pytest.mark.xfail(using_string_dtype(), reason="share memory doesn't work for arrow")
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 

@@ -5,7 +5,7 @@ from typing import final
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.core.dtypes.common import is_string_dtype
 
@@ -37,7 +37,7 @@ class BaseOpsUtil:
         else:
             result = self.frame_scalar_exc
 
-        if using_pyarrow_string_dtype() and result is not None:
+        if using_string_dtype() and result is not None:
             import pyarrow as pa
 
             result = (  # type: ignore[assignment]

@@ -5,7 +5,7 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 from pandas._config.config import option_context
 
 import pandas as pd
@@ -113,7 +113,7 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="surrogates not allowed")
+    @pytest.mark.xfail(using_string_dtype(), reason="surrogates not allowed")
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
