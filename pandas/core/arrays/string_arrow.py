@@ -597,7 +597,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _storage = "pyarrow_numpy"
+    _storage = "pyarrow"
 
     @classmethod
     def _result_converter(cls, values, na=None):
