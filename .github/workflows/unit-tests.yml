@@ -57,6 +57,10 @@ jobs:
             # Also install zh_CN (its encoding is gb2312) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
+          - name: "Future infer strings"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_future_infer_string: "1"
           - name: "Pypy"
             env_file: actions-pypy-39.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -75,6 +79,7 @@ jobs:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_CI: '1'
+      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
