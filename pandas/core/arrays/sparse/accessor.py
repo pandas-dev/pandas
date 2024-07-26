@@ -313,7 +313,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indices = data.indices
         indptr = data.indptr
         array_data = data.data
-
         dtype = SparseDtype(array_data.dtype)
         arrays = []
         for i in range(n_columns):
