@@ -85,6 +85,10 @@ jobs:
             env_file: actions-39.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "warn"
+          - name: "Future infer strings"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_future_infer_string: "1"
           - name: "Pypy"
             env_file: actions-pypy-39.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -103,7 +107,8 @@ jobs:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
+      PANDAS_CI: '1'
+      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}

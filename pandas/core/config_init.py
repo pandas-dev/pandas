@@ -905,7 +905,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        True if os.environ.get("PANDAS_FUTURE_INFER_STRING", "0") == "1" else False,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",
