@@ -190,6 +190,7 @@ def union_categoricals(
     Returns
     -------
     Categorical
+        The union of categories being combined
 
     Raises
     ------
@@ -205,6 +206,11 @@ def union_categoricals(
     -----
     To learn more about categories, see `link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
+
+    See Also
+    --------
+    CategoricalDtype : Type for categorical data with the categories and orderedness.
+    Categorical : Represent a categorical variable in classic R / S-plus fashion.
 
     Examples
     --------
