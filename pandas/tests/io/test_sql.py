@@ -18,6 +18,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
@@ -1794,6 +1796,7 @@ def test_api_date_parsing(conn, request):
     ]
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("conn", all_connectable_types)
 @pytest.mark.parametrize("error", ["raise", "coerce"])
 @pytest.mark.parametrize(
@@ -3183,6 +3186,7 @@ def test_transaction_rollback(conn, request):
         assert len(res2) == 1
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_get_schema_create_table(conn, request, test_frame3):
     # Use a dataframe without a bool column, since MySQL converts bool to
@@ -3574,6 +3578,7 @@ def test_read_sql_dtype_backend(
             tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
 def test_read_sql_dtype_backend_table(
