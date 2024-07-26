@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     DataFrame,
@@ -42,7 +42,7 @@ class TestIntervalIndexRendering:
         result = repr(obj)
         assert result == expected
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
+    @pytest.mark.xfail(using_string_dtype(), reason="repr different")
     def test_repr_floats(self):
         # GH 32553
 

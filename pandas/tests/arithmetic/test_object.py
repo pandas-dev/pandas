@@ -8,7 +8,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -303,7 +303,7 @@ class TestArithmetic:
         index += "_x"
         assert "a_x" in index
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="add doesn't work")
+    @pytest.mark.xfail(using_string_dtype(), reason="add doesn't work")
     def test_add(self):
         index = pd.Index([str(i) for i in range(10)])
         expected = pd.Index(index.values * 2)
