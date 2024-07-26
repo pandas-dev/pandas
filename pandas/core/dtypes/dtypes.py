@@ -1747,6 +1747,14 @@ class SparseDtype(ExtensionDtype):
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
 
+            # Default values for float type is NaN. Hence, in order to create a Sparse
+            # matrix of type float, we need to override this default value as 0.0.
+            if dtype.kind in "f":
+                fill_value = 0.0
+            # Similarly, default value needs to be overridden for complex type arrays.
+            elif dtype.kind in "c":
+                fill_value = 0.0 + 0.0j
+
         self._dtype = dtype
         self._fill_value = fill_value
         self._check_fill_value()

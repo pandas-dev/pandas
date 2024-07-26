@@ -314,17 +314,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indptr = data.indptr
         array_data = data.data
 
-        default_fill_value_override = None
-
-        # Default values for float type is NaN. Hence, in order to create a
-        # Sparse matrix of type float, we need override this default value as 0.0.
-        if array_data.dtype.kind in "f":
-            default_fill_value_override = 0.0
-        # Similarly, default value needs to be overridden for complex type arrays.
-        elif array_data.dtype.kind in "c":
-            default_fill_value_override = 0.0 + 0.0j
-
-        dtype = SparseDtype(array_data.dtype, fill_value=default_fill_value_override)
+        dtype = SparseDtype(array_data.dtype)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
