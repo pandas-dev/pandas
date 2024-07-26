@@ -1821,6 +1821,13 @@ the string values returned are correct."""
         replacements = {}
         for i in range(len(data.columns)):
             fmt = self._typlist[i]
+            # missing code for double was different in version 105 and prior
+            # recode instances of this to the currently used value
+            if self._format_version <= 105 and fmt == "d":
+                data.iloc[:, i] = data.iloc[:, i].replace(
+                    float.fromhex("0x1.0p333"), self.MISSING_VALUES["d"]
+                )
+
             if self._format_version <= 111:
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
