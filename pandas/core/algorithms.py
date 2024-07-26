@@ -1717,7 +1717,10 @@ def map_array(
     elif isinstance(arr.dtype, ExtensionDtype):
         arr = cast("ExtensionArray", arr)
         arr_dtype = arr.dtype.__repr__()
-        if "pyarrow" in arr_dtype:
+        if "python" in arr_dtype:
+            storage = "python"
+            values = np.asarray(arr)
+        elif "pyarrow" in arr_dtype:
             storage = "pyarrow"
             if "date" in arr_dtype:
                 values = np.fromiter(arr._pa_array, dtype="O")
