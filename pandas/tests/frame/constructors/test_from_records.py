@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
@@ -59,7 +59,7 @@ class TestFromRecords:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
+        using_string_dtype(), reason="dtype checking logic doesn't work"
     )
     def test_from_records_sequencelike(self):
         df = DataFrame(

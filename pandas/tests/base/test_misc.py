@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import PYPY
 
@@ -83,7 +83,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 
 
 @pytest.mark.skipif(
-    PYPY or using_pyarrow_string_dtype(),
+    PYPY or using_string_dtype(),
     reason="not relevant for PyPy doesn't work properly for arrow strings",
 )
 def test_memory_usage(index_or_series_memory_obj):
