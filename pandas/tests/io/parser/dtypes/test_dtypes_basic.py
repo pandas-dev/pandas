@@ -644,7 +644,6 @@ def test_dtypes_with_usecols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_index_col_with_dtype_no_rangeindex(all_parsers):
     data = StringIO("345.5,519.5,0\n519.5,726.5,1")
     result = all_parsers.read_csv(
