@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -91,7 +91,7 @@ class TestFillNA:
         with pytest.raises(ValueError, match=msg):
             datetime_frame.fillna(5, method="ffill")
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fillna_mixed_type(self, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
@@ -664,7 +664,7 @@ class TestFillNA:
             filled = df.fillna(method="ffill")
         assert df.columns.tolist() == filled.columns.tolist()
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fill_corner(self, float_frame, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan

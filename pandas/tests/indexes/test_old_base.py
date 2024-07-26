@@ -6,7 +6,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs.tslibs import Timestamp
 
@@ -426,7 +426,7 @@ class TestBase:
         assert index[0:4].equals(result)
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="completely different behavior, tested elsewher",
     )
     def test_insert_out_of_bounds(self, index):

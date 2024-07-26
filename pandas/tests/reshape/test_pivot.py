@@ -9,7 +9,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.errors import PerformanceWarning
 
@@ -2611,7 +2611,7 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2627,7 +2627,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2641,7 +2641,7 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
