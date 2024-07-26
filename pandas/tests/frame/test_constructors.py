@@ -21,7 +21,7 @@ from numpy import ma
 from numpy.ma import mrecords
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
@@ -299,14 +299,14 @@ class TestDataFrameConstructors:
         df2 = DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
+    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
         df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
+    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
     def test_2d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array([["a", "b"], ["c", "d"]], dtype="object")

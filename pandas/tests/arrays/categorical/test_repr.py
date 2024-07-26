@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     Categorical,
@@ -78,7 +78,7 @@ class TestCategoricalRepr:
             assert exp == repr(a)
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="Change once infer_string is set to True by default",
     )
     def test_unicode_print(self):
