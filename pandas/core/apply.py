@@ -486,20 +486,14 @@ class Apply(metaclass=abc.ABCMeta):
                 cols = df[key]
 
                 if cols.ndim == 1:
-                    series_list = [obj._gotitem(key, ndim=1, subset=cols)]
-                else:
-                    series_list = []
-                    for index in range(cols.shape[1]):
-                        col = cols.iloc[:, index]
-
-                        series = obj._gotitem(key, ndim=1, subset=col)
-                        series_list.append(series)
-
-                for series in series_list:
-                    result = getattr(series, op_name)(how, **kwargs)
-                    results.append(result)
+                    series = obj._gotitem(key, ndim=1, subset=cols)
+                    results.append(getattr(series, op_name)(how, **kwargs))
                     keys.append(key)
-
+                else:
+                    for _, col in cols.items():
+                        series = obj._gotitem(key, ndim=1, subset=col)
+                        results.append(getattr(series, op_name)(how, **kwargs))
+                        keys.append(key)
         else:
             results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
