@@ -1817,10 +1817,19 @@ the string values returned are correct."""
         return data
 
     def _do_convert_missing(self, data: DataFrame, convert_missing: bool) -> DataFrame:
+        # missing code for double was different in version 105 and prior
+        old_missingdouble = float.fromhex("0x1.0p333")
+
         # Check for missing values, and replace if found
         replacements = {}
         for i in range(len(data.columns)):
             fmt = self._typlist[i]
+            # recode instances of the old missing code to the currently used value
+            if self._format_version <= 105 and fmt == "d":
+                data.iloc[:, i] = data.iloc[:, i].replace(
+                    old_missingdouble, self.MISSING_VALUES["d"]
+                )
+
             if self._format_version <= 111:
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
