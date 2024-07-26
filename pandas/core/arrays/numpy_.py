@@ -232,7 +232,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _validate_setitem_value(self, value):
+    def _validate_setitem_value(self, value) -> type(value) | None:
         """
         Check if we have a scalar that we can cast losslessly.
 
