@@ -11,6 +11,7 @@ import pytest
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
+    pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
@@ -954,12 +955,14 @@ class TestParquetPyArrow(Base):
 
         if (
             timezone_aware_date_list.tzinfo != datetime.timezone.utc
-            and pa_version_under17p0
+            and not pa_version_under10p1
         ):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason="temporary skip this test until it is properly resolved: "
-                    "https://github.com/pandas-dev/pandas/issues/37286"
+                    reason=(
+                        "pyarrow returns pytz.FixedOffset while pandas "
+                        "constructs datetime.timezone https://github.com/pandas-dev/pandas/issues/37286"
+                    )
                 )
             )
         idx = 5 * [timezone_aware_date_list]
