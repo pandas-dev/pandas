@@ -1892,9 +1892,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NaN  3
         dtype: int64
 
-        We can also group by a custom list with NaN values to handle 
+        We can also group by a custom list with NaN values to handle
         missing group labels (Here: ["a", "b", "a", np.nan]):
-        
+
         >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
         >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
         >>> ser.groupby(["a", "b", "a", np.nan]).mean()
