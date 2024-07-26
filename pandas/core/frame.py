@@ -901,6 +901,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe interchange object implementing the interchange protocol.
 
+        .. warning::
+
+            Due to severe implementation issues, we recommend only considering using the
+            interchange protocol in the following cases:
+
+            - converting to pandas: for pandas >= 2.0.3
+            - converting from pandas: for pandas >= 3.0.0
+
         Parameters
         ----------
         nan_as_null : bool, default False
