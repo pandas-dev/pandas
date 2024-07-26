@@ -264,6 +264,16 @@ class TestSparseArray(base.ExtensionTests):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     _combine_le_expected_dtype = "Sparse[bool]"
 
     def test_fillna_copy_frame(self, data_missing):

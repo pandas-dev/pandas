@@ -34,6 +34,7 @@ from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
 )
 from pandas.core.series import Series
 
@@ -71,6 +72,9 @@ class Grouper:
         Currently unused, reserved for future use.
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
+
+    Attributes
+    ----------
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
@@ -668,6 +672,28 @@ class Grouping:
         cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
 
+    @property
+    def observed_grouping(self) -> Grouping:
+        if self._observed:
+            return self
+
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
+        grouping = Grouping(
+            self._index,
+            self._orig_grouper,
+            obj=self.obj,
+            level=self.level,
+            sort=self._sort,
+            observed=True,
+            in_axis=self.in_axis,
+            dropna=self._dropna,
+            uniques=self._uniques,
+        )
+        return grouping
+
 
 def get_grouper(
     obj: NDFrameT,
@@ -879,7 +905,7 @@ def get_grouper(
     if len(groupings) == 0 and len(obj):
         raise ValueError("No group keys passed!")
     if len(groupings) == 0:
-        groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
+        groupings.append(Grouping(default_index(0), np.array([], dtype=np.intp)))
 
     # create the internals grouper
     grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)

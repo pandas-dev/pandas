@@ -183,6 +183,8 @@ def test_groupby_raises_string(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    elif groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
@@ -288,6 +290,8 @@ def test_groupby_raises_datetime(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    elif groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
@@ -485,6 +489,8 @@ def test_groupby_raises_category(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    elif groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
@@ -528,6 +534,9 @@ def test_groupby_raises_category_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`groups` by one element list returns scalar is deprecated"
+)
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how,
@@ -658,6 +667,8 @@ def test_groupby_raises_category_on_category(
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    elif groupby_func == "corrwith":
+        warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)

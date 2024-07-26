@@ -203,6 +203,22 @@ class BaseSetitemTests:
         tm.assert_equal(arr, expected)
 
     @pytest.mark.parametrize(
+        "idx",
+        [[0, 0, 1], pd.array([0, 0, 1], dtype="Int64"), np.array([0, 0, 1])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array_with_repeats(self, data, idx, box_in_series):
+        arr = data[:5].copy()
+        expected = data.take([2, 3, 2, 3, 4])
+
+        if box_in_series:
+            arr = pd.Series(arr)
+            expected = pd.Series(expected)
+
+        arr[idx] = [arr[2], arr[2], arr[3]]
+        tm.assert_equal(arr, expected)
+
+    @pytest.mark.parametrize(
         "idx, box_in_series",
         [
             ([0, 1, 2, pd.NA], False),
@@ -358,7 +374,7 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({0: pd.Series(data)})
+        df = expected = pd.DataFrame(pd.Series(data))
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)

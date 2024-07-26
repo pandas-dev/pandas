@@ -162,10 +162,10 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
+        df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=range(3), columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -340,8 +340,8 @@ class TestDataFrameSetItem:
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
         # Note: This does not hold with Copy on Write (because of lazy copying)
-        v1 = df._mgr.arrays[1]
-        v2 = df._mgr.arrays[2]
+        v1 = df._mgr.blocks[1].values
+        v2 = df._mgr.blocks[2].values
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
@@ -782,20 +782,18 @@ class TestDataFrameSetItem:
         df.iloc[:, 0] = Series([11], dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_object_inferring(self):
+    def test_setitem_index_object_dtype_not_inferring(self):
         # GH#56102
         idx = Index([Timestamp("2019-12-31")], dtype=object)
         df = DataFrame({"a": [1]})
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df.loc[:, "b"] = idx
-        with tm.assert_produces_warning(FutureWarning, match="infer"):
-            df["c"] = idx
+        df.loc[:, "b"] = idx
+        df["c"] = idx
 
         expected = DataFrame(
             {
                 "a": [1],
-                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
-                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+                "b": idx,
+                "c": idx,
             }
         )
         tm.assert_frame_equal(df, expected)
@@ -840,6 +838,7 @@ class TestSetitemTZAwareValues:
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
+        expected = expected.dt.as_unit("us")
         tm.assert_series_equal(result, expected)
 
 
@@ -1357,18 +1356,12 @@ class TestDataFrameSetitemCopyViewSemantics:
 def test_full_setter_loc_incompatible_dtype():
     # https://github.com/pandas-dev/pandas/issues/55791
     df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = True
-    expected = DataFrame({"a": [True, True]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[:, "a"] = {0: 3.5, 1: 4.5}
-    expected = DataFrame({"a": [3.5, 4.5]})
-    tm.assert_frame_equal(df, expected)
 
-    df = DataFrame({"a": [1, 2]})
     df.loc[:, "a"] = {0: 3, 1: 4}
     expected = DataFrame({"a": [3, 4]})
     tm.assert_frame_equal(df, expected)

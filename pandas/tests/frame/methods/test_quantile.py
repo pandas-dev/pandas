@@ -127,7 +127,7 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, axis=1, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
+        expected = Series([3.0, 4.0], index=range(2), name=0.5)
         if interpolation == "nearest":
             expected = expected.astype(np.int64)
         tm.assert_series_equal(result, expected)
@@ -710,14 +710,14 @@ class TestDataFrameQuantile:
         result = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = Series([], index=[], name=0.5, dtype=np.float64)
+        expected = Series([], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 
         result = df.quantile(
             [0.5], numeric_only=True, interpolation=interpolation, method=method
         )
-        expected = DataFrame([], index=[0.5], columns=[])
+        expected = DataFrame([], index=[0.5])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
@@ -926,3 +926,12 @@ class TestQuantileExtensionDtype:
             expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
         )
         tm.assert_series_equal(result, expected)
+
+
+def test_multi_quantile_numeric_only_retains_columns():
+    df = DataFrame(list("abc"))
+    result = df.quantile([0.5, 0.7], numeric_only=True)
+    expected = DataFrame(index=[0.5, 0.7])
+    tm.assert_frame_equal(
+        result, expected, check_index_type=True, check_column_type=True
+    )
