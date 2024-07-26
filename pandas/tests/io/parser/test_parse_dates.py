@@ -13,6 +13,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -419,6 +421,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
@@ -606,6 +609,7 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dayfirst_warnings():
     # GH 12585
 
@@ -748,6 +752,7 @@ def test_parse_dates_and_string_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_parse_dot_separated_dates(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers

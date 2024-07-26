@@ -1206,6 +1206,7 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable_types)
 def test_default_type_conversion(conn, request):
     conn_name = conn
@@ -1688,6 +1689,7 @@ def test_api_to_sql_series(conn, request):
     tm.assert_frame_equal(s.to_frame(), s2)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_roundtrip(conn, request, test_frame1):
     conn_name = conn
@@ -1796,7 +1798,7 @@ def test_api_date_parsing(conn, request):
     ]
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable_types)
 @pytest.mark.parametrize("error", ["raise", "coerce"])
 @pytest.mark.parametrize(
@@ -2040,6 +2042,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
         )
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_multiindex_roundtrip(conn, request):
     conn = request.getfixturevalue(conn)
@@ -2365,6 +2368,7 @@ def test_read_table_index_col(conn, request, test_frame1):
     assert result.columns.tolist() == ["C", "D"]
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_delegate(conn, request):
     if conn == "sqlite_buildin_iris":
@@ -3578,7 +3582,7 @@ def test_read_sql_dtype_backend(
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
 def test_read_sql_dtype_backend_table(
