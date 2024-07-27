@@ -1816,15 +1816,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     20.0
         Name: Max Speed, dtype: float64
 
-        We can pass a list of values (Here: ["a", "b", "a", "b"]) to
-        group the Series data by custom labels:
+        We can pass a list of values to group the Series data by custom labels:
 
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
         Name: Max Speed, dtype: float64
 
-        Grouping by numeric labels yields similar results (Here: [0, 1, 0, 1]):
+        Grouping by numeric labels yields similar results:
 
         >>> ser.groupby([0, 1, 0, 1]).mean()
         0    210.0
@@ -1896,7 +1895,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
 
         We can also group by a custom list with NaN values to handle
-        missing group labels (Here: ["a", "b", "a", np.nan]):
+        missing group labels:
 
         >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
         >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
