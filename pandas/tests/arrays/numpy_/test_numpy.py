@@ -3,6 +3,8 @@ Additional tests for NumpyExtensionArray that aren't covered by
 the interface tests.
 """
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -193,6 +195,68 @@ def test_validate_reduction_keyword_args():
     msg = "the 'keepdims' parameter is not supported .*all"
     with pytest.raises(ValueError, match=msg):
         arr.all(keepdims=True)
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, False),
+        (9, False),
+        (5.5, True),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_int_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="int").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, False),
+        (9, False),
+        (5.5, False),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_float_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="float").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, False),
+        (9, False),
+        (5.5, False),
+        ("t", False),
+        (datetime.now(), True),
+    ],
+)
+def test_str_arr_validate_setitem_value(value, expectedError):
+    arr = NumpyExtensionArray(np.array(["foo", "bar", "test"], dtype="str"))
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == str(value)
 
 
 def test_np_max_nested_tuples():
