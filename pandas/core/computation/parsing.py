@@ -231,7 +231,11 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
             if next_quote_index == -1:
                 substrings.append((False, substring + s[i:]))
                 break
-            # Quote is matched
+            # Quote is matched, and the next quote is at the end of the string
+            elif next_quote_index + 1 == len(s):
+                substrings.append((False, substring + s[i:]))
+                break
+            # Quote is matched, and the next quote is in the middle of the string
             else:
                 substring += s[i : next_quote_index + 1]
                 i = next_quote_index + 1
