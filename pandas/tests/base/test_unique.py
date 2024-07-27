@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -100,12 +98,11 @@ def test_nunique_null(null_obj, index_or_series_obj):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.xfail(using_string_dtype(), reason="decoding fails")
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
     uval = "\ud83d"  # smiley emoji
 
-    obj = index_or_series([uval] * 2)
+    obj = index_or_series([uval] * 2, dtype=object)
     result = obj.unique()
 
     if isinstance(obj, pd.Index):

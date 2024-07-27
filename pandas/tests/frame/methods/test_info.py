@@ -15,6 +15,7 @@ from pandas.compat import (
 from pandas import (
     CategoricalIndex,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     date_range,
@@ -360,7 +361,7 @@ def test_info_memory_usage():
     df = DataFrame(data)
     df.columns = dtypes
 
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     df_with_object_index.info(buf=buf, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+\+", res[-1])
@@ -398,25 +399,25 @@ def test_info_memory_usage():
 
 @pytest.mark.skipif(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         > df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
 @pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         == df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() == df_object.memory_usage().sum()
 
 
