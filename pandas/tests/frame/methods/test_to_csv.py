@@ -439,6 +439,7 @@ class TestDataFrameToCSV:
         result, expected = self._return_result_expected(df, 1000)
         tm.assert_frame_equal(result, expected, check_column_type=False)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.slow
     def test_to_csv_chunksize(self):
         chunksize = 1000
@@ -451,6 +452,7 @@ class TestDataFrameToCSV:
         result, expected = self._return_result_expected(df, chunksize, rnlvl=2)
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "nrows", [2, 10, 99, 100, 101, 102, 198, 199, 200, 201, 202, 249, 250, 251]
