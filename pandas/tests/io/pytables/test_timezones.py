@@ -25,6 +25,10 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
+
 
 def _compare_with_tz(a, b):
     tm.assert_frame_equal(a, b)
@@ -44,7 +48,6 @@ gettz_dateutil = lambda x: maybe_get_tz("dateutil/" + x)
 gettz_pytz = lambda x: x
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
 def test_append_with_timezones(setup_path, gettz):
     # as columns
@@ -219,7 +222,6 @@ def test_tseries_select_index_column(setup_path):
         assert rng.tz == result.dt.tz
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
         # index
@@ -249,7 +251,6 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_timezones_fixed_format_empty(setup_path, tz_aware_fixture, frame_or_series):
     # GH 20594
 
@@ -265,7 +266,6 @@ def test_timezones_fixed_format_empty(setup_path, tz_aware_fixture, frame_or_ser
         tm.assert_equal(result, obj)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
     # GH 20594
 
@@ -318,7 +318,6 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dst_transitions(setup_path):
     # make sure we are not failing on transitions
     with ensure_clean_store(setup_path) as store:
@@ -339,7 +338,6 @@ def test_dst_transitions(setup_path):
             tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10

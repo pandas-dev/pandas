@@ -1119,7 +1119,7 @@ class TestPandasContainer:
         res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.network
     @pytest.mark.single_cpu
     @pytest.mark.parametrize(
@@ -1422,7 +1422,6 @@ class TestPandasContainer:
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.single_cpu
     @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
@@ -2022,7 +2021,6 @@ class TestPandasContainer:
         result = series.to_json(orient="index")
         assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375

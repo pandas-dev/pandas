@@ -13,6 +13,10 @@ from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import read_hdf
 
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
+
 
 def test_complex_fixed(tmp_path, setup_path):
     df = DataFrame(
@@ -61,7 +65,6 @@ def test_complex_table(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_complex_mixed_fixed(tmp_path, setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -85,7 +88,6 @@ def test_complex_mixed_fixed(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_complex_mixed_table(tmp_path, setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -140,7 +142,6 @@ def test_complex_across_dimensions(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_complex_indexing_error(setup_path):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
