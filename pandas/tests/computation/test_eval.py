@@ -2034,6 +2034,67 @@ def test_query_on_column_names_with_special_characters(col1, col2, expr):
     tm.assert_frame_equal(result, expected)
 
 
+def test_query_on_expr_with_no_backticks():
+    # GH 59285
+    df = DataFrame(("aaa", "vvv", "zzz"), columns=["column_name"])
+    result = df.query("'value' < column_name")
+    expected = df["value" < df["column_name"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_no_quotes_and_backtick_is_unmatched():
+    # GH 59285
+    df = DataFrame((1, 5, 10), columns=["column-name"])
+    with pytest.raises(SyntaxError, match="invalid syntax"):
+        df.query("5 < `column-name")
+
+
+def test_query_on_expr_with_no_quotes_and_backtick_is_matched():
+    # GH 59285
+    df = DataFrame((1, 5, 10), columns=["column-name"])
+    result = df.query("5 < `column-name`")
+    expected = df[5 < df["column-name"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_backtick_opened_before_quote_and_backtick_is_unmatched():
+    # GH 59285
+    df = DataFrame((1, 5, 10), columns=["It's"])
+    with pytest.raises(SyntaxError, match="unterminated string literal"):
+        df.query("5 < `It's")
+
+
+def test_query_on_expr_with_backtick_opened_before_quote_and_backtick_is_matched():
+    # GH 59285
+    df = DataFrame((1, 5, 10), columns=["It's"])
+    result = df.query("5 < `It's`")
+    expected = df[5 < df["It's"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_quote_opened_before_backtick_and_quote_is_unmatched():
+    # GH 59285
+    df = DataFrame(("aaa", "vvv", "zzz"), columns=['It`s that\\\'s "quote" #hash'])
+    with pytest.raises(SyntaxError, match="unterminated string literal"):
+        df.query("`column-name` < 'It`s that\\'s \"quote\" #hash")
+
+
+def test_query_on_expr_with_quote_opened_before_backtick_and_quote_is_matched_at_end():
+    # GH 59285
+    df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
+    result = df.query("`column-name` < 'It`s that\\'s \"quote\" #hash'")
+    expected = df[df["column-name"] < 'It`s that\'s "quote" #hash']
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_quote_opened_before_backtick_and_quote_is_matched_in_mid():
+    # GH 59285
+    df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
+    result = df.query("'It`s that\\'s \"quote\" #hash' < `column-name`")
+    expected = df['It`s that\'s "quote" #hash' < df["column-name"]]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
