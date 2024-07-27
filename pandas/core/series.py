@@ -1816,7 +1816,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     20.0
         Name: Max Speed, dtype: float64
 
-
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
