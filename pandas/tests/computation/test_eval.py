@@ -1994,6 +1994,22 @@ def test_query_on_expr_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+def test_query_on_expr_with_backticks():
+    # GH 59285
+    df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
+    result = df.query("'`' < `#backticks`")
+    expected = df["`" < df["#backticks"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_query_on_expr_with_backticked_string_same_as_column_name():
+    # GH 59285
+    df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
+    result = df.query("'`#backticks`' < `#backticks`")
+    expected = df["`#backticks`" < df["#backticks"]]
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "col1,col2,expr",
     [

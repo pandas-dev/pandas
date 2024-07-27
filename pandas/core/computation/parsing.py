@@ -4,7 +4,10 @@
 
 from __future__ import annotations
 
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 from keyword import iskeyword
 import token
 import tokenize
@@ -58,7 +61,7 @@ def create_valid_python_identifier(name: str) -> str:
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
             # Currently not possible. Terminates parser and won't find backtick.
-            # "#": "_HASH_",
+            "#": "_HASH_",
         }
     )
 
@@ -168,6 +171,69 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
+def split_by_backtick(s: str) -> list[tuple[bool, str]]:
+    substrings = []
+    substring = ""
+    i = 0
+    while i < len(s):
+        backtick_index = s.find("`", i)
+
+        # No backticks
+        if backtick_index == -1:
+            substrings.append((False, substring + s[i:]))
+            break
+
+        single_quote_index = s.find("'", i)
+        double_quote_index = s.find('"', i)
+        if (single_quote_index == -1) and (double_quote_index == -1):
+            quote_index = -1
+        elif single_quote_index == -1:
+            quote_index = double_quote_index
+        elif double_quote_index == -1:
+            quote_index = single_quote_index
+        else:
+            quote_index = min(single_quote_index, double_quote_index)
+
+        # No quotes
+        if quote_index == -1:
+            next_backtick_index = s.find("`", backtick_index + 1)
+        # Backtick opened before quote
+        elif backtick_index < quote_index:
+            next_backtick_index = s.find("`", backtick_index + 1)
+        # Quote opened before backtick
+        else:
+            next_quote_index = -1
+            line_reader = BytesIO(s[i:].encode("utf-8")).readline
+            token_generator = tokenize.tokenize(line_reader)
+            for toknum, _, (_, _), (_, end), _ in token_generator:
+                if toknum == tokenize.STRING:
+                    next_quote_index = i + end - 1
+                    break
+
+            # Quote is unmatched
+            if next_quote_index == -1:
+                next_backtick_index = s.find("`", backtick_index + 1)
+            # Quote is matched
+            else:
+                substring += s[i:next_quote_index]
+                i = next_quote_index
+                continue
+
+        # Backtick is unmatched
+        if next_backtick_index == -1:
+            substrings.append((False, substring + s[i:]))
+            break
+        # Backtick is matched
+        else:
+            if i != backtick_index:
+                substrings.append((False, substring + s[i:backtick_index]))
+            substrings.append((True, s[backtick_index : next_backtick_index + 1]))
+            substring = ""
+            i = next_backtick_index + 1
+
+    return substrings
+
+
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.
@@ -182,6 +248,16 @@ def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     tok_generator : Iterator[Tuple[int, str]]
         An iterator yielding all tokens with only toknum and tokval (Tuple[ing, str]).
     """
+    # GH 59285
+    source = "".join(
+        (
+            f"`{create_valid_python_identifier(substring[1:-1])}`"
+            if is_backticked
+            else substring
+        )
+        for is_backticked, substring in split_by_backtick(source)
+    )
+
     line_reader = StringIO(source).readline
     token_generator = tokenize.generate_tokens(line_reader)
 

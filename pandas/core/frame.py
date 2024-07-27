@@ -34,7 +34,6 @@ from typing import (
     cast,
     overload,
 )
-import urllib.parse
 import warnings
 
 import numpy as np
@@ -4617,33 +4616,7 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
 
-        # GH 59285
-        if any(("#" in col) or ("'" in col) or ('"' in col) for col in self.columns):
-            # Create a copy of `self` with column names escaped
-            escaped_self = self.copy()
-            escaped_self.columns = map(urllib.parse.quote, escaped_self.columns)
-
-            # In expr, escape column names between backticks
-            column_name_to_escaped = {
-                col: urllib.parse.quote(col) for col in self.columns
-            }
-            # A `token` with an odd-number index is a column name
-            escaped_expr = "`".join(
-                (column_name_to_escaped.get(token, token) if (i % 2) else token)
-                for i, token in enumerate(expr.split("`"))
-            )
-
-            # eval
-            escaped_res = escaped_self.eval(escaped_expr, **kwargs)
-
-            # If `res` is a Series or DataFrame, unescape names
-            res = escaped_res.copy()
-            if isinstance(res, Series) and res.name:
-                res.name = urllib.parse.unquote(res.name)
-            elif isinstance(res, DataFrame):
-                res.columns = map(urllib.parse.unquote, res.columns)
-        else:
-            res = self.eval(expr, **kwargs)
+        res = self.eval(expr, **kwargs)
 
         try:
             result = self.loc[res]
