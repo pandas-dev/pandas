@@ -69,6 +69,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
+    # TODO(infer_string) raise proper TypeError in case of string dtype
     @pytest.mark.xfail(
         using_string_dtype(), reason="interpolate doesn't work for string"
     )
