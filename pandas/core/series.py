@@ -1816,7 +1816,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     20.0
         Name: Max Speed, dtype: float64
 
-        We can pass a list of values to group the Series data by custom labels:
+        We can pass a of values to group the `Series` data by custom labels:
 
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
@@ -1837,7 +1837,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     25.0
         Name: Max Speed, dtype: float64
 
-        We can group by a condition applied to the Series values:
+        We can group by a condition applied to the `Series` values:
 
         >>> ser.groupby(ser > 100).mean()
         Max Speed
@@ -1868,7 +1868,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     25.0
         Name: Max Speed, dtype: float64
 
-        We can also group by the 'Type' level of the hierarchical index
+        We can also group by the `Type` level of the hierarchical index
         to get the mean speed for each type:
 
         >>> ser.groupby(level="Type").mean()
@@ -1894,7 +1894,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NaN  3
         dtype: int64
 
-        We can also group by a custom list with NaN values to handle
+        We can also group by a custom with `NaN` values to handle
         missing group labels:
 
         >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
