@@ -3273,7 +3273,7 @@ class TestLocSeries:
         expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
 
-    def test_loc_assign_to_should_not_raise(self):
+    def test_loc_reindexing_of_empty_index(self):
         # GH 57735
         df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
         df.loc[df[0].str.len() > 1, 0] = df[0]
