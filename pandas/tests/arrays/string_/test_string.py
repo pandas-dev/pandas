@@ -501,10 +501,6 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
                 reason="infer_string takes precedence over string storage"
             )
         )
-    if string_storage2 == "pyarrow_numpy":
-        # we cannot set "pyarrow_numpy" as storage option anymore, need to
-        # update the tests for this
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -535,8 +531,6 @@ def test_arrow_load_from_zero_chunks(
                 reason="infer_string takes precedence over string storage"
             )
         )
-    if string_storage2 == "pyarrow_numpy":
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
