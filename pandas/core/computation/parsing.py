@@ -211,12 +211,23 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         else:
             quote_index = min(single_quote_index, double_quote_index)
 
-        # No quotes
-        if quote_index == -1:
-            next_backtick_index = s.find("`", backtick_index + 1)
+        # No quotes, or
         # Backtick opened before quote
-        elif backtick_index < quote_index:
+        if (quote_index == -1) or (backtick_index < quote_index):
             next_backtick_index = s.find("`", backtick_index + 1)
+
+            # Backtick is unmatched (Possibly a mistake)
+            if next_backtick_index == -1:
+                substrings.append((False, substring + s[i:]))
+                break
+            # Backtick is matched
+            else:
+                if i != backtick_index:
+                    substrings.append((False, substring + s[i:backtick_index]))
+                substrings.append((True, s[backtick_index : next_backtick_index + 1]))
+                substring = ""
+                i = next_backtick_index + 1
+
         # Quote opened before backtick
         else:
             next_quote_index = -1
@@ -240,18 +251,6 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
                 substring += s[i : next_quote_index + 1]
                 i = next_quote_index + 1
                 continue
-
-        # Backtick is unmatched (Possibly a mistake)
-        if next_backtick_index == -1:
-            substrings.append((False, substring + s[i:]))
-            break
-        # Backtick is matched
-        else:
-            if i != backtick_index:
-                substrings.append((False, substring + s[i:backtick_index]))
-            substrings.append((True, s[backtick_index : next_backtick_index + 1]))
-            substring = ""
-            i = next_backtick_index + 1
 
     return substrings
 
