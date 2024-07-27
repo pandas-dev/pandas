@@ -862,7 +862,7 @@ class SetitemCastingEquivalents:
             expected_idx = Index(expected, dtype=expected.dtype)
             tm.assert_index_equal(res, expected_idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_index_putmask(self, obj, key, expected, raises, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True

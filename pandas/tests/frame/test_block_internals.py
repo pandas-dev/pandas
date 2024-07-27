@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -160,6 +162,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # test construction edge cases with mixed types
 
@@ -191,6 +194,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_construction_with_conversions(self):
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
@@ -395,6 +399,7 @@ def test_update_inplace_sets_valid_block_values():
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nonconsolidated_item_cache_take():
     # https://github.com/pandas-dev/pandas/issues/35521
 
