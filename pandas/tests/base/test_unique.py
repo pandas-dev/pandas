@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -100,7 +100,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="decoding fails")
+@pytest.mark.xfail(using_string_dtype(), reason="decoding fails")
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
     uval = "\ud83d"  # smiley emoji
