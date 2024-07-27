@@ -1747,7 +1747,7 @@ class TestLocWithMultiIndex:
         )
 
         result = Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
-        result.loc[("baz", "one") : ("foo", "two")] = 100
+        result.loc[("baz", "one"):("foo", "two")] = 100
 
         expected = Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
 
@@ -2764,7 +2764,7 @@ def test_loc_axis_1_slice():
         index=tuple("ABCDEFGHIJ"),
         columns=MultiIndex.from_tuples(cols),
     )
-    result = df.loc(axis=1)[(2014, 9) : (2015, 8)]
+    result = df.loc(axis=1)[(2014, 9):(2015, 8)]
     expected = DataFrame(
         np.ones((10, 4)),
         index=tuple("ABCDEFGHIJ"),
@@ -3272,3 +3272,8 @@ class TestLocSeries:
         df.loc[:, "a"] = other
         expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
+
+    def test_loc_assign_to_should_not_raise(self):
+        # GH 57735
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df.loc[df[0].str.len() > 1, 0] = df[0]

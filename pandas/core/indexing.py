@@ -811,9 +811,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
                     if len(newkey) == 0:
-                        # FIXME: kludge for test_loc_setitem_boolean_mask_allfalse
-                        # TODO(GH#45333): may be fixed when deprecation is enforced
-
                         value = value.iloc[:0]
                     else:
                         # test_loc_setitem_ndframe_values_alignment
@@ -834,9 +831,6 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                     elif ndim == 2 and value.shape[1] == 1:
                         if len(newkey) == 0:
-                            # FIXME: kludge for
-                            #  test_loc_setitem_all_false_boolean_two_blocks
-                            #  TODO(GH#45333): may be fixed when deprecation is enforced
                             value = value.iloc[:0]
                         else:
                             # test_loc_setitem_ndframe_values_alignment
