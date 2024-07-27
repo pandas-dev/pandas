@@ -140,28 +140,21 @@ class TestStringArray(base.ExtensionTests):
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         if op_name in ["__divmod__", "__rdivmod__"]:
-            if isinstance(obj, pd.Series) and cast(
-                StringDtype, tm.get_dtype(obj)
-            ).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if (
+                isinstance(obj, pd.Series)
+                and cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow"
+            ):
                 # TODO: re-raise as TypeError?
                 return NotImplementedError
-            elif isinstance(other, pd.Series) and cast(
-                StringDtype, tm.get_dtype(other)
-            ).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            elif (
+                isinstance(other, pd.Series)
+                and cast(StringDtype, tm.get_dtype(other)).storage == "pyarrow"
+            ):
                 # TODO: re-raise as TypeError?
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mod__", "__rmod__", "__pow__", "__rpow__"]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mul__", "__rmul__"]:
@@ -175,10 +168,7 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
                 import pyarrow as pa
 
                 # TODO: better to re-raise as TypeError?

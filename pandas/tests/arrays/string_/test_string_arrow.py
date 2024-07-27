@@ -29,6 +29,8 @@ def test_eq_all_na():
 def test_config(string_storage, request, using_infer_string):
     if using_infer_string and string_storage != "pyarrow_numpy":
         request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
+    if string_storage == "pyarrow_numpy":
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])

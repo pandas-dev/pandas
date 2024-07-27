@@ -18,13 +18,17 @@ class TestConvertDtypes:
         # Just check that it works for DataFrame here
         if using_infer_string:
             string_storage = "pyarrow_numpy"
+
+        string_storage_option = string_storage
+        if string_storage == "pyarrow_numpy":
+            string_storage_option = "pyarrow"
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
-        with pd.option_context("string_storage", string_storage):
+        with pd.option_context("string_storage", string_storage_option):
             result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {

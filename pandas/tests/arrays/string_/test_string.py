@@ -483,7 +483,7 @@ def test_arrow_array(dtype):
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
-    if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
+    if dtype.storage == "pyarrow" and pa_version_under12p0:
         expected = pa.chunked_array(expected)
     if dtype.storage == "python":
         expected = pc.cast(expected, pa.string())
@@ -501,6 +501,10 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
                 reason="infer_string takes precedence over string storage"
             )
         )
+    if string_storage2 == "pyarrow_numpy":
+        # we cannot set "pyarrow_numpy" as storage option anymore, need to
+        # update the tests for this
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -531,6 +535,8 @@ def test_arrow_load_from_zero_chunks(
                 reason="infer_string takes precedence over string storage"
             )
         )
+    if string_storage2 == "pyarrow_numpy":
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
