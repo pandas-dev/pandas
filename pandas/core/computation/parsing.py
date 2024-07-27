@@ -171,7 +171,24 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
-def split_by_backtick(s: str) -> list[tuple[bool, str]]:
+def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
+    """
+    Splits a str into substrings along backtick characters (`).
+
+    Disregards backticks inside quotes.
+
+    Parameters
+    ----------
+    s : str
+        The Python source code string.
+
+    Returns
+    -------
+    substrings: list[tuple[bool, str]]
+        List of tuples, where each tuple has two elements:
+        The first is a boolean indicating if the substring is backtick-quoted.
+        The second is the actual substring.
+    """
     substrings = []
     substring = ""
     i = 0
@@ -249,13 +266,14 @@ def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
         An iterator yielding all tokens with only toknum and tokval (Tuple[ing, str]).
     """
     # GH 59285
+    # Escape characters, including backticks
     source = "".join(
         (
-            f"`{create_valid_python_identifier(substring[1:-1])}`"
-            if is_backticked
+            create_valid_python_identifier(substring[1:-1])
+            if is_backtick_quoted
             else substring
         )
-        for is_backticked, substring in split_by_backtick(source)
+        for is_backtick_quoted, substring in _split_by_backtick(source)
     )
 
     line_reader = StringIO(source).readline
@@ -263,13 +281,5 @@ def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
 
     # Loop over all tokens till a backtick (`) is found.
     # Then, take all tokens till the next backtick to form a backtick quoted string
-    for toknum, tokval, start, _, _ in token_generator:
-        if tokval == "`":
-            try:
-                yield tokenize_backtick_quoted_string(
-                    token_generator, source, string_start=start[1] + 1
-                )
-            except Exception as err:
-                raise SyntaxError(f"Failed to parse backticks in '{source}'.") from err
-        else:
-            yield toknum, tokval
+    for toknum, tokval, _, _, _ in token_generator:
+        yield toknum, tokval
