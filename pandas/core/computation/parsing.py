@@ -227,16 +227,17 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
                     next_quote_index = i + end - 1
                     break
 
-            # Quote is unmatched
+            # Quote is unmatched (Possibly a mistake)
             if next_quote_index == -1:
-                next_backtick_index = s.find("`", backtick_index + 1)
+                substrings.append((False, substring + s[i:]))
+                break
             # Quote is matched
             else:
-                substring += s[i:next_quote_index]
-                i = next_quote_index
+                substring += s[i : next_quote_index + 1]
+                i = next_quote_index + 1
                 continue
 
-        # Backtick is unmatched
+        # Backtick is unmatched (Possibly a mistake)
         if next_backtick_index == -1:
             substrings.append((False, substring + s[i:]))
             break
