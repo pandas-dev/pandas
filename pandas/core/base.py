@@ -1060,7 +1060,7 @@ class IndexOpsMixin(OpsMixin):
         since ``a`` doesn't have the same categories.
 
         >>> df = pd.DataFrame({"a": [1], "b": ["2"], "c": [3], "d": [3]})
-                    .astype({'a': 'category', 'c': 'category', 'd': 'category'})
+        >>> df = df.astype({"a": "category", "c": "category", "d": "category"})
         >>> df
            a  b  c  d
         0  1  2  3  3
