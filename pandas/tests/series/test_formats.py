@@ -145,7 +145,7 @@ class TestSeriesRepr:
         assert "Name: 0" in rep_str
 
     @pytest.mark.xfail(
-        using_string_dtype(), reason="TODO: investigate why this is failing"
+        using_string_dtype(), reason="TODO(infer_string): investigate failure"
     )
     def test_newline(self):
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])

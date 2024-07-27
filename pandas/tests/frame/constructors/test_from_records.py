@@ -58,9 +58,7 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        using_string_dtype(), reason="dtype checking logic doesn't work"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="dtype checking logic doesn't work")
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
