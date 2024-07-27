@@ -86,7 +86,8 @@ class StringDtype(StorageExtensionDtype):
     ----------
     storage : {"python", "pyarrow"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
-    na_value :
+    na_value : {np.nan, pd.NA}, default pd.NA
+        Whether the dtype follows NaN or NA missing value semantics.
 
     Attributes
     ----------

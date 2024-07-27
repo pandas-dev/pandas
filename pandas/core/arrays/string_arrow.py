@@ -131,7 +131,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
     _storage = "pyarrow"
-    _na_value = libmissing.NA
+    _na_value: libmissing.NAType | float = libmissing.NA
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
