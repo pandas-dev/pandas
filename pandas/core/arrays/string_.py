@@ -138,6 +138,7 @@ class StringDtype(StorageExtensionDtype):
         if storage == "pyarrow_numpy":
             # TODO raise a deprecation warning
             storage = "pyarrow"
+            na_value = np.nan
 
         if storage not in {"python", "pyarrow"}:
             raise ValueError(

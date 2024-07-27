@@ -190,7 +190,7 @@ class TestStringArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return (
             op_name in ["min", "max"]
-            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
 
@@ -198,10 +198,10 @@ class TestStringArray(base.ExtensionTests):
         dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
+        elif dtype.na_value is np.nan:
+            cast_to = np.bool_  # type: ignore[assignment]
         elif dtype.storage == "pyarrow":
             cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
-        elif dtype.storage == "pyarrow_numpy":
-            cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)

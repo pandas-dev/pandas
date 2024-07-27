@@ -131,6 +131,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
     _storage = "pyarrow"
+    _na_value = libmissing.NA
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
@@ -140,7 +141,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
-        self._dtype = StringDtype(storage=self._storage)
+        self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
 
         if not pa.types.is_large_string(self._pa_array.type) and not (
             pa.types.is_dictionary(self._pa_array.type)
@@ -598,6 +599,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow"
+    _na_value = np.nan
 
     @classmethod
     def _result_converter(cls, values, na=None):
