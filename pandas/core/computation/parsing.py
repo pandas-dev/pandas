@@ -279,7 +279,5 @@ def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     line_reader = StringIO(source).readline
     token_generator = tokenize.generate_tokens(line_reader)
 
-    # Loop over all tokens till a backtick (`) is found.
-    # Then, take all tokens till the next backtick to form a backtick quoted string
     for toknum, tokval, _, _, _ in token_generator:
         yield toknum, tokval
