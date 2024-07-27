@@ -65,6 +65,7 @@ class TestFillNA:
         with pytest.raises(TypeError, match=msg):
             datetime_frame.fillna()
 
+    # TODO(infer_string) test as actual error instead of xfail
     @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fillna_mixed_type(self, float_string_frame):
         mf = float_string_frame
@@ -537,6 +538,7 @@ class TestFillNA:
         filled = df.ffill()
         assert df.columns.tolist() == filled.columns.tolist()
 
+    # TODO(infer_string) test as actual error instead of xfail
     @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fill_corner(self, float_frame, float_string_frame):
         mf = float_string_frame
