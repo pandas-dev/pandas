@@ -2484,7 +2484,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
-    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+    storage : {"python", "pyarrow", "pyarrow_numpy"}, default "python"
         Backend storage
 
     Returns
@@ -2503,6 +2503,9 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
+
+    if storage is None:
+        storage="python"
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2772,22 +2775,16 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if using_string_dtype() and is_string_array(objects, skipna=True):
+        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(na_value=np.nan)
+            dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
-        elif (
-            (convert_to_nullable_dtype and is_string_array(objects, skipna=True))
-            or storage == "python"
-        ):
+        elif storage == "pyarrow" or storage == "python":
             from pandas.core.arrays.string_ import StringDtype
 
-            if mask is not None and any(mask):
-                dtype = StringDtype(storage=storage, na_value=objects[mask][0])
-            else:
-                dtype = StringDtype(storage=storage)
+            dtype = StringDtype(storage=storage)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
@@ -2970,7 +2967,7 @@ def map_infer_mask(
         input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
-    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
         Backend storage
 
     Returns
@@ -3044,7 +3041,7 @@ def map_infer(
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
         encountered, whether to convert and return an Boolean/IntegerArray.
-    storage : {"pyarrow", "pyarrow_numpy"}, default "pyarrow_numpy"
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
         Backend storage
 
     Returns
