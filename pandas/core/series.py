@@ -1831,7 +1831,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         **Grouping by Indexes**
 
-        We can groupby different levels of a hierarchical index
+        We can groupb different levels of a hierarchical index
         using the `level` parameter:
 
         >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
