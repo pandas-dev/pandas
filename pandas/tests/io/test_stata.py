@@ -120,9 +120,9 @@ class TestStata:
         expected["a"] = expected["a"].astype(np.int32)
         tm.assert_frame_equal(read_df, expected, check_index_type=True)
 
-    # Note this test starts at format version 108 as the missing code for double
-    # was different prior to this (see GH 58149) and would therefore fail
-    @pytest.mark.parametrize("version", [108, 110, 111, 113, 114, 115, 117, 118, 119])
+    @pytest.mark.parametrize(
+        "version", [102, 103, 104, 105, 108, 110, 111, 113, 114, 115, 117, 118, 119]
+    )
     def test_read_dta1(self, version, datapath):
         file = datapath("io", "data", "stata", f"stata1_{version}.dta")
         parsed = self.read_dta(file)
@@ -918,8 +918,8 @@ class TestStata:
         )
         assert val.string == ".z"
 
-    @pytest.mark.parametrize("file", ["stata8_113", "stata8_115", "stata8_117"])
-    def test_missing_value_conversion(self, file, datapath):
+    @pytest.mark.parametrize("version", [113, 115, 117])
+    def test_missing_value_conversion(self, version, datapath):
         columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
         smv = StataMissingValue(101)
         keys = sorted(smv.MISSING_VALUES.keys())
@@ -930,14 +930,13 @@ class TestStata:
         expected = DataFrame(data, columns=columns)
 
         parsed = read_stata(
-            datapath("io", "data", "stata", f"{file}.dta"), convert_missing=True
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
         )
         tm.assert_frame_equal(parsed, expected)
 
-    # Note this test starts at format version 108 as the missing code for double
-    # was different prior to this (see GH 58149) and would therefore fail
-    @pytest.mark.parametrize("file", ["stata8_108", "stata8_110", "stata8_111"])
-    def test_missing_value_conversion_compat(self, file, datapath):
+    @pytest.mark.parametrize("version", [104, 105, 108, 110, 111])
+    def test_missing_value_conversion_compat(self, version, datapath):
         columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
         smv = StataMissingValue(101)
         keys = sorted(smv.MISSING_VALUES.keys())
@@ -947,7 +946,25 @@ class TestStata:
         expected = DataFrame(data, columns=columns)
 
         parsed = read_stata(
-            datapath("io", "data", "stata", f"{file}.dta"), convert_missing=True
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    # The byte type was not supported prior to the 104 format
+    @pytest.mark.parametrize("version", [102, 103])
+    def test_missing_value_conversion_compat_nobyte(self, version, datapath):
+        columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
+        smv = StataMissingValue(101)
+        keys = sorted(smv.MISSING_VALUES.keys())
+        data = []
+        row = [StataMissingValue(keys[j * 27]) for j in [1, 1, 2, 3, 4]]
+        data.append(row)
+        expected = DataFrame(data, columns=columns)
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
         )
         tm.assert_frame_equal(parsed, expected)
 
