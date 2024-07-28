@@ -17,7 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -691,9 +691,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="infer_string takes precedence")
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -1098,7 +1096,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0

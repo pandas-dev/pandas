@@ -64,9 +64,9 @@ test:
   requires:
     - pip
     - pytest >=7.3.2
-    - pytest-xdist >=2.2.0
+    - pytest-xdist >=3.4.0
     - pytest-cov
-    - hypothesis >=6.46.1
+    - hypothesis >=6.84.0
     - tomli  # [py<311]
 
 about:

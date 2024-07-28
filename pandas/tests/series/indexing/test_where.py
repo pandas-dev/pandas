@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.core.dtypes.common import is_integer
 
@@ -55,15 +55,13 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     s = Series(np.arange(10), dtype=dtype)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
-    expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
-    warn = (
-        None
-        if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f"
-        else FutureWarning
-    )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+    if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f":
         s[mask] = values
-    tm.assert_series_equal(s, expected)
+        expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
+        tm.assert_series_equal(s, expected)
+    else:
+        with pytest.raises(TypeError, match="Invalid value"):
+            s[mask] = values
 
 
 def test_where_unsafe():
@@ -74,9 +72,10 @@ def test_where_unsafe():
     mask = s > 5
     expected = Series(list(range(6)) + values, dtype="float64")
 
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         s[mask] = values
-    tm.assert_series_equal(s, expected)
+    s = s.astype("float64")
+    s[mask] = values
 
     # see gh-3235
     s = Series(np.arange(10), dtype="int64")
@@ -232,7 +231,7 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
 
-@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set ints into string")
+@pytest.mark.xfail(using_string_dtype(), reason="can't set ints into string")
 def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment

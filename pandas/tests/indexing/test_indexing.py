@@ -8,8 +8,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
@@ -180,14 +178,8 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[0, "c"] = "foo"
-        expected = DataFrame(
-            {"a": [1, 3], "b": [np.nan, 2], "c": Series(["foo", np.nan], dtype=object)}
-        )
-        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("val", [3.14, "wxyz"])
     def test_setitem_dtype_upcast2(self, val):
@@ -199,19 +191,8 @@ class TestFancy:
         )
 
         left = df.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = val
-        right = DataFrame(
-            [[0, val, 2], [3, 4, 5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_integer_dtype(left["foo"])
-        assert is_integer_dtype(left["baz"])
 
     def test_setitem_dtype_upcast3(self):
         left = DataFrame(
@@ -219,20 +200,8 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             left.loc["a", "bar"] = "wxyz"
-
-        right = DataFrame(
-            [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
-            index=list("ab"),
-            columns=["foo", "bar", "baz"],
-        )
-
-        tm.assert_frame_equal(left, right)
-        assert is_float_dtype(left["foo"])
-        assert is_float_dtype(left["baz"])
 
     def test_dups_fancy_indexing(self):
         # GH 3455
@@ -455,9 +424,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't multiply arrow strings"
-    )
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
         # set float64 to avoid upcast when setting nan
@@ -683,7 +649,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -728,7 +693,7 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
@@ -780,10 +745,10 @@ class TestMisc:
         # GH 11652
         s = Series(index=range(size), dtype=np.float64)
         s.loc[range(1)] = 42
-        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=range(1)))
 
         s.loc[range(2)] = 43
-        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=range(2)))
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170

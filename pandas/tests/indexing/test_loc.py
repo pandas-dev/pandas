@@ -13,10 +13,9 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
 import pandas as pd
@@ -383,12 +382,8 @@ class TestLocBaseIndependent:
         df2 = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         ix = df1["a"] == 1
         newb2 = df2.loc[ix, "b"]
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df1.loc[ix, "b"] = newb2
-        expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
-        tm.assert_frame_equal(df2, expected)
 
     def test_loc_setitem_dtype(self):
         # GH31340
@@ -572,54 +567,31 @@ class TestLocBaseIndependent:
     def test_loc_setitem_consistency(self, frame_for_consistency, val):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
-        expected = DataFrame(
-            {
-                "date": Series(0, index=range(5), dtype=np.int64),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
         df = frame_for_consistency.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[:, "date"] = val
-        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
 
-        expected = DataFrame(
-            {
-                "date": Series("foo", index=range(5)),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
         df = frame_for_consistency.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[:, "date"] = "foo"
-        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_dt64_to_float(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
-        expected = DataFrame(
-            {
-                "date": Series(1.0, index=range(5)),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
         df = frame_for_consistency.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[:, "date"] = 1.0
-        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_single_row(self):
         # GH 15494
         # setting on frame with single row
         df = DataFrame({"date": Series([Timestamp("20180101")])})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[:, "date"] = "string"
-        expected = DataFrame({"date": Series(["string"])})
-        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
@@ -677,15 +649,10 @@ class TestLocBaseIndependent:
 
         # timedelta64[m] -> float, so this cannot be done inplace, so
         #  no warning
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[:, ("Respondent", "Duration")] = df.loc[
                 :, ("Respondent", "Duration")
             ] / Timedelta(60_000_000_000)
-
-        expected = Series(
-            [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
-        )
-        tm.assert_series_equal(df[("Respondent", "Duration")], expected)
 
     @pytest.mark.parametrize("unit", ["Y", "M", "D", "h", "m", "s", "ms", "us"])
     def test_loc_assign_non_ns_datetime(self, unit):
@@ -1237,7 +1204,7 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
     def test_loc_setitem_str_to_small_float_conversion_type(self):
         # GH#20388
 
@@ -1411,13 +1378,9 @@ class TestLocBaseIndependent:
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
-        exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
             df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
-        tm.assert_frame_equal(df, exp)
 
     def test_loc_setitem_single_row_categorical(self, using_infer_string):
         # GH#25495
@@ -1444,9 +1407,8 @@ class TestLocBaseIndependent:
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[2, "c"] = date(2005, 5, 5)
-        assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
     def test_loc_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
@@ -1457,12 +1419,13 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        with tm.assert_produces_warning(
-            FutureWarning if idxer == "var" else None, match="incompatible dtype"
-        ):
+        if idxer == "var":
+            with pytest.raises(TypeError, match="Invalid value"):
+                result.loc[:, idxer] = expected
+        else:
             # See https://github.com/pandas-dev/pandas/issues/56223
             result.loc[:, idxer] = expected
-        tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
@@ -1608,16 +1571,8 @@ class TestLocBaseIndependent:
         # dtype conversion on setting
         df = DataFrame(np.random.default_rng(2).random((30, 3)), columns=tuple("ABC"))
         df["event"] = np.nan
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.loc[10, "event"] = "foo"
-        result = df.dtypes
-        expected = Series(
-            [np.dtype("float64")] * 3 + [np.dtype("object")],
-            index=["A", "B", "C", "event"],
-        )
-        tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_cast3(self):
         # Test that data type is preserved . GH#5782
@@ -1973,7 +1928,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1
-        tm.assert_series_equal(ser, Series([1], index=[1]))
+        tm.assert_series_equal(ser, Series([1], index=range(1, 2)))
         ser.loc[3] = 3
         tm.assert_series_equal(ser, Series([1, 3], index=[1, 3]))
 
@@ -1983,7 +1938,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1.0
-        tm.assert_series_equal(ser, Series([1.0], index=[1]))
+        tm.assert_series_equal(ser, Series([1.0], index=range(1, 2)))
         ser.loc[3] = 3.0
         tm.assert_series_equal(ser, Series([1.0, 3.0], index=[1, 3]))
 
@@ -2106,7 +2061,7 @@ class TestLocSetitemWithExpansion:
         N = len(index)
         arr = np.arange(N).astype(np.int64)
 
-        orig = DataFrame(arr, index=index, columns=[0])
+        orig = DataFrame(arr, index=index)
 
         # key that will requiring object-dtype casting in the index
         key = "kapow"
@@ -2119,7 +2074,7 @@ class TestLocSetitemWithExpansion:
         else:
             assert exp_index[-1] == key
         exp_data = np.arange(N + 1).astype(np.float64)
-        expected = DataFrame(exp_data, index=exp_index, columns=[0])
+        expected = DataFrame(exp_data, index=exp_index)
 
         # Add new row, but no new columns
         df = orig.copy()
@@ -2972,19 +2927,8 @@ def test_loc_setitem_uint8_upcast(value):
     # GH#26049
 
     df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
-    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         df.loc[2, "col1"] = value  # value that can't be held in uint8
-
-    if np_version_gt2 and isinstance(value, np.int16):
-        # Note, result type of uint8 + int16 is int16
-        # in numpy < 2, though, numpy would inspect the
-        # value and see that it could fit in an uint16, resulting in a uint16
-        dtype = "int16"
-    else:
-        dtype = "uint16"
-
-    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype=dtype)
-    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(

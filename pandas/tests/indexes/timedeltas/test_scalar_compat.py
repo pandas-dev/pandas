@@ -103,30 +103,34 @@ class TestVectorizedTimedelta:
         t1c = TimedeltaIndex(np.array([1, 1, 1], "m8[D]")).as_unit("ns")
 
         # note that negative times round DOWN! so don't give whole numbers
-        for freq, s1, s2 in [
-            ("ns", t1, t2),
-            ("us", t1, t2),
-            (
-                "ms",
-                t1a,
-                TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
+        msg = "'d' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            for freq, s1, s2 in [
+                ("ns", t1, t2),
+                ("us", t1, t2),
+                (
+                    "ms",
+                    t1a,
+                    TimedeltaIndex(
+                        ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
+                    ),
                 ),
-            ),
-            (
-                "s",
-                t1a,
-                TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
+                (
+                    "s",
+                    t1a,
+                    TimedeltaIndex(
+                        ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
+                    ),
                 ),
-            ),
-            ("12min", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
-            ("h", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
-            ("d", t1c, -1 * t1c),
-        ]:
-            r1 = t1.round(freq)
+                ("12min", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
+                ("h", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
+                ("d", t1c, -1 * t1c),
+            ]:
+                r1 = t1.round(freq)
+                r2 = t2.round(freq)
+
             tm.assert_index_equal(r1, s1)
-            r2 = t2.round(freq)
             tm.assert_index_equal(r2, s2)
 
     def test_components(self):

@@ -119,16 +119,16 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_str, empty.str.repeat(3))
     tm.assert_series_equal(empty_bool, empty.str.match("^a"))
     tm.assert_frame_equal(
-        DataFrame(columns=[0], dtype=any_string_dtype),
+        DataFrame(columns=range(1), dtype=any_string_dtype),
         empty.str.extract("()", expand=True),
     )
     tm.assert_frame_equal(
-        DataFrame(columns=[0, 1], dtype=any_string_dtype),
+        DataFrame(columns=range(2), dtype=any_string_dtype),
         empty.str.extract("()()", expand=True),
     )
     tm.assert_series_equal(empty_str, empty.str.extract("()", expand=False))
     tm.assert_frame_equal(
-        DataFrame(columns=[0, 1], dtype=any_string_dtype),
+        DataFrame(columns=range(2), dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
     tm.assert_frame_equal(empty_df.set_axis([], axis=1), empty.str.get_dummies())

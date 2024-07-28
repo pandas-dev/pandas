@@ -57,6 +57,10 @@ jobs:
             # Also install zh_CN (its encoding is gb2312) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
+          - name: "Future infer strings"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_future_infer_string: "1"
           - name: "Pypy"
             env_file: actions-pypy-39.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -75,6 +79,7 @@ jobs:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_CI: '1'
+      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
@@ -227,7 +232,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
@@ -265,7 +270,7 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
 
@@ -339,7 +344,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov
+          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
           python -m pip list
 
@@ -382,15 +387,14 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython
           python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz tzdata hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov
+          python -m pip install python-dateutil pytz tzdata hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
           python -m pip list
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
-        env:
-          PYTHON_GIL: 0
 
+  # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
     # Note: the Python version, Emscripten toolchain version are determined
     # by the Pyodide version. The appropriate versions can be found in the

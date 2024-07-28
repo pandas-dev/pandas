@@ -2013,6 +2013,7 @@ class TestToDatetimeDataFrame:
 
         # dict-like
         result = to_datetime(df[["year", "month", "day"]].to_dict(), cache=cache)
+        expected.index = Index([0, 1])
         tm.assert_series_equal(result, expected)
 
     def test_dataframe_dict_with_constructable(self, df, cache):
@@ -2021,7 +2022,8 @@ class TestToDatetimeDataFrame:
         df2["month"] = 2
         result = to_datetime(df2, cache=cache)
         expected2 = Series(
-            [Timestamp("20150204 00:00:00"), Timestamp("20160205 00:0:00")]
+            [Timestamp("20150204 00:00:00"), Timestamp("20160205 00:0:00")],
+            index=Index([0, 1]),
         )
         tm.assert_series_equal(result, expected2)
 
@@ -2988,6 +2990,8 @@ class TestDatetimeParsingWrappers:
             ("20/12/21", True, False, datetime(2021, 12, 20)),
             ("20/12/21", False, True, datetime(2020, 12, 21)),
             ("20/12/21", True, True, datetime(2020, 12, 21)),
+            # GH 58859
+            ("20201012", True, False, datetime(2020, 12, 10)),
         ],
     )
     def test_parsers_dayfirst_yearfirst(
