@@ -1690,7 +1690,10 @@ def map_array(
                 else:
                     mapper = Series(mapper, dtype=np.float64)
             else:
-                mapper = Series(mapper)
+                if arr.dtype in ("string[pyarrow]", "string[python]"):
+                    mapper = Series(mapper, dtype=arr.dtype)
+                else:
+                    mapper = Series(mapper)
 
     if isinstance(mapper, ABCSeries):
         if na_action == "ignore":
@@ -1706,33 +1709,7 @@ def map_array(
     if not len(arr):
         return arr.copy()
 
-    na_value = np.nan
-    mask = isna(arr)
-    storage = None
-    if isinstance(arr.dtype, BaseMaskedDtype):
-        arr = cast("BaseMaskedArray", arr)
-        values = arr._data
-        if arr._hasna:
-            na_value = arr.dtype.na_value
-    elif isinstance(arr.dtype, ExtensionDtype):
-        arr = cast("ExtensionArray", arr)
-        arr_dtype = arr.dtype.__repr__()
-        if "python" in arr_dtype:
-            storage = "python"
-            values = np.asarray(arr)
-        elif "pyarrow" in arr_dtype:
-            storage = "pyarrow"
-            if "date" in arr_dtype:
-                values = np.fromiter(arr._pa_array, dtype="O")
-            else:
-                values = np.asarray(arr)
-        else:
-            values = np.asarray(arr)
-        if arr._hasna:
-            na_value = arr.dtype.na_value
-    else:
-        # we must convert to python types
-        values = arr.astype(object, copy=False)
+    mask, na_value, storage, values = _build_map_infer_methods_params(arr)
 
     if na_action is None:
         return lib.map_infer(
@@ -1752,3 +1729,49 @@ def map_array(
             convert_to_nullable_dtype=na_value is NA,
             storage=storage,
         )
+
+
+def _build_map_infer_methods_params(arr: ArrayLike):
+    """
+    Process lib.map_infer and lib.map_infer_mask parameters from an array `arr`
+
+    Parameters
+    ----------
+    arr
+
+    Returns
+    -------
+    mask : np.ndarray[bool]
+    na_value : object
+        A value in `values` to consider missing.
+    storage : {"python", "pyarrow", "pyarrow_numpy"}, default "python"
+        Backend storage
+    values : np.ndarray
+        Values to be processed by lib.map_infer and lib.map_infer_mask
+
+    """
+    na_value = np.nan
+    mask = isna(arr)
+    storage = "python"
+    if isinstance(arr.dtype, BaseMaskedDtype):
+        arr = cast("BaseMaskedArray", arr)
+        values = arr._data
+        if arr._hasna:
+            na_value = arr.dtype.na_value
+
+    elif isinstance(arr.dtype, ExtensionDtype):
+        arr = cast("ExtensionArray", arr)
+        arr_dtype = arr.dtype.__repr__()
+        if "pyarrow" in arr_dtype and "date" in arr_dtype:
+            values = np.fromiter(arr._pa_array, dtype="O")
+        else:
+            values = np.asarray(arr)
+        if "pyarrow" in arr_dtype:
+            storage = "pyarrow"
+        if arr._hasna:
+            na_value = arr.dtype.na_value
+
+    else:
+        # we must convert to python types
+        values = arr.astype(object, copy=False)
+    return mask, na_value, storage, values

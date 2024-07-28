@@ -2484,7 +2484,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
-    storage : {"python", "pyarrow", "pyarrow_numpy"}, default "python"
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
         Backend storage
 
     Returns
@@ -2503,9 +2503,6 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
-
-    if storage is None:
-        storage="python"
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2967,7 +2964,7 @@ def map_infer_mask(
         input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
-    storage : {"python", "pyarrow", "pyarrow_numpy"}, default "python"
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
         Backend storage
 
     Returns
@@ -3041,7 +3038,7 @@ def map_infer(
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
         encountered, whether to convert and return an Boolean/IntegerArray.
-    storage : {"python", "pyarrow", "pyarrow_numpy"}, default "python"
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
         Backend storage
 
     Returns
