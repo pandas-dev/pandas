@@ -1752,7 +1752,7 @@ def _build_map_infer_methods_params(arr: ArrayLike):
     """
     na_value = np.nan
     mask = isna(arr)
-    storage = "python"
+    storage = None
     if isinstance(arr.dtype, BaseMaskedDtype):
         arr = cast("BaseMaskedArray", arr)
         values = arr._data
@@ -1768,6 +1768,8 @@ def _build_map_infer_methods_params(arr: ArrayLike):
             values = np.asarray(arr)
         if "pyarrow" in arr_dtype:
             storage = "pyarrow"
+        if "python" in arr_dtype:
+            storage = "python"
         if arr._hasna:
             na_value = arr.dtype.na_value
 
