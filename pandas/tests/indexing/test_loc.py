@@ -3270,8 +3270,5 @@ class TestLocSeries:
         df = DataFrame({"a": [1, 2], "b": [3, 4]})
         other = Series([200, 999], index=[1, 0])
         df.loc[:, "a"] = other
-        expected = DataFrame({"a": [200, 999], "b": [3, 4]})
-        print(expected)
-        print(df)
+        expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
-        # assert expected.equals(df)
