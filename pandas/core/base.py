@@ -1050,7 +1050,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         Name: count, dtype: int64
 
-        **categorial_dtypes**
+        **Categorical Dtypes**
 
         Rows with categorical type will be counted as one group
         if they have same categories and order.
