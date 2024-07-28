@@ -56,7 +56,6 @@ def create_valid_python_identifier(name: str) -> str:
             "$": "_DOLLARSIGN_",
             "€": "_EUROSIGN_",
             "°": "_DEGREESIGN_",
-            # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
             "#": "_HASH_",
@@ -128,6 +127,7 @@ def clean_column_name(name: Hashable) -> Hashable:
         which is not caught and propagates to the user level.
     """
     try:
+        name = name.replace("`", "``")  # Escape backticks
         tokenized = tokenize_string(f"`{name}`")
         tokval = next(tokenized)[1]
         return create_valid_python_identifier(tokval)

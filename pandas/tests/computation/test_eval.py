@@ -1994,6 +1994,14 @@ def test_query_on_expr_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+def test_query_on_expr_with_column_name_with_backtick_and_hash():
+    # GH 59285
+    df = DataFrame((1, 2, 3), columns=["a`#b"])
+    result = df.query("`a``#b` < 2")
+    expected = df[df["a`#b"] < 2]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_query_on_expr_with_string_with_backticks():
     # GH 59285
     df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
