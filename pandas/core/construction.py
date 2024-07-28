@@ -16,7 +16,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -38,7 +38,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_list_like,
     is_object_dtype,
-    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -555,9 +554,7 @@ def sanitize_array(
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
-    object_index = False
-    if isinstance(data, ABCIndex) and data.dtype == object and dtype is None:
-        object_index = True
+    infer_object = not isinstance(data, (ABCIndex, ABCSeries))
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
@@ -574,11 +571,7 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        if (
-            isinstance(data, str)
-            and using_pyarrow_string_dtype()
-            and original_dtype is None
-        ):
+        if isinstance(data, str) and using_string_dtype() and original_dtype is None:
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype("pyarrow_numpy")
@@ -610,16 +603,9 @@ def sanitize_array(
 
         if dtype is None:
             subarr = data
-            if data.dtype == object:
+            if data.dtype == object and infer_object:
                 subarr = maybe_infer_to_datetimelike(data)
-                if (
-                    object_index
-                    and using_pyarrow_string_dtype()
-                    and is_string_dtype(subarr)
-                ):
-                    # Avoid inference when string option is set
-                    subarr = data
-            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+            elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
                 dtype = StringDtype(storage="pyarrow_numpy")

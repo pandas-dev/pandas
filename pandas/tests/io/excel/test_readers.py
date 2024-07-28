@@ -17,7 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -141,10 +141,13 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    return "ns"
+    unit = "us"
+    if (read_ext == ".ods") ^ (engine == "calamine"):
+        unit = "s"
+    return unit
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, engine: str) -> None:
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
@@ -161,6 +164,36 @@ def xfail_datetimes_with_pyxlsb(engine, request):
 
 
 class TestReaders:
+    @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
+    def test_read_excel_type_check(self, col, datapath):
+        # GH 58159
+        df = DataFrame({"bool_column": col}, dtype="boolean")
+        f_path = datapath("io", "data", "excel", "test_boolean_types.xlsx")
+
+        df.to_excel(f_path, index=False)
+        df2 = pd.read_excel(f_path, dtype={"bool_column": "boolean"}, engine="openpyxl")
+        tm.assert_frame_equal(df, df2)
+
+    def test_pass_none_type(self, datapath):
+        # GH 58159
+        f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
+
+        with pd.ExcelFile(f_path) as excel:
+            parsed = pd.read_excel(
+                excel,
+                sheet_name="Sheet1",
+                keep_default_na=True,
+                na_values=["nan", "None", "abcd"],
+                dtype="boolean",
+                engine="openpyxl",
+            )
+        expected = DataFrame(
+            {"Test": [True, None, False, None, False, None, True]},
+            dtype="boolean",
+        )
+
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -658,9 +691,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="infer_string takes precedence")
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -1065,7 +1096,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0
@@ -1117,7 +1148,6 @@ class TestReaders:
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
 
         unit = get_exp_unit(read_ext, engine)
-
         expected = DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -1675,6 +1705,7 @@ class TestExcelFileRead:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
 
         unit = get_exp_unit(read_ext, engine)
+
         dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
         expected_column_index = MultiIndex.from_arrays(
             [dti[:1], dti[1:]],

@@ -1,12 +1,14 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from decimal import Decimal
 
 import numpy as np
 import pytest
-import pytz
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
@@ -39,7 +41,7 @@ class TestFromRecords:
         expected = DataFrame({"EXPIRY": [datetime(2005, 3, 1, 0, 0), None]})
 
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
-        dtypes = [("EXPIRY", "<M8[ns]")]
+        dtypes = [("EXPIRY", "<M8[us]")]
 
         recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
@@ -55,9 +57,7 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="dtype checking logic doesn't work")
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -145,6 +145,12 @@ class TestFromRecords:
         result = DataFrame.from_records([])
         assert len(result) == 0
         assert len(result.columns) == 0
+
+    def test_from_records_sequencelike_empty_index(self):
+        result = DataFrame.from_records([], index=[])
+        assert len(result) == 0
+        assert len(result.columns) == 0
+        assert len(result.index) == 0
 
     def test_from_records_dictlike(self):
         # test the dict methods
@@ -239,7 +245,7 @@ class TestFromRecords:
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=timezone.utc)}
 
         # it works
         DataFrame.from_records([rec], index="begin_time")

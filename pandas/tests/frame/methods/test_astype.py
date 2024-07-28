@@ -149,7 +149,7 @@ class TestAstype:
         # see GH#9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
-        c = Series([Timedelta(x, unit="d") for x in range(5)])
+        c = Series([Timedelta(x, unit="D") for x in range(5)])
         d = Series(range(5))
         e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
 
@@ -715,8 +715,12 @@ class TestAstype:
                 df.astype(float, errors=errors)
 
     def test_astype_tz_conversion(self):
-        # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        # GH 35973, GH#58998
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            val = {
+                "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
+            }
         df = DataFrame(val)
         result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
 
@@ -727,7 +731,7 @@ class TestAstype:
     @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
     def test_astype_tz_object_conversion(self, tz):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
         expected = DataFrame(val)
 
         # convert expected to object dtype from other tz str (independently tested)

@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import (
     Interval,
@@ -39,7 +39,6 @@ from pandas._libs.tslibs import (
     is_supported_dtype,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas.compat.numpy import np_version_gt2
 from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
@@ -799,7 +798,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(storage="pyarrow_numpy")
@@ -1193,7 +1192,7 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         convert_numeric=False,
         convert_non_numeric=True,
-        dtype_if_all_nat=np.dtype("M8[ns]"),
+        dtype_if_all_nat=np.dtype("M8[s]"),
     )
 
 
@@ -1643,13 +1642,11 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             with warnings.catch_warnings():
                 # We already disallow dtype=uint w/ negative numbers
                 # (test_constructor_coercion_signed_to_unsigned) so safe to ignore.
-                if not np_version_gt2:
-                    warnings.filterwarnings(
-                        "ignore",
-                        "NumPy will stop allowing conversion of "
-                        "out-of-bound Python int",
-                        DeprecationWarning,
-                    )
+                warnings.filterwarnings(
+                    "ignore",
+                    "NumPy will stop allowing conversion of " "out-of-bound Python int",
+                    DeprecationWarning,
+                )
                 casted = np.asarray(arr, dtype=dtype)
         else:
             with warnings.catch_warnings():

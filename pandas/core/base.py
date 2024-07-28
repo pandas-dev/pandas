@@ -703,6 +703,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Indicator whether Index is empty.
 
+        An Index is considered empty if it has no elements. This property can be
+        useful for quickly checking the state of an Index, especially in data
+        processing and analysis workflows where handling of empty datasets might
+        be required.
+
         Returns
         -------
         bool
@@ -714,10 +719,10 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> idx_empty = pd.Index([1, 2, 3])
-        >>> idx_empty
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
         Index([1, 2, 3], dtype='int64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
 
         >>> idx_empty = pd.Index([])
@@ -728,10 +733,10 @@ class IndexOpsMixin(OpsMixin):
 
         If we only have NaNs in our DataFrame, it is not considered empty!
 
-        >>> idx_empty = pd.Index([np.nan, np.nan])
-        >>> idx_empty
+        >>> idx = pd.Index([np.nan, np.nan])
+        >>> idx
         Index([nan, nan], dtype='float64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
         """
         return not self.size
@@ -1329,7 +1334,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
         3

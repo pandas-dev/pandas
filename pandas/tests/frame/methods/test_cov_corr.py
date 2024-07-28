@@ -214,7 +214,7 @@ class TestDataFrameCorr:
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.arrays) == 2  # i.e. 2 blocks
+        assert len(df._mgr.blocks) == 2
 
         _ = df.corr(numeric_only=True)
 

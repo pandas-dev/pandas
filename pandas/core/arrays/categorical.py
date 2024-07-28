@@ -6,12 +6,10 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -24,7 +22,6 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -94,6 +91,7 @@ from pandas.io.formats import console
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,
@@ -1483,7 +1481,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def map(
         self,
         mapper,
-        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+        na_action: Literal["ignore"] | None = None,
     ):
         """
         Map categories using an input mapping or function.
@@ -1501,14 +1499,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
-        na_action : {None, 'ignore'}, default 'ignore'
+        na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
-
-            .. deprecated:: 2.1.0
-
-               The default value of 'ignore' has been deprecated and will be changed to
-               None in the future.
 
         Returns
         -------
@@ -1561,17 +1554,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
         Index(['first', 'second', nan], dtype='object')
         """
-        if na_action is lib.no_default:
-            warnings.warn(
-                "The default value of 'ignore' for the `na_action` parameter in "
-                "pandas.Categorical.map is deprecated and will be "
-                "changed to 'None' in a future version. Please set na_action to the "
-                "desired value to avoid seeing this warning",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            na_action = "ignore"
-
         assert callable(mapper) or is_dict_like(mapper)
 
         new_categories = self.categories.map(mapper)
@@ -2689,62 +2671,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
-    @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self: ...
-
-    @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None: ...
-
-    def _replace(self, *, to_replace, value, inplace: bool = False) -> Self | None:
-        from pandas import Index
-
-        orig_dtype = self.dtype
-
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        cat = self if inplace else self.copy()
-
-        mask = isna(np.asarray(value))
-        if mask.any():
-            removals = np.asarray(to_replace)[mask]
-            removals = cat.categories[cat.categories.isin(removals)]
-            new_cat = cat.remove_categories(removals)
-            NDArrayBacked.__init__(cat, new_cat.codes, new_cat.dtype)
-
-        ser = cat.categories.to_series()
-        ser = ser.replace(to_replace=to_replace, value=value)
-
-        all_values = Index(ser)
-
-        # GH51016: maintain order of existing categories
-        idxr = cat.categories.get_indexer_for(all_values)
-        locs = np.arange(len(ser))
-        locs = np.where(idxr == -1, locs, idxr)
-        locs = locs.argsort()
-
-        new_categories = ser.take(locs)
-        new_categories = new_categories.drop_duplicates(keep="first")
-        index_categories = Index(new_categories)
-        new_codes = recode_for_categories(
-            cat._codes, all_values, index_categories, copy=False
-        )
-        new_dtype = CategoricalDtype(index_categories, ordered=self.dtype.ordered)
-        NDArrayBacked.__init__(cat, new_codes, new_dtype)
-
-        if new_dtype != orig_dtype:
-            warnings.warn(
-                # GH#55147
-                "The behavior of Series.replace (and DataFrame.replace) with "
-                "CategoricalDtype is deprecated. In a future version, replace "
-                "will only be used for cases that preserve the categories. "
-                "To change the categories, use ser.cat.rename_categories "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if not inplace:
-            return cat
-        return None
-
     # ------------------------------------------------------------------------
     # String methods interface
     def _str_map(
@@ -2863,6 +2789,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     Parameters
     ----------
     data : Series or CategoricalIndex
+        The object to which the categorical accessor is attached.
 
     See Also
     --------
