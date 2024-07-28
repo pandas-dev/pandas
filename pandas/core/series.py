@@ -1815,17 +1815,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     30.0
         Parrot     20.0
         Name: Max Speed, dtype: float64
-
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
         Name: Max Speed, dtype: float64
-
         >>> ser.groupby(level=0).mean()
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
-
         >>> ser.groupby(ser > 100).mean()
         Max Speed
         False     25.0
@@ -1848,13 +1845,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot  Captive     30.0
                 Wild        20.0
         Name: Max Speed, dtype: float64
-
         >>> ser.groupby(level=0).mean()
         Animal
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
-
         >>> ser.groupby(level="Type").mean()
         Type
         Captive    210.0
