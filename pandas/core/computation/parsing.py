@@ -35,9 +35,8 @@ def create_valid_python_identifier(name: str) -> str:
     ------
     SyntaxError
         If the returned name is not a Python valid identifier, raise an exception.
-        This can happen if there is a hashtag in the name, as the tokenizer will
-        than terminate and not find the backtick.
-        But also for characters that fall out of the range of (U+0001..U+007F).
+        This can happen if the name includes characters that fall out of the range of
+        (U+0001..U+007F).
     """
     if name.isidentifier() and not iskeyword(name):
         return name
@@ -60,7 +59,6 @@ def create_valid_python_identifier(name: str) -> str:
             # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
-            # Currently not possible. Terminates parser and won't find backtick.
             "#": "_HASH_",
         }
     )
@@ -239,11 +237,11 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
                     break
 
             # Quote is unmatched (Bad syntax), or
-            # Quote is matched, and the next quote is at the end of the string
+            # Quote is matched, and the next quote is at the end of s
             if (next_quote_index == -1) or (next_quote_index + 1 == len(s)):
                 substrings.append((False, substring + s[i:]))
                 break
-            # Quote is matched, and the next quote is in the middle of the string
+            # Quote is matched, and the next quote is in the middle of s
             else:
                 substring += s[i : next_quote_index + 1]
                 i = next_quote_index + 1
