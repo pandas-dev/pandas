@@ -96,8 +96,14 @@ def data_for_grouping(dtype, chunked):
 
 class TestStringArray(base.ExtensionTests):
     def test_eq_with_str(self, dtype):
-        assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
+
+        if dtype.na_value is pd.NA:
+            # only the NA-variant supports parametrized string alias
+            assert dtype == f"string[{dtype.storage}]"
+        elif dtype.storage == "pyarrow":
+            # TODO(infer_string) deprecate this
+            assert dtype == "string[pyarrow_numpy]"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type

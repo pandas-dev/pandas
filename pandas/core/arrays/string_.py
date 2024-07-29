@@ -120,19 +120,13 @@ class StringDtype(StorageExtensionDtype):
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
         return self._na_value
 
-    _metadata = ("storage",)
+    _metadata = ("storage", "na_value")
 
     def __init__(
         self,
         storage: str | None = None,
         na_value: libmissing.NAType | float = libmissing.NA,
     ) -> None:
-        if not (
-            na_value is libmissing.NA
-            or (isinstance(na_value, float) and np.isnan(na_value))
-        ):
-            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
-
         # infer defaults
         if storage is None:
             if using_string_dtype():
@@ -145,6 +139,7 @@ class StringDtype(StorageExtensionDtype):
             storage = "pyarrow"
             na_value = np.nan
 
+        # validate options
         if storage not in {"python", "pyarrow"}:
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
@@ -153,8 +148,34 @@ class StringDtype(StorageExtensionDtype):
             raise ImportError(
                 "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
+
+        if isinstance(na_value, float) and np.isnan(na_value):
+            # when passed a NaN value, always set to np.nan to ensure we use
+            # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
+            na_value = np.nan
+        elif na_value is not libmissing.NA:
+            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+
         self.storage = storage
         self._na_value = na_value
+
+    def __eq__(self, other: object) -> bool:
+        # we need to override the base class __eq__ because na_value (NA or NaN)
+        # cannot be checked with normal `==`
+        if isinstance(other, str):
+            if other == self.name:
+                return True
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+        if isinstance(other, type(self)):
+            return self.storage == other.storage and self.na_value is other.na_value
+        return False
+
+    def __hash__(self) -> int:
+        # need to override __hash__ as well because of overriding __eq__
+        return super().__hash__()
 
     @property
     def type(self) -> type[str]:
