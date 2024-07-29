@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+import numpy as np
+
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -29,6 +31,6 @@ def arrow_string_types_mapper() -> Callable:
     pa = import_optional_dependency("pyarrow")
 
     return {
-        pa.string(): pd.StringDtype(storage="pyarrow_numpy"),
-        pa.large_string(): pd.StringDtype(storage="pyarrow_numpy"),
+        pa.string(): pd.StringDtype(storage="pyarrow", na_value=np.nan),
+        pa.large_string(): pd.StringDtype(storage="pyarrow", na_value=np.nan),
     }.get
