@@ -2341,7 +2341,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby to each row or column of a DataFrame.
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
 
         Examples
         --------
