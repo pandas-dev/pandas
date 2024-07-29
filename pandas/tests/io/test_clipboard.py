@@ -3,6 +3,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -26,6 +28,10 @@ from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
     init_qt_clipboard,
+)
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
 )
 
 

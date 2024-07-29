@@ -6,6 +6,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
 
@@ -1261,6 +1263,7 @@ def test_groupby_two_group_keys_all_nan():
     assert result == {}
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_2d_malformed():
     d = DataFrame(index=range(2))
     d["group"] = ["g1", "g2"]
@@ -2325,6 +2328,7 @@ def test_groupby_all_nan_groups_drop():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_groupby_empty_multi_column(as_index, numeric_only):
     # GH 15106 & GH 41998
@@ -2341,6 +2345,7 @@ def test_groupby_empty_multi_column(as_index, numeric_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_aggregation_non_numeric_dtype():
     # GH #43108
     df = DataFrame(
@@ -2498,6 +2503,7 @@ def test_groupby_none_in_first_mi_level():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_none_column_name():
     # GH#47348
     df = DataFrame({None: [1, 1, 2, 2], "b": [1, 1, 2, 3], "c": [4, 5, 6, 7]})

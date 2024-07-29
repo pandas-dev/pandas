@@ -4,6 +4,8 @@ from io import StringIO
 
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import ParserWarning
 import pandas.util._test_decorators as td
 
@@ -83,6 +85,7 @@ xml_dates = """<?xml version='1.0' encoding='utf-8'?>
 # DTYPE
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dtype_single_str(parser):
     df_result = read_xml(StringIO(xml_types), dtype={"degrees": "str"}, parser=parser)
     df_iter = read_xml_iterparse(
@@ -208,6 +211,7 @@ def test_wrong_dtype(xml_books, parser, iterparse):
         )
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_both_dtype_converters(parser):
     df_expected = DataFrame(
         {

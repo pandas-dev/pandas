@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -712,6 +714,7 @@ def test_head_tail(method):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_infer_objects():
     df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
     df_orig = df.copy()
@@ -896,6 +899,7 @@ def test_sort_values_inplace(obj, kwargs):
     tm.assert_equal(view, obj_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})

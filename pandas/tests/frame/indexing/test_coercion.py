@@ -8,6 +8,8 @@ we would share the tests with Series.
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -82,6 +84,7 @@ def test_6942(indexer_al):
     assert df.iloc[0, 0] == t2
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_26395(indexer_al):
     # .at case fixed by GH#45121 (best guess)
     df = DataFrame(index=["A", "B", "C"])

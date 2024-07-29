@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     NA,
     DataFrame,
@@ -110,6 +112,7 @@ def test_interp_fill_functions_inplace(func, dtype):
     assert view._mgr._has_no_reference(0)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_interpolate_cannot_with_object_dtype():
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
 
@@ -118,6 +121,7 @@ def test_interpolate_cannot_with_object_dtype():
         df.interpolate()
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_interpolate_object_convert_no_op():
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")

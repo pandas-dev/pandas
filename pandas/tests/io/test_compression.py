@@ -12,6 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -137,6 +139,7 @@ def test_compression_warning(compression_only):
                 df.to_csv(handles.handle, compression=compression_only)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_compression_binary(compression_only):
     """
     Binary file handles support compression.

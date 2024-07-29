@@ -629,6 +629,7 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):

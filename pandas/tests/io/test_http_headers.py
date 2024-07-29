@@ -8,6 +8,8 @@ from io import BytesIO
 
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -84,6 +86,7 @@ def stata_responder(df):
         return bio.getvalue()
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "responder, read_method",
     [

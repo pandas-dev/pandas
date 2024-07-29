@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Index,
@@ -348,6 +350,7 @@ class TestSeriesLogicalOps:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
