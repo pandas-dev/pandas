@@ -120,7 +120,7 @@ class StringDtype(StorageExtensionDtype):
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
         return self._na_value
 
-    _metadata = ("storage", "_na_value")
+    _metadata = ("storage", "_na_value")  # type: ignore[assignment]
 
     def __init__(
         self,
