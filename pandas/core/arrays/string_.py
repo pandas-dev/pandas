@@ -123,7 +123,9 @@ class StringDtype(StorageExtensionDtype):
     _metadata = ("storage",)
 
     def __init__(
-        self, storage=None, na_value: libmissing.NAType | float = libmissing.NA
+        self,
+        storage: str | None = None,
+        na_value: libmissing.NAType | float = libmissing.NA,
     ) -> None:
         if not (
             na_value is libmissing.NA
