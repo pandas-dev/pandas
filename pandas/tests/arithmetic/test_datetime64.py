@@ -389,6 +389,22 @@ class TestDatetime64SeriesComparison:
         expected = Series(expected, name="A")
         tm.assert_series_equal(result, expected)
 
+    def test_ts_series_numpy_maximum(self):
+        # GH#50864, test numpy.maximum does not fail
+        # given a TimeStamp and Series(with dtype datetime64) comparison
+        ts = Timestamp("2024-07-01")
+        ts_series = Series(
+            ["2024-06-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        expected = Series(
+            ["2024-07-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        tm.assert_series_equal(expected, np.maximum(ts, ts_series))
+
 
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
