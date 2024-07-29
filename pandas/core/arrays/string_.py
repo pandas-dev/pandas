@@ -120,7 +120,7 @@ class StringDtype(StorageExtensionDtype):
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
         return self._na_value
 
-    _metadata = ("storage", "na_value")
+    _metadata = ("storage", "_na_value")
 
     def __init__(
         self,
@@ -176,6 +176,9 @@ class StringDtype(StorageExtensionDtype):
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
         return super().__hash__()
+
+    def __reduce__(self):
+        return StringDtype, (self.storage, self.na_value)
 
     @property
     def type(self) -> type[str]:
