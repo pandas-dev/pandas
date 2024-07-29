@@ -3276,4 +3276,4 @@ class TestLocSeries:
     def test_loc_reindexing_of_empty_index(self):
         # GH 57735
         df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
-        df.loc[df[0].str.len() > 1, 0] = df[0]
+        df.loc[Series([False] * 4], index=df.index, name=0), 0] = df[0]
