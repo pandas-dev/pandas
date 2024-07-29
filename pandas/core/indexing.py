@@ -2395,7 +2395,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix) or not len(new_ix):
+                    if not len(new_ix) or ser.index.equals(new_ix):
                         if using_cow:
                             return ser
                         return ser._values.copy()
