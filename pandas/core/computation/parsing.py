@@ -59,6 +59,7 @@ def create_valid_python_identifier(name: str) -> str:
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
             "#": "_HASH_",
+            "`": "_BACKTICK_",
         }
     )
 
@@ -213,6 +214,13 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         # Backtick opened before quote
         if (quote_index == -1) or (backtick_index < quote_index):
             next_backtick_index = s.find("`", backtick_index + 1)
+            while (
+                (next_backtick_index != -1)
+                and (next_backtick_index != len(s) - 1)
+                and (s[next_backtick_index + 1] == "`")
+            ):
+                # Since the next character is also a backtick, it's an escaped backtick
+                next_backtick_index = s.find("`", next_backtick_index + 2)
 
             # Backtick is unmatched (Bad syntax)
             if next_backtick_index == -1:
