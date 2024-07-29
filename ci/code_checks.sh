@@ -362,7 +362,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.indices SA01" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.mean SA01" \
-        -i "pandas.core.resample.Resampler.median SA01" \
         -i "pandas.core.resample.Resampler.min PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.ohlc SA01" \
         -i "pandas.core.resample.Resampler.prod SA01" \
