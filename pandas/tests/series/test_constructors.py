@@ -2133,9 +2133,12 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_storage_definition(self):
-        # GH#54793
+        # https://github.com/pandas-dev/pandas/issues/54793
+        # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
+        # returning the NA string dtype, so expected is changed from
+        # "string[pyarrow_numpy]" to "string[pyarrow]"
         pytest.importorskip("pyarrow")
-        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        expected = Series(["a", "b"], dtype="string[pyarrow]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)

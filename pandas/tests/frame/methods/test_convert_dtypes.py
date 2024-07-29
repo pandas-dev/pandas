@@ -18,6 +18,7 @@ class TestConvertDtypes:
         # Just check that it works for DataFrame here
         if using_infer_string:
             string_storage = "pyarrow_numpy"
+
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),

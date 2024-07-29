@@ -8,7 +8,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     lib,
@@ -80,8 +83,10 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow", "pyarrow_numpy"}, optional
+    storage : {"python", "pyarrow"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
+    na_value : {np.nan, pd.NA}, default pd.NA
+        Whether the dtype follows NaN or NA missing value semantics.
 
     Attributes
     ----------
@@ -108,30 +113,67 @@ class StringDtype(StorageExtensionDtype):
     # follows NumPy semantics, which uses nan.
     @property
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
-        if self.storage == "pyarrow_numpy":
-            return np.nan
-        else:
-            return libmissing.NA
+        return self._na_value
 
-    _metadata = ("storage",)
+    _metadata = ("storage", "_na_value")  # type: ignore[assignment]
 
-    def __init__(self, storage=None) -> None:
+    def __init__(
+        self,
+        storage: str | None = None,
+        na_value: libmissing.NAType | float = libmissing.NA,
+    ) -> None:
+        # infer defaults
         if storage is None:
-            infer_string = get_option("future.infer_string")
-            if infer_string:
-                storage = "pyarrow_numpy"
+            if using_string_dtype():
+                storage = "pyarrow"
             else:
                 storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
+
+        if storage == "pyarrow_numpy":
+            # TODO raise a deprecation warning
+            storage = "pyarrow"
+            na_value = np.nan
+
+        # validate options
+        if storage not in {"python", "pyarrow"}:
             raise ValueError(
-                f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
-                f"Got {storage} instead."
+                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
+        if storage == "pyarrow" and pa_version_under10p1:
             raise ImportError(
                 "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
+
+        if isinstance(na_value, float) and np.isnan(na_value):
+            # when passed a NaN value, always set to np.nan to ensure we use
+            # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
+            na_value = np.nan
+        elif na_value is not libmissing.NA:
+            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+
         self.storage = storage
+        self._na_value = na_value
+
+    def __eq__(self, other: object) -> bool:
+        # we need to override the base class __eq__ because na_value (NA or NaN)
+        # cannot be checked with normal `==`
+        if isinstance(other, str):
+            if other == self.name:
+                return True
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+        if isinstance(other, type(self)):
+            return self.storage == other.storage and self.na_value is other.na_value
+        return False
+
+    def __hash__(self) -> int:
+        # need to override __hash__ as well because of overriding __eq__
+        return super().__hash__()
+
+    def __reduce__(self):
+        return StringDtype, (self.storage, self.na_value)
 
     @property
     def type(self) -> type[str]:
@@ -176,6 +218,7 @@ class StringDtype(StorageExtensionDtype):
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
+            # TODO deprecate
             return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
@@ -200,7 +243,7 @@ class StringDtype(StorageExtensionDtype):
 
         if self.storage == "python":
             return StringArray
-        elif self.storage == "pyarrow":
+        elif self.storage == "pyarrow" and self._na_value is libmissing.NA:
             return ArrowStringArray
         else:
             return ArrowStringArrayNumpySemantics
@@ -212,13 +255,17 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            from pandas.core.arrays.string_arrow import ArrowStringArray
+            if self._na_value is libmissing.NA:
+                from pandas.core.arrays.string_arrow import ArrowStringArray
 
-            return ArrowStringArray(array)
-        elif self.storage == "pyarrow_numpy":
-            from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+                return ArrowStringArray(array)
+            else:
+                from pandas.core.arrays.string_arrow import (
+                    ArrowStringArrayNumpySemantics,
+                )
 
-            return ArrowStringArrayNumpySemantics(array)
+                return ArrowStringArrayNumpySemantics(array)
+
         else:
             import pyarrow
 

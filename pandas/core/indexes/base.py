@@ -5620,9 +5620,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             isinstance(self.dtype, StringDtype)
-            and self.dtype.storage == "pyarrow_numpy"
+            and self.dtype.na_value is np.nan
             and other.dtype != self.dtype
         ):
+            # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
 
