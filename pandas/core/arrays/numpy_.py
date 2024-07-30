@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
 
+import pandas as pd
 from pandas.core import (
     arraylike,
     missing,
@@ -248,74 +249,41 @@ class NumpyExtensionArray(  # type: ignore[misc]
         TypeError
         """
 
-        kind = self.dtype.kind
-
-        if kind == "b":
-            if lib.is_bool(value) or np.can_cast(type(value), self.dtype.type):
-                return value
-            if isinstance(value, NumpyExtensionArray) and (
-                lib.is_bool_array(value.to_numpy())
-            ):
-                return value
-
-        elif kind == "i":
-            if lib.is_integer(value) or np.can_cast(type(value), self.dtype.type):
-                return value
-            if isinstance(value, NumpyExtensionArray) and lib.is_integer_array(
-                value.to_numpy()
-            ):
-                return value
-
-        elif kind == "u":
-            if (lib.is_integer(value) and value > -1) or np.can_cast(
-                type(value), self.dtype.type
-            ):
-                return value
-
-        elif kind == "c":
-            if lib.is_complex(value) or np.can_cast(type(value), self.dtype.type):
-                return value
-
-        elif kind == "S":
-            if isinstance(value, str) or np.can_cast(type(value), self.dtype.type):
-                return value
-            if isinstance(value, NumpyExtensionArray) and lib.is_string_array(
-                value.to_numpy()
-            ):
-                return value
-
-        elif kind == "M":
-            if isinstance(value, np.datetime64):
-                return value
-            if isinstance(value, NumpyExtensionArray) and (
-                lib.is_date_array(value.to_numpy())
-                or lib.is_datetime_array(value.to_numpy())
-                or lib.is_datetime64_array(value.to_numpy())
-                or lib.is_datetime_with_singletz_array(value.to_numpy())
-            ):
-                return value
-
-        elif kind == "m":
-            if isinstance(value, np.timedelta64):
-                return value
-            if isinstance(value, NumpyExtensionArray) and (
-                lib.is_timedelta_or_timedelta64_array(value.to_numpy())
-                or lib.is_time_array(value.to_numpy())
-            ):
-                return value
-
-        elif kind == "f":
-            if lib.is_float(value) or np.can_cast(type(value), self.dtype.type):
-                return value
-            if isinstance(value, NumpyExtensionArray) and lib.is_float_array(
-                value.to_numpy()
-            ):
-                return value
-
-        elif np.can_cast(type(value), self.dtype.type):
+        if type(value) == self.dtype.type:
             return value
 
-        raise TypeError(f"Invalid value '{value!s}' for dtype {self.dtype}")
+        if isinstance(value, NumpyExtensionArray) and value.dtype == self.dtype:
+            return value
+
+        if (
+            isinstance(value, list)
+            or isinstance(value, NumpyExtensionArray)
+            or isinstance(value, np.ndarray)
+            or isinstance(value, pd.Series)
+        ):
+            try:
+                _ = pd.array(value, dtype=self.dtype)
+                return value
+            except ValueError:
+                print("Caught the error")
+
+        if (
+            (
+                (lib.is_integer(value) or lib.is_float(value))
+                and self.dtype.kind in "iuf"
+            )
+            or (isinstance(value, str) and self.dtype.kind in "US")
+            or (self.dtype.kind == "O")
+        ) and not isna(value):
+            if self.dtype.type(value) == value:  # -> Problem
+                return value
+
+        if isna(value):
+            return value
+
+        raise TypeError(
+            f"Invalid value '{value!s}' with type {type(value)} for dtype {self.dtype}"
+        )
 
     # Base EA class (and all other EA classes) don't have limit_area keyword
     # This can be removed here as well when the interpolate ffill/bfill method

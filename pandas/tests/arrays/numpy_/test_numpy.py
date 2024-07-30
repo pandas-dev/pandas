@@ -200,9 +200,9 @@ def test_validate_reduction_keyword_args():
 @pytest.mark.parametrize(
     "value, expectedError",
     [
-        (True, False),
+        (True, True),
         (5, False),
-        (5.0, True),
+        (5.0, False),
         (5.5, True),
         (1 + 2j, True),
         ("t", True),
@@ -222,7 +222,29 @@ def test_int_arr_validate_setitem_value(value, expectedError):
 @pytest.mark.parametrize(
     "value, expectedError",
     [
-        (True, False),
+        (True, True),
+        (5, False),
+        (5.0, False),
+        (5.5, True),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_uint_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="uint").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, True),
         (5, False),
         (5.0, False),
         (5.5, False),
@@ -244,10 +266,10 @@ def test_float_arr_validate_setitem_value(value, expectedError):
 @pytest.mark.parametrize(
     "value, expectedError",
     [
-        (True, False),
-        (5, False),
-        (5.0, False),
-        (5.5, False),
+        (True, True),
+        (5, True),
+        (5.0, True),
+        (5.5, True),
         ("t", False),
         (datetime.now(), True),
     ],

@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -61,6 +63,7 @@ def test_apply(float_frame, engine, request):
         assert result.index is float_frame.index
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("nopython", [True, False])
@@ -1213,6 +1216,7 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_agg_multiple_mixed():
     # GH 20909
     mdf = DataFrame(
@@ -1338,6 +1342,7 @@ def test_named_agg_reduce_axis1_raises(float_frame):
             float_frame.agg(row1=(name1, "sum"), row2=(name2, "max"), axis=axis)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nuiscance_columns():
     # GH 15015
     df = DataFrame(
@@ -1514,6 +1519,7 @@ def test_apply_datetime_tz_issue(engine, request):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):

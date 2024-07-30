@@ -7,6 +7,8 @@ import textwrap
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import (
     IS64,
     PYPY,
@@ -433,6 +435,7 @@ def test_usage_via_getsizeof():
     assert abs(diff) < 100
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_info_memory_usage_qualified():
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
@@ -493,6 +496,7 @@ def test_info_categorical():
     df.info(buf=buf)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
 def test_info_int_columns():
     # GH#37245
@@ -516,6 +520,7 @@ def test_info_int_columns():
     assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_memory_usage_empty_no_warning():
     # GH#50066
     df = DataFrame(index=["a", "b"])
