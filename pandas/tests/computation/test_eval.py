@@ -2006,7 +2006,7 @@ def test_query_on_expr_with_column_name_with_backtick():
     # GH 59285
     df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
     result = df.query("`a``b` < 2")
-    # Note: Formatting checks may wrongly consider the above``inline code``.
+    # Note: Formatting checks may wrongly consider the above ``inline code``.
     expected = df[df["a`b"] < 2]
     tm.assert_frame_equal(result, expected)
 
