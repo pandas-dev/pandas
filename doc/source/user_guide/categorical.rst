@@ -240,8 +240,6 @@ expects a ``dtype``. For example :func:`pandas.read_csv`,
     array. In other words, ``dtype='category'`` is equivalent to
     ``dtype=CategoricalDtype()``.
 
-.. _categorical.equalitysemantics:
-
 Equality semantics
 ~~~~~~~~~~~~~~~~~~
 
@@ -1180,17 +1178,3 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
     This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
     using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
     a string array (e.g. ``np.array(["a","b","c","a"])``) will not.
-
-Counting CategoricalDtype
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As mentioned in :ref:`Equality Semantics <categorical.equalitysemantics>`, two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
-whenever they have the same categories and order. Therefore, when counting data types, the multiple instances of :class:`~pandas.api.types.CategoricalDtype` will be counted as one group if they have the same categories and order.
-In the example below, even though ``a``, ``c``, and ``d`` all have data types of ``category``, they will not be counted as one group since they don't have the same categories.
-
-.. ipython:: python
-
-    df = pd.DataFrame({'a': [1], 'b': ['2'], 'c': [3], 'd': [3]}).astype({'a': 'category', 'c': 'category', 'd': 'category'})
-    df
-    df.dtypes
-    df.dtypes.value_counts()
