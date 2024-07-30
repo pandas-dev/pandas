@@ -146,6 +146,10 @@ class StringDtype(StorageExtensionDtype):
             # TODO raise a deprecation warning
             storage = "pyarrow"
             na_value = np.nan
+        if storage == "python_numpy":
+            # TODO remove
+            storage = "python"
+            na_value = np.nan
 
         # validate options
         if storage not in {"python", "pyarrow"}:
@@ -229,7 +233,8 @@ class StringDtype(StorageExtensionDtype):
         elif string == "string[python]":
             return cls(storage="python")
         elif string == "string[python_numpy]":
-            return cls(storage="python_numpy")
+            # TODO remove
+            return cls(storage="python", na_value=np.nan)
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
@@ -256,11 +261,11 @@ class StringDtype(StorageExtensionDtype):
             ArrowStringArrayNumpySemantics,
         )
 
-        if self.storage == "python":
+        if self.storage == "python" and self._na_value is libmissing.NA:
             return StringArray
         elif self.storage == "pyarrow" and self._na_value is libmissing.NA:
             return ArrowStringArray
-        elif self.storage == "python_numpy":
+        elif self.storage == "python":
             return StringArrayNumpySemantics
         else:
             return ArrowStringArrayNumpySemantics
@@ -416,6 +421,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # undo the NumpyExtensionArray hack
     _typ = "extension"
     _storage = "python"
+    _na_value = libmissing.NA
 
     def __init__(self, values, copy: bool = False) -> None:
         values = extract_array(values)
@@ -423,7 +429,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
             self._validate()
-        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage=self._storage))
+        NDArrayBacked.__init__(
+            self,
+            self._ndarray,
+            StringDtype(storage=self._storage, na_value=self._na_value),
+        )
 
     def _validate(self) -> None:
         """Validate that we only store NA or strings."""
@@ -457,13 +467,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ) -> Self:
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
-            assert isinstance(dtype, StringDtype) and dtype.storage in (
-                "python",
-                "python_numpy",
-            )
+            assert isinstance(dtype, StringDtype) and dtype.storage == "python"
         else:
-            if get_option("future.infer_string"):
-                dtype = StringDtype(storage="python_numpy")
+            if using_string_dtype():
+                dtype = StringDtype(storage="python", na_value=np.nan)
             else:
                 dtype = StringDtype(storage="python")
 
@@ -749,7 +756,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
 
 class StringArrayNumpySemantics(StringArray):
-    _storage = "python_numpy"
+    _storage = "python"
+    _na_value = np.nan
 
     def _validate(self) -> None:
         """Validate that we only store NaN or strings."""
@@ -769,7 +777,7 @@ class StringArrayNumpySemantics(StringArray):
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         if dtype is None:
-            dtype = StringDtype(storage="python_numpy")
+            dtype = StringDtype(storage="python", na_value=np.nan)
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
     def _from_backing_data(self, arr: np.ndarray) -> StringArrayNumpySemantics:

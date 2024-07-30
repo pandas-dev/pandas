@@ -74,7 +74,7 @@ def test_repr(dtype):
     elif dtype.storage == "pyarrow" and dtype.na_value is np.nan:
         arr_name = "ArrowStringArrayNumpySemantics"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
-    elif dtype.storage == "python_numpy":
+    elif dtype.storage == "python" and dtype.na_value is np.nan:
         arr_name = "StringArrayNumpySemantics"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
     else:
@@ -92,14 +92,14 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
@@ -514,7 +514,7 @@ def test_arrow_array(dtype):
     expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
     if dtype.storage == "pyarrow" and pa_version_under12p0:
         expected = pa.chunked_array(expected)
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)
 
@@ -534,7 +534,7 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         assert table.field("a").type == "string"
     else:
         assert table.field("a").type == "large_string"
@@ -564,7 +564,7 @@ def test_arrow_load_from_zero_chunks(
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         assert table.field("a").type == "string"
     else:
         assert table.field("a").type == "large_string"
@@ -663,7 +663,7 @@ def test_isin(dtype, fixed_now_ts):
     tm.assert_series_equal(result, expected)
 
     result = s.isin(["a", pd.NA])
-    if dtype.storage == "python_numpy":
+    if dtype.storage == "python" and dtype.na_value is np.nan:
         # TODO what do we want here?
         expected = pd.Series([True, False, False])
     else:
@@ -691,7 +691,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if dtype.storage in ("python", "python_numpy"):
+    if dtype.storage == "python":
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"
