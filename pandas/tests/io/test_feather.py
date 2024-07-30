@@ -13,9 +13,12 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 pa = pytest.importorskip("pyarrow")
 
@@ -170,7 +173,6 @@ class TestFeather:
             res = read_feather(httpserver.url)
         tm.assert_frame_equal(expected, res)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
         df = pd.DataFrame(

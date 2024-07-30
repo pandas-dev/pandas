@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import ParserError
 
 from pandas import (
@@ -545,6 +547,7 @@ def test_usecols_additional_columns_integer_columns(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_usecols_dtype(all_parsers):
     parser = all_parsers
     data = """

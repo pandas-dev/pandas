@@ -8,6 +8,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -165,6 +167,7 @@ def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_pyarrow(df):
     pyarrow = pytest.importorskip("pyarrow")

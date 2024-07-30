@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 import pandas as pd
@@ -181,6 +183,7 @@ def test_cases(request):
 
 
 class TestSeriesConvertDtypes:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
     def test_convert_dtypes(
         self,
