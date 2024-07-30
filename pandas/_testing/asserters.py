@@ -593,13 +593,19 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype)):
         left = repr(left)
+    elif isinstance(left, StringDtype):
+        # TODO(infer_string) this special case could be avoided if we have
+        # a more informative repr https://github.com/pandas-dev/pandas/issues/59342
+        left = f"StringDtype(storage={left.storage}, na_value={left.na_value})"
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype)):
         right = repr(right)
+    elif isinstance(right, StringDtype):
+        right = f"StringDtype(storage={right.storage}, na_value={right.na_value})"
 
     msg += f"""
 [left]:  {left}

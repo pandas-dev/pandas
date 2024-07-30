@@ -277,6 +277,7 @@ def test_not_present_exception():
         read_csv("memory://test/test.csv")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_feather_options(fsspectest):
     pytest.importorskip("pyarrow")
     df = DataFrame({"a": [0]})

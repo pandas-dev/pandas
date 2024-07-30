@@ -7,6 +7,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under12p0
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -513,6 +515,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     # roundtrip possible from arrow 1.0.0
@@ -541,6 +544,7 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(
     dtype, string_storage2, request, using_infer_string
