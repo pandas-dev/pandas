@@ -223,7 +223,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.fromordinal SA01" \
         -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
         -i "pandas.Timestamp.hour GL08" \
-        -i "pandas.Timestamp.isoweekday SA01" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
         -i "pandas.Timestamp.min PR02" \
@@ -328,7 +327,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.hist RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.indices SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.max SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.median SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.min SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
@@ -347,7 +345,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.max SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.median SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.min SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
@@ -362,7 +359,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.indices SA01" \
         -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.mean SA01" \
-        -i "pandas.core.resample.Resampler.median SA01" \
         -i "pandas.core.resample.Resampler.min PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.ohlc SA01" \
         -i "pandas.core.resample.Resampler.prod SA01" \
