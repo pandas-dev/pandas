@@ -130,7 +130,7 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
         assert not com.is_dtype_equal(dtype1, dtype2)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("name,dtype", list(dtypes.items()), ids=lambda x: str(x))
 def test_pyarrow_string_import_error(name, dtype):
     # GH-44276

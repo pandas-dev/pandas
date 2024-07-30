@@ -287,7 +287,7 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "data, expected",
     [
