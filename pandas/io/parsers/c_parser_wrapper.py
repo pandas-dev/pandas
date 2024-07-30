@@ -338,7 +338,7 @@ class CParserWrapper(ParserBase):
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
             date_data = self._do_date_conversions(names, data)
-            index, column_names = self._make_index(date_data, alldata, names)
+            index, column_names = self._make_index(alldata, names)
 
         return index, column_names, date_data
 
