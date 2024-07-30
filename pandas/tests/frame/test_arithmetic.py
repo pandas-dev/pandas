@@ -2124,6 +2124,7 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_mixed_col_index_dtype():
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
