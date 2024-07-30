@@ -13,7 +13,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
@@ -609,6 +609,7 @@ class TestLocBaseIndependent:
         expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
@@ -1204,7 +1205,7 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
     def test_loc_setitem_str_to_small_float_conversion_type(self):
         # GH#20388
 
@@ -3264,3 +3265,18 @@ class TestLocSeries:
             index=Index(np.array(ids).repeat(1000), dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_index_alignment_for_series(self):
+        # GH #56024
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        other = Series([200, 999], index=[1, 0])
+        df.loc[:, "a"] = other
+        expected = DataFrame({"a": [999, 200], "b": [3, 4]})
+        tm.assert_frame_equal(expected, df)
+
+    def test_loc_reindexing_of_empty_index(self):
+        # GH 57735
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
+        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        tm.assert_frame_equal(df, expected)

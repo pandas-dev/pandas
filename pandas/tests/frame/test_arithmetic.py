@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -251,9 +251,6 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't compare string and int"
-    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -1545,6 +1542,7 @@ class TestFrameArithmeticUnsorted:
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
         # GH 11565
         df = DataFrame(

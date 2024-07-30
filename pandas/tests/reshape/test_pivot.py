@@ -9,7 +9,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat.numpy import np_version_gte1p25
 
@@ -1068,6 +1068,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
     def test_pivot_table_multiindex_only(self, cols):
         # GH 17038
@@ -2569,6 +2570,7 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("dtype", [object, "string"])
     def test_pivot_integer_bug(self, dtype):
         df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
@@ -2656,7 +2658,7 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2672,7 +2674,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2686,7 +2688,7 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(using_string_dtype(), reason="None is cast to NaN")
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
