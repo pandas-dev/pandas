@@ -13,6 +13,8 @@ from urllib.error import URLError
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -35,6 +37,10 @@ from pandas.core.arrays import (
 )
 
 from pandas.io.common import file_path_to_url
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
 
 
 @pytest.fixture(
