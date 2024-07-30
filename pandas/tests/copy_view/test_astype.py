@@ -3,6 +3,8 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
@@ -82,6 +84,7 @@ def test_astype_numpy_to_ea():
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -95,6 +98,7 @@ def test_astype_string_and_object(dtype, new_dtype):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -195,6 +199,7 @@ def test_astype_arrow_timestamp():
         assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
@@ -210,6 +215,7 @@ def test_convert_dtypes_infer_objects():
     tm.assert_series_equal(ser, ser_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_convert_dtypes():
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()

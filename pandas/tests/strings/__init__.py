@@ -7,7 +7,7 @@ object_pyarrow_numpy = ("object", "string[python_numpy]", "string[pyarrow_numpy]
 
 def _convert_na_value(ser, expected):
     if ser.dtype != object:
-        if ser.dtype.storage in ("python_numpy", "pyarrow_numpy"):
+        if ser.dtype.na_value is np.nan:
             expected = expected.fillna(np.nan)
         else:
             # GH#18463

@@ -3,6 +3,8 @@ import io
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     date_range,
@@ -202,6 +204,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
@@ -259,6 +262,7 @@ def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
     )
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.single_cpu
 def test_s3_parquet(s3_public_bucket, s3so, df1):
     pytest.importorskip("fastparquet")
