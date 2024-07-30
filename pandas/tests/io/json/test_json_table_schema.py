@@ -7,6 +7,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -23,6 +25,10 @@ from pandas.io.json._table_schema import (
     convert_json_field_to_pandas_type,
     convert_pandas_type_to_json_field,
     set_default_names,
+)
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
 )
 
 

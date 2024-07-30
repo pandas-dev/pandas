@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 import pandas as pd
@@ -10,6 +12,7 @@ import pandas._testing as tm
 
 
 class TestSeriesConvertDtypes:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "data, maindtype, expected_default, expected_other",
         [

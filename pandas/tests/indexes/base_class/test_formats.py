@@ -9,6 +9,7 @@ import pandas._testing as tm
 
 
 class TestIndexRendering:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather than
         # stylized
