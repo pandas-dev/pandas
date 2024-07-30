@@ -15,7 +15,7 @@ jobs:
       - checkout
       - run:
           name: Install Environment and Run Tests
-          shell: /bin/bash -exuo pipefail
+          shell: /bin/bash -exo pipefail
           command: |
             MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge-24.3.0-0-Linux-aarch64.sh"
             wget -q $MINI_URL -O Miniforge3.sh
@@ -97,7 +97,7 @@ jobs:
 
       - run:
           name: Install Anaconda Client & Upload Wheels
-          shell: /bin/bash -exuo pipefail
+          shell: /bin/bash -exo pipefail
           command: |
             MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge-24.3.0-0-Linux-aarch64.sh"
             wget -q $MINI_URL -O Miniforge3.sh
