@@ -2077,7 +2077,7 @@ class TestSeriesConstructors:
         # GH#54430
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", "b"])
-        dtype = "string[pyarrow_numpy]" if HAS_PYARROW else "string[python_numpy]"
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
@@ -2091,7 +2091,7 @@ class TestSeriesConstructors:
         # GH#54430
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", na_value])
-        dtype = "string[pyarrow_numpy]" if HAS_PYARROW else "string[python_numpy]"
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
@@ -2099,7 +2099,7 @@ class TestSeriesConstructors:
         # GH#54430
         with pd.option_context("future.infer_string", True):
             ser = Series("a", index=[1])
-        dtype = "string[pyarrow_numpy]" if HAS_PYARROW else "string[python_numpy]"
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
@@ -2107,7 +2107,7 @@ class TestSeriesConstructors:
         # GH#54496
         with pd.option_context("future.infer_string", True):
             ser = Series(np.array(["a", "b"]))
-        dtype = "string[pyarrow_numpy]" if HAS_PYARROW else "string[python_numpy]"
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
@@ -2134,7 +2134,7 @@ class TestSeriesConstructors:
         # GH#55655
         with pd.option_context("future.infer_string", True):
             result = Series([pd.NA, "b"])
-        dtype = "string[pyarrow_numpy]" if HAS_PYARROW else "string[python_numpy]"
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = Series([None, "b"], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
