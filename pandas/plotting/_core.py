@@ -1472,7 +1472,7 @@ class PlotAccessor(PandasObject):
             If None (default), 'scott' is used.
             See :class:`scipy.stats.gaussian_kde` for more information.
         weights : NumPy array, optional
-            Weights of datapoints. This must be the same shape as dataset.
+            Weights of datapoints. This must be the same shape as datapoints.
             If None (default), the samples are assumed to be equally weighted.
         ind : NumPy array or int, optional
             Evaluation points for the estimated PDF. If None (default),
