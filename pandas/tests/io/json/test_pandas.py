@@ -152,7 +152,7 @@ class TestPandasContainer:
 
         with tm.assert_produces_warning(expected_warning, match=msg):
             result = read_json(
-                StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
+                StringIO(df.to_json(orient=orient)), orient=orient
             )
         if orient == "values":
             expected = DataFrame(data)
@@ -840,7 +840,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        result = read_json(json)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -1056,7 +1056,7 @@ class TestPandasContainer:
         # TODO: check_dtype/check_index_type should be removable
         # once read_json gets non-nano support
         tm.assert_frame_equal(
-            read_json(buf, convert_dates=["date", "date_obj"]),
+            read_json(buf),
             df,
             check_index_type=False,
             check_dtype=False,
@@ -1125,7 +1125,7 @@ class TestPandasContainer:
     def test_url(self, field, dtype, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        result = read_json(httpserver.url)
         assert result[field].dtype == dtype
 
     def test_timedelta(self):
