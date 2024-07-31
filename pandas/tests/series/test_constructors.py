@@ -2138,7 +2138,7 @@ class TestSeriesConstructors:
         # returning the NA string dtype, so expected is changed from
         # "string[pyarrow_numpy]" to "string[pyarrow]"
         pytest.importorskip("pyarrow")
-        expected = Series(["a", "b"], dtype="string[pyarrow]")
+        expected = Series(["a", "b"], dtype="string[python]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
