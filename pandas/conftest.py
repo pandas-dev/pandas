@@ -2040,14 +2040,6 @@ def warsaw(request) -> str:
 
 
 @pytest.fixture
-def arrow_string_storage():
-    """
-    Fixture that lists possible PyArrow values for StringDtype storage field.
-    """
-    return ("pyarrow", "pyarrow_numpy")
-
-
-@pytest.fixture
 def temp_file(tmp_path):
     """
     Generate a unique file for testing use. See link for removal policy.
