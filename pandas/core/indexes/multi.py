@@ -2985,14 +2985,19 @@ class MultiIndex(Index):
 
     def get_loc(self, key):
         """
-        Get location for a label or a tuple of labels.
+        Get location for a label or a tuple of labels. The location is returned \
+        as an integer/slice or boolean mask.
 
-        The location is returned as an integer/slice or boolean
-        mask.
+        This method returns the integer location, slice object, or boolean mask
+        corresponding to the specified key, which can be a single label or a tuple
+        of labels. The key represents a position in the MultiIndex, and the location
+        indicates where the key is found within the index.
 
         Parameters
         ----------
         key : label or tuple of labels (one for each level)
+            A label or tuple of labels that correspond to the levels of the MultiIndex.
+            The key must match the structure of the MultiIndex.
 
         Returns
         -------
