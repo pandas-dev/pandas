@@ -58,8 +58,9 @@ def chunked(request):
 
 
 @pytest.fixture
-def dtype(string_storage):
-    return StringDtype(storage=string_storage)
+def dtype(string_dtype_arguments):
+    storage, na_value = string_dtype_arguments
+    return StringDtype(storage=storage, na_value=na_value)
 
 
 @pytest.fixture

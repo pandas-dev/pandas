@@ -22,9 +22,10 @@ from pandas.core.arrays.string_arrow import (
 
 
 @pytest.fixture
-def dtype(string_storage):
-    """Fixture giving StringDtype from parametrized 'string_storage'"""
-    return pd.StringDtype(storage=string_storage)
+def dtype(string_dtype_arguments):
+    """Fixture giving StringDtype from parametrized storage and na_value arguments"""
+    storage, na_value = string_dtype_arguments
+    return pd.StringDtype(storage=storage, na_value=na_value)
 
 
 @pytest.fixture
