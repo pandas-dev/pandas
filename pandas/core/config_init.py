@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import os
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -456,7 +457,7 @@ string_storage_doc = """
 """
 
 
-def is_valid_string_storage(value):
+def is_valid_string_storage(value: Any) -> None:
     legal_values = ["python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
