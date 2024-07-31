@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Literal,
 )
 
@@ -241,7 +240,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
             fv = np.nan
         return self._ndarray, fv
 
-    def _validate_setitem_value(self, value: Any) -> Any | None:
+    def _validate_setitem_value(self, value):
         """
         Check if we have a scalar that we can cast losslessly.
 
