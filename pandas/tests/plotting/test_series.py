@@ -552,7 +552,6 @@ class TestSeriesPlots:
         # GH59337
         pytest.importorskip("scipy")
         s = Series(np.random.default_rng(2).uniform(size=50))
-        # weights = np.linspace(0.0, 2.0, 50)
         _check_plot_works(s.plot.kde, bw_method=bw_method, ind=ind, weights=weights)
 
     def test_density_kwargs(self, ts):
