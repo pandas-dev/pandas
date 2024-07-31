@@ -581,6 +581,8 @@ def raise_assert_detail(
     elif isinstance(left, (CategoricalDtype, NumpyEADtype)):
         left = repr(left)
     elif isinstance(left, StringDtype):
+        # TODO(infer_string) this special case could be avoided if we have
+        # a more informative repr https://github.com/pandas-dev/pandas/issues/59342
         left = f"StringDtype(storage={left.storage}, na_value={left.na_value})"
 
     if isinstance(right, np.ndarray):

@@ -2115,9 +2115,8 @@ class TestSeriesConstructors:
         # https://github.com/pandas-dev/pandas/issues/54793
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
-        # "string[pyarrow_numpy]" to "string[python|pyarrow]"
-        dtype = "string[pyarrow]" if HAS_PYARROW else "string[python]"
-        expected = Series(["a", "b"], dtype=dtype)
+        # "string[pyarrow_numpy]" to "string[python]"
+        expected = Series(["a", "b"], dtype="string[python]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
