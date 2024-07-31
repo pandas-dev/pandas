@@ -71,6 +71,10 @@ extensions = [
     "nbsphinx",
 ]
 
+# sphinx-copybutton configurations
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.{3,}: | {5,8}: "
+copybutton_prompt_is_regexp = True
+
 exclude_patterns = [
     "**.ipynb_checkpoints",
     # to ensure that include files (partial pages) aren't built, exclude them
