@@ -167,7 +167,9 @@ class StringDtype(StorageExtensionDtype):
                 return True
             try:
                 other = self.construct_from_string(other)
-            except TypeError:
+            except (TypeError, ImportError):
+                # TypeError if `other` is not a valid string for StringDtype
+                # ImportError if pyarrow is not installed for "string[pyarrow]"
                 return False
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
