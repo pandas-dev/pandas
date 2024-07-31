@@ -48,7 +48,7 @@ def test_config_bad_storage_raises():
 
 
 @pytest.mark.parametrize("chunked", [True, False])
-@pytest.mark.parametrize("array", ["numpy", "pyarrow"])
+@pytest.mark.parametrize("array_lib", ["numpy", "pyarrow"])
 def test_constructor_not_string_type_raises(array_lib, chunked):
     pa = pytest.importorskip("pyarrow")
 
