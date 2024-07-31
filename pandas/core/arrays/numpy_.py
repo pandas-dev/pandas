@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -240,7 +241,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
             fv = np.nan
         return self._ndarray, fv
 
-    def _validate_setitem_value(self, value):
+    def _validate_setitem_value(self, value: Any) -> Any | None:
         """
         Check if we have a scalar that we can cast losslessly.
 
@@ -252,7 +253,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
         if type(value) == self.dtype.type:
             return value
 
-        if isinstance(value, NumpyExtensionArray) and value.dtype == self.dtype:
+        if (
+            isinstance(value, NumpyExtensionArray)
+            or isinstance(value, np.ndarray)
+            or isinstance(value, pd.Series)
+        ) and value.dtype == self.dtype:
             return value
 
         if (
@@ -275,7 +280,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
             or (isinstance(value, str) and self.dtype.kind in "US")
             or (self.dtype.kind == "O")
         ) and not isna(value):
-            if self.dtype.type(value) == value:  # -> Problem
+            if self.dtype.type(value) == value:
                 return value
 
         if isna(value):
