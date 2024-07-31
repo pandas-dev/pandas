@@ -13,7 +13,7 @@ from pandas import (
 )
 from pandas.tests.strings import (
     _convert_na_value,
-    object_pyarrow_numpy,
+    is_object_or_nan_string_dtype,
 )
 
 # --------------------------------------------------------------------------------------
@@ -33,7 +33,9 @@ def test_contains(any_string_dtype):
     pat = "mmm[_]+"
 
     result = values.str.contains(pat)
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series(
         np.array([False, np.nan, True, True, False], dtype=np.object_),
         dtype=expected_dtype,
@@ -52,7 +54,9 @@ def test_contains(any_string_dtype):
         dtype=any_string_dtype,
     )
     result = values.str.contains(pat)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -79,14 +83,18 @@ def test_contains(any_string_dtype):
     pat = "mmm[_]+"
 
     result = values.str.contains(pat)
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series(
         np.array([False, np.nan, True, True], dtype=np.object_), dtype=expected_dtype
     )
     tm.assert_series_equal(result, expected)
 
     result = values.str.contains(pat, na=False)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -171,7 +179,9 @@ def test_contains_moar(any_string_dtype):
     )
 
     result = s.str.contains("a")
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series(
         [False, False, False, True, True, False, np.nan, False, False, True],
         dtype=expected_dtype,
@@ -212,7 +222,9 @@ def test_contains_nan(any_string_dtype):
     s = Series([np.nan, np.nan, np.nan], dtype=any_string_dtype)
 
     result = s.str.contains("foo", na=False)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([False, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -230,7 +242,9 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     result = s.str.contains("foo")
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([np.nan, np.nan, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -675,7 +689,9 @@ def test_replace_regex_single_character(regex, any_string_dtype):
 
 def test_match(any_string_dtype):
     # New match behavior introduced in 0.13
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
 
     values = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
     result = values.str.match(".*(BAD[_]+).*(BAD)")
@@ -730,12 +746,16 @@ def test_match_na_kwarg(any_string_dtype):
     s = Series(["a", "b", np.nan], dtype=any_string_dtype)
 
     result = s.str.match("a", na=False)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = s.str.match("a")
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([True, False, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -743,7 +763,9 @@ def test_match_na_kwarg(any_string_dtype):
 def test_match_case_kwarg(any_string_dtype):
     values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
     result = values.str.match("ab", case=False)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -759,7 +781,9 @@ def test_fullmatch(any_string_dtype):
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = ser.str.fullmatch(".*BAD[_]+.*BAD")
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([True, False, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -768,7 +792,9 @@ def test_fullmatch_dollar_literal(any_string_dtype):
     # GH 56652
     ser = Series(["foo", "foo$foo", np.nan, "foo$"], dtype=any_string_dtype)
     result = ser.str.fullmatch("foo\\$")
-    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([False, False, np.nan, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -778,14 +804,18 @@ def test_fullmatch_na_kwarg(any_string_dtype):
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
     result = ser.str.fullmatch(".*BAD[_]+.*BAD", na=False)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     expected = Series([True, False, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_fullmatch_case_kwarg(any_string_dtype, performance_warning):
     ser = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
-    expected_dtype = np.bool_ if any_string_dtype in object_pyarrow_numpy else "boolean"
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
 
     expected = Series([True, False, False, False], dtype=expected_dtype)
 
@@ -859,7 +889,9 @@ def test_find(any_string_dtype):
     ser = Series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF", "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = np.int64 if any_string_dtype in object_pyarrow_numpy else "Int64"
+    expected_dtype = (
+        np.int64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
 
     result = ser.str.find("EF")
     expected = Series([4, 3, 1, 0, -1], dtype=expected_dtype)
@@ -911,7 +943,9 @@ def test_find_nan(any_string_dtype):
     ser = Series(
         ["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = np.float64 if any_string_dtype in object_pyarrow_numpy else "Int64"
+    expected_dtype = (
+        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
 
     result = ser.str.find("EF")
     expected = Series([4, np.nan, 1, np.nan, -1], dtype=expected_dtype)
