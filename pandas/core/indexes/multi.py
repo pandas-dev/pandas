@@ -2091,9 +2091,22 @@ class MultiIndex(Index):
         appearance, meaning the same .values and ordering. It will
         also be .equals() to the original.
 
+        The `remove_unused_levels` method is useful in cases where you have a
+        MultiIndex with hierarchical levels, but some of these levels are no
+        longer needed due to filtering or subsetting operations. By removing
+        the unused levels, the resulting MultiIndex becomes more compact and
+        efficient, which can improve performance in subsequent operations.
+
         Returns
         -------
         MultiIndex
+            A new MultiIndex with unused levels removed.
+
+        See Also
+        --------
+        MultiIndex.droplevel : Remove specified levels from a MultiIndex.
+        MultiIndex.reorder_levels : Rearrange levels of a MultiIndex.
+        MultiIndex.set_levels : Set new levels on a MultiIndex.
 
         Examples
         --------
