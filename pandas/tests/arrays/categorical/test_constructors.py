@@ -743,7 +743,6 @@ class TestCategoricalConstructors:
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:
         arr = pd.arrays.StringArray._from_sequence(
