@@ -129,7 +129,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            if using_string_dtype():
+            if using_string_dtype() and na_value is not libmissing.NA:
                 storage = "pyarrow"
             else:
                 storage = get_option("mode.string_storage")
