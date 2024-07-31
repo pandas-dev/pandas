@@ -166,8 +166,8 @@ def test_add(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_add_2d(dtype, request, arrow_string_storage):
-    if dtype.storage in arrow_string_storage:
+def test_add_2d(dtype, request):
+    if dtype.storage == "pyarrow":
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)
@@ -462,8 +462,8 @@ def test_min_max(method, skipna, dtype):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
-def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
-    if dtype.storage in arrow_string_storage and box is pd.array:
+def test_min_max_numpy(method, box, dtype, request):
+    if dtype.storage == "pyarrow" and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
@@ -477,7 +477,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     assert result == expected
 
 
-def test_fillna_args(dtype, arrow_string_storage):
+def test_fillna_args(dtype):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
@@ -490,7 +490,7 @@ def test_fillna_args(dtype, arrow_string_storage):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    if dtype.storage in arrow_string_storage:
+    if dtype.storage == "pyarrow":
         msg = "Invalid value '1' for dtype string"
     else:
         msg = "Cannot set non-string value '1' into a StringArray."
@@ -616,10 +616,10 @@ def test_value_counts_sort_false(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_memory_usage(dtype, arrow_string_storage):
+def test_memory_usage(dtype):
     # GH 33963
 
-    if dtype.storage in arrow_string_storage:
+    if dtype.storage == "pyarrow":
         pytest.skip(f"not applicable for {dtype.storage}")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
