@@ -1295,7 +1295,6 @@ def nullable_string_dtype(request):
 @pytest.fixture(
     params=[
         "python",
-        "python_numpy",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )
@@ -1314,6 +1313,7 @@ def string_storage(request):
         ("python", pd.NA),
         pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
         pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
     ]
 )
 def string_dtype_arguments(request):

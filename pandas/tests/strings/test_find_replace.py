@@ -232,18 +232,14 @@ def test_contains_nan(any_string_dtype):
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    if any_string_dtype == "string[python_numpy]":
-        with pytest.raises(TypeError):
-            result = s.str.contains("foo", na="foo")
+    result = s.str.contains("foo", na="foo")
+    if any_string_dtype == "object":
+        expected = Series(["foo", "foo", "foo"], dtype=np.object_)
+    elif any_string_dtype.na_value is np.nan:
+        expected = Series([True, True, True], dtype=np.bool_)
     else:
-        result = s.str.contains("foo", na="foo")
-        if any_string_dtype == "object":
-            expected = Series(["foo", "foo", "foo"], dtype=np.object_)
-        elif any_string_dtype == "string[pyarrow_numpy]":
-            expected = Series([True, True, True], dtype=np.bool_)
-        else:
-            expected = Series([True, True, True], dtype="boolean")
-        tm.assert_series_equal(result, expected)
+        expected = Series([True, True, True], dtype="boolean")
+    tm.assert_series_equal(result, expected)
 
     result = s.str.contains("foo")
     expected_dtype = (

@@ -146,10 +146,6 @@ class StringDtype(StorageExtensionDtype):
             # TODO raise a deprecation warning
             storage = "pyarrow"
             na_value = np.nan
-        if storage == "python_numpy":
-            # TODO remove
-            storage = "python"
-            na_value = np.nan
 
         # validate options
         if storage not in {"python", "pyarrow"}:
@@ -234,9 +230,6 @@ class StringDtype(StorageExtensionDtype):
             return cls()
         elif string == "string[python]":
             return cls(storage="python")
-        elif string == "string[python_numpy]":
-            # TODO remove
-            return cls(storage="python", na_value=np.nan)
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
         elif string == "string[pyarrow_numpy]":
