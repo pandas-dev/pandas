@@ -1727,6 +1727,7 @@ def map_array(
             mask=mask,
             na_value=na_value,
             convert_to_nullable_dtype=na_value is NA,
+            convert_non_numeric=True,
             storage=storage,
         )
 

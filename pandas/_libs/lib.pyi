@@ -190,6 +190,7 @@ def map_infer_mask(
     na_value: Any = ...,
     dtype: np.dtype = ...,
     convert_to_nullable_dtype: bool = ...,
+    convert_non_numeric: bool = ...,
     storage: str | None = ...,
 ) -> np.ndarray: ...
 @overload
@@ -202,6 +203,7 @@ def map_infer_mask(
     na_value: Any = ...,
     dtype: np.dtype = ...,
     convert_to_nullable_dtype: bool = ...,
+    convert_non_numeric: bool = ...,
     storage: str | None = ...,
 ) -> ArrayLike: ...
 def indices_fast(
