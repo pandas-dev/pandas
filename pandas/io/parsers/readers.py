@@ -353,8 +353,7 @@ lineterminator : str (length 1), optional
 quotechar : str (length 1), optional
     Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
-quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC,
-    3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
     ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
     characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
@@ -540,7 +539,7 @@ col 1             int64
 col 2    datetime64[ns]
 col 3    datetime64[ns]
 dtype: object
-"""
+"""  # noqa: E501
 
 
 class _C_Parser_Defaults(TypedDict):
