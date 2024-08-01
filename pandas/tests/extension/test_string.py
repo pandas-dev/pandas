@@ -59,8 +59,9 @@ def chunked(request):
 
 
 @pytest.fixture
-def dtype(string_storage):
-    return StringDtype(storage=string_storage)
+def dtype(string_dtype_arguments):
+    storage, na_value = string_dtype_arguments
+    return StringDtype(storage=storage, na_value=na_value)
 
 
 @pytest.fixture
@@ -116,8 +117,8 @@ class TestStringArray(base.ExtensionTests):
         # because StringDtype is a string type
         assert is_string_dtype(dtype)
 
-    def test_view(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_view(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -125,13 +126,13 @@ class TestStringArray(base.ExtensionTests):
         # base test uses string representation of dtype
         pass
 
-    def test_transpose(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_transpose(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
-    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_setitem_preserves_views(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 

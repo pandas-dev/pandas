@@ -84,7 +84,6 @@ def test_astype_numpy_to_ea():
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -98,7 +97,6 @@ def test_astype_string_and_object(dtype, new_dtype):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
