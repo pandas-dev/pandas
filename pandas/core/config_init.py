@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import os
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -455,12 +456,27 @@ string_storage_doc = """
     ``future.infer_string`` is set to True.
 """
 
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        if value == "pyarrow_numpy":
+            # TODO: we can remove extra message after 3.0
+            msg += (
+                ". 'pyarrow_numpy' was specified, but this option should be "
+                "enabled using pandas.options.future.infer_string instead"
+            )
+        raise ValueError(msg)
+
+
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
