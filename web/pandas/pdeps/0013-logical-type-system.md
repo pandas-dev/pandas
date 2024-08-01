@@ -4,7 +4,7 @@
 - Status: Under discussion
 - Discussion: [#58141](https://github.com/pandas-dev/pandas/issues/58141)
 - Author: [Will Ayd](https://github.com/willayd),
-- Revision: 2
+- Revision: 3
 
 ## Abstract
 
@@ -30,22 +30,37 @@ dtype=object
 dtype=str
 dtype="string"
 dtype=pd.StringDtype()
+dtype=pd.StringDtype("python", na_value=np.nan)
+dtype=pd.StringDtype("python", na_value=pd.NA)
 dtype=pd.StringDtype("pyarrow")
 dtype="string[pyarrow]"
-dtype="string[pyarrow_numpy]"
+dtype="string[pyarrow_numpy]"  # added in 2.1, deprecated in 2.3
 dtype=pd.ArrowDtype(pa.string())
 dtype=pd.ArrowDtype(pa.large_string())
 ```
 
-``dtype="string"`` was the first truly new string implementation starting back in pandas 0.23.0, and it is a common pitfall for new users not to understand that there is a huge difference between that and ``dtype=str``. The pyarrow strings have trickled in in more recent memory, but also are very difficult to reason about. The fact that ``dtype="string[pyarrow]"`` is not the same as ``dtype=pd.ArrowDtype(pa.string()`` or ``dtype=pd.ArrowDtype(pa.large_string())`` was a surprise [to the author of this PDEP](https://github.com/pandas-dev/pandas/issues/58321).
+``dtype="string"`` was the first truly new string implementation starting back in pandas 0.23.0, and it is a common pitfall for new users not to understand that there is a huge difference between that and ``dtype=str``. The pyarrow strings have trickled in in more recent releases, but also are very difficult to reason about. The fact that ``dtype="string[pyarrow]"`` is not the same as ``dtype=pd.ArrowDtype(pa.string()`` or ``dtype=pd.ArrowDtype(pa.large_string())`` was a surprise [to the author of this PDEP](https://github.com/pandas-dev/pandas/issues/58321).
 
-While some of these are aliases, the main reason why we have so many different string dtypes is because we have historically used NumPy and created custom missing value solutions around the ``np.nan`` marker, which are incompatible with the ``pd.NA`` sentinel introduced a few years back. Our ``pd.StringDtype()`` uses the pd.NA sentinel, as do our pyarrow based solutions; bridging these into one unified solution has proven challenging.
+While some of these are aliases, the main reason why we have so many different string dtypes is because we have historically used NumPy and created custom missing value solutions around the ``np.nan`` marker, which are incompatible with ``pd.NA``. Our ``pd.StringDtype()`` uses the pd.NA sentinel, as do our pyarrow based solutions; bridging these into one unified solution has proven challenging.
 
-To try and smooth over the different missing value semantics and how they affect the underlying type system, the status quo has been to add another string dtype. ``string[pyarrow_numpy]`` was an attempt to use pyarrow strings but adhere to NumPy nullability semantics, under the assumption that the latter offers maximum backwards compatibility. However, being the exclusive data type that uses pyarrow for storage but NumPy for nullability handling, this data type just adds more inconsistency to how we handle missing data, a problem we have been attempting to solve back since discussions around pandas2. The name ``string[pyarrow_numpy]`` is not descriptive to end users, and unless it is inferred requires users to explicitly ``.astype("string[pyarrow_numpy]")``, again putting a burden on end users to know what ``pyarrow_numpy`` means and to understand the missing value semantics of both systems.
+To try and smooth over the different missing value semantics and how they affect the underlying type system, the status quo has always been to add another string dtype. With PDEP-14 we now have a "compatibility" string of ``pd.StringDtype("python|pyarrow", na_value=np.nan)`` that makes a best effort to move users towards all the benefits of PyArrow strings (assuming pyarrow is installed) while retaining backwards-compatible missing value handling with ``np.nan`` as the missing value marker. The usage of the ``pd.StringDtype`` in this manner is a good stepping stone towards the goals of this PDEP, although it is stuck in an "in-between" state without other types following suit.
 
-PDEP-14 has been proposed to smooth over that and change our ``pd.StringDtype()`` to be an alias for ``string[pyarrow_numpy]``. This would at least offer some abstraction to end users who just want strings, but on the flip side would be breaking behavior for users that have already opted into ``dtype="string"`` or ``dtype=pd.StringDtype()`` and the related pd.NA missing value marker for the prior 4 years of their existence.
+For instance, if a user calls ``Series.value_counts()`` on the ``pd.StringDtype()``, the type of the returned Series can vary wildly, and in non-obvious ways:
 
-A logical type system can help us abstract all of these issues. At the end of the day, this PDEP assumes a user wants a string data type. If they call ``Series.str.len()`` against a Series of that type with missing data, they should get back a Series with an integer data type.
+```python
+>>> pd.Series(["x"], dtype=pd.StringDtype("python", na_value=pd.NA)).value_counts().dtype
+Int64Dtype()
+>>> pd.Series(["x"], dtype=pd.StringDtype("pyarrow", na_value=pd.NA)).value_counts().dtype
+int64[pyarrow]
+>>> pd.Series(["x"], dtype=pd.StringDtype("python", na_value=np.nan)).value_counts().dtype
+Int64Dtype()
+>>> pd.Series(["x"], dtype=pd.StringDtype("pyarrow", na_value=np.nan)).value_counts().dtype
+dtype('int64')
+```
+
+It is also worth noting that different methods will return different data types. For a pyarrow-backed string with pd.NA, ``Series.value_counts()`` returns a ``int64[pyarrow]`` but ``Series.str.len()`` returns a ``pd.Int64Dtype()``.
+
+A logical type system can help us abstract all of these issues. At the end of the day, this PDEP assumes a user wants a string data type. If they call ``Series.str.value_counts()`` against a Series of that type with missing data, they should get back a Series with an integer data type.
 
 ### Problem 2: Inconsistent Constructors
 
@@ -69,7 +84,7 @@ It would stand to reason in this approach that you could use a ``pd.DatetimeDtyp
 
 ### Problem 3: Lack of Clarity on Type Support
 
-The third issue is that the extent to which pandas may support any given type is unclear. Issue [#58307](https://github.com/pandas-dev/pandas/issues/58307) highlights one example. It would stand to reason that you could interchangeably use a pandas datetime64 and a pyarrow timestamp, but that is not always true. Another common example is the use of NumPy fixed length strings, which users commonly try to use even though we claim no real support for them (see [#5764](https://github.com/pandas-dev/pandas/issues/57645)).
+The third issue is that the extent to which pandas may support any given type is unclear. Issue [#58307](https://github.com/pandas-dev/pandas/issues/58307) highlights one example. It would stand to reason that you could interchangeably use a pandas datetime64 and a pyarrow timestamp, but that is not always true. Another example is the use of NumPy fixed length strings, which users commonly try to use even though we claim no real support for them (see [#5764](https://github.com/pandas-dev/pandas/issues/57645)).
 
 ## Assessing the Current Type System(s)
 
@@ -84,7 +99,7 @@ Derived from the hierarchical visual in the previous section, this PDEP proposes
   - Signed Integer
   - Unsigned Integer
   - Floating Point
-  - Fixed Point
+  - Decimal
   - Boolean
   - Date
   - Datetime
@@ -93,7 +108,7 @@ Derived from the hierarchical visual in the previous section, this PDEP proposes
   - Period
   - Binary
   - String
-  - Map
+  - Dict
   - List
   - Struct
   - Interval
@@ -120,10 +135,11 @@ To satisfy all of the types highlighted above, this would require the addition o
   - pd.Duration()
   - pd.CalendarInterval()
   - pd.BinaryDtype()
-  - pd.MapDtype()  # or pd.DictDtype()
+  - pd.DictDtype()
   - pd.ListDtype()
   - pd.StructDtype()
   - pd.ObjectDtype()
+  - pd.NullDtype()
 
 The storage / backend to each of these types is left as an implementation detail. The fact that ``pd.StringDtype()`` may be backed by Arrow while ``pd.PeriodDtype()`` continues to be a custom solution is of no concern to the end user. Over time this will allow us to adopt more Arrow behind the scenes without breaking the front end for our end users, but _still_ giving us the flexibility to produce data types that Arrow will not implement (e.g. ``pd.ObjectDtype()``).
 
@@ -137,43 +153,24 @@ The methods of each logical type are expected in turn to yield another logical t
 
 The ``Series.dt.date`` example is worth an extra look - with a PDEP-13 logical type system in place we would theoretically have the ability to keep our default ``pd.DatetimeDtype()`` backed by our current NumPy-based array but leverage pyarrow for the ``Series.dt.date`` solution, rather than having to implement a DateArray ourselves.
 
-While this PDEP proposes reusing existing extension types, it also necessitates extending those types with extra metadata:
+To implement this PDEP, we expect all of the logical types to have at least the following metadata:
 
-```python
-class BaseType:
+    * storage: Either "numpy" or "pyarrow". Describes the library used to create the data buffer
+    * physical_type: Can expose the physical type being used. As an example, StringDtype could return pa.string_view
+    * na_value: Either pd.NA, np.nan, or pd.NaT.
 
-    @property
-    def data_manager -> Literal["numpy", "pyarrow"]:
-        """
-        Who manages the data buffer - NumPy or pyarrow
-        """
-        ...
-
-    @property
-    def physical_type:
-        """
-        For logical types which may have different implementations, what is the
-        actual implementation? For pyarrow strings this may mean pa.string() versus
-        pa.large_string() versrus pa.string_view(); for NumPy this may mean object
-        or their 2.0 string implementation.
-        """
-        ...
-
-    @property
-    def na_marker -> pd.NA|np.nan|pd.NaT:
-        """
-        Sentinel used to denote missing values
-        """
-        ...
-```
-
-``na_marker`` is expected to be read-only (see next section). For advanced users that have a particular need for a storage type, they may be able to construct the data type via ``pd.StringDtype(data_manager=np)`` to assert NumPy managed storage. While the PDEP allows constructing in this fashion, operations against that data make no guarantees that they will respect the storage backend and are free to convert to whichever storage the internals of pandas considers optimal (Arrow will typically be preferred).
+While these attributes are exposed as construction arguments to end users, users are highly discouraged from trying to control them directly. Put explicitly, this PDEP allows a user to request a ``pd.XXXDtype(storage="numpy")`` to request a NumPy-backed array, if possible. While pandas may respect that during construction, operations against that data make no guarantees that the storage backend will be persisted through, giving pandas the freedom to convert to whichever storage is internally optimal (Arrow will typically be preferred).
 
 ### Missing Value Handling
 
-Missing value handling is a tricky area as developers are split between pd.NA semantics versus np.nan, and the transition path from one to the other is not always clear.
+Missing value handling is a tricky area as developers are split between pd.NA semantics versus np.nan, and the transition path from one to the other is not always clear. This PDEP does not aim to "solve" that issue per se (for that discussion, please refer to PDEP-16), but aims to provide a go-forward path that strikes a reasonable balance between backwards compatibility and a consistent missing value approach in the future.
 
-Because this PDEP proposes reuse of the existing pandas extension type system, the default missing value marker will consistently be ``pd.NA``. However, to help with backwards compatibility for users that heavily rely on the equality semantics of np.nan, an option of ``pd.na_marker = "legacy"`` can be set. This would mean that the missing value indicator for logical types would be:
+This PDEP proposes that the default missing value for logical types is ``pd.NA``. The reasoning is two-fold:
+
+  1. We are in many cases re-using extension types as logical types, which mostly use pd.NA (StrDtype and datetimes are the exception)
+  2. For new logical types that have nothing to do with NumPy, using np.nan as a missing value marker is an odd fit
+
+However, to help with backwards compatibility for users that heavily rely on the semantics of ``np.nan`` or ``pd.NaT``, an option of ``pd.na_value = "legacy"`` can be set. This would mean that the missing value indicator for logical types would be:
 
 | Logical Type      | Default Missing Value | Legacy Missing Value |
 | pd.BooleanDtype() | pd.NA                 | np.nan               |
@@ -182,17 +179,18 @@ Because this PDEP proposes reuse of the existing pandas extension type system, t
 | pd.StringDtype()  | pd.NA                 | np.nan               |
 | pd.DatetimeType() | pd.NA                 | pd.NaT               |
 
-However, all data types for which there is no legacy NumPy-backed equivalent will continue to use ``pd.NA``, even in "legacy" mode. Legacy is provided only for backwards compatibility, but pd.NA usage is encouraged going forward to give users one exclusive missing value indicator.
+However, all data types for which there is no legacy NumPy-backed equivalent will continue to use ``pd.NA``, even in "legacy" mode. Legacy is provided only for backwards compatibility, but ``pd.NA`` usage is encouraged going forward to give users one exclusive missing value indicator and better align with the goals of PDEP-16.
 
 ### Transitioning from Current Constructors
 
-To maintain a consistent path forward, _all_ constructors with the implementation of this PDEP are expected to map to the logical types. This means that providing ``np.int64`` as the data type argument makes no guarantee that you actually get a NumPy managed storage buffer; pandas reserves the right to optimize as it sees fit and may decide instead to just pyarrow.
+To maintain a consistent path forward, _all_ constructors with the implementation of this PDEP are expected to map to the logical types. This means that providing ``np.int64`` as the data type argument makes no guarantee that you actually get a NumPy managed storage buffer; pandas reserves the right to optimize as it sees fit and may decide instead to use PyArrow.
 
 The theory behind this is that the majority of users are not expecting anything particular from NumPy to happen when they say ``dtype=np.int64``. The expectation is that a user just wants _integer_ data, and the ``np.int64`` specification owes to the legacy of pandas' evolution.
 
-This PDEP makes no guarantee that we will stay that way forever; it is certainly reasonable that a few years down the road we deprecate and fully stop support for backend-specifc constructors like ``np.int64`` or ``pd.ArrowDtype(pa.int64())``. However, for the execution of this PDEP, such an initiative is not in scope.
+This PDEP makes no guarantee that we will stay that way forever; it is certainly reasonable that, in the future, we deprecate and fully stop support for backend-specifc constructors like ``np.int64`` or ``pd.ArrowDtype(pa.int64())``. However, for the execution of this PDEP, such an initiative is not in scope.
 
-## PDEP-11 History
+## PDEP-13 History
 
 - 27 April 2024: Initial version
 - 10 May 2024: First revision
+- 01 Aug 2024: Revisions for PDEP-14 and PDEP-16
