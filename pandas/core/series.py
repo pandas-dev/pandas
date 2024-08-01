@@ -445,6 +445,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "compound dtype.  Use DataFrame instead."
                 )
         elif isinstance(data, Series):
+            dtype = None
             if index is None:
                 index = data.index
                 data = data._mgr.copy(deep=False)
