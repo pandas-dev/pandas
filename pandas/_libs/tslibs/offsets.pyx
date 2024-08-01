@@ -4752,20 +4752,16 @@ def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
                 alias.lower() not in {"s", "ms", "us", "ns"} and
                 alias.upper().split("-")[0].endswith(("S", "E"))):
             raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
-    if (is_period and
-            alias.upper() in c_OFFSET_TO_PERIOD_FREQSTR and
-            alias != "ms" and
-            alias.upper().split("-")[0].endswith(("S", "E"))):
-        if (alias.upper().startswith("B") or
-                alias.upper().startswith("S") or
-                alias.upper().startswith("C")):
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
-        else:
-            alias_msg = "".join(alias.upper().split("E", 1))
-            raise ValueError(
-                f"for Period, please use \'{alias_msg}\' "
-                f"instead of \'{alias}\'"
-            )
+    if (
+        is_period and
+        alias in c_OFFSET_TO_PERIOD_FREQSTR and
+        alias != c_OFFSET_TO_PERIOD_FREQSTR[alias]
+    ):
+        alias_msg = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
+        raise ValueError(
+            f"for Period, please use \'{alias_msg}\' "
+            f"instead of \'{alias}\'"
+        )
 
 
 # TODO: better name?

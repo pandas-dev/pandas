@@ -269,6 +269,7 @@ class KdePlot(HistPlot):
         y: np.ndarray,
         style=None,
         bw_method=None,
+        weights=None,
         ind=None,
         column_num=None,
         stacking_id: int | None = None,
@@ -277,7 +278,7 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
-        gkde = gaussian_kde(y, bw_method=bw_method)
+        gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)

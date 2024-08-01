@@ -4,6 +4,8 @@ import struct
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -1682,6 +1684,7 @@ class TestDuplicated:
 
 
 class TestHashTable:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1721,6 +1724,7 @@ class TestHashTable:
         reconstr = result_unique[result_inverse]
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [

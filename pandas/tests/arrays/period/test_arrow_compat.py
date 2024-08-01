@@ -1,5 +1,7 @@
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -77,6 +79,7 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_arrow_table_roundtrip():
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
@@ -96,6 +99,7 @@ def test_arrow_table_roundtrip():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_arrow_load_from_zero_chunks():
     # GH-41040
 
