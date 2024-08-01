@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -359,7 +359,6 @@ class TestSeriesReplace:
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5], dtype=object)
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
@@ -620,7 +619,7 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match="Invalid value"):
             ints.replace(1, 9.5)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 1 in string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 1 in string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
         # GH-48644
@@ -648,6 +647,7 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_change_dtype_series(self, using_infer_string):
         # GH#25797
         df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})

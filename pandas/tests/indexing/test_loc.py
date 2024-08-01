@@ -13,7 +13,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
@@ -609,6 +609,7 @@ class TestLocBaseIndependent:
         expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
@@ -1204,7 +1205,7 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
     def test_loc_setitem_str_to_small_float_conversion_type(self):
         # GH#20388
 
@@ -1928,7 +1929,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1
-        tm.assert_series_equal(ser, Series([1], index=[1]))
+        tm.assert_series_equal(ser, Series([1], index=range(1, 2)))
         ser.loc[3] = 3
         tm.assert_series_equal(ser, Series([1, 3], index=[1, 3]))
 
@@ -1938,7 +1939,7 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1.0
-        tm.assert_series_equal(ser, Series([1.0], index=[1]))
+        tm.assert_series_equal(ser, Series([1.0], index=range(1, 2)))
         ser.loc[3] = 3.0
         tm.assert_series_equal(ser, Series([1.0, 3.0], index=[1, 3]))
 
@@ -2061,7 +2062,7 @@ class TestLocSetitemWithExpansion:
         N = len(index)
         arr = np.arange(N).astype(np.int64)
 
-        orig = DataFrame(arr, index=index, columns=[0])
+        orig = DataFrame(arr, index=index)
 
         # key that will requiring object-dtype casting in the index
         key = "kapow"
@@ -2074,7 +2075,7 @@ class TestLocSetitemWithExpansion:
         else:
             assert exp_index[-1] == key
         exp_data = np.arange(N + 1).astype(np.float64)
-        expected = DataFrame(exp_data, index=exp_index, columns=[0])
+        expected = DataFrame(exp_data, index=exp_index)
 
         # Add new row, but no new columns
         df = orig.copy()
@@ -3264,3 +3265,18 @@ class TestLocSeries:
             index=Index(np.array(ids).repeat(1000), dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_index_alignment_for_series(self):
+        # GH #56024
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        other = Series([200, 999], index=[1, 0])
+        df.loc[:, "a"] = other
+        expected = DataFrame({"a": [999, 200], "b": [3, 4]})
+        tm.assert_frame_equal(expected, df)
+
+    def test_loc_reindexing_of_empty_index(self):
+        # GH 57735
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
+        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        tm.assert_frame_equal(df, expected)

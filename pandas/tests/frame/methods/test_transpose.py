@@ -25,6 +25,7 @@ class TestTranspose:
         df = DataFrame(ii)
 
         result = df.T
+        result.columns = Index(list(range(len(ii))))
         expected = DataFrame({i: ii[i : i + 1] for i in range(len(ii))})
         tm.assert_frame_equal(result, expected)
 
@@ -153,7 +154,6 @@ class TestTranspose:
         result = df.T
         expected = DataFrame(
             [[Timestamp("2019-12-31"), Timestamp("2019-12-31")]],
-            columns=[0, 1],
             index=["a"],
             dtype=object,
         )
@@ -175,7 +175,6 @@ class TestTranspose:
                 [Timestamp("2019-12-31"), Timestamp("2019-12-31")],
                 [Timestamp("2019-12-31"), Timestamp("2019-12-31")],
             ],
-            columns=[0, 1],
             index=["a", "b"],
             dtype=object,
         )

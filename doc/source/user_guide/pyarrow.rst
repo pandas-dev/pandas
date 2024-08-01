@@ -159,9 +159,11 @@ PyArrow also provides IO reading functionality that has been integrated into sev
 functions provide an ``engine`` keyword that can dispatch to PyArrow to accelerate reading from an IO source.
 
 * :func:`read_csv`
+* :func:`read_feather`
 * :func:`read_json`
 * :func:`read_orc`
-* :func:`read_feather`
+* :func:`read_parquet`
+* :func:`read_table` (experimental)
 
 .. ipython:: python
 
