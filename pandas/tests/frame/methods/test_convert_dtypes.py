@@ -10,6 +10,8 @@ import pandas._testing as tm
 
 
 class TestConvertDtypes:
+    # TODO convert_dtypes should not use NaN variant of string dtype, but always NA
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
@@ -18,9 +20,6 @@ class TestConvertDtypes:
     ):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
-        if using_infer_string:
-            string_storage = "pyarrow_numpy"
-
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
