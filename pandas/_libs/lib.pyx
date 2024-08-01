@@ -2945,6 +2945,7 @@ def map_infer_mask(
     bint convert=True,
     object na_value=no_default,
     bint convert_to_nullable_dtype=False,
+    convert_non_numeric=False,
     cnp.dtype dtype=np.dtype(object),
     str storage=None,
 ) -> "ArrayLike":
@@ -2962,6 +2963,8 @@ def map_infer_mask(
     na_value : Any, optional
         The result value to use for masked values. By default, the
         input value is used.
+    convert_non_numeric : bool, default False
+        Whether to convert datetime, timedelta, period, interval types.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
     storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
@@ -3001,7 +3004,7 @@ def map_infer_mask(
         return maybe_convert_objects(
             result,
             convert_to_nullable_dtype=convert_to_nullable_dtype,
-            convert_non_numeric=True,
+            convert_non_numeric=convert_non_numeric,
             storage=storage,
         )
     else:
