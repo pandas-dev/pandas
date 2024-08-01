@@ -354,7 +354,7 @@ quotechar : str (length 1), optional
     Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
 quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC,
-3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
     ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
     characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
