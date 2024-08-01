@@ -589,7 +589,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
 -
 
 Plotting
