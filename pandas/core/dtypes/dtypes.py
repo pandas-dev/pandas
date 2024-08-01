@@ -1682,8 +1682,8 @@ class SparseDtype(ExtensionDtype):
         =========== ==========
         dtype       na_value
         =========== ==========
-        float       ``np.nan``
-        complex     ``np.nan``
+        float       ``0.0``
+        complex     ``0.0 + 0.0j``
         int         ``0``
         bool        ``False``
         datetime64  ``pd.NaT``
