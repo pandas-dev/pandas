@@ -29,6 +29,8 @@ def test_eq_all_na():
 def test_config(string_storage, request, using_infer_string):
     if using_infer_string and string_storage != "pyarrow_numpy":
         request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
+    if string_storage == "pyarrow_numpy":
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
@@ -46,18 +48,18 @@ def test_config_bad_storage_raises():
 
 
 @pytest.mark.parametrize("chunked", [True, False])
-@pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
+@pytest.mark.parametrize("array_lib", ["numpy", "pyarrow"])
+def test_constructor_not_string_type_raises(array_lib, chunked):
     pa = pytest.importorskip("pyarrow")
 
-    array = pa if array in arrow_string_storage else np
+    array_lib = pa if array_lib == "pyarrow" else np
 
-    arr = array.array([1, 2, 3])
+    arr = array_lib.array([1, 2, 3])
     if chunked:
-        if array is np:
+        if array_lib is np:
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
-    if array is np:
+    if array_lib is np:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
@@ -260,6 +262,6 @@ def test_pickle_roundtrip(dtype):
 def test_string_dtype_error_message():
     # GH#55051
     pytest.importorskip("pyarrow")
-    msg = "Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'."
+    msg = "Storage must be 'python' or 'pyarrow'."
     with pytest.raises(ValueError, match=msg):
         StringDtype("bla")

@@ -7,7 +7,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     NA,
@@ -176,7 +176,7 @@ NaT   4"""
 
         repr(biggie)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
+    @pytest.mark.xfail(using_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])

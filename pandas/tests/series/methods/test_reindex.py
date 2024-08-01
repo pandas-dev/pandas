@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -22,9 +20,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.xfail(
-    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
-)
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
@@ -234,13 +229,15 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
     # partial reindexing
-    expected = Series(Categorical(values=["b", "c"], categories=["a", "b", "c"]))
-    expected.index = [1, 2]
+    expected = Series(
+        Categorical(values=["b", "c"], categories=["a", "b", "c"]), index=range(1, 3)
+    )
     result = s.reindex([1, 2])
     tm.assert_series_equal(result, expected)
 
-    expected = Series(Categorical(values=["c", np.nan], categories=["a", "b", "c"]))
-    expected.index = [2, 3]
+    expected = Series(
+        Categorical(values=["c", np.nan], categories=["a", "b", "c"]), index=range(2, 4)
+    )
     result = s.reindex([2, 3])
     tm.assert_series_equal(result, expected)
 
@@ -261,11 +258,11 @@ def test_reindex_fill_value():
     # floats
     floats = Series([1.0, 2.0, 3.0])
     result = floats.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     result = floats.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2.0, 3.0, 0], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, 0], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
@@ -273,12 +270,12 @@ def test_reindex_fill_value():
     ints = Series([1, 2, 3])
 
     result = ints.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # don't upcast
     result = ints.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2, 3, 0], index=[1, 2, 3])
+    expected = Series([2, 3, 0], index=range(1, 4))
     assert issubclass(result.dtype.type, np.integer)
     tm.assert_series_equal(result, expected)
 
@@ -287,11 +284,11 @@ def test_reindex_fill_value():
     objects = Series([1, 2, 3], dtype=object)
 
     result = objects.reindex([1, 2, 3])
-    expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
+    expected = Series([2, 3, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = objects.reindex([1, 2, 3], fill_value="foo")
-    expected = Series([2, 3, "foo"], index=[1, 2, 3], dtype=object)
+    expected = Series([2, 3, "foo"], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------
@@ -299,11 +296,11 @@ def test_reindex_fill_value():
     bools = Series([True, False, True])
 
     result = bools.reindex([1, 2, 3])
-    expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
+    expected = Series([False, True, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = bools.reindex([1, 2, 3], fill_value=False)
-    expected = Series([False, True, False], index=[1, 2, 3])
+    expected = Series([False, True, False], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
 
@@ -318,7 +315,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=range(2), dtype=object)
     tm.assert_series_equal(result, expected)
 
 

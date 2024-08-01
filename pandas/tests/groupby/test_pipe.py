@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -8,6 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_pipe():
     # Test the pipe method of DataFrameGroupBy.
     # Issue #17871

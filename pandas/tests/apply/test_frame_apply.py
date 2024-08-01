@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -61,6 +63,7 @@ def test_apply(float_frame, engine, request):
         assert result.index is float_frame.index
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("nopython", [True, False])
@@ -368,18 +371,18 @@ def test_apply_mixed_dtype_corner():
     result = df[:0].apply(np.mean, axis=1)
     # the result here is actually kind of ambiguous, should it be a Series
     # or a DataFrame?
-    expected = Series(np.nan, index=pd.Index([], dtype="int64"))
+    expected = Series(dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 
 def test_apply_mixed_dtype_corner_indexing():
     df = DataFrame({"A": ["foo"], "B": [1.0]})
     result = df.apply(lambda x: x["A"], axis=1)
-    expected = Series(["foo"], index=[0])
+    expected = Series(["foo"], index=range(1))
     tm.assert_series_equal(result, expected)
 
     result = df.apply(lambda x: x["B"], axis=1)
-    expected = Series([1.0], index=[0])
+    expected = Series([1.0], index=range(1))
     tm.assert_series_equal(result, expected)
 
 
@@ -1037,7 +1040,7 @@ def test_result_type(int_frame_const_col):
 
     result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
     expected = df.copy()
-    expected.columns = [0, 1, 2]
+    expected.columns = range(3)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1047,7 +1050,7 @@ def test_result_type_shorter_list(int_frame_const_col):
     df = int_frame_const_col
     result = df.apply(lambda x: [1, 2], axis=1, result_type="expand")
     expected = df[["A", "B"]].copy()
-    expected.columns = [0, 1]
+    expected.columns = range(2)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1213,6 +1216,7 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_agg_multiple_mixed():
     # GH 20909
     mdf = DataFrame(
@@ -1338,6 +1342,7 @@ def test_named_agg_reduce_axis1_raises(float_frame):
             float_frame.agg(row1=(name1, "sum"), row2=(name2, "max"), axis=axis)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_nuiscance_columns():
     # GH 15015
     df = DataFrame(
@@ -1514,6 +1519,7 @@ def test_apply_datetime_tz_issue(engine, request):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):

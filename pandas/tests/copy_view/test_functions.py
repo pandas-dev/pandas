@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Index,
@@ -12,6 +14,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_concat_frames():
     df = DataFrame({"b": ["a"] * 3})
     df2 = DataFrame({"a": ["a"] * 3})
@@ -30,6 +33,7 @@ def test_concat_frames():
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_concat_frames_updating_input():
     df = DataFrame({"b": ["a"] * 3})
     df2 = DataFrame({"a": ["a"] * 3})
@@ -149,6 +153,7 @@ def test_concat_copy_keyword():
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "func",
     [
@@ -200,6 +205,7 @@ def test_merge_on_index():
     tm.assert_frame_equal(df2, df2_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "func, how",
     [
@@ -243,6 +249,7 @@ def test_merge_copy_keyword():
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_join_on_key():
     df_index = Index(["a", "b", "c"], name="key")
 
@@ -270,6 +277,7 @@ def test_join_on_key():
     tm.assert_frame_equal(df2, df2_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_join_multiple_dataframes_on_key():
     df_index = Index(["a", "b", "c"], name="key")
 
