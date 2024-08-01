@@ -1248,7 +1248,6 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1257,7 +1256,6 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
-    * 'pyarrow_numpy'
     """
     return request.param
 

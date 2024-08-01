@@ -516,18 +516,11 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
+def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
-
-    if using_infer_string and string_storage2 != "pyarrow_numpy":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="infer_string takes precedence over string storage"
-            )
-        )
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -536,29 +529,20 @@ def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
         assert table.field("a").type == "string"
     else:
         assert table.field("a").type == "large_string"
-    with pd.option_context("string_storage", string_storage2):
+    with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
-    expected = df.astype(f"string[{string_storage2}]")
+    expected = df.astype(f"string[{string_storage}]")
     tm.assert_frame_equal(result, expected)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_load_from_zero_chunks(
-    dtype, string_storage2, request, using_infer_string
-):
+def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
-
-    if using_infer_string and string_storage2 != "pyarrow_numpy":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="infer_string takes precedence over string storage"
-            )
-        )
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -569,10 +553,10 @@ def test_arrow_load_from_zero_chunks(
         assert table.field("a").type == "large_string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
-    with pd.option_context("string_storage", string_storage2):
+    with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
-    expected = df.astype(f"string[{string_storage2}]")
+    expected = df.astype(f"string[{string_storage}]")
     tm.assert_frame_equal(result, expected)
 
 
