@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -922,7 +920,6 @@ def test_func_returns_object():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],
@@ -938,7 +935,7 @@ def test_apply_datetime_issue(group_column_dtlike, using_infer_string):
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = df.groupby("a").apply(lambda x: Series(["spam"], index=[42]))
 
-    dtype = "string" if using_infer_string else "object"
+    dtype = "str" if using_infer_string else "object"
     expected = DataFrame(["spam"], Index(["foo"], dtype=dtype, name="a"), columns=[42])
     tm.assert_frame_equal(result, expected)
 

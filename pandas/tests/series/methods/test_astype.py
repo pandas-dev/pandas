@@ -532,7 +532,7 @@ class TestAstypeCategorical:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object|string dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
