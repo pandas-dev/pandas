@@ -61,7 +61,6 @@ from pandas.core.arrays.base import (
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -1428,11 +1427,7 @@ class ArrowExtensionArray(
         return result
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        result = super().map(mapper, na_action)
-        if isinstance(result.dtype, StringDtype):
-            return result
-        else:
-            return pd_array(result, dtype=result.dtype)
+        return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
