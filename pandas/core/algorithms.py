@@ -1763,12 +1763,11 @@ def _build_map_infer_methods_params(arr: ArrayLike):
     elif isinstance(arr.dtype, ExtensionDtype):
         arr = cast("ExtensionArray", arr)
         arr_dtype = arr.dtype.__repr__()
-        if "pyarrow" in arr_dtype and "date" in arr_dtype:
+        if "pyarrow" in arr_dtype:
+            storage = "pyarrow"
             values = np.fromiter(arr._pa_array, dtype="O")
         else:
             values = np.asarray(arr)
-        if "pyarrow" in arr_dtype:
-            storage = "pyarrow"
         if "python" in arr_dtype:
             storage = "python"
         if arr._hasna:
