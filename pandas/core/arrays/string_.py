@@ -43,7 +43,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core import ops
+from pandas.core import (
+    nanops,
+    ops,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -779,6 +782,17 @@ class StringArrayNumpySemantics(StringArray):
         # need to overrde NumpyExtensionArray._from_backing_data to ensure
         # we always preserve the dtype
         return NDArrayBacked._from_backing_data(self, arr)
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if name in ["any", "all"]:
+            if name == "any":
+                return nanops.nanany(self._ndarray, skipna=skipna)
+            else:
+                return nanops.nanall(self._ndarray, skipna=skipna)
+        else:
+            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
 
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         # the masked_reductions use pd.NA
