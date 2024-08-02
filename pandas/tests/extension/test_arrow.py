@@ -288,7 +288,7 @@ class TestArrowArray(base.ExtensionTests):
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
             expected = data_missing
-            tm.assert_extension_array_equal(result, expected, check_dtype=False)
+            tm.assert_extension_array_equal(result, expected)
 
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
