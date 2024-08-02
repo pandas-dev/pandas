@@ -35,6 +35,7 @@ Other enhancements
 - :meth:`DataFrame.agg` called with ``axis=1`` and a ``func`` which relabels the result index now raises a ``NotImplementedError`` (:issue:`58807`).
 - :meth:`Index.get_loc` now accepts also subclasses of ``tuple`` as keys (:issue:`57922`)
 - :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
+- Added missing parameter ``weights`` in :meth:`DataFrame.plot.kde` for the estimation of the PDF (:issue:`59337`)
 - Allow dictionaries to be passed to :meth:`pandas.Series.str.replace` via ``pat`` parameter (:issue:`51748`)
 - Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Series` :class:`Index` (:issue:`51452`)
 - Support reading value labels from Stata 108-format (Stata 6) and earlier files (:issue:`58154`)
@@ -617,10 +618,11 @@ I/O
 - Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
+- Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
 
 Period
 ^^^^^^
--
+- Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
 -
 
 Plotting

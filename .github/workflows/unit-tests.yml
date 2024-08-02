@@ -59,7 +59,6 @@ jobs:
             extra_loc: "zh_CN"
           - name: "Future infer strings"
             env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
             pandas_future_infer_string: "1"
           - name: "Pypy"
             env_file: actions-pypy-39.yaml

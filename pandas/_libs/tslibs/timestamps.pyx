@@ -2775,6 +2775,13 @@ default 'raise'
 
         Monday == 1 ... Sunday == 7.
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number
+            and weekday.
+        datetime.date.isoweekday : Equivalent method in datetime module.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')

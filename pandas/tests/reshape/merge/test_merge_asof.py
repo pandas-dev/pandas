@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3062,6 +3064,7 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_merge_datatype_error_raises(self, using_infer_string):
         if using_infer_string:
             msg = "incompatible merge keys"

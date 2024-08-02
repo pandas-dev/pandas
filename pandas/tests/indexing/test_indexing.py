@@ -426,7 +426,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't multiply arrow strings")
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
         # set float64 to avoid upcast when setting nan
@@ -529,6 +528,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_astype_assignment(self, using_infer_string):
         # GH4312 (iloc)
         df_orig = DataFrame(
@@ -652,7 +652,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases

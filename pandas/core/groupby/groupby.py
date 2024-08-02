@@ -2347,6 +2347,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
 
+        See Also
+        --------
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+
         Examples
         --------
         For SeriesGroupBy:

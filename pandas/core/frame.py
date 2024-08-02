@@ -901,6 +901,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe interchange object implementing the interchange protocol.
 
+        .. note::
+
+           For new development, we highly recommend using the Arrow C Data Interface
+           alongside the Arrow PyCapsule Interface instead of the interchange protocol
+
         .. warning::
 
             Due to severe implementation issues, we recommend only considering using the
