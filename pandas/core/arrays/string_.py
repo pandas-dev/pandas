@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    ClassVar,
     Literal,
     cast,
 )
@@ -110,9 +109,12 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    # error: Cannot override instance variable (previously declared on
-    # base class "StorageExtensionDtype") with class variable
-    name: ClassVar[str] = "string"  # type: ignore[misc]
+    @property
+    def name(self) -> str:
+        if self._na_value is libmissing.NA:
+            return "string"
+        else:
+            return "str"
 
     #: StringDtype().na_value uses pandas.NA except the implementation that
     # follows NumPy semantics, which uses nan.
@@ -129,7 +131,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            if using_string_dtype() and na_value is not libmissing.NA:
+            if na_value is not libmissing.NA:
                 storage = "pyarrow"
             else:
                 storage = get_option("mode.string_storage")
@@ -159,11 +161,19 @@ class StringDtype(StorageExtensionDtype):
         self.storage = storage
         self._na_value = na_value
 
+    def __repr__(self) -> str:
+        if self._na_value is libmissing.NA:
+            return f"{self.name}[{self.storage}]"
+        else:
+            # TODO add more informative repr
+            return self.name
+
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
         # cannot be checked with normal `==`
         if isinstance(other, str):
-            if other == self.name:
+            # TODO should dtype == "string" work for the NaN variant?
+            if other == "string" or other == self.name:  # noqa: PLR1714
                 return True
             try:
                 other = self.construct_from_string(other)
@@ -220,6 +230,8 @@ class StringDtype(StorageExtensionDtype):
             )
         if string == "string":
             return cls()
+        elif string == "str" and using_string_dtype():
+            return cls(na_value=np.nan)
         elif string == "string[python]":
             return cls(storage="python")
         elif string == "string[pyarrow]":
