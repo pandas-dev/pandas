@@ -15,15 +15,15 @@ jobs:
       - checkout
       - run:
           name: Install Environment and Run Tests
-          shell: /bin/bash -exuo pipefail
+          shell: /bin/bash -exo pipefail
           command: |
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
-            wget -q $MAMBA_URL -O minimamba.sh
-            chmod +x minimamba.sh
-            MAMBA_DIR="$HOME/miniconda3"
-            rm -rf $MAMBA_DIR
-            ./minimamba.sh -b -p $MAMBA_DIR
-            export PATH=$MAMBA_DIR/bin:$PATH
+            MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge3-24.3.0-0-Linux-aarch64.sh"
+            wget -q $MINI_URL -O Miniforge3.sh
+            chmod +x Miniforge3.sh
+            MINI_DIR="$HOME/miniconda3"
+            rm -rf $MINI_DIR
+            ./Miniforge3.sh -b -p $MINI_DIR
+            export PATH=$MINI_DIR/bin:$PATH
             conda info -a
             conda env create -q -n pandas-dev -f $ENV_FILE
             conda list -n pandas-dev
@@ -97,21 +97,16 @@ jobs:
 
       - run:
           name: Install Anaconda Client & Upload Wheels
+          shell: /bin/bash -exo pipefail
           command: |
-            echo "Install Mambaforge"
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
-            echo "Downloading $MAMBA_URL"
-            wget -q $MAMBA_URL -O minimamba.sh
-            chmod +x minimamba.sh
-
-            MAMBA_DIR="$HOME/miniconda3"
-            rm -rf $MAMBA_DIR
-            ./minimamba.sh -b -p $MAMBA_DIR
-
-            export PATH=$MAMBA_DIR/bin:$PATH
-
-            mamba install -y -c conda-forge anaconda-client
-
+            MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge3-24.3.0-0-Linux-aarch64.sh"
+            wget -q $MINI_URL -O Miniforge3.sh
+            chmod +x Miniforge3.sh
+            MINI_DIR="$HOME/miniconda3"
+            rm -rf $MINI_DIR
+            ./Miniforge3.sh -b -p $MINI_DIR
+            export PATH=$MINI_DIR/bin:$PATH
+            conda install -y -c conda-forge anaconda-client
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels
