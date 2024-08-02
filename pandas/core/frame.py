@@ -20,6 +20,7 @@ from collections.abc import (
     Iterator,
     Mapping,
     Sequence,
+    Set as AbstractSet,
 )
 import functools
 from io import StringIO
@@ -6534,7 +6535,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Sequence[Hashable] | AbstractSet | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[True],
@@ -6544,7 +6545,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Sequence[Hashable] | AbstractSet | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
@@ -6554,7 +6555,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Sequence[Hashable] | AbstractSet | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: bool = ...,
@@ -6563,7 +6564,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: Hashable | Sequence[Hashable] | AbstractSet | None = None,
         *,
         keep: DropKeep = "first",
         inplace: bool = False,
@@ -6667,7 +6668,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def duplicated(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: Hashable | Sequence[Hashable] | AbstractSet | None = None,
         keep: DropKeep = "first",
     ) -> Series:
         """
@@ -6792,8 +6793,13 @@ class DataFrame(NDFrame, OpsMixin):
             raise KeyError(Index(diff))
 
         if len(subset) == 1 and self.columns.is_unique:
+            # GH#59237 adding support for single element sets
+            if isinstance(subset, set):
+                elem = subset.pop()
+            else:
+                elem = subset[0]
             # GH#45236 This is faster than get_group_index below
-            result = self[subset[0]].duplicated(keep)
+            result = self[elem].duplicated(keep)
             result.name = None
         else:
             vals = (col.values for name, col in self.items() if name in subset)
