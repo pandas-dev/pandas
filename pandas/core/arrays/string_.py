@@ -110,7 +110,7 @@ class StringDtype(StorageExtensionDtype):
     """
 
     @property
-    def name(self) -> str:
+    def name(self) -> str:  # type: ignore[override]
         if self._na_value is libmissing.NA:
             return "string"
         else:

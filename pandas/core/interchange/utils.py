@@ -135,7 +135,12 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     if format_str is not None:
         return format_str
 
-    if lib.is_np_dtype(dtype, "M"):
+    if isinstance(dtype, pd.StringDtype):
+        # TODO(infer_string) this should be LARGE_STRING for pyarrow storage,
+        # but current tests don't cover this distinction
+        return ArrowCTypes.STRING
+
+    elif lib.is_np_dtype(dtype, "M"):
         # Selecting the first char of resolution string:
         # dtype.str -> '<M8[ns]' -> 'n'
         resolution = np.datetime_data(dtype)[0][0]
