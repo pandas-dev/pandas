@@ -2117,11 +2117,11 @@ class TestSeriesConstructors:
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
         # "string[pyarrow_numpy]" to "string[pyarrow]"
-        # pytest.importorskip("pyarrow")
-        # expected = Series(["a", "b"], dtype="string[python]")
-        # with pd.option_context("future.infer_string", True):
-        #     result = Series(["a", "b"], dtype="string")
-        # tm.assert_series_equal(result, expected)
+        pytest.importorskip("pyarrow")
+        expected = Series(["a", "b"], dtype="string[python]")
+        with pd.option_context("future.infer_string", True):
+            result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
 
         expected = Series(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
         with pd.option_context("future.infer_string", True):
