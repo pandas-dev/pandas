@@ -802,6 +802,8 @@ def test_pandas_dtype_ea_not_instance():
 
 
 def test_pandas_dtype_string_dtypes(string_storage):
+    # TODO(infer_string) remove skip if "python" is supported
+    pytest.importorskip("pyarrow")
     with pd.option_context("future.infer_string", True):
         with pd.option_context("string_storage", string_storage):
             result = pandas_dtype("str")

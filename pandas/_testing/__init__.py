@@ -110,7 +110,7 @@ COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 if using_string_dtype():
     STRING_DTYPES: list[Dtype] = [str, "U"]
 else:
-    STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+    STRING_DTYPES: list[Dtype] = [str, "str", "U"]  # type: ignore[no-redef]
 COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
