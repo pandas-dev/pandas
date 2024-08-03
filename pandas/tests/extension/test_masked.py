@@ -276,6 +276,10 @@ class TestMaskedArrays(base.ExtensionTests):
         # https://github.com/pandas-dev/pandas/issues/30958
 
         cmp_dtype = "int64"
+        if (op_name == "prod" and skipna and data.dtype.itemsize < 8 
+            and np.intp().itemsize < 8):
+            pytest.xfail(reason=f"{op_name} with itemsize 
+                         {data.dtype.itemsize} overflows")
         if ser.dtype.kind == "f":
             # Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has
             # no attribute "numpy_dtype"
