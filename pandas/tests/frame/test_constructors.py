@@ -256,7 +256,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self, float_string_frame, using_infer_string):
-        dtype = "string" if using_infer_string else np.object_
+        dtype = "str" if using_infer_string else np.object_
         assert float_string_frame["foo"].dtype == dtype
 
     def test_constructor_cast_failure(self):

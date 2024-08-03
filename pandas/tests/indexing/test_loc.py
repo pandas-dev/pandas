@@ -62,11 +62,16 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
-    def test_none_values_on_string_columns(self):
+    def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
-        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
-
+        df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
         assert df.loc[2, "a"] is None
+
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        if using_infer_string:
+            assert np.isnan(df.loc[2, "a"])
+        else:
+            assert df.loc[2, "a"] is None
 
     def test_loc_getitem_int(self, frame_or_series):
         # int label

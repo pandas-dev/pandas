@@ -257,7 +257,7 @@ Series values are different \\(100.0 %\\)
 
 def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Attributes of Series are different

@@ -524,7 +524,7 @@ class TestAstypeString:
 
 
 class TestAstypeCategorical:
-    def test_astype_categorical_to_other(self):
+    def test_astype_categorical_to_other(self, using_infer_string):
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
         ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
@@ -537,7 +537,8 @@ class TestAstypeCategorical:
             ser.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
-        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
+        dtype = "str" if using_infer_string else "object"
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=dtype)
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
         exp2 = Series([1, 2, 3, 4]).astype("int")

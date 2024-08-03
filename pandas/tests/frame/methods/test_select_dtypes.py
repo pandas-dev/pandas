@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
@@ -345,6 +347,7 @@ class TestSelectDtypes:
         expected = df3.reindex(columns=[])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):

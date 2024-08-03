@@ -1017,7 +1017,7 @@ def test_groupby_apply_datetime_result_dtypes(using_infer_string):
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
-    dtype = "string" if using_infer_string else object
+    dtype = "str" if using_infer_string else object
     expected = Series(
         [np.dtype("datetime64[us]"), dtype, dtype, np.int64, dtype],
         index=["observation", "color", "mood", "intensity", "score"],
