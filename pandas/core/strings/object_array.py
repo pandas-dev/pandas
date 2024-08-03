@@ -239,8 +239,15 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_encode(self, encoding, errors: str = "strict"):
-        f = lambda x: x.encode(encoding, errors=errors)
-        return self._str_map(f, dtype=object)
+        def encode_func(x):
+            if x is str:
+                return x.encode(encoding=encoding, errors=errors)
+            else:
+                # Manage AttributeError: 'pyarrow.lib.LargeStringScalar'
+                # object has no attribute 'encode'
+                return str(x).encode(encoding=encoding, errors=errors)
+
+        return self._str_map(encode_func, dtype=object)
 
     def _str_find(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="left")

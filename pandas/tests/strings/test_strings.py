@@ -561,7 +561,16 @@ def test_encode_errors_kwarg(any_string_dtype):
         ser.str.encode("cp1252")
 
     result = ser.str.encode("cp1252", "ignore")
-    expected = ser.map(lambda x: x.encode("cp1252", "ignore"))
+
+    def encode_func(x):
+        if x is str:
+            return x.encode("cp1252", "ignore")
+        else:
+            # Manage AttributeError: 'pyarrow.lib.LargeStringScalar'
+            # object has no attribute 'encode'
+            return str(x).encode("cp1252", "ignore")
+
+    expected = ser.map(encode_func).astype("object")
     tm.assert_series_equal(result, expected)
 
 
