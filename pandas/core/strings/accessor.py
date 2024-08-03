@@ -3079,6 +3079,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Returns a Series or an Index of the %(side)s indexes
+        in each string of the input.
 
     See Also
     --------
