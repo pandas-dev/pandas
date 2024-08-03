@@ -419,7 +419,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # undo the NumpyExtensionArray hack
     _typ = "extension"
     _storage = "python"
-    _na_value = libmissing.NA
+    _na_value: libmissing.NAType | float = libmissing.NA
 
     def __init__(self, values, copy: bool = False) -> None:
         values = extract_array(values)
