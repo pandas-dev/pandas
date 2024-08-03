@@ -1135,11 +1135,13 @@ class TestParquetPyArrow(Base):
         # GH#49236
         #
         # pandas 1.x didn't support non-nanosecond datetimes.
-        # pyarrow.Table.to_pandas supports timestamp_as_object param to solve that issue:
+        # pyarrow.Table.to_pandas supports timestamp_as_object param to solve that issue
         # https://arrow.apache.org/docs/python/generated/pyarrow.Table.html#pyarrow.Table.to_pandas
         #
-        # This test tests that the current version of pandas supports non-nanosecond (microsecond in this case) datetimes,
-        # the code example from GH#49236 doesn't fail anymore, and timestamp_as_object is not needed.
+        # This test tests that the current version of pandas
+        # supports non-nanosecond (microsecond in this case) datetimes,
+        # the code example from GH#49236 doesn't fail anymore,
+        # and timestamp_as_object param is not needed.
         import pyarrow as pa
         import pyarrow.parquet as pq
 
