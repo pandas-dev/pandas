@@ -168,7 +168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.find RT03" \
         -i "pandas.Series.str.fullmatch RT03" \
         -i "pandas.Series.str.get RT03,SA01" \
-        -i "pandas.Series.str.index RT03" \
         -i "pandas.Series.str.ljust RT03,SA01" \
         -i "pandas.Series.str.lower RT03" \
         -i "pandas.Series.str.lstrip RT03" \
