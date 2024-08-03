@@ -177,7 +177,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.repeat SA01" \
         -i "pandas.Series.str.replace SA01" \
         -i "pandas.Series.str.rfind RT03" \
-        -i "pandas.Series.str.rindex RT03" \
         -i "pandas.Series.str.rjust RT03,SA01" \
         -i "pandas.Series.str.rpartition RT03" \
         -i "pandas.Series.str.rstrip RT03" \
