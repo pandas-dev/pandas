@@ -6,7 +6,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -30,9 +30,7 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 
 class TestDataFrameReplace:
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
@@ -293,9 +291,7 @@ class TestDataFrameReplace:
         expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_dict_nested_gh4115(self):
         df = DataFrame({"Type": ["Q", "T", "Q", "Q", "T"], "tmp": 2})
         expected = DataFrame(
@@ -304,9 +300,7 @@ class TestDataFrameReplace:
         result = df.replace({"Type": {"Q": 0, "T": 1}})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_list_to_scalar(self, mix_abc):
         df = DataFrame(mix_abc)
         expec = DataFrame(
@@ -332,9 +326,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_str_to_numeric(self, mix_abc):
         # what happens when you try to replace a numeric value with a regex?
         df = DataFrame(mix_abc)
@@ -350,9 +342,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_regex_replace_regex_list_to_numeric(self, mix_abc):
         df = DataFrame(mix_abc)
         res = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
@@ -545,9 +535,7 @@ class TestDataFrameReplace:
         result = df.replace(s, df.mean())
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_convert(self):
         # gh 3907
         df = DataFrame([["foo", "bar", "bah"], ["bar", "foo", "bah"]])
@@ -557,9 +545,7 @@ class TestDataFrameReplace:
         res = rep.dtypes
         tm.assert_series_equal(expec, res)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_mixed(self, float_string_frame):
         mf = float_string_frame
         mf.iloc[5:20, mf.columns.get_loc("foo")] = np.nan
@@ -615,6 +601,7 @@ class TestDataFrameReplace:
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_mixed2(self, using_infer_string):
         # to object block upcasting
         df = DataFrame(
@@ -902,9 +889,7 @@ class TestDataFrameReplace:
         with pytest.raises(ValueError, match=msg):
             df.replace(to_rep, values[1:])
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_input_formats_scalar(self):
         df = DataFrame(
             {"A": [np.nan, 0, np.inf], "B": [0, 2, 5], "C": ["", "asdf", "fd"]}
@@ -933,9 +918,7 @@ class TestDataFrameReplace:
         # TODO
         pass
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_dict_no_regex(self):
         answer = Series(
             {
@@ -957,9 +940,7 @@ class TestDataFrameReplace:
         result = answer.replace(weights)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_series_no_regex(self):
         answer = Series(
             {
@@ -1064,9 +1045,7 @@ class TestDataFrameReplace:
         expected = df.replace({"a": dict(zip(astr, bstr))})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     def test_replace_swapping_bug(self, using_infer_string):
         df = DataFrame({"a": [True, False, True]})
         res = df.replace({"a": {True: "Y", False: "N"}})
@@ -1172,38 +1151,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(df, df.replace(Series({"b": {}})))
 
     @pytest.mark.parametrize(
-        "replace_dict, final_data",
-        [({"a": 1, "b": 1}, [[3, 3], [2, 2]]), ({"a": 1, "b": 2}, [[3, 1], [2, 3]])],
-    )
-    def test_categorical_replace_with_dict(self, replace_dict, final_data):
-        # GH 26988
-        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
-
-        final_data = np.array(final_data)
-
-        a = pd.Categorical(final_data[:, 0], categories=[3, 2])
-
-        ex_cat = [3, 2] if replace_dict["b"] == 1 else [1, 3]
-        b = pd.Categorical(final_data[:, 1], categories=ex_cat)
-
-        expected = DataFrame({"a": a, "b": b})
-        msg2 = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = df.replace(replace_dict, 3)
-        tm.assert_frame_equal(result, expected)
-        msg = (
-            r"Attributes of DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are "
-            "different"
-        )
-        with pytest.raises(AssertionError, match=msg):
-            # ensure non-inplace call does not affect original
-            tm.assert_frame_equal(df, expected)
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            return_value = df.replace(replace_dict, 3, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(df, expected)
-
-    @pytest.mark.parametrize(
         "df, to_replace, exp",
         [
             (
@@ -1229,9 +1176,7 @@ class TestDataFrameReplace:
         result = df.replace(to_replace)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     @pytest.mark.parametrize(
         "replacer",
         [
@@ -1300,6 +1245,31 @@ class TestDataFrameReplace:
         result = obj.replace(1.0, 0.0)
         tm.assert_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "replace_dict, final_data",
+        [({"a": 1, "b": 1}, [[2, 2], [2, 2]]), ({"a": 1, "b": 2}, [[2, 1], [2, 2]])],
+    )
+    def test_categorical_replace_with_dict(self, replace_dict, final_data):
+        # GH 26988
+        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
+
+        final_data = np.array(final_data)
+
+        a = pd.Categorical(final_data[:, 0], categories=[1, 2])
+        b = pd.Categorical(final_data[:, 1], categories=[1, 2])
+
+        expected = DataFrame({"a": a, "b": b})
+        result = df.replace(replace_dict, 2)
+        tm.assert_frame_equal(result, expected)
+        msg = r"DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are " "different"
+        with pytest.raises(AssertionError, match=msg):
+            # ensure non-inplace call does not affect original
+            tm.assert_frame_equal(df, expected)
+        return_value = df.replace(replace_dict, 2, inplace=True)
+        assert return_value is None
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_value_category_type(self):
         """
         Test for #23305: to ensure category dtypes are maintained
@@ -1345,15 +1315,17 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe
-        msg = (
-            r"The behavior of Series\.replace \(and DataFrame.replace\) "
-            "with CategoricalDtype"
+        input_df = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"d": "z"})
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            input_df = input_df.replace("d", "z")
-            input_df = input_df.replace("obj1", "obj9")
-            result = input_df.replace("cat2", "catX")
+        input_df = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"obj1": "obj9"})
+        )
+        result = input_df.apply(
+            lambda x: x.astype("category").cat.rename_categories({"cat2": "catX"})
+        )
 
+        result = result.astype({"col1": "int64", "col3": "float64", "col5": "object"})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_dict_category_type(self):
@@ -1378,12 +1350,11 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe using a dict
-        msg = (
-            r"The behavior of Series\.replace \(and DataFrame.replace\) "
-            "with CategoricalDtype"
+        result = input_df.apply(
+            lambda x: x.cat.rename_categories(
+                {"a": "z", "obj1": "obj9", "cat1": "catX"}
+            )
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
         tm.assert_frame_equal(result, expected)
 
@@ -1395,6 +1366,7 @@ class TestDataFrameReplace:
         expected = DataFrame(["z", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_intervals(self):
         # https://github.com/pandas-dev/pandas/issues/35931
         df = DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})
@@ -1499,9 +1471,7 @@ class TestDataFrameReplaceRegex:
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't set float into string"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="can't set float into string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_frame(self, regex):
         # GH-48644

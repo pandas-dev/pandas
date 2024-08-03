@@ -546,24 +546,17 @@ class ChainIndexing:
 
 
 class Block:
-    params = [
-        (True, "True"),
-        (np.array(True), "np.array(True)"),
-    ]
-
-    def setup(self, true_value, mode):
+    def setup(self):
         self.df = DataFrame(
             False,
             columns=np.arange(500).astype(str),
             index=date_range("2010-01-01", "2011-01-01"),
         )
 
-        self.true_value = true_value
-
-    def time_test(self, true_value, mode):
+    def time_test(self):
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
-        self.df.loc[start:end, :] = true_value
+        self.df.loc[start:end, :] = True
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

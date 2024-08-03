@@ -9,6 +9,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import ParserWarning
 
 import pandas as pd
@@ -26,6 +28,8 @@ from pandas.core.arrays import (
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -55,6 +59,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
@@ -139,7 +144,7 @@ def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
     expected = DataFrame([0, 1], dtype=any_real_numpy_dtype)
 
     result = parser.read_csv(StringIO(data), header=None, dtype=any_real_numpy_dtype)
-    tm.assert_frame_equal(expected, result)
+    tm.assert_frame_equal(expected, result, check_column_type=False)
 
 
 @pytest.mark.usefixtures("pyarrow_xfail")
@@ -299,6 +304,7 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
@@ -314,6 +320,7 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
@@ -456,6 +463,7 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -499,6 +507,7 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -607,6 +616,7 @@ z,a"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_accurate_parsing_of_large_integers(all_parsers):
     # GH#52505
     data = """SYMBOL,MOMENT,ID,ID_DEAL
@@ -617,7 +627,7 @@ AMC,20230301181139587,2023552585717889863,2023552585717263360
 AMZN,20230301181139587,2023552585717889759,2023552585717263360
 MSFT,20230301181139587,2023552585717889863,2023552585717263361
 NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
-    orders = pd.read_csv(StringIO(data), dtype={"ID_DEAL": pd.Int64Dtype()})
+    orders = all_parsers.read_csv(StringIO(data), dtype={"ID_DEAL": pd.Int64Dtype()})
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263358, "ID_DEAL"]) == 1
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263359, "ID_DEAL"]) == 1
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263360, "ID_DEAL"]) == 2
@@ -639,3 +649,16 @@ def test_dtypes_with_usecols(all_parsers):
         values = ["1", "4"]
     expected = DataFrame({"a": pd.Series(values, dtype=object), "c": [3, 6]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_with_dtype_no_rangeindex(all_parsers):
+    data = StringIO("345.5,519.5,0\n519.5,726.5,1")
+    result = all_parsers.read_csv(
+        data,
+        header=None,
+        names=["start", "stop", "bin_id"],
+        dtype={"start": np.float32, "stop": np.float32, "bin_id": np.uint32},
+        index_col="bin_id",
+    ).index
+    expected = pd.Index([0, 1], dtype=np.uint32, name="bin_id")
+    tm.assert_index_equal(result, expected)

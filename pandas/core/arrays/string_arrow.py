@@ -5,7 +5,6 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Union,
     cast,
 )
@@ -53,7 +52,10 @@ if not pa_version_under10p1:
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -129,6 +131,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
     _storage = "pyarrow"
+    _na_value: libmissing.NAType | float = libmissing.NA
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
@@ -138,7 +141,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
-        self._dtype = StringDtype(storage=self._storage)
+        self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
 
         if not pa.types.is_large_string(self._pa_array.type) and not (
             pa.types.is_dictionary(self._pa_array.type)
@@ -185,10 +188,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
-            assert isinstance(dtype, StringDtype) and dtype.storage in (
-                "pyarrow",
-                "pyarrow_numpy",
-            )
+            assert isinstance(dtype, StringDtype) and dtype.storage == "pyarrow"
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
@@ -595,7 +595,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _storage = "pyarrow_numpy"
+    _storage = "pyarrow"
+    _na_value = np.nan
 
     @classmethod
     def _result_converter(cls, values, na=None):
