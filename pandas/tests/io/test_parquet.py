@@ -1131,27 +1131,17 @@ class TestParquetPyArrow(Base):
     #     assert result["strings"].dtype == "string"
     # FIXME: don't leave commented-out
 
-    def test_non_nanosecond_timestamps(self, tmp_path, pa):
+    def test_non_nanosecond_timestamps(self):
         # GH#49236
-        #
-        # pandas 1.x didn't support non-nanosecond datetimes.
-        # pyarrow.Table.to_pandas supports timestamp_as_object param to solve that issue
-        # https://arrow.apache.org/docs/python/generated/pyarrow.Table.html#pyarrow.Table.to_pandas
-        #
-        # This test tests that the current version of pandas
-        # supports non-nanosecond (microsecond in this case) datetimes,
-        # the code example from GH#49236 doesn't fail anymore,
-        # and timestamp_as_object param is not needed.
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        path = tmp_path / "non_nanosecond_timestamp.p"
+        with tm.ensure_clean() as path:
+            arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
+            table = pa.table([arr], names=["timestamp"])
+            pq.write_table(table, path)
+            result = read_parquet(path)
 
-        arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
-        table = pa.table([arr], names=["timestamp"])
-        pq.write_table(table, path)
-
-        result = read_parquet(path)
         expected = pd.DataFrame(
             data={"timestamp": [datetime.datetime(1600, 1, 1)]},
             dtype="datetime64[us]",
