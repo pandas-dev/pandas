@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -14,7 +15,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -957,7 +957,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -1004,7 +1004,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
 

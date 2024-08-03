@@ -6,7 +6,6 @@ import os
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
-    Callable,
     ContextManager,
     cast,
 )
@@ -85,6 +84,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         Dtype,
         NpDtype,
@@ -106,6 +107,7 @@ ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]
@@ -507,14 +509,14 @@ def shares_memory(left, right) -> bool:
     if (
         isinstance(left, ExtensionArray)
         and is_string_dtype(left.dtype)
-        and left.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
+        and left.dtype.storage == "pyarrow"  # type: ignore[attr-defined]
     ):
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
         left = cast("ArrowExtensionArray", left)
         if (
             isinstance(right, ExtensionArray)
             and is_string_dtype(right.dtype)
-            and right.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
+            and right.dtype.storage == "pyarrow"  # type: ignore[attr-defined]
         ):
             right = cast("ArrowExtensionArray", right)
             left_pa_data = left._pa_array

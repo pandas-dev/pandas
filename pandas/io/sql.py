@@ -23,7 +23,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -32,7 +31,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -67,6 +66,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterator,
         Mapping,
@@ -2197,7 +2197,7 @@ class ADBCDatabase(PandasSQL):
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping().get
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             from pandas.io._util import arrow_string_types_mapper
 
             arrow_string_types_mapper()

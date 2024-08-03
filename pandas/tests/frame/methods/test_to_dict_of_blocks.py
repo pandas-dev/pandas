@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -25,6 +27,7 @@ class TestToDictOfBlocks:
         assert _last_df is not None and not _last_df[column].equals(df[column])
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_to_dict_of_blocks_item_cache():
     # Calling to_dict_of_blocks should not poison item_cache
     df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})

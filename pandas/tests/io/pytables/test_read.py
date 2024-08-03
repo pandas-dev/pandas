@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -24,7 +26,10 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_read_missing_key_close_store(tmp_path, setup_path):
@@ -317,3 +322,14 @@ def test_read_infer_string(tmp_path, setup_path):
         columns=Index(["a"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_hdfstore_read_datetime64_unit_s(tmp_path, setup_path):
+    # GH 59004
+    df_s = DataFrame(["2001-01-01", "2002-02-02"], dtype="datetime64[s]")
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
+        store.put("df_s", df_s)
+    with HDFStore(path, mode="r") as store:
+        df_fromstore = store.get("df_s")
+    tm.assert_frame_equal(df_s, df_fromstore)

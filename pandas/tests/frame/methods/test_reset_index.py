@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -600,8 +602,8 @@ class TestResetIndex:
                 {"a": [pd.NaT, Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
             ),
             (
-                [(pd.NaT, 1), (pd.Timedelta(123, "d"), 2)],
-                {"a": [pd.NaT, pd.Timedelta(123, "d")], "b": [1, 2], "x": [11, 12]},
+                [(pd.NaT, 1), (pd.Timedelta(123, "D"), 2)],
+                {"a": [pd.NaT, pd.Timedelta(123, "D")], "b": [1, 2], "x": [11, 12]},
             ),
         ],
     )
@@ -642,6 +644,7 @@ class TestResetIndex:
         tm.assert_frame_equal(res, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "array, dtype",
     [

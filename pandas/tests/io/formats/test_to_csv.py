@@ -221,7 +221,7 @@ $1$,$2$
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="d")})
+        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         expected_rows = [
             ",A",
