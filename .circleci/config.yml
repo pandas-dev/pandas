@@ -89,8 +89,8 @@ jobs:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.18.1
-            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            pip3 install cibuildwheel==2.20.0
+            cibuildwheel --output-dir wheelhouse
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
