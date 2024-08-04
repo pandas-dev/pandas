@@ -379,6 +379,12 @@ def concat(
     0   1   2
     1   3   4
     """
+    if ignore_index and keys is not None:
+        raise ValueError(
+            "Setting ignore_index to true and providing key values are "
+            "counterproductive. Either should be used."
+        )
+
     if copy is not lib.no_default:
         warnings.warn(
             "The copy keyword is deprecated and will be removed in a future "
