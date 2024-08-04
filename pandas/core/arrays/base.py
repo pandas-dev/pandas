@@ -1439,6 +1439,10 @@ class ExtensionArray:
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
 
+        See Also
+        --------
+        util.hash_pandas_object : Hash the pandas object.
+
         Notes
         -----
         The values returned by this method are also used in
