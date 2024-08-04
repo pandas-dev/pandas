@@ -276,10 +276,6 @@ class TestMaskedArrays(base.ExtensionTests):
         # https://github.com/pandas-dev/pandas/issues/30958
 
         cmp_dtype = "int64"
-        if (op_name == "prod" and skipna and data.dtype.itemsize < 8 
-            and np.intp().itemsize < 8):
-            pytest.xfail(reason=f"{op_name} with itemsize 
-                         {data.dtype.itemsize} overflows")
         if ser.dtype.kind == "f":
             # Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has
             # no attribute "numpy_dtype"
@@ -301,6 +297,33 @@ class TestMaskedArrays(base.ExtensionTests):
             if not skipna and ser.isna().any() and op_name not in ["any", "all"]:
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
+
+    def check_reduce_groupby(self, ser: pd.Series, op_name: str, skipna: bool):
+        df = pd.DataFrame({"a": ser, "key": [1, 2] * (len(ser) // 2)})
+        grp = df.groupby("key")
+        res1 = getattr(grp, op_name)
+        result = res1(skipna=skipna)
+        if (
+            op_name == "prod"
+            and skipna
+            and ser.dtype.itemsize < 8
+            and np.intp().itemsize < 8
+        ):
+            pytest.mark.xfail(
+                reason=f"{op_name} with itemsize {ser.dtype.itemsize} overflows"
+            )
+
+        if not skipna and ser.isna().any() and op_name != "skew":
+            expected = pd.DataFrame(
+                {"a": [pd.NA, pd.NA]}, index=pd.Index([1, 2], name="key")
+            )
+        else:
+            expected = grp.apply(
+                lambda x: getattr(x.astype(ser.dtype), op_name)(skipna=skipna),
+                include_groups=False,
+            )
+
+        tm.assert_almost_equal(result, expected, check_dtype=False, atol=1e-6)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if is_float_dtype(arr.dtype):
