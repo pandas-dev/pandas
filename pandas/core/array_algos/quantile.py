@@ -94,9 +94,9 @@ def quantile_with_mask(
         flat = np.array([fill_value] * len(qs))
         result = np.repeat(flat, len(values)).reshape(len(values), len(qs))
     else:
-        result = _nanpercentile(
+        result = _nanquantile(
             values,
-            qs * 100.0,
+            qs,
             na_value=fill_value,
             mask=mask,
             interpolation=interpolation,
@@ -108,7 +108,7 @@ def quantile_with_mask(
     return result
 
 
-def _nanpercentile_1d(
+def _nanquantile_1d(
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     qs: npt.NDArray[np.float64],
@@ -116,7 +116,7 @@ def _nanpercentile_1d(
     interpolation: str,
 ) -> Scalar | np.ndarray:
     """
-    Wrapper for np.percentile that skips missing values, specialized to
+    Wrapper for np.quantile that skips missing values, specialized to
     1-dimensional case.
 
     Parameters
@@ -142,17 +142,10 @@ def _nanpercentile_1d(
         # equiv: 'np.array([na_value] * len(qs))' but much faster
         return np.full(len(qs), na_value)
 
-    return np.percentile(
-        values,
-        qs,
-        # error: No overload variant of "percentile" matches argument
-        # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
-        # , "Dict[str, str]"  [call-overload]
-        method=interpolation,  # type: ignore[call-overload]
-    )
+    return np.quantile(values, qs, method=interpolation)
 
 
-def _nanpercentile(
+def _nanquantile(
     values: np.ndarray,
     qs: npt.NDArray[np.float64],
     *,
@@ -161,7 +154,7 @@ def _nanpercentile(
     interpolation: str,
 ):
     """
-    Wrapper for np.percentile that skips missing values.
+    Wrapper for np.quantile that skips missing values.
 
     Parameters
     ----------
@@ -180,7 +173,7 @@ def _nanpercentile(
 
     if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
-        result = _nanpercentile(
+        result = _nanquantile(
             values.view("i8"),
             qs=qs,
             na_value=na_value.view("i8"),
@@ -196,7 +189,7 @@ def _nanpercentile(
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
-            _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
+            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)
             for (val, m) in zip(list(values), list(mask))
         ]
         if values.dtype.kind == "f":
@@ -215,12 +208,4 @@ def _nanpercentile(
                 result = result.astype(values.dtype, copy=False)
         return result
     else:
-        return np.percentile(
-            values,
-            qs,
-            axis=1,
-            # error: No overload variant of "percentile" matches argument types
-            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
-            # "int", "Dict[str, str]"  [call-overload]
-            method=interpolation,  # type: ignore[call-overload]
-        )
+        return np.quantile(values, qs, axis=1, method=interpolation)
