@@ -2,6 +2,8 @@ from typing import final
 
 import pytest
 
+from pandas.core.dtypes.common import is_numeric_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -153,7 +155,7 @@ class BaseReduceTests:
         op_name = all_numeric_reductions
         ser = pd.Series(data)
 
-        if not pd.core.dtypes.common.is_numeric_dtype(ser.dtype):
+        if not is_numeric_dtype(ser.dtype):
             pytest.skip(f"{ser.dtype} is not numeric dtype")
 
         if op_name in ["count", "kurt", "sem"]:

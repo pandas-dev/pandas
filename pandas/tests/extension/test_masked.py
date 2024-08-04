@@ -306,11 +306,11 @@ class TestMaskedArrays(base.ExtensionTests):
         if (
             op_name == "prod"
             and skipna
-            and ser.dtype.itemsize < 8
+            and data.dtype.itemsize < 8
             and np.intp().itemsize < 8
         ):
             pytest.mark.xfail(
-                reason=f"{op_name} with itemsize {ser.dtype.itemsize} overflows"
+                reason=f"{op_name} with itemsize {data.dtype.itemsize} overflows"
             )
 
         if not skipna and ser.isna().any() and op_name != "skew":
