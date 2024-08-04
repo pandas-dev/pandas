@@ -893,8 +893,8 @@ cdef class SharedEngine:
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
         if other.unique:
-            self.unique = 1
-            self.need_unique_check = 0
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
 
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
