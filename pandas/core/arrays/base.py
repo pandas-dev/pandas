@@ -1175,6 +1175,16 @@ class ExtensionArray:
 
         Returns
         -------
+        Self
+            An ExtensionArray of the same type as the original but with all
+            NA values removed.
+
+        See Also
+        --------
+        Series.dropna : Remove missing values from a Series.
+        DataFrame.dropna : Remove missing values from a DataFrame.
+        api.extensions.ExtensionArray.isna : Check for missing values in
+            an ExtensionArray.
 
         Examples
         --------
