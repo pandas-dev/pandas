@@ -2797,7 +2797,10 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
-        elif storage is None or storage == "python":
+        elif (
+            (convert_to_nullable_dtype and is_string_array(objects, skipna=True))
+            or storage == "python"
+        ):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(storage=storage)
