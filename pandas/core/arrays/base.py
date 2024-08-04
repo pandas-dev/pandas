@@ -2004,16 +2004,47 @@ class ExtensionArray:
 
         Returns
         -------
-        scalar
+        scalar or ndarray:
+            The result of the reduction operation. The type of the result
+            depends on `keepdims`:
+            - If `keepdims` is `False`, a scalar value is returned.
+            - If `keepdims` is `True`, the result is wrapped in a numpy array with
+            a single element.
 
         Raises
         ------
         TypeError : subclass does not define operations
 
+        See Also
+        --------
+        Series.min : Return the minimum value.
+        Series.max : Return the maximum value.
+        Series.sum : Return the sum of values.
+        Series.mean : Return the mean of values.
+        Series.median : Return the median of values.
+        Series.std : Return the standard deviation.
+        Series.var : Return the variance.
+        Series.prod : Return the product of values.
+        Series.sem : Return the standard error of the mean.
+        Series.kurt : Return the kurtosis.
+        Series.skew : Return the skewness.
+
         Examples
         --------
         >>> pd.array([1, 2, 3])._reduce("min")
         1
+        >>> pd.array([1, 2, 3])._reduce("max")
+        3
+        >>> pd.array([1, 2, 3])._reduce("sum")
+        6
+        >>> pd.array([1, 2, 3])._reduce("mean")
+        2.0
+        >>> pd.array([1, 2, 3])._reduce("median")
+        2.0
+        >>> pd.array([1, np.nan, 2, np.nan])._reduce("sum", skipna=False)
+        nan
+        >>> pd.array([1, np.nan, 2, np.nan])._reduce("sum", skipna=True)
+        3
         """
         meth = getattr(self, name, None)
         if meth is None:
