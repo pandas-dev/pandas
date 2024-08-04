@@ -1927,6 +1927,9 @@ def get_resampler_for_grouping(
     """
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
+    # GH 59350: Index should be ignored when using the on keyword argument to resample
+    if on is not None:
+        groupby.obj = groupby.obj.reset_index(drop=True)
     resampler = tg._get_resampler(groupby.obj)
     return resampler._get_resampler_for_grouping(
         groupby=groupby, include_groups=include_groups, key=tg.key
