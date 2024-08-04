@@ -120,6 +120,7 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.agg` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`36698`)
 - :meth:`.DataFrameGroupBy.groups` with ``sort=False`` would sort groups; they now occur in the order they are observed (:issue:`56966`)
 - :meth:`.DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
+- :meth:`.DataFrameGroupBy.resample` with an ``on`` value that is not ``None`` would have incorrect values when the index is out of order (:issue:`59350`)
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
