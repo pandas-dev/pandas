@@ -939,3 +939,15 @@ def test_concat_with_series_and_frame_returns_rangeindex_columns():
     result = concat([ser, df])
     expected = DataFrame([0, 1, 2], index=[0, 0, 1])
     tm.assert_frame_equal(result, expected, check_column_type=True)
+
+
+def test_concat_with_moot_combination_of_arguments():
+    df1 = DataFrame([[0]])
+    df2 = DataFrame([[42]])
+
+    msg = (
+        "Setting ignore_index to true and providing key values are "
+        "counterproductive. Either should be used."
+    )
+    with pytest.raises(ValueError, match=msg):
+        concat([df1, df2], keys=["df1", "df2"], ignore_index=True)
