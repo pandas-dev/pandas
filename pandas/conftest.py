@@ -76,7 +76,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -182,9 +181,10 @@ def pytest_collection_modifyitems(items, config) -> None:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
-if Version(hypothesis.__version__) >= Version("6.83.2"):
-    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
+hypothesis_health_checks = [
+    hypothesis.HealthCheck.too_slow,
+    hypothesis.HealthCheck.differing_executors,
+]
 
 # Hypothesis
 hypothesis.settings.register_profile(
@@ -951,6 +951,9 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
     ]
 )
 def ea_scalar_and_dtype(request):
+    """
+    Fixture that tests each scalar and datetime type.
+    """
     return request.param
 
 
@@ -1293,7 +1296,6 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1302,7 +1304,24 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
-    * 'pyarrow_numpy'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def string_dtype_arguments(request):
+    """
+    Parametrized fixture for StringDtype storage and na_value.
+
+    * 'python' + pd.NA
+    * 'pyarrow' + pd.NA
+    * 'pyarrow' + np.nan
     """
     return request.param
 
@@ -1351,20 +1370,33 @@ def object_dtype(request):
 
 @pytest.fixture(
     params=[
-        "object",
-        "string[python]",
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-    ]
+        np.dtype("object"),
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+    ids=[
+        "string=object",
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+    ],
 )
 def any_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
-    * 'string[python]'
-    * 'string[pyarrow]'
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
     """
-    return request.param
+    if isinstance(request.param, np.dtype):
+        return request.param
+    else:
+        # need to instantiate the StringDtype here instead of in the params
+        # to avoid importing pyarrow during test collection
+        storage, na_value = request.param
+        return pd.StringDtype(storage, na_value)
 
 
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
@@ -2021,14 +2053,6 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
-
-
-@pytest.fixture
-def arrow_string_storage():
-    """
-    Fixture that lists possible PyArrow values for StringDtype storage field.
-    """
-    return ("pyarrow", "pyarrow_numpy")
 
 
 @pytest.fixture

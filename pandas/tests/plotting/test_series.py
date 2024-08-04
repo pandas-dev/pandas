@@ -377,6 +377,12 @@ class TestSeriesPlots:
         _check_text_labels(ax.texts, series.index)
         assert ax.get_ylabel() == ""
 
+    def test_pie_arrow_type(self):
+        # GH 59192
+        pytest.importorskip("pyarrow")
+        ser = Series([1, 2, 3, 4], dtype="int32[pyarrow]")
+        _check_plot_works(ser.plot.pie)
+
     def test_pie_series_no_label(self):
         series = Series(
             np.random.default_rng(2).integers(1, 5),
@@ -531,6 +537,22 @@ class TestSeriesPlots:
     def test_kde_kwargs(self, ts, bw_method, ind):
         pytest.importorskip("scipy")
         _check_plot_works(ts.plot.kde, bw_method=bw_method, ind=ind)
+
+    @pytest.mark.parametrize(
+        "bw_method, ind, weights",
+        [
+            ["scott", 20, None],
+            [None, 20, None],
+            [None, np.int_(20), None],
+            [0.5, np.linspace(-100, 100, 20), None],
+            ["scott", 40, np.linspace(0.0, 2.0, 50)],
+        ],
+    )
+    def test_kde_kwargs_weights(self, bw_method, ind, weights):
+        # GH59337
+        pytest.importorskip("scipy")
+        s = Series(np.random.default_rng(2).uniform(size=50))
+        _check_plot_works(s.plot.kde, bw_method=bw_method, ind=ind, weights=weights)
 
     def test_density_kwargs(self, ts):
         pytest.importorskip("scipy")

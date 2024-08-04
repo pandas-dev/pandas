@@ -111,8 +111,7 @@ class TestFreqConversion:
             assert ival_A.asfreq("B", "E") == ival_A_to_B_end
         assert ival_A.asfreq("D", "s") == ival_A_to_D_start
         assert ival_A.asfreq("D", "E") == ival_A_to_D_end
-        msg_depr = "'H' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg_depr):
+        with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("H", "s") == ival_A_to_H_start
             assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
@@ -120,8 +119,6 @@ class TestFreqConversion:
         with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("T", "s") == ival_A_to_T_start
             assert ival_A.asfreq("T", "E") == ival_A_to_T_end
-        msg_depr = "'S' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg_depr):
             assert ival_A.asfreq("S", "S") == ival_A_to_S_start
             assert ival_A.asfreq("S", "E") == ival_A_to_S_end
 

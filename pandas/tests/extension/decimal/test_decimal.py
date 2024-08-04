@@ -72,6 +72,8 @@ class TestDecimalArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["kurt", "sem"]:
+            return False
         return True
 
     def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:

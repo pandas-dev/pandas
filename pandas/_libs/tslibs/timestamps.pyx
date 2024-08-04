@@ -1139,7 +1139,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,
@@ -1170,7 +1170,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def asm8(self) -> np.datetime64:
         """
-        Return numpy datetime64 format in nanoseconds.
+        Return numpy datetime64 format with same precision.
 
         See Also
         --------
@@ -2774,6 +2774,13 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number
+            and weekday.
+        datetime.date.isoweekday : Equivalent method in datetime module.
 
         Examples
         --------

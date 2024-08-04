@@ -58,7 +58,7 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.46.1', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0']
+test = ['hypothesis>=6.84.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
 pyarrow = ['pyarrow>=10.0.1']
 performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
 computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
@@ -91,7 +91,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'fsspec>=2022.11.0',
        'gcsfs>=2022.11.0',
        'html5lib>=1.1',
-       'hypothesis>=6.46.1',
+       'hypothesis>=6.84.0',
        'jinja2>=3.1.2',
        'lxml>=4.9.2',
        'matplotlib>=3.6.3',
@@ -105,7 +105,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'PyQt5>=5.15.9',
        'pyreadstat>=1.2.0',
        'pytest>=7.3.2',
-       'pytest-xdist>=2.2.0',
+       'pytest-xdist>=3.4.0',
        'python-calamine>=0.1.7',
        'pyxlsb>=1.0.10',
        'qtpy>=2.3.0',
@@ -148,20 +148,23 @@ setup = ['--vsenv'] # For Windows
 skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
-test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
+test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
+free-threaded-support = true
+before-build = "bash {package}/scripts/cibw_before_build.sh"
+before-test = "bash {package}/scripts/cibw_before_test.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel"
+before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales"
+before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
@@ -176,6 +179,16 @@ test-command = ""
 # https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
+
+[[tool.cibuildwheel.overrides]]
+select = "*pyodide*"
+test-requires = "pytest>=7.3.2 hypothesis>=6.84.0"
+# Pyodide repairs wheels on its own, using auditwheel-emscripten
+repair-wheel-command = ""
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
 
 [tool.ruff]
 line-length = 88

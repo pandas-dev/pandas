@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import (
     Interval,
@@ -798,10 +798,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow_numpy")
+            dtype = StringDtype(storage="pyarrow", na_value=np.nan)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:

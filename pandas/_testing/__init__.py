@@ -509,14 +509,14 @@ def shares_memory(left, right) -> bool:
     if (
         isinstance(left, ExtensionArray)
         and is_string_dtype(left.dtype)
-        and left.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
+        and left.dtype.storage == "pyarrow"  # type: ignore[attr-defined]
     ):
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
         left = cast("ArrowExtensionArray", left)
         if (
             isinstance(right, ExtensionArray)
             and is_string_dtype(right.dtype)
-            and right.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
+            and right.dtype.storage == "pyarrow"  # type: ignore[attr-defined]
         ):
             right = cast("ArrowExtensionArray", right)
             left_pa_data = left._pa_array

@@ -441,6 +441,13 @@ class NaTType(_NaT):
 
         Monday == 1 ... Sunday == 7.
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number
+            and weekday.
+        datetime.date.isoweekday : Equivalent method in datetime module.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')
@@ -1516,7 +1523,7 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,

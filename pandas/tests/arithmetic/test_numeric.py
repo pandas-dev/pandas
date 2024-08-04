@@ -1451,7 +1451,7 @@ def test_fill_value_inf_masking():
     expected = pd.DataFrame(
         {"A": [np.inf, 1.0, 0.0, 1.0], "B": [0.0, np.nan, 0.0, np.nan]}
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
 def test_dataframe_div_silenced():

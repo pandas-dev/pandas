@@ -45,7 +45,9 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     DropKeep,
+    Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -57,6 +59,7 @@ from pandas._typing import (
     ReindexMethod,
     Self,
     Shape,
+    SliceType,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -1087,7 +1090,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    def astype(self, dtype, copy: bool = True):
+    def astype(self, dtype: Dtype, copy: bool = True):
         """
         Create an Index with values cast to dtypes.
 
@@ -2907,13 +2910,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self + other
 
     @final
-    def __nonzero__(self) -> NoReturn:
+    def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
-
-    __bool__ = __nonzero__
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -2957,7 +2958,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self, other
 
     @final
-    def union(self, other, sort=None):
+    def union(self, other, sort: bool | None = None):
         """
         Form the union of two Index objects.
 
@@ -3334,7 +3335,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def difference(self, other, sort=None):
+    def difference(self, other, sort: bool | None = None):
         """
         Return a new Index with elements of index not in `other`.
 
@@ -3420,7 +3421,12 @@ class Index(IndexOpsMixin, PandasObject):
         # We will override for MultiIndex to handle empty results
         return self._wrap_setop_result(other, result)
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(
+        self,
+        other,
+        result_name: abc.Hashable | None = None,
+        sort: bool | None = None,
+    ):
         """
         Compute the symmetric difference of two Index objects.
 
@@ -5447,9 +5453,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             isinstance(self.dtype, StringDtype)
-            and self.dtype.storage == "pyarrow_numpy"
+            and self.dtype.na_value is np.nan
             and other.dtype != self.dtype
         ):
+            # TODO(infer_string) can we avoid this special case?
             # special case for object behavior
             return other.equals(self.astype(object))
 
@@ -5778,13 +5785,6 @@ class Index(IndexOpsMixin, PandasObject):
             return sorted_index, _as
         else:
             return sorted_index
-
-    @final
-    def sort(self, *args, **kwargs):
-        """
-        Use sort_values instead.
-        """
-        raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
     def shift(self, periods: int = 1, freq=None) -> Self:
         """
@@ -6389,7 +6389,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+    def isin(self, values, level: str_t | int | None = None) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
 
@@ -6687,7 +6687,12 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
+    def slice_locs(
+        self,
+        start: SliceType = None,
+        end: SliceType = None,
+        step: int | None = None,
+    ) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6781,7 +6786,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc) -> Self:
+    def delete(
+        self, loc: int | np.integer | list[int] | npt.NDArray[np.integer]
+    ) -> Self:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -7227,7 +7234,9 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"cannot perform {opname} with {type(self).__name__}")
 
     @Appender(IndexOpsMixin.argmin.__doc__)
-    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmin(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7240,7 +7249,9 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
-    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmax(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7251,7 +7262,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Encountered all NA values")
         return super().argmax(skipna=skipna)
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -7314,7 +7325,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -7473,9 +7484,12 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     --------
     ensure_index
     """
+    from pandas.core.indexes.api import default_index
     from pandas.core.indexes.multi import MultiIndex
 
-    if len(sequences) == 1:
+    if len(sequences) == 0:
+        return default_index(0)
+    elif len(sequences) == 1:
         if names is not None:
             names = names[0]
         return Index(maybe_sequence_to_range(sequences[0]), name=names)
