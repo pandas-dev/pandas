@@ -1032,6 +1032,12 @@ class ExtensionArray:
             maximum number of entries along the entire axis where NaNs will be
             filled.
 
+        limit_area : {'inside', 'outside'} or None, default None
+            Specifies which area to limit filling.
+            - 'inside': Limit the filling to the area within the gaps.
+            - 'outside': Limit the filling to the area outside the gaps.
+            If `None`, no limitation is applied.
+
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -1043,6 +1049,16 @@ class ExtensionArray:
         Returns
         -------
         Same type as self
+            The filled array with the same type as the original.
+
+        See Also
+        --------
+        Series.ffill : Forward fill missing values.
+        Series.bfill : Backward fill missing values.
+        DataFrame.ffill : Forward fill missing values in DataFrame.
+        DataFrame.bfill : Backward fill missing values in DataFrame.
+        api.types.isna : Check for missing values.
+        api.types.isnull : Check for missing values.
 
         Examples
         --------

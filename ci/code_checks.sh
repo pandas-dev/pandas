@@ -193,7 +193,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
-        -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._reduce RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray._values_for_factorize SA01" \
         -i "pandas.api.extensions.ExtensionArray.astype SA01" \
