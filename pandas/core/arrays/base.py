@@ -608,6 +608,14 @@ class ExtensionArray:
         """
         An instance of ExtensionDtype.
 
+        See Also
+        --------
+        api.extensions.ExtensionDtype : Base class for extension dtypes.
+        api.extensions.ExtensionArray : Base class for extension array types.
+        api.extensions.ExtensionArray.dtype : The dtype of an ExtensionArray.
+        Series.dtype : The dtype of a Series.
+        DataFrame.dtype : The dtype of a DataFrame.
+
         Examples
         --------
         >>> pd.array([1, 2, 3]).dtype
@@ -2065,10 +2073,6 @@ class ExtensionArray:
         2.0
         >>> pd.array([1, 2, 3])._reduce("median")
         2.0
-        >>> pd.array([1, np.nan, 2, np.nan])._reduce("sum", skipna=False)
-        nan
-        >>> pd.array([1, np.nan, 2, np.nan])._reduce("sum", skipna=True)
-        3
         """
         meth = getattr(self, name, None)
         if meth is None:
