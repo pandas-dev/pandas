@@ -458,7 +458,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearBegin.n GL08" \
         -i "pandas.tseries.offsets.BYearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.BYearBegin.normalize GL08" \
-        -i "pandas.tseries.offsets.BYearBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.BYearEnd PR02" \
         -i "pandas.tseries.offsets.BYearEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.BYearEnd.is_on_offset GL08" \
@@ -466,7 +465,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.n GL08" \
         -i "pandas.tseries.offsets.BYearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
-        -i "pandas.tseries.offsets.BYearEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.freqstr SA01" \
@@ -719,7 +717,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearBegin.n GL08" \
         -i "pandas.tseries.offsets.YearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.YearBegin.normalize GL08" \
-        -i "pandas.tseries.offsets.YearBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.YearEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
