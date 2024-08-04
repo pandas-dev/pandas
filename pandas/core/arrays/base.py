@@ -713,6 +713,16 @@ class ExtensionArray:
             An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
             otherwise a Numpy ndarray with ``dtype`` for its dtype.
 
+        See Also
+        --------
+        Series.astype : Cast a Series to a different dtype.
+        DataFrame.astype : Cast a DataFrame to a different dtype.
+        api.extensions.ExtensionArray : Base class for ExtensionArray objects.
+        core.arrays.DatetimeArray._from_sequence : Create a DatetimeArray from a
+            sequence.
+        core.arrays.TimedeltaArray._from_sequence : Create a TimedeltaArray from
+            a sequence.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
