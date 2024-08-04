@@ -60,6 +60,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
+        A pandas DataFrame built from the provided interchange
+        protocol object.
+
+    See Also
+    --------
+    pd.DataFrame : DataFrame class which can be created from various input data
+        formats, including objects that support the interchange protocol.
 
     Examples
     --------
