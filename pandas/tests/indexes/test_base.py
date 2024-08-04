@@ -985,6 +985,10 @@ class TestIndex:
         assert not filtered_index.is_monotonic_decreasing
         assert filtered_index.is_monotonic_increasing
 
+        filtered_index = index[:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
     @pytest.mark.parametrize(
         "index",
         [
