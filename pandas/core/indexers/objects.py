@@ -167,6 +167,31 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
 
+    Parameters
+    ----------
+    index_array : np.ndarray, default 0
+        Array-like structure specifying the indices for data points.
+        This parameter is currently not used.
+
+    window_size : int, optional, default 0
+        Specifies the number of data points in each window.
+        This parameter is currently not used.
+
+    index : DatetimeIndex, optional
+        ``DatetimeIndex`` of the labels of each observation.
+
+    offset : BaseOffset, optional
+        ``DateOffset`` representing the size of the window.
+
+    **kwargs
+        Additional keyword arguments passed to the parent class ``BaseIndexer``.
+
+    See Also
+    --------
+    api.indexers.BaseIndexer : Base class for all indexers.
+    DataFrame.rolling : Rolling window calculations on DataFrames.
+    offsets : Module providing various time offset classes.
+
     Examples
     --------
     >>> from pandas.api.indexers import VariableOffsetWindowIndexer
