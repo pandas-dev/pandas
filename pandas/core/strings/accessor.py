@@ -1085,6 +1085,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            Series or Index where each value is the extracted element from
+            the corresponding input component.
+
+        See Also
+        --------
+        Series.str.extract : Extract capture groups in the regex as columns
+            in a DataFrame.
 
         Examples
         --------
