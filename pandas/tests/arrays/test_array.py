@@ -1,9 +1,11 @@
 import datetime
 import decimal
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -125,7 +127,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             ["2000", "2001"],
@@ -285,9 +287,7 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
-cet = pytz.timezone("CET")
-
-
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "data, expected",
     [
@@ -301,11 +301,11 @@ cet = pytz.timezone("CET")
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -321,16 +321,23 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
         ),
         (
             [
-                datetime.datetime(2000, 1, 1, tzinfo=cet),
-                datetime.datetime(2001, 1, 1, tzinfo=cet),
+                datetime.datetime(
+                    2000, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
+                datetime.datetime(
+                    2001, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
+                ["2000", "2001"],
+                dtype=pd.DatetimeTZDtype(
+                    tz=zoneinfo.ZoneInfo("Europe/Berlin"), unit="us"
+                ),
             ),
         ),
         # timedelta

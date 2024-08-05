@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -799,7 +801,7 @@ def test_time_field_bug():
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
     dfg_conversion_expected = DataFrame(
-        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+        {"b": pd.Timestamp(2015, 1, 1), "c": 2}, index=[1]
     )
     dfg_conversion_expected.index.name = "a"
 
@@ -920,6 +922,7 @@ def test_func_returns_object():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],
@@ -1019,7 +1022,7 @@ def test_groupby_apply_datetime_result_dtypes(using_infer_string):
         result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
     dtype = "string" if using_infer_string else object
     expected = Series(
-        [np.dtype("datetime64[ns]"), dtype, dtype, np.int64, dtype],
+        [np.dtype("datetime64[us]"), dtype, dtype, np.int64, dtype],
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)
@@ -1197,7 +1200,14 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
-    _ = getattr(grp, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(np.sum, axis=0, include_groups=False)
     tm.assert_frame_equal(result, expected)
 

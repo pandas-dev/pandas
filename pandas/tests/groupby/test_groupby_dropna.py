@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -97,6 +99,7 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dropna, idx, outputs",
     [
@@ -420,7 +423,7 @@ def test_groupby_drop_nan_with_multi_index():
             ),
         ),
         "datetime64[ns]",
-        "period[d]",
+        "period[D]",
         "Sparse[float]",
     ],
 )
@@ -437,7 +440,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
-    elif dtype in ("datetime64[ns]", "period[d]"):
+    elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}
@@ -543,7 +546,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
-    expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
     expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
         expected["x2"] = expected["x2"].cat.remove_categories([4])
@@ -567,7 +577,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         if as_index:
             expected = expected["size"].rename(None)
 
-    result = getattr(gb_keepna, reduction_func)(*args)
+    if reduction_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)

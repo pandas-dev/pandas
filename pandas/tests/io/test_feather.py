@@ -1,7 +1,11 @@
 """test feather-format compat"""
 
+import zoneinfo
+
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -12,9 +16,12 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 pa = pytest.importorskip("pyarrow")
 
@@ -62,6 +69,7 @@ class TestFeather:
             self.check_error_on_write(obj, ValueError, msg)
 
     def test_basic(self):
+        tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
             {
                 "string": list("abc"),
@@ -76,7 +84,7 @@ class TestFeather:
                     list(pd.date_range("20130101", periods=3)), freq=None
                 ),
                 "dttz": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    list(pd.date_range("20130101", periods=3, tz=tz)),
                     freq=None,
                 ),
                 "dt_with_null": [
@@ -93,7 +101,7 @@ class TestFeather:
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
-        assert df.dttz.dtype.tz.zone == "US/Eastern"
+        assert df.dttz.dtype.tz.key == "US/Eastern"
 
         expected = df.copy()
         expected.loc[1, "bool_with_null"] = None

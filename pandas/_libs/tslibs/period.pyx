@@ -2329,6 +2329,12 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        See Also
+        --------
+        Timestamp.quarter : Return the quarter of the Timestamp.
+        Period.year : Return the year of the period.
+        Period.month : Return the month of the period.
+
         Examples
         --------
         >>> period = pd.Period('2022-04', 'M')
@@ -2443,6 +2449,12 @@ cdef class _Period(PeriodMixin):
         """
         Return True if the period's year is in a leap year.
 
+        See Also
+        --------
+        Timestamp.is_leap_year : Check if the year in a Timestamp is a leap year.
+        DatetimeIndex.is_leap_year : Boolean indicator if the date belongs to a
+            leap year.
+
         Examples
         --------
         >>> period = pd.Period('2022-01', 'M')
@@ -2460,10 +2472,23 @@ cdef class _Period(PeriodMixin):
         """
         Return the period of now's date.
 
+        The `now` method provides a convenient way to generate a period
+        object for the current date and time. This can be particularly
+        useful in financial and economic analysis, where data is often
+        collected and analyzed in regular intervals (e.g., hourly, daily,
+        monthly). By specifying the frequency, users can create periods
+        that match the granularity of their data.
+
         Parameters
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Period : Represents a period of time.
+        Period.to_timestamp : Return the Timestamp representation of the Period.
 
         Examples
         --------
@@ -2692,6 +2717,12 @@ class Period(_Period):
         Minute value of the period.
     second : int, default 0
         Second value of the period.
+
+    See Also
+    --------
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Generates a fixed frequency range of timedeltas.
 
     Examples
     --------

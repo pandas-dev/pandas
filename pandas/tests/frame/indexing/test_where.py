@@ -4,6 +4,8 @@ from hypothesis import given
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -46,6 +48,7 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -96,6 +99,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -170,6 +174,7 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
@@ -513,26 +518,15 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, ser, axis="index", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid value"):
+            result.where(mask, ser, axis="index", inplace=True)
 
         expected = DataFrame([[0, np.nan], [0, np.nan]])
         result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            {
-                0: np.array([0, 0], dtype="int64"),
-                1: np.array([np.nan, np.nan], dtype="float64"),
-            }
-        )
-        result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, ser, axis="columns", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid value"):
+            df.where(mask, ser, axis="columns", inplace=True)
 
     def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
@@ -584,15 +578,10 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            return_value = result.where(mask, d1, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
-        result = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
+            result.where(mask, d1, inplace=True)
+        with pytest.raises(TypeError, match="Invalid value"):
             return_value = result.where(mask, d1, inplace=True, axis="index")
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
@@ -739,11 +728,8 @@ class TestDataFrameIndexingWhere:
         res = obj.where(~obj.notna(), other)
         tm.assert_equal(res, other)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             obj.mask(obj.notna(), other, inplace=True)
-        tm.assert_equal(obj, other.astype(object))
 
     @pytest.mark.parametrize(
         "dtype",
@@ -773,14 +759,10 @@ class TestDataFrameIndexingWhere:
 
         res4 = df.mask(mask2, "foo")
         tm.assert_frame_equal(res4, df)
-        expected = DataFrame(4, index=df.index, columns=df.columns)
 
         # unlike where, Block.putmask does not downcast
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             df.mask(~mask2, 4, inplace=True)
-        tm.assert_frame_equal(df, expected.astype(object))
 
 
 def test_where_int_downcasting_deprecated():
@@ -934,11 +916,8 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
         result = obj.mask(mask, tdnat)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             obj.mask(mask, tdnat, inplace=True)
-        tm.assert_equal(obj, expected)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
@@ -1020,9 +999,7 @@ def test_where_dt64_2d():
             "B": dta[:, 1],
         }
     )
-    with tm.assert_produces_warning(
-        FutureWarning, match="Setting an item of incompatible dtype"
-    ):
+    with pytest.raises(TypeError, match="Invalid value"):
         _check_where_equivalences(df, mask, other, expected)
 
     # setting nothing in either column

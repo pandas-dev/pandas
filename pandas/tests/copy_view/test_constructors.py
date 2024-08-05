@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -207,6 +209,7 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     assert np.shares_memory(arr_before, arr_after)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
 )
@@ -228,12 +231,12 @@ def test_dataframe_from_series_or_index_different_dtype(index_or_series):
     assert df._mgr._has_no_reference(0)
 
 
-def test_dataframe_from_series_infer_datetime():
+def test_dataframe_from_series_dont_infer_datetime():
     ser = Series([Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype=object)
-    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-        df = DataFrame(ser)
-    assert not np.shares_memory(get_array(ser), get_array(df, 0))
-    assert df._mgr._has_no_reference(0)
+    df = DataFrame(ser)
+    assert df.dtypes.iloc[0] == np.dtype(object)
+    assert np.shares_memory(get_array(ser), get_array(df, 0))
+    assert not df._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])

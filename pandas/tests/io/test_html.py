@@ -13,6 +13,8 @@ from urllib.error import URLError
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -35,6 +37,10 @@ from pandas.core.arrays import (
 )
 
 from pandas.io.common import file_path_to_url
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
 
 
 @pytest.fixture(
@@ -1044,11 +1050,15 @@ class TestReadHtml:
 
     def test_parse_dates_list(self, flavor_read_html):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
-        expected = df.to_html()
-        res = flavor_read_html(StringIO(expected), parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = flavor_read_html(StringIO(expected), parse_dates=["date"], index_col=0)
-        tm.assert_frame_equal(df, res[0])
+
+        expected = df[:]
+        expected["date"] = expected["date"].dt.as_unit("s")
+
+        str_df = df.to_html()
+        res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
+        res = flavor_read_html(StringIO(str_df), parse_dates=["date"], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")

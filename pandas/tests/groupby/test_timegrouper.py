@@ -5,11 +5,13 @@ test with the TimeGrouper / grouping with datetimes
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -74,6 +76,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_timegrouper(self):
         # GH 4161
         # TimeGrouper requires a sorted index
@@ -774,12 +777,12 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-
-        df = DataFrame({"a": [1], "b": [datetime.now(pytz.utc)]})
-        assert df["b"][0].tzinfo == pytz.utc
+        utc = timezone.utc
+        df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
+        assert df["b"][0].tzinfo == utc
         df = DataFrame({"a": [1, 2, 3]})
-        df["b"] = datetime.now(pytz.utc)
-        assert df["b"][0].tzinfo == pytz.utc
+        df["b"] = datetime.now(utc)
+        assert df["b"][0].tzinfo == utc
 
     def test_datetime_count(self):
         df = DataFrame(

@@ -9,7 +9,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -85,6 +85,14 @@ def read_orc(
     DataFrame
         DataFrame based on the ORC file.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_sas : Load a SAS file into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
+
     Notes
     -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
@@ -128,7 +136,7 @@ def read_orc(
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             types_mapper = arrow_string_types_mapper()
         else:
             types_mapper = None

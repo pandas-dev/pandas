@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -298,7 +300,8 @@ def test_fwf_regression():
                 "2009-06-13 20:40:00",
                 "2009-06-13 20:50:00",
                 "2009-06-13 21:00:00",
-            ]
+            ],
+            dtype="M8[us]",
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
     )
@@ -311,6 +314,7 @@ def test_fwf_regression():
         parse_dates=True,
         date_format="%Y%j%H%M%S",
     )
+    expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -937,6 +941,7 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
     if string_storage == "python":
