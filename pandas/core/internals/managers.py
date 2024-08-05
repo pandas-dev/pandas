@@ -856,7 +856,7 @@ class BaseBlockManager(PandasObject):
         *,
         use_na_proxy: bool = False,
         ref_inplace_op: bool = False,
-    ) -> Generator[Block, None, None]:
+    ) -> Generator[Block]:
         """
         Slice/take blocks along axis=0.
 
@@ -1731,7 +1731,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_iter_dict(self) -> Generator[tuple[str, Self], None, None]:
+    def to_iter_dict(self) -> Generator[tuple[str, Self]]:
         """
         Yield a tuple of (str(dtype), BlockManager)
 

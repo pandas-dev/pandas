@@ -806,7 +806,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         pass
 
     @staticmethod
@@ -1131,7 +1131,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @staticmethod
@@ -1243,7 +1243,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0

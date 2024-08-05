@@ -35,7 +35,7 @@ def assert_produces_warning(
     raise_on_extra_warnings: bool = True,
     match: str | tuple[str | None, ...] | None = None,
     must_find_all_warnings: bool = True,
-) -> Generator[list[warnings.WarningMessage], None, None]:
+) -> Generator[list[warnings.WarningMessage]]:
     """
     Context manager for running code expected to either raise a specific warning,
     multiple specific warnings, or not raise any warnings. Verifies that the code
