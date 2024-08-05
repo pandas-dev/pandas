@@ -265,7 +265,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.view SA01" \
         -i "pandas.api.indexers.VariableOffsetWindowIndexer PR01,SA01" \
         -i "pandas.api.interchange.from_dataframe RT03,SA01" \
-        -i "pandas.api.types.is_any_real_numeric_dtype SA01" \
         -i "pandas.api.types.is_bool PR01,SA01" \
         -i "pandas.api.types.is_bool_dtype SA01" \
         -i "pandas.api.types.is_categorical_dtype SA01" \
