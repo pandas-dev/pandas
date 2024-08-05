@@ -2467,6 +2467,20 @@ def _maybe_convert_pyarrow_objects(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def _maybe_convert_based_masked(
+                                ndarray[object] objects,
+                                ndarray[uint8_t] mask,
+                                object type) -> "ArrayLike":
+    from pandas.core.dtypes.dtypes import BaseMaskedDtype
+
+    from pandas.core.construction import array as pd_array
+
+    dtype = BaseMaskedDtype.from_numpy_dtype(np.dtype(type))
+    return pd_array(objects, dtype=dtype)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
@@ -2683,7 +2697,10 @@ def maybe_convert_objects(ndarray[object] objects,
         else:
             seen.object_ = True
             break
-    if storage == "pyarrow":
+
+    if type(val) is not object and convert_to_nullable_dtype:
+        return _maybe_convert_based_masked(objects, mask, type(val))
+    elif storage == "pyarrow":
         return _maybe_convert_pyarrow_objects(objects, mask, seen)
 
     # we try to coerce datetime w/tz but must all have the same tz

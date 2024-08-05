@@ -172,7 +172,7 @@ class TestMaskedArrays(base.ExtensionTests):
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
         expected = data_missing
-        tm.assert_extension_array_equal(result, expected, check_dtype=False)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_map_na_action_ignore(self, data_missing_for_sorting):
         zero = data_missing_for_sorting[2]
