@@ -4687,6 +4687,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
+        numeric_only : bool
+            Optional argument with default as False.
         *args : tuple
             Positional arguments to be passed to `func`.
         **kwargs : dict
@@ -4746,6 +4748,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
+        numeric_only : bool
+            Optional argument with default as False.
         *args : tuple
             Positional arguments to be passed to `func`.
         **kwargs : dict
