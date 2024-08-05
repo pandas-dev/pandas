@@ -134,8 +134,8 @@ jobs:
         fetch-depth: 0
 
     - name: Extra installs
-      run: sudo apt-get update && sudo apt-get install -y ${{ matrix.extra_apt }}
-      if: ${{ matrix.extra_apt }}
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 ${{ matrix.extra_apt || ''}}
 
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests

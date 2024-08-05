@@ -51,6 +51,11 @@ jobs:
     # TODO: The doctests have to be run first right now, since the Cython doctests only work
     # with pandas installed in non-editable mode
     # This can be removed once pytest-cython doesn't require C extensions to be installed inplace
+
+    - name: Extra installs
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
