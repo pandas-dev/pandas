@@ -746,7 +746,7 @@ class SeriesGroupBy(GroupBy[Series]):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Sort by DataFrame column values when False.
+            Sort by frequencies when True.
         ascending : bool, default False
             Sort in ascending order.
         bins : int or list of ints, optional
