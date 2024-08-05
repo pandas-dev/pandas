@@ -165,9 +165,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.center RT03,SA01" \
         -i "pandas.Series.str.decode PR07,RT03,SA01" \
         -i "pandas.Series.str.encode PR07,RT03,SA01" \
-        -i "pandas.Series.str.find RT03" \
         -i "pandas.Series.str.fullmatch RT03" \
-        -i "pandas.Series.str.get RT03,SA01" \
         -i "pandas.Series.str.index RT03" \
         -i "pandas.Series.str.ljust RT03,SA01" \
         -i "pandas.Series.str.lower RT03" \
@@ -177,7 +175,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.partition RT03" \
         -i "pandas.Series.str.repeat SA01" \
         -i "pandas.Series.str.replace SA01" \
-        -i "pandas.Series.str.rfind RT03" \
         -i "pandas.Series.str.rindex RT03" \
         -i "pandas.Series.str.rjust RT03,SA01" \
         -i "pandas.Series.str.rpartition RT03" \
