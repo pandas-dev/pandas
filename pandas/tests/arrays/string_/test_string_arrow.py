@@ -27,16 +27,18 @@ def test_eq_all_na():
 
 
 def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage != "pyarrow_numpy":
-        request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
-    if string_storage == "pyarrow_numpy":
+    if using_infer_string and string_storage == "python":
+        # python string storage with na_value=NaN is not yet implemented
         request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    dtype = StringDtype(string_storage)
+    dtype = StringDtype(
+        string_storage, na_value=np.nan if using_infer_string else pd.NA
+    )
     expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
