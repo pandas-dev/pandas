@@ -1185,6 +1185,12 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of a real number dtype.
 
+    See Also
+    --------
+    is_numeric_dtype : Check if a dtype is numeric.
+    is_complex_dtype : Check if a dtype is complex.
+    is_bool_dtype : Check if a dtype is boolean.
+
     Examples
     --------
     >>> from pandas.api.types import is_any_real_numeric_dtype
