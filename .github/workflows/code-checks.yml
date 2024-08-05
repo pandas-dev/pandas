@@ -54,7 +54,7 @@ jobs:
 
     - name: Extra installs
       # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libdbus-1-3
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl
 
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
