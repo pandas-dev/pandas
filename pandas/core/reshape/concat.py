@@ -381,8 +381,7 @@ def concat(
     """
     if ignore_index and keys is not None:
         raise ValueError(
-            "Setting ignore_index to true and providing key values are "
-            "counterproductive. Either should be used."
+            f"Cannot set {ignore_index=} and specify keys. Either should be used."
         )
 
     if copy is not lib.no_default:
