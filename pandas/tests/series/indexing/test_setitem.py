@@ -8,6 +8,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -528,6 +530,7 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_with_expansion_type_promotion(self):
         # GH#12599
         ser = Series(dtype=object)
@@ -537,6 +540,7 @@ class TestSetitemWithExpansion:
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -845,6 +849,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_index_where(self, obj, key, expected, raises, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -857,6 +862,7 @@ class SetitemCastingEquivalents:
             expected_idx = Index(expected, dtype=expected.dtype)
             tm.assert_index_equal(res, expected_idx)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_index_putmask(self, obj, key, expected, raises, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -1178,25 +1184,40 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     @pytest.fixture
     def obj(self):
+        """
+        Fixture to create a Series [(0, 1], (1, 2], (2, 3]]
+        """
         idx = IntervalIndex.from_breaks(range(4))
         return Series(idx)
 
     @pytest.fixture
     def val(self):
+        """
+        Fixture to get an interval (0.5, 1.5]
+        """
         return Interval(0.5, 1.5)
 
     @pytest.fixture
     def key(self):
+        """
+        Fixture to get a key 0
+        """
         return 0
 
     @pytest.fixture
     def expected(self, obj, val):
+        """
+        Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
+        """
         data = [val] + list(obj[1:])
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
     @pytest.fixture
     def raises(self):
+        """
+        Fixture to enable raising pytest exceptions
+        """
         return True
 
 

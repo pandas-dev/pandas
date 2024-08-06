@@ -7,6 +7,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1387,6 +1389,7 @@ class TestSeriesMode:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2, expected3",
         [(True, ["b"], ["bar"], ["nan"]), (False, ["b"], [np.nan], ["nan"])],
@@ -1414,6 +1417,7 @@ class TestSeriesMode:
         expected3 = Series(expected3)
         tm.assert_series_equal(result, expected3)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
         [(True, ["foo"], ["foo"]), (False, ["foo"], [np.nan])],
@@ -1551,6 +1555,7 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
@@ -1568,7 +1573,7 @@ class TestSeriesMode:
         # GH#42107
         ser = Series([True, False, True, pd.NA], dtype="boolean")
         result = ser.mode()
-        expected = Series({0: True}, dtype="boolean")
+        expected = Series([True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
