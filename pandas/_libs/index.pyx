@@ -252,14 +252,24 @@ cdef class IndexEngine:
         return self.sizeof()
 
     cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:
@@ -882,14 +892,24 @@ cdef class SharedEngine:
         pass
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:
