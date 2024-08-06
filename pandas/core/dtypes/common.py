@@ -187,6 +187,10 @@ def is_sparse(arr) -> bool:
     bool
         Whether or not the array-like is a pandas sparse array.
 
+    See Also
+    --------
+    api.types.SparseDtype : The dtype object for pandas sparse arrays.
+
     Examples
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
@@ -1180,6 +1184,12 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a real number dtype.
+
+    See Also
+    --------
+    is_numeric_dtype : Check if a dtype is numeric.
+    is_complex_dtype : Check if a dtype is complex.
+    is_bool_dtype : Check if a dtype is boolean.
 
     Examples
     --------
