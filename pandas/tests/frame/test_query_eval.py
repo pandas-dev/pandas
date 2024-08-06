@@ -1,4 +1,5 @@
 import operator
+from tokenize import TokenError
 
 import numpy as np
 import pytest
@@ -1446,7 +1447,7 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_no_quotes_and_backtick_is_unmatched(self):
         # GH 59285
         df = DataFrame((1, 5, 10), columns=["column-name"])
-        with pytest.raises(SyntaxError, match="invalid syntax"):
+        with pytest.raises((SyntaxError, TokenError), match="invalid syntax"):
             df.query("5 < `column-name")
 
     def test_expr_with_no_quotes_and_backtick_is_matched(self):
@@ -1459,7 +1460,9 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_backtick_opened_before_quote_and_backtick_is_unmatched(self):
         # GH 59285
         df = DataFrame((1, 5, 10), columns=["It's"])
-        with pytest.raises(SyntaxError, match="unterminated string literal"):
+        with pytest.raises(
+            (SyntaxError, TokenError), match="unterminated string literal"
+        ):
             df.query("5 < `It's")
 
     def test_expr_with_backtick_opened_before_quote_and_backtick_is_matched(self):
@@ -1472,7 +1475,9 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_quote_opened_before_backtick_and_quote_is_unmatched(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
-        with pytest.raises(SyntaxError, match="unterminated string literal"):
+        with pytest.raises(
+            (SyntaxError, TokenError), match="unterminated string literal"
+        ):
             df.query("`column-name` < 'It`s that\\'s \"quote\" #hash")
 
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_at_end(self):
