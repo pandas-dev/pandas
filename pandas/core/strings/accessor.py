@@ -1085,6 +1085,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            Series or Index where each value is the extracted element from
+            the corresponding input component.
+
+        See Also
+        --------
+        Series.str.extract : Extract capture groups in the regex as columns
+            in a DataFrame.
 
         Examples
         --------
@@ -2971,6 +2978,9 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of int.
+        A Series (if the input is a Series) or an Index (if the input is an
+        Index) of the %(side)s indexes corresponding to the positions where the
+        substring is found in each string of the input.
 
     See Also
     --------
@@ -2980,9 +2990,9 @@ class StringMethods(NoNewAttributesMixin):
     --------
     For Series.str.find:
 
-    >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
+    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
     >>> ser.str.find("_")
-    0   3
+    0   0
     1   4
     2   2
     dtype: int64
