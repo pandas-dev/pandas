@@ -1131,17 +1131,15 @@ class TestParquetPyArrow(Base):
     #     assert result["strings"].dtype == "string"
     # FIXME: don't leave commented-out
 
-    def test_non_nanosecond_timestamps(self):
+    def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        with tm.ensure_clean() as path:
-            arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
-            table = pa.table([arr], names=["timestamp"])
-            pq.write_table(table, path)
-            result = read_parquet(path)
-
+        arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
+        table = pa.table([arr], names=["timestamp"])
+        pq.write_table(table, temp_file)
+        result = read_parquet(temp_file)
         expected = pd.DataFrame(
             data={"timestamp": [datetime.datetime(1600, 1, 1)]},
             dtype="datetime64[us]",
