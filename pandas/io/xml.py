@@ -966,7 +966,8 @@ def read_xml(
         is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+        :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 

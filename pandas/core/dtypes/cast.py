@@ -1014,8 +1014,8 @@ def convert_dtypes(
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
+        * ``"numpy_nullable"``: returns nullable-dtype
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
 
         .. versionadded:: 2.0
 
