@@ -1246,6 +1246,8 @@ class TestDataFrameQueryBacktickQuoting:
                 "it's": [6, 3, 1],
                 "that's": [9, 1, 8],
                 "☺": [8, 7, 6],
+                "xy （z）": [1, 2, 3],
+                "xy （z\\uff09": [4, 5, 6],
                 "foo#bar": [2, 4, 5],
                 1: [5, 7, 9],
             }
@@ -1346,10 +1348,22 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df[df["it's"] > df["that's"]]
         tm.assert_frame_equal(res, expect)
 
-    def test_failing_character_outside_range(self, df):
-        msg = r"(Could not convert ).*( to a valid Python identifier.)"
-        with pytest.raises(SyntaxError, match=msg):
-            df.query("`☺` > 4")
+    def test_character_outside_range_smiley(self, df):
+        res = df.query("`☺` > 4")
+        expect = df[df["☺"] > 4]
+        tm.assert_frame_equal(res, expect)
+
+    def test_character_outside_range_2_byte_parens(self, df):
+        # GH 49633
+        res = df.query("`xy （z）` == 2")
+        expect = df[df["xy （z）"] == 2]
+        tm.assert_frame_equal(res, expect)
+
+    def test_character_outside_range_and_actual_backslash(self, df):
+        # GH 49633
+        res = df.query("`xy （z\\uff09` == 2")
+        expect = df[df["xy \uff08z\\uff09"] == 2]
+        tm.assert_frame_equal(res, expect)
 
     def test_hashtag(self, df):
         res = df.query("`foo#bar` > 4")

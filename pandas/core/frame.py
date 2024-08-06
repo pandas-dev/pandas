@@ -4556,12 +4556,8 @@ class DataFrame(NDFrame, OpsMixin):
         quoted string are replaced by strings that are allowed as a Python identifier.
         These characters include all operators in Python, the space character, the
         question mark, the exclamation mark, the dollar sign, and the euro sign.
-        For other characters that fall outside the ASCII range (U+0001..U+007F)
-        and those that are not further specified in PEP 3131,
-        the query parser will raise an error.
-        This excludes whitespace different than the space character,
-        but also the hashtag (as it is used for comments) and the backtick
-        itself (backtick can also not be escaped).
+
+        A backtick can be escaped by double backticks.
 
         See also the `Python documentation about lexical analysis
         <https://docs.python.org/3/reference/lexical_analysis.html>`__

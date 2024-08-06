@@ -41,6 +41,16 @@ def create_valid_python_identifier(name: str) -> str:
     if name.isidentifier() and not iskeyword(name):
         return name
 
+    # Escape characters that fall outside the ASCII range (U+0001..U+007F).
+    # GH 49633
+    c_escaped_gen = (
+        "".join(chr(b) for b in c.encode("ascii", "backslashreplace")) for c in name
+    )
+    name = "".join(
+        c_escaped.replace("\\", "_UNICODE_" if c != c_escaped else "_BACKSLASH_")
+        for c, c_escaped in zip(name, c_escaped_gen)
+    )
+
     # Create a dict with the special characters and their replacement string.
     # EXACT_TOKEN_TYPES contains these special characters
     # token.tok_name contains a readable description of the replacement string.
