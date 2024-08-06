@@ -8,8 +8,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -106,10 +104,9 @@ def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
                     gb.transform(groupby_func, *args)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_string(
-    how, by, groupby_series, groupby_func, df_with_string_col
+    how, by, groupby_series, groupby_func, df_with_string_col, using_infer_string
 ):
     df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
@@ -183,6 +180,44 @@ def test_groupby_raises_string(
         ),
     }[groupby_func]
 
+    if using_infer_string:
+        if klass is not None:
+            if re.escape("agg function failed") in msg:
+                msg = msg.replace("object", "string")
+            elif groupby_func in [
+                "cumsum",
+                "cumprod",
+                "cummin",
+                "cummax",
+                "std",
+                "sem",
+                "skew",
+            ]:
+                msg = msg.replace("object", "string")
+            elif groupby_func == "quantile":
+                msg = "No matching signature found"
+            elif groupby_func == "corrwith":
+                msg = (
+                    "'ArrowStringArrayNumpySemantics' with dtype string does "
+                    "not support operation 'mean'"
+                )
+            else:
+                import pyarrow as pa
+
+                klass = pa.lib.ArrowNotImplementedError
+                if groupby_func == "pct_change":
+                    msg = "Function 'divide' has no kernel matching input types"
+                elif groupby_func == "diff":
+                    msg = (
+                        "Function 'subtract_checked' has no kernel matching "
+                        "input types"
+                    )
+                else:
+                    msg = (
+                        f"Function '{groupby_func}' has no kernel matching "
+                        "input types"
+                    )
+
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
         warn_msg = f"{kind}GroupBy.fillna is deprecated"
@@ -208,11 +243,15 @@ def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
         getattr(gb, how)(func)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
 def test_groupby_raises_string_np(
-    how, by, groupby_series, groupby_func_np, df_with_string_col
+    how,
+    by,
+    groupby_series,
+    groupby_func_np,
+    df_with_string_col,
+    using_infer_string,
 ):
     # GH#50749
     df = df_with_string_col
@@ -228,6 +267,15 @@ def test_groupby_raises_string_np(
             "Could not convert string .* to numeric",
         ),
     }[groupby_func_np]
+
+    if using_infer_string:
+        # TODO: should ArrowStringArrayNumpySemantics support sum?
+        klass = TypeError
+        msg = (
+            "'ArrowStringArrayNumpySemantics' with dtype string does not "
+            f"support operation '{groupby_func_np.__name__}'"
+        )
+
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
