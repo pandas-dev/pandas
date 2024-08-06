@@ -1246,8 +1246,8 @@ class TestDataFrameQueryBacktickQuoting:
                 "it's": [6, 3, 1],
                 "that's": [9, 1, 8],
                 "☺": [8, 7, 6],
-                "xy （z）": [1, 2, 3],
-                "xy （z\\uff09": [4, 5, 6],
+                "xy （z）": [1, 2, 3],  # noqa: RUF001
+                "xy （z\\uff09": [4, 5, 6],  # noqa: RUF001
                 "foo#bar": [2, 4, 5],
                 1: [5, 7, 9],
             }
@@ -1355,13 +1355,13 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_character_outside_range_2_byte_parens(self, df):
         # GH 49633
-        res = df.query("`xy （z）` == 2")
-        expect = df[df["xy （z）"] == 2]
+        res = df.query("`xy （z）` == 2")  # noqa: RUF001
+        expect = df[df["xy （z）"] == 2]  # noqa: RUF001
         tm.assert_frame_equal(res, expect)
 
     def test_character_outside_range_and_actual_backslash(self, df):
         # GH 49633
-        res = df.query("`xy （z\\uff09` == 2")
+        res = df.query("`xy （z\\uff09` == 2")  # noqa: RUF001
         expect = df[df["xy \uff08z\\uff09"] == 2]
         tm.assert_frame_equal(res, expect)
 
@@ -1394,7 +1394,7 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
         df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
-        result = df.query("`a``b` < 2")
+        result = df.query("`a``b` < 2")  # noqa
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)
