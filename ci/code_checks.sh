@@ -164,7 +164,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.center RT03,SA01" \
         -i "pandas.Series.str.decode PR07,RT03,SA01" \
         -i "pandas.Series.str.encode PR07,RT03,SA01" \
-        -i "pandas.Series.str.fullmatch RT03" \
         -i "pandas.Series.str.index RT03" \
         -i "pandas.Series.str.ljust RT03,SA01" \
         -i "pandas.Series.str.lower RT03" \
