@@ -4748,8 +4748,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        numeric_only : bool
-            Optional argument with default as False.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
         *args : tuple
             Positional arguments to be passed to `func`.
         **kwargs : dict
