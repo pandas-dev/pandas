@@ -452,7 +452,7 @@ def read_sql_query(
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns pyarrow-backed nullable
-        :class:`ArrowDtype` :class:`DataFrame`
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -596,7 +596,7 @@ def read_sql(
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns pyarrow-backed nullable
-        :class:`ArrowDtype` :class:`DataFrame`
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -1694,7 +1694,7 @@ class SQLDatabase(PandasSQL):
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
             * ``"pyarrow"``: returns pyarrow-backed nullable
-            :class:`ArrowDtype` :class:`DataFrame`
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
@@ -2160,7 +2160,7 @@ class ADBCDatabase(PandasSQL):
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
             * ``"pyarrow"``: returns pyarrow-backed nullable
-            :class:`ArrowDtype` :class:`DataFrame`
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
