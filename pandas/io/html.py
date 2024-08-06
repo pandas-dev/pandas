@@ -1139,7 +1139,7 @@ def read_html(
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns pyarrow-backed nullable
-        :class:`ArrowDtype` :class:`DataFrame`
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 

@@ -46,7 +46,7 @@ def read_clipboard(
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns pyarrow-backed nullable
-        :class:`ArrowDtype` :class:`DataFrame`
+          :class:`ArrowDtype` :class:`DataFrame`
 
 
 
