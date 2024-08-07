@@ -350,7 +350,10 @@ def merge(
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
-    if how == "cross":
+    merge_type = ["left", "right", "inner", "outer", "cross"]
+    if how not in merge_type:
+        raise ValueError(f"'{how}' is not a valid Merge type ({merge_type})")
+    elif how == "cross":
         return _cross_merge(
             left_df,
             right_df,
