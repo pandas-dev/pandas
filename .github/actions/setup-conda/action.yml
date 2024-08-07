@@ -18,5 +18,5 @@ runs:
     - name: Uninstall pyarrow
       if: ${{ env.REMOVE_PYARROW == '1' }}
       run: |
-        micromamba uninstall -y pyarrow
+        micromamba remove -y pyarrow
       shell: bash -el {0}
