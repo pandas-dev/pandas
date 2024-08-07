@@ -653,7 +653,7 @@ def test_isin(dtype, fixed_now_ts):
 
     result = s.isin(["a", pd.NA])
     if dtype.storage == "python" and dtype.na_value is np.nan:
-        # TODO what do we want here?
+        # TODO(infer_string) we should make this consistent
         expected = pd.Series([True, False, False])
     else:
         expected = pd.Series([True, False, True])
