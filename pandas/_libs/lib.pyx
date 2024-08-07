@@ -2453,29 +2453,37 @@ def maybe_convert_numeric(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _maybe_convert_pyarrow_objects(
-                                ndarray[object] objects,
-                                ndarray[uint8_t] mask,
-                                Seen seen) -> "ArrayLike":
+def _convert_to_pyarrow(
+                        ndarray[object] objects,
+                        ndarray[uint8_t] mask) -> "ArrayLike":
     from pandas.core.dtypes.dtypes import ArrowDtype
+
+    from pandas.core.arrays.string_ import StringDtype
+
+    na_value = None
+    if mask is not None and any(mask):
+        na_value = objects[mask][0]
 
     objects[mask] = None
     pa_array = pa.array(objects)
-    dtype = ArrowDtype(pa_array.type)
+
+    if pa.types.is_large_string(pa_array.type):
+        dtype = StringDtype(storage="pyarrow", na_value=na_value)
+    else:
+        dtype = ArrowDtype(pa_array.type)
     return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _maybe_convert_based_masked(
-                                ndarray[object] objects,
-                                ndarray[uint8_t] mask,
-                                object type) -> "ArrayLike":
+def _convert_to_based_masked(
+                            ndarray[object] objects,
+                            object numpy_dtype) -> "ArrayLike":
     from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
     from pandas.core.construction import array as pd_array
 
-    dtype = BaseMaskedDtype.from_numpy_dtype(np.dtype(type))
+    dtype = BaseMaskedDtype.from_numpy_dtype(numpy_dtype)
     return pd_array(objects, dtype=dtype)
 
 
@@ -2552,6 +2560,7 @@ def maybe_convert_objects(ndarray[object] objects,
     uints = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT64, 0)
     bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
+    val = None
 
     for i in range(n):
         val = objects[i]
@@ -2698,10 +2707,11 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
-    if type(val) is not object and convert_to_nullable_dtype:
-        return _maybe_convert_based_masked(objects, mask, type(val))
+    numpy_dtype = np.dtype(type(val))
+    if numpy_dtype.kind in "biuf" and convert_to_nullable_dtype:
+        return _convert_to_based_masked(objects, numpy_dtype)
     elif storage == "pyarrow":
-        return _maybe_convert_pyarrow_objects(objects, mask, seen)
+        return _convert_to_pyarrow(objects, mask)
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
