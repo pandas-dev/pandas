@@ -468,6 +468,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
+            if result.dtype.kind != "m":
+                # numpy >= 2.1 may not raise a TypeError
+                # and seems to dispatch to others.__rmul__?
+                raise TypeError(f"Cannot multiply with {type(other).__name__}")
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
@@ -495,6 +499,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         # numpy will accept float or int dtype, raise TypeError for others
         result = self._ndarray * other
+        if result.dtype.kind != "m":
+            # numpy >= 2.1 may not raise a TypeError
+            # and seems to dispatch to others.__rmul__?
+            raise TypeError(f"Cannot multiply with {type(other).__name__}")
         return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
