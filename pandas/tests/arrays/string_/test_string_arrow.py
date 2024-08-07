@@ -26,11 +26,7 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage == "python":
-        # python string storage with na_value=NaN is not yet implemented
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
-
+def test_config(string_storage, using_infer_string):
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
