@@ -6404,7 +6404,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         thresh : int, optional
             Require that many non-NA values. Cannot be combined with how.
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
@@ -6534,7 +6534,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | set | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[True],
@@ -6544,7 +6544,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | set | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
@@ -6554,7 +6554,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | set | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: bool = ...,
@@ -6563,7 +6563,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | set | None = None,
+        subset: Hashable | Iterable[Hashable] | set | None = None,
         *,
         keep: DropKeep = "first",
         inplace: bool = False,
@@ -6577,7 +6577,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
         keep : {'first', 'last', ``False``}, default 'first'
@@ -6667,7 +6667,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def duplicated(
         self,
-        subset: Hashable | Sequence[Hashable] | set | None = None,
+        subset: Hashable | Iterable[Hashable] | set | None = None,
         keep: DropKeep = "first",
     ) -> Series:
         """
@@ -6677,7 +6677,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
         keep : {'first', 'last', False}, default 'first'
