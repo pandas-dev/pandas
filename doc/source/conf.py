@@ -58,6 +58,7 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_toggleprompt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -71,9 +72,8 @@ extensions = [
     "nbsphinx",
 ]
 
-# sphinx-copybutton configurations
-copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.{3,}: | {5,8}: "
-copybutton_prompt_is_regexp = True
+# sphinx-toggleprompt configurations
+toggleprompt_offset_right = 35
 
 exclude_patterns = [
     "**.ipynb_checkpoints",

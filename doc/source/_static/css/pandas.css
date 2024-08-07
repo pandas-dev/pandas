@@ -50,3 +50,8 @@ table {
 .card, .card img {
   background-color: var(--pst-color-background);
 }
+
+/* Override some aspects of the sphinx-copybutton */
+button.copybtn {
+   opacity: 1;
+}
