@@ -74,7 +74,6 @@ If you are new to Git, you can reference some of these resources for learning Gi
 to the :ref:`contributor community <community>` for help if needed:
 
 * `Git documentation <https://git-scm.com/doc>`_.
-* `Numpy's Git resources <https://numpy.org/doc/stable/dev/gitwash/git_resources.html>`_ tutorial.
 
 Also, the project follows a forking workflow further described on this page whereby
 contributors fork the repository, make changes and then create a pull request.
