@@ -695,7 +695,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
     if using_infer_string:
-        expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
+        expected["c2"] = expected["c2"].astype("str")
     tm.assert_frame_equal(result, expected)
 
 

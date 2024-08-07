@@ -109,7 +109,7 @@ def test_apply_index_date_object(using_infer_string):
         1.40750,
         1.40649,
     ]
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    dtype = "str" if using_infer_string else object
     exp_idx = Index(
         ["2011-05-16", "2011-05-17", "2011-05-18"], dtype=dtype, name="date"
     )

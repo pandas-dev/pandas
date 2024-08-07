@@ -255,7 +255,7 @@ class TestPandasContainer:
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
         assert_json_roundtrip_equal(result, expected, orient)
@@ -610,7 +610,7 @@ class TestPandasContainer:
 
         # JSON deserialisation always creates unicode strings
         df_mixed.columns = df_mixed.columns.astype(
-            np.str_ if not using_infer_string else "string[pyarrow_numpy]"
+            np.str_ if not using_infer_string else "str"
         )
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")

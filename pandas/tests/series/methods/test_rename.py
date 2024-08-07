@@ -64,7 +64,7 @@ class TestRename:
             assert ser.name == name
             exp = np.array(["a", "b", "c"], dtype=np.object_)
             if using_infer_string:
-                exp = array(exp, dtype="string[pyarrow_numpy]")
+                exp = array(exp, dtype="str")
                 tm.assert_extension_array_equal(ser.index.values, exp)
             else:
                 tm.assert_numpy_array_equal(ser.index.values, exp)

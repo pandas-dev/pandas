@@ -177,7 +177,7 @@ class TestSeriesToCSV:
         # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
         expected = s
         if using_infer_string:
-            expected.index = expected.index.astype("string[pyarrow_numpy]")
+            expected.index = expected.index.astype("str")
         else:
             expected.index = expected.index.astype(str)
         tm.assert_series_equal(result, expected)

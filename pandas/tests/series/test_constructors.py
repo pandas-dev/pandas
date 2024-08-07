@@ -166,7 +166,7 @@ class TestSeriesConstructors:
 
         # Mixed type Series
         mixed = Series(["hello", np.nan], index=[0, 1])
-        assert mixed.dtype == np.object_ if not using_infer_string else "string"
+        assert mixed.dtype == np.object_ if not using_infer_string else "str"
         assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
@@ -1454,7 +1454,7 @@ class TestSeriesConstructors:
 
         data = {"a": 0, "b": "1", "c": "2", "d": "3"}
         series = Series(data)
-        assert series.dtype == np.object_ if not using_infer_string else "string"
+        assert series.dtype == np.object_ if not using_infer_string else "str"
 
         data = {"a": "0", "b": "1"}
         series = Series(data, dtype=float)
@@ -1466,7 +1466,7 @@ class TestSeriesConstructors:
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)
-        assert strings.dtype == np.object_ if not using_infer_string else "string"
+        assert strings.dtype == np.object_ if not using_infer_string else "str"
         assert len(strings) == len(datetime_series)
 
         d = datetime.now()

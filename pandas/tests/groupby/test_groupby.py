@@ -898,7 +898,7 @@ def test_groupby_complex_numbers(using_infer_string):
             {"a": 4, "b": 1},
         ]
     )
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    dtype = "str" if using_infer_string else object
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
         index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
@@ -1759,7 +1759,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             idx = Index(lev, name=keys[0])
 
         if using_infer_string:
-            columns = Index([], dtype="string[pyarrow_numpy]")
+            columns = Index([], dtype="str")
         else:
             columns = []
         expected = DataFrame([], columns=columns, index=idx)

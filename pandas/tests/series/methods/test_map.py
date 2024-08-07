@@ -145,9 +145,7 @@ def test_map_simple_str_callables_same_as_astype(
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
     result = string_series.map(func)
-    expected = string_series.astype(
-        str if not using_infer_string else "string[pyarrow_numpy]"
-    )
+    expected = string_series.astype(str if not using_infer_string else "str")
     tm.assert_series_equal(result, expected)
 
 
@@ -493,7 +491,7 @@ def test_map_categorical(na_action, using_infer_string):
     result = s.map(lambda x: "A", na_action=na_action)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object if not using_infer_string else "string"
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize(

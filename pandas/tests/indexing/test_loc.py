@@ -1399,7 +1399,7 @@ class TestLocBaseIndependent:
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha").astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         tm.assert_series_equal(result, expected)
 
@@ -1568,7 +1568,7 @@ class TestLocBaseIndependent:
         df.loc[df.index[::2], "str"] = np.nan
         expected = Series(
             [np.nan, "qux", np.nan, "qux", np.nan],
-            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+            dtype=object if not using_infer_string else "str",
         ).values
         tm.assert_almost_equal(df["str"].values, expected)
 
