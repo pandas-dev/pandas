@@ -319,6 +319,8 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
+    dtype: StringDtype
+
     @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
         if self.ndim > 1:
@@ -353,7 +355,8 @@ class BaseStringArray(ExtensionArray):
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
-            return type(self)(result)
+            # error: Too many arguments for "BaseStringArray"
+            return type(self)(result)  # type: ignore[call-arg]
 
         else:
             # This is when the result type is object. We reach this when
