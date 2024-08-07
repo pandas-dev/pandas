@@ -217,12 +217,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return self._dtype
 
     def insert(self, loc: int, item) -> ArrowStringArray:
+        if self.dtype.na_value is np.nan and item is np.nan:
+            item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    @classmethod
-    def _result_converter(cls, values, na=None):
+    def _result_converter(self, values, na=None):
+        if self.dtype.na_value is np.nan:
+            if not isna(na):
+                values = values.fill_null(bool(na))
+            return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -497,11 +502,30 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return dummies.astype(np.int64, copy=False), labels
 
     def _convert_int_dtype(self, result):
+        if self.dtype.na_value is np.nan:
+            if isinstance(result, pa.Array):
+                result = result.to_numpy(zero_copy_only=False)
+            else:
+                result = result.to_numpy()
+            if result.dtype == np.int32:
+                result = result.astype(np.int64)
+            return result
+
         return Int64Dtype().__from_arrow__(result)
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        if self.dtype.na_value is np.nan and name in ["any", "all"]:
+            if not skipna:
+                nas = pc.is_null(self._pa_array)
+                arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
+            else:
+                arr = pc.not_equal(self._pa_array, "")
+            return ArrowExtensionArray(arr)._reduce(
+                name, skipna=skipna, keepdims=keepdims, **kwargs
+            )
+
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_dtype(result)
@@ -534,14 +558,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _storage = "pyarrow"
     _na_value = np.nan
-
-    @classmethod
-    def _result_converter(cls, values, na=None):
-        if not isna(na):
-            values = values.fill_null(bool(na))
-        return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
 
     def __getattribute__(self, item):
         # ArrowStringArray and we both inherit from ArrowExtensionArray, which
@@ -552,15 +569,6 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         ):
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
-
-    def _convert_int_dtype(self, result):
-        if isinstance(result, pa.Array):
-            result = result.to_numpy(zero_copy_only=False)
-        else:
-            result = result.to_numpy()
-        if result.dtype == np.int32:
-            result = result.astype(np.int64)
-        return result
 
     def _cmp_method(self, other, op):
         try:
@@ -579,23 +587,3 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         return Series(
             result._values.to_numpy(), index=result.index, name=result.name, copy=False
         )
-
-    def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
-    ):
-        if name in ["any", "all"]:
-            if not skipna:
-                nas = pc.is_null(self._pa_array)
-                arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
-            else:
-                arr = pc.not_equal(self._pa_array, "")
-            return ArrowExtensionArray(arr)._reduce(
-                name, skipna=skipna, keepdims=keepdims, **kwargs
-            )
-        else:
-            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
-
-    def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
-        if item is np.nan:
-            item = libmissing.NA
-        return super().insert(loc, item)  # type: ignore[return-value]
