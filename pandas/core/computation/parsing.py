@@ -4,10 +4,8 @@
 
 from __future__ import annotations
 
-from io import (
-    BytesIO,
-    StringIO,
-)
+from enum import Enum
+from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
@@ -179,6 +177,13 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
+class ParseState(Enum):
+    DEFAULT = 0
+    IN_BACKTICK = 1
+    IN_SINGLE_QUOTE = 2
+    IN_DOUBLE_QUOTE = 3
+
+
 def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
     """
     Splits a str into substrings along backtick characters (`).
@@ -198,70 +203,69 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         The second is the actual substring.
     """
     substrings = []
-    substring = ""
+    substr = ""
     i = 0
+    parse_state = ParseState.DEFAULT
     while i < len(s):
-        backtick_index = s.find("`", i)
+        char = s[i]
 
-        # No backticks
-        if backtick_index == -1:
-            substrings.append((False, substring + s[i:]))
-            break
+        match char:
+            case "`":
+                # start of a backtick-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    if substr:
+                        substrings.append((False, substr))
+                    substr = char
+                    i += 1
+                    parse_state = ParseState.IN_BACKTICK
+                    continue
+                elif parse_state == ParseState.IN_BACKTICK:
+                    # escaped backtick inside a backtick-quoted string
+                    next_char = s[i + 1] if (i != len(s) - 1) else None
+                    if next_char == "`":
+                        substr += char + next_char
+                        i += 2
+                        continue
+                    # end of the backtick-quoted string
+                    else:
+                        substr += char
+                        substrings.append((True, substr))
 
-        single_quote_index = s.find("'", i)
-        double_quote_index = s.find('"', i)
-        if (single_quote_index == -1) and (double_quote_index == -1):
-            quote_index = -1
-        elif single_quote_index == -1:
-            quote_index = double_quote_index
-        elif double_quote_index == -1:
-            quote_index = single_quote_index
-        else:
-            quote_index = min(single_quote_index, double_quote_index)
+                        substr = ""
+                        i += 1
+                        parse_state = ParseState.DEFAULT
+                        continue
+            case "'":
+                # start of a single-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    substr += char
+                    i += 1
+                    parse_state = ParseState.IN_SINGLE_QUOTE
+                    continue
+                # end of a single-quoted string
+                elif (parse_state == ParseState.IN_SINGLE_QUOTE) and (s[i - 1] != "\\"):
+                    substr += char
+                    i += 1
+                    parse_state = ParseState.DEFAULT
+                    continue
+            case '"':
+                # start of a double-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    substr += char
+                    i += 1
+                    parse_state = ParseState.IN_DOUBLE_QUOTE
+                    continue
+                # end of a double-quoted string
+                elif (parse_state == ParseState.IN_DOUBLE_QUOTE) and (s[i - 1] != "\\"):
+                    substr += char
+                    i += 1
+                    parse_state = ParseState.DEFAULT
+                    continue
+        substr += char
+        i += 1
 
-        # No quotes, or
-        # Backtick opened before quote
-        if (quote_index == -1) or (backtick_index < quote_index):
-            next_backtick_index = s.find("`", backtick_index + 1)
-            while (
-                (next_backtick_index != -1)
-                and (next_backtick_index != len(s) - 1)
-                and (s[next_backtick_index + 1] == "`")
-            ):
-                # Since the next character is also a backtick, it's an escaped backtick
-                next_backtick_index = s.find("`", next_backtick_index + 2)
-
-            # Backtick is unmatched (Bad syntax)
-            if next_backtick_index == -1:
-                substrings.append((False, substring + s[i:]))
-                break
-            # Backtick is matched
-            else:
-                if substring or (i != backtick_index):
-                    substrings.append((False, substring + s[i:backtick_index]))
-                substrings.append((True, s[backtick_index : next_backtick_index + 1]))
-                substring = ""
-                i = next_backtick_index + 1
-
-        # Quote opened before backtick
-        else:
-            next_quote_index = -1
-            line_reader = BytesIO(s[i:].encode("utf-8")).readline
-            token_generator = tokenize.tokenize(line_reader)
-            for toknum, _, (_, _), (_, end), _ in token_generator:
-                if toknum == tokenize.STRING:
-                    next_quote_index = i + end - 1
-                    break
-
-            # Quote is unmatched (Bad syntax), or
-            # Quote is matched, and the next quote is at the end of s
-            if (next_quote_index == -1) or (next_quote_index + 1 == len(s)):
-                substrings.append((False, substring + s[i:]))
-                break
-            # Quote is matched, and the next quote is in the middle of s
-            else:
-                substring += s[i : next_quote_index + 1]
-                i = next_quote_index + 1
+    if substr:
+        substrings.append((False, substr))
 
     return substrings
 
