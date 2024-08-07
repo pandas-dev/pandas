@@ -104,6 +104,7 @@ def test_numba_nonunique_unsupported(apply_axis):
 
 
 def test_numba_unsupported_dtypes(apply_axis):
+    pytest.importorskip("pyarrow")
     f = lambda x: x
     df = DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
     df["c"] = df["c"].astype("double[pyarrow]")

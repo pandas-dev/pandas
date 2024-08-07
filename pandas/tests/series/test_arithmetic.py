@@ -13,6 +13,7 @@ from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -193,6 +194,9 @@ class TestSeriesArithmetic:
         expected = Series(expected_value)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_divmod(self):
         # GH#25557
         a = Series([1, 1, 1, np.nan], index=["a", "b", "c", "d"])

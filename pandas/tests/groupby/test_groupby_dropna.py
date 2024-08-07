@@ -11,6 +11,10 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
+
 
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",

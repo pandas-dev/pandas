@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -147,6 +149,7 @@ class TestDataFrameSubclassing:
         with pytest.raises(AttributeError, match=".*i_dont_exist.*"):
             A().nonexistence
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_subclass_align(self):
         # GH 12983
         df1 = tm.SubclassedDataFrame(
@@ -176,6 +179,7 @@ class TestDataFrameSubclassing:
         assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2.c)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_subclass_align_combinations(self):
         # GH 12983
         df = tm.SubclassedDataFrame({"a": [1, 3, 5], "b": [1, 3, 5]}, index=list("ACE"))

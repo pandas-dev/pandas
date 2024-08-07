@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -117,7 +118,15 @@ _pyarrowParser = PyArrowParser
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_pyarrow_parsers_only = [pytest.param(_pyarrowParser, marks=pytest.mark.single_cpu)]
+_pyarrow_parsers_only = [
+    pytest.param(
+        _pyarrowParser,
+        marks=[
+            pytest.mark.single_cpu,
+            pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow is not installed"),
+        ],
+    )
+]
 
 _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 

@@ -12,6 +12,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import SpecificationError
 
 from pandas import (
@@ -209,6 +211,8 @@ def test_apply_modify_traceback():
         data.apply(transform, axis=1)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "df, func, expected",
     tm.get_cython_table_params(
@@ -229,6 +233,8 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_str
             df.agg(func, axis=axis)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(

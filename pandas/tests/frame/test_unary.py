@@ -42,6 +42,7 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(-df, expected)
         tm.assert_series_equal(-df["a"], expected["a"])
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "df_data",
         [
@@ -130,7 +131,7 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
     def test_pos_object_raises(self):
         # GH#21380

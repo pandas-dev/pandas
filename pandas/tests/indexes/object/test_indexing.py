@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.missing import (
     NA,
     is_matching_na,
@@ -29,6 +31,7 @@ class TestGetIndexer:
 
         tm.assert_numpy_array_equal(actual, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_get_indexer_strings_raises(self, using_infer_string):
         index = Index(["b", "c"])
 

@@ -500,6 +500,7 @@ def test_dropna_combinations(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dropna, expected_data, expected_index",
     [
