@@ -697,9 +697,9 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
         if name in ["any", "all"]:
-            if not skipna and name == "all":
-                nas = pc.invert(pc.is_null(self._pa_array))
-                arr = pc.and_kleene(nas, pc.not_equal(self._pa_array, ""))
+            if not skipna:
+                nas = pc.is_null(self._pa_array)
+                arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
             else:
                 arr = pc.not_equal(self._pa_array, "")
             return ArrowExtensionArray(arr)._reduce(
