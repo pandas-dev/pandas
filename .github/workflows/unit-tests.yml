@@ -29,6 +29,7 @@ jobs:
         env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
+        pandas_future_infer_string: ["0"]
         include:
           - name: "Downstream Compat"
             env_file: actions-311-downstream_compat.yaml
