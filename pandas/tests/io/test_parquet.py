@@ -13,11 +13,11 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -958,7 +958,7 @@ class TestParquetPyArrow(Base):
 
         if (
             timezone_aware_date_list.tzinfo != datetime.timezone.utc
-            and not pa_version_under10p1
+            and pa_version_under18p0
         ):
             request.applymarker(
                 pytest.mark.xfail(
