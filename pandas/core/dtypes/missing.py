@@ -207,7 +207,6 @@ def _isna(obj):
     elif isinstance(obj, ABCSeries):
         result = _isna_array(obj._values)
         # box
-        type(obj.dtype)
         if isinstance(obj.dtype, ArrowDtype):
             result = obj._constructor(
                 result,
