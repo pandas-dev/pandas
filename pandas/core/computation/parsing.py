@@ -238,29 +238,17 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
             case "'":
                 # start of a single-quoted string
                 if parse_state == ParseState.DEFAULT:
-                    substr += char
-                    i += 1
                     parse_state = ParseState.IN_SINGLE_QUOTE
-                    continue
                 # end of a single-quoted string
                 elif (parse_state == ParseState.IN_SINGLE_QUOTE) and (s[i - 1] != "\\"):
-                    substr += char
-                    i += 1
                     parse_state = ParseState.DEFAULT
-                    continue
             case '"':
                 # start of a double-quoted string
                 if parse_state == ParseState.DEFAULT:
-                    substr += char
-                    i += 1
                     parse_state = ParseState.IN_DOUBLE_QUOTE
-                    continue
                 # end of a double-quoted string
                 elif (parse_state == ParseState.IN_DOUBLE_QUOTE) and (s[i - 1] != "\\"):
-                    substr += char
-                    i += 1
                     parse_state = ParseState.DEFAULT
-                    continue
         substr += char
         i += 1
 
