@@ -116,6 +116,7 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
+      - git+https://github.com/WillAyd/pandas-bitmask.git
       - adbc-driver-postgresql>=0.10.0
       - adbc-driver-sqlite>=0.8.0
       - typing_extensions; python_version<"3.11"
