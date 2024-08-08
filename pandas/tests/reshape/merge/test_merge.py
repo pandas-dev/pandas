@@ -1456,6 +1456,21 @@ class TestMerge:
 
         data1.merge(data2)  # no error
 
+    def test_merge_how_validation(self):
+        # https://github.com/pandas-dev/pandas/issues/59422
+        data1 = DataFrame(
+            np.arange(20).reshape((4, 5)) + 1, columns=["a", "b", "c", "d", "e"]
+        )
+        data2 = DataFrame(
+            np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
+        )
+        msg = (
+            "'full' is not a valid Merge type "
+            "('left', 'right', 'inner', 'outer', 'cross', 'asof')"
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            data1.merge(data2, how="full")
+
 
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:
