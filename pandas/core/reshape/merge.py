@@ -350,10 +350,7 @@ def merge(
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
-    merge_type = ["left", "right", "inner", "outer", "cross"]
-    if how not in merge_type:
-        raise ValueError(f"'{how}' is not a valid Merge type ({merge_type})")
-    elif how == "cross":
+    if how == "cross":
         return _cross_merge(
             left_df,
             right_df,
@@ -984,6 +981,11 @@ class _MergeOperation:
                 f"{_right.columns.nlevels} on the right)"
             )
             raise MergeError(msg)
+
+        # GH 59435: raise when "how" is not a valid Merge type
+        merge_type = ("left", "right", "inner", "outer", "cross", "asof")
+        if how not in merge_type:
+            raise ValueError(f"'{how}' is not a valid Merge type {merge_type}")
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
