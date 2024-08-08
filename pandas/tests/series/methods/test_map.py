@@ -101,16 +101,16 @@ def test_map_series_stringdtype(any_string_dtype, using_infer_string):
 
     expected = Series(data=["rabbit", "dog", "cat", item], dtype=any_string_dtype)
     if using_infer_string and any_string_dtype == "object":
-        expected = expected.astype("string[pyarrow_numpy]")
+        expected = expected.astype("str")
 
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "data, expected_dtype",
-    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
+    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], "str")],
 )
-def test_map_categorical_with_nan_values(data, expected_dtype, using_infer_string):
+def test_map_categorical_with_nan_values(data, expected_dtype):
     # GH 20714 bug fixed in: GH 24275
     def func(val):
         return val.split("-")[0]
@@ -118,8 +118,6 @@ def test_map_categorical_with_nan_values(data, expected_dtype, using_infer_strin
     s = Series(data, dtype="category")
 
     result = s.map(func, na_action="ignore")
-    if using_infer_string and expected_dtype == object:
-        expected_dtype = "string[pyarrow_numpy]"
     expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 

@@ -186,7 +186,7 @@ class TestAstype:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
-    def test_astype_dict_like(self, dtype_class, using_infer_string):
+    def test_astype_dict_like(self, dtype_class):
         # GH7271 & GH16717
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(range(5))
@@ -201,10 +201,7 @@ class TestAstype:
         expected = DataFrame(
             {
                 "a": a,
-                "b": Series(
-                    ["0", "1", "2", "3", "4"],
-                    dtype="str" if using_infer_string else "object",
-                ),
+                "b": Series(["0", "1", "2", "3", "4"], dtype="str"),
                 "c": c,
                 "d": Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype="float32"),
             }

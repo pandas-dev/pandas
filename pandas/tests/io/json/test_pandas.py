@@ -695,7 +695,7 @@ class TestPandasContainer:
         expected = string_series
         if using_infer_string and orient in ("split", "index", "columns"):
             # These schemas don't contain dtypes, so we infer string
-            expected.index = expected.index.astype("string[pyarrow_numpy]")
+            expected.index = expected.index.astype("str")
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
