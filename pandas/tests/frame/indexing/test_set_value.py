@@ -28,7 +28,7 @@ class TestSetValue:
         res = float_frame.copy()
         res._set_value("foobar", "baz", "sam")
         if using_infer_string:
-            assert res["baz"].dtype == "string"
+            assert res["baz"].dtype == "str"
         else:
             assert res["baz"].dtype == np.object_
         res = float_frame.copy()

@@ -227,7 +227,7 @@ class TestEmptyFrameSetitemExpansion:
             {
                 "x": Series(
                     ["1", "2"],
-                    dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+                    dtype=object if not using_infer_string else "str",
                 ),
                 "y": Series([np.nan, np.nan], dtype=object),
             }

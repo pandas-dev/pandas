@@ -122,7 +122,7 @@ class TestGetDummies:
 
         result = get_dummies(s_df, columns=["a"], sparse=sparse, dtype=dtype)
 
-        key = "string" if using_infer_string else "object"
+        key = "str" if using_infer_string else "object"
         expected_counts = {"int64": 1, key: 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 

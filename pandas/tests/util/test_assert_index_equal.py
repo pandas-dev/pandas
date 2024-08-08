@@ -207,7 +207,7 @@ Attribute "names" are different
 
 def test_index_equal_category_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Index are different

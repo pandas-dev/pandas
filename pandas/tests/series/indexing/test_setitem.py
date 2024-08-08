@@ -594,7 +594,7 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
         dtype = (
-            "string[pyarrow_numpy]"
+            "str"
             if using_infer_string and not isinstance(nulls_fixture, Decimal)
             else object
         )

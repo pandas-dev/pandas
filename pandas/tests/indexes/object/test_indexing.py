@@ -171,6 +171,7 @@ class TestGetIndexerNonUnique:
 
 
 class TestSliceLocs:
+    # TODO(infer_string) parametrize over multiple string dtypes
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -209,6 +210,7 @@ class TestSliceLocs:
         expected = Index(list(expected), dtype=dtype)
         tm.assert_index_equal(result, expected)
 
+    # TODO(infer_string) parametrize over multiple string dtypes
     @td.skip_if_no("pyarrow")
     def test_slice_locs_negative_step_oob(self):
         index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")

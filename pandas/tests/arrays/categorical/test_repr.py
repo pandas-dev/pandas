@@ -22,7 +22,7 @@ class TestCategoricalReprWithFactor:
         if using_infer_string:
             expected = [
                 "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-                "Categories (3, string): [a < b < c]",
+                "Categories (3, str): [a < b < c]",
             ]
         else:
             expected = [
