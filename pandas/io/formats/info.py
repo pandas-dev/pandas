@@ -494,7 +494,28 @@ class DataFrameInfo(_BaseInfo):
     def memory_usage_bytes(self) -> int:
         deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep).sum()
+    
+    def to_dict(self) -> dict:
+        """Return DataFrame info as a dictionary."""
+        return {
+            'Column summary': self._get_column_summary(),
+            'Memory usage': self.memory_usage_bytes,
+            'Index type': type(self.data.index).__name__,
+            'Index entries': len(self.data.index),
+        }
 
+    def _get_column_summary(self) -> list[dict]:
+        """Return a DataFrame summarizing columns."""
+        return [
+            {
+                '#': i,
+                'Column': col,
+                'Non-Null Count': self.data[col].notna().sum(),
+                'Dtype': self.data[col].dtype
+            }
+            for i, col in enumerate(self.ids)
+        ]
+    
     def render(
         self,
         *,
@@ -502,14 +523,18 @@ class DataFrameInfo(_BaseInfo):
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
+        return_dict: bool | None,
     ) -> None:
-        printer = _DataFrameInfoPrinter(
-            info=self,
-            max_cols=max_cols,
-            verbose=verbose,
-            show_counts=show_counts,
-        )
-        printer.to_buffer(buf)
+        if return_dict:
+            return self.to_dict()
+        else:
+            printer = _DataFrameInfoPrinter(
+                info=self,
+                max_cols=max_cols,
+                verbose=verbose,
+                show_counts=show_counts,
+            )
+            printer.to_buffer(buf)
 
 
 class SeriesInfo(_BaseInfo):

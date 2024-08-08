@@ -3529,17 +3529,21 @@ class DataFrame(NDFrame, OpsMixin):
         max_cols: int | None = None,
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,
+        return_dict: bool | None = None,
     ) -> None:
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
         )
-        info.render(
+        info_return = info.render(
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
             show_counts=show_counts,
+            return_dict=return_dict,
         )
+        if return_dict:
+            return info_return
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
         """
