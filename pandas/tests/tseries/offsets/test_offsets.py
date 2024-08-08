@@ -1182,3 +1182,10 @@ def test_is_yqm_start_end():
 
     for ts, value in tests:
         assert ts == value
+
+
+@pytest.mark.parametrize("left", [DateOffset(1), Nano(1)])
+@pytest.mark.parametrize("right", [DateOffset(1), Nano(1)])
+def test_multiply_dateoffset_typeerror(left, right):
+    with pytest.raises(TypeError, match="Cannot multiply"):
+        left * right
