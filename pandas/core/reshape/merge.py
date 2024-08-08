@@ -982,6 +982,11 @@ class _MergeOperation:
             )
             raise MergeError(msg)
 
+        # GH 59435: raise when "how" is not a valid Merge type
+        merge_type = ("left", "right", "inner", "outer", "cross", "asof")
+        if how not in merge_type:
+            raise ValueError(f"'{how}' is not a valid Merge type {merge_type}")
+
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         (
