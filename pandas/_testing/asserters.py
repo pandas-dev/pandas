@@ -1159,9 +1159,9 @@ def assert_frame_equal(
         If True, compare by blocks.
     check_exact : bool, default False
         Whether to compare number exactly. If False, the comparison uses the
-        relative tolerance (`rtol`) and absolute tolerance (`atol`)
+        relative tolerance (``rtol``) and absolute tolerance (``atol``)
         parameters to determine if two values are considered close,
-        according to the formula: `|a - b| <= (atol + rtol * |b|)`.
+        according to the formula: ``|a - b| <= (atol + rtol * |b|)``.
 
         .. versionchanged:: 2.2.0
 
