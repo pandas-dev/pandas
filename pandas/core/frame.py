@@ -13151,9 +13151,11 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex of timestamps.
 
-        This can be changed to the *end* of the period, by specifying `how="e"`.
+        Will cast at *beginning* of period if `freq` which is the offset frequency
+        is None. This can be changed to the *end* of the period, by specifying
+        `how="e"`. Will cast to the *end* of the period when specifying `freq`.
 
         Parameters
         ----------
@@ -13211,15 +13213,29 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df1.index
         DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[ns]', freq=None)
 
-        Using `freq` which is the offset that the Timestamps will have
+        By specifying `how="e"` we can change the resulting timestamps to be
+        at the end of the year
 
         >>> df2 = pd.DataFrame(data=d, index=idx)
-        >>> df2 = df2.to_timestamp(freq="M")
-        >>> df2
+        >>> df2 = df2.to_timestamp(how="e")
+                                       col1  col2
+        2023-12-31 23:59:59.999999999     1     3
+        2024-12-31 23:59:59.999999999     2     4
+        >>> df2.index
+        DatetimeIndex(['2023-12-31 23:59:59.999999999',
+                       '2024-12-31 23:59:59.999999999'],
+                      dtype='datetime64[ns]',
+                      freq=None)
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> df3 = pd.DataFrame(data=d, index=idx)
+        >>> df3 = df3.to_timestamp(freq="M")
+        >>> df3
                     col1   col2
         2023-01-31     1      3
         2024-01-31     2      4
-        >>> df2.index
+        >>> df3.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
         self._check_copy_deprecation(copy)
