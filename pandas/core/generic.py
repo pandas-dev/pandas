@@ -9542,6 +9542,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 join_index, lidx, ridx = self.index.join(
                     other.index, how=join, level=level, return_indexers=True
                 )
+
             if is_series:
                 left = self._reindex_indexer(join_index, lidx)
             elif lidx is None or join_index is None:
