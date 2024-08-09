@@ -69,6 +69,7 @@ def assert_almost_equal(
     check_dtype: bool | Literal["equiv"] = "equiv",
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
+    strict_na: bool = True,
     **kwargs,
 ) -> None:
     """
@@ -89,6 +90,7 @@ def assert_almost_equal(
         Relative tolerance.
     atol : float, default 1e-8
         Absolute tolerance.
+    strict_na : bool, default True
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -141,7 +143,7 @@ def assert_almost_equal(
 
         # if we have "equiv", this becomes True
         _testing.assert_almost_equal(
-            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, **kwargs
+            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, strict_na=strict_na, **kwargs
         )
 
 
@@ -848,6 +850,7 @@ def assert_series_equal(
     check_flags: bool = True,
     rtol: float | lib.NoDefault = lib.no_default,
     atol: float | lib.NoDefault = lib.no_default,
+    strict_na: bool = True,
     obj: str = "Series",
     *,
     check_index: bool = True,
@@ -1104,6 +1107,7 @@ def assert_series_equal(
             rtol=rtol,
             atol=atol,
             check_dtype=bool(check_dtype),
+            strict_na=strict_na,
             obj=str(obj),
             index_values=left.index,
         )
@@ -1142,6 +1146,7 @@ def assert_frame_equal(
     check_flags: bool = True,
     rtol: float | lib.NoDefault = lib.no_default,
     atol: float | lib.NoDefault = lib.no_default,
+    strict_na: bool = True,
     obj: str = "DataFrame",
 ) -> None:
     """
@@ -1328,6 +1333,7 @@ def assert_frame_equal(
                 atol=atol,
                 check_index=False,
                 check_flags=False,
+                strict_na=strict_na,
             )
 
 
