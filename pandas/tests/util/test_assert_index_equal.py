@@ -32,9 +32,9 @@ Index levels are different
 
 
 def test_index_equal_values_mismatch(check_exact):
-    msg = """MultiIndex level \\[1\\] are different
+    msg = """Index level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
@@ -172,9 +172,9 @@ def test_index_equal_level_values_mismatch(check_exact, rtol):
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
     kwargs = {"check_exact": check_exact, "rtol": rtol}
 
-    msg = """MultiIndex level \\[1\\] are different
+    msg = """Index level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
@@ -311,9 +311,7 @@ def test_assert_multi_index_dtype_check_categorical(check_categorical):
     idx1 = MultiIndex.from_arrays([Categorical(np.array([1, 2], dtype=np.uint64))])
     idx2 = MultiIndex.from_arrays([Categorical(np.array([1, 2], dtype=np.int64))])
     if check_categorical:
-        with pytest.raises(
-            AssertionError, match=r"^MultiIndex level \[0\] are different"
-        ):
+        with pytest.raises(AssertionError, match=r"^Index level \[0\] are different"):
             tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
