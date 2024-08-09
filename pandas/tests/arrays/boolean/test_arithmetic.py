@@ -3,6 +3,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -90,6 +94,9 @@ def test_op_int8(left_array, right_array, opname):
 # -----------------------------------------------------------------------------
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
     # invalid ops
 

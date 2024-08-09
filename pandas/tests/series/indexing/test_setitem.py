@@ -10,6 +10,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -822,6 +823,11 @@ class SetitemCastingEquivalents:
         else:
             indexer_sli(obj)[mask] = val
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True

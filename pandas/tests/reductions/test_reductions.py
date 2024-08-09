@@ -9,6 +9,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1204,6 +1206,9 @@ class TestSeriesReductions:
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_idxminmax_object_frame(self):
         # GH#4279
         df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
