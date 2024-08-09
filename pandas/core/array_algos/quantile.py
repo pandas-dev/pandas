@@ -142,7 +142,14 @@ def _nanquantile_1d(
         # equiv: 'np.array([na_value] * len(qs))' but much faster
         return np.full(len(qs), na_value)
 
-    return np.quantile(values, qs, method=interpolation)
+    return np.quantile(
+        values,
+        qs,
+        # error: No overload variant of "percentile" matches argument
+        # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
+        # , "Dict[str, str]"  [call-overload]
+        method=interpolation,  # type: ignore[call-overload]
+    )
 
 
 def _nanquantile(
@@ -208,4 +215,12 @@ def _nanquantile(
                 result = result.astype(values.dtype, copy=False)
         return result
     else:
-        return np.quantile(values, qs, axis=1, method=interpolation)
+        return np.quantile(
+            values,
+            qs,
+            axis=1,
+            # error: No overload variant of "percentile" matches argument types
+            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+            # "int", "Dict[str, str]"  [call-overload]
+            method=interpolation,  # type: ignore[call-overload]
+        )
