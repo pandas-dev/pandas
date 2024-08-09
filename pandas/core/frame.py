@@ -2310,7 +2310,8 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         mgr = arrays_to_mgr(arrays, columns, result_index)
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        result = cls._from_mgr(mgr, axes=mgr.axes)
+        return result._constructor_from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
