@@ -1247,6 +1247,33 @@ class TestWideToLong:
         expected.index = expected.index.set_levels(new_level, level=0)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("stubnames", ["year", ["year"]])
+    def test_stubname_equal_suffix(self, stubnames):
+        # https://github.com/pandas-dev/pandas/issues/46939
+        df = DataFrame(
+            {
+                "year1": {0: 4.5, 1: 1.7},
+                "year2": {0: 2.5, 1: 1.2},
+                "X": dict(zip(range(2), range(2, 4))),
+            }
+        )
+        df["id"] = df.index
+        result = wide_to_long(
+            df,
+            stubnames=stubnames,
+            i="id",
+            j="year",
+        )
+        expected = DataFrame(
+            [[2, 4.5], [3, 1.7], [2, 2.5], [3, 1.2]],
+            columns=["X", "year"],
+            index=pd.MultiIndex.from_arrays(
+                [[0, 1, 0, 1], [1, 1, 2, 2]],
+                names=["id", "year"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_wide_to_long_pyarrow_string_columns():
