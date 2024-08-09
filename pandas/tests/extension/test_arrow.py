@@ -283,16 +283,12 @@ class TestArrowArray(base.ExtensionTests):
     def test_map(self, data_missing, na_action):
         if data_missing.dtype.kind in "mM":
             result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
-            tm.assert_numpy_array_equal(result, expected)
+            expected = data_missing
+            tm.assert_extension_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]":
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
-            tm.assert_numpy_array_equal(result, expected)
+            expected = data_missing
+            tm.assert_extension_array_equal(result, expected)
 
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -3566,5 +3562,5 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
 def test_map_numeric_na_action():
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    expected = pd.Series([42.0, 42.0, np.nan], dtype=ser.dtype)
     tm.assert_series_equal(result, expected)
