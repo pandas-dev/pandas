@@ -46,6 +46,7 @@ Other enhancements
 - :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
 - :class:`Series` now supports the Arrow PyCapsule Interface for export (:issue:`59518`)
 - :func:`DataFrame.to_excel` argument ``merge_cells`` now accepts a value of ``"columns"`` to only merge :class:`MultiIndex` column header header cells (:issue:`35384`)
+- :func:`read_html` now accepts a ``strip_whitespace`` argument to decide if extra whitespaces should be trimmed in HTML tables (:issue:`24766`)
 - :meth:`DataFrame.corrwith` now accepts ``min_periods`` as optional arguments, as in :meth:`DataFrame.corr` and :meth:`Series.corr` (:issue:`9490`)
 - :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
 - :meth:`DataFrame.ewm` now allows ``adjust=False`` when ``times`` is provided (:issue:`54328`)
