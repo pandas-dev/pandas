@@ -953,7 +953,13 @@ cdef class _Timestamp(ABCTimestamp):
 
     def normalize(self) -> "Timestamp":
         """
-        Normalize Timestamp to midnight, preserving tz information.
+        Normalize Timestamp to previous midnight, preserving tz information.
+
+        This is equivalent to replacing the time part of the timestamp with `00:00:00`.
+
+        See Also
+        --------
+        Timestamp.replace : Return a new timestamp with replaced attributes.
 
         Examples
         --------
@@ -1276,6 +1282,13 @@ cdef class _Timestamp(ABCTimestamp):
         copy parameters are available here only for compatibility. Their values
         will not affect the return value.
 
+        Parameters
+        ----------
+        dtype : numpy.dtype, default None
+            Must be None. Otherwise, a ValueError is raised.
+        copy : bool, default False
+            Must be False. Otherwise, a ValueError is raised.
+
         Returns
         -------
         numpy.datetime64
@@ -1303,7 +1316,20 @@ cdef class _Timestamp(ABCTimestamp):
 
     def to_period(self, freq=None):
         """
-        Return an period of which this timestamp is an observation.
+        Return a period of which this timestamp is an observation.
+
+        This method constructs a `Period` object from the `Timestamp` and provided period.
+        Please note that timezone information will be dropped, since `Period` doesn't support timezones.
+
+        Parameters
+        ----------
+        freq : str, default None
+            The period frequency. Accepted strings are listed in the :ref:`period alias section <timeseries.period_aliases>` in the user docs.
+
+        See Also
+        --------
+        Period : Represents a period of time.
+        Period.to_timestamp : Return the Timestamp representation of the Period.
 
         Examples
         --------
@@ -2603,22 +2629,41 @@ default 'raise'
         """
         Implements datetime.replace, handles nanoseconds.
 
+        Returns a new timestamp with the same attributes, except for those given new value.
+
         Parameters
         ----------
         year : int, optional
+            New year value.
         month : int, optional
+            New month value.
         day : int, optional
+            New day value.
         hour : int, optional
+            New hour value.
         minute : int, optional
+            New minute value.
         second : int, optional
+            New second value.
         microsecond : int, optional
+            New microsecond value.
         nanosecond : int, optional
+            New nanosecond value.
         tzinfo : tz-convertible, optional
+            New tzinfo value.
         fold : int, optional
+            New fold value.
 
         Returns
         -------
         Timestamp with fields replaced
+
+        See Also
+        --------
+        Timestamp.normalize : Normalize the Timestamp to midnight, preserving tz information.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        datetime.datetime.replace : Return a new datetime with replaced attributes.
 
         Examples
         --------

@@ -218,9 +218,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.month GL08" \
         -i "pandas.Timestamp.month_name SA01" \
         -i "pandas.Timestamp.nanosecond GL08" \
-        -i "pandas.Timestamp.normalize SA01" \
         -i "pandas.Timestamp.quarter SA01" \
-        -i "pandas.Timestamp.replace PR07,SA01" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
         -i "pandas.Timestamp.strptime PR01,SA01" \
@@ -229,8 +227,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.timetz SA01" \
         -i "pandas.Timestamp.to_datetime64 SA01" \
         -i "pandas.Timestamp.to_julian_date SA01" \
-        -i "pandas.Timestamp.to_numpy PR01" \
-        -i "pandas.Timestamp.to_period PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tz_localize SA01" \
