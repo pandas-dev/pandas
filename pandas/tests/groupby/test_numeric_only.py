@@ -180,6 +180,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    re.escape(f"agg function failed [how->{method},dtype->str]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -197,6 +198,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    re.escape(f"agg function failed [how->{method},dtype->str]"),
                 ]
             )
             with pytest.raises(exception, match=msg):

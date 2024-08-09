@@ -491,6 +491,12 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
+        elif isinstance(other, BaseOffset):
+            # Otherwise raises RecurrsionError due to __rmul__
+            raise TypeError(
+                f"Cannot multiply {type(self).__name__} with "
+                f"{type(other).__name__}."
+            )
         return NotImplemented
 
     def __rmul__(self, other):
