@@ -149,7 +149,8 @@ frame_examples_sub = dedent(
 
     >>> info_dict = df.info(return_dict=True)
     >>> print(info_dict)
-    {'Column_summary': '...', 'Memory_usage': 24000128, 'Index_type': 'RangeIndex', 'Index_entries': 1000000}"""
+    {'Column_summary': '...', 'Memory_usage': 24000128,
+    'Index_type': 'RangeIndex', 'Index_entries': 1000000}"""
 )
 
 
