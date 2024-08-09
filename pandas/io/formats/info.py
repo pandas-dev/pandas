@@ -494,28 +494,28 @@ class DataFrameInfo(_BaseInfo):
     def memory_usage_bytes(self) -> int:
         deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep).sum()
-    
+
     def to_dict(self) -> dict:
         """Return DataFrame info as a dictionary."""
         return {
-            'Column_summary': self._get_column_summary(),
-            'Memory_usage': self.memory_usage_bytes,
-            'Index_type': type(self.data.index).__name__,
-            'Index_entries': len(self.data.index),
+            "Column_summary": self._get_column_summary(),
+            "Memory_usage": self.memory_usage_bytes,
+            "Index_type": type(self.data.index).__name__,
+            "Index_entries": len(self.data.index),
         }
 
     def _get_column_summary(self) -> list[dict]:
         """Return a DataFrame summarizing columns."""
         return [
             {
-                '#': i,
-                'Column': col,
-                'Non-Null-Count': self.data[col].notna().sum(),
-                'Dtype': self.data[col].dtype
+                "#": i,
+                "Column": col,
+                "Non-Null-Count": self.data[col].notna().sum(),
+                "Dtype": self.data[col].dtype,
             }
             for i, col in enumerate(self.ids)
         ]
-    
+
     def render(
         self,
         *,

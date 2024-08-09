@@ -570,27 +570,26 @@ def test_info_show_counts(row, columns, show_counts, result):
             df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
 
+
 @pytest.mark.parametrize(
-    "df", [
-        DataFrame({
-            'A': [1, 2, 3],
-            'B': [4, 5, 6]
-        }),
+    "df",
+    [
+        DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
         DataFrame({}),
-    ]
+    ],
 )
 def test_info_return_dict(df):
     result = df.info(return_dict=True)
-    expected_keys = {'Column_summary', 'Memory_usage', 'Index_type', 'Index_entries'}
+    expected_keys = {"Column_summary", "Memory_usage", "Index_type", "Index_entries"}
     assert isinstance(result, dict)
     assert expected_keys.issubset(result.keys())
 
-    assert 'Column_summary' in result
-    assert 'Memory_usage' in result
-    assert 'Index_type' in result
-    assert 'Index_entries' in result
-    
-    assert isinstance(result['Column_summary'], list)
-    assert isinstance(result['Memory_usage'], np.int64)
-    assert isinstance(result['Index_type'], str)
-    assert isinstance(result['Index_entries'], int)
+    assert "Column_summary" in result
+    assert "Memory_usage" in result
+    assert "Index_type" in result
+    assert "Index_entries" in result
+
+    assert isinstance(result["Column_summary"], list)
+    assert isinstance(result["Memory_usage"], np.int64)
+    assert isinstance(result["Index_type"], str)
+    assert isinstance(result["Index_entries"], int)
