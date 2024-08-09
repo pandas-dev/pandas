@@ -3407,7 +3407,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_difference_result(other, result)
 
     def _difference(self, other, sort):
-        # overridden by RangeIndex
+        # overridden by RangeIndex, PeriodIndex
         this = self
         if isinstance(self, ABCCategoricalIndex) and self.hasnans and other.hasnans:
             this = this.dropna()

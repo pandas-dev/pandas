@@ -514,6 +514,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             )
         return self + periods
 
+    def _difference(self, other, sort=None) -> PeriodIndex:
+        if isinstance(other, Index) and other.inferred_type == "string":
+            try:
+                other = other.astype(self.dtype)
+            except (TypeError, ValueError):
+                pass
+
+        return super()._difference(other, sort=sort)
+
 
 def period_range(
     start=None,
