@@ -1133,8 +1133,9 @@ class TestParquetPyArrow(Base):
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
-        import pyarrow as pa
-        import pyarrow.parquet as pq
+        pa = pytest.importorskip("pyarrow")
+        pq = pytest.importorskip("pyarrow.parquet")
+
 
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
         table = pa.table([arr], names=["timestamp"])
