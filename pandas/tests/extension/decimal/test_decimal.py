@@ -76,6 +76,9 @@ class TestDecimalArray(base.ExtensionTests):
             return False
         return True
 
+    def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:
+        return op_name not in ["std", "median", "skew"]
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name == "count":
             return super().check_reduce(ser, op_name, skipna)

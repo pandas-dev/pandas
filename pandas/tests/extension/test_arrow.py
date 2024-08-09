@@ -468,6 +468,18 @@ class TestArrowArray(base.ExtensionTests):
 
         self.check_accumulate(ser, op_name, skipna)
 
+    def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:
+        dtype = ser.dtype
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "pyarrow_dtype"
+        pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
+        if op_name == "skew":
+            return False
+        if pa.types.is_decimal(pa_dtype):
+            # Skip decimal types
+            return False
+        return self._supports_reduction(ser, op_name)
+
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if op_name in ["kurt", "skew"]:
             return False

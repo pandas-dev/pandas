@@ -69,6 +69,7 @@ def sliding_sum(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     dtype = values.dtype
 
@@ -165,6 +166,7 @@ def grouped_kahan_sum(
     result_dtype: np.dtype,
     labels: npt.NDArray[np.intp],
     ngroups: int,
+    skipna: bool = True,
 ) -> tuple[
     np.ndarray, npt.NDArray[np.int64], np.ndarray, npt.NDArray[np.int64], np.ndarray
 ]:
@@ -183,32 +185,38 @@ def grouped_kahan_sum(
         if lab < 0:
             continue
 
-        sum_x = output[lab]
-        nobs = nobs_arr[lab]
-        compensation_add = comp_arr[lab]
-        num_consecutive_same_value = consecutive_counts[lab]
-        prev_value = prev_vals[lab]
+        if not skipna and np.isnan(val):
+            output[lab] = val
+            consecutive_counts[lab] = 0
 
-        (
-            nobs,
-            sum_x,
-            compensation_add,
-            num_consecutive_same_value,
-            prev_value,
-        ) = add_sum(
-            val,
-            nobs,
-            sum_x,
-            compensation_add,
-            num_consecutive_same_value,
-            prev_value,
-        )
+        else:
+            sum_x = output[lab]
+            nobs = nobs_arr[lab]
+            compensation_add = comp_arr[lab]
+            num_consecutive_same_value = consecutive_counts[lab]
+            prev_value = prev_vals[lab]
 
-        output[lab] = sum_x
-        consecutive_counts[lab] = num_consecutive_same_value
-        prev_vals[lab] = prev_value
-        comp_arr[lab] = compensation_add
-        nobs_arr[lab] = nobs
+            (
+                nobs,
+                sum_x,
+                compensation_add,
+                num_consecutive_same_value,
+                prev_value,
+            ) = add_sum(
+                val,
+                nobs,
+                sum_x,
+                compensation_add,
+                num_consecutive_same_value,
+                prev_value,
+            )
+
+            output[lab] = sum_x
+            consecutive_counts[lab] = num_consecutive_same_value
+            prev_vals[lab] = prev_value
+            comp_arr[lab] = compensation_add
+            nobs_arr[lab] = nobs
+
     return output, nobs_arr, comp_arr, consecutive_counts, prev_vals
 
 
@@ -219,11 +227,12 @@ def grouped_sum(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     na_pos = []
 
     output, nobs_arr, comp_arr, consecutive_counts, prev_vals = grouped_kahan_sum(
-        values, result_dtype, labels, ngroups
+        values, result_dtype, labels, ngroups, skipna
     )
 
     # Post-processing, replace sums that don't satisfy min_periods
@@ -232,7 +241,7 @@ def grouped_sum(
         num_consecutive_same_value = consecutive_counts[lab]
         prev_value = prev_vals[lab]
         sum_x = output[lab]
-        if nobs >= min_periods:
+        if not np.isnan(sum_x) and nobs >= min_periods:
             if num_consecutive_same_value >= nobs:
                 result = prev_value * nobs
             else:

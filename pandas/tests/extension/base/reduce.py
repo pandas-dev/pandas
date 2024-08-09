@@ -2,6 +2,8 @@ from typing import final
 
 import pytest
 
+from pandas.core.dtypes.common import is_numeric_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -11,6 +13,9 @@ class BaseReduceTests:
     Reduction specific tests. Generally these only
     make sense for numeric/boolean operations.
     """
+
+    def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:
+        return self._supports_reduction(ser, op_name)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         # Specify if we expect this reduction to succeed.
@@ -76,6 +81,24 @@ class BaseReduceTests:
 
         tm.assert_extension_array_equal(result1, expected)
 
+    def check_reduce_groupby(self, ser: pd.Series, op_name: str, skipna: bool):
+        df = pd.DataFrame({"a": ser, "key": [1, 2] * (len(ser) // 2)})
+        grp = df.groupby("key")
+        res1 = getattr(grp, op_name)
+        result = res1(skipna=skipna)
+
+        if not skipna and ser.isna().any() and op_name != "skew":
+            expected = pd.DataFrame(
+                {"a": [pd.NA, pd.NA]}, index=pd.Index([1, 2], name="key")
+            )
+        else:
+            expected = grp.apply(
+                lambda x: getattr(x.astype(ser.dtype), op_name)(skipna=skipna),
+                include_groups=False,
+            )
+
+        tm.assert_almost_equal(result, expected, check_dtype=False, atol=1e-6)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         op_name = all_boolean_reductions
@@ -126,3 +149,19 @@ class BaseReduceTests:
             pytest.skip(f"Reduction {op_name} not supported for this dtype")
 
         self.check_reduce_frame(ser, op_name, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_groupby_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        ser = pd.Series(data)
+
+        if not is_numeric_dtype(ser.dtype):
+            pytest.skip(f"{ser.dtype} is not numeric dtype")
+
+        if op_name in ["count", "kurt", "sem"]:
+            pytest.skip(f"{op_name} not an array method")
+
+        if not self._supports_reduction_groupby(ser, op_name):
+            pytest.skip(f"Reduction {op_name} not supported for this dtype")
+
+        self.check_reduce_groupby(ser, op_name, skipna)

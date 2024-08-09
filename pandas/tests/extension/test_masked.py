@@ -298,6 +298,31 @@ class TestMaskedArrays(base.ExtensionTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
+    def check_reduce_groupby(self, ser: pd.Series, op_name: str, skipna: bool):
+        df = pd.DataFrame({"a": ser, "key": [1, 2] * (len(ser) // 2)})
+        grp = df.groupby("key")
+        res1 = getattr(grp, op_name)
+        result = res1(skipna=skipna)
+        if (
+            op_name == "prod"
+            and skipna
+        ):
+            pytest.mark.xfail(
+                reason=f"{op_name} overflows"
+            )
+
+        if not skipna and ser.isna().any() and op_name != "skew":
+            expected = pd.DataFrame(
+                {"a": [pd.NA, pd.NA]}, index=pd.Index([1, 2], name="key")
+            )
+        else:
+            expected = grp.apply(
+                lambda x: getattr(x.astype(ser.dtype), op_name)(skipna=skipna),
+                include_groups=False,
+            )
+
+        tm.assert_almost_equal(result, expected, check_dtype=False, atol=1e-6)
+
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name

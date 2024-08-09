@@ -311,6 +311,12 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.frame_scalar_exc = frame_scalar_exc
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
+    def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["std", "skew"] and ser.dtype == "float64":
+            return False
+        else:
+            return self._supports_reduction(ser, op_name)
+
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if ser.dtype.kind == "O":
             return op_name in ["sum", "min", "max", "any", "all"]

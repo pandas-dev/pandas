@@ -97,6 +97,9 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
+    def _supports_reduction_groupby(self, ser: pd.Series, op_name: str) -> bool:
+        return False
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 

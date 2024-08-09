@@ -25,6 +25,7 @@ def sliding_min_max(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
+    skipna: bool,
     is_max: bool,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(start)
@@ -87,6 +88,7 @@ def grouped_min_max(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool,
     is_max: bool,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
@@ -102,6 +104,9 @@ def grouped_min_max(
 
         if values.dtype.kind == "i" or not np.isnan(val):
             nobs[lab] += 1
+        elif not skipna and np.isnan(val):
+            output[lab] = np.nan
+            continue
         else:
             # NaN value cannot be a min/max value
             continue
