@@ -158,15 +158,8 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
             # these return a boolean by-definition
             return result
 
-        if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(result, fill_value=None)
-
-        else:
-            result = fields.get_date_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(
-                result, fill_value=None, convert="float64"
-            )
+        result = fields.get_date_field(values, field, reso=self._creso)
+        result = self._maybe_mask_results(result, fill_value=None, convert="float64")
 
         return result
 
