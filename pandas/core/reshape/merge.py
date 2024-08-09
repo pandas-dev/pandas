@@ -365,7 +365,8 @@ def merge(
             validate=validate,
         )
     else:
-        op = _MergeOperation(
+        klass = _MergeOperation if how != "leftsemi" else _SemiMergeOperation
+        op = klass(
             left_df,
             right_df,
             how=how,
@@ -1021,7 +1022,6 @@ class _MergeOperation:
         # Overridden by AsOfMerge
         pass
 
-    @final
     def _reindex_and_concat(
         self,
         join_index: Index,
@@ -1149,7 +1149,6 @@ class _MergeOperation:
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
         return result
 
-    @final
     def _maybe_restore_index_levels(self, result: DataFrame) -> None:
         """
         Restore index levels specified as `on` parameters
@@ -1193,7 +1192,6 @@ class _MergeOperation:
         if names_to_restore:
             result.set_index(names_to_restore, inplace=True)
 
-    @final
     def _maybe_add_join_keys(
         self,
         result: DataFrame,
@@ -1887,7 +1885,7 @@ def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
     sort: bool = False,
-    how: JoinHow = "inner",
+    how: JoinHow + Literal["leftsemi"] = "inner",
 ) -> tuple[npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
     """
 
@@ -1944,7 +1942,8 @@ def get_join_indexers(
     right = Index(rkey)
 
     if (
-        left.is_monotonic_increasing
+        how != "leftsemi"
+        and left.is_monotonic_increasing
         and right.is_monotonic_increasing
         and (left.is_unique or right.is_unique)
     ):
@@ -2086,6 +2085,48 @@ def restore_dropped_levels_multijoin(
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
+
+
+class _SemiMergeOperation(_MergeOperation):
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("validate", None):
+            raise NotImplementedError("validate is not supported for semi-join.")
+
+        super().__init__(*args, **kwargs)
+        if self.left_index or self.right_index:
+            raise NotImplementedError(
+                "left_index or right_index are not supported for semi-join."
+            )
+        elif self.indicator:
+            raise NotImplementedError("indicator is not supported for semi-join.")
+        elif self.sort:
+            raise NotImplementedError(
+                "sort is not supported for semi-join. Sort your DataFrame afterwards."
+            )
+
+    def _maybe_add_join_keys(
+        self,
+        result: DataFrame,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+    ) -> None:
+        return
+
+    def _maybe_restore_index_levels(self, result: DataFrame) -> None:
+        return
+
+    def _reindex_and_concat(
+        self,
+        join_index: Index,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+    ) -> DataFrame:
+        left = self.left[:]
+
+        if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
+            lmgr = left._mgr.take(left_indexer, axis=1, verify=False)
+            left = left._constructor_from_mgr(lmgr, axes=lmgr.axes)
+        return left
 
 
 class _OrderedMerge(_MergeOperation):
@@ -2675,7 +2716,7 @@ def _factorize_keys(
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
+    elif how != "leftsemi" and isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
@@ -2764,7 +2805,7 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufb"
+    hash_join_available = how == "inner" and not sort
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
@@ -2772,6 +2813,10 @@ def _factorize_keys(
             return lidx, ridx, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
+    elif how == "leftsemi":
+        # populate hashtable for right and then do a hash join
+        rizer.factorize(rk_data, mask=rk_mask)
+        return rizer.hash_inner_join(lk_data, lk_mask)[1], None, -1  # type: ignore[return-value]
     else:
         llab = rizer.factorize(lk_data, mask=lk_mask)
         rlab = rizer.factorize(rk_data, mask=rk_mask)

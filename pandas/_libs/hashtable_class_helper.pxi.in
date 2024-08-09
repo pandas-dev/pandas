@@ -1384,6 +1384,33 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def hash_inner_join(self, ndarray[object] values, object mask = None) -> tuple[ndarray, ndarray]:
+        cdef:
+            Py_ssize_t i, n = len(values)
+            object val
+            khiter_t k
+            Int64Vector locs = Int64Vector()
+            Int64Vector self_locs = Int64Vector()
+            Int64VectorData *l
+            Int64VectorData *sl
+        # mask not implemented
+
+        l = &locs.data
+        sl = &self_locs.data
+
+        for i in range(n):
+            val = values[i]
+            hash(val)
+
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k != self.table.n_buckets:
+                append_data_int64(l, i)
+                append_data_int64(sl, self.table.vals[k])
+
+        return self_locs.to_array(), locs.to_array()
+
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # mask not yet implemented

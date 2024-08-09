@@ -315,7 +315,7 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'leftsemi', 'cross'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -326,6 +326,11 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
+    * leftsemi: Filter for rows in the left that have a match on the right;
+      preserve the order of the left keys. Doesn't support `left_index`, `right_index`,
+      `indicator` or `validate`.
+
+      .. versionadded:: 3.0
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
 on : label or list
