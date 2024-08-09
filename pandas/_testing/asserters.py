@@ -283,7 +283,7 @@ def assert_index_equal(
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
-            lobj = f"MultiIndex level [{level}]"
+            lobj = f"{obj} level [{level}]"
             try:
                 # try comparison on levels/codes to avoid densifying MultiIndex
                 assert_index_equal(
@@ -314,7 +314,7 @@ def assert_index_equal(
                     obj=lobj,
                 )
             # get_level_values may change dtype
-            _check_types(left.levels[level], right.levels[level], obj=obj)
+            _check_types(left.levels[level], right.levels[level], obj=lobj)
 
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
@@ -527,7 +527,7 @@ def assert_interval_array_equal(
         kwargs["check_freq"] = False
 
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
-    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.right", **kwargs)
 
     assert_attr_equal("closed", left, right, obj=obj)
 
