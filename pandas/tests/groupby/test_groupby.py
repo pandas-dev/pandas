@@ -3014,3 +3014,10 @@ def test_groupby_multi_index_codes():
 
     index = df_grouped.index
     tm.assert_index_equal(index, MultiIndex.from_frame(index.to_frame()))
+
+
+def test_groupby_keys_1length_list():
+    # GH#58945
+    df = DataFrame({"x": [10, 20, 30], "y": ["a", "b", "c"]})
+    result = df.groupby(["x"]).groups
+    assert all(isinstance(key, tuple) for key in result.keys())
