@@ -95,6 +95,16 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
     tm.assert_frame_equal(result, expected)
 
     if engine == "numba":
+        # py signature binding
+        with pytest.raises(TypeError, match="missing a required argument: 'a'"):
+            float_frame.apply(
+                lambda x, a: x + a,
+                b=2,
+                raw=raw,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
+
         # keyword-only arguments are not supported in numba
         with pytest.raises(
             pd.errors.NumbaUtilError,
