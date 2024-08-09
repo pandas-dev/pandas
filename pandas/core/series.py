@@ -5568,9 +5568,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
-        Cast to DatetimeIndex of Timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex of timestamps.
 
-        This can be changed to the *end* of the period, by specifying `how="e"`.
+        Will cast at *beginning* of period if `freq` which is the offset frequency
+        is None. This can be changed to the *end* of the period, by specifying
+        `how="e"`. Will cast to the *end* of the period when specifying `freq`.
 
         Parameters
         ----------
@@ -5625,11 +5627,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-01    3
         Freq: YS-JAN, dtype: int64
 
-        Using `freq` which is the offset that the Timestamps will have
+        By specifying `how="e"` we can change the resulting timestamps to be
+        at the end of the year
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
-        >>> s2 = s2.to_timestamp(freq="M")
+        >>> s2 = s2.to_timestamp(how="e")
         >>> s2
+        2023-12-31 23:59:59.999999999    1
+        2024-12-31 23:59:59.999999999    2
+        2025-12-31 23:59:59.999999999    3
+        dtype: int64
+
+        Using `freq` which is the offset that the Timestamps will have
+
+        >>> s3 = pd.Series([1, 2, 3], index=idx)
+        >>> s3 = s3.to_timestamp(freq="M")
+        >>> s3
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
