@@ -2558,9 +2558,13 @@ def maybe_convert_objects(ndarray[object] objects,
     bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
     val = None
+    val_types = set()
 
     for i in range(n):
         val = objects[i]
+        if not checknull(val):
+            val_types.add(type(val))
+
         if itemsize_max != -1:
             itemsize = get_itemsize(val)
             if itemsize > itemsize_max or itemsize == -1:
@@ -2705,7 +2709,10 @@ def maybe_convert_objects(ndarray[object] objects,
             break
 
     numpy_dtype = np.dtype(type(val))
-    if numpy_dtype.kind in "biuf" and convert_to_nullable_dtype:
+    if (
+            numpy_dtype.kind in "biuf"
+            and len(val_types) == 1
+            and convert_to_nullable_dtype):
         return _convert_to_based_masked(objects, numpy_dtype)
     elif storage == "pyarrow":
         return _convert_to_pyarrow(objects, mask)
@@ -2827,11 +2834,10 @@ def maybe_convert_objects(ndarray[object] objects,
         ):
             from pandas.core.arrays.string_ import StringDtype
 
-            na_value = None
             if mask is not None and any(mask):
-                na_value = objects[mask][0]
-
-            dtype = StringDtype(storage=storage, na_value=na_value)
+                dtype = StringDtype(storage=storage, na_value=objects[mask][0])
+            else:
+                dtype = StringDtype(storage=storage)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
