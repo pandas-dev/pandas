@@ -160,6 +160,10 @@ def test_searchsorted(request, index_or_series_obj):
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
         request.applymarker(mark)
 
+    # This check is written for the mixed-int-string entry
+    if request.node.callspec.id == "mixed-int-string":
+        pytest.skip("'>' not supported between instances of 'str' and 'int'")
+
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
     assert 0 <= index <= len(obj)

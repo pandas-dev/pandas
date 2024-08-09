@@ -635,6 +635,10 @@ def test_union_duplicates(index, request):
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    # This check is written for the mixed-int-string entry
+    if request.node.callspec.id == "mixed-int-string":
+        pytest.skip("'<' not supported between instances of 'str' and 'int'")
+
     result = mi2.union(mi1)
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)

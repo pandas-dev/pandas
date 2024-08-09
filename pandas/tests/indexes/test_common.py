@@ -439,9 +439,16 @@ class TestCommon:
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+def test_sort_values_invalid_na_position(index_with_missing, na_position, request):
+    # This check is written for the mixed-int-string entry
+    if request.node.callspec.id in ["mixed-int-string-None", "mixed-int-string-middle"]:
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+        ):
+            index_with_missing.sort_values(na_position=na_position)
+    else:
+        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+            index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -459,17 +466,27 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
-    sorted_values = np.sort(not_na_vals)
-    if na_position == "first":
-        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    # This check is written for the mixed-int-string entry
+
+    if request.node.callspec.id in ["mixed-int-string-first", "mixed-int-string-last"]:
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+        ):
+            np.sort(not_na_vals)
     else:
-        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
 
-    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
-    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+        expected = type(index_with_missing)(
+            sorted_values, dtype=index_with_missing.dtype
+        )
 
-    result = index_with_missing.sort_values(na_position=na_position)
-    tm.assert_index_equal(result, expected)
+        result = index_with_missing.sort_values(na_position=na_position)
+        tm.assert_index_equal(result, expected)
 
 
 def test_sort_values_natsort_key():

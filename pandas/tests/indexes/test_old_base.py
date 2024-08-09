@@ -357,22 +357,38 @@ class TestBase:
             assert res_without_engine > 0
             assert res_with_engine > 0
 
-    def test_argsort(self, index):
+    def test_argsort(self, index, request):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
-        result = index.argsort()
-        expected = np.array(index).argsort()
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        # This check is written for the mixed-int-string entry
+        if request.node.callspec.id == "mixed-int-string":
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'str' and 'int'",
+            ):
+                index.argsort()
+        else:
+            result = index.argsort()
+            expected = np.array(index).argsort()
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_numpy_argsort(self, index):
-        result = np.argsort(index)
-        expected = index.argsort()
-        tm.assert_numpy_array_equal(result, expected)
+    def test_numpy_argsort(self, index, request):
+        # This check is written for the mixed-int-string entry
+        if request.node.callspec.id == "mixed-int-string":
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'str' and 'int'",
+            ):
+                np.argsort(index)
+        else:
+            result = np.argsort(index)
+            expected = index.argsort()
+            tm.assert_numpy_array_equal(result, expected)
 
-        result = np.argsort(index, kind="mergesort")
-        expected = index.argsort(kind="mergesort")
-        tm.assert_numpy_array_equal(result, expected)
+            result = np.argsort(index, kind="mergesort")
+            expected = index.argsort(kind="mergesort")
+            tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform
         # pandas compatibility input validation - the
