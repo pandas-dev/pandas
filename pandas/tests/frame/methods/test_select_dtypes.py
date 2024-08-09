@@ -50,7 +50,7 @@ class DummyArray(ExtensionArray):
 
 
 class TestSelectDtypes:
-    def test_select_dtypes_include_using_list_like(self):
+    def test_select_dtypes_include_using_list_like(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -93,6 +93,11 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include=["period"])
+
+        if using_infer_string:
+            ri = df.select_dtypes(include=["str"])
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
@@ -151,7 +156,7 @@ class TestSelectDtypes:
         expected = df[["b", "c", "e"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_include_using_scalars(self):
+    def test_select_dtypes_include_using_scalars(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -186,6 +191,11 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include="period")
+
+        if using_infer_string:
+            ri = df.select_dtypes(include="str")
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_scalars(self):
         df = DataFrame(
@@ -347,7 +357,10 @@ class TestSelectDtypes:
 
     @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
-    def test_select_dtypes_str_raises(self, dtype, arg):
+    def test_select_dtypes_str_raises(self, dtype, arg, using_infer_string):
+        if using_infer_string and dtype == "str":
+            # this is tested below
+            pytest.skip("Selecting string columns works with future strings")
         df = DataFrame(
             {
                 "a": list("abc"),

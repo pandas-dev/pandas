@@ -155,7 +155,7 @@ class TestJoin:
 
         # overlap
         msg = (
-            "You are trying to merge on float64 and object|string columns for key "
+            "You are trying to merge on float64 and object|str columns for key "
             "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):

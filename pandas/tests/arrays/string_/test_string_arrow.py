@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -27,8 +28,9 @@ def test_eq_all_na():
 
 
 def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage == "python":
-        # python string storage with na_value=NaN is not yet implemented
+    if using_infer_string and string_storage == "python" and HAS_PYARROW:
+        # string storage with na_value=NaN always uses pyarrow if available
+        # -> does not yet honor the option
         request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     with pd.option_context("string_storage", string_storage):

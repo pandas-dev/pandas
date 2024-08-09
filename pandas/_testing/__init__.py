@@ -12,6 +12,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.localization import (
     can_set_locale,
     get_locales,
@@ -106,7 +107,10 @@ FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+if using_string_dtype():
+    STRING_DTYPES: list[Dtype] = [str, "U"]
+else:
+    STRING_DTYPES: list[Dtype] = [str, "str", "U"]  # type: ignore[no-redef]
 COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
