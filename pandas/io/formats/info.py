@@ -146,7 +146,7 @@ frame_examples_sub = dedent(
      2   column_3  1000000 non-null  object
     dtypes: object(3)
     memory usage: 165.9 MB
-    
+
     >>> info_dict = df.info(return_dict=True)
     >>> print(info_dict)
     {'Column_summary': '...', 'Memory_usage': 24000128, 'Index_type': 'RangeIndex', 'Index_entries': 1000000}"""
@@ -289,7 +289,7 @@ INFO_DOCSTRING = dedent(
         details.
     {show_counts_sub}
     {return_dict_sub}
-    
+
     Returns
     -------
     dict or None
