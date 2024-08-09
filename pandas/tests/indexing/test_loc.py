@@ -16,6 +16,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
+from pandas.compat import HAS_PYARROW
 from pandas.errors import IndexingError
 
 import pandas as pd
@@ -62,11 +63,16 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
-    def test_none_values_on_string_columns(self):
+    def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
-        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
-
+        df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
         assert df.loc[2, "a"] is None
+
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        if using_infer_string:
+            assert np.isnan(df.loc[2, "a"])
+        else:
+            assert df.loc[2, "a"] is None
 
     def test_loc_getitem_int(self, frame_or_series):
         # int label
@@ -1383,6 +1389,9 @@ class TestLocBaseIndependent:
             df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
             df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_loc_setitem_single_row_categorical(self, using_infer_string):
         # GH#25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
@@ -1394,7 +1403,7 @@ class TestLocBaseIndependent:
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha").astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         tm.assert_series_equal(result, expected)
 
@@ -1563,7 +1572,7 @@ class TestLocBaseIndependent:
         df.loc[df.index[::2], "str"] = np.nan
         expected = Series(
             [np.nan, "qux", np.nan, "qux", np.nan],
-            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+            dtype=object if not using_infer_string else "str",
         ).values
         tm.assert_almost_equal(df["str"].values, expected)
 

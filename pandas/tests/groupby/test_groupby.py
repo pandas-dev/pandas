@@ -8,6 +8,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 import pandas.util._test_decorators as td
 
@@ -889,7 +890,7 @@ def test_groupby_complex_mean():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_complex_numbers(using_infer_string):
+def test_groupby_complex_numbers():
     # GH 17927
     df = DataFrame(
         [
@@ -898,11 +899,10 @@ def test_groupby_complex_numbers(using_infer_string):
             {"a": 4, "b": 1},
         ]
     )
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
         index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
-        columns=Index(["a"], dtype=dtype),
+        columns=Index(["a"]),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
@@ -1408,6 +1408,10 @@ def test_handle_dict_return_value(df):
     tm.assert_series_equal(result, expected)
 
 
+# TODO harmonize error messages
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize("grouper", ["A", ["A", "B"]])
 def test_set_group_name(df, grouper, using_infer_string):
     def f(group):
@@ -1759,7 +1763,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
             idx = Index(lev, name=keys[0])
 
         if using_infer_string:
-            columns = Index([], dtype="string[pyarrow_numpy]")
+            columns = Index([], dtype="str")
         else:
             columns = []
         expected = DataFrame([], columns=columns, index=idx)
