@@ -1049,6 +1049,34 @@ class IndexOpsMixin(OpsMixin):
         4.0    1
         NaN    1
         Name: count, dtype: int64
+
+        **Categorical Dtypes**
+
+        Rows with categorical type will be counted as one group
+        if they have same categories and order.
+        In the example below, even though ``a``, ``c``, and ``d``
+        all have the same data types of ``category``,
+        only ``c`` and ``d`` will be counted as one group
+        since ``a`` doesn't have the same categories.
+
+        >>> df = pd.DataFrame({"a": [1], "b": ["2"], "c": [3], "d": [3]})
+        >>> df = df.astype({"a": "category", "c": "category", "d": "category"})
+        >>> df
+           a  b  c  d
+        0  1  2  3  3
+
+        >>> df.dtypes
+        a    category
+        b      object
+        c    category
+        d    category
+        dtype: object
+
+        >>> df.dtypes.value_counts()
+        category    2
+        category    1
+        object      1
+        Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
             self,

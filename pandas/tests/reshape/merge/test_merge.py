@@ -812,7 +812,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|string'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1859,7 +1859,7 @@ class TestMergeCategorical:
         # merging on the same, should preserve dtypes
         merged = merge(left, left, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [CategoricalDtype(categories=["foo", "bar"]), dtype, dtype],
             index=["X", "Y_x", "Y_y"],
@@ -1871,7 +1871,7 @@ class TestMergeCategorical:
         # so should preserve the merged column
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -1985,7 +1985,7 @@ class TestMergeCategorical:
 
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -2022,7 +2022,7 @@ class TestMergeCategorical:
         merged = merge(left, right, on="X", how=join_type)
 
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series([dtype, dtype, np.dtype("int64")], index=["X", "Y", "Z"])
         tm.assert_series_equal(result, expected)
 
@@ -2970,7 +2970,7 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
         df2 = df2.iloc[:0]
 
     result = merge(df1, df2, on=["A"], how="outer")
-    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    expected = DataFrame(1, index=range(1), columns=["A", "B", "C", "D"])
     if left_empty and right_empty:
         expected = expected.iloc[:0]
     elif left_empty:

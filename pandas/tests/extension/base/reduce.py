@@ -4,7 +4,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_numeric_dtype
 
 
 class BaseReduceTests:
@@ -57,7 +56,7 @@ class BaseReduceTests:
         arr = ser.array
         df = pd.DataFrame({"a": arr})
 
-        kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
+        kwargs = {"ddof": 1} if op_name in ["var", "std", "sem"] else {}
 
         cmp_dtype = self._get_expected_reduction_dtype(arr, op_name, skipna)
 
@@ -119,10 +118,8 @@ class BaseReduceTests:
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
         ser = pd.Series(data)
-        if not is_numeric_dtype(ser.dtype):
-            pytest.skip(f"{ser.dtype} is not numeric dtype")
 
-        if op_name in ["count", "kurt", "sem"]:
+        if op_name == "count":
             pytest.skip(f"{op_name} not an array method")
 
         if not self._supports_reduction(ser, op_name):

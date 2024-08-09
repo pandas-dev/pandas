@@ -256,6 +256,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
+        If ``data`` is Series then is ignored.
     name : Hashable, default None
         The name to give to the Series.
     copy : bool, default False
@@ -1712,6 +1713,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         collections.abc.MutableMapping
             Key-value representation of Series.
 
+        See Also
+        --------
+        Series.to_list: Converts Series to a list of the values.
+        Series.to_numpy: Converts Series to NumPy ndarray.
+        Series.array: ExtensionArray of the data backing this Series.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
@@ -1748,6 +1755,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         DataFrame
             DataFrame representation of Series.
+
+        See Also
+        --------
+        Series.to_dict : Convert Series to dict object.
 
         Examples
         --------
@@ -1804,14 +1815,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     30.0
         Parrot     20.0
         Name: Max Speed, dtype: float64
+
+        We can pass a list of values to group the Series data by custom labels:
+
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
         Name: Max Speed, dtype: float64
+
+        Grouping by numeric labels yields similar results:
+
+        >>> ser.groupby([0, 1, 0, 1]).mean()
+        0    210.0
+        1    185.0
+        Name: Max Speed, dtype: float64
+
+        We can group by a level of the index:
+
         >>> ser.groupby(level=0).mean()
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
+
+        We can group by a condition applied to the Series values:
+
         >>> ser.groupby(ser > 100).mean()
         Max Speed
         False     25.0
@@ -1834,11 +1861,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot  Captive     30.0
                 Wild        20.0
         Name: Max Speed, dtype: float64
+
         >>> ser.groupby(level=0).mean()
         Animal
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
+
+        We can also group by the 'Type' level of the hierarchical index
+        to get the mean speed for each type:
+
         >>> ser.groupby(level="Type").mean()
         Type
         Captive    210.0
@@ -1854,11 +1886,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    3
         dtype: int64
 
+        To include `NA` values in the group keys, set `dropna=False`:
+
         >>> ser.groupby(level=0, dropna=False).sum()
         a    3
         b    3
         NaN  3
         dtype: int64
+
+        We can also group by a custom list with NaN values to handle
+        missing group labels:
 
         >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
         >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
@@ -6567,7 +6604,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            The maximum of the values in the Series.
+            The minimum of the values in the Series.
 
         See Also
         --------
@@ -6716,7 +6753,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Sum of the values for the requested axis.
 
         See Also
         --------
@@ -6826,7 +6863,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         scalar or Series (if level specified)
-            Median of the values for the requested axis.
+            Mean of the values for the requested axis.
 
         See Also
         --------

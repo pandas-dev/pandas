@@ -117,7 +117,9 @@ class TestPeriodConstruction:
         i2 = Period("3/1/2005", freq="D")
         assert i1 == i2
 
-        i3 = Period(year=2005, month=3, day=1, freq="d")
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
         i1 = Period("2007-01-01 09:00:00.001")
@@ -612,6 +614,25 @@ class TestPeriodConstruction:
         # Integer overflow for Period over the maximum timestamp
         p = Period(ordinal=2562048 + hour, freq="1h")
         assert p.hour == hour
+
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [("2W", "2w"), ("2W-FRI", "2w-fri"), ("2D", "2d"), ("2B", "2b")],
+    )
+    def test_period_deprecated_lowercase_freq(self, freq, freq_depr):
+        # GH#58998
+        msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Period("2016-03-01 09:00", freq=freq_depr)
+
+        expected = Period("2016-03-01 09:00", freq=freq)
+        assert result == expected
 
 
 class TestPeriodMethods:

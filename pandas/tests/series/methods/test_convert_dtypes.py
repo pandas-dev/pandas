@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 import pandas as pd
@@ -10,6 +12,7 @@ import pandas._testing as tm
 
 
 class TestSeriesConvertDtypes:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "data, maindtype, expected_default, expected_other",
         [
@@ -231,7 +234,7 @@ class TestSeriesConvertDtypes:
         copy = series.copy(deep=True)
 
         if result.notna().sum() > 0 and result.dtype in ["interval[int64, right]"]:
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            with pytest.raises(TypeError, match="Invalid value"):
                 result[result.notna()] = np.nan
         else:
             result[result.notna()] = np.nan

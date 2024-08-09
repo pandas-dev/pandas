@@ -22,12 +22,18 @@ from typing import cast
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
+
+pytestmark = pytest.mark.xfail(
+    using_string_dtype(), reason="TODO(infer_string)", strict=False
+)
 
 
 def maybe_split_array(arr, chunked):
@@ -53,8 +59,9 @@ def chunked(request):
 
 
 @pytest.fixture
-def dtype(string_storage):
-    return StringDtype(storage=string_storage)
+def dtype(string_dtype_arguments):
+    storage, na_value = string_dtype_arguments
+    return StringDtype(storage=storage, na_value=na_value)
 
 
 @pytest.fixture
@@ -96,16 +103,36 @@ def data_for_grouping(dtype, chunked):
 
 class TestStringArray(base.ExtensionTests):
     def test_eq_with_str(self, dtype):
-        assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
+
+        if dtype.na_value is pd.NA:
+            # only the NA-variant supports parametrized string alias
+            assert dtype == f"string[{dtype.storage}]"
+        elif dtype.storage == "pyarrow":
+            # TODO(infer_string) deprecate this
+            assert dtype == "string[pyarrow_numpy]"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type
         # because StringDtype is a string type
         assert is_string_dtype(dtype)
 
-    def test_view(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_is_dtype_from_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            result = type(dtype).is_dtype(dtype.name)
+            assert result is False
+        else:
+            super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string_own_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            with pytest.raises(TypeError, match="Cannot construct a 'StringDtype'"):
+                dtype.construct_from_string(dtype.name)
+        else:
+            super().test_construct_from_string_own_name(dtype)
+
+    def test_view(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -113,13 +140,13 @@ class TestStringArray(base.ExtensionTests):
         # base test uses string representation of dtype
         pass
 
-    def test_transpose(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_transpose(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
-    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_setitem_preserves_views(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
@@ -140,28 +167,21 @@ class TestStringArray(base.ExtensionTests):
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         if op_name in ["__divmod__", "__rdivmod__"]:
-            if isinstance(obj, pd.Series) and cast(
-                StringDtype, tm.get_dtype(obj)
-            ).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if (
+                isinstance(obj, pd.Series)
+                and cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow"
+            ):
                 # TODO: re-raise as TypeError?
                 return NotImplementedError
-            elif isinstance(other, pd.Series) and cast(
-                StringDtype, tm.get_dtype(other)
-            ).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            elif (
+                isinstance(other, pd.Series)
+                and cast(StringDtype, tm.get_dtype(other)).storage == "pyarrow"
+            ):
                 # TODO: re-raise as TypeError?
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mod__", "__rmod__", "__pow__", "__rpow__"]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mul__", "__rmul__"]:
@@ -175,10 +195,7 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage in [
-                "pyarrow",
-                "pyarrow_numpy",
-            ]:
+            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
                 import pyarrow as pa
 
                 # TODO: better to re-raise as TypeError?
@@ -190,7 +207,7 @@ class TestStringArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return (
             op_name in ["min", "max"]
-            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            or ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
 
@@ -198,10 +215,10 @@ class TestStringArray(base.ExtensionTests):
         dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
+        elif dtype.na_value is np.nan:
+            cast_to = np.bool_  # type: ignore[assignment]
         elif dtype.storage == "pyarrow":
             cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
-        elif dtype.storage == "pyarrow_numpy":
-            cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)

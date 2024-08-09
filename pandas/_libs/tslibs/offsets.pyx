@@ -56,7 +56,6 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -492,6 +491,12 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
+        elif isinstance(other, BaseOffset):
+            # Otherwise raises RecurrsionError due to __rmul__
+            raise TypeError(
+                f"Cannot multiply {type(self).__name__} with "
+                f"{type(other).__name__}."
+            )
         return NotImplemented
 
     def __rmul__(self, other):
@@ -4677,6 +4682,7 @@ prefix_mapping = {
         Hour,  # 'h'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
+        LastWeekOfMonth,  # 'LWOM'
         FY5253,
         FY5253Quarter,
     ]
@@ -4697,13 +4703,9 @@ _lite_rule_alias = {
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
-    "min": "min",
-    "ms": "ms",
-    "us": "us",
-    "ns": "ns",
 }
 
-_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
+_dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4711,6 +4713,37 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 # TODO: still needed?
 # cache of previously seen offsets
 _offset_map = {}
+
+
+def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
+    if name in _lite_rule_alias:
+        return name
+    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        warnings.warn(
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use "
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f" instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+            )
+        return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
+
+    for _name in (name.lower(), name.upper()):
+        if name == _name:
+            continue
+        if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            warnings.warn(
+                f"\'{name}\' is deprecated and will be removed "
+                f"in a future version, please use "
+                f"\'{_name}\' "
+                f" instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+                )
+            return _name
+
+    return name
 
 
 def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
@@ -4725,20 +4758,16 @@ def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
                 alias.lower() not in {"s", "ms", "us", "ns"} and
                 alias.upper().split("-")[0].endswith(("S", "E"))):
             raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
-    if (is_period and
-            alias.upper() in c_OFFSET_TO_PERIOD_FREQSTR and
-            alias != "ms" and
-            alias.upper().split("-")[0].endswith(("S", "E"))):
-        if (alias.upper().startswith("B") or
-                alias.upper().startswith("S") or
-                alias.upper().startswith("C")):
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
-        else:
-            alias_msg = "".join(alias.upper().split("E", 1))
-            raise ValueError(
-                f"for Period, please use \'{alias_msg}\' "
-                f"instead of \'{alias}\'"
-            )
+    if (
+        is_period and
+        alias in c_OFFSET_TO_PERIOD_FREQSTR and
+        alias != c_OFFSET_TO_PERIOD_FREQSTR[alias]
+    ):
+        alias_msg = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
+        raise ValueError(
+            f"for Period, please use \'{alias_msg}\' "
+            f"instead of \'{alias}\'"
+        )
 
 
 # TODO: better name?
@@ -4750,35 +4779,6 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if (
-        name not in _lite_rule_alias
-        and (name.upper() in _lite_rule_alias)
-        and name != "ms"
-    ):
-        warnings.warn(
-            f"\'{name}\' is deprecated and will be removed "
-            f"in a future version, please use \'{name.upper()}\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    elif (
-        name not in _lite_rule_alias
-        and (name.lower() in _lite_rule_alias)
-        and name != "MS"
-    ):
-        warnings.warn(
-            f"\'{name}\' is deprecated and will be removed "
-            f"in a future version, please use \'{name.lower()}\' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    if name not in _dont_uppercase:
-        name = name.upper()
-        name = _lite_rule_alias.get(name, name)
-        name = _lite_rule_alias.get(name.lower(), name)
-    else:
-        name = _lite_rule_alias.get(name, name)
-
     if name not in _offset_map:
         try:
             split = name.split("-")
@@ -4880,6 +4880,7 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
+                name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
                 if is_period:
                     if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
@@ -4888,41 +4889,21 @@ cpdef to_offset(freq, bint is_period=False):
                                 f"\'{name}\' is no longer supported, "
                                 f"please use \'{name.upper()}\' instead.",
                             )
-                        name = c_PERIOD_TO_OFFSET_FREQSTR.get(name.upper())
+                        name = c_PERIOD_TO_OFFSET_FREQSTR[name.upper()]
+                name = _lite_rule_alias.get(name, name)
 
-                    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed "
-                            f"in a future version, please use "
-                            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                            f" instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                            )
-                        name = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
-                prefix = _lite_rule_alias.get(name) or name
                 if stride_sign is None:
                     stride_sign = -1 if stride.startswith("-") else 1
                 if not stride:
                     stride = 1
 
-                if prefix in c_DEPR_ABBREVS:
-                    warnings.warn(
-                        f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    prefix = c_DEPR_ABBREVS[prefix]
-
-                if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
+                if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or
                     #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
-                    td = Timedelta(1, unit=prefix)
+                    td = Timedelta(1, unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:
@@ -4931,7 +4912,7 @@ cpdef to_offset(freq, bint is_period=False):
                         offset *= stride_sign
                 else:
                     stride = int(stride)
-                    offset = _get_offset(prefix)
+                    offset = _get_offset(name)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
                 if result is None:
@@ -4941,7 +4922,7 @@ cpdef to_offset(freq, bint is_period=False):
         except (ValueError, TypeError) as err:
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
-            )
+            ) from err
     else:
         result = None
 

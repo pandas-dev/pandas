@@ -8,7 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
@@ -57,9 +57,7 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="dtype checking logic doesn't work")
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -147,6 +145,12 @@ class TestFromRecords:
         result = DataFrame.from_records([])
         assert len(result) == 0
         assert len(result.columns) == 0
+
+    def test_from_records_sequencelike_empty_index(self):
+        result = DataFrame.from_records([], index=[])
+        assert len(result) == 0
+        assert len(result.columns) == 0
+        assert len(result.index) == 0
 
     def test_from_records_dictlike(self):
         # test the dict methods

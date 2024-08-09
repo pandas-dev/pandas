@@ -441,6 +441,13 @@ class NaTType(_NaT):
 
         Monday == 1 ... Sunday == 7.
 
+        See Also
+        --------
+        Timestamp.weekday : Return the day of the week with Monday=0, Sunday=6.
+        Timestamp.isocalendar : Return a tuple containing ISO year, week number
+            and weekday.
+        datetime.date.isoweekday : Equivalent method in datetime module.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')
@@ -632,6 +639,16 @@ class NaTType(_NaT):
         "time",
         """
         Return time object with same time but with tzinfo=None.
+
+        This method extracts the time part of the `Timestamp` object, excluding any
+        timezone information. It returns a `datetime.time` object which only represents
+        the time (hours, minutes, seconds, and microseconds).
+
+        See Also
+        --------
+        Timestamp.date : Return date object with same year, month and day.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
 
         Examples
         --------
@@ -957,10 +974,20 @@ class NaTType(_NaT):
         """
         Return new Timestamp object representing current time local to tz.
 
+        This method returns a new `Timestamp` object that represents the current time.
+        If a timezone is provided, the current time will be localized to that timezone.
+        Otherwise, it returns the current local time.
+
         Parameters
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.today : Return the current time in the local timezone.
 
         Examples
         --------
@@ -1496,7 +1523,7 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.asm8 : Return numpy datetime64 format in nanoseconds.
+        Timestamp.asm8 : Return numpy datetime64 format with same precision.
         Timestamp.to_pydatetime : Convert Timestamp object to a native
             Python datetime object.
         to_timedelta : Convert argument into timedelta object,

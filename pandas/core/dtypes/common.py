@@ -187,6 +187,10 @@ def is_sparse(arr) -> bool:
     bool
         Whether or not the array-like is a pandas sparse array.
 
+    See Also
+    --------
+    api.types.SparseDtype : The dtype object for pandas sparse arrays.
+
     Examples
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
@@ -408,6 +412,13 @@ def is_period_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the Period dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_period_dtype
@@ -557,6 +568,11 @@ def is_string_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of the string dtype.
+
+    See Also
+    --------
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                is of the string dtype.
 
     Examples
     --------
@@ -715,6 +731,15 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
         Whether or not the array or dtype is of a signed integer dtype
         and not an instance of timedelta64.
 
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype: Check whether the provided array or dtype
+        is of a numeric dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_signed_integer_dtype
@@ -770,6 +795,15 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of an unsigned integer dtype.
+
+    See Also
+    --------
+    api.types.is_signed_integer_dtype : Check whether the provided array
+        or dtype is of an signed integer dtype.
+    api.types.is_integer_dtype : Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype : Check whether the provided array or dtype
+        is of a numeric dtype.
 
     Examples
     --------
@@ -994,6 +1028,11 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of the timedelta64[ns] dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_timedelta64_ns_dtype
@@ -1113,6 +1152,15 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of a numeric dtype.
 
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+    api.types.is_signed_integer_dtype: Check whether the provided array
+        or dtype is of an signed integer dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_numeric_dtype
@@ -1157,6 +1205,12 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a real number dtype.
+
+    See Also
+    --------
+    is_numeric_dtype : Check if a dtype is numeric.
+    is_complex_dtype : Check if a dtype is complex.
+    is_bool_dtype : Check if a dtype is boolean.
 
     Examples
     --------

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.common import is_float_dtype
 
@@ -6,7 +7,6 @@ from pandas import (
     DataFrame,
     isna,
 )
-import pandas._testing as tm
 
 
 class TestSetValue:
@@ -28,7 +28,7 @@ class TestSetValue:
         res = float_frame.copy()
         res._set_value("foobar", "baz", "sam")
         if using_infer_string:
-            assert res["baz"].dtype == "string"
+            assert res["baz"].dtype == "str"
         else:
             assert res["baz"].dtype == np.object_
         res = float_frame.copy()
@@ -40,11 +40,8 @@ class TestSetValue:
         assert is_float_dtype(res["baz"])
         assert isna(res["baz"].drop(["foobar"])).all()
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             res._set_value("foobar", "baz", "sam")
-        assert res.loc["foobar", "baz"] == "sam"
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(
