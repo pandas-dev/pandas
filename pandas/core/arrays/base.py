@@ -2350,7 +2350,13 @@ class ExtensionArray:
             else:
                 return result
         elif isinstance(result, np.ndarray):
-            return pd_array(result, result.dtype)
+            result_types = set(np.array([type(x) for x in result]))
+
+            # if internal values types are compatible with self dtype
+            if all(issubclass(t, self.dtype.type) for t in result_types):
+                return pd_array(result, self.dtype)
+            else:
+                return pd_array(result, result.dtype)
         else:
             return result
 
