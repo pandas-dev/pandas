@@ -1318,13 +1318,17 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return a period of which this timestamp is an observation.
 
-        This method constructs a `Period` object from the `Timestamp` and provided period.
-        Please note that timezone information will be dropped, since `Period` doesn't support timezones.
+        This method constructs a `Period` object from the `Timestamp`
+        and provided period.
+        Please note that timezone information will be dropped,
+        since `Period` doesn't support timezones.
 
         Parameters
         ----------
         freq : str, default None
-            The period frequency. Accepted strings are listed in the :ref:`period alias section <timeseries.period_aliases>` in the user docs.
+            The period frequency. Accepted strings are listed in
+            the :ref:`period alias section <timeseries.period_aliases>`
+            in the user docs.
 
         See Also
         --------
@@ -2629,7 +2633,8 @@ default 'raise'
         """
         Implements datetime.replace, handles nanoseconds.
 
-        Returns a new timestamp with the same attributes, except for those given new value.
+        Returns a new timestamp with the same attributes,
+        except for those given new value.
 
         Parameters
         ----------
@@ -2660,7 +2665,8 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.normalize : Normalize the Timestamp to midnight, preserving tz information.
+        Timestamp.normalize : Normalize the Timestamp to midnight,
+            preserving tz information.
         Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
         Timestamp.tz_localize : Localize the Timestamp to a timezone.
         datetime.datetime.replace : Return a new datetime with replaced attributes.
