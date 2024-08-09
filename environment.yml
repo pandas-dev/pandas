@@ -92,6 +92,7 @@ dependencies:
   - sphinx
   - sphinx-design
   - sphinx-copybutton
+  - sphinx-toggleprompt
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
