@@ -48,8 +48,6 @@ def read_clipboard(
         * ``"pyarrow"``: returns pyarrow-backed nullable
           :class:`ArrowDtype` :class:`DataFrame`
 
-
-
         .. versionadded:: 2.0
 
     **kwargs
