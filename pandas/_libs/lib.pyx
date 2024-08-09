@@ -2827,7 +2827,11 @@ def maybe_convert_objects(ndarray[object] objects,
         ):
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage=storage)
+            na_value = None
+            if mask is not None and any(mask):
+                na_value = objects[mask][0]
+
+            dtype = StringDtype(storage=storage, na_value=na_value)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
