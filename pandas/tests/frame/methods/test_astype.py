@@ -201,7 +201,7 @@ class TestAstype:
         expected = DataFrame(
             {
                 "a": a,
-                "b": Series(["0", "1", "2", "3", "4"], dtype="object"),
+                "b": Series(["0", "1", "2", "3", "4"], dtype="str"),
                 "c": c,
                 "d": Series([1.0, 2.0, 3.14, 4.0, 5.4], dtype="float32"),
             }
@@ -262,9 +262,9 @@ class TestAstype:
         a2 = Series([0, 1, 2, 3, 4], name="a")
         df = concat([a1, b, a2], axis=1)
 
-        result = df.astype(str)
+        result = df.astype("str")
         a1_str = Series(["1", "2", "3", "4", "5"], dtype="str", name="a")
-        b_str = Series(["0.1", "0.2", "0.4", "0.6", "0.8"], dtype=str, name="b")
+        b_str = Series(["0.1", "0.2", "0.4", "0.6", "0.8"], dtype="str", name="b")
         a2_str = Series(["0", "1", "2", "3", "4"], dtype="str", name="a")
         expected = concat([a1_str, b_str, a2_str], axis=1)
         tm.assert_frame_equal(result, expected)
@@ -896,4 +896,13 @@ def test_astype_to_string_not_modifying_input(string_storage, val):
     expected = df.copy()
     with option_context("mode.string_storage", string_storage):
         df.astype("string")
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("val", [None, 1, 1.5, np.nan, NaT])
+def test_astype_to_string_dtype_not_modifying_input(any_string_dtype, val):
+    # GH#51073 - variant of the above test with explicit dtype instances
+    df = DataFrame({"a": ["a", "b", val]})
+    expected = df.copy()
+    df.astype(any_string_dtype)
     tm.assert_frame_equal(df, expected)

@@ -74,7 +74,7 @@ class TestNLargestNSmallest:
         )
         if "b" in order:
             error_msg = (
-                f"Column 'b' has dtype (object|string), "
+                f"Column 'b' has dtype (object|str), "
                 f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):

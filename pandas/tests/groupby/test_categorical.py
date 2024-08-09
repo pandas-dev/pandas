@@ -134,7 +134,7 @@ def test_basic_string(using_infer_string):
         result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
-    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    dtype = "str" if using_infer_string else object
     expected["person_name"] = expected["person_name"].astype(dtype)
     tm.assert_frame_equal(result, expected)
 
