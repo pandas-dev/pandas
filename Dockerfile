@@ -2,7 +2,7 @@ FROM python:3.10.8
 WORKDIR /home/pandas
 
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y build-essential
+RUN apt-get install -y build-essential bash-completion
 
 # hdf5 needed for pytables installation
 # libgles2-mesa needed for pytest-qt
