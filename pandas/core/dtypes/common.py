@@ -863,6 +863,13 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     int)` will be True if the OS uses 64-bit integers and False if the OS
     uses 32-bit integers.
 
+    See Also
+    --------
+    pandas.api.types.is_string_dtype : Check whether the provided array or dtype is of the string dtype.
+    pandas.api.types.is_float_dtype : Check whether the provided array or dtype is of a float dtype.
+    pandas.api.types.is_integer_dtype : Check whether the provided array or dtype is of an integer dtype.
+    pandas.api.types.is_numeric_dtype : Check whether the provided array or dtype is of a numeric dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_int64_dtype
