@@ -1136,7 +1136,6 @@ class TestParquetPyArrow(Base):
         pa = pytest.importorskip("pyarrow")
         pq = pytest.importorskip("pyarrow.parquet")
 
-
         arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
         table = pa.table([arr], names=["timestamp"])
         pq.write_table(table, temp_file)
