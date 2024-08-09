@@ -6534,7 +6534,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Iterable[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[True],
@@ -6544,7 +6544,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Iterable[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
@@ -6554,7 +6554,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Iterable[Hashable] | set | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: bool = ...,
@@ -6563,7 +6563,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop_duplicates(
         self,
-        subset: Hashable | Iterable[Hashable] | set | None = None,
+        subset: Hashable | Iterable[Hashable] | None = None,
         *,
         keep: DropKeep = "first",
         inplace: bool = False,
@@ -6667,7 +6667,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def duplicated(
         self,
-        subset: Hashable | Iterable[Hashable] | set | None = None,
+        subset: Hashable | Iterable[Hashable] | None = None,
         keep: DropKeep = "first",
     ) -> Series:
         """
