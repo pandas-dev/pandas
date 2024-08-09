@@ -1167,6 +1167,7 @@ class Parser:
         """
         Try to parse a Series into a column by inferring dtype.
         """
+        backup_data = data
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -1221,7 +1222,7 @@ class Parser:
         if len(data) and data.dtype in ("float", "object"):
             # coerce ints if we can
             try:
-                new_data = data.astype("int64")
+                new_data = backup_data.astype("int64")
                 if (new_data == data).all():
                     data = new_data
                     converted = True
