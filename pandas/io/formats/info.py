@@ -54,6 +54,15 @@ show_counts_sub = dedent(
 )
 
 
+return_dict_sub = dedent(
+    """\
+    return_dict : bool, optional
+        Whether to return the summary as a dictionary. If True, the method
+        returns a dictionary containing information about the DataFrame.
+        If False, the summary is printed and None is returned."""
+)
+
+
 frame_examples_sub = dedent(
     """\
     >>> int_values = [1, 2, 3, 4, 5]
@@ -136,7 +145,11 @@ frame_examples_sub = dedent(
      1   column_2  1000000 non-null  object
      2   column_3  1000000 non-null  object
     dtypes: object(3)
-    memory usage: 165.9 MB"""
+    memory usage: 165.9 MB
+    
+    >>> info_dict = df.info(return_dict=True)
+    >>> print(info_dict)
+    {'Column_summary': '...', 'Memory_usage': 24000128, 'Index_type': 'RangeIndex', 'Index_entries': 1000000}"""
 )
 
 
@@ -153,6 +166,7 @@ frame_sub_kwargs = {
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
     "show_counts_sub": show_counts_sub,
+    "return_dict_sub": return_dict_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
     "version_added_sub": "",
@@ -233,6 +247,7 @@ series_sub_kwargs = {
     "type_sub": "",
     "max_cols_sub": "",
     "show_counts_sub": show_counts_sub,
+    "return_dict_sub": return_dict_sub,
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
@@ -273,11 +288,13 @@ INFO_DOCSTRING = dedent(
         :ref:`Frequently Asked Questions <df-memory-usage>` for more
         details.
     {show_counts_sub}
-
+    {return_dict_sub}
+    
     Returns
     -------
-    None
-        This method prints a summary of a {klass} and returns None.
+    dict or None
+        If return_dict is True, returns a dictionary summarizing the {klass}.
+        Otherwise, returns None.
 
     See Also
     --------
@@ -435,7 +452,7 @@ class _BaseInfo(ABC):
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
-    ) -> None:
+    ) -> None | dict:
         pass
 
 
@@ -524,7 +541,7 @@ class DataFrameInfo(_BaseInfo):
         verbose: bool | None,
         show_counts: bool | None,
         return_dict: bool | None,
-    ) -> None:
+    ) -> None | dict:
         if return_dict:
             return self.to_dict()
         else:
