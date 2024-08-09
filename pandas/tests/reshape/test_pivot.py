@@ -1199,8 +1199,15 @@ class TestPivotTable:
         result = data[["A", "B"]].pivot_table(
             index=["A", "B"], aggfunc=len, margins=True
         )
-        result_list = result.tolist()
-        assert sum(result_list[:-1]) == result_list[-1]
+        expected = DataFrame(
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=Index([]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a
@@ -1208,7 +1215,19 @@ class TestPivotTable:
         result = data[["A", "B", "C"]].pivot_table(
             index=["A", "B"], columns="C", aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
+        expected = DataFrame(
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=MultiIndex(
+                levels=[[], ["dull", "shiny"]],
+                codes=[[], []],
+                names=[None, "C"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_one_row_one_col(self, data):
         # Regression test on pivot table: no values passed but row and col
@@ -1216,7 +1235,15 @@ class TestPivotTable:
         result = data[["A", "B"]].pivot_table(
             index="A", columns="B", aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [4.0, 7.0, 11.0]
+        expected = DataFrame(
+            index=Index(["bar", "foo", "All"], name="A"),
+            columns=MultiIndex(
+                levels=[[], ["dull", "shiny"]],
+                codes=[[], []],
+                names=[None, "B"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_no_values_two_row_two_cols(self, data):
         # Regression test on pivot table: no values passed but rows and cols
@@ -1225,7 +1252,19 @@ class TestPivotTable:
         result = data[["A", "B", "C", "D"]].pivot_table(
             index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
+        expected = DataFrame(
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=MultiIndex(
+                levels=[[], ["dull", "shiny"], list("abcdefghijk")],
+                codes=[[], [], []],
+                names=[None, "C", "D"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):

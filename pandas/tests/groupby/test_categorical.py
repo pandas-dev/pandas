@@ -1344,9 +1344,7 @@ def test_groupby_cat_preserves_structure(observed, ordered):
     expected = df.copy()
 
     result = (
-        df.groupby("Name", observed=observed)
-        .agg(DataFrame.sum, skipna=True)
-        .reset_index()
+        df.groupby("Name", observed=observed).agg(Series.sum, skipna=True).reset_index()
     )
 
     tm.assert_frame_equal(result, expected)

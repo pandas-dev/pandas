@@ -247,6 +247,7 @@ class Resampler(BaseGroupBy, PandasObject):
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
+        bin_grouper._is_resample = True
         return binner, bin_grouper
 
     @overload
@@ -368,7 +369,21 @@ class Resampler(BaseGroupBy, PandasObject):
         return result
 
     agg = aggregate
-    apply = aggregate
+
+    @final
+    @doc(
+        _shared_docs["aggregate"],
+        see_also=_agg_see_also_doc,
+        examples=_agg_examples_doc,
+        klass="DataFrame",
+        axis="",
+    )
+    def apply(self, func=None, *args, **kwargs):
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        if result is None:
+            how = func
+            result = self._groupby_and_apply(how, *args, **kwargs)
+        return result
 
     @final
     def transform(self, arg, *args, **kwargs):
@@ -457,6 +472,53 @@ class Resampler(BaseGroupBy, PandasObject):
                 result = grouped.aggregate(func)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
+        except (AttributeError, KeyError):
+            # we have a non-reducing function; try to evaluate
+            # alternatively we want to evaluate only a column of the input
+
+            # test_apply_to_one_column_of_df the function being applied references
+            #  a DataFrame column, but aggregate_item_by_item operates column-wise
+            #  on Series, raising AttributeError or KeyError
+            #  (depending on whether the column lookup uses getattr/__getitem__)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
+
+        except ValueError as err:
+            if "Must produce aggregated value" in str(err):
+                # raised in _aggregate_named
+                # see test_apply_without_aggregation, test_apply_with_mutated_index
+                pass
+            else:
+                raise
+
+            # we have a non-reducing function
+            # try to evaluate
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
+
+        return self._wrap_result(result)
+
+    def _groupby_and_apply(self, how, *args, **kwargs):
+        """
+        Re-evaluate the obj with a groupby aggregation.
+        """
+        grouper = self._grouper
+
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
+
+        grouped = get_groupby(obj, by=None, grouper=grouper, group_keys=self.group_keys)
+
+        try:
+            if callable(how):
+                # TODO: test_resample_apply_with_additional_args fails if we go
+                #  through the non-lambda path, not clear that it should.
+                func = lambda x: how(x, *args, **kwargs)
+                result = grouped._agg_for_resample(func)
+            else:
+                result = grouped._agg_for_resample(how, *args, **kwargs)
         except (AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
             # alternatively we want to evaluate only a column of the input
@@ -1569,6 +1631,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
     _upsample = _apply
     _downsample = _apply
     _groupby_and_aggregate = _apply
+    _groupby_and_apply = _apply
 
     @final
     def _gotitem(self, key, ndim, subset=None):

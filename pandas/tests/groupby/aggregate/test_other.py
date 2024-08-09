@@ -622,7 +622,7 @@ def test_agg_lambda_with_timezone():
     )
     result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
     expected = DataFrame(
-        [pd.Timestamp("2018-01-01", tz="UTC")],
+        [[df["date"].head(1)]],
         index=Index([1], name="tag"),
         columns=["date"],
     )

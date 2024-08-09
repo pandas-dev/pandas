@@ -624,7 +624,7 @@ def _generate_marginal_results_without_values(
     margins_name: Hashable = "All",
 ):
     margin_keys: list | Index
-    if len(cols) > 0:
+    if len(table.columns) > 0:
         # need to "interleave" the margins
         margin_keys = []
 

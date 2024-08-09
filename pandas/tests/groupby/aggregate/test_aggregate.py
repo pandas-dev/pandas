@@ -49,12 +49,27 @@ def test_agg_regression1(tsframe):
 
 def test_agg_must_agg(df):
     grouped = df.groupby("A")["C"]
+    expected = Series(
+        {
+            "bar": df[df.A == "bar"]["C"].describe(),
+            "foo": df[df.A == "foo"]["C"].describe(),
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.describe())
+    tm.assert_series_equal(result, expected)
 
-    msg = "Must produce aggregated value"
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.describe())
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.index[:2])
+    expected = Series(
+        {
+            "bar": df[df.A == "bar"]["C"].index[:2],
+            "foo": df[df.A == "foo"]["C"].index[:2],
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.index[:2])
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_ser_multi_key(df):
@@ -1185,6 +1200,22 @@ class TestLambdaMangling:
         expected = DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
+    def test_unused_kwargs(self):
+        # GH#39169 - Passing kwargs used to have agg pass the entire frame rather
+        # than column-by-column
+
+        # UDF that works on both the entire frame and column-by-column
+        func = lambda data, **kwargs: np.sum(np.sum(data))
+
+        df = DataFrame([[1, 2], [3, 4]])
+        expected = DataFrame({0: [1, 3], 1: [2, 4]})
+
+        result = df.groupby(level=0).agg(func)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby(level=0).agg(func, foo=42)
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_with_one_lambda(self):
         # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
         df = DataFrame(
@@ -1270,6 +1301,40 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+    def test_multiple_udf_same_name(self):
+        # GH#28570
+        quant50 = partial(np.percentile, q=50)
+        quant70 = partial(np.percentile, q=70)
+
+        df = DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+        expected = DataFrame(
+            [[1.5, 1.7], [4.0, 4.4]],
+            index=Index(["a", "b"], name="col1"),
+            columns=MultiIndex(
+                levels=[["col2"], ["percentile"]],
+                codes=[[0, 0], [0, 0]],
+            ),
+        )
+        gb = df.groupby("col1")
+        result = gb.agg({"col2": [quant50, quant70]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("use_kwargs", [True, False])
+    def test_multiple_udf_with_args(self, use_kwargs):
+        # GH#26611
+        def func(x, y):
+            return x.sum() + y
+
+        df = DataFrame({"A": [1, 2]})
+        expected = DataFrame({"A": [13]})
+        gb = df.groupby([0, 0])
+        if use_kwargs:
+            args, kwargs = (), {"y": 10}
+        else:
+            args, kwargs = (10,), {}
+        result = gb.agg(func, *args, **kwargs)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
@@ -1464,11 +1529,12 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
             "key3": pd.array([max_value], dtype=any_real_numeric_dtype),
         }
     )
-    arrays = [["a"], ["b"]]
-    index = MultiIndex.from_arrays(arrays, names=("key1", "key2"))
 
     expected = DataFrame(
-        {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
+        {"key3": [df["key3"]]},
+        index=MultiIndex(
+            levels=[["a"], ["b"]], codes=[[0], [0]], names=["key1", "key2"]
+        ),
     )
     result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
@@ -1549,26 +1615,25 @@ def test_groupby_complex_raises(func):
 
 
 @pytest.mark.parametrize(
-    "test, constant",
+    "test, values",
     [
-        ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
-        ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
-        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
-        pytest.param(
-            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
-            {0: ["a", "b"], 1: [[1, 2], 3]},
-            marks=pytest.mark.xfail,
-        ),
+        ([[20, "A"], [20, "B"], [10, "C"]], [10, 20]),
+        ([[20, "A"], [20, "B"], [30, "C"]], [20, 30]),
+        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], ["a", "b"]),
+        ([["a", 1], ["a", 2], ["b", 3], ["b", 3]], ["a", "b"]),
     ],
 )
-def test_agg_of_mode_list(test, constant):
+def test_agg_of_mode_list(test, values):
     # GH#25581
     df1 = DataFrame(test)
     result = df1.groupby(0).agg(Series.mode)
     # Mode usually only returns 1 value, but can return a list in the case of a tie.
 
-    expected = DataFrame(constant)
-    expected = expected.set_index(0)
+    expected = DataFrame(
+        [[df1[df1[0] == value][1].mode()] for value in values],
+        index=Index(values, name=0),
+        columns=[1],
+    )
 
     tm.assert_frame_equal(result, expected)
 
