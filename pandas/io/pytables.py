@@ -39,6 +39,7 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
+from pandas.compat import PY312
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -170,8 +171,12 @@ def _ensure_term(where, scope_level: int):
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
+        # Python 3.12 does not a scope for list comprehensions, but older versions did:
+        # https://docs.python.org/3.12/whatsnew/3.12.html#whatsnew312-pep709
+        if not PY312:
+            level += 1
         where = [
-            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            Term(term, scope_level=level) if maybe_expression(term) else term
             for term in where
             if term is not None
         ]
