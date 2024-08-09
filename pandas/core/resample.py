@@ -1617,6 +1617,24 @@ class DatetimeIndexResampler(Resampler):
     def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
         return DatetimeIndexResamplerGroupby
 
+    def _get_resampler_for_grouping(self, groupby, how, fill_method, limit, kind):
+        """
+        Return a resampler for groupby object.
+        """
+        self.groupby = groupby
+        self._on = getattr(groupby, 'on', None)
+        if self._on is not None:
+            groupby._selected_obj = groupby._selected_obj.reset_index(drop=True).set_index(self._on)
+        return self._get_resampler(how, fill_method, limit, kind)
+
+    def _get_resampler(self, how, fill_method, limit, kind):
+        """
+        Return a resampler for non-groupby object.
+        """
+        if self._on is not None:
+            self._selected_obj = self._selected_obj.reset_index(drop=True).set_index(self._on)
+        return super()._get_resampler(how, fill_method, limit, kind)
+
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
         if isinstance(self.ax, PeriodIndex):
