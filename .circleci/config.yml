@@ -56,7 +56,7 @@ jobs:
             /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
             . ~/virtualenvs/pandas-dev/bin/activate
             python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-            python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+            python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
             python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
             python -m pip list --no-cache-dir
             export PANDAS_CI=1

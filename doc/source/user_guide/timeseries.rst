@@ -2569,7 +2569,7 @@ Ambiguous times when localizing
 because daylight savings time (DST) in a local time zone causes some times to occur
 twice within one day ("clocks fall back"). The following options are available:
 
-* ``'raise'``: Raises a ``pytz.AmbiguousTimeError`` (the default behavior)
+* ``'raise'``: Raises a ``ValueError`` (the default behavior)
 * ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
@@ -2604,7 +2604,7 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times ("clocks spring forward"). The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'raise'``: Raises a ``ValueError`` (the default behavior)
 * ``'NaT'``: Replaces nonexistent times with ``NaT``
 * ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
 * ``'shift_backward'``: Shifts nonexistent times backward to the closest real time

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -162,7 +161,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
+        - 'raise' will raise a ValueError if there are ambiguous times.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
@@ -591,7 +590,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(key, str):
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except ValueError as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 

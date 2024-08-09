@@ -3,7 +3,7 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "pytz", "dateutil")
+_hard_dependencies = ("numpy", "dateutil")
 _missing_dependencies = []
 
 for _dependency in _hard_dependencies:

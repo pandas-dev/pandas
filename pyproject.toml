@@ -30,7 +30,6 @@ dependencies = [
   "numpy>=1.23.5; python_version<'3.12'",
   "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
-  "pytz>=2020.1",
   "tzdata>=2022.7"
 ]
 classifiers = [
@@ -81,6 +80,7 @@ plot = ['matplotlib>=3.6.3']
 output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
 compression = ['zstandard>=0.19.0']
+timezone = ['pytz>=2023.4']
 all = ['adbc-driver-postgresql>=0.10.0',
        'adbc-driver-sqlite>=0.8.0',
        'beautifulsoup4>=4.11.2',
@@ -107,6 +107,7 @@ all = ['adbc-driver-postgresql>=0.10.0',
        'pytest>=7.3.2',
        'pytest-xdist>=3.4.0',
        'python-calamine>=0.1.7',
+       'pytz>=2023.4',
        'pyxlsb>=1.0.10',
        'qtpy>=2.3.0',
        'scipy>=1.10.0',

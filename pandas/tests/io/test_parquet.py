@@ -17,6 +17,7 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -955,11 +956,16 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+        if (
+            timezone_aware_date_list.tzinfo != datetime.timezone.utc
+            and pa_version_under18p0
+        ):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason="temporary skip this test until it is properly resolved: "
-                    "https://github.com/pandas-dev/pandas/issues/37286"
+                    reason=(
+                        "pyarrow returns pytz.FixedOffset while pandas "
+                        "constructs datetime.timezone https://github.com/pandas-dev/pandas/issues/37286"
+                    )
                 )
             )
         idx = 5 * [timezone_aware_date_list]
