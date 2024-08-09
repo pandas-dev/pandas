@@ -1598,6 +1598,41 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
+    def _strftime_pystr(self, fmt_str: str, locale_dt_strings: object) -> str:
+        """A faster alternative to `strftime` using string formatting.
+
+        `fmt_str` and `locale_dt_strings` should be created using
+        `convert_strftime_format(fmt, target="datetime")`.
+
+        See also `self.strftime`, that relies on `datetime.strftime`.
+
+        Examples
+        --------
+        >>> from pandas._libs.tslibs import convert_strftime_format
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> fmt, loc_s = convert_strftime_format('%Y-%m-%dT%H:%M:%S', target="datetime")
+        >>> ts._strftime_pystr(fmt, loc_s)
+        '2020-03-14T15:32:52'
+        """
+        y = self.year
+        shortyear = y % 100
+        if y < 0 and shortyear != 0:
+            # Fix negative modulo to adopt C-style modulo
+            shortyear -= 100
+        h = self.hour
+        return fmt_str % {
+            "year": y,
+            "shortyear": shortyear,
+            "month": self.month,
+            "day": self.day,
+            "hour": h,
+            "hour12": 12 if h in (0, 12) else (h % 12),
+            "ampm": locale_dt_strings.pm if (h // 12) else locale_dt_strings.am,
+            "min": self.minute,
+            "sec": self.second,
+            "us": self.microsecond,
+        }
+
     def strftime(self, format):
         """
         Return a formatted string of the Timestamp.

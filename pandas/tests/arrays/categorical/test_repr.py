@@ -224,6 +224,22 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
 
         assert repr(c) == exp
 
+        # same with dates only: since there is a timezone, dates become datetimes
+        idx = date_range("2011-01-01", freq="D", periods=5, tz="US/Eastern")
+        c = Categorical(idx)
+        exp = (
+            "[2011-01-01 00:00:00-05:00, 2011-01-02 00:00:00-05:00, "
+            "2011-01-03 00:00:00-05:00, 2011-01-04 00:00:00-05:00, "
+            "2011-01-05 00:00:00-05:00]\n"
+            "Categories (5, datetime64[ns, US/Eastern]): "
+            "[2011-01-01 00:00:00-05:00, 2011-01-02 00:00:00-05:00,\n"
+            "                                             "
+            "2011-01-03 00:00:00-05:00, 2011-01-04 00:00:00-05:00,\n"
+            "                                             "
+            "2011-01-05 00:00:00-05:00]"
+        )
+        assert repr(c) == exp
+
     def test_categorical_repr_datetime_ordered(self):
         idx = date_range("2011-01-01 09:00", freq="h", periods=5)
         c = Categorical(idx, ordered=True)

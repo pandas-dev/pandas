@@ -1,14 +1,20 @@
+from contextlib import nullcontext
 from datetime import (
     date,
     datetime,
+    time,
     timedelta,
 )
+import locale
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    convert_strftime_format,
+    iNaT,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
@@ -635,6 +641,13 @@ class TestPeriodConstruction:
         assert result == expected
 
 
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
+
+
 class TestPeriodMethods:
     def test_round_trip(self):
         p = Period("2000Q1")
@@ -805,6 +818,43 @@ class TestPeriodMethods:
         res = p.strftime("%Y-%m-%d %H:%M:%S")
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_strftime_locale(self, locale_str):
+        """
+        Test that `convert_strftime_format` and `_strftime_pystr`
+        work well together and rely on runtime locale
+        """
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="period")
+            assert str_tmp == "%(ampm)s"
+
+            # Period
+            am_per = Period("2018-03-11 01:00", freq="h")
+            assert am_local == am_per.strftime("%p")
+            assert am_local == am_per._strftime_pystr(str_tmp, loc_s)
+            pm_per = Period("2018-03-11 13:00", freq="h")
+            assert pm_local == pm_per.strftime("%p")
+            assert pm_local == pm_per._strftime_pystr(str_tmp, loc_s)
 
 
 class TestPeriodProperties:

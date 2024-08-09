@@ -79,7 +79,13 @@ class ToCSVDatetime(BaseIO):
         rng = date_range("1/1/2000", periods=1000)
         self.data = DataFrame(rng, index=rng)
 
-    def time_frame_date_formatting(self):
+    def time_frame_date_formatting_default(self):
+        self.data.to_csv(self.fname)
+
+    def time_frame_date_formatting_default_explicit(self):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d")
+
+    def time_frame_date_formatting_custom(self):
         self.data.to_csv(self.fname, date_format="%Y%m%d")
 
 
@@ -90,11 +96,14 @@ class ToCSVDatetimeIndex(BaseIO):
         rng = date_range("2000", periods=100_000, freq="s")
         self.data = DataFrame({"a": 1}, index=rng)
 
-    def time_frame_date_formatting_index(self):
+    def time_frame_date_formatting_index_default(self):
+        self.data.to_csv(self.fname)
+
+    def time_frame_date_formatting_index_default_explicit(self):
         self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
 
-    def time_frame_date_no_format_index(self):
-        self.data.to_csv(self.fname)
+    def time_frame_date_formatting_index_custom(self):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d__%H:%M:%S")
 
 
 class ToCSVPeriod(BaseIO):
@@ -117,7 +126,7 @@ class ToCSVPeriod(BaseIO):
     def time_frame_period_formatting_default_explicit(self, nobs, freq):
         self.data.to_csv(self.fname, date_format=self.default_fmt)
 
-    def time_frame_period_formatting(self, nobs, freq):
+    def time_frame_period_formatting_custom(self, nobs, freq):
         # Nb: `date_format` is not actually taken into account here today, so the
         # performance is currently identical to `time_frame_period_formatting_default`
         # above. This timer is therefore expected to degrade when GH#51621 is fixed.
@@ -139,14 +148,14 @@ class ToCSVPeriodIndex(BaseIO):
         elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
-    def time_frame_period_formatting_index(self, nobs, freq):
-        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
-
     def time_frame_period_formatting_index_default(self, nobs, freq):
         self.data.to_csv(self.fname)
 
     def time_frame_period_formatting_index_default_explicit(self, nobs, freq):
         self.data.to_csv(self.fname, date_format=self.default_fmt)
+
+    def time_frame_period_formatting_index_custom(self, nobs, freq):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
 
 class ToCSVDatetimeBig(BaseIO):
@@ -166,8 +175,11 @@ class ToCSVDatetimeBig(BaseIO):
             }
         )
 
-    def time_frame(self, nobs):
+    def time_frame_formatting_default(self, nobs):
         self.data.to_csv(self.fname)
+
+    def time_frame_date_formatting_custom(self, nobs):
+        self.data.to_csv(self.fname, date_format="%Y%m%d__%H%M%S")
 
 
 class ToCSVIndexes(BaseIO):
