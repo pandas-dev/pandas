@@ -3,6 +3,8 @@ Additional tests for NumpyExtensionArray that aren't covered by
 the interface tests.
 """
 
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -195,6 +197,93 @@ def test_validate_reduction_keyword_args():
         arr.all(keepdims=True)
 
 
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, True),
+        (5, False),
+        (5.0, False),
+        (5.5, True),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_int_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="int").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, True),
+        (5, False),
+        (5.0, False),
+        (5.5, True),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_uint_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="uint").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, True),
+        (5, False),
+        (5.0, False),
+        (5.5, False),
+        (1 + 2j, True),
+        ("t", True),
+        (datetime.now(), True),
+    ],
+)
+def test_float_arr_validate_setitem_value(value, expectedError):
+    arr = pd.Series(range(5), dtype="float").array
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == value
+
+
+@pytest.mark.parametrize(
+    "value, expectedError",
+    [
+        (True, True),
+        (5, True),
+        (5.0, True),
+        (5.5, True),
+        ("t", False),
+        (datetime.now(), True),
+    ],
+)
+def test_str_arr_validate_setitem_value(value, expectedError):
+    arr = NumpyExtensionArray(np.array(["foo", "bar", "test"], dtype="str"))
+    if expectedError:
+        with pytest.raises(TypeError):
+            arr._validate_setitem_value(value)
+    else:
+        arr[0] = value
+        assert arr[0] == str(value)
+
+
 def test_np_max_nested_tuples():
     # case where checking in ufunc.nout works while checking for tuples
     #  does not
@@ -275,12 +364,15 @@ def test_setitem_object_typecode(dtype):
 def test_setitem_no_coercion():
     # https://github.com/pandas-dev/pandas/issues/28150
     arr = NumpyExtensionArray(np.array([1, 2, 3]))
-    with pytest.raises(ValueError, match="int"):
+    with pytest.raises(TypeError):
         arr[0] = "a"
 
     # With a value that we do coerce, check that we coerce the value
     #  and not the underlying array.
-    arr[0] = 2.5
+    with pytest.raises(TypeError):
+        arr[0] = 2.5
+
+    arr[0] = 9
     assert isinstance(arr[0], (int, np.integer)), type(arr[0])
 
 
@@ -296,7 +388,10 @@ def test_setitem_preserves_views():
     assert view2[0] == 9
     assert view3[0] == 9
 
-    arr[-1] = 2.5
+    with pytest.raises(TypeError):
+        arr[-1] = 2.5
+
+    arr[-1] = 4
     view1[-1] = 5
     assert arr[-1] == 5
 

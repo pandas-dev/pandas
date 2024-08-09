@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
 
+import pandas as pd
 from pandas.core import (
     arraylike,
     missing,
@@ -238,6 +239,55 @@ class NumpyExtensionArray(  # type: ignore[misc]
         else:
             fv = np.nan
         return self._ndarray, fv
+
+    def _validate_setitem_value(self, value):
+        """
+        Check if we have a scalar that we can cast losslessly.
+
+        Raises
+        ------
+        TypeError
+        """
+
+        if type(value) == self.dtype.type:
+            return value
+
+        if (
+            isinstance(value, NumpyExtensionArray)
+            or isinstance(value, np.ndarray)
+            or isinstance(value, pd.Series)
+        ) and value.dtype == self.dtype:
+            return value
+
+        if (
+            isinstance(value, list)
+            or isinstance(value, NumpyExtensionArray)
+            or isinstance(value, np.ndarray)
+            or isinstance(value, pd.Series)
+        ):
+            try:
+                _ = pd.array(value, dtype=self.dtype)
+                return value
+            except ValueError:
+                print("Caught the error")
+
+        if (
+            (
+                (lib.is_integer(value) or lib.is_float(value))
+                and self.dtype.kind in "iuf"
+            )
+            or (isinstance(value, str) and self.dtype.kind in "US")
+            or (self.dtype.kind == "O")
+        ) and not isna(value):
+            if self.dtype.type(value) == value:
+                return value
+
+        if isna(value):
+            return value
+
+        raise TypeError(
+            f"Invalid value '{value!s}' with type {type(value)} for dtype {self.dtype}"
+        )
 
     # Base EA class (and all other EA classes) don't have limit_area keyword
     # This can be removed here as well when the interpolate ffill/bfill method
