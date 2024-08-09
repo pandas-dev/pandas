@@ -138,6 +138,13 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
+    def test_day_of_week_return_type(self):
+        # GH #58185
+        ser = Series(
+            ["2024-01-01", "2024-01-02", "2024-01-03"], dtype="datetime64[us]"
+        ).dt.day_of_week
+        assert ser.dtype == "int8"
+
     def test_dt_namespace_accessor_datetime64tz(self):
         # GH#7207, GH#11128
         # test .dt namespace accessor
