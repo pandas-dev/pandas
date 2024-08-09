@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -175,9 +171,6 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     @pytest.mark.parametrize("f", ["corr", "cov"])
     def test_rolling_corr_cov_other_diff_size_as_groups(self, f, roll_frame):
         g = roll_frame.groupby("A")
@@ -1091,9 +1084,6 @@ class TestExpanding:
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     @pytest.mark.parametrize("f", ["corr", "cov"])
     def test_expanding_corr_cov(self, f, frame):
         g = frame.groupby("A")
@@ -1287,9 +1277,6 @@ class TestEWM:
         tm.assert_frame_equal(result, expected_df)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_rolling_corr_with_single_integer_in_index():
     # GH 44078
     df = DataFrame({"a": [(1,), (1,), (1,)], "b": [4, 5, 6]})
@@ -1302,9 +1289,6 @@ def test_rolling_corr_with_single_integer_in_index():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_rolling_corr_with_tuples_in_index():
     # GH 44078
     df = DataFrame(

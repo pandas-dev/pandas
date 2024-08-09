@@ -940,6 +940,9 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051

@@ -14,6 +14,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 
 from pandas import (
@@ -212,7 +213,9 @@ def test_apply_modify_traceback():
 
 
 # we should raise a proper TypeError instead of propagating the pyarrow error
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "df, func, expected",
     tm.get_cython_table_params(
@@ -234,7 +237,9 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_str
 
 
 # we should raise a proper TypeError instead of propagating the pyarrow error
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(

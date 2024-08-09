@@ -10,7 +10,10 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import IS64
+from pandas.compat import (
+    HAS_PYARROW,
+    IS64,
+)
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -73,7 +76,9 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_constructor_copy(self, using_infer_string):
         index = Index(list("abc"), name="name")
         arr = np.array(index)
@@ -338,7 +343,11 @@ class TestIndex:
     def test_view_with_args(self, index):
         index.view("i8")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.parametrize(
         "index",
         [
@@ -821,7 +830,11 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     DataFrame,
     Index,
@@ -14,7 +12,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("other", [["three", "one", "two"], ["one"], ["one", "three"]])
 def test_join_level(idx, other, join_type):
     other = Index(other)
