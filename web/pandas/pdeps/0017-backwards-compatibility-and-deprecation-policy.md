@@ -48,7 +48,7 @@ A deprecation's warning message should:
 - Provide information on what is changing.
 - Mention how to achieve similar behavior if an alternative is available.
 - Include the version in which the deprecation will be enforced.
-- For large-scale deprecations, it is recommended include a reason for the deprecation, alongside a discussion link to get user feedback.
+- For large-scale deprecations, it is recommended to include a reason for the deprecation, alongside a discussion link to get user feedback.
 
 Additionally, when one introduces a deprecation, they should:
 - Use the appropriate warning class. More info on this can be found below.
