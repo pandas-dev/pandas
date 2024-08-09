@@ -188,6 +188,18 @@ class TestIndexConstructorInference:
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_FLS_to_object_conversion(self):
+        # Create NumPy array of fixed-length strings
+        arr = np.array(["apple", "banana", "orange", "grape"], dtype="S6")
+        # Create expected array for index
+        expected_arr = np.array(
+            [b"apple", b"banana", b"orange", b"grape"], dtype=object
+        )
+        # Create Index that converts FLS Dtype to object
+        index = Index(data=Series(arr), name="fruits")
+        expected = Index(data=Series(expected_arr), name="fruits")
+        tm.assert_index_equal(index, expected)
+
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
