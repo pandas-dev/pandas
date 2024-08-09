@@ -557,7 +557,10 @@ class ExcelFormatter:
     ) -> None:
         self.rowcounter = 0
         self.na_rep = na_rep
+        self.notes = None
         if not isinstance(df, DataFrame):
+            if df.tooltips is not None:
+                self.notes = df.tooltips.tt_data
             self.styler = df
             self.styler._compute()  # calculate applied styles
             df = df.data
@@ -954,6 +957,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                notes=self.notes,
             )
         finally:
             # make sure to close opened file handles

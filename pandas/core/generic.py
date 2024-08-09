@@ -2124,10 +2124,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         storage_options_versionadded="1.2.0",
         extra_parameters=textwrap.dedent(
             """\
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
-    """
+            engine_kwargs : dict, optional
+                Arbitrary keyword arguments passed to excel engine.
+            """
         ),
+        extra_examples="",
     )
     def to_excel(
         self,
@@ -2259,6 +2260,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         automatically chosen depending on the file extension):
 
         >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
+        {extra_examples}
+        End of examples.
         """
         if engine_kwargs is None:
             engine_kwargs = {}
