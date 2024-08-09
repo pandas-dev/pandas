@@ -406,8 +406,6 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -430,8 +428,6 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -454,8 +450,6 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -478,8 +472,6 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -505,8 +497,6 @@ def read_json(
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
     convert_axes: bool | None = None,
-    convert_dates: bool | list[str] = True,
-    keep_default_dates: bool = True,
     precise_float: bool = False,
     date_unit: str | None = None,
     encoding: str | None = None,
@@ -587,29 +577,6 @@ def read_json(
         Try to convert the axes to the proper dtypes.
 
         For all ``orient`` values except ``'table'``, default is True.
-
-    convert_dates : bool or list of str, default True
-        If True then default datelike columns may be converted (depending on
-        keep_default_dates).
-        If False, no dates will be converted.
-        If a list of column names, then those columns will be converted and
-        default datelike columns may also be converted (depending on
-        keep_default_dates).
-
-    keep_default_dates : bool, default True
-        If parsing dates (convert_dates is not False), then try to parse the
-        default datelike columns.
-        A column label is datelike if
-
-        * it ends with ``'_at'``,
-
-        * it ends with ``'_time'``,
-
-        * it begins with ``'timestamp'``,
-
-        * it is ``'modified'``, or
-
-        * it is ``'date'``.
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
@@ -786,8 +753,6 @@ def read_json(
         typ=typ,
         dtype=dtype,
         convert_axes=convert_axes,
-        convert_dates=convert_dates,
-        keep_default_dates=keep_default_dates,
         precise_float=precise_float,
         date_unit=date_unit,
         encoding=encoding,
@@ -823,8 +788,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         typ: FrameSeriesStrT,
         dtype,
         convert_axes: bool | None,
-        convert_dates,
-        keep_default_dates: bool,
         precise_float: bool,
         date_unit,
         encoding,
@@ -841,8 +804,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.typ = typ
         self.dtype = dtype
         self.convert_axes = convert_axes
-        self.convert_dates = convert_dates
-        self.keep_default_dates = keep_default_dates
         self.precise_float = precise_float
         self.date_unit = date_unit
         self.encoding = encoding
@@ -982,8 +943,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "orient": self.orient,
             "dtype": self.dtype,
             "convert_axes": self.convert_axes,
-            "convert_dates": self.convert_dates,
-            "keep_default_dates": self.keep_default_dates,
             "precise_float": self.precise_float,
             "date_unit": self.date_unit,
             "dtype_backend": self.dtype_backend,
@@ -1080,8 +1039,6 @@ class Parser:
         orient,
         dtype: DtypeArg | None = None,
         convert_axes: bool = True,
-        convert_dates: bool | list[str] = True,
-        keep_default_dates: bool = False,
         precise_float: bool = False,
         date_unit=None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -1105,9 +1062,7 @@ class Parser:
 
         self.precise_float = precise_float
         self.convert_axes = convert_axes
-        self.convert_dates = convert_dates
         self.date_unit = date_unit
-        self.keep_default_dates = keep_default_dates
         self.dtype_backend = dtype_backend
 
     @final
@@ -1144,7 +1099,6 @@ class Parser:
                 name=axis_name,
                 data=ser,
                 use_dtypes=False,
-                convert_dates=True,
                 is_axis=True,
             )
             if result:
@@ -1161,7 +1115,6 @@ class Parser:
         name: Hashable,
         data: Series,
         use_dtypes: bool = True,
-        convert_dates: bool | list[str] = True,
         is_axis: bool = False,
     ) -> tuple[Series, bool]:
         """
@@ -1179,10 +1132,7 @@ class Parser:
 
             elif self.dtype is True:
                 pass
-            elif not _should_convert_dates(
-                convert_dates, self.keep_default_dates, name
-            ):
-                # convert_dates takes precedence over columns listed in dtypes
+            else:
                 dtype = (
                     self.dtype.get(name) if isinstance(self.dtype, dict) else self.dtype
                 )
@@ -1191,11 +1141,6 @@ class Parser:
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False
-
-        if convert_dates:
-            new_data = self._try_convert_to_date(data)
-            if new_data is not data:
-                return new_data, True
 
         converted = False
         if self.dtype_backend is not lib.no_default and not is_axis:
@@ -1302,7 +1247,7 @@ class SeriesParser(Parser):
             return Series(data)
 
     def _try_convert_types(self, obj: Series) -> Series:
-        obj, _ = self._try_convert_data("data", obj, convert_dates=self.convert_dates)
+        obj, _ = self._try_convert_data("data", obj)
         return obj
 
 
@@ -1349,40 +1294,8 @@ class FrameParser(Parser):
             result, _ = self._try_convert_data(
                 col_label,
                 series,
-                convert_dates=_should_convert_dates(
-                    self.convert_dates,
-                    keep_default_dates=self.keep_default_dates,
-                    col=col_label,
-                ),
             )
             arrays.append(result.array)
         return DataFrame._from_arrays(
             arrays, obj.columns, obj.index, verify_integrity=False
         )
-
-
-def _should_convert_dates(
-    convert_dates: bool | list[str],
-    keep_default_dates: bool,
-    col: Hashable,
-) -> bool:
-    """
-    Return bool whether a DataFrame column should be cast to datetime.
-    """
-    if convert_dates is False:
-        # convert_dates=True means follow keep_default_dates
-        return False
-    elif not isinstance(convert_dates, bool) and col in set(convert_dates):
-        return True
-    elif not keep_default_dates:
-        return False
-    elif not isinstance(col, str):
-        return False
-    col_lower = col.lower()
-    if (
-        col_lower.endswith(("_at", "_time"))
-        or col_lower in {"modified", "date", "datetime"}
-        or col_lower.startswith("timestamp")
-    ):
-        return True
-    return False

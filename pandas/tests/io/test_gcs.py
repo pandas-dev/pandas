@@ -88,7 +88,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df1.to_json(path)
-        df2 = read_json(path, convert_dates=["dt"])
+        df2 = read_json(path)
     elif format == "parquet":
         pytest.importorskip("pyarrow")
         pa_fs = pytest.importorskip("pyarrow.fs")
