@@ -391,7 +391,7 @@ class BaseStringArray(ExtensionArray):
             return constructor(result, mask)
 
         else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
     def _str_map_str_or_object(
         self,
@@ -400,7 +400,6 @@ class BaseStringArray(ExtensionArray):
         arr: np.ndarray,
         f,
         mask: npt.NDArray[np.bool_],
-        convert: bool,
     ):
         # _str_map helper for case where dtype is either string dtype or object
         if is_string_dtype(dtype) and not is_object_dtype(dtype):
@@ -434,7 +433,6 @@ class BaseStringArray(ExtensionArray):
 
         mask = isna(self)
         arr = np.asarray(self)
-        convert = convert and not np.all(mask)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
             na_value_is_na = isna(na_value)
@@ -453,6 +451,9 @@ class BaseStringArray(ExtensionArray):
                 dtype=np.dtype(cast(type, dtype)),
             )
             if na_value_is_na and mask.any():
+                # TODO: we could alternatively do this check before map_infer_mask
+                #  and adjust the dtype/na_value we pass there. Which is more
+                #  performant?
                 if is_integer_dtype(dtype):
                     result = result.astype("float64")
                 else:
@@ -461,7 +462,7 @@ class BaseStringArray(ExtensionArray):
             return result
 
         else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
