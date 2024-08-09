@@ -824,7 +824,9 @@ class SetitemCastingEquivalents:
             indexer_sli(obj)[mask] = val
 
     @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
     )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
