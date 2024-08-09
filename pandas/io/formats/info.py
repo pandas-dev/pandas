@@ -498,10 +498,10 @@ class DataFrameInfo(_BaseInfo):
     def to_dict(self) -> dict:
         """Return DataFrame info as a dictionary."""
         return {
-            'Column summary': self._get_column_summary(),
-            'Memory usage': self.memory_usage_bytes,
-            'Index type': type(self.data.index).__name__,
-            'Index entries': len(self.data.index),
+            'Column_summary': self._get_column_summary(),
+            'Memory_usage': self.memory_usage_bytes,
+            'Index_type': type(self.data.index).__name__,
+            'Index_entries': len(self.data.index),
         }
 
     def _get_column_summary(self) -> list[dict]:
@@ -510,7 +510,7 @@ class DataFrameInfo(_BaseInfo):
             {
                 '#': i,
                 'Column': col,
-                'Non-Null Count': self.data[col].notna().sum(),
+                'Non-Null-Count': self.data[col].notna().sum(),
                 'Dtype': self.data[col].dtype
             }
             for i, col in enumerate(self.ids)
