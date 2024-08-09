@@ -2572,6 +2572,14 @@ class TestDataFramePlots:
         result = ax.get_lines()[0].get_xdata()
         assert all(str(result[i]) == str(expected[i]) for i in range(4))
 
+    def test_plot_display_xlabel_and_xtick_labels(self):
+        # GH#44050
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=["a", "b"])
+        ax = df.plot.hexbin(x="a", y="b")
+
+        _check_visible([ax.xaxis.get_label()], visible=True)
+        _check_visible(ax.get_xticklabels(), visible=True)
+
 
 def _generate_4_axes_via_gridspec():
     gs = mpl.gridspec.GridSpec(2, 2)
