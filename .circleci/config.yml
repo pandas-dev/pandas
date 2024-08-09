@@ -16,6 +16,7 @@ jobs:
       - run:
           name: Install Environment and Run Tests
           shell: /bin/bash -exo pipefail
+          # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
           command: |
             MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge3-24.3.0-0-Linux-aarch64.sh"
             wget -q $MINI_URL -O Miniforge3.sh
@@ -33,6 +34,7 @@ jobs:
             fi
             python -m pip install --no-build-isolation -ve . --config-settings=setup-args="--werror"
             PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
+            sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
             ci/run_tests.sh
   test-linux-musl:
     docker:
@@ -89,8 +91,8 @@ jobs:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.18.1
-            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            pip3 install cibuildwheel==2.20.0
+            cibuildwheel --output-dir wheelhouse
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>

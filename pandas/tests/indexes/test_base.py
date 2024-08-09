@@ -79,7 +79,7 @@ class TestIndex:
         assert new_index.name == "name"
         if using_infer_string:
             tm.assert_extension_array_equal(
-                new_index.values, pd.array(arr, dtype="string[pyarrow_numpy]")
+                new_index.values, pd.array(arr, dtype="str")
             )
         else:
             tm.assert_numpy_array_equal(arr, new_index.values)
@@ -157,7 +157,7 @@ class TestIndex:
         df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
-        dtype = object if not using_infer_string else "string"
+        dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
@@ -960,6 +960,31 @@ class TestIndex:
     def test_slice_keep_name(self):
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name
+
+    def test_slice_is_unique(self):
+        # GH 57911
+        index = Index([1, 1, 2, 3, 4])
+        assert not index.is_unique
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_unique
+
+    def test_slice_is_montonic(self):
+        """Test that is_monotonic_decreasing is correct on slices."""
+        # GH 57911
+        index = Index([1, 2, 3, 3])
+        assert not index.is_monotonic_decreasing
+
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[1:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
 
     @pytest.mark.parametrize(
         "index",
