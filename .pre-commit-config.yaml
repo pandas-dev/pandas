@@ -301,3 +301,60 @@ repos:
         language: python
         files: ^doc/source/whatsnew/v
         exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
+    -   id: enforce-match-arg-in-assert-produces-warning
+        name: Enforce the usage of match arg
+        entry: python scripts/enforce_match_arg_in_assert_produces_warning.py
+        language: python
+        files: ^pandas/tests
+        exclude: |
+            (?x)
+            ^(
+            pandas/tests/computation/test_eval.py|
+            pandas/tests/frame/test_query_eval.py|
+            pandas/tests/frame/methods/test_drop.py|
+            pandas/tests/plotting/test_datetimelike.py|
+            pandas/tests/plotting/frame/test_frame_color.py|
+            pandas/tests/plotting/test_hist_method.py|
+            pandas/tests/util/test_deprecate_kwarg.py|
+            pandas/tests/util/test_deprecate.py|
+            pandas/tests/util/test_assert_produces_warning.py|
+            pandas/tests/util/test_deprecate_nonkeyword_arguments.py|
+            pandas/tests/api/test_types.py|
+            pandas/tests/api/test_api.py|
+            pandas/tests/strings/test_find_replace.py|
+            pandas/tests/arithmetic/test_datetime64.py|
+            pandas/tests/arithmetic/test_timedelta64.py|
+            pandas/tests/arithmetic/test_period.py|
+            pandas/tests/tseries/offsets/test_offsets.py|
+            pandas/tests/indexes/datetimes/methods/test_shift.py|
+            pandas/tests/extension/test_period.py|
+            pandas/tests/io/pytables/test_retain_attributes.py|
+            pandas/tests/scalar/timestamp/methods/test_to_pydatetime.py|
+            pandas/tests/io/test_sql.py|
+            pandas/tests/plotting/frame/test_hist_box_by.py|
+            pandas/tests/plotting/test_boxplot_method.py|
+            pandas/tests/frame/methods/test_reindex_like.py|
+            pandas/tests/series/accessors/test_cat_accessor.py|
+            pandas/tests/indexing/multiindex/test_multiindex.py|
+            pandas/tests/indexes/multi/test_drop.py|
+            pandas/tests/io/parser/test_unsupported.py|
+            pandas/tests/apply/test_str.py|
+            pandas/tests/indexes/multi/test_indexing.py|
+            pandas/tests/io/pytables/test_store.py|
+            pandas/tests/io/pytables/test_put.py|
+            pandas/tests/io/pytables/test_round_trip.py|
+            pandas/tests/resample/test_datetime_index.py|
+            pandas/tests/io/parser/test_c_parser_only.py|
+            pandas/tests/io/test_stata.py|
+            pandas/tests/plotting/test_misc.py|
+            pandas/tests/series/methods/test_equals.py|
+            pandas/tests/frame/test_block_internals.py|
+            pandas/tests/indexes/multi/test_sorting.py|
+            pandas/tests/series/methods/test_reindex_like.py|
+            pandas/tests/extension/test_sparse.py|
+            pandas/tests/indexes/test_common.py|
+            pandas/tests/indexing/multiindex/test_loc.py|
+            pandas/tests/frame/indexing/test_insert.py|
+            pandas/tests/groupby/test_groupby.py|
+            )$
+        types: [python]
