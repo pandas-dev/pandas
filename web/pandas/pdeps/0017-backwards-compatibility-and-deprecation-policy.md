@@ -59,7 +59,7 @@ Additionally, when one introduces a deprecation, they should:
 ### Which warning class to use
 
 Deprecations should initially use ``DeprecationWarning``, and then be switched to ``FutureWarning`` for broader visibility in the final minor version before the major release they are planned to be removed in.  
-This implementation detail can be ignored by using the appropriate ``PandasDeprecationWarning`` variable.
+This implementation detail can be ignored by using the appropriate ``PandasDeprecationWarning`` variable, which will be aliased to the proper warning class based on the pandas version.
 
 Not all deprecations have to use ``DeprecationWarning`` but all deprecations should eventually transition to ``FutureWarning``, i.e. deprecations in the final minor version which are planned to be removed in the major release after will immediately use ``FutureWarning``.
 
