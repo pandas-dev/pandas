@@ -6,6 +6,8 @@
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1
 
+[TOC]
+
 ## Abstract
 
 Short summary of the proposal:
