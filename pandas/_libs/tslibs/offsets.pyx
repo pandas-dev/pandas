@@ -2472,6 +2472,68 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return the rule code for the YearEnd offset.
+
+        The `rule_code` is a shorthand identifier used within pandas to denote
+        the end-of-year frequency. This code is useful when working with time
+        series data, particularly when you need to perform operations that require
+        a specific frequency. For example, it can be used in functions like
+        `pd.date_range`, `resample`, or `asfreq` to indicate that operations
+        should be aligned to the end of the year. The YearEnd offset represents the
+        end of a year, typically on December 31st. The `rule_code` for this offset
+        helps to abstract away the complexity of manually calculating end-of-year
+        dates, especially when handling irregular date ranges or resampling data.
+
+        Returns
+        -------
+        str
+            The rule code associated with the YearEnd offset.
+
+        See Also
+        --------
+        date_range : Generate a range of dates with a specific frequency.
+        Series.resample : Resample time-series data.
+        tseries.offsets.Week : Represents a weekly offset.
+        DateOffset : Base class for all other offset classes.
+        tseries.offsets.Day : Represents a single day offset.
+        tseries.offsets.MonthEnd : Represents a monthly offset that
+            snaps to the end of the month.
+
+        Examples
+        --------
+        Create a date range with random dates
+        >>> date_range = pd.to_datetime([
+        ...     '2020-01-01', '2020-07-15', '2021-02-28', '2021-08-20', '2022-03-10'
+        ... ])
+        Create a DataFrame with the date_range as index and some random data
+        >>> data = np.random.rand(len(date_range))
+        >>> df = pd.DataFrame(data, index=date_range, columns=['Value'])
+        Print the original DataFrame
+        >>> df
+                       Value
+        2020-01-01  0.460402
+        2020-07-15  0.339131
+        2021-02-28  0.697027
+        2021-08-20  0.839201
+        2022-03-10  0.079523
+
+        Use the YearEnd.offsets with its rule_code
+        >>> year_end = pd.tseries.offsets.YearEnd()
+        >>> rule_code = year_end.rule_code
+        >>> rule_code
+        YE-DEC
+
+        Resample the data using the YearEnd rule code
+        >>> df_resampled = df.resample(rule_code).sum()
+
+        Print the resampled DataFrame
+        >>df_resampled
+                       Value
+        2020-12-31  0.799533
+        2021-12-31  1.536228
+        2022-12-31  0.079523
+        """
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
