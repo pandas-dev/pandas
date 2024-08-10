@@ -346,6 +346,57 @@ class BaseStringArray(ExtensionArray):
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
 
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if self.dtype.na_value is np.nan:
+            return self._str_map_nan_semantics(
+                f, na_value=na_value, dtype=dtype, convert=convert
+            )
+
+        from pandas.arrays import BooleanArray
+
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: type[IntegerArray | BooleanArray]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            elif dtype == np.dtype("bool"):
+                # GH#55736
+                na_value = bool(na_value)
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(cast(type, dtype)),
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            return constructor(result, mask)
+
+        else:
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
+
     def _str_map_str_or_object(
         self,
         dtype,
@@ -353,7 +404,6 @@ class BaseStringArray(ExtensionArray):
         arr: np.ndarray,
         f,
         mask: npt.NDArray[np.bool_],
-        convert: bool,
     ):
         # _str_map helper for case where dtype is either string dtype or object
         if is_string_dtype(dtype) and not is_object_dtype(dtype):
@@ -376,6 +426,47 @@ class BaseStringArray(ExtensionArray):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_map_nan_semantics(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                if is_integer_dtype(dtype):
+                    na_value = 0
+                else:
+                    na_value = True
+
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(cast(type, dtype)),
+            )
+            if na_value_is_na and mask.any():
+                # TODO: we could alternatively do this check before map_infer_mask
+                #  and adjust the dtype/na_value we pass there. Which is more
+                #  performant?
+                if is_integer_dtype(dtype):
+                    result = result.astype("float64")
+                else:
+                    result = result.astype("object")
+                result[mask] = np.nan
+            return result
+
+        else:
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -741,95 +832,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # error: Incompatible types in assignment (expression has type "NAType",
     # base class "NumpyExtensionArray" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
-
-    def _str_map_nan_semantics(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-        convert = convert and not np.all(mask)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                if is_integer_dtype(dtype):
-                    na_value = 0
-                else:
-                    na_value = True
-
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=np.dtype(cast(type, dtype)),
-            )
-            if na_value_is_na and mask.any():
-                if is_integer_dtype(dtype):
-                    result = result.astype("float64")
-                else:
-                    result = result.astype("object")
-                result[mask] = np.nan
-            return result
-
-        else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if self.dtype.na_value is np.nan:
-            return self._str_map_nan_semantics(
-                f, na_value=na_value, dtype=dtype, convert=convert
-            )
-
-        from pandas.arrays import BooleanArray
-
-        if dtype is None:
-            dtype = StringDtype(storage="python")
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray | BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            elif dtype == np.dtype("bool"):
-                na_value = bool(na_value)
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
 
 
 class StringArrayNumpySemantics(StringArray):

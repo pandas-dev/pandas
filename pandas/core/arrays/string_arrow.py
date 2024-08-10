@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Union,
-    cast,
 )
 
 import numpy as np
@@ -23,8 +22,6 @@ from pandas.compat import (
 )
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_integer_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -279,98 +276,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ObjectStringArrayMixin" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
-    def _str_map_nan_semantics(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            if is_integer_dtype(dtype):
-                na_value = np.nan
-            else:
-                na_value = False
-
-            dtype = np.dtype(cast(type, dtype))
-            if mask.any():
-                # numpy int/bool dtypes cannot hold NaNs so we must convert to
-                # float64 for int (to match maybe_convert_objects) or
-                # object for bool (again to match maybe_convert_objects)
-                if is_integer_dtype(dtype):
-                    dtype = np.dtype("float64")
-                else:
-                    dtype = np.dtype(object)
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=dtype,
-            )
-            return result
-
-        else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if self.dtype.na_value is np.nan:
-            return self._str_map_nan_semantics(
-                f, na_value=na_value, dtype=dtype, convert=convert
-            )
-
-        # TODO: de-duplicate with StringArray method. This method is moreless copy and
-        # paste.
-
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
-
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray | BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        else:
-            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
+    _str_map = BaseStringArray._str_map
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
