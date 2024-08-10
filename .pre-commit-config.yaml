@@ -85,6 +85,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
       - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint

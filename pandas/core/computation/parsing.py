@@ -205,7 +205,7 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         The second is the actual substring.
     """
     substrings = []
-    substr: list[str] = []  # join into a string before adding to `substrings`
+    substr: list[str] = []  # Will join into a string before adding to `substrings`
     i = 0
     parse_state = ParseState.DEFAULT
     while i < len(s):
