@@ -691,20 +691,34 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
         rs[["val_not_in_dataframe"]]
 
 
-def test_groupby_resample_when_index_is_out_of_order():
+@pytest.mark.parametrize(
+    "df",
+    [
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+            index=[1, 0],
+        ),
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+        ).set_index("group"),
+    ],
+)
+def test_groupby_resample_on_column_when_index_is_not_a_range_of_numbers(df):
     # GH 59350
-    df = DataFrame(
-        data={
-            "datetime": [
-                pd.to_datetime("2024-07-30T00:00Z"),
-                pd.to_datetime("2024-07-30T00:01Z"),
-            ],
-            "group": ["A", "A"],
-            "numbers": [100, 200],
-        },
-        index=[1, 0],
-    )
-
     gb = df.groupby("group")
     rs = gb.resample("1min", on="datetime")
     result = rs.aggregate({"numbers": "sum"})
