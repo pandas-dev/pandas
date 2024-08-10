@@ -1449,6 +1449,11 @@ class Timestamp(_Timestamp):
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
+        See Also
+        --------
+        Timestamp.fromtimestamp : Create a Timestamp from a POSIX timestamp.
+        Timestamp.toordinal: Return proleptic Gregorian ordinal.
+
         Notes
         -----
         By definition there cannot be any tz info on the ordinal itself.
