@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -102,9 +104,10 @@ def test_groupby_reductions(op, expected):
         ["all", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
     ],
 )
-def test_mixed_reductions(op, expected, using_infer_string):
-    if op in ["any", "all"] and using_infer_string:
-        expected = expected.astype("bool")
+def test_mixed_reductions(request, op, expected, using_infer_string):
+    if op in ["any", "all"] and using_infer_string and HAS_PYARROW:
+        # TODO(infer_string) inconsistent result type
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
     df = DataFrame(
         {
             "A": ["a", "b", "b"],

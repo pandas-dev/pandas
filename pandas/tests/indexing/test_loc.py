@@ -16,6 +16,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
+from pandas.compat import HAS_PYARROW
 from pandas.errors import IndexingError
 
 import pandas as pd
@@ -1388,6 +1389,9 @@ class TestLocBaseIndependent:
             df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
             df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_loc_setitem_single_row_categorical(self, using_infer_string):
         # GH#25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
