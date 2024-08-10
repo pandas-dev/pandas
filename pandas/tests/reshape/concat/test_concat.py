@@ -941,7 +941,7 @@ def test_concat_with_series_and_frame_returns_rangeindex_columns():
     tm.assert_frame_equal(result, expected, check_column_type=True)
 
 
-def test_concat_with_moot_ignore_index_and_keys):
+def test_concat_with_moot_ignore_index_and_keys():
     df1 = DataFrame([[0]])
     df2 = DataFrame([[42]])
 
