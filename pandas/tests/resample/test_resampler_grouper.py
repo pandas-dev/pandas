@@ -717,7 +717,7 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
         ).set_index("group"),
     ],
 )
-def test_groupby_resample_on_column_when_index_is_not_a_range_of_numbers(df):
+def test_groupby_resample_on_column_when_index_is_unusual(df):
     # GH 59350
     gb = df.groupby("group")
     rs = gb.resample("1min", on="datetime")
