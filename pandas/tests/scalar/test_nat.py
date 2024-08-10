@@ -332,7 +332,6 @@ def test_nat_doc_strings(compare):
         pytest.skip(f"different docstring for {method} is intentional")
 
     nat_doc = getattr(NaT, method).__doc__
-    print(nat_doc)
     assert klass_doc == nat_doc
 
 
