@@ -1593,6 +1593,15 @@ class Timestamp(_Timestamp):
 
         Transform timestamp[, tz] to tz's local time from POSIX timestamp.
 
+        Parameters
+        ----------
+        ts : float
+            The POSIX timestamp to convert.
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, default None
+            Time zone for time which Timestamp will be converted to.
+            If None, uses the system's local timezone.
+
+
         Examples
         --------
         >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
