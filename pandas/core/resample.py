@@ -2466,7 +2466,7 @@ def _get_timestamp_range_edges(
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz)
+            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()
