@@ -2443,7 +2443,7 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
