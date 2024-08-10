@@ -589,12 +589,35 @@ cdef class BaseOffset:
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code : Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code : Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         return self._prefix
 
     @cache_readonly
     def freqstr(self) -> str:
         """
         Return a string representing the frequency.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay.freqstr : Return a string representing an offset frequency in Business Days.
+        tseries.offsets.BusinessHour.freqstr : Return a string representing an offset frequency in Business Hours.
+        tseries.offsets.Week.freqstr : Return a string representing an offset frequency in Weeks.
+        tseries.offsets.Hour.freqstr : Return a string representing an offset frequency in Hours.
 
         Examples
         --------
@@ -773,6 +796,26 @@ cdef class BaseOffset:
 
     @property
     def nanos(self):
+        """
+        Returns a ValueError becuase the frequency is non-fixed.
+        
+        Raises
+        ------
+        ValueError
+            If the frequency is non-fixed.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError becuase the frequency is non-fixed.
+        tseries.offsets.YearBegin.nanos : Raises a ValueError becuase the frequency is non-fixed.
+        tseries.offsets.Hour.nanos : Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos : Returns an integer of the total number of nanoseconds.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(n=1).nanos
+        ValueError: <5 * Weeks: weekday=None> is a non-fixed frequency
+        """
         raise ValueError(f"{self} is a non-fixed frequency")
 
     # ------------------------------------------------------------------
@@ -980,12 +1023,14 @@ cdef class Tick(SingleConstructorOffset):
     @property
     def nanos(self) -> int64_t:
         """
-        Return an integer of the total number of nanoseconds.
+        Returns an integer of the total number of nanoseconds.
 
-        Raises
-        ------
-        ValueError
-            If the frequency is non-fixed.
+        See Also
+        --------
+        tseries.offsets.Hour.nanos : Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos : Returns an integer of the total number of nanoseconds.
+        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError becuase the frequency is non-fixed.
+        tseries.offsets.YearBegin.nanos : Raises a ValueError becuase the frequency is non-fixed.
 
         Examples
         --------
@@ -2420,6 +2465,22 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code : Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code : Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+
+        >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
+        'WOM-1MON'
+        """
         weekday = int_to_weekday.get(self.weekday, "")
         if self.week == -1:
             # LastWeekOfMonth
@@ -2466,6 +2527,22 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code : Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code : Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.tseries.offsets.YearBegin(n=1, month=2).rule_code
+        'YS-FEB'
+
+        >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
+        'YE-JUN'
+        """
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -3452,6 +3529,22 @@ cdef class Week(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.name : Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.name : Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         suffix = ""
         if self.weekday is not None:
             weekday = int_to_weekday[self.weekday]
