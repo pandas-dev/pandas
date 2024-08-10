@@ -1453,6 +1453,7 @@ class Timestamp(_Timestamp):
         --------
         Timestamp.fromtimestamp : Create a Timestamp from a POSIX timestamp.
         Timestamp.toordinal: Return proleptic Gregorian ordinal.
+        datetime.datetime.fromordinal : Standard library function to convert an ordinal to a datetime.
 
         Notes
         -----
