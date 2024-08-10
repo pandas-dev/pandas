@@ -715,6 +715,16 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
                 "numbers": [100, 200],
             },
         ).set_index("group"),
+        DataFrame(
+            data={
+                "datetime": [
+                    pd.to_datetime("2024-07-30T00:00Z"),
+                    pd.to_datetime("2024-07-30T00:01Z"),
+                ],
+                "group": ["A", "A"],
+                "numbers": [100, 200],
+            },
+        ).set_index("datetime", drop=False),
     ],
 )
 def test_groupby_resample_on_column_when_index_is_unusual(df):
