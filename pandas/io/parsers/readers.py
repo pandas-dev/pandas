@@ -274,10 +274,10 @@ nrows : int, optional
     * Rows before the header row, if ``header=1`` or larger.
 
     Example usage:
-    
+
     * To read the first 999,999 (non-header) rows:
       ``read_csv(..., nrows=999999)``
-    
+
     * To read rows 1,000,000 through 1,999,999:
       ``read_csv(..., skiprows=1000000, nrows=999999)``
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
