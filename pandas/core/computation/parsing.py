@@ -135,7 +135,9 @@ def clean_column_name(name: Hashable) -> Hashable:
         which is not caught and propagates to the user level.
     """
     try:
-        name = name.replace("`", "``")  # Escape backticks
+        # Escape backticks
+        name = name.replace("`", "``") if isinstance(name, str) else name
+
         tokenized = tokenize_string(f"`{name}`")
         tokval = next(tokenized)[1]
         return create_valid_python_identifier(tokval)
@@ -203,7 +205,7 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         The second is the actual substring.
     """
     substrings = []
-    substr = []  # collect in a list, join into a string before adding to substrings
+    substr: list[str] = []  # join into a string before adding to `substrings`
     i = 0
     parse_state = ParseState.DEFAULT
     while i < len(s):
