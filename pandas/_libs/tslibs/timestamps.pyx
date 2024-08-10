@@ -1601,6 +1601,9 @@ class Timestamp(_Timestamp):
             Time zone for time which Timestamp will be converted to.
             If None, uses the system's local timezone.
 
+        See Also
+        --------
+        datetime.datetime.fromtimestamp : Standard library function to convert a timestamp to a datetime object.
 
         Examples
         --------
