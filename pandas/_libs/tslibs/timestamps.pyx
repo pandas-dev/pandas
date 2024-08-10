@@ -900,6 +900,11 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        See Also
+        --------
+        Timestamp.is_quarter_end : Check if date is last day of the quarter.
+        Timestamp.is_quarter_start : Check if the date is the first day of the quarter.
+
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
