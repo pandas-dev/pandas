@@ -206,8 +206,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.date SA01" \
         -i "pandas.Timestamp.day GL08" \
         -i "pandas.Timestamp.fold GL08" \
-        -i "pandas.Timestamp.fromordinal SA01" \
-        -i "pandas.Timestamp.fromtimestamp PR01,SA01" \
         -i "pandas.Timestamp.hour GL08" \
         -i "pandas.Timestamp.max PR02" \
         -i "pandas.Timestamp.microsecond GL08" \
