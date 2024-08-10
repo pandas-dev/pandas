@@ -802,6 +802,10 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         str
 
+        See Also
+        --------
+        Timestamp.day_name : Return the day name of the Timestamp with specified locale.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
