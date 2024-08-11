@@ -268,7 +268,7 @@ cdef class _Timestamp(ABCTimestamp):
         See Also
         --------
         Timestamp.resolution : Return resolution of the Timestamp.
-        pandas.Timedelta : A duration expressing the difference between two dates or times.
+        Timedelta : A duration expressing the difference between two dates or times.
 
         Examples
         --------
