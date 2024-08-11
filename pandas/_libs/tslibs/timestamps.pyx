@@ -1389,6 +1389,17 @@ class Timestamp(_Timestamp):
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
 
+    Attributes
+    ----------
+    month : int
+        Value of month initialized by parameter of same name.
+    minute : int
+        Value of minute initialized by parameter of same name.
+    second : int
+        Value of second initialized by parameter of same name.
+    nanosecond : int
+        Value of nanosecond initialized by parameter of same name.
+
     See Also
     --------
     Timedelta : Represents a duration, the difference between two dates or times.
