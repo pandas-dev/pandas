@@ -610,7 +610,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Week(5).rule_code
         'W'
-        """ # noqa
+        """  # noqa
         return self._prefix
 
     @cache_readonly
@@ -638,7 +638,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Nano(-3).freqstr
         '-3ns'
-        """ # noqa
+        """  # noqa
         try:
             code = self.rule_code
         except NotImplementedError:
@@ -821,7 +821,7 @@ cdef class BaseOffset:
         --------
         >>> pd.offsets.Week(n=1).nanos
         ValueError: <Week: weekday=None> is a non-fixed frequency
-        """ # noqa
+        """  # noqa
         raise ValueError(f"{self} is a non-fixed frequency")
 
     # ------------------------------------------------------------------
@@ -1042,7 +1042,7 @@ cdef class Tick(SingleConstructorOffset):
         --------
         >>> pd.offsets.Hour(5).nanos
         18000000000000
-        """ # noqa
+        """  # noqa
         return self.n * self._nanos_inc
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2486,7 +2486,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
         >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
         'WOM-1MON'
-        """ # noqa
+        """  # noqa
         weekday = int_to_weekday.get(self.weekday, "")
         if self.week == -1:
             # LastWeekOfMonth
@@ -2548,7 +2548,7 @@ cdef class YearOffset(SingleConstructorOffset):
 
         >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
         'YE-JUN'
-        """ # noqa
+        """  # noqa
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -3550,7 +3550,7 @@ cdef class Week(SingleConstructorOffset):
 
         >>> pd.offsets.Week(5).rule_code
         'W'
-        """ # noqa
+        """  # noqa
         suffix = ""
         if self.weekday is not None:
             weekday = int_to_weekday[self.weekday]
