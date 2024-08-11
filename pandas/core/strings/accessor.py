@@ -1418,6 +1418,9 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index/array of boolean values
+            The function returns a Series, Index, or array of boolean values,
+            where True indicates that the entire string matches the regular
+            expression pattern and False indicates that it does not.
 
         See Also
         --------
@@ -3089,6 +3092,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Returns a Series or an Index of the %(side)s indexes
+        in each string of the input.
 
     See Also
     --------

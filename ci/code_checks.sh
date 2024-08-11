@@ -70,7 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.MultiIndex.get_loc_level PR07" \
         -i "pandas.MultiIndex.names SA01" \
         -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
         -i "pandas.MultiIndex.sortlevel PR07,SA01" \
@@ -164,8 +163,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.center RT03,SA01" \
         -i "pandas.Series.str.decode PR07,RT03,SA01" \
         -i "pandas.Series.str.encode PR07,RT03,SA01" \
-        -i "pandas.Series.str.fullmatch RT03" \
-        -i "pandas.Series.str.index RT03" \
         -i "pandas.Series.str.ljust RT03,SA01" \
         -i "pandas.Series.str.lower RT03" \
         -i "pandas.Series.str.lstrip RT03" \
@@ -174,7 +171,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.partition RT03" \
         -i "pandas.Series.str.repeat SA01" \
         -i "pandas.Series.str.replace SA01" \
-        -i "pandas.Series.str.rindex RT03" \
         -i "pandas.Series.str.rjust RT03,SA01" \
         -i "pandas.Series.str.rpartition RT03" \
         -i "pandas.Series.str.rstrip RT03" \
@@ -285,12 +281,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_list_like SA01" \
         -i "pandas.api.types.is_named_tuple PR07,SA01" \
-        -i "pandas.api.types.is_numeric_dtype SA01" \
         -i "pandas.api.types.is_object_dtype SA01" \
-        -i "pandas.api.types.is_period_dtype SA01" \
         -i "pandas.api.types.is_re PR07,SA01" \
         -i "pandas.api.types.is_re_compilable PR07,SA01" \
-        -i "pandas.api.types.is_timedelta64_ns_dtype SA01" \
         -i "pandas.api.types.pandas_dtype PR07,RT03,SA01" \
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.BooleanArray SA01" \
