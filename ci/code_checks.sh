@@ -422,8 +422,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
-        -i "pandas.tseries.offsets.BDay PR02,SA01" \
-        -i "pandas.tseries.offsets.BQuarterBegin PR02" \
+        -i "pandas.tseries.offsets.BDay SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
@@ -445,7 +444,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearBegin.nanos GL08" \
         -i "pandas.tseries.offsets.BYearBegin.normalize GL08" \
         -i "pandas.tseries.offsets.BYearBegin.rule_code GL08" \
-        -i "pandas.tseries.offsets.BYearEnd PR02" \
         -i "pandas.tseries.offsets.BYearEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.BYearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BYearEnd.month GL08" \
@@ -453,7 +451,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BYearEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
+        -i "pandas.tseries.offsets.BusinessDay SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.freqstr SA01" \
         -i "pandas.tseries.offsets.BusinessDay.holidays GL08" \
@@ -463,7 +461,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessDay.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessDay.rule_code GL08" \
         -i "pandas.tseries.offsets.BusinessDay.weekmask GL08" \
-        -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
+        -i "pandas.tseries.offsets.BusinessHour SA01" \
         -i "pandas.tseries.offsets.BusinessHour.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessHour.end GL08" \
         -i "pandas.tseries.offsets.BusinessHour.freqstr SA01" \
@@ -487,9 +485,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.CBMonthBegin PR02" \
-        -i "pandas.tseries.offsets.CBMonthEnd PR02" \
-        -i "pandas.tseries.offsets.CDay PR02,SA01" \
+        -i "pandas.tseries.offsets.CDay SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.freqstr SA01" \
