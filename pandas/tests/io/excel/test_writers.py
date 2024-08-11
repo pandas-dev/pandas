@@ -775,7 +775,7 @@ class TestExcelWriter:
 
         df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )
 
         df.to_excel(tmp_excel, sheet_name="test1")
