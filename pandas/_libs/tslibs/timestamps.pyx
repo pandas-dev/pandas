@@ -1764,6 +1764,7 @@ class Timestamp(_Timestamp):
     def utcoffset(self):
         """
         Return utc offset.
+
         This method returns the difference between UTC and the local time
         as a `timedelta` object. It is useful for understanding the time
         difference between the current timezone and UTC.
