@@ -491,6 +491,12 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
+        elif isinstance(other, BaseOffset):
+            # Otherwise raises RecurrsionError due to __rmul__
+            raise TypeError(
+                f"Cannot multiply {type(self).__name__} with "
+                f"{type(other).__name__}."
+            )
         return NotImplemented
 
     def __rmul__(self, other):
@@ -604,7 +610,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Week(5).rule_code
         'W'
-        """
+        """ # noqa
         return self._prefix
 
     @cache_readonly
@@ -632,7 +638,7 @@ cdef class BaseOffset:
 
         >>> pd.offsets.Nano(-3).freqstr
         '-3ns'
-        """
+        """ # noqa
         try:
             code = self.rule_code
         except NotImplementedError:
@@ -797,8 +803,8 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns a ValueError becuase the frequency is non-fixed.
-        
+        Returns a ValueError because the frequency is non-fixed.
+
         Raises
         ------
         ValueError
@@ -806,16 +812,16 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError becuase the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos : Raises a ValueError becuase the frequency is non-fixed.
+        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError because the frequency is non-fixed.
+        tseries.offsets.YearBegin.nanos : Raises a ValueError because the frequency is non-fixed.
         tseries.offsets.Hour.nanos : Returns an integer of the total number of nanoseconds.
         tseries.offsets.Day.nanos : Returns an integer of the total number of nanoseconds.
 
         Examples
         --------
         >>> pd.offsets.Week(n=1).nanos
-        ValueError: <5 * Weeks: weekday=None> is a non-fixed frequency
-        """
+        ValueError: <Week: weekday=None> is a non-fixed frequency
+        """ # noqa
         raise ValueError(f"{self} is a non-fixed frequency")
 
     # ------------------------------------------------------------------
@@ -1029,14 +1035,14 @@ cdef class Tick(SingleConstructorOffset):
         --------
         tseries.offsets.Hour.nanos : Returns an integer of the total number of nanoseconds.
         tseries.offsets.Day.nanos : Returns an integer of the total number of nanoseconds.
-        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError becuase the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos : Raises a ValueError becuase the frequency is non-fixed.
+        tseries.offsets.WeekOfMonth.nanos : Raises a ValueError because the frequency is non-fixed.
+        tseries.offsets.YearBegin.nanos : Raises a ValueError because the frequency is non-fixed.
 
         Examples
         --------
         >>> pd.offsets.Hour(5).nanos
         18000000000000
-        """
+        """ # noqa
         return self.n * self._nanos_inc
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2480,7 +2486,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
         >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
         'WOM-1MON'
-        """
+        """ # noqa
         weekday = int_to_weekday.get(self.weekday, "")
         if self.week == -1:
             # LastWeekOfMonth
@@ -2542,7 +2548,7 @@ cdef class YearOffset(SingleConstructorOffset):
 
         >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
         'YE-JUN'
-        """
+        """ # noqa
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -3544,7 +3550,7 @@ cdef class Week(SingleConstructorOffset):
 
         >>> pd.offsets.Week(5).rule_code
         'W'
-        """
+        """ # noqa
         suffix = ""
         if self.weekday is not None:
             weekday = int_to_weekday[self.weekday]
