@@ -1560,7 +1560,7 @@ class Timestamp(_Timestamp):
 
         Construct a timezone-aware UTC datetime from a POSIX timestamp.
 
-        This method creates a datetime object from a POSIX timestamp, keeping the Timestamp 
+        This method creates a datetime object from a POSIX timestamp, keeping the Timestamp
         object's timezone.
 
         Parameters
@@ -1572,7 +1572,7 @@ class Timestamp(_Timestamp):
         --------
         Timezone.tzname : Return time zone name.
         Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
-        Timestamp.fromtimestamp : Transform timestamp[, tz] to tz's local 
+        Timestamp.fromtimestamp : Transform timestamp[, tz] to tz's local
             time from POSIX timestamp.
 
         Notes
