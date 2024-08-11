@@ -1791,7 +1791,7 @@ class Timestamp(_Timestamp):
 
     def utctimetuple(self):
         """
-        Return UTC time tuple, compatible with time.localtime().
+        Return UTC time tuple, compatible with `time.localtime()`.
 
         This method converts the Timestamp to UTC and returns a time tuple
         containing 9 components: year, month, day, hour, minute, second,
