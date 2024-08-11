@@ -99,8 +99,8 @@ def to_numeric(
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
-        * ``"numpy_nullable"``: returns with nullable-dtype-backed
-        * ``"pyarrow"``: returns with pyarrow-backed nullable :class:`ArrowDtype`
+        * ``"numpy_nullable"``: returns nullable-dtype-backed object
+        * ``"pyarrow"``: returns with pyarrow-backed nullable object
 
         .. versionadded:: 2.0
 
