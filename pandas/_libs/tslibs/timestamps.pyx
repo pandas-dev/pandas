@@ -252,7 +252,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def unit(self) -> str:
         """
-        The abbreviation associated with the Timestamp's resolution.
+        The abbreviation associated with self._creso.
 
         This property returns a string representing the time unit of the Timestamp's
         resolution. It corresponds to the smallest time unit that can be represented
