@@ -158,15 +158,26 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
         -i "pandas.Series.std PR01,RT03,SA01" \
+        -i "pandas.Series.str.capitalize RT03" \
+        -i "pandas.Series.str.casefold RT03" \
+        -i "pandas.Series.str.center RT03,SA01" \
+        -i "pandas.Series.str.decode PR07,RT03,SA01" \
+        -i "pandas.Series.str.encode PR07,RT03,SA01" \
+        -i "pandas.Series.str.ljust RT03,SA01" \
+        -i "pandas.Series.str.lower RT03" \
         -i "pandas.Series.str.lstrip RT03" \
         -i "pandas.Series.str.match RT03" \
         -i "pandas.Series.str.normalize RT03,SA01" \
         -i "pandas.Series.str.partition RT03" \
         -i "pandas.Series.str.repeat SA01" \
         -i "pandas.Series.str.replace SA01" \
+        -i "pandas.Series.str.rjust RT03,SA01" \
         -i "pandas.Series.str.rpartition RT03" \
         -i "pandas.Series.str.rstrip RT03" \
         -i "pandas.Series.str.strip RT03" \
+        -i "pandas.Series.str.swapcase RT03" \
+        -i "pandas.Series.str.title RT03" \
+        -i "pandas.Series.str.upper RT03" \
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
@@ -220,10 +231,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.to_period PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
+        -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.Timestamp.unit SA01" \
-        -i "pandas.Timestamp.utcoffset SA01" \
-        -i "pandas.Timestamp.utctimetuple SA01" \
+        -i "pandas.Timestamp.tzname SA01" \
+        -i "pandas.Timestamp.utcfromtimestamp PR01,SA01" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
