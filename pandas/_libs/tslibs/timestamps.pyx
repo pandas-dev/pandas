@@ -1560,8 +1560,8 @@ class Timestamp(_Timestamp):
 
         Construct a timezone-aware UTC datetime from a POSIX timestamp.
 
-        This method creates a datetime object from a POSIX timestamp, keeping the Timestamp
-        object's timezone.
+        This method creates a datetime object from a POSIX timestamp, keeping the
+        Timestamp object's timezone.
 
         Parameters
         ----------
