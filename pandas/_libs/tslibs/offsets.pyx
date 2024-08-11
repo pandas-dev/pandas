@@ -820,7 +820,7 @@ cdef class BaseOffset:
         Examples
         --------
         >>> pd.offsets.Week(n=1).nanos
-        ValueError: <Week: weekday=None> is a non-fixed frequency
+        ValueError: Week: weekday=None is a non-fixed frequency
         """  # noqa
         raise ValueError(f"{self} is a non-fixed frequency")
 
