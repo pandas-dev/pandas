@@ -590,6 +590,36 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freq_name, month_kw, self._creso)
         return out[0]
 
+    def hour(self) -> int:
+        """
+        Returns the hour component of the timestamp.
+
+        Extended Summary
+        --------
+        The hour is represented as an integer ranging from 0 to 23, where 0 corresponds
+        to midnight (00:00) and 23 corresponds to the last hour of the day (23:00).
+
+        Returns
+        --------
+        int
+            The hour component of the timestamp as an integer between 0 and 23.
+
+        See Also
+        --------
+        Timestamp.minute : Similar property indicating the minute of the timestamp.
+
+        Examples
+        --------
+            >>> ts = pd.Timestamp('2020-03-14T12:32:52.192548651')
+            >>> ts.hour()
+            12
+
+            >>> ts = pd.Timestamp('2020-03-14T22:43:12.192547851')
+            >>> ts.hour()
+            22
+        """
+        return self.hour
+
     @property
     def is_month_start(self) -> bool:
         """
