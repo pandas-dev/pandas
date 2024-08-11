@@ -968,7 +968,6 @@ def test_resample_dst_midnight_last_nonexistent():
     expected = Series([len(ts)], index=DatetimeIndex([ts.index[0]], freq="7D"))
 
     result = ts.resample("7D").sum()
-    print(f"{result=}")
     tm.assert_series_equal(result, expected)
 
 
