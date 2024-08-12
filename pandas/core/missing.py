@@ -129,7 +129,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                     # attempting to broadcast with np.equal for some cases, and then 
                     # an explicit type check when checking the mask for any straggling 
                     # cases
-                    new_mask = np.equal(arr, x)
+                    try:
+                        new_mask = np.equal(arr, x)
+                    except TypeError:
+                        # Old behaviour for uncastable types
+                        new_mask = arr == x
 
                     if not isinstance(new_mask, np.ndarray):
                         # usually BooleanArray
