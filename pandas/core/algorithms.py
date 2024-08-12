@@ -1538,11 +1538,6 @@ def safe_sort(
         # may deal with them here without performance loss using `mode='wrap'`
         new_codes = reverse_indexer.take(codes, mode="wrap")
 
-        if use_na_sentinel:
-            mask = codes == -1
-            if verify:
-                mask = mask | (codes < -len(values)) | (codes >= len(values))
-
     return ordered, ensure_platform_int(new_codes)
 
 
