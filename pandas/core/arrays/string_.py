@@ -167,7 +167,7 @@ class StringDtype(StorageExtensionDtype):
             # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
             na_value = np.nan
         elif na_value is not libmissing.NA:
-            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+            raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
         self.storage = storage
         self._na_value = na_value
