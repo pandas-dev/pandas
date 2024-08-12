@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -27,8 +28,9 @@ def test_eq_all_na():
 
 
 def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage == "python":
-        # python string storage with na_value=NaN is not yet implemented
+    if using_infer_string and string_storage == "python" and HAS_PYARROW:
+        # string storage with na_value=NaN always uses pyarrow if available
+        # -> does not yet honor the option
         request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
 
     with pd.option_context("string_storage", string_storage):
@@ -86,19 +88,18 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         ArrowStringArray(arr)
 
 
-@pytest.mark.xfail(
-    reason="dict conversion does not seem to be implemented for large string in arrow"
-)
+@pytest.mark.parametrize("string_type", ["string", "large_string"])
 @pytest.mark.parametrize("chunked", [True, False])
-def test_constructor_valid_string_type_value_dictionary(chunked):
+def test_constructor_valid_string_type_value_dictionary(string_type, chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
+    arr = pa.array(["1", "2", "3"], getattr(pa, string_type)()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
     arr = ArrowStringArray(arr)
-    assert pa.types.is_string(arr._pa_array.type.value_type)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
 
 
 def test_constructor_from_list():

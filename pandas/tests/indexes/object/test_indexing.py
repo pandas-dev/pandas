@@ -3,10 +3,13 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.missing import (
     NA,
     is_matching_na,
 )
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -29,6 +32,9 @@ class TestGetIndexer:
 
         tm.assert_numpy_array_equal(actual, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_get_indexer_strings_raises(self, using_infer_string):
         index = Index(["b", "c"])
 
@@ -171,6 +177,7 @@ class TestGetIndexerNonUnique:
 
 
 class TestSliceLocs:
+    # TODO(infer_string) parametrize over multiple string dtypes
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -209,6 +216,7 @@ class TestSliceLocs:
         expected = Index(list(expected), dtype=dtype)
         tm.assert_index_equal(result, expected)
 
+    # TODO(infer_string) parametrize over multiple string dtypes
     @td.skip_if_no("pyarrow")
     def test_slice_locs_negative_step_oob(self):
         index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")

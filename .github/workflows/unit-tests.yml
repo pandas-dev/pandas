@@ -29,6 +29,7 @@ jobs:
         env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
+        pandas_future_infer_string: ["0"]
         include:
           - name: "Downstream Compat"
             env_file: actions-311-downstream_compat.yaml
@@ -58,6 +59,9 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
           - name: "Future infer strings"
+            env_file: actions-312.yaml
+            pandas_future_infer_string: "1"
+          - name: "Future infer strings (without pyarrow)"
             env_file: actions-311.yaml
             pandas_future_infer_string: "1"
           - name: "Pypy"
@@ -85,9 +89,10 @@ jobs:
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
+      REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}
       cancel-in-progress: true
 
     services:
