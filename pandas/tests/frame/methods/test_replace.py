@@ -1524,4 +1524,4 @@ class TestDataFrameReplaceRegex:
         pass_pre_patch = pd.DataFrame({"d":[None]})
         tm.assert_frame_equal(pass_pre_patch, pass_pre_patch.replace('', pd.NA))
         fail_pre_patch = pd.DataFrame({"d":[pd.NA]})
-        tm.assert_frame_equal(fail_pre_match, fail_pre_patch.replace('', pd.NA))
+        tm.assert_frame_equal(fail_pre_patch, fail_pre_patch.replace('', pd.NA))
