@@ -657,6 +657,13 @@ class NaTType(_NaT):
         """
         Return time zone name.
 
+        This method returns the name of the Timestamp's time zone as a string.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
@@ -795,6 +802,21 @@ class NaTType(_NaT):
         Timestamp.utcfromtimestamp(ts)
 
         Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        This method creates a datetime object from a POSIX timestamp, keeping the
+        Timestamp object's timezone.
+
+        Parameters
+        ----------
+        ts : float
+            POSIX timestamp.
+
+        See Also
+        --------
+        Timezone.tzname : Return time zone name.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.fromtimestamp : Transform timestamp[, tz] to tz's local
+            time from POSIX timestamp.
 
         Notes
         -----
@@ -1462,6 +1484,13 @@ default 'raise'
         ------
         TypeError
             If the Timestamp is tz-aware and tz is not None.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        DatetimeIndex.tz_localize : Localize a DatetimeIndex to a specific time zone.
+        datetime.datetime.astimezone : Convert a datetime object to another time zone.
 
         Examples
         --------
