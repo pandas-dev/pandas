@@ -408,6 +408,13 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
+    @pytest.mark.parametrize("codes", [[-1, -1], [2, -1], [2, 2]])
+    def test_codes_empty_array_out_of_bound(self, codes):
+        empty_values = np.array([])
+        expected_codes = -np.ones_like(codes, dtype=np.intp)
+        _, result_codes = safe_sort(empty_values, codes)
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+
     def test_mixed_integer(self):
         values = np.array(["b", 1, 0, "a", 0, "b"], dtype=object)
         result = safe_sort(values)
