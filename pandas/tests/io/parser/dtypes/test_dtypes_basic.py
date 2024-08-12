@@ -463,7 +463,6 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -507,7 +506,6 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")

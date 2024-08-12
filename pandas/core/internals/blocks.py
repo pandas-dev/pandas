@@ -512,7 +512,11 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if res_values is values:
+        if (
+            res_values is values
+            or isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
