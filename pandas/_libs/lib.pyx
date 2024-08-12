@@ -2713,7 +2713,6 @@ def maybe_convert_objects(ndarray[object] objects,
         numpy_dtype = np.dtype(val_types.pop())
         if (
                 numpy_dtype.kind in "biuf"
-                and len(val_types) == 1
                 and convert_to_nullable_dtype):
             return _convert_to_based_masked(objects, numpy_dtype)
     if storage == "pyarrow":
