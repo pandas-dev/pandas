@@ -1389,21 +1389,14 @@ class Timestamp(_Timestamp):
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
 
-    Attributes
-    ----------
-    month : int
-        Value of month initialized by parameter of same name.
-    minute : int
-        Value of minute initialized by parameter of same name.
-    second : int
-        Value of second initialized by parameter of same name.
-    nanosecond : int
-        Value of nanosecond initialized by parameter of same name.
-
     See Also
     --------
     Timedelta : Represents a duration, the difference between two dates or times.
     datetime.datetime : Python datetime.datetime object.
+    Timestamp.month : Returns the month value of the given Timestamp object, represented as an int.
+    Timestamp.minute : Returns the minute value of the given Timestamp object, represented as an int.
+    Timestamp.second : Returns the second value of the given Timestamp object, represented as an int.
+    Timestamp.nanosecond : Returns the nanosecond value of the given Timestamp object, represented as an int.
 
     Notes
     -----
