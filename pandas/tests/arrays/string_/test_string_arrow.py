@@ -26,7 +26,11 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage, request, using_infer_string):
+def test_config(string_storage, using_infer_string):
+    # with the default string_storage setting
+    # always "python" at the moment
+    assert StringDtype().storage == "python"
+
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
