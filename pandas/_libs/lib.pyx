@@ -2460,7 +2460,7 @@ def _convert_to_pyarrow(
 
     from pandas.core.arrays.string_ import StringDtype
 
-    na_value = None
+    na_value = np.nan
     if mask is not None and any(mask):
         na_value = objects[mask][0]
 
@@ -2708,13 +2708,15 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
-    numpy_dtype = np.dtype(type(val))
-    if (
-            numpy_dtype.kind in "biuf"
-            and len(val_types) == 1
-            and convert_to_nullable_dtype):
-        return _convert_to_based_masked(objects, numpy_dtype)
-    elif storage == "pyarrow":
+    numpy_dtype = None
+    if len(val_types) == 1:
+        numpy_dtype = np.dtype(val_types.pop())
+        if (
+                numpy_dtype.kind in "biuf"
+                and len(val_types) == 1
+                and convert_to_nullable_dtype):
+            return _convert_to_based_masked(objects, numpy_dtype)
+    if storage == "pyarrow":
         return _convert_to_pyarrow(objects, mask)
 
     # we try to coerce datetime w/tz but must all have the same tz
