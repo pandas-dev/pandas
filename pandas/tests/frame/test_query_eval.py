@@ -1400,6 +1400,7 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_string_with_backticks(self):
         # GH 59285
         df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
@@ -1407,6 +1408,7 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df["```" < df["#backticks"]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_string_with_backticked_substring_same_as_column_name(self):
         # GH 59285
         df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
@@ -1437,6 +1439,7 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df[df[col1] < df[col2]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_no_backticks(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column_name"])
@@ -1480,6 +1483,7 @@ class TestDataFrameQueryBacktickQuoting:
         ):
             df.query("`column-name` < 'It`s that\\'s \"quote\" #hash")
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_at_end(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
@@ -1487,6 +1491,7 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df[df["column-name"] < 'It`s that\'s "quote" #hash']
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_in_mid(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
