@@ -16,6 +16,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 """
 from datetime import timezone
+import zoneinfo
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -38,7 +39,6 @@ from _thread import allocate_lock as _thread_allocate_lock
 import re
 
 import numpy as np
-import pytz
 
 cimport numpy as cnp
 from numpy cimport (
@@ -747,7 +747,7 @@ cdef tzinfo _parse_with_format(
                 week_of_year_start = 0
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
-            tz = pytz.timezone(found_dict["Z"])
+            tz = zoneinfo.ZoneInfo(found_dict["Z"])
         elif parse_code == 19:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
             tz = parse_timezone_directive(found_dict["z"])
@@ -837,7 +837,7 @@ class TimeRE(_TimeRE):
         if key == "Z":
             # lazy computation
             if self._Z is None:
-                self._Z = self.__seqToRE(pytz.all_timezones, "Z")
+                self._Z = self.__seqToRE(zoneinfo.available_timezones(), "Z")
             # Note: handling Z is the key difference vs using the stdlib
             # _strptime.TimeRE. test_to_datetime_parse_tzname_or_tzoffset with
             # fmt='%Y-%m-%d %H:%M:%S %Z' fails with the stdlib version.
