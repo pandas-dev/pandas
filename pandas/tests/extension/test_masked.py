@@ -181,7 +181,7 @@ class TestMaskedArrays(base.ExtensionTests):
         expected = type(data_missing_for_sorting)._from_sequence(
             [zero, na_value, zero], dtype=data_missing_for_sorting.dtype
         )
-        tm.assert_extension_array_equal(result, expected, check_dtype=False)
+        tm.assert_extension_array_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):
         try:
