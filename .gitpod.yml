@@ -14,7 +14,7 @@ tasks:
       cp gitpod/settings.json .vscode/settings.json
       git fetch --tags
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
-      pre-commit install
+      pre-commit install --install-hooks
     command: |
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
       echo "✨ Pre-build complete! You can close this terminal ✨ "

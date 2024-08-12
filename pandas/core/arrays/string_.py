@@ -4,7 +4,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    ClassVar,
     Literal,
     cast,
 )
@@ -118,9 +117,12 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    # error: Cannot override instance variable (previously declared on
-    # base class "StorageExtensionDtype") with class variable
-    name: ClassVar[str] = "string"  # type: ignore[misc]
+    @property
+    def name(self) -> str:  # type: ignore[override]
+        if self._na_value is libmissing.NA:
+            return "string"
+        else:
+            return "str"
 
     #: StringDtype().na_value uses pandas.NA except the implementation that
     # follows NumPy semantics, which uses nan.
@@ -137,7 +139,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            if using_string_dtype() and na_value is not libmissing.NA:
+            if na_value is not libmissing.NA:
                 if HAS_PYARROW:
                     storage = "pyarrow"
                 else:
@@ -170,11 +172,19 @@ class StringDtype(StorageExtensionDtype):
         self.storage = storage
         self._na_value = na_value
 
+    def __repr__(self) -> str:
+        if self._na_value is libmissing.NA:
+            return f"{self.name}[{self.storage}]"
+        else:
+            # TODO add more informative repr
+            return self.name
+
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
         # cannot be checked with normal `==`
         if isinstance(other, str):
-            if other == self.name:
+            # TODO should dtype == "string" work for the NaN variant?
+            if other == "string" or other == self.name:  # noqa: PLR1714
                 return True
             try:
                 other = self.construct_from_string(other)
@@ -231,6 +241,8 @@ class StringDtype(StorageExtensionDtype):
             )
         if string == "string":
             return cls()
+        elif string == "str" and using_string_dtype():
+            return cls(na_value=np.nan)
         elif string == "string[python]":
             return cls(storage="python")
         elif string == "string[pyarrow]":
@@ -319,6 +331,8 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
+    dtype: StringDtype
+
     @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
         if self.ndim > 1:
@@ -331,6 +345,128 @@ class BaseStringArray(ExtensionArray):
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
+
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if self.dtype.na_value is np.nan:
+            return self._str_map_nan_semantics(
+                f, na_value=na_value, dtype=dtype, convert=convert
+            )
+
+        from pandas.arrays import BooleanArray
+
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: type[IntegerArray | BooleanArray]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            elif dtype == np.dtype("bool"):
+                # GH#55736
+                na_value = bool(na_value)
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(cast(type, dtype)),
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            return constructor(result, mask)
+
+        else:
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
+
+    def _str_map_str_or_object(
+        self,
+        dtype,
+        na_value,
+        arr: np.ndarray,
+        f,
+        mask: npt.NDArray[np.bool_],
+    ):
+        # _str_map helper for case where dtype is either string dtype or object
+        if is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            if self.dtype.storage == "pyarrow":
+                import pyarrow as pa
+
+                result = pa.array(
+                    result, mask=mask, type=pa.large_string(), from_pandas=True
+                )
+            # error: Too many arguments for "BaseStringArray"
+            return type(self)(result)  # type: ignore[call-arg]
+
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_map_nan_semantics(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                if is_integer_dtype(dtype):
+                    na_value = 0
+                else:
+                    na_value = True
+
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(cast(type, dtype)),
+            )
+            if na_value_is_na and mask.any():
+                # TODO: we could alternatively do this check before map_infer_mask
+                #  and adjust the dtype/na_value we pass there. Which is more
+                #  performant?
+                if is_integer_dtype(dtype):
+                    result = result.astype("float64")
+                else:
+                    result = result.astype("object")
+                result[mask] = np.nan
+            return result
+
+        else:
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -697,61 +833,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # base class "NumpyExtensionArray" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        from pandas.arrays import BooleanArray
-
-        if dtype is None:
-            dtype = StringDtype(storage="python")
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray | BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            elif dtype == np.dtype("bool"):
-                na_value = bool(na_value)
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            return StringArray(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
 
 class StringArrayNumpySemantics(StringArray):
     _storage = "python"
@@ -817,52 +898,3 @@ class StringArrayNumpySemantics(StringArray):
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = np.nan
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-        convert = convert and not np.all(mask)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                if is_integer_dtype(dtype):
-                    na_value = 0
-                else:
-                    na_value = True
-
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=np.dtype(cast(type, dtype)),
-            )
-            if na_value_is_na and mask.any():
-                if is_integer_dtype(dtype):
-                    result = result.astype("float64")
-                else:
-                    result = result.astype("object")
-                result[mask] = np.nan
-            return result
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
