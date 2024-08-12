@@ -1025,6 +1025,8 @@ def convert_dtypes(
     -------
     np.dtype, or ExtensionDtype
     """
+    from pandas.core.arrays.string_ import StringDtype
+
     inferred_dtype: str | DtypeObj
 
     if (
@@ -1103,12 +1105,18 @@ def convert_dtypes(
             # If we couldn't do anything else, then we retain the dtype
             inferred_dtype = input_array.dtype
 
+    elif (
+        convert_string
+        and isinstance(input_array.dtype, StringDtype)
+        and input_array.dtype.na_value is np.nan
+    ):
+        inferred_dtype = pandas_dtype_func("string")
+
     else:
         inferred_dtype = input_array.dtype
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
 

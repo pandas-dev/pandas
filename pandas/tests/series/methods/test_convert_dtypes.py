@@ -230,9 +230,9 @@ class TestSeriesConvertDtypes:
             and params[0]
             and not params[1]
         ):
-            # If we would convert with convert strings then infer_objects converts
-            # with the option
-            expected_dtype = "string[pyarrow_numpy]"
+            # If convert_string=False and infer_objects=True, we end up with the
+            # default string dtype instead of preserving object for string data
+            expected_dtype = pd.StringDtype(na_value=np.nan)
 
         expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)

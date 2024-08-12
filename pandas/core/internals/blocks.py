@@ -657,8 +657,13 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
+        if (
+            copy
+            and res_values is values
+            or isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
+            res_values = res_values.copy()
         elif res_values is values:
             refs = self.refs
 
