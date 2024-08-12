@@ -3658,6 +3658,7 @@ def dtype_backend_data() -> DataFrame:
 @pytest.fixture
 def dtype_backend_expected():
     def func(string_storage, dtype_backend, conn_name) -> DataFrame:
+        string_dtype: pd.StringDtype | pd.ArrowDtype
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
             string_dtype = pd.ArrowDtype(pa.string())
