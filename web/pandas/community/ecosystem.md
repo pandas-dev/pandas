@@ -360,7 +360,7 @@ Deltalake python package lets you access tables stored in
 JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
 any Delta table into Pandas dataframe.
 
-### [pandas-gbq]([https://github.com/yehoshuadimarsky/bcpandas](https://github.com/googleapis/python-bigquery-pandas))
+### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
 
 pandas-gbq provides high performance reads and writes to and from
 [Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
