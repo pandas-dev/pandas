@@ -426,6 +426,11 @@ def option_context(*args) -> Generator[None, None, None]:
     None
         No return value.
 
+    Yields
+    ------
+    None
+        No yield value.
+
     See Also
     --------
     get_option : Retrieve the value of the specified option.
