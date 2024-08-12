@@ -125,10 +125,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                     new_mask[arr_mask] = arr[arr_mask] == x
                 else:
                     # GH#47101 
-                    # Fix where type 'bool' has no attribute 'to_numpy()' by first 
+                    # Fix where type bool has no attribute to_numpy() by first 
                     # attempting to broadcast with np.equal for some cases, and then 
                     # an explicit type check when checking the mask for any straggling 
-                    # cases
+                    # cases. Where a literal comparison would fail np.equal we fall back
+                    # to the original equality check.
                     try:
                         new_mask = np.equal(arr, x)
                     except TypeError:
@@ -138,7 +139,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                     if not isinstance(new_mask, np.ndarray):
                         # usually BooleanArray
                         if isinstance(new_mask, bool):
-                            new_mask = np.array([new_mask]) 
+                            new_mask = np.array([new_mask], dtype= bool) 
                         else: 
                             new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
                 mask |= new_mask
