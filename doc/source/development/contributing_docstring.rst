@@ -142,7 +142,7 @@ backticks. The following are considered inline code:
 
         With several mistakes in the docstring.
 
-        It has a blank like after the signature ``def func():``.
+        It has a blank line after the signature ``def func():``.
 
         The text 'Some function' should go in the line after the
         opening quotes of the docstring, not in the same line.
