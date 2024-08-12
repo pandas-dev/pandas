@@ -140,12 +140,16 @@ class StringDtype(StorageExtensionDtype):
         # infer defaults
         if storage is None:
             if na_value is not libmissing.NA:
-                if HAS_PYARROW:
-                    storage = "pyarrow"
-                else:
-                    storage = "python"
+                storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    if HAS_PYARROW:
+                        storage = "pyarrow"
+                    else:
+                        storage = "python"
             else:
                 storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    storage = "python"
 
         if storage == "pyarrow_numpy":
             # TODO raise a deprecation warning
