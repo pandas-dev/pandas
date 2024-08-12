@@ -125,18 +125,22 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
-            values.type
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
+            pa.types.is_string(values.type)
+            or (
+                pa.types.is_dictionary(values.type)
+                and (
+                    pa.types.is_string(values.type.value_type)
+                    or pa.types.is_large_string(values.type.value_type)
+                )
+            )
         ):
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
 
-        if not pa.types.is_large_string(self._pa_array.type) and not (
-            pa.types.is_dictionary(self._pa_array.type)
-            and pa.types.is_large_string(self._pa_array.type.value_type)
-        ):
+        if not pa.types.is_large_string(self._pa_array.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of "
                 "large_string type"
