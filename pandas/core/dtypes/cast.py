@@ -1014,10 +1014,8 @@ def convert_dtypes(
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
+        * ``"numpy_nullable"``: returns nullable-dtype
         * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -1025,6 +1023,8 @@ def convert_dtypes(
     -------
     np.dtype, or ExtensionDtype
     """
+    from pandas.core.arrays.string_ import StringDtype
+
     inferred_dtype: str | DtypeObj
 
     if (
@@ -1102,6 +1102,13 @@ def convert_dtypes(
         if isinstance(inferred_dtype, str):
             # If we couldn't do anything else, then we retain the dtype
             inferred_dtype = input_array.dtype
+
+    elif (
+        convert_string
+        and isinstance(input_array.dtype, StringDtype)
+        and input_array.dtype.na_value is np.nan
+    ):
+        inferred_dtype = pandas_dtype_func("string")
 
     else:
         inferred_dtype = input_array.dtype

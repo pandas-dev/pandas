@@ -15,7 +15,6 @@ from dateutil.tz import (
 )
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
@@ -747,7 +746,7 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, None, nanosecond=1),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=pytz.UTC, nanosecond=1),
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, tz=timezone.utc, nanosecond=1),
         ],
     )
     def test_constructor_nanosecond(self, result):
@@ -904,7 +903,7 @@ class TestTimestampConstructors:
             Timestamp(box(**kwargs), tz="US/Pacific")
         msg = "Cannot pass a datetime or Timestamp"
         with pytest.raises(ValueError, match=msg):
-            Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
+            Timestamp(box(**kwargs), tzinfo=zoneinfo.ZoneInfo("US/Pacific"))
 
     def test_dont_convert_dateutil_utc_to_default_utc(self):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
@@ -948,7 +947,7 @@ class TestTimestampConstructors:
             assert result == expected
 
             msg = "Cannot infer dst time from 2015-10-25 02:00:00"
-            with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+            with pytest.raises(ValueError, match=msg):
                 Timestamp("2015-10-25 02:00", tz=tz)
 
         result = Timestamp("2017-03-26 01:00", tz="Europe/Paris")
@@ -956,7 +955,7 @@ class TestTimestampConstructors:
         assert result == expected
 
         msg = "2017-03-26 02:00"
-        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2017-03-26 02:00", tz="Europe/Paris")
 
         # GH#11708
@@ -975,7 +974,7 @@ class TestTimestampConstructors:
         assert result == expected
 
         msg = "2017-03-26 02:00"
-        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             Timestamp("2017-03-26 02:00", tz="Europe/Paris")
 
         result = Timestamp("2017-03-26 02:00:00+0100", tz="Europe/Paris")
