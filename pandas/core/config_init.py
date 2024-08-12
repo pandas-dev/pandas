@@ -457,7 +457,7 @@ string_storage_doc = """
 
 
 def is_valid_string_storage(value: Any) -> None:
-    legal_values = [None, "python", "pyarrow"]
+    legal_values = ["auto", "python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
         if value == "pyarrow_numpy":
@@ -472,7 +472,7 @@ def is_valid_string_storage(value: Any) -> None:
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
-        None,
+        "auto",
         string_storage_doc,
         # validator=is_one_of_factory(["python", "pyarrow"]),
         validator=is_valid_string_storage,
