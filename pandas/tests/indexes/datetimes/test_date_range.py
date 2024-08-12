@@ -11,7 +11,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.offsets import (
@@ -881,7 +880,7 @@ class TestDateRangeTZ:
         # construction with an ambiguous end-point
         # GH#11626
 
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             date_range(
                 "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="h"
             )
@@ -905,7 +904,7 @@ class TestDateRangeTZ:
     def test_date_range_nonexistent_endpoint(self, tz, option, expected):
         # construction with an nonexistent end-point
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
+        with pytest.raises(ValueError, match="2019-03-10 02:00:00"):
             date_range(
                 "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="h"
             )

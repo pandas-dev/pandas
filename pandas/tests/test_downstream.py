@@ -218,7 +218,7 @@ def test_missing_required_dependency():
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()
-    for name in ["numpy", "pytz", "dateutil"]:
+    for name in ["numpy", "dateutil"]:
         assert name in output
 
 

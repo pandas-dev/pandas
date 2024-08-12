@@ -1781,7 +1781,7 @@ _round_doc = """
           a non-DST time (note that this flag is only applicable for
           ambiguous times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+        - 'raise' will raise a ValueError if there are ambiguous
           times.
 
     nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
@@ -1794,7 +1794,7 @@ _round_doc = """
           closest existing time
         - 'NaT' will return NaT where there are nonexistent times
         - timedelta objects will shift nonexistent times by the timedelta
-        - 'raise' will raise an NonExistentTimeError if there are
+        - 'raise' will raise a ValueError if there are
           nonexistent times.
 
     Returns

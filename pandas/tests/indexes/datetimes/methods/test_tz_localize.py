@@ -9,7 +9,6 @@ import dateutil.tz
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas import (
     DatetimeIndex,
@@ -69,10 +68,10 @@ class TestTZLocalize:
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
         index = DatetimeIndex(times)
         tz = "US/Eastern"
-        with pytest.raises(pytz.NonExistentTimeError, match="|".join(times)):
+        with pytest.raises(ValueError, match="|".join(times)):
             index.tz_localize(tz=tz)
 
-        with pytest.raises(pytz.NonExistentTimeError, match="|".join(times)):
+        with pytest.raises(ValueError, match="|".join(times)):
             index.tz_localize(tz=tz, nonexistent="raise")
 
         result = index.tz_localize(tz=tz, nonexistent="NaT")
@@ -85,7 +84,7 @@ class TestTZLocalize:
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5, freq=offsets.Hour())
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
     def test_dti_tz_localize_ambiguous_infer2(self, tz, unit):
@@ -117,7 +116,7 @@ class TestTZLocalize:
     def test_dti_tz_localize_ambiguous_times(self, tz):
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3, freq=offsets.Hour())
-        with pytest.raises(pytz.NonExistentTimeError, match="2011-03-13 02:30:00"):
+        with pytest.raises(ValueError, match="2011-03-13 02:30:00"):
             dr.tz_localize(tz)
 
         # after dst transition, it works
@@ -127,7 +126,7 @@ class TestTZLocalize:
 
         # November 6, 2011, fall back, repeat 2 AM hour
         dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3, freq=offsets.Hour())
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
         # UTC is OK
@@ -163,11 +162,11 @@ class TestTZLocalize:
         tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
         dti = date_range(start="11/6/2011 1:59", end="11/6/2011 2:00", freq="ms")
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             dti.tz_localize(tzstr)
 
         dti = date_range(start="3/13/2011 1:59", end="3/13/2011 2:00", freq="ms")
-        with pytest.raises(pytz.NonExistentTimeError, match="2011-03-13 02:00:00"):
+        with pytest.raises(ValueError, match="2011-03-13 02:00:00"):
             dti.tz_localize(tzstr)
 
     def test_dti_tz_localize_utc_conversion(self, tz):
@@ -184,7 +183,7 @@ class TestTZLocalize:
         # DST ambiguity, this should fail
         rng = date_range("3/11/2012", "3/12/2012", freq="30min")
         # Is this really how it should fail??
-        with pytest.raises(pytz.NonExistentTimeError, match="2012-03-11 02:00:00"):
+        with pytest.raises(ValueError, match="2012-03-11 02:00:00"):
             rng.tz_localize(tz)
 
     def test_dti_tz_localize_roundtrip(self, tz_aware_fixture):

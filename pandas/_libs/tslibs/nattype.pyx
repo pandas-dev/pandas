@@ -1067,7 +1067,7 @@ class NaTType(_NaT):
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
         nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
@@ -1080,7 +1080,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -1168,7 +1168,7 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
         nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
@@ -1181,7 +1181,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Raises
@@ -1263,7 +1263,7 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
         nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
@@ -1276,7 +1276,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Raises
@@ -1427,7 +1427,7 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
         nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
@@ -1442,7 +1442,7 @@ default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns

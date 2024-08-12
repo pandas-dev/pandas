@@ -144,11 +144,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         field["freq"] = dtype.freq.freqstr
     elif isinstance(dtype, DatetimeTZDtype):
         if timezones.is_utc(dtype.tz):
-            # timezone.utc has no "zone" attr
             field["tz"] = "UTC"
         else:
-            # error: "tzinfo" has no attribute "zone"
-            field["tz"] = dtype.tz.zone  # type: ignore[attr-defined]
+            zone = timezones.get_timezone(dtype.tz)
+            if isinstance(zone, str):
+                field["tz"] = zone
     elif isinstance(dtype, ExtensionDtype):
         field["extDtype"] = dtype.name
     return field

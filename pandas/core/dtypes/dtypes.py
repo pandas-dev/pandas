@@ -18,9 +18,9 @@ from typing import (
     cast,
 )
 import warnings
+import zoneinfo
 
 import numpy as np
-import pytz
 
 from pandas._config.config import get_option
 
@@ -789,7 +789,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.maybe_get_tz(tz)
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
-            raise pytz.UnknownTimeZoneError(tz)
+            raise zoneinfo.ZoneInfoNotFoundError(tz)
         if tz is None:
             raise TypeError("A 'tz' is required.")
 
@@ -882,7 +882,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 return cls(unit=d["unit"], tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
-                #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
                 # TypeError if we pass a nonsense tz;
                 # ValueError if we pass a unit other than "ns"
                 raise TypeError(msg) from err

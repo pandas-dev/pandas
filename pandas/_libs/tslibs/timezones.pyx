@@ -2,16 +2,9 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
 
 from pandas.compat._optional import import_optional_dependency
-
-try:
-    # py39+
-    import zoneinfo
-    from zoneinfo import ZoneInfo
-except ImportError:
-    zoneinfo = None
-    ZoneInfo = None
 
 from cpython.datetime cimport (
     datetime,
@@ -28,8 +21,8 @@ from dateutil.tz import (
     tzutc as _dateutil_tzutc,
 )
 import numpy as np
-import pytz
-from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 cimport numpy as cnp
 from numpy cimport int64_t
@@ -45,10 +38,11 @@ from pandas._libs.tslibs.util cimport (
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
-cdef tzinfo utc_pytz = pytz.utc
+cdef tzinfo utc_pytz = pytz.UTC if pytz else None
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 cdef tzinfo utc_zoneinfo = None
+cdef type ZoneInfo = zoneinfo.ZoneInfo
 
 
 # ----------------------------------------------------------------------
@@ -56,13 +50,13 @@ cdef tzinfo utc_zoneinfo = None
 cdef bint is_utc_zoneinfo(tzinfo tz):
     # Workaround for cases with missing tzdata
     #  https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
-    if tz is None or zoneinfo is None:
+    if tz is None:
         return False
 
     global utc_zoneinfo
     if utc_zoneinfo is None:
         try:
-            utc_zoneinfo = ZoneInfo("UTC")
+            utc_zoneinfo = zoneinfo.ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
         # Warn if tzdata is too old, even if there is a system tzdata to alert
@@ -74,17 +68,15 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
 
 cpdef inline bint is_utc(tzinfo tz):
     return (
-        tz is utc_pytz
-        or tz is utc_stdlib
+        tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
         or tz is utc_dateutil_str
         or is_utc_zoneinfo(tz)
+        or (utc_pytz is not None and tz is utc_pytz)
     )
 
 
 cdef bint is_zoneinfo(tzinfo tz):
-    if ZoneInfo is None:
-        return False
     return isinstance(tz, ZoneInfo)
 
 
@@ -166,7 +158,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz == "UTC" or tz == "utc":
             tz = utc_stdlib
         else:
-            tz = pytz.timezone(tz)
+            tz = zoneinfo.ZoneInfo(tz)
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
@@ -205,7 +197,7 @@ cdef object tz_cache_key(tzinfo tz):
     the same tz file). Also, pytz objects are not always hashable so we use
     str(tz) instead.
     """
-    if isinstance(tz, _pytz_BaseTzInfo):
+    if pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
@@ -239,7 +231,7 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 1
         else:
             return 0
-    elif treat_tz_as_pytz(tz):
+    elif treat_tz_as_pytz(tz) and pytz is not None:
         if (len(tz._transition_info) == 0
                 and len(tz._utc_transition_times) == 0):
             return 1
