@@ -221,9 +221,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.Timestamp.unit SA01" \
-        -i "pandas.Timestamp.utcoffset SA01" \
-        -i "pandas.Timestamp.utctimetuple SA01" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
