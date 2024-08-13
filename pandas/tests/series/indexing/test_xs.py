@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
+import debugpy
 
 from pandas import (
+    DataFrame,
     MultiIndex,
     Series,
     date_range,
@@ -80,3 +82,16 @@ class TestXSWithMultiIndex:
 
         with pytest.raises(TypeError, match="list keys are not supported"):
             ser.xs(["a"], axis=0, drop_level=False)
+    
+    def test_xs_default_level(self):
+        # GH#59098
+        df = DataFrame(dict(i=[1,2,3], j=[1,1,2], x=[10, 100, 1000])).set_index(["i", "j"])
+        key = (1, 1)
+
+        # Both scenarios should return DataFrame
+        result_with_level = df.xs(key, drop_level=False, level=list(range(len(key))))
+        result_with_default = df.xs(key, drop_level=False)
+
+        assert type(result_with_default) == DataFrame
+        assert type(result_with_level) == type(result_with_default)
+        tm.assert_equal(result_with_level, result_with_default)
