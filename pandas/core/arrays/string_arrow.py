@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 import operator
 import re
 from typing import (
@@ -62,8 +61,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
-
-    from pandas import Series
 
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
@@ -559,16 +556,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _na_value = np.nan
-
-    def __getattribute__(self, item):
-        # ArrowStringArray and we both inherit from ArrowExtensionArray, which
-        # creates inheritance problems (Diamond inheritance)
-        if item in ArrowStringArrayMixin.__dict__ and item not in (
-            "_pa_array",
-            "__dict__",
-        ):
-            return partial(getattr(ArrowStringArrayMixin, item), self)
-        return super().__getattribute__(item)
+    _str_get = ArrowStringArrayMixin._str_get
+    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_capitalize = ArrowStringArrayMixin._str_capitalize
+    _str_pad = ArrowStringArrayMixin._str_pad
+    _str_title = ArrowStringArrayMixin._str_title
+    _str_swapcase = ArrowStringArrayMixin._str_swapcase
+    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
 
     def _cmp_method(self, other, op):
         try:
@@ -579,11 +573,3 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return result.to_numpy(np.bool_, na_value=True)
         else:
             return result.to_numpy(np.bool_, na_value=False)
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import Series
-
-        result = super().value_counts(dropna)
-        return Series(
-            result._values.to_numpy(), index=result.index, name=result.name, copy=False
-        )
