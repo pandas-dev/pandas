@@ -34,7 +34,6 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
-from pandas.core.ops import invalid_comparison
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under10p1:
@@ -562,9 +561,3 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
-
-    def _cmp_method(self, other, op):
-        try:
-            return super()._cmp_method(other, op)
-        except pa.ArrowNotImplementedError:
-            return invalid_comparison(self, other, op)
