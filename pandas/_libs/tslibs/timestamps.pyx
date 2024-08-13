@@ -254,6 +254,28 @@ cdef class _Timestamp(ABCTimestamp):
         """
         The abbreviation associated with self._creso.
 
+        This property returns a string representing the time unit of the Timestamp's
+        resolution. It corresponds to the smallest time unit that can be represented
+        by this Timestamp object. The possible values are:
+        - 's' (second)
+        - 'ms' (millisecond)
+        - 'us' (microsecond)
+        - 'ns' (nanosecond)
+
+        Returns
+        -------
+        str
+            A string abbreviation of the Timestamp's resolution unit:
+            - 's' for second
+            - 'ms' for millisecond
+            - 'us' for microsecond
+            - 'ns' for nanosecond
+
+        See Also
+        --------
+        Timestamp.resolution : Return resolution of the Timestamp.
+        Timedelta : A duration expressing the difference between two dates or times.
+
         Examples
         --------
         >>> pd.Timestamp("2020-01-01 12:34:56").unit
@@ -1771,6 +1793,22 @@ class Timestamp(_Timestamp):
         """
         Return utc offset.
 
+        This method returns the difference between UTC and the local time
+        as a `timedelta` object. It is useful for understanding the time
+        difference between the current timezone and UTC.
+
+        Returns
+        --------
+        timedelta
+            The difference between UTC and the local time as a `timedelta` object.
+
+        See Also
+        --------
+        datetime.datetime.utcoffset :
+            Standard library method to get the UTC offset of a datetime object.
+        Timestamp.tzname : Return the name of the timezone.
+        Timestamp.dst : Return the daylight saving time (DST) adjustment.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
@@ -1783,7 +1821,24 @@ class Timestamp(_Timestamp):
 
     def utctimetuple(self):
         """
-        Return UTC time tuple, compatible with time.localtime().
+        Return UTC time tuple, compatible with `time.localtime()`.
+
+        This method converts the Timestamp to UTC and returns a time tuple
+        containing 9 components: year, month, day, hour, minute, second,
+        weekday, day of year, and DST flag. This is particularly useful for
+        converting a Timestamp to a format compatible with time module functions.
+
+        Returns
+        -------
+        time.struct_time
+            A time.struct_time object representing the UTC time.
+
+        See Also
+        --------
+        datetime.datetime.utctimetuple :
+            Return UTC time tuple, compatible with time.localtime().
+        Timestamp.timetuple : Return time tuple of local time.
+        time.struct_time : Time tuple structure used by time functions.
 
         Examples
         --------
