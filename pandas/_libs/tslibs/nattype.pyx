@@ -609,7 +609,8 @@ class NaTType(_NaT):
 
         See Also
         --------
-        datetime.datetime.utctimetuple : Return UTC time tuple, compatible with time.localtime().
+        datetime.datetime.utctimetuple :
+            Return UTC time tuple, compatible with time.localtime().
         Timestamp.timetuple : Return time tuple of local time.
         time.struct_time : Time tuple structure used by time functions.
 
@@ -639,7 +640,8 @@ class NaTType(_NaT):
 
         See Also
         --------
-        datetime.datetime.utcoffset : Standard library method to get the UTC offset of a datetime object.
+        datetime.datetime.utcoffset :
+            Standard library method to get the UTC offset of a datetime object.
         Timestamp.tzname : Return the name of the timezone.
         Timestamp.dst : Return the daylight saving time (DST) adjustment.
 

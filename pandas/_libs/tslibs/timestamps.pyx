@@ -256,14 +256,20 @@ cdef class _Timestamp(ABCTimestamp):
 
         This property returns a string representing the time unit of the Timestamp's
         resolution. It corresponds to the smallest time unit that can be represented
-        by this Timestamp object. The possible values are 's' (second), 'ms' (millisecond),
-        'us' (microsecond), and 'ns' (nanosecond).
+        by this Timestamp object. The possible values are:
+        - 's' (second)
+        - 'ms' (millisecond)
+        - 'us' (microsecond)
+        - 'ns' (nanosecond)
 
         Returns
         -------
         str
             A string abbreviation of the Timestamp's resolution unit:
-            's' for second, 'ms' for millisecond, 'us' for microsecond, or 'ns' for nanosecond.
+            - 's' for second
+            - 'ms' for millisecond
+            - 'us' for microsecond
+            - 'ns' for nanosecond
 
         See Also
         --------
@@ -1798,7 +1804,8 @@ class Timestamp(_Timestamp):
 
         See Also
         --------
-        datetime.datetime.utcoffset : Standard library method to get the UTC offset of a datetime object.
+        datetime.datetime.utcoffset :
+            Standard library method to get the UTC offset of a datetime object.
         Timestamp.tzname : Return the name of the timezone.
         Timestamp.dst : Return the daylight saving time (DST) adjustment.
 
@@ -1828,7 +1835,8 @@ class Timestamp(_Timestamp):
 
         See Also
         --------
-        datetime.datetime.utctimetuple : Return UTC time tuple, compatible with time.localtime().
+        datetime.datetime.utctimetuple :
+            Return UTC time tuple, compatible with time.localtime().
         Timestamp.timetuple : Return time tuple of local time.
         time.struct_time : Time tuple structure used by time functions.
 
