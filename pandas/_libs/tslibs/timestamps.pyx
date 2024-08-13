@@ -1940,9 +1940,25 @@ class Timestamp(_Timestamp):
     @classmethod
     def strptime(cls, date_string, format):
         """
-        Timestamp.strptime(string, format)
+        Convert string argument to datetime.
 
-        Function is not implemented. Use pd.to_datetime().
+        This function is not implemented; calling it will raise NotImplementedError.
+        Use pd.to_datetime() insteads.
+
+        Parameters
+        ----------
+        date_string : str
+            String to convert to a datetime.
+        format : str, default None
+            The format string to parse time, e.g. "%d/%m/%Y".
+
+        See Also
+        --------
+        pd.to_datetime : Convert argument to datetime.
+        datetime.datetime.strftime :
+            Return a string representing the date and time, controlled by an
+            explicit format string.
+        Timestamp.isoformat : Return the time formatted according to ISO 8601.
 
         Examples
         --------
