@@ -729,7 +729,7 @@ class ArrowExtensionArray(
                 f"{op.__name__} not implemented for {type(other)}"
             )
         result = ArrowExtensionArray(result)
-        if self.dtype.na_value is np.nan:
+        if self.dtype.na_value is np.nan:  # type: ignore[comparison-overlap]
             # i.e. ArrowStringArray with Numpy Semantics
             if op == operator.ne:
                 return result.to_numpy(np.bool_, na_value=True)
@@ -1531,7 +1531,7 @@ class ArrowExtensionArray(
         index = Index(type(self)(values))
 
         result = Series(counts, index=index, name="count", copy=False)
-        if self.dtype.na_value is np.nan:
+        if self.dtype.na_value is np.nan:  # type: ignore[comparison-overlap]
             # i.e. ArrowStringArray with Numpy Semantics
             return Series(counts.to_numpy(), index=index, name="count", copy=False)
         return result
