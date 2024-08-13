@@ -6040,7 +6040,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 attrs = objs[0].attrs
                 have_same_attrs = all(
                     (obj.attrs == attrs).all()
-                    if isinstance(obj.attrs, np.darray)
+                    if isinstance(obj.attrs, np.ndarray)
                     else obj.attrs == attrs
                     for obj in objs[1:]
                 )
