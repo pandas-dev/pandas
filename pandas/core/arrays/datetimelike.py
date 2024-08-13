@@ -669,7 +669,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-        value = sanitize_array(value, index=None)
+        value = sanitize_array(value, index=None, allow_2d=True)
         value = ensure_wrapped_if_datetimelike(value)
 
         if is_all_strings(value):

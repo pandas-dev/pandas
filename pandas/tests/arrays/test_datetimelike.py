@@ -336,7 +336,7 @@ class SharedTests:
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
                     "or array of those. Got "
-                    f"{'str' if using_infer_string else 'string'} array instead."
+                    f"{'str' if using_infer_string else 'object'} array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
