@@ -2270,6 +2270,19 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         if isinstance(self.dtype, StringDtype):
+            if how in [
+                "sum",
+                "prod",
+                "mean",
+                "median",
+                "cumsum",
+                "cumprod",
+                "std",
+                "sem",
+                "var",
+                "skew",
+            ]:
+                raise TypeError(f"{self.dtype} dtype does not support {how} operations")
             return super()._groupby_op(
                 how=how,
                 has_dropped_na=has_dropped_na,

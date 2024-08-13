@@ -4287,6 +4287,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
+            elif isinstance(vals.dtype, StringDtype):
+                raise TypeError(
+                    f"{vals.dtype} dtype does not support quantile operations"
+                )
 
             inference: DtypeObj | None = None
             if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):

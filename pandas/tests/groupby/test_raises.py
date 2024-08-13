@@ -181,42 +181,46 @@ def test_groupby_raises_string(
     }[groupby_func]
 
     if using_infer_string:
-        if klass is not None:
-            if re.escape("agg function failed") in msg:
-                msg = msg.replace("object", "string")
-            elif groupby_func in [
-                "cumsum",
-                "cumprod",
-                "cummin",
-                "cummax",
-                "std",
-                "sem",
-                "skew",
-            ]:
-                msg = msg.replace("object", "string")
-            elif groupby_func == "quantile":
-                msg = "No matching signature found"
-            elif groupby_func == "corrwith":
-                msg = (
-                    "'ArrowStringArrayNumpySemantics' with dtype string does "
-                    "not support operation 'mean'"
-                )
-            else:
-                import pyarrow as pa
+        if groupby_func in [
+            "sum",
+            "prod",
+            "mean",
+            "median",
+            "cumsum",
+            "cumprod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "quantile",
+        ]:
+            msg = f"str dtype does not support {groupby_func} operations"
+            if groupby_func == "sum":
+                # The object-dtype allows this, StringArray variants do not.
+                klass = TypeError
+            elif groupby_func in ["sem", "std", "skew"]:
+                # The object-dtype raises ValueError when trying to convert to numeric.
+                klass = TypeError
+        elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":
+            # This doesn't go through EA._groupby_op so the message isn't controlled
+            #  there.
+            import pyarrow as pa
 
-                klass = pa.lib.ArrowNotImplementedError
-                if groupby_func == "pct_change":
-                    msg = "Function 'divide' has no kernel matching input types"
-                elif groupby_func == "diff":
-                    msg = (
-                        "Function 'subtract_checked' has no kernel matching "
-                        "input types"
-                    )
-                else:
-                    msg = (
-                        f"Function '{groupby_func}' has no kernel matching "
-                        "input types"
-                    )
+            klass = pa.lib.ArrowNotImplementedError
+            msg = "Function 'divide' has no kernel matching input types"
+        elif groupby_func == "diff" and df["d"].dtype.storage == "pyarrow":
+            # This doesn't go through EA._groupby_op so the message isn't controlled
+            #  there.
+            import pyarrow as pa
+
+            klass = pa.lib.ArrowNotImplementedError
+            msg = "Function 'subtract_checked' has no kernel matching input types"
+        elif groupby_func in ["cummin", "cummax"]:
+            msg = msg.replace("object", "str")
+        elif groupby_func == "corrwith":
+            msg = (
+                "'.*NumpySemantics' with dtype str does " "not support operation 'mean'"
+            )
 
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
@@ -269,10 +273,9 @@ def test_groupby_raises_string_np(
     }[groupby_func_np]
 
     if using_infer_string:
-        # TODO: should ArrowStringArrayNumpySemantics support sum?
         klass = TypeError
         msg = (
-            "'ArrowStringArrayNumpySemantics' with dtype string does not "
+            "'.*StringArrayNumpySemantics' with dtype str does not "
             f"support operation '{groupby_func_np.__name__}'"
         )
 

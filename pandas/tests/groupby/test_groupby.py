@@ -702,15 +702,20 @@ def test_keep_nuisance_agg(df, agg_function):
     ["sum", "mean", "prod", "std", "var", "sem", "median"],
 )
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_omit_nuisance_agg(df, agg_function, numeric_only):
+def test_omit_nuisance_agg(df, agg_function, numeric_only, using_infer_string):
     # GH 38774, GH 38815
     grouped = df.groupby("A")
 
     no_drop_nuisance = ("var", "std", "sem", "mean", "prod", "median")
+    if using_infer_string:
+        no_drop_nuisance += ("sum",)
     if agg_function in no_drop_nuisance and not numeric_only:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
-        if agg_function in ("std", "sem"):
+        if using_infer_string:
+            msg = f"str dtype does not support {agg_function} operations"
+            klass = TypeError
+        elif agg_function in ("std", "sem"):
             klass = ValueError
             msg = "could not convert string to float: 'one'"
         else:
@@ -1772,6 +1777,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
     is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
     is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
+    is_str = isinstance(df.dtypes.iloc[0], pd.StringDtype)
 
     if (
         isinstance(values, Categorical)
@@ -1796,13 +1802,15 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
 
     if op in ["prod", "sum", "skew"]:
         # ops that require more than just ordered-ness
-        if is_dt64 or is_cat or is_per:
+        if is_dt64 or is_cat or is_per or is_str:
             # GH#41291
             # datetime64 -> prod and sum are invalid
             if is_dt64:
                 msg = "datetime64 type does not support"
             elif is_per:
                 msg = "Period type does not support"
+            elif is_str:
+                msg = "str dtype does not support"
             else:
                 msg = "category type does not support"
             if op == "skew":
