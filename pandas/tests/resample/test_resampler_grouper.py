@@ -691,6 +691,38 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
         rs[["val_not_in_dataframe"]]
 
 
+def test_groupby_resample_after_set_index_and_not_on_column():
+    # GH 59350
+    df = DataFrame(
+        data={
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:00Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+            "group": ["A", "A"],
+            "numbers": [100, 200],
+        },
+        index=[1, 0],
+    ).set_index("datetime")
+    gb = df.groupby("group")
+    rs = gb.resample("1min")
+    result = rs.aggregate({"numbers": "sum"})
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    expected = DataFrame({"numbers": [100, 200]}, index=index)
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "df",
     [
@@ -746,3 +778,96 @@ def test_groupby_resample_on_column_when_index_is_unusual(df):
     expected = DataFrame({"numbers": [100, 200]}, index=index)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_then_groupby_is_reused_when_index_is_out_of_order():
+    df = DataFrame(
+        data={
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:00Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+            "group": ["A", "A"],
+            "numbers": [100, 200],
+        },
+        index=[1, 0],
+    )
+
+    gb = df.groupby("group")
+
+    # use gb
+    result_1 = gb[["numbers"]].transform("sum")
+
+    index = Index([1, 0])
+    expected = DataFrame({"numbers": [300, 300]}, index=index)
+
+    tm.assert_frame_equal(result_1, expected)
+
+    # resample gb, unrelated to above
+    rs = gb.resample("1min", on="datetime")
+    result_2 = rs.aggregate({"numbers": "sum"})
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    expected = DataFrame({"numbers": [100, 200]}, index=index)
+
+    tm.assert_frame_equal(result_2, expected)
+
+    # reuse gb, unrelated to above
+    result_3 = gb[["numbers"]].transform("sum")
+
+    tm.assert_frame_equal(result_1, result_3)
+
+
+def test_groupby_resample_then_groupby_is_reused_when_index_is_set_from_column():
+    df = DataFrame(
+        data={
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:00Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+            "group": ["A", "A"],
+            "numbers": [100, 200],
+        },
+    ).set_index("group")
+
+    gb = df.groupby("group")
+
+    # use gb
+    result_1 = gb[["numbers"]].transform("sum")
+
+    index = Index(["A", "A"], name="group")
+    expected = DataFrame({"numbers": [300, 300]}, index=index)
+
+    tm.assert_frame_equal(result_1, expected)
+
+    # resample gb, unrelated to above
+    rs = gb.resample("1min", on="datetime")
+    result_2 = rs.aggregate({"numbers": "sum"})
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    expected = DataFrame({"numbers": [100, 200]}, index=index)
+
+    tm.assert_frame_equal(result_2, expected)
+
+    # reuse gb, unrelated to above
+    result_3 = gb[["numbers"]].transform("sum")
+
+    tm.assert_frame_equal(result_1, result_3)
