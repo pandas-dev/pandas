@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
@@ -802,13 +803,17 @@ def test_pandas_dtype_ea_not_instance():
 
 
 def test_pandas_dtype_string_dtypes(string_storage):
-    # TODO(infer_string) remove skip if "python" is supported
-    pytest.importorskip("pyarrow")
+    with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype("str")
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
     with pd.option_context("future.infer_string", True):
         with pd.option_context("string_storage", string_storage):
             result = pandas_dtype("str")
-    # TODO(infer_string) hardcoded to pyarrow until python is supported
-    assert result == pd.StringDtype("pyarrow", na_value=np.nan)
+    assert result == pd.StringDtype(string_storage, na_value=np.nan)
 
     with pd.option_context("future.infer_string", False):
         with pd.option_context("string_storage", string_storage):

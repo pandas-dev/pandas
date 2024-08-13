@@ -4,7 +4,6 @@ from hypothesis import (
 )
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -182,7 +181,7 @@ class TestTimestampRound:
         assert result is NaT
 
         msg = "Cannot infer dst time"
-        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             getattr(ts, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -205,7 +204,7 @@ class TestTimestampRound:
         assert result is NaT
 
         msg = "2018-03-11 02:00:00"
-        with pytest.raises(pytz.NonExistentTimeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             getattr(ts, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize(
