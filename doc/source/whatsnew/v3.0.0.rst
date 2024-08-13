@@ -122,6 +122,24 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
 
+.. _whatsnew_300.notable_bug_fixes.xs_function_default_level:
+
+`DataFrame.xs()` did not work as expected when level was not specified by default. (:issue:`59098`)
+
+ex.
+.. ipython:: python
+
+    df = pd.DataFrame(dict(i=[1,2,3], j=[1,1,2], x=[10, 100, 1000])).set_index(["i", "j"])
+
+    key = (1, 1)
+
+    # Returns DataFrame as expected:
+    result1 = df.xs(key, drop_level=False, level=list(range(len(key))))
+
+    # Returns Series, but DataFrame was expected:
+    result2 = df.xs(key, drop_level=False)
+
+
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2

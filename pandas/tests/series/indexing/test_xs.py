@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import debugpy
 
 from pandas import (
     DataFrame,
@@ -82,7 +81,7 @@ class TestXSWithMultiIndex:
 
         with pytest.raises(TypeError, match="list keys are not supported"):
             ser.xs(["a"], axis=0, drop_level=False)
-    
+
     def test_xs_default_level(self):
         # GH#59098
         df = DataFrame(dict(i=[1,2,3], j=[1,1,2], x=[10, 100, 1000])).set_index(["i", "j"])
