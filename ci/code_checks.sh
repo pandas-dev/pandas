@@ -422,7 +422,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.plotting.scatter_matrix PR07,SA01" \
         -i "pandas.set_eng_float_format RT03,SA01" \
         -i "pandas.testing.assert_extension_array_equal SA01" \
-        -i "pandas.tseries.offsets.BDay SA01" \
+        -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
@@ -485,7 +485,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.CDay SA01" \
+        -i "pandas.tseries.offsets.CBMonthBegin PR02" \
+        -i "pandas.tseries.offsets.CBMonthEnd PR02" \
+        -i "pandas.tseries.offsets.CDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.freqstr SA01" \
