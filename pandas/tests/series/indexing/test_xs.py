@@ -84,7 +84,9 @@ class TestXSWithMultiIndex:
 
     def test_xs_default_level(self):
         # GH#59098
-        df = DataFrame(dict(i=[1,2,3], j=[1,1,2], x=[10, 100, 1000])).set_index(["i", "j"])
+        df = DataFrame(
+            {"i": [1,2,3], "j": [1,1,2], "x": [10, 100, 1000]}
+        ).set_index(["i", "j"])
         key = (1, 1)
 
         # Both scenarios should return DataFrame

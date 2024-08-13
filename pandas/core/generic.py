@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+import collections.abc
 from copy import deepcopy
 import datetime as dt
 from functools import partial
@@ -16,7 +17,6 @@ from typing import (
     ClassVar,
     Literal,
     NoReturn,
-    Sequence,
     cast,
     final,
     overload,
@@ -4127,7 +4127,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index = self.index
 
         if isinstance(index, MultiIndex):
-            level = range(len(key)) if isinstance(key, Sequence) else 0
+            level = range(len(key)) if isinstance(key, collections.abc.Sequence) else 0
             loc, new_index = index.get_loc_level(
                 key,
                 level=level,
