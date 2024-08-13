@@ -1206,7 +1206,7 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -1242,7 +1242,7 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of minutes represented.
@@ -1278,7 +1278,7 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of seconds represented.
@@ -1314,7 +1314,7 @@ cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of milliseconds represented.
@@ -1351,7 +1351,7 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of microseconds represented.
@@ -1388,7 +1388,7 @@ cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of nanoseconds represented.
@@ -1675,7 +1675,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of time periods the offset represents.
@@ -2601,7 +2601,7 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2899,7 +2899,7 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2981,7 +2981,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -3079,7 +3079,7 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3367,7 +3367,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3399,7 +3399,7 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of weeks represented.
@@ -3590,7 +3590,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3667,7 +3667,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     For example "the last Tuesday of each month".
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3807,7 +3807,7 @@ cdef class FY5253(FY5253Mixin):
     X is a specific day of the week.
     Y is a certain month of the year
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of fiscal years represented.
@@ -4010,7 +4010,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of business quarters represented.
@@ -4245,7 +4245,7 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.

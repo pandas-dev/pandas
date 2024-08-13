@@ -158,26 +158,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
         -i "pandas.Series.std PR01,RT03,SA01" \
-        -i "pandas.Series.str.capitalize RT03" \
-        -i "pandas.Series.str.casefold RT03" \
-        -i "pandas.Series.str.center RT03,SA01" \
-        -i "pandas.Series.str.decode PR07,RT03,SA01" \
-        -i "pandas.Series.str.encode PR07,RT03,SA01" \
-        -i "pandas.Series.str.ljust RT03,SA01" \
-        -i "pandas.Series.str.lower RT03" \
         -i "pandas.Series.str.lstrip RT03" \
         -i "pandas.Series.str.match RT03" \
         -i "pandas.Series.str.normalize RT03,SA01" \
         -i "pandas.Series.str.partition RT03" \
         -i "pandas.Series.str.repeat SA01" \
         -i "pandas.Series.str.replace SA01" \
-        -i "pandas.Series.str.rjust RT03,SA01" \
         -i "pandas.Series.str.rpartition RT03" \
         -i "pandas.Series.str.rstrip RT03" \
         -i "pandas.Series.str.strip RT03" \
-        -i "pandas.Series.str.swapcase RT03" \
-        -i "pandas.Series.str.title RT03" \
-        -i "pandas.Series.str.upper RT03" \
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
@@ -231,13 +220,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.to_period PR01,SA01" \
         -i "pandas.Timestamp.today SA01" \
         -i "pandas.Timestamp.toordinal SA01" \
-        -i "pandas.Timestamp.tz_localize SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.Timestamp.tzname SA01" \
-        -i "pandas.Timestamp.unit SA01" \
-        -i "pandas.Timestamp.utcfromtimestamp PR01,SA01" \
-        -i "pandas.Timestamp.utcoffset SA01" \
-        -i "pandas.Timestamp.utctimetuple SA01" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray._pad_or_backfill PR01,RT03,SA01" \
@@ -508,10 +491,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Day.n GL08" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \
         -i "pandas.tseries.offsets.Easter PR02" \
+        -i "pandas.tseries.offsets.Day.rule_code GL08" \
+        -i "pandas.tseries.offsets.Easter.freqstr SA01" \
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.n GL08" \
         -i "pandas.tseries.offsets.Easter.normalize GL08" \
         -i "pandas.tseries.offsets.FY5253 PR02" \
+        -i "pandas.tseries.offsets.Easter.rule_code GL08" \
+        -i "pandas.tseries.offsets.FY5253.freqstr SA01" \
         -i "pandas.tseries.offsets.FY5253.get_rule_code_suffix GL08" \
         -i "pandas.tseries.offsets.FY5253.get_year_end GL08" \
         -i "pandas.tseries.offsets.FY5253.is_on_offset GL08" \
@@ -522,6 +509,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253.variation GL08" \
         -i "pandas.tseries.offsets.FY5253.weekday GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter PR02" \
+        -i "pandas.tseries.offsets.FY5253Quarter.freqstr SA01" \
         -i "pandas.tseries.offsets.FY5253Quarter.get_rule_code_suffix GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.get_weeks GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
@@ -534,24 +522,32 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.weekday GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.year_has_extra_week GL08" \
         -i "pandas.tseries.offsets.Hour PR02" \
+        -i "pandas.tseries.offsets.Hour.freqstr SA01" \
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth PR02,SA01" \
+        -i "pandas.tseries.offsets.Hour.rule_code GL08" \
+        -i "pandas.tseries.offsets.LastWeekOfMonth SA01" \
+        -i "pandas.tseries.offsets.LastWeekOfMonth.freqstr SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.weekday GL08" \
         -i "pandas.tseries.offsets.Micro PR02" \
+        -i "pandas.tseries.offsets.Micro.freqstr SA01" \
         -i "pandas.tseries.offsets.Micro.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Micro.n GL08" \
         -i "pandas.tseries.offsets.Micro.normalize GL08" \
         -i "pandas.tseries.offsets.Milli PR02" \
+        -i "pandas.tseries.offsets.Micro.rule_code GL08" \
+        -i "pandas.tseries.offsets.Milli.freqstr SA01" \
         -i "pandas.tseries.offsets.Milli.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Milli.n GL08" \
         -i "pandas.tseries.offsets.Milli.normalize GL08" \
-        -i "pandas.tseries.offsets.Minute PR02" \
+        -i "pandas.tseries.offsets.Milli.rule_code GL08" \
+        -i "pandas.tseries.offsets.Minute.freqstr SA01" \
         -i "pandas.tseries.offsets.Minute.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Minute.n GL08" \
         -i "pandas.tseries.offsets.Minute.normalize GL08" \
