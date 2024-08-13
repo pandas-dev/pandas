@@ -3,21 +3,15 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 
 
 class TestConvertDtypes:
-    # TODO convert_dtypes should not use NaN variant of string dtype, but always NA
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_convert_dtypes(
-        self, convert_integer, expected, string_storage, using_infer_string
-    ):
+    def test_convert_dtypes(self, convert_integer, expected, string_storage):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
@@ -182,7 +176,6 @@ class TestConvertDtypes:
         result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_convert_dtypes_avoid_block_splitting(self):
         # GH#55341
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
@@ -197,7 +190,6 @@ class TestConvertDtypes:
         tm.assert_frame_equal(result, expected)
         assert result._mgr.nblocks == 2
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_convert_dtypes_from_arrow(self):
         # GH#56581
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])

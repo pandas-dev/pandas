@@ -29,6 +29,7 @@ jobs:
         env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
+        pandas_future_infer_string: ["0"]
         include:
           - name: "Downstream Compat"
             env_file: actions-311-downstream_compat.yaml
@@ -58,6 +59,9 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
           - name: "Future infer strings"
+            env_file: actions-312.yaml
+            pandas_future_infer_string: "1"
+          - name: "Future infer strings (without pyarrow)"
             env_file: actions-311.yaml
             pandas_future_infer_string: "1"
           - name: "Pypy"
@@ -85,9 +89,10 @@ jobs:
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
+      REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}
       cancel-in-progress: true
 
     services:
@@ -231,7 +236,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
@@ -269,7 +274,7 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
 
@@ -290,7 +295,7 @@ jobs:
     # In general, this will remain frozen(present, but not running) until:
     #    - The next unreleased Python version has released beta 1
     #      - This version should be available on GitHub Actions.
-    #    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
+    #    - Our required build/runtime dependencies(numpy, Cython, python-dateutil)
     #      support that unreleased Python version.
     #    To unfreeze, comment out the ``if: false`` condition, and make sure you update
     #    the name of the workflow and Python version in actions/setup-python ``python-version:``
@@ -343,7 +348,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
+          python -m pip install python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
           python -m pip list
 

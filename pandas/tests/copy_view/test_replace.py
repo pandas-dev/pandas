@@ -3,6 +3,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -59,7 +61,7 @@ def test_replace_regex_inplace_refs():
     tm.assert_frame_equal(view, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace():
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
