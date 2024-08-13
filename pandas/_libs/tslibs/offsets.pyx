@@ -1774,7 +1774,7 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -1966,7 +1966,7 @@ cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of hours represented.
@@ -4204,7 +4204,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -4335,7 +4335,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of hours represented.
@@ -4524,7 +4524,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     Increments between end of month dates.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -4585,7 +4585,7 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
     Increments between beginning of month dates.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.

@@ -451,7 +451,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.nanos GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BYearEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.BusinessDay SA01" \
+        -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.freqstr SA01" \
         -i "pandas.tseries.offsets.BusinessDay.holidays GL08" \
@@ -461,7 +461,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessDay.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessDay.rule_code GL08" \
         -i "pandas.tseries.offsets.BusinessDay.weekmask GL08" \
-        -i "pandas.tseries.offsets.BusinessHour SA01" \
+        -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessHour.end GL08" \
         -i "pandas.tseries.offsets.BusinessHour.freqstr SA01" \
@@ -486,7 +486,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BusinessMonthEnd.normalize GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.CDay SA01" \
-        -i "pandas.tseries.offsets.CustomBusinessDay SA01" \
+        -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.freqstr SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.holidays GL08" \
@@ -496,7 +496,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessDay.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.rule_code GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.weekmask GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessHour SA01" \
+        -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.end GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.freqstr SA01" \
@@ -508,6 +508,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessHour.rule_code GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.start GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.weekmask GL08" \
+        -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.freqstr SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
@@ -518,6 +519,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.normalize GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.weekmask GL08" \
+        -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.freqstr SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.holidays GL08" \
