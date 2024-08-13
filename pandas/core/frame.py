@@ -6771,9 +6771,6 @@ class DataFrame(NDFrame, OpsMixin):
             return labels.astype("i8"), len(shape)
 
         if subset is None:
-            # https://github.com/pandas-dev/pandas/issues/28770
-            # Incompatible types in assignment (expression has type "Index", variable
-            # has type "Sequence[Any]")
             subset = self.columns
         elif (
             not np.iterable(subset)
