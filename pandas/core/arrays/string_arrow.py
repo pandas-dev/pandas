@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Union,
-    cast,
 )
 
 import numpy as np
@@ -23,11 +22,7 @@ from pandas.compat import (
 )
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_integer_dtype,
-    is_object_dtype,
     is_scalar,
-    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
@@ -135,18 +130,22 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
-            values.type
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
+            pa.types.is_string(values.type)
+            or (
+                pa.types.is_dictionary(values.type)
+                and (
+                    pa.types.is_string(values.type.value_type)
+                    or pa.types.is_large_string(values.type.value_type)
+                )
+            )
         ):
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
 
-        if not pa.types.is_large_string(self._pa_array.type) and not (
-            pa.types.is_dictionary(self._pa_array.type)
-            and pa.types.is_large_string(self._pa_array.type.value_type)
-        ):
+        if not pa.types.is_large_string(self._pa_array.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of "
                 "large_string type"
@@ -281,67 +280,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ObjectStringArrayMixin" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        # TODO: de-duplicate with StringArray method. This method is moreless copy and
-        # paste.
-
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
-
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray | BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            result = pa.array(
-                result, mask=mask, type=pa.large_string(), from_pandas=True
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+    _str_map = BaseStringArray._str_map
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -614,58 +553,6 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
 
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            if is_integer_dtype(dtype):
-                na_value = np.nan
-            else:
-                na_value = False
-
-            dtype = np.dtype(cast(type, dtype))
-            if mask.any():
-                # numpy int/bool dtypes cannot hold NaNs so we must convert to
-                # float64 for int (to match maybe_convert_objects) or
-                # object for bool (again to match maybe_convert_objects)
-                if is_integer_dtype(dtype):
-                    dtype = np.dtype("float64")
-                else:
-                    dtype = np.dtype(object)
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=dtype,
-            )
-            return result
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            result = pa.array(
-                result, mask=mask, type=pa.large_string(), from_pandas=True
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
     def _convert_int_dtype(self, result):
         if isinstance(result, pa.Array):
             result = result.to_numpy(zero_copy_only=False)
@@ -697,9 +584,9 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
         if name in ["any", "all"]:
-            if not skipna and name == "all":
-                nas = pc.invert(pc.is_null(self._pa_array))
-                arr = pc.and_kleene(nas, pc.not_equal(self._pa_array, ""))
+            if not skipna:
+                nas = pc.is_null(self._pa_array)
+                arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
             else:
                 arr = pc.not_equal(self._pa_array, "")
             return ArrowExtensionArray(arr)._reduce(

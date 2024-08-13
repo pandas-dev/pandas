@@ -14,6 +14,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 
@@ -165,7 +166,7 @@ class TestSeriesConstructors:
 
         # Mixed type Series
         mixed = Series(["hello", np.nan], index=[0, 1])
-        assert mixed.dtype == np.object_ if not using_infer_string else "string"
+        assert mixed.dtype == np.object_ if not using_infer_string else "str"
         assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
@@ -1453,7 +1454,7 @@ class TestSeriesConstructors:
 
         data = {"a": 0, "b": "1", "c": "2", "d": "3"}
         series = Series(data)
-        assert series.dtype == np.object_ if not using_infer_string else "string"
+        assert series.dtype == np.object_ if not using_infer_string else "str"
 
         data = {"a": "0", "b": "1"}
         series = Series(data, dtype=float)
@@ -1465,7 +1466,7 @@ class TestSeriesConstructors:
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)
-        assert strings.dtype == np.object_ if not using_infer_string else "string"
+        assert strings.dtype == np.object_ if not using_infer_string else "str"
         assert len(strings) == len(datetime_series)
 
         d = datetime.now()
@@ -2074,11 +2075,10 @@ class TestSeriesConstructors:
 
     def test_series_string_inference(self):
         # GH#54430
-        pytest.importorskip("pyarrow")
-        dtype = "string[pyarrow_numpy]"
-        expected = Series(["a", "b"], dtype=dtype)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", "b"])
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
+        expected = Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
         expected = Series(["a", 1], dtype="object")
@@ -2089,38 +2089,41 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
-        pytest.importorskip("pyarrow")
-        dtype = "string[pyarrow_numpy]"
-        expected = Series(["a", na_value], dtype=dtype)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", na_value])
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
+        expected = Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_scalar(self):
         # GH#54430
-        pytest.importorskip("pyarrow")
-        expected = Series("a", index=[1], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             ser = Series("a", index=[1])
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
+        expected = Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_array_string_dtype(self):
         # GH#54496
-        pytest.importorskip("pyarrow")
-        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             ser = Series(np.array(["a", "b"]))
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
+        expected = Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_storage_definition(self):
         # https://github.com/pandas-dev/pandas/issues/54793
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
-        # "string[pyarrow_numpy]" to "string[pyarrow]"
-        pytest.importorskip("pyarrow")
+        # "string[pyarrow_numpy]" to "string[python]"
         expected = Series(["a", "b"], dtype="string[python]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
+        with pd.option_context("future.infer_string", True):
+            result = Series(["a", "b"], dtype="str")
         tm.assert_series_equal(result, expected)
 
     def test_series_constructor_infer_string_scalar(self):
@@ -2133,10 +2136,10 @@ class TestSeriesConstructors:
 
     def test_series_string_inference_na_first(self):
         # GH#55655
-        pytest.importorskip("pyarrow")
-        expected = Series([pd.NA, "b"], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             result = Series([pd.NA, "b"])
+        dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
+        expected = Series([None, "b"], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [Series, Index])

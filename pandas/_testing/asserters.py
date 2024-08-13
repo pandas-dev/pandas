@@ -796,6 +796,24 @@ def assert_extension_array_equal(
         left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
 
+    # Specifically for StringArrayNumpySemantics, validate here we have a valid array
+    if (
+        isinstance(left.dtype, StringDtype)
+        and left.dtype.storage == "python"
+        and left.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in left._ndarray[left_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+    if (
+        isinstance(right.dtype, StringDtype)
+        and right.dtype.storage == "python"
+        and right.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
@@ -1158,7 +1176,10 @@ def assert_frame_equal(
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. If False, the comparison uses the
+        relative tolerance (``rtol``) and absolute tolerance (``atol``)
+        parameters to determine if two values are considered close,
+        according to the formula: ``|a - b| <= (atol + rtol * |b|)``.
 
         .. versionchanged:: 2.2.0
 
