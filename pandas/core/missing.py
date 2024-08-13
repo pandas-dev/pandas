@@ -141,7 +141,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                         # usually BooleanArray
                         if isinstance(new_mask, bool):
                             new_mask = np.array([new_mask], dtype= bool)
-                        else: 
+                        else:
                             new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
                 mask |= new_mask
 
