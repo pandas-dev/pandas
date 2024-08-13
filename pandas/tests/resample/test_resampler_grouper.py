@@ -781,6 +781,7 @@ def test_groupby_resample_on_column_when_index_is_unusual(df):
 
 
 def test_groupby_resample_then_groupby_is_reused_when_index_is_out_of_order():
+    # GH 59350
     df = DataFrame(
         data={
             "datetime": [
@@ -828,6 +829,7 @@ def test_groupby_resample_then_groupby_is_reused_when_index_is_out_of_order():
 
 
 def test_groupby_resample_then_groupby_is_reused_when_index_is_set_from_column():
+    # GH 59350
     df = DataFrame(
         data={
             "datetime": [
