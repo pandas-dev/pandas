@@ -652,6 +652,9 @@ class PlotAccessor(PandasObject):
     ----------
     data : Series or DataFrame
         The object for which the method is called.
+
+    Attributes
+    ----------
     x : label or position, default None
         Only used if data is a DataFrame.
     y : label, position or list of label, positions, default None
@@ -1447,6 +1450,7 @@ class PlotAccessor(PandasObject):
         self,
         bw_method: Literal["scott", "silverman"] | float | Callable | None = None,
         ind: np.ndarray | int | None = None,
+        weights: np.ndarray | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1472,6 +1476,9 @@ class PlotAccessor(PandasObject):
             1000 equally spaced points are used. If `ind` is a NumPy array, the
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
+        weights : NumPy array, optional
+            Weights of datapoints. This must be the same shape as datapoints.
+            If None (default), the samples are assumed to be equally weighted.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -1557,7 +1564,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
+        return self(kind="kde", bw_method=bw_method, ind=ind, weights=weights, **kwargs)
 
     density = kde
 

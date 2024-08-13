@@ -4,6 +4,8 @@ import unicodedata
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -120,7 +122,7 @@ class TestGetDummies:
 
         result = get_dummies(s_df, columns=["a"], sparse=sparse, dtype=dtype)
 
-        key = "string" if using_infer_string else "object"
+        key = "str" if using_infer_string else "object"
         expected_counts = {"int64": 1, key: 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
@@ -214,6 +216,7 @@ class TestGetDummies:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_dataframe_dummies_string_dtype(self, df, using_infer_string):
         # GH44965
         df = df[["A", "B"]]

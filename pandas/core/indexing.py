@@ -810,8 +810,11 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
-                    # test_loc_setitem_ndframe_values_alignment
-                    value = self.obj.iloc._align_series(indexer, value)
+                    if len(newkey) == 0:
+                        value = value.iloc[:0]
+                    else:
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
                     indexer = (newkey, icols)
 
                 elif (
@@ -827,8 +830,11 @@ class _LocationIndexer(NDFrameIndexerBase):
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
-                        # test_loc_setitem_ndframe_values_alignment
-                        value = self.obj.iloc._align_frame(indexer, value)
+                        if len(newkey) == 0:
+                            value = value.iloc[:0]
+                        else:
+                            # test_loc_setitem_ndframe_values_alignment
+                            value = self.obj.iloc._align_frame(indexer, value)
                         indexer = (newkey, icols)
         elif com.is_bool_indexer(indexer):
             indexer = indexer.nonzero()[0]
@@ -2389,7 +2395,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix):
+                    if not len(new_ix) or ser.index.equals(new_ix):
                         if using_cow:
                             return ser
                         return ser._values.copy()

@@ -18,6 +18,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
@@ -58,9 +60,12 @@ if TYPE_CHECKING:
     import sqlalchemy
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 @pytest.fixture
@@ -1699,11 +1704,9 @@ def test_api_roundtrip(conn, request, test_frame1):
 
     # HACK!
     if "adbc" in conn_name:
-        result = result.rename(columns={"__index_level_0__": "level_0"})
-    result.index = test_frame1.index
-    result.set_index("level_0", inplace=True)
-    result.index.astype(int)
-    result.index.name = None
+        result = result.drop(columns="__index_level_0__")
+    else:
+        result = result.drop(columns="level_0")
     tm.assert_frame_equal(result, test_frame1)
 
 

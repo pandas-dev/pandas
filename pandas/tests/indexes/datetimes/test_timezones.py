@@ -184,11 +184,8 @@ class TestDatetimeIndexTimezones:
         assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
-    @pytest.mark.parametrize("tzstr", ["pytz/US/Eastern", "dateutil/US/Eastern"])
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_utc_box_timestamp_and_localize(self, tzstr):
-        if tzstr.startswith("pytz/"):
-            pytest.importorskip("pytz")
-            tzstr = tzstr.removeprefix("pytz/")
         tz = timezones.maybe_get_tz(tzstr)
 
         rng = date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")
@@ -203,11 +200,10 @@ class TestDatetimeIndexTimezones:
         # right tzinfo
         rng = date_range("3/13/2012", "3/14/2012", freq="h", tz="utc")
         rng_eastern = rng.tz_convert(tzstr)
-        # test not valid for dateutil timezones.
-        # assert 'EDT' in repr(rng_eastern[0].tzinfo)
-        assert "EDT" in repr(rng_eastern[0].tzinfo) or "tzfile" in repr(
-            rng_eastern[0].tzinfo
-        )
+        if "dateutil" in tzstr:
+            assert "EDT" in repr(rng_eastern[0].tzinfo) or "tzfile" in repr(
+                rng_eastern[0].tzinfo
+            )
 
     @pytest.mark.parametrize(
         "tz", [zoneinfo.ZoneInfo("US/Central"), gettz("US/Central")]

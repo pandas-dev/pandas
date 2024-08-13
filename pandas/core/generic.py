@@ -1491,13 +1491,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return res.__finalize__(self, method="__invert__")
 
     @final
-    def __nonzero__(self) -> NoReturn:
+    def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
-
-    __bool__ = __nonzero__
 
     @final
     def abs(self) -> Self:
@@ -6677,10 +6675,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
 
-            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              or :class:`Series` (default).
+            * ``"numpy_nullable"``: returns nullable-dtype-backed
+              :class:`DataFrame` or :class:`Serires`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame or Series.
+              :class:`DataFrame` or :class:`Series`.
 
             .. versionadded:: 2.0
 
@@ -10577,7 +10575,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+            - 'raise' will raise a ValueError if there are ambiguous
               times.
         nonexistent : str, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -10589,7 +10587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               closest existing time
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
+            - 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -11782,6 +11780,8 @@ numeric_only : bool, default False
 Returns
 -------
 {name1} or scalar\
+
+    Value containing the calculation referenced in the description.\
 {see_also}\
 {examples}
 """
@@ -12484,6 +12484,14 @@ _min_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
 )
 
+_skew_see_also = """
+
+See Also
+--------
+Series.skew : Return unbiased skew over requested axis.
+Series.var : Return unbiased variance over requested axis.
+Series.std : Return unbiased standard deviation over requested axis."""
+
 _stat_func_see_also = """
 
 See Also
@@ -12743,7 +12751,7 @@ def make_doc(name: str, ndim: int) -> str:
     elif name == "skew":
         base_doc = _num_doc
         desc = "Return unbiased skew over requested axis.\n\nNormalized by N-1."
-        see_also = ""
+        see_also = _skew_see_also
         examples = """
 
             Examples

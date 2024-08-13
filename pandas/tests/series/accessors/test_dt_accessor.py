@@ -9,7 +9,8 @@ import unicodedata
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
@@ -350,7 +351,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         # raise
-        with tm.external_error_raised(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(ValueError):
             getattr(df1.date.dt, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -372,7 +373,7 @@ class TestSeriesDatetimeValues:
         expected = Series([pd.NaT]).dt.tz_localize(result.dt.tz)
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
+        with pytest.raises(ValueError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize("freq", ["ns", "us", "1000us"])
@@ -512,6 +513,7 @@ class TestSeriesDatetimeValues:
         ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime(self):
         # GH 10086
         ser = Series(date_range("20130101", periods=5))
@@ -554,6 +556,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime_dt64_days(self):
         ser = Series(date_range("20130101", periods=5))
         ser.iloc[0] = pd.NaT
@@ -581,9 +584,10 @@ class TestSeriesDatetimeValues:
             dtype="=U10",
         )
         if using_infer_string:
-            expected = expected.astype("string[pyarrow_numpy]")
+            expected = expected.astype("str")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -616,6 +620,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "data",
         [

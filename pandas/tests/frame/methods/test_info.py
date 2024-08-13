@@ -7,7 +7,10 @@ import textwrap
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import (
+    HAS_PYARROW,
     IS64,
     PYPY,
 )
@@ -15,6 +18,7 @@ from pandas.compat import (
 from pandas import (
     CategoricalIndex,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     date_range,
@@ -360,7 +364,7 @@ def test_info_memory_usage():
     df = DataFrame(data)
     df.columns = dtypes
 
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     df_with_object_index.info(buf=buf, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+\+", res[-1])
@@ -398,25 +402,25 @@ def test_info_memory_usage():
 
 @pytest.mark.skipif(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         > df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
 @pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         == df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() == df_object.memory_usage().sum()
 
 
@@ -432,6 +436,7 @@ def test_usage_via_getsizeof():
     assert abs(diff) < 100
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_info_memory_usage_qualified():
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
@@ -492,6 +497,7 @@ def test_info_categorical():
     df.info(buf=buf)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
 def test_info_int_columns():
     # GH#37245
@@ -515,6 +521,7 @@ def test_info_int_columns():
     assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_memory_usage_empty_no_warning():
     # GH#50066
     df = DataFrame(index=["a", "b"])

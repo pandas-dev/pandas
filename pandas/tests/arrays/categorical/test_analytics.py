@@ -4,7 +4,12 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas._config import using_string_dtype
+
+from pandas.compat import (
+    HAS_PYARROW,
+    PYPY,
+)
 
 from pandas import (
     Categorical,
@@ -294,6 +299,9 @@ class TestCategoricalAnalytics:
         exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
         assert cat.nbytes == exp
 
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_memory_usage(self):
         cat = Categorical([1, 2, 3])
 

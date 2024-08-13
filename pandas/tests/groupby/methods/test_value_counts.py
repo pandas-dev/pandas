@@ -7,6 +7,9 @@ and proper parameter handling
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -273,6 +276,7 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
     return df[keys].value_counts(normalize=normalize, sort=sort, ascending=ascending)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("groupby", ["column", "array", "function"])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize(
@@ -356,6 +360,7 @@ def test_against_frame_and_seriesgroupby(
             tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -496,6 +501,9 @@ def test_dropna_combinations(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, expected_data, expected_index",
     [

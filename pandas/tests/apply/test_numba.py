@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -17,6 +19,7 @@ def apply_axis(request):
     return request.param
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
@@ -40,6 +43,7 @@ def test_numba_vs_python_string_index():
     )
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_indexing():
     frame = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
@@ -100,13 +104,14 @@ def test_numba_nonunique_unsupported(apply_axis):
 
 
 def test_numba_unsupported_dtypes(apply_axis):
+    pytest.importorskip("pyarrow")
     f = lambda x: x
     df = DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
     df["c"] = df["c"].astype("double[pyarrow]")
 
     with pytest.raises(
         ValueError,
-        match="Column b must have a numeric dtype. Found 'object|string' instead",
+        match="Column b must have a numeric dtype. Found 'object|str' instead",
     ):
         df.apply(f, engine="numba", axis=apply_axis)
 

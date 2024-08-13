@@ -575,10 +575,11 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage in (
-                    "pyarrow",
-                    "pyarrow_numpy",
+                if (
+                    isinstance(self._dtype, StringDtype)
+                    and self._dtype.storage == "pyarrow"
                 ):
+                    # TODO(infer_string) should this be large_string?
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -1706,8 +1707,6 @@ class ArrowExtensionArray(
         if name == "median":
             # GH 52679: Use quantile instead of approximate_median; returns array
             result = result[0]
-        if pc.is_null(result).as_py():
-            return result
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)

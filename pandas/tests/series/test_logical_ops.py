@@ -4,6 +4,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     DataFrame,
     Index,
@@ -141,6 +145,9 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_logical_operators_int_dtype_with_object(self, using_infer_string):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
@@ -348,6 +355,7 @@ class TestSeriesLogicalOps:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based

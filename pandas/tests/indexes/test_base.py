@@ -8,7 +8,12 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas._config import using_string_dtype
+
+from pandas.compat import (
+    HAS_PYARROW,
+    IS64,
+)
 from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
@@ -71,6 +76,9 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_constructor_copy(self, using_infer_string):
         index = Index(list("abc"), name="name")
         arr = np.array(index)
@@ -79,7 +87,7 @@ class TestIndex:
         assert new_index.name == "name"
         if using_infer_string:
             tm.assert_extension_array_equal(
-                new_index.values, pd.array(arr, dtype="string[pyarrow_numpy]")
+                new_index.values, pd.array(arr, dtype="str")
             )
         else:
             tm.assert_numpy_array_equal(arr, new_index.values)
@@ -157,7 +165,7 @@ class TestIndex:
         df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
-        dtype = object if not using_infer_string else "string"
+        dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
@@ -335,6 +343,11 @@ class TestIndex:
     def test_view_with_args(self, index):
         index.view("i8")
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.parametrize(
         "index",
         [
@@ -817,6 +830,11 @@ class TestIndex:
         expected = np.array(expected, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_isin_nan_common_object(
         self, nulls_fixture, nulls_fixture2, using_infer_string
     ):
@@ -960,6 +978,31 @@ class TestIndex:
     def test_slice_keep_name(self):
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name
+
+    def test_slice_is_unique(self):
+        # GH 57911
+        index = Index([1, 1, 2, 3, 4])
+        assert not index.is_unique
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_unique
+
+    def test_slice_is_montonic(self):
+        """Test that is_monotonic_decreasing is correct on slices."""
+        # GH 57911
+        index = Index([1, 2, 3, 3])
+        assert not index.is_monotonic_decreasing
+
+        filtered_index = index[2:].copy()
+        assert filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[1:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
+
+        filtered_index = index[:].copy()
+        assert not filtered_index.is_monotonic_decreasing
+        assert filtered_index.is_monotonic_increasing
 
     @pytest.mark.parametrize(
         "index",

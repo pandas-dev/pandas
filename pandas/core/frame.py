@@ -531,6 +531,7 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
+        If ``data`` is DataFrame then is ignored.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -899,6 +900,19 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrameXchg:
         """
         Return the dataframe interchange object implementing the interchange protocol.
+
+        .. note::
+
+           For new development, we highly recommend using the Arrow C Data Interface
+           alongside the Arrow PyCapsule Interface instead of the interchange protocol
+
+        .. warning::
+
+            Due to severe implementation issues, we recommend only considering using the
+            interchange protocol in the following cases:
+
+            - converting to pandas: for pandas >= 2.0.3
+            - converting from pandas: for pandas >= 3.0.0
 
         Parameters
         ----------
@@ -4473,7 +4487,7 @@ class DataFrame(NDFrame, OpsMixin):
             or punctuations (besides underscores) or starting with digits must be
             surrounded by backticks. (For example, a column named "Area (cm^2)" would
             be referenced as ```Area (cm^2)```). Column names which are Python keywords
-            (like "list", "for", "import", etc) cannot be used.
+            (like "if", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
@@ -4554,8 +4568,8 @@ class DataFrame(NDFrame, OpsMixin):
         For example, ```it's` > `that's``` will raise an error,
         as it forms a quoted string (``'s > `that'``) with a backtick inside.
 
-        See also the Python documentation about lexical analysis
-        (https://docs.python.org/3/reference/lexical_analysis.html)
+        See also the `Python documentation about lexical analysis
+        <https://docs.python.org/3/reference/lexical_analysis.html>`__
         in combination with the source code in :mod:`pandas.core.computation.parsing`.
 
         Examples
@@ -4793,7 +4807,9 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
         * To select strings you must use the ``object`` dtype, but note that
-          this will return *all* object dtype columns
+          this will return *all* object dtype columns. With
+          ``pd.options.future.infer_string`` enabled, using ``"str"`` will
+          work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or

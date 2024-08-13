@@ -9,7 +9,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import iNaT
+from pandas.compat import HAS_PYARROW
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
@@ -174,6 +177,7 @@ class TestDataFrameIndexing:
                 if bif[c].dtype != bifw[c].dtype:
                     assert bif[c].dtype == df[c].dtype
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_getitem_boolean_casting(self, datetime_frame):
         # don't upcast if we don't need to
         df = datetime_frame.copy()
@@ -320,7 +324,7 @@ class TestDataFrameIndexing:
         smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
-            assert smaller["col10"].dtype == "string"
+            assert smaller["col10"].dtype == "str"
         else:
             assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -455,13 +459,13 @@ class TestDataFrameIndexing:
         del dm["foo"]
         dm["foo"] = "bar"
         if using_infer_string:
-            assert dm["foo"].dtype == "string"
+            assert dm["foo"].dtype == "str"
         else:
             assert dm["foo"].dtype == np.object_
 
         dm["coercible"] = ["1", "2", "3"]
         if using_infer_string:
-            assert dm["coercible"].dtype == "string"
+            assert dm["coercible"].dtype == "str"
         else:
             assert dm["coercible"].dtype == np.object_
 
@@ -497,10 +501,11 @@ class TestDataFrameIndexing:
         dm[2] = uncoercable_series
         assert len(dm.columns) == 3
         if using_infer_string:
-            assert dm[2].dtype == "string"
+            assert dm[2].dtype == "str"
         else:
             assert dm[2].dtype == np.object_
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_None(self, float_frame, using_infer_string):
         # GH #766
         float_frame[None] = float_frame["A"]
@@ -991,7 +996,7 @@ class TestDataFrameIndexing:
         result = df.loc[0, "b"]
         assert is_integer(result)
 
-        expected = Series([666], [0], name="b")
+        expected = Series([666], index=range(1), name="b")
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
@@ -1121,6 +1126,7 @@ class TestDataFrameIndexing:
         df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
         # assignment of timedeltas with NaT
@@ -1143,6 +1149,9 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
             {
@@ -1193,7 +1202,7 @@ class TestDataFrameIndexing:
         # See gh-12218
         mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
         dg = DataFrame(
-            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
+            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index(range(2), name="i")
         )
         with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
@@ -1452,7 +1461,7 @@ class TestDataFrameIndexing:
         indexer = Series([0, 1], dtype="Int64")
         row_indexer = Series([1], dtype="Int64")
         result = df.iloc[row_indexer, indexer]
-        expected = DataFrame([[5, 6]], index=[1])
+        expected = DataFrame([[5, 6]], index=range(1, 2))
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[row_indexer.values, indexer.values]
@@ -1871,6 +1880,7 @@ def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_add_new_column_infer_string():
     # GH#55366
     pytest.importorskip("pyarrow")
