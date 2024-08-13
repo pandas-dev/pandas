@@ -16,6 +16,7 @@ from typing import (
     ClassVar,
     Literal,
     NoReturn,
+    Sequence,
     cast,
     final,
     overload,
@@ -4126,9 +4127,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index = self.index
 
         if isinstance(index, MultiIndex):
+            level = range(len(key)) if isinstance(key, Sequence) else 0
             loc, new_index = index.get_loc_level(
                 key,
-                level=range(len(key)),
+                level=level,
                 drop_level=drop_level
             )
             if not drop_level:
