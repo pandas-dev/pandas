@@ -6772,7 +6772,7 @@ class DataFrame(NDFrame, OpsMixin):
             # https://github.com/pandas-dev/pandas/issues/28770
             # Incompatible types in assignment (expression has type "Index", variable
             # has type "Sequence[Any]")
-            subset = self.columns  # type: ignore[assignment]
+            subset = self.columns
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
