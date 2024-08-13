@@ -42,6 +42,7 @@ Bug fixes
 - :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
 - :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
 - :meth:`DataFrame.to_sql` was failing to find the right table when using the schema argument (:issue:`57539`)
+- Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`??`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_222.other:
