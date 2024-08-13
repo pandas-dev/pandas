@@ -541,6 +541,7 @@ class TestSeriesLogicalOps:
         with pytest.raises(TypeError, match="Invalid comparison"):
             ser > ser2
 
+        # GH#59505
         ser3 = ser2.astype("string[pyarrow]")
         result3_eq = ser3 == ser
         tm.assert_series_equal(result3_eq, expected_eq.astype("bool[pyarrow]"))
