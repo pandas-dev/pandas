@@ -470,12 +470,12 @@ b,
 """
         result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-    expected = DataFrame(
-        {
-            "a": pd.array(["a", "b"], dtype=pd.StringDtype(string_storage)),
-            "b": pd.array(["x", pd.NA], dtype=pd.StringDtype(string_storage)),
-        }
-    )
+        expected = DataFrame(
+            {
+                "a": pd.array(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": pd.array(["x", pd.NA], dtype=pd.StringDtype(string_storage)),
+            },
+        )
     tm.assert_frame_equal(result, expected)
 
 
