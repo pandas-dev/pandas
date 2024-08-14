@@ -30,10 +30,6 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 if is_platform_windows():
     pytestmark = pytest.mark.single_cpu
@@ -663,41 +659,31 @@ class TestReaders:
     @pytest.mark.xfail(
         using_string_dtype(), reason="infer_string takes precedence", strict=False
     )
-    def test_dtype_backend_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": np.array(["a", "b"], dtype=np.object_),
+                "b": np.array(["x", pd.NA], dtype=np.object_),
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
 
         with pd.option_context("mode.string_storage", string_storage):
-            df = DataFrame(
-                {
-                    "a": np.array(["a", "b"], dtype=np.object_),
-                    "b": np.array(["x", pd.NA], dtype=np.object_),
-                }
+            result = pd.read_excel(
+                tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
             )
-            with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, sheet_name="test", index=False)
-                result = pd.read_excel(
-                    file_path, sheet_name="test", dtype_backend="numpy_nullable"
-                )
 
-            if string_storage == "python":
-                expected = DataFrame(
-                    {
-                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                    }
-                )
-            else:
-                expected = DataFrame(
-                    {
-                        "a": ArrowStringArray(pa.array(["a", "b"])),
-                        "b": ArrowStringArray(pa.array(["x", None])),
-                    }
-                )
-            tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
