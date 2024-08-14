@@ -1290,7 +1290,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     See Also
     --------
-    pandas.api.types.is_bool : Check if an object is a boolean.
+    api.types.is_bool : Check if an object is a boolean.
 
     Notes
     -----
