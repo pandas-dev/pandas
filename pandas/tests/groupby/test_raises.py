@@ -274,10 +274,13 @@ def test_groupby_raises_string_np(
 
     if using_infer_string:
         klass = TypeError
-        msg = (
-            "'.*StringArrayNumpySemantics' with dtype str does not "
-            f"support operation '{groupby_func_np.__name__}'"
-        )
+        if df["d"].dtype.storage == "python":
+            msg = "Cannot perform reduction 'mean' with string dtype"
+        else:
+            msg = (
+                "'ArrowStringArrayNumpySemantics' with dtype str does not "
+                f"support operation '{groupby_func_np.__name__}'"
+            )
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 

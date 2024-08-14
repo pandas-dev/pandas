@@ -135,7 +135,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_nocols(self):
+    def test_pivot_table_nocols(self, using_infer_string):
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
@@ -935,12 +935,14 @@ class TestPivotTable:
         for value_col in table.columns.levels[0]:
             self._check_output(table[value_col], value_col, data)
 
-    def test_no_col(self, data):
+    def test_no_col(self, data, using_infer_string):
         # no col
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
         msg = re.escape("agg function failed [how->mean,dtype->")
+        if using_infer_string:
+            msg = "str dtype does not support mean operations"
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
@@ -990,7 +992,7 @@ class TestPivotTable:
         ],
     )
     def test_margin_with_only_columns_defined(
-        self, columns, aggfunc, values, expected_columns
+        self, columns, aggfunc, values, expected_columns, using_infer_string
     ):
         # GH 31016
         df = DataFrame(
@@ -1014,6 +1016,8 @@ class TestPivotTable:
         )
         if aggfunc != "sum":
             msg = re.escape("agg function failed [how->mean,dtype->")
+            if using_infer_string:
+                msg = "str dtype does not support mean operations"
             with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:

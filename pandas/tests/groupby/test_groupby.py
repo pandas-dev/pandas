@@ -428,7 +428,7 @@ def test_frame_multi_key_function_list():
     tm.assert_frame_equal(agged, expected)
 
 
-def test_frame_multi_key_function_list_partial_failure():
+def test_frame_multi_key_function_list_partial_failure(using_infer_string):
     data = DataFrame(
         {
             "A": [
@@ -479,6 +479,8 @@ def test_frame_multi_key_function_list_partial_failure():
     grouped = data.groupby(["A", "B"])
     funcs = ["mean", "std"]
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "str dtype does not support mean operations"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
@@ -665,9 +667,11 @@ def test_groupby_multi_corner(df):
     tm.assert_frame_equal(agged, expected)
 
 
-def test_raises_on_nuisance(df):
+def test_raises_on_nuisance(df, using_infer_string):
     grouped = df.groupby("A")
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "str dtype does not support mean operations"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -743,9 +747,11 @@ def test_raise_on_nuisance_python_single(df):
         grouped.skew()
 
 
-def test_raise_on_nuisance_python_multiple(three_group):
+def test_raise_on_nuisance_python_multiple(three_group, using_infer_string):
     grouped = three_group.groupby(["A", "B"])
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "str dtype does not support mean operations"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -783,12 +789,16 @@ def test_nonsense_func():
         df.groupby(lambda x: x + "foo")
 
 
-def test_wrap_aggregated_output_multindex(multiindex_dataframe_random_data):
+def test_wrap_aggregated_output_multindex(
+    multiindex_dataframe_random_data, using_infer_string
+):
     df = multiindex_dataframe_random_data.T
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "str dtype does not support mean operations"
     with pytest.raises(TypeError, match=msg):
         df.groupby(keys).agg("mean")
     agged = df.drop(columns=("baz", "two")).groupby(keys).agg("mean")

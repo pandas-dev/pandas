@@ -187,7 +187,7 @@ def test_api_compat_before_use(attr):
     getattr(rs, attr)
 
 
-def tests_raises_on_nuisance(test_frame):
+def tests_raises_on_nuisance(test_frame, using_infer_string):
     df = test_frame
     df["D"] = "foo"
     r = df.resample("h")
@@ -197,6 +197,8 @@ def tests_raises_on_nuisance(test_frame):
 
     expected = r[["A", "B", "C"]].mean()
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "str dtype does not support mean operations"
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -881,7 +883,9 @@ def test_end_and_end_day_origin(
         ("sem", lib.no_default, "could not convert string to float"),
     ],
 )
-def test_frame_downsample_method(method, numeric_only, expected_data):
+def test_frame_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -898,9 +902,19 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         if method in ("var", "mean", "median", "prod"):
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{method},dtype->")
+            if using_infer_string:
+                msg = f"str dtype does not support {method} operations"
+        elif method in ["sum", "std", "sem"] and using_infer_string:
+            klass = TypeError
+            msg = f"str dtype does not support {method} operations"
         else:
             klass = ValueError
             msg = expected_data
+        with pytest.raises(klass, match=msg):
+            _ = func(**kwargs)
+    elif method == "sum" and using_infer_string and numeric_only is not True:
+        klass = TypeError
+        msg = "str dtype does not support sum operations"
         with pytest.raises(klass, match=msg):
             _ = func(**kwargs)
     else:
@@ -932,7 +946,9 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         ("last", lib.no_default, ["cat_2"]),
     ],
 )
-def test_series_downsample_method(method, numeric_only, expected_data):
+def test_series_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -948,8 +964,15 @@ def test_series_downsample_method(method, numeric_only, expected_data):
             func(**kwargs)
     elif method == "prod":
         msg = re.escape("agg function failed [how->prod,dtype->")
+        if using_infer_string:
+            msg = "str dtype does not support prod operations"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
+    elif method == "sum" and using_infer_string and numeric_only is not True:
+        msg = "str dtype does not support sum operations"
+        with pytest.raises(TypeError, match=msg):
+            func(**kwargs)
+
     else:
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
