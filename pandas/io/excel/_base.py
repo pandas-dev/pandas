@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 from collections.abc import (
     Callable,
     Hashable,
@@ -1238,7 +1239,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     def __init__(
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter | io[bytes],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
