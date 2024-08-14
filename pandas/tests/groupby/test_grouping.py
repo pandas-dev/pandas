@@ -9,6 +9,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -842,6 +844,7 @@ class TestGrouping:
         expected = ["name"]
         assert result == expected
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_level_index_value_all_na(self):
         # issue 20519
         df = DataFrame(
@@ -986,6 +989,7 @@ class TestGetGroup:
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_single_column(self):
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])

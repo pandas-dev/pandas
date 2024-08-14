@@ -4,6 +4,8 @@ from hypothesis import given
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -46,6 +48,7 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -97,6 +100,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -172,6 +176,7 @@ class TestDataFrameIndexingWhere:
             df.mask(0)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 

@@ -11,6 +11,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -345,6 +347,7 @@ class TestStata:
                 check_index_type=False,
             )
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta10(self, version):
         original = DataFrame(
@@ -1150,6 +1153,7 @@ class TestStata:
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
@@ -1240,6 +1244,7 @@ class TestStata:
             from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
@@ -1543,6 +1548,7 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 df.to_stata(path)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_pathlib(self):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -1578,6 +1584,7 @@ The repeated labels are:\n-+\nwolof
                 value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_set_index(self):
         # GH 17328
         df = DataFrame(
@@ -1611,6 +1618,7 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_writer_117(self):
         original = DataFrame(
             data=[
@@ -1717,6 +1725,7 @@ The repeated labels are:\n-+\nwolof
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version):
         # GH 21041
@@ -1735,6 +1744,7 @@ The repeated labels are:\n-+\nwolof
             reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_gzip_writing(self):
         # writing version 117 requires seek and cannot be used with gzip
         df = DataFrame(
@@ -1767,6 +1777,7 @@ The repeated labels are:\n-+\nwolof
 
         tm.assert_frame_equal(unicode_df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_mixed_string_strl(self):
         # GH 23633
         output = [{"mixed": "string" * 500, "number": 0}, {"mixed": None, "number": 1}]
@@ -1864,6 +1875,7 @@ the string values returned are correct."""
                 reader._ensure_open()
                 assert reader._nvar == 32999
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [118, 119, None])
     def test_utf8_writer(self, version):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
@@ -2131,6 +2143,7 @@ def test_iterator_errors(datapath, chunksize):
             pass
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_iterator_value_labels():
     # GH 31544
     values = ["c_label", "b_label"] + ["a_label"] * 500

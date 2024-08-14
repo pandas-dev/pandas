@@ -1963,6 +1963,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction

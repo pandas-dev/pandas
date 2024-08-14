@@ -608,6 +608,7 @@ class TestDataFrameAnalytics:
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "dropna, expected",
         [
@@ -1068,6 +1069,7 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Index of max / min
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmin(self, float_frame, int_frame, skipna, axis):
@@ -1117,6 +1119,7 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmax(self, float_frame, int_frame, skipna, axis):
@@ -1359,6 +1362,7 @@ class TestDataFrameAnalytics:
         result = df[["C"]].all(axis=None).item()
         assert result is True
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])

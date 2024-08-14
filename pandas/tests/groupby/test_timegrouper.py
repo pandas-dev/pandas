@@ -10,6 +10,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -73,6 +75,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_groupby_with_timegrouper(self):
         # GH 4161
         # TimeGrouper requires a sorted index

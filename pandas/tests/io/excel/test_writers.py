@@ -11,6 +11,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 from pandas.compat._constants import PY310
 from pandas.compat._optional import import_optional_dependency
@@ -284,6 +286,7 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, act, check_names=check_names)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_read_excel_parse_dates(self, ext):
         # see gh-11544, gh-12051
         df = DataFrame(
@@ -1311,6 +1314,7 @@ class TestExcelWriter:
         result = pd.read_excel(path, index_col=0)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),

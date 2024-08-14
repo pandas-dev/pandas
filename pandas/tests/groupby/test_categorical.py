@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -338,6 +340,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper

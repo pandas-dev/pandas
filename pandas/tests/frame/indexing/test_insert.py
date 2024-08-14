@@ -6,6 +6,8 @@ __setitem__.
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import PerformanceWarning
 
 from pandas import (
@@ -60,6 +62,7 @@ class TestDataFrameInsert:
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_insert_with_columns_dups(self):
         # GH#14291
         df = DataFrame()

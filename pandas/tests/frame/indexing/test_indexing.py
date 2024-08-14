@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
@@ -180,6 +182,7 @@ class TestDataFrameIndexing:
                 if bif[c].dtype != bifw[c].dtype:
                     assert bif[c].dtype == df[c].dtype
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_getitem_boolean_casting(self, datetime_frame):
         # don't upcast if we don't need to
         df = datetime_frame.copy()
@@ -515,6 +518,7 @@ class TestDataFrameIndexing:
         else:
             assert dm[2].dtype == np.object_
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_setitem_None(self, float_frame, using_infer_string):
         # GH #766
         float_frame[None] = float_frame["A"]
@@ -1181,6 +1185,7 @@ class TestDataFrameIndexing:
         df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
         # assignment of timedeltas with NaT
@@ -1203,6 +1208,7 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
             {
@@ -1956,6 +1962,7 @@ def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_add_new_column_infer_string():
     # GH#55366
     pytest.importorskip("pyarrow")

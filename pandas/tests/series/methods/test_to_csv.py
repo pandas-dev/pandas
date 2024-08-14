@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -24,6 +26,7 @@ class TestSeriesToCSV:
 
         return out
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_from_csv(self, datetime_series, string_series):
         # freq doesn't round-trip
         datetime_series.index = datetime_series.index._with_freq(None)

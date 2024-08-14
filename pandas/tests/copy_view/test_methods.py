@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import SettingWithCopyWarning
 
 import pandas as pd
@@ -950,6 +952,7 @@ def test_head_tail(method, using_copy_on_write, warn_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_infer_objects(using_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
     df_orig = df.copy()
@@ -1177,6 +1180,7 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, warn_copy_on_writ
         assert np.shares_memory(get_array(obj, "a"), get_array(view, "a"))
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(using_copy_on_write, warn_copy_on_write, decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})

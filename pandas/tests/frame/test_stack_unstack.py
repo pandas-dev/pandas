@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.errors import PerformanceWarning
 
@@ -1646,6 +1648,7 @@ class TestStackUnstackMultiLevel:
         expected = unstacked.dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
@@ -1889,6 +1892,7 @@ class TestStackUnstackMultiLevel:
         expected = frame.stack(future_stack=future_stack)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )

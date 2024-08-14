@@ -642,6 +642,7 @@ class TestLocBaseIndependent:
         expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
