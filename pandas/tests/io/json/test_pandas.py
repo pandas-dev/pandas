@@ -28,11 +28,6 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.json import ujson_dumps
 
@@ -255,7 +250,7 @@ class TestPandasContainer:
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
         assert_json_roundtrip_equal(result, expected, orient)
@@ -610,7 +605,7 @@ class TestPandasContainer:
 
         # JSON deserialisation always creates unicode strings
         df_mixed.columns = df_mixed.columns.astype(
-            np.str_ if not using_infer_string else "string[pyarrow_numpy]"
+            np.str_ if not using_infer_string else "str"
         )
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
@@ -695,7 +690,7 @@ class TestPandasContainer:
         expected = string_series
         if using_infer_string and orient in ("split", "index", "columns"):
             # These schemas don't contain dtypes, so we infer string
-            expected.index = expected.index.astype("string[pyarrow_numpy]")
+            expected.index = expected.index.astype("str")
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -1573,7 +1568,6 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_from_json_to_json_table_dtypes(self):
         # GH21345
         expected = DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["5", "6"]})
@@ -2144,12 +2138,10 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_read_json_dtype_backend(
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
         # GH#50750
-        pa = pytest.importorskip("pyarrow")
         df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -2163,29 +2155,17 @@ class TestPandasContainer:
             }
         )
 
-        if using_infer_string:
-            string_array = ArrowStringArrayNumpySemantics(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArrayNumpySemantics(pa.array(["a", "b", None]))
-        elif string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
-            pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-
-        else:
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
             result = read_json(
                 StringIO(out), dtype_backend=dtype_backend, orient=orient
             )
+
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
 
         expected = DataFrame(
             {
@@ -2195,12 +2175,13 @@ class TestPandasContainer:
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
         if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
             from pandas.arrays import ArrowExtensionArray
 
             expected = DataFrame(

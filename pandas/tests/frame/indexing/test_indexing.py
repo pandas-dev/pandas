@@ -12,6 +12,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import iNaT
+from pandas.compat import HAS_PYARROW
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
@@ -323,7 +324,7 @@ class TestDataFrameIndexing:
         smaller["col10"] = ["1", "2"]
 
         if using_infer_string:
-            assert smaller["col10"].dtype == "string"
+            assert smaller["col10"].dtype == "str"
         else:
             assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -458,13 +459,13 @@ class TestDataFrameIndexing:
         del dm["foo"]
         dm["foo"] = "bar"
         if using_infer_string:
-            assert dm["foo"].dtype == "string"
+            assert dm["foo"].dtype == "str"
         else:
             assert dm["foo"].dtype == np.object_
 
         dm["coercible"] = ["1", "2", "3"]
         if using_infer_string:
-            assert dm["coercible"].dtype == "string"
+            assert dm["coercible"].dtype == "str"
         else:
             assert dm["coercible"].dtype == np.object_
 
@@ -500,7 +501,7 @@ class TestDataFrameIndexing:
         dm[2] = uncoercable_series
         assert len(dm.columns) == 3
         if using_infer_string:
-            assert dm[2].dtype == "string"
+            assert dm[2].dtype == "str"
         else:
             assert dm[2].dtype == np.object_
 
@@ -1148,7 +1149,9 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
             {

@@ -412,6 +412,13 @@ def is_period_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the Period dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_period_dtype
@@ -1021,6 +1028,11 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of the timedelta64[ns] dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_timedelta64_ns_dtype
@@ -1139,6 +1151,15 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a numeric dtype.
+
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+    api.types.is_signed_integer_dtype: Check whether the provided array
+        or dtype is of an signed integer dtype.
 
     Examples
     --------
