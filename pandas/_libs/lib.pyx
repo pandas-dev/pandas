@@ -2728,7 +2728,7 @@ def maybe_convert_objects(ndarray[object] objects,
         if using_string_dtype() and is_string_array(objects, skipna=True):
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+            dtype = StringDtype(na_value=np.nan)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True

@@ -1265,6 +1265,7 @@ def string_storage(request):
         ("python", pd.NA),
         pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
         pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
     ]
 )
 def string_dtype_arguments(request):
@@ -1326,12 +1327,14 @@ def object_dtype(request):
         ("python", pd.NA),
         pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
         pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
     ],
     ids=[
         "string=object",
         "string=string[python]",
         "string=string[pyarrow]",
         "string=str[pyarrow]",
+        "string=str[python]",
     ],
 )
 def any_string_dtype(request):
@@ -1341,6 +1344,7 @@ def any_string_dtype(request):
     * 'string[python]' (NA variant)
     * 'string[pyarrow]' (NA variant)
     * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
     """
     if isinstance(request.param, np.dtype):
         return request.param

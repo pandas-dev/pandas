@@ -236,7 +236,7 @@ def test_contains_nan(any_string_dtype):
     result = s.str.contains("foo", na="foo")
     if any_string_dtype == "object":
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
-    elif any_string_dtype == "string[pyarrow_numpy]":
+    elif any_string_dtype.na_value is np.nan:
         expected = Series([True, True, True], dtype=np.bool_)
     else:
         expected = Series([True, True, True], dtype="boolean")
