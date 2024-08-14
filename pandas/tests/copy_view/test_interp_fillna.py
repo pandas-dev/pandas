@@ -3,6 +3,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     NA,
     ArrowDtype,
@@ -159,7 +161,7 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_interpolate_object_convert_no_op(using_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")

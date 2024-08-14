@@ -6,6 +6,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -1201,6 +1203,9 @@ def test_agg_multiple_mixed():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(

@@ -5,6 +5,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -43,6 +44,11 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(-df, expected)
         tm.assert_series_equal(-df["a"], expected["a"])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.parametrize(
         "df",
         [
@@ -128,7 +134,9 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     @pytest.mark.parametrize(
         "df",
         [

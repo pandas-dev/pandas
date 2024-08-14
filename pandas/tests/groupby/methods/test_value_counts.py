@@ -10,6 +10,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -536,6 +537,9 @@ def names_with_nulls_df(nulls_fixture):
     )
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, expected_data, expected_index",
     [

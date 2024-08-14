@@ -6,10 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+from pandas.compat import HAS_PYARROW
 
 from pandas import (
     DataFrame,
@@ -471,9 +474,18 @@ class TestRank:
         ],
     )
     def test_rank_object_first(
-        self, frame_or_series, na_option, ascending, expected, using_infer_string
+        self,
+        request,
+        frame_or_series,
+        na_option,
+        ascending,
+        expected,
+        using_infer_string,
     ):
         obj = frame_or_series(["foo", "foo", None, "foo"])
+        if using_string_dtype() and not HAS_PYARROW and isinstance(obj, Series):
+            request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
         if using_infer_string and isinstance(obj, Series):
