@@ -809,7 +809,7 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns a ValueError because the frequency is non-fixed.
+        Returns a integer of the total number of nanoseconds for fixed frequencies.
 
         Raises
         ------
