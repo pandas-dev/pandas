@@ -3,6 +3,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -66,7 +68,7 @@ def test_replace_regex_inplace_refs(using_copy_on_write, warn_copy_on_write):
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace(using_copy_on_write):
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
@@ -354,7 +356,7 @@ def test_replace_empty_list(using_copy_on_write):
         assert not df2._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(using_copy_on_write, value):
     df = DataFrame({"a": ["a", "b", "c"]})

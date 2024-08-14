@@ -8,6 +8,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -1743,6 +1744,10 @@ def test_handle_dict_return_value(df):
     tm.assert_series_equal(result, expected)
 
 
+# TODO harmonize error messages
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize("grouper", ["A", ["A", "B"]])
 def test_set_group_name(df, grouper, using_infer_string):
     def f(group):

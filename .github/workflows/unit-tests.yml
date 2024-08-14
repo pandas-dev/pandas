@@ -29,6 +29,7 @@ jobs:
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
+        pandas_future_infer_string: ["0"]
         include:
           - name: "Downstream Compat"
             env_file: actions-311-downstream_compat.yaml
@@ -86,6 +87,9 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "warn"
           - name: "Future infer strings"
+            env_file: actions-312.yaml
+            pandas_future_infer_string: "1"
+          - name: "Future infer strings (without pyarrow)"
             env_file: actions-311.yaml
             pandas_future_infer_string: "1"
           - name: "Pypy"
@@ -114,9 +118,10 @@ jobs:
       NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
+      REMOVE_PYARROW: ${{ matrix.name == 'Future infer strings (without pyarrow)' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_copy_on_write || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_copy_on_write || '' }}-${{ matrix.pandas_future_infer_string }}
       cancel-in-progress: true
 
     services:

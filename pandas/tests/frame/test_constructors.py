@@ -24,6 +24,7 @@ import pytz
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
@@ -327,7 +328,7 @@ class TestDataFrameConstructors:
             assert df2._mgr.arrays[0].flags.c_contiguous
 
     @td.skip_array_manager_invalid_test
-    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
+    @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")

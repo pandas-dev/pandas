@@ -12,6 +12,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import iNaT
+from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -1208,7 +1209,9 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_getitem_boolean_indexing_mixed(self):
         df = DataFrame(
             {
