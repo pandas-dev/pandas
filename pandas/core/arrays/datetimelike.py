@@ -130,9 +130,9 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
-    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -667,10 +667,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg) from err
 
-        # Do type inference if necessary up front
+        # Do type inference if necessary up front (after unpacking
+        # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
-        value = sanitize_array(value, index=None, allow_2d=True)
-        value = ensure_wrapped_if_datetimelike(value)
+        value = extract_array(value, extract_numpy=True)
+        value = pd_array(value)
+        value = extract_array(value, extract_numpy=True)
 
         if is_all_strings(value):
             # We got a StringArray

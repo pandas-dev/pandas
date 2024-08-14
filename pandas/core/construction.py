@@ -37,6 +37,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_object,
     is_list_like,
+    is_object_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -47,6 +48,8 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna
+
+import pandas.core.common as com
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -703,12 +706,23 @@ def _sanitize_ndim(
         result = _maybe_repeat(result, index)
 
     elif result.ndim > 1:
-        if allow_2d:
-            return result
-        raise ValueError(
-            f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
-        )
+        if isinstance(data, np.ndarray):
+            if allow_2d:
+                return result
+            raise ValueError(
+                f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
+            )
+        if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
+            # i.e. NumpyEADtype("O")
 
+            result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
+        else:
+            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
+            # dtype[Any], None]"
+            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
     return result
 
 
