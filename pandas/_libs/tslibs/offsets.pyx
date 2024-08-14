@@ -1047,10 +1047,6 @@ cdef class Tick(SingleConstructorOffset):
             Returns an integer of the total number of nanoseconds.
         tseries.offsets.Day.nanos :
             Returns an integer of the total number of nanoseconds.
-        tseries.offsets.WeekOfMonth.nanos :
-            Raises a ValueError because the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos :
-            Raises a ValueError because the frequency is non-fixed.
 
         Examples
         --------
