@@ -1913,20 +1913,57 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency. If passing a `str`, it needs to be a
-            valid :ref:`period alias <timeseries.period_aliases>`.
+            The target frequency to convert the Period object to. If a string is provided,
+            it must be a valid :ref:`period alias <timeseries.period_aliases>`.
+
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan.
+            Specifies whether to align the converted period to the start or end of the interval:
+            - 'E' or 'end': Align to the end of the interval.
+            - 'S' or 'start': Align to the start of the interval.
 
         Returns
         -------
-        resampled : Period
+        Resampled Period : A new Period object with the specified frequency, aligned according to the `how` parameter.
+
+        See Also
+        --------
+        Period.end_time : Return the end Timestamp.
+        Period.start_time : Return the start Timestamp.
+        Period.dayofyear : Return the day of the year.
+        Period.dayofweek : Return the day of the week.
 
         Examples
         --------
-        >>> period = pd.Period('2023-1-1', freq='D')
+        Convert a daily period to an hourly period, aligning to the end of the day:
+
+        >>> period = pd.Period('2023-01-01', freq='D')
         >>> period.asfreq('h')
         Period('2023-01-01 23:00', 'h')
+
+        Convert a monthly period to a daily period, aligning to the start of the month:
+
+        >>> period = pd.Period('2023-01', freq='M')
+        >>> period.asfreq('D', how='start')
+        Period('2023-01-01', 'D')
+
+        Convert a yearly period to a monthly period, aligning to the last month of the year:
+
+        >>> period = pd.Period('2023', freq='Y')
+        >>> period.asfreq('M', how='end')
+        Period('2023-12', 'M')
+
+        Convert a monthly period to an hourly period, aligning to the start of the first day of the month:
+
+        >>> period = pd.Period('2023-01', freq='M')
+        >>> period.asfreq('h', how='start')
+        Period('2023-01-01 00:00', 'H')
+
+        Convert a weekly period to a daily period, aligning to the last day of the week:
+
+        >>> period = pd.Period('2023-08-01', freq='W')
+        >>> period.asfreq('D', how='end')
+        Period('2023-08-04', 'D')
+
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)

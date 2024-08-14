@@ -76,7 +76,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.MultiIndex.to_frame RT03" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
-        -i "pandas.Period.asfreq SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.freqstr SA01" \
         -i "pandas.Period.ordinal GL08" \
