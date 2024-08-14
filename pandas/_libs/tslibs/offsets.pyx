@@ -600,9 +600,9 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.Hour.rule_code : 
+        tseries.offsets.Hour.rule_code :
             Returns a string representing the base frequency of 'h'.
-        tseries.offsets.Day.rule_code : 
+        tseries.offsets.Day.rule_code :
             Returns a string representing the base frequency of 'D'.
 
         Examples
@@ -622,13 +622,13 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.BusinessDay.freqstr : 
+        tseries.offsets.BusinessDay.freqstr :
             Return a string representing an offset frequency in Business Days.
-        tseries.offsets.BusinessHour.freqstr : 
+        tseries.offsets.BusinessHour.freqstr :
             Return a string representing an offset frequency in Business Hours.
-        tseries.offsets.Week.freqstr : 
+        tseries.offsets.Week.freqstr :
             Return a string representing an offset frequency in Weeks.
-        tseries.offsets.Hour.freqstr : 
+        tseries.offsets.Hour.freqstr :
             Return a string representing an offset frequency in Hours.
 
         Examples
@@ -818,13 +818,13 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.WeekOfMonth.nanos : 
+        tseries.offsets.WeekOfMonth.nanos :
             Raises a ValueError because the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos : 
+        tseries.offsets.YearBegin.nanos :
             Raises a ValueError because the frequency is non-fixed.
-        tseries.offsets.Hour.nanos : 
+        tseries.offsets.Hour.nanos :
             Returns an integer of the total number of nanoseconds.
-        tseries.offsets.Day.nanos : 
+        tseries.offsets.Day.nanos :
             Returns an integer of the total number of nanoseconds.
 
         Examples
@@ -1043,13 +1043,13 @@ cdef class Tick(SingleConstructorOffset):
 
         See Also
         --------
-        tseries.offsets.Hour.nanos : 
+        tseries.offsets.Hour.nanos :
             Returns an integer of the total number of nanoseconds.
-        tseries.offsets.Day.nanos : 
+        tseries.offsets.Day.nanos :
             Returns an integer of the total number of nanoseconds.
-        tseries.offsets.WeekOfMonth.nanos : 
+        tseries.offsets.WeekOfMonth.nanos :
             Raises a ValueError because the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos : 
+        tseries.offsets.YearBegin.nanos :
             Raises a ValueError because the frequency is non-fixed.
 
         Examples
@@ -2490,9 +2490,9 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
         See Also
         --------
-        tseries.offsets.Hour.rule_code : 
+        tseries.offsets.Hour.rule_code :
             Returns a string representing the base frequency of 'h'.
-        tseries.offsets.Day.rule_code : 
+        tseries.offsets.Day.rule_code :
             Returns a string representing the base frequency of 'D'.
 
         Examples
@@ -2554,9 +2554,9 @@ cdef class YearOffset(SingleConstructorOffset):
 
         See Also
         --------
-        tseries.offsets.Hour.rule_code : 
+        tseries.offsets.Hour.rule_code :
             Returns a string representing the base frequency of 'h'.
-        tseries.offsets.Day.rule_code : 
+        tseries.offsets.Day.rule_code :
             Returns a string representing the base frequency of 'D'.
 
         Examples
@@ -3558,9 +3558,9 @@ cdef class Week(SingleConstructorOffset):
 
         See Also
         --------
-        tseries.offsets.Hour.name : 
+        tseries.offsets.Hour.name :
             Returns a string representing the base frequency of 'h'.
-        tseries.offsets.Day.name : 
+        tseries.offsets.Day.name :
             Returns a string representing the base frequency of 'D'.
 
         Examples
