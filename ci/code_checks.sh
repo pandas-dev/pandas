@@ -490,7 +490,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.n GL08" \
         -i "pandas.tseries.offsets.Easter.normalize GL08" \
-        -i "pandas.tseries.offsets.Easter.rule_code GL08" \
         -i "pandas.tseries.offsets.FY5253.get_rule_code_suffix GL08" \
         -i "pandas.tseries.offsets.FY5253.get_year_end GL08" \
         -i "pandas.tseries.offsets.FY5253.is_on_offset GL08" \
@@ -535,9 +534,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.MonthEnd.n GL08" \
         -i "pandas.tseries.offsets.MonthEnd.normalize GL08" \
-        -i "pandas.tseries.offsets.Nano PR02" \
         -i "pandas.tseries.offsets.Nano.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Nano.normalize GL08" \
+        -i "pandas.tseries.offsets.Nano.n GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.n GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.normalize GL08" \
@@ -551,6 +550,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Second.n GL08" \
         -i "pandas.tseries.offsets.Second.normalize GL08" \
+        -i "pandas.tseries.offsets.SemiMonthBegin SA01" \
         -i "pandas.tseries.offsets.SemiMonthBegin.day_of_month GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.n GL08" \
@@ -570,6 +570,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Week.n GL08" \
         -i "pandas.tseries.offsets.Week.normalize GL08" \
         -i "pandas.tseries.offsets.Week.weekday GL08" \
+        -i "pandas.tseries.offsets.WeekOfMonth SA01" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.normalize GL08" \
