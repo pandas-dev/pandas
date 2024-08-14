@@ -818,10 +818,6 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.WeekOfMonth.nanos :
-            Raises a ValueError because the frequency is non-fixed.
-        tseries.offsets.YearBegin.nanos :
-            Raises a ValueError because the frequency is non-fixed.
         tseries.offsets.Hour.nanos :
             Returns an integer of the total number of nanoseconds.
         tseries.offsets.Day.nanos :
