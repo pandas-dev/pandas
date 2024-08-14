@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
     ArrowStringArrayNumpySemantics,
@@ -75,6 +76,9 @@ def test_repr(dtype):
     elif dtype.storage == "pyarrow" and dtype.na_value is np.nan:
         arr_name = "ArrowStringArrayNumpySemantics"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
+    elif dtype.storage == "python" and dtype.na_value is np.nan:
+        arr_name = "StringArrayNumpySemantics"
+        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
     else:
         arr_name = "StringArray"
         expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
@@ -90,14 +94,14 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    if cls is pd.arrays.StringArray:
+    if dtype.storage == "python":
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if cls is pd.arrays.StringArray:
+    if dtype.storage == "python":
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
@@ -339,6 +343,8 @@ def test_comparison_methods_array(comparison_op, dtype):
 def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
+    elif cls is StringArrayNumpySemantics:
+        msg = "StringArrayNumpySemantics requires a sequence of strings or NaN"
     else:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
 
@@ -348,7 +354,7 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
-    if cls is pd.arrays.StringArray:
+    if cls is pd.arrays.StringArray or cls is StringArrayNumpySemantics:
         # GH#45057 np.nan and None do NOT raise, as they are considered valid NAs
         #  for string dtype
         cls(np.array(["a", np.nan], dtype=object))
@@ -389,6 +395,8 @@ def test_from_sequence_no_mutate(copy, cls, dtype):
         import pyarrow as pa
 
         expected = cls(pa.array(na_arr, type=pa.string(), from_pandas=True))
+    elif cls is StringArrayNumpySemantics:
+        expected = cls(nan_arr)
     else:
         expected = cls(na_arr)
 
@@ -671,7 +679,11 @@ def test_isin(dtype, fixed_now_ts):
     tm.assert_series_equal(result, expected)
 
     result = s.isin(["a", pd.NA])
-    expected = pd.Series([True, False, True])
+    if dtype.storage == "python" and dtype.na_value is np.nan:
+        # TODO(infer_string) we should make this consistent
+        expected = pd.Series([True, False, False])
+    else:
+        expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
     result = s.isin([])
@@ -695,7 +707,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if type(ser.array) is pd.arrays.StringArray:
+    if dtype.storage == "python":
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"
