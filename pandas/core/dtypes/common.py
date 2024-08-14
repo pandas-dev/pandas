@@ -1274,6 +1274,10 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a boolean dtype.
 
+    This function verifies whether a given object is a boolean data type. The input
+    can be an array or a dtype object. Accepted array types include instances
+    of ``np.array``, ``pd.Series``, ``pd.Index``, and similar array-like structures.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1283,6 +1287,10 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a boolean dtype.
+
+    See Also
+    --------
+    api.types.is_bool : Check if an object is a boolean.
 
     Notes
     -----
