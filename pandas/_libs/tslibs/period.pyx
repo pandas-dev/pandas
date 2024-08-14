@@ -2055,12 +2055,6 @@ cdef class _Period(PeriodMixin):
         >>> period.month
         nan
 
-        Handle a case where the Period object is invalid or empty, which results in `NaN`:
-
-        >>> period = pd.Period('nan', 'M')
-        >>> period.month
-        nan
-
         Notes
         -----
         The month is determined based on the `ordinal` and `base` attributes of the Period.
