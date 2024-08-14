@@ -64,7 +64,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
-            na_value = self.dtype.na_value
+            na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not len(self):
             return np.array([], dtype=dtype)
@@ -270,7 +270,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
-            return self.dtype.na_value
+            return self.dtype.na_value  # type: ignore[attr-defined]
 
         return self._str_map(f)
 
@@ -464,7 +464,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
-        na_value = self.dtype.na_value
+        na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not expand:
 
