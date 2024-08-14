@@ -140,12 +140,16 @@ class StringDtype(StorageExtensionDtype):
         # infer defaults
         if storage is None:
             if na_value is not libmissing.NA:
-                if HAS_PYARROW:
-                    storage = "pyarrow"
-                else:
-                    storage = "python"
+                storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    if HAS_PYARROW:
+                        storage = "pyarrow"
+                    else:
+                        storage = "python"
             else:
                 storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    storage = "python"
 
         if storage == "pyarrow_numpy":
             # TODO raise a deprecation warning
@@ -350,9 +354,7 @@ class BaseStringArray(ExtensionArray):
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
         if self.dtype.na_value is np.nan:
-            return self._str_map_nan_semantics(
-                f, na_value=na_value, dtype=dtype, convert=convert
-            )
+            return self._str_map_nan_semantics(f, na_value=na_value, dtype=dtype)
 
         from pandas.arrays import BooleanArray
 
@@ -427,9 +429,7 @@ class BaseStringArray(ExtensionArray):
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_map_nan_semantics(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
+    def _str_map_nan_semantics(self, f, na_value=None, dtype: Dtype | None = None):
         if dtype is None:
             dtype = self.dtype
         if na_value is None:

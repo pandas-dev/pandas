@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -27,11 +26,10 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage == "python" and HAS_PYARROW:
-        # string storage with na_value=NaN always uses pyarrow if available
-        # -> does not yet honor the option
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+def test_config(string_storage, using_infer_string):
+    # with the default string_storage setting
+    # always "python" at the moment
+    assert StringDtype().storage == "python"
 
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
