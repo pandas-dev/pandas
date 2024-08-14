@@ -376,7 +376,7 @@ def ndarray_to_mgr(
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
     elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
-        dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+        dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)
         block_values = [

@@ -76,6 +76,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -3225,7 +3226,7 @@ class SeriesFixed(GenericFixed):
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
         if using_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3294,7 +3295,7 @@ class BlockManagerFixed(GenericFixed):
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             if using_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4685,7 +4686,7 @@ class AppendableFrameTable(AppendableTable):
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:

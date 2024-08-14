@@ -811,6 +811,24 @@ def assert_extension_array_equal(
         left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
 
+    # Specifically for StringArrayNumpySemantics, validate here we have a valid array
+    if (
+        isinstance(left.dtype, StringDtype)
+        and left.dtype.storage == "python"
+        and left.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in left._ndarray[left_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+    if (
+        isinstance(right.dtype, StringDtype)
+        and right.dtype.storage == "python"
+        and right.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
