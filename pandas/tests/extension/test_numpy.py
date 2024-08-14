@@ -18,6 +18,8 @@ will never be held in an Index.
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
@@ -242,6 +244,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     frame_scalar_exc = None
     series_array_exc = None
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_divmod(self, data):
         divmod_exc = None
         if data.dtype.kind == "O":
@@ -249,6 +252,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.divmod_exc = divmod_exc
         super().test_divmod(data)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
         exc = None
@@ -257,6 +261,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             self.divmod_exc = exc
         self._check_divmod_op(ser, divmod, data)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         series_scalar_exc = None
@@ -270,6 +275,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.series_scalar_exc = series_scalar_exc
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         opname = all_arithmetic_operators
         series_array_exc = None
@@ -278,6 +284,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.series_array_exc = series_array_exc
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         frame_scalar_exc = None

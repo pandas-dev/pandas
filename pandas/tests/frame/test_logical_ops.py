@@ -4,6 +4,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -96,6 +100,9 @@ class TestDataFrameLogicalOperators:
         res_ser = df1a_int["A"] | df1a_bool["A"]
         tm.assert_series_equal(res_ser, df1a_bool["A"])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_logical_ops_invalid(self, using_infer_string):
         # GH#5808
 

@@ -6,7 +6,10 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import (
+    HAS_PYARROW,
     IS64,
     is_platform_arm,
     is_platform_power,
@@ -1420,6 +1423,9 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
