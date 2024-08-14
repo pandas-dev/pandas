@@ -838,13 +838,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # logical
             result = np.zeros(len(self._ndarray), dtype="bool")
             result[valid] = op(self._ndarray[valid], other)
-            result = BooleanArray(result, mask)
+            res_arr = BooleanArray(result, mask)
             if self.dtype.na_value is np.nan:
                 if op == operator.ne:
-                    return result.to_numpy(np.bool_, na_value=True)
+                    return res_arr.to_numpy(np.bool_, na_value=True)
                 else:
-                    return result.to_numpy(np.bool_, na_value=False)
-            return result
+                    return res_arr.to_numpy(np.bool_, na_value=False)
+            return res_arr
 
     _arith_method = _cmp_method
 
