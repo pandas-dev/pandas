@@ -315,6 +315,8 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
+    dtype: StringDtype
+
     @doc(ExtensionArray.tolist)
     def tolist(self):
         if self.ndim > 1:
@@ -327,6 +329,37 @@ class BaseStringArray(ExtensionArray):
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
+
+    def _str_map_str_or_object(
+        self,
+        dtype,
+        na_value,
+        arr: np.ndarray,
+        f,
+        mask: npt.NDArray[np.bool_],
+        convert: bool,
+    ):
+        # _str_map helper for case where dtype is either string dtype or object
+        if is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            if self.dtype.storage == "pyarrow":
+                import pyarrow as pa
+
+                result = pa.array(
+                    result, mask=mask, type=pa.large_string(), from_pandas=True
+                )
+            # error: Too many arguments for "BaseStringArray"
+            return type(self)(result)  # type: ignore[call-arg]
+
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -682,9 +715,53 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # base class "NumpyExtensionArray" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
+    def _str_map_nan_semantics(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+        convert = convert and not np.all(mask)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                if is_integer_dtype(dtype):
+                    na_value = 0
+                else:
+                    na_value = True
+
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(cast(type, dtype)),
+            )
+            if na_value_is_na and mask.any():
+                if is_integer_dtype(dtype):
+                    result = result.astype("float64")
+                else:
+                    result = result.astype("object")
+                result[mask] = np.nan
+            return result
+
+        else:
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
+
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
+        if self.dtype.na_value is np.nan:
+            return self._str_map_nan_semantics(
+                f, na_value=na_value, dtype=dtype, convert=convert
+            )
+
         from pandas.arrays import BooleanArray
 
         if dtype is None:
@@ -724,18 +801,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
             return constructor(result, mask)
 
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            return StringArray(result)
         else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+            return self._str_map_str_or_object(dtype, na_value, arr, f, mask, convert)
 
 
 class StringArrayNumpySemantics(StringArray):
@@ -802,52 +869,3 @@ class StringArrayNumpySemantics(StringArray):
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = np.nan
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-        convert = convert and not np.all(mask)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                if is_integer_dtype(dtype):
-                    na_value = 0
-                else:
-                    na_value = True
-
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=np.dtype(cast(type, dtype)),
-            )
-            if na_value_is_na and mask.any():
-                if is_integer_dtype(dtype):
-                    result = result.astype("float64")
-                else:
-                    result = result.astype("object")
-                result[mask] = np.nan
-            return result
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
