@@ -2052,14 +2052,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the month this Period falls on.
 
-        Parameters
-        ----------
-        does not take any parameters
-
         Returns
         -------
-        int 
-            The month number of the Period.
+        int
 
         See Also
         --------
