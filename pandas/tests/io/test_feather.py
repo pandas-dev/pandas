@@ -9,10 +9,6 @@ from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
@@ -184,24 +180,16 @@ class TestFeather:
             }
         )
 
-        if string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-
-        else:
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         with tm.ensure_clean() as path:
             to_feather(df, path)
             with pd.option_context("mode.string_storage", string_storage):
                 result = read_feather(path, dtype_backend=dtype_backend)
+
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
 
         expected = pd.DataFrame(
             {
@@ -211,8 +199,8 @@ class TestFeather:
                 "d": pd.Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": pd.Series([True, False, pd.NA], dtype="boolean"),
                 "f": pd.Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": pd.Series(["a", "b", "c"], dtype=string_dtype),
+                "h": pd.Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
