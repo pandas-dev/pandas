@@ -1913,7 +1913,7 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The target frequency to convert the Period object to. 
+            The target frequency to convert the Period object to.
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
 
@@ -1924,7 +1924,7 @@ cdef class _Period(PeriodMixin):
 
         Returns
         -------
-        Period : A new Period object with the specified frequency, aligned to the `how` parameter.
+        Period : Period object with the specified frequency, aligned to the parameter.
 
         See Also
         --------
@@ -1953,7 +1953,8 @@ cdef class _Period(PeriodMixin):
         >>> period.asfreq('M', how='end')
         Period('2023-12', 'M')
 
-        Convert a monthly period to an hourly period, aligning to the first day of the month:
+        Convert a monthly period to an hourly period,
+        aligning to the first day of the month:
 
         >>> period = pd.Period('2023-01', freq='M')
         >>> period.asfreq('h', how='start')
@@ -2067,7 +2068,7 @@ cdef class _Period(PeriodMixin):
 
         Notes
         -----
-        The month is determined based on the `ordinal` and `base` attributes of the Period.
+        The month is based on the `ordinal` and `base` attributes of the Period.
 
         Examples
         --------
