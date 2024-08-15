@@ -2041,7 +2041,6 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         int
-            The year (e.g., 2023)
 
         See Also
         --------
