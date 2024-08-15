@@ -279,10 +279,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "ObjectStringArrayMixin" defined the type as "float")
-    _str_na_value = libmissing.NA  # type: ignore[assignment]
-
     _str_map = BaseStringArray._str_map
 
     def _str_contains(
