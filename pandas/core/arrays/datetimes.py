@@ -158,15 +158,8 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
             # these return a boolean by-definition
             return result
 
-        if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(result, fill_value=None)
-
-        else:
-            result = fields.get_date_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(
-                result, fill_value=None, convert="float64"
-            )
+        result = fields.get_date_field(values, field, reso=self._creso)
+        result = self._maybe_mask_results(result, fill_value=None, convert="float64")
 
         return result
 
@@ -243,7 +236,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops: list[str] = ["freq", "tz"]
     _field_ops: list[str] = [
         "year",
         "month",
@@ -264,7 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _other_ops + ["unit"]
+        _field_ops + _bool_ops + _other_ops + ["unit", "freq", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -972,7 +964,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
               non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+            - 'raise' will raise a ValueError if there are ambiguous
               times.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
@@ -986,7 +978,7 @@ default 'raise'
               closest existing time
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
+            - 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns

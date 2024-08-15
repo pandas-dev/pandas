@@ -969,6 +969,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     DataFrame/MultiIndex or Series/Index of objects
+        Returns appropriate type based on `expand` parameter with strings
+        split based on the `sep` parameter.
 
     See Also
     --------
@@ -1749,6 +1751,18 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series/Index of objects.
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
+
+    See Also
+    --------
+    Series.str.rjust : Fills the left side of strings with an arbitrary
+        character.
+    Series.str.ljust : Fills the right side of strings with an arbitrary
+        character.
+    Series.str.center : Fills both sides of strings with an arbitrary
+        character.
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+        character.
 
     Examples
     --------
@@ -2024,11 +2038,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`bytes.decode`.
 
         Returns
         -------
         Series or Index
+            A Series or Index with decoded strings.
+
+        See Also
+        --------
+        Series.str.encode : Encodes strings into bytes in a Series/Index.
 
         Examples
         --------
@@ -2063,11 +2085,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`str.encode`.
 
         Returns
         -------
         Series/Index of objects
+            A Series or Index with strings encoded into bytes.
+
+        See Also
+        --------
+        Series.str.decode : Decodes bytes into strings in a Series/Index.
 
         Examples
         --------
@@ -2099,6 +2129,7 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Series or Index with the strings being stripped from the %(side)s.
 
     See Also
     --------
@@ -3092,6 +3123,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Returns a Series or an Index of the %(side)s indexes
+        in each string of the input.
 
     See Also
     --------
@@ -3207,7 +3240,8 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series or Index of object
+    Series or Index of objects
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
 
     See Also
     --------
