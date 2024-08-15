@@ -55,6 +55,7 @@ _all_methods = [
     (pd.Series, ([0, 0],), operator.methodcaller("notna")),
     (pd.Series, ([0, 0],), operator.methodcaller("notnull")),
     (pd.Series, ([1],), operator.methodcaller("add", pd.Series([1]))),
+    (pd.Series, ([0],), operator.methodcaller("concat")),
     # TODO: mul, div, etc.
     (
         pd.Series,
@@ -710,3 +711,15 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
+
+
+def test_finalize_attrs_ndarray():
+    # create two separate df's as single series as input
+    df1 = pd.DataFrame({"A": [1, 2, 3]})
+    df2 = pd.DataFrame({"A": [4, 5, 6]})
+
+    df1.attrs["array_attr"] = np.array([1, 2, 3])
+    df2.attrs["array_attr"] = np.array([1, 2, 3])
+
+    result = df1.__finalize__(df2, method="concat")
+    assert (result.attrs["array_attr"] == np.array([1, 2, 3])).all()
