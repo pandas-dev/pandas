@@ -734,14 +734,7 @@ class ArrowExtensionArray(
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
             )
-        result = ArrowExtensionArray(result)
-        if self.dtype.na_value is np.nan:  # type: ignore[comparison-overlap]
-            # i.e. ArrowStringArray with Numpy Semantics
-            if op == operator.ne:
-                return result.to_numpy(np.bool_, na_value=True)
-            else:
-                return result.to_numpy(np.bool_, na_value=False)
-        return result
+        return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
@@ -1536,11 +1529,7 @@ class ArrowExtensionArray(
 
         index = Index(type(self)(values))
 
-        result = Series(counts, index=index, name="count", copy=False)
-        if self.dtype.na_value is np.nan:  # type: ignore[comparison-overlap]
-            # i.e. ArrowStringArray with Numpy Semantics
-            return Series(counts.to_numpy(), index=index, name="count", copy=False)
-        return result
+        return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> Self:

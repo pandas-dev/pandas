@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -59,6 +60,8 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
+
+    from pandas import Series
 
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
@@ -550,6 +553,24 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 pct=pct,
             )
         )
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        result = super().value_counts(dropna=dropna)
+        if self.dtype.na_value is np.nan:
+            res_values = result._values.to_numpy()
+            return result._constructor(
+                res_values, index=result.index, name=result.name, copy=False
+            )
+        return result
+
+    def _cmp_method(self, other, op):
+        result = super()._cmp_method(other, op)
+        if self.dtype.na_value is np.nan:
+            if op == operator.ne:
+                return result.to_numpy(np.bool_, na_value=True)
+            else:
+                return result.to_numpy(np.bool_, na_value=False)
+        return result
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
