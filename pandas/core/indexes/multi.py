@@ -1636,6 +1636,17 @@ class MultiIndex(Index):
         doc="""
         Names of levels in MultiIndex.
 
+        This attribute provides access to the names of the levels in a `MultiIndex`.
+        The names are stored as a `FrozenList`, which is an immutable list-like
+        container. Each name corresponds to a level in the `MultiIndex`, and can be
+        used to identify or manipulate the levels individually.
+
+        See Also
+        --------
+        MultiIndex.set_names : Set Index or MultiIndex name.
+        MultiIndex.rename : Rename specific levels in a MultiIndex.
+        Index.names : Get names on index.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
