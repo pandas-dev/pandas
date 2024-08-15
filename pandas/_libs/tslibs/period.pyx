@@ -2054,11 +2054,12 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        None
+        does not take any parameters
 
         Returns
         -------
-        int : The month number of the Period.
+        int 
+            The month number of the Period.
 
         See Also
         --------
