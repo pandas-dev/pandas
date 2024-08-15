@@ -1913,17 +1913,18 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The target frequency to convert the Period object to. If a string is provided,
+            The target frequency to convert the Period object to. 
+            If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
 
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Specifies whether to align the converted period to the start or end of the interval:
+            Specifies whether to align the period to the start or end of the interval:
             - 'E' or 'end': Align to the end of the interval.
             - 'S' or 'start': Align to the start of the interval.
 
         Returns
         -------
-        Resampled Period : A new Period object with the specified frequency, aligned according to the `how` parameter.
+        Period : A new Period object with the specified frequency, aligned to the `how` parameter.
 
         See Also
         --------
@@ -1946,13 +1947,13 @@ cdef class _Period(PeriodMixin):
         >>> period.asfreq('D', how='start')
         Period('2023-01-01', 'D')
 
-        Convert a yearly period to a monthly period, aligning to the last month of the year:
+        Convert a yearly period to a monthly period, aligning to the last month:
 
         >>> period = pd.Period('2023', freq='Y')
         >>> period.asfreq('M', how='end')
         Period('2023-12', 'M')
 
-        Convert a monthly period to an hourly period, aligning to the start of the first day of the month:
+        Convert a monthly period to an hourly period, aligning to the first day of the month:
 
         >>> period = pd.Period('2023-01', freq='M')
         >>> period.asfreq('h', how='start')
@@ -2067,7 +2068,7 @@ cdef class _Period(PeriodMixin):
         Notes
         -----
         The month is determined based on the `ordinal` and `base` attributes of the Period.
-        
+
         Examples
         --------
         Create a Period object for January 2022 and get the month:
@@ -2076,7 +2077,7 @@ cdef class _Period(PeriodMixin):
         >>> period.month
         1
 
-        Create a Period object with no specified frequency, resulting in a default frequency:
+        Period object with no specified frequency, resulting in a default frequency:
 
         >>> period = pd.Period('2022', 'Y')
         >>> period.month
@@ -2088,7 +2089,7 @@ cdef class _Period(PeriodMixin):
         >>> period.month
         1
 
-        Handle a case where the Period object is invalid or empty, which results in `NaN`:
+        Handle a case where the Period object is empty, which results in `NaN`:
 
         >>> period = pd.Period('nan', 'M')
         >>> period.month
