@@ -788,8 +788,8 @@ class NaTType(_NaT):
         """
         Convert string argument to datetime.
 
-        This function is not implemented; calling it will raise NotImplementedError.
-        Use pd.to_datetime() insteads.
+        This method is not implemented; calling it will raise NotImplementedError.
+        Use pd.to_datetime() instead.
 
         Parameters
         ----------
@@ -801,9 +801,11 @@ class NaTType(_NaT):
         See Also
         --------
         pd.to_datetime : Convert argument to datetime.
-        datetime.datetime.strftime :
-            Return a string representing the date and time, controlled by an
-            explicit format string.
+        datetime.datetime.strptime : Return a datetime corresponding to a string
+            representing a date and time, parsed according to a separate
+            format string.
+        datetime.datetime.strftime : Return a string representing the date and
+            time, controlled by an explicit format string.
         Timestamp.isoformat : Return the time formatted according to ISO 8601.
 
         Examples
@@ -906,6 +908,16 @@ class NaTType(_NaT):
         "timestamp",
         """
         Return POSIX timestamp as float.
+
+        This method returns the POSIX timestamp corresponding to the
+        pd.Timestamp instance. The result does not match the standard
+        library's datetime.datetime.timestamp() for naive timestamps.
+
+        See Also
+        --------
+        datetime.datetime.timestamp : Return POSIX timestamp
+            corresponding to the datetime instance.
+        Timestamp.tz_localize : Localize the pd.Timestamp to a timezone.
 
         Examples
         --------
