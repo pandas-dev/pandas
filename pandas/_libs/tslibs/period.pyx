@@ -1963,7 +1963,6 @@ cdef class _Period(PeriodMixin):
         >>> period = pd.Period('2023-08-01', freq='W')
         >>> period.asfreq('D', how='end')
         Period('2023-08-04', 'D')
-
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2065,7 +2064,10 @@ cdef class _Period(PeriodMixin):
         Period.year : Return the year this Period falls on.
         Period.day : Return the day of the month this Period falls on.
 
-
+        Notes
+        -----
+        The month is determined based on the `ordinal` and `base` attributes of the Period.
+        
         Examples
         --------
         Create a Period object for January 2022 and get the month:
@@ -2091,12 +2093,7 @@ cdef class _Period(PeriodMixin):
         >>> period = pd.Period('nan', 'M')
         >>> period.month
         nan
-
-        Notes
-        -----
-        The month is determined based on the `ordinal` and `base` attributes of the Period.
         """
-
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
 
