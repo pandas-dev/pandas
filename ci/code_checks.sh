@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.MultiIndex.names SA01" \
         -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
-        -i "pandas.MultiIndex.sortlevel PR07,SA01" \
         -i "pandas.MultiIndex.to_frame RT03" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
