@@ -838,12 +838,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     _arith_method = _cmp_method
 
-    # ------------------------------------------------------------------------
-    # String methods interface
-    # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "NumpyExtensionArray" defined the type as "float")
-    _str_na_value = libmissing.NA  # type: ignore[assignment]
-
 
 class StringArrayNumpySemantics(StringArray):
     _storage = "python"
@@ -874,7 +868,3 @@ class StringArrayNumpySemantics(StringArray):
         # need to override NumpyExtensionArray._from_backing_data to ensure
         # we always preserve the dtype
         return NDArrayBacked._from_backing_data(self, arr)
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan
