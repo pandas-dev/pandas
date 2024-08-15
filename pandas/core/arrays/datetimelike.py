@@ -1763,7 +1763,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         if using_string_dtype():
             from pandas import StringDtype
 
-            return pd_array(result, dtype=StringDtype(na_value=np.nan))
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result.astype(object, copy=False)
 
 

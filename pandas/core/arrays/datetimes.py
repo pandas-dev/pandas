@@ -1339,7 +1339,7 @@ default 'raise'
                 array as pd_array,
             )
 
-            return pd_array(result, dtype=StringDtype(na_value=np.nan))
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
@@ -1408,7 +1408,7 @@ default 'raise'
                 array as pd_array,
             )
 
-            return pd_array(result, dtype=StringDtype(na_value=np.nan))
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     @property
