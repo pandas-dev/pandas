@@ -672,7 +672,7 @@ def to_datetime(
     utc: bool = False,
     format: str | None = None,
     exact: bool | lib.NoDefault = lib.no_default,
-    unit: str | None = None,
+    unit: str | None = "us",
     origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:

@@ -1714,6 +1714,19 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             to_datetime(date, utc=False)
 
+    @pytest.mark.parametrize(
+        "date",
+        [
+            "2024-03-22 11:43:01",
+            "2024-03-22 11:43:01.002",
+            "2024-03-22 11:43:01.002003",
+        ],
+    )
+    def test_to_datetime_type(self, date):
+        dt = to_datetime([date])
+        print("pranav dtype is ", dt.dtype)
+        assert dt.dtype == "<M8[us]"
+
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
