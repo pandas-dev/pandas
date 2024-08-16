@@ -29,6 +29,7 @@ from pandas import (
     Period,
     PeriodIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     date_range,
     period_range,
@@ -528,7 +529,6 @@ class TestSeriesDatetimeValues:
         ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime(self):
         # GH 10086
         ser = Series(date_range("20130101", periods=5))
@@ -599,10 +599,9 @@ class TestSeriesDatetimeValues:
             dtype="=U10",
         )
         if using_infer_string:
-            expected = expected.astype("str")
+            expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -635,7 +634,6 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "data",
         [
@@ -658,7 +656,7 @@ class TestSeriesDatetimeValues:
         ser = Series(data)
         with tm.assert_produces_warning(None):
             result = ser.dt.strftime("%Y-%m-%d")
-        expected = Series([np.nan], dtype=object)
+        expected = Series([np.nan], dtype="str")
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
