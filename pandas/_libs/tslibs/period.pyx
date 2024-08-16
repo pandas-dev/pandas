@@ -2038,11 +2038,44 @@ cdef class _Period(PeriodMixin):
         """
         Return the year this Period falls on.
 
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        period.month : Get the month of the year for the given Period.
+        period.day : Return the day of the month the Period falls on.
+
+        Notes
+        -----
+        The year is based on the `ordinal` and `base` attributes of the Period.
+
         Examples
         --------
-        >>> period = pd.Period('2022-01', 'M')
+        Create a Period object for January 2023 and get the year:
+
+        >>> period = pd.Period('2023-01', 'M')
         >>> period.year
-        2022
+        2023
+
+        Create a Period object for 01 January 2023 and get the year:
+
+        >>> period = pd.Period('2023', 'D')
+        >>> period.year
+        2023
+
+        Get the year for a period representing a quarter:
+
+        >>> period = pd.Period('2023Q2', 'Q')
+        >>> period.year
+        2023
+
+        Handle a case where the Period object is empty, which results in `NaN`:
+
+        >>> period = pd.Period('nan', 'M')
+        >>> period.year
+        nan
         """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
