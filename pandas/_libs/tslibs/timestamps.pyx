@@ -1645,8 +1645,8 @@ class Timestamp(_Timestamp):
         See Also
         --------
         datetime.datetime.today : Returns the current local date.
-        pandas.Timestamp.now : Returns current time with optional timezone.
-        pandas.Timestamp : A class representing a specific timestamp.
+        Timestamp.now : Returns current time with optional timezone.
+        Timestamp : A class representing a specific timestamp.
 
         Examples
         --------
