@@ -1847,6 +1847,11 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            A flattened view on the array.
+
+        See Also
+        --------
+        ExtensionArray.tolist: Return a list of the values.
 
         Notes
         -----
