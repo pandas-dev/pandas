@@ -34,7 +34,6 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
     is_integer_dtype,
     is_object_dtype,
