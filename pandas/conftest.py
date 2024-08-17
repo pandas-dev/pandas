@@ -1403,6 +1403,21 @@ def complex_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
+def complex_or_float_dtype(request):
+    """
+    Parameterized fixture for complex and numpy float dtypes.
+
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * float
+    * 'float32'
+    * 'float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.SIGNED_INT_NUMPY_DTYPES)
 def any_signed_int_numpy_dtype(request):
     """
