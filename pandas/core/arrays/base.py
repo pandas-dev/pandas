@@ -649,6 +649,11 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
 
+        See Also
+        --------
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -664,8 +669,8 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.size: The number of elements in the array.
         ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
 
         Examples
         --------
