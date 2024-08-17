@@ -832,8 +832,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        pandas.Timestamp.day_name : Returns the name of the day of the week.
-        pandas.Timestamp.strftime : Returns a formatted string of the Timestamp.
+        Timestamp.day_name : Returns the name of the day of the week.
+        Timestamp.strftime : Returns a formatted string of the Timestamp.
         datetime.datetime.strftime : Returns a string representing the date and time.
 
         Examples
@@ -942,8 +942,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        pandas.Timestamp.month : Returns the month of the `Timestamp`.
-        pandas.Timestamp.year : Returns the year of the `Timestamp`.
+        Timestamp.month : Returns the month of the `Timestamp`.
+        Timestamp.year : Returns the year of the `Timestamp`.
 
         Examples
         --------
@@ -1023,9 +1023,9 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        pandas.Timestamp.floor : Rounds `Timestamp` down to the nearest frequency.
-        pandas.Timestamp.ceil : Rounds `Timestamp` up to the nearest frequency.
-        pandas.Timestamp.round : Rounds `Timestamp` to the nearest frequency.
+        Timestamp.floor : Rounds `Timestamp` down to the nearest frequency.
+        Timestamp.ceil : Rounds `Timestamp` up to the nearest frequency.
+        Timestamp.round : Rounds `Timestamp` to the nearest frequency.
 
         Examples
         --------
@@ -1274,10 +1274,10 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        pandas.Timestamp.fromtimestamp : Construct a `Timestamp` from a POSIX timestamp.
+        Timestamp.fromtimestamp : Construct a `Timestamp` from a POSIX timestamp.
         datetime.datetime.timestamp : Equivalent method from the `datetime` module.
-        pandas.Timestamp.to_pydatetime : Convert the `Timestamp` to a `datetime` object.
-        pandas.Timestamp.to_datetime64 : Converts `Timestamp` to `numpy.datetime64`.
+        Timestamp.to_pydatetime : Convert the `Timestamp` to a `datetime` object.
+        Timestamp.to_datetime64 : Converts `Timestamp` to `numpy.datetime64`.
 
         Examples
         --------
@@ -1414,9 +1414,9 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        pandas.Timestamp : Represents a specific timestamp.
-        pandas.Period : Represents a span of time.
-        pandas.to_period : Converts an object to a Period.
+        Timestamp : Represents a specific timestamp.
+        Period : Represents a span of time.
+        to_period : Converts an object to a Period.
 
         Examples
         --------
@@ -1572,14 +1572,14 @@ class Timestamp(_Timestamp):
         Timestamp
             A `Timestamp` object representing the specified ordinal date.
 
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to `datetime`.
+        to_datetime : Converts various types of data to datetime.
+
         Notes
         -----
         By definition there cannot be any tz info on the ordinal itself.
-
-        See Also
-        --------
-        pandas.Timestamp : Represents a single timestamp, similar to `datetime`.
-        pandas.to_datetime : Converts various types of data to datetime.
 
         Examples
         --------
@@ -1762,8 +1762,8 @@ class Timestamp(_Timestamp):
 
         See Also
         --------
-        pandas.Timestamp : Represents a single timestamp, similar to `datetime`.
-        pandas.to_datetime : Converts various types of data to datetime.
+        Timestamp : Represents a single timestamp, similar to `datetime`.
+        to_datetime : Converts various types of data to datetime.
         datetime.datetime.fromtimestamp : Returns a datetime from a POSIX timestamp.
 
         Examples
@@ -1836,7 +1836,7 @@ class Timestamp(_Timestamp):
         See Also
         --------
         time.ctime : Return a string representing time in ctime format.
-        pandas.Timestamp : Represents a single timestamp, similar to `datetime`.
+        Timestamp : Represents a single timestamp, similar to `datetime`.
         datetime.datetime.ctime : Return a ctime style string from a datetime object.
 
         Examples
@@ -1874,7 +1874,7 @@ class Timestamp(_Timestamp):
 
         See Also
         --------
-        pandas.Timestamp : Represents a single timestamp, similar to `datetime`.
+        Timestamp : Represents a single timestamp, similar to `datetime`.
         datetime.datetime.date : Extract the date component from a `datetime` object.
 
         Examples
@@ -2066,7 +2066,7 @@ class Timestamp(_Timestamp):
         See Also
         --------
         time.localtime : Converts a POSIX timestamp into a time tuple.
-        pandas.Timestamp : The `Timestamp` that represents a specific point in time.
+        Timestamp : The `Timestamp` that represents a specific point in time.
         datetime.datetime.timetuple : Equivalent method in the `datetime` module.
 
         Examples
@@ -2115,8 +2115,8 @@ class Timestamp(_Timestamp):
         See Also
         --------
         datetime.datetime.toordinal : Equivalent method in the `datetime` module.
-        pandas.Timestamp : The `Timestamp` that represents a specific point in time.
-        pandas.Timestamp.fromordinal : Create a `Timestamp` from an ordinal.
+        Timestamp : The `Timestamp` that represents a specific point in time.
+        Timestamp.fromordinal : Create a `Timestamp` from an ordinal.
 
         Examples
         --------
@@ -2181,8 +2181,8 @@ class Timestamp(_Timestamp):
 
         See Also
         --------
-        pandas.Timestamp : Represents a single timestamp, similar to `datetime`.
-        pandas.to_datetime : Converts various types of data to datetime.
+        Timestamp : Represents a single timestamp, similar to `datetime`.
+        to_datetime : Converts various types of data to datetime.
 
         Examples
         --------
@@ -2939,7 +2939,18 @@ default 'raise'
 
         Returns
         -------
-        Timestamp with fields replaced
+        Timestamp
+            A new `Timestamp` object with the specified fields replaced.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to `datetime`.
+        to_datetime : Converts various types of data to datetime.
+
+        Notes
+        -----
+        The `replace` method does not perform timezone conversions. If you need
+        to convert the timezone, use the `tz_convert` method instead.
 
         Examples
         --------
@@ -3066,9 +3077,9 @@ default 'raise'
 
         See Also
         --------
-        pandas.Timestamp.toordinal : Return proleptic Gregorian ordinal.
-        pandas.Timestamp.timestamp : Return POSIX timestamp as float.
-        pandas.Timestamp : Represents a single timestamp.
+        Timestamp.toordinal : Return proleptic Gregorian ordinal.
+        Timestamp.timestamp : Return POSIX timestamp as float.
+        Timestamp : Represents a single timestamp.
 
         Examples
         --------
