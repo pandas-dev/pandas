@@ -767,6 +767,11 @@ class ExtensionArray:
             an ndarray would be expensive, an ExtensionArray may be
             returned.
 
+        See Also
+        --------
+        ExtensionArray.dropna: Return ExtensionArray without NA values.
+        ExtensionArray.fillna: Fill NA/NaN values using the specified method.
+
         Notes
         -----
         If returning an ExtensionArray, then
