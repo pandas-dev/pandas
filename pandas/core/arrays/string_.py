@@ -686,8 +686,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
-            if not is_array_like(value):
-                value = np.asarray(value, dtype=object)
+            value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise TypeError("Must provide strings.")
 
