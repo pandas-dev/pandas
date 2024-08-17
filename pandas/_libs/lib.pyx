@@ -494,10 +494,10 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
-def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, uint64_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
-        intp_t k, vstart, vlast, v
+        uint64_t k, vstart, vlast, v
 
     if n == 0:
         return slice(0, 0)
