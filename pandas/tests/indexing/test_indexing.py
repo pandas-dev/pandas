@@ -8,8 +8,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
@@ -528,7 +526,6 @@ class TestFancy:
         with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_astype_assignment(self, using_infer_string):
         # GH4312 (iloc)
         df_orig = DataFrame(
@@ -539,34 +536,44 @@ class TestFancy:
 
         # with the enforcement of GH#45333 in 2.0, this setting is attempted inplace,
         #  so object dtype is retained
-        df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
-        expected = DataFrame(
-            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        if not using_infer_string:
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.iloc[:, 0] = df.iloc[:, 0].astype(np.int64)
+        else:
+            df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
+            expected = DataFrame(
+                [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
+            )
             expected["A"] = expected["A"].astype(object)
             expected["B"] = expected["B"].astype(object)
-        tm.assert_frame_equal(df, expected)
+            tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
         df = df_orig.copy()
-        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
-        expected = DataFrame(
-            [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        if not using_infer_string:
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        else:
+            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+            expected = DataFrame(
+                [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
+            )
             expected["A"] = expected["A"].astype(object)
-        tm.assert_frame_equal(df, expected)
+            tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
-        expected = DataFrame(
-            [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        if not using_infer_string:
+
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Invalid value"):
+                df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+        else:
+            df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+            expected = DataFrame(
+                [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
+            )
             expected["B"] = expected["B"].astype(object)
             expected["C"] = expected["C"].astype(object)
-        tm.assert_frame_equal(df, expected)
+            tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
         # full replacements / no nans

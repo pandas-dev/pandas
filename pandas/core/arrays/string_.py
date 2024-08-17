@@ -688,6 +688,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
+            else:
+                # cast categories and friends to arrays to see if values are
+                # compatible, compatibility with arrow backed strings
+                value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise TypeError("Must provide strings.")
 
