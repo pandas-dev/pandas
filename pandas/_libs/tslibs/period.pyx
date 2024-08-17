@@ -2075,11 +2075,6 @@ cdef class _Period(PeriodMixin):
         >>> period = pd.Period('nan', 'M')
         >>> period.month
         nan
-
-        Period object with an invalid format:
-
-        >>> period = pd.Period('invalid', 'M')
-            # Will raise an DateParseError
         """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
