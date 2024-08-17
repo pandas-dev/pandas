@@ -224,7 +224,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.insert PR07,RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.interpolate PR01,SA01" \
         -i "pandas.api.extensions.ExtensionArray.isin PR07,RT03,SA01" \
-        -i "pandas.api.extensions.ExtensionArray.nbytes SA01" \
         -i "pandas.api.extensions.ExtensionArray.ndim SA01" \
         -i "pandas.api.extensions.ExtensionArray.ravel RT03,SA01" \
         -i "pandas.api.extensions.ExtensionArray.take RT03" \

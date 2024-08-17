@@ -662,6 +662,11 @@ class ExtensionArray:
         """
         The number of bytes needed to store this object in memory.
 
+        See Also
+        --------
+        ExtensionArray.size: The number of elements in the array.
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+
         Examples
         --------
         >>> pd.array([1, 2, 3]).nbytes
