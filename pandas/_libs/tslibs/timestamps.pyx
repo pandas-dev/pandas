@@ -944,8 +944,6 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         pandas.Timestamp.month : Returns the month of the `Timestamp`.
         pandas.Timestamp.year : Returns the year of the `Timestamp`.
-        pandas.Timestamp.is_quarter_end : Returns if `Timestamp` is at the quarter's end.
-        pandas.Timestamp.is_quarter_start : Indicates if `Timestamp` is at the quarter's start.
 
         Examples
         --------
