@@ -873,3 +873,62 @@ def test_groupby_resample_then_groupby_is_reused_when_index_is_set_from_column()
     result_3 = gb[["numbers"]].transform("sum")
 
     tm.assert_frame_equal(result_1, result_3)
+
+
+def test_groupby_resample_then_groupby_is_reused_when_groupby_selection_is_not_none():
+    # GH 59350
+    df = DataFrame(
+        data={
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:00Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+            "group": ["A", "A"],
+            "numbers": [100, 200],
+        },
+        index=[1, 0],
+    )
+
+    gb = df.groupby("group")
+    gb = gb[["numbers", "datetime"]]  # gb._selection is ["numbers", "datetime"]
+
+    # use gb
+    result_1 = gb.transform("max")
+
+    index = Index([1, 0])
+    expected = DataFrame(
+        {
+            "numbers": [200, 200],
+            "datetime": [
+                pd.to_datetime("2024-07-30T00:01Z"),
+                pd.to_datetime("2024-07-30T00:01Z"),
+            ],
+        },
+        index=index,
+    )
+
+    tm.assert_frame_equal(result_1, expected)
+
+    # resample gb, unrelated to above
+    rs = gb.resample("1min", on="datetime")
+    result_2 = rs.aggregate({"numbers": "sum"})  # Enter the `except IndexError:` block
+
+    index = pd.MultiIndex.from_arrays(
+        [
+            ["A", "A"],
+            [pd.to_datetime("2024-07-30T00:00Z"), pd.to_datetime("2024-07-30T00:01Z")],
+        ],
+        names=[
+            "group",
+            "datetime",
+        ],
+    )
+    columns = pd.MultiIndex.from_arrays([["numbers"], ["numbers"]])
+    expected = DataFrame([[100], [200]], index=index, columns=columns)
+
+    tm.assert_frame_equal(result_2, expected)
+
+    # reuse gb, unrelated to above
+    result_3 = gb.transform("max")
+
+    tm.assert_frame_equal(result_1, result_3)
