@@ -762,8 +762,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
-to find out which tests hit the lines of code you've modified, and then run only those).
+entire suite.
 
 The easiest way to do this is with::
 
