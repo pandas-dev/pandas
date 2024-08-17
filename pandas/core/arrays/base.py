@@ -1595,6 +1595,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            An array formed with selected `indices`.
 
         Raises
         ------
