@@ -1195,6 +1195,10 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(
+        Version(np.__version__) >= Version("2.0.0"),
+        reason="fastparquet uses np.float_ in numpy2",
+    )
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
