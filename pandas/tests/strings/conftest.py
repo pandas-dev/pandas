@@ -96,7 +96,8 @@ _any_string_method = [
     )
 )
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
-missing_methods = {f for f in dir(StringMethods) if not f.startswith("_")} - set(ids)
+NON_METHODS = {'TYPE_CHECKING', 'Iterable'}
+missing_methods = {f for f in dir(StringMethods) if not f.startswith("_")} - set(ids) - NON_METHODS
 
 # test that the above list captures all methods of StringMethods
 assert not missing_methods
