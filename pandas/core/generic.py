@@ -7486,9 +7486,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if inplace:
                     return None
                 return self.copy(deep=False)
-
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
+                    is_series = isinstance(self, ABCSeries)
+                    if is_series:
+                        raise ValueError(
+                            "Series.replace cannot use dict-like to_replace dict-like."
+                        )
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
