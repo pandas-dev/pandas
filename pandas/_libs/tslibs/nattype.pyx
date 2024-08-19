@@ -229,7 +229,17 @@ cdef class _NaT(datetime):
 
     def to_datetime64(self) -> np.datetime64:
         """
-        Return a numpy.datetime64 object with same precision.
+        Return a NumPy datetime64 object with same precision.
+
+        This method returns a numpy.datetime64 object with the same
+        date and time information and precision as the pd.Timestamp object.
+
+        See Also
+        --------
+        numpy.datetime64 : Class to represent dates and times with high precision.
+        Timestamp.to_numpy : Alias for this method.
+        Timestamp.asm8 : Alias for this method.
+        pd.to_datetime : Convert argument to datetime.
 
         Examples
         --------
