@@ -96,6 +96,10 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
 )
+
+from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timestamps import Timestamp
+
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -1300,6 +1304,7 @@ cdef class Seen:
         bint object_          # seen_object
         bint complex_         # seen_complex
         bint datetime_        # seen_datetime
+        bint date_            # seen_date
         bint coerce_numeric   # coerce data to numeric
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
@@ -1328,6 +1333,7 @@ cdef class Seen:
         self.object_ = False
         self.complex_ = False
         self.datetime_ = False
+        self.date_ = False
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
@@ -2447,6 +2453,42 @@ def maybe_convert_numeric(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def _convert_to_pyarrow(
+                        ndarray[object] objects,
+                        ndarray[uint8_t] mask) -> "ArrayLike":
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
+    from pandas.core.arrays.string_ import StringDtype
+
+    na_value = np.nan
+    if mask is not None and any(mask):
+        na_value = objects[mask][0]
+
+    objects[mask] = None
+    pa_array = pa.array(objects)
+
+    if pa.types.is_large_string(pa_array.type):
+        dtype = StringDtype(storage="pyarrow", na_value=na_value)
+    else:
+        dtype = ArrowDtype(pa_array.type)
+    return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _convert_to_based_masked(
+                            ndarray[object] objects,
+                            object numpy_dtype) -> "ArrayLike":
+    from pandas.core.dtypes.dtypes import BaseMaskedDtype
+
+    from pandas.core.construction import array as pd_array
+
+    dtype = BaseMaskedDtype.from_numpy_dtype(numpy_dtype)
+    return pd_array(objects, dtype=dtype)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
@@ -2454,7 +2496,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
-                          object dtype_if_all_nat=None) -> "ArrayLike":
+                          object dtype_if_all_nat=None,
+                          str storage=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2514,9 +2557,14 @@ def maybe_convert_objects(ndarray[object] objects,
     uints = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT64, 0)
     bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
+    val = None
+    val_types = set()
 
     for i in range(n):
         val = objects[i]
+        if not checknull(val):
+            val_types.add(type(val))
+
         if itemsize_max != -1:
             itemsize = get_itemsize(val)
             if itemsize > itemsize_max or itemsize == -1:
@@ -2609,6 +2657,16 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif (
+            PyDate_Check(val)
+            or (pa is not None and isinstance(val, (pa.Date32Scalar, pa.Date64Scalar)))
+        ):
+            if convert_non_numeric:
+                seen.date_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True
@@ -2650,23 +2708,62 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
+    numpy_dtype = None
+    if len(val_types) == 1:
+        numpy_dtype = np.dtype(val_types.pop())
+        if (
+                numpy_dtype.kind in "biuf"
+                and convert_to_nullable_dtype):
+            return _convert_to_based_masked(objects, numpy_dtype)
+    if storage == "pyarrow":
+        return _convert_to_pyarrow(objects, mask)
+
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if is_datetime_with_singletz_array(objects):
-            from pandas import DatetimeIndex
+        if storage == "pyarrow":
+            from pandas.core.dtypes.dtypes import ArrowDtype
 
-            try:
-                dti = DatetimeIndex(objects)
-            except OutOfBoundsDatetime:
-                # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
-                pass
+            datetime64_array = None
+            if isinstance(val, datetime):
+                objects[mask] = None
+                datetime64_array = objects.astype(Timestamp)
             else:
-                # unbox to DatetimeArray
-                return dti._data
-        seen.object_ = True
+                objects[mask] = np.datetime64("NaT")
+                datetime64_array = objects.astype(val.dtype)
+            pa_array = pa.array(datetime64_array).cast(
+                pa.timestamp(val.resolution.unit, val.tzinfo)
+            )
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+        else:
+            if is_datetime_with_singletz_array(objects):
+                from pandas import DatetimeIndex
+
+                try:
+                    dti = DatetimeIndex(objects)
+                except OutOfBoundsDatetime:
+                    # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
+                    pass
+                else:
+                    # unbox to DatetimeArray
+                    return dti._data
+            seen.object_ = True
 
     elif seen.datetime_:
-        if is_datetime_or_datetime64_array(objects):
+        if storage == "pyarrow":
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            if isinstance(val, datetime):
+                objects[mask] = None
+            else:
+                objects[mask] = np.datetime64("NaT")
+            datetime64_array = objects.astype(val.dtype)
+            pa_array = pa.array(datetime64_array)
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+        elif is_datetime_or_datetime64_array(objects):
             from pandas import DatetimeIndex
 
             try:
@@ -2678,18 +2775,43 @@ def maybe_convert_objects(ndarray[object] objects,
                 return dti._data._ndarray
         seen.object_ = True
 
-    elif seen.timedelta_:
-        if is_timedelta_or_timedelta64_array(objects):
-            from pandas import TimedeltaIndex
+    elif seen.date_:
+        if storage == "pyarrow":
 
-            try:
-                tdi = TimedeltaIndex(objects)
-            except OutOfBoundsTimedelta:
-                pass
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            objects[mask] = None
+            pa_array = pa.array(objects)
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+
+    elif seen.timedelta_:
+        if storage == "pyarrow":
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            timedelta64_array = None
+            if isinstance(val, timedelta):
+                objects[mask] = None
+                timedelta64_array = objects.astype(Timedelta)
             else:
-                # unbox to ndarray[timedelta64[ns]]
-                return tdi._data._ndarray
-        seen.object_ = True
+                objects[mask] = np.timedelta64("NaT")
+                timedelta64_array = objects.astype(val.dtype)
+            pa_array = pa.array(timedelta64_array)
+
+            dtype = ArrowDtype(pa_array.type)
+            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
+        else:
+            if is_timedelta_or_timedelta64_array(objects):
+                from pandas import TimedeltaIndex
+
+                try:
+                    tdi = TimedeltaIndex(objects)
+                except OutOfBoundsTimedelta:
+                    pass
+                else:
+                    # unbox to ndarray[timedelta64[ns]]
+                    return tdi._data._ndarray
+            seen.object_ = True
 
     elif seen.period_:
         if is_period_array(objects):
@@ -2707,10 +2829,16 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = StringDtype(na_value=np.nan)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
-        elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
+        elif (
+            (convert_to_nullable_dtype and is_string_array(objects, skipna=True))
+            or storage == "python"
+        ):
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype()
+            if mask is not None and any(mask):
+                dtype = StringDtype(storage=storage, na_value=objects[mask][0])
+            else:
+                dtype = StringDtype(storage=storage)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
@@ -2817,12 +2945,19 @@ def maybe_convert_objects(ndarray[object] objects,
 
         # TODO: do these after the itemsize check?
         if (result is ints or result is uints) and convert_to_nullable_dtype:
-            from pandas.core.arrays import IntegerArray
+            if storage == "pyarrow":
+                from pandas.core.dtypes.dtypes import ArrowDtype
 
-            # Set these values to 1 to be deterministic, match
-            #  IntegerDtype._internal_fill_value
-            result[mask] = 1
-            result = IntegerArray(result, mask)
+                dtype = ArrowDtype(pa.int64())
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            else:
+                from pandas.core.arrays import IntegerArray
+
+                # Set these values to 1 to be deterministic, match
+                #  IntegerDtype._internal_fill_value
+                result[mask] = 1
+                result = IntegerArray(result, mask)
+
         elif result is floats and convert_to_nullable_dtype:
             from pandas.core.arrays import FloatingArray
 
@@ -2866,7 +3001,10 @@ def map_infer_mask(
     *,
     bint convert=True,
     object na_value=no_default,
-    cnp.dtype dtype=np.dtype(object)
+    bint convert_to_nullable_dtype=False,
+    convert_non_numeric=False,
+    cnp.dtype dtype=np.dtype(object),
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2882,8 +3020,12 @@ def map_infer_mask(
     na_value : Any, optional
         The result value to use for masked values. By default, the
         input value is used.
+    convert_non_numeric : bool, default False
+        Whether to convert datetime, timedelta, period, interval types.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+        Backend storage
 
     Returns
     -------
@@ -2896,17 +3038,16 @@ def map_infer_mask(
 
         ndarray result = np.empty(n, dtype=dtype)
 
-        flatiter arr_it = PyArray_IterNew(arr)
         flatiter result_it = PyArray_IterNew(result)
 
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
-                val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
+                val = arr[i]
             else:
                 val = na_value
         else:
-            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
+            val = arr[i]
             val = f(val)
 
             if cnp.PyArray_IsZeroDim(val):
@@ -2914,12 +3055,15 @@ def map_infer_mask(
                 val = val.item()
 
         PyArray_SETITEM(result, PyArray_ITER_DATA(result_it), val)
-
-        PyArray_ITER_NEXT(arr_it)
         PyArray_ITER_NEXT(result_it)
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=convert_non_numeric,
+            storage=storage,
+        )
     else:
         return result
 
@@ -2927,7 +3071,15 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer(
-    ndarray arr, object f, *, bint convert=True, bint ignore_na=False
+    ndarray arr,
+    object f,
+    *,
+    bint convert=True,
+    bint ignore_na=False,
+    const uint8_t[:] mask=None,
+    object na_value=None,
+    bint convert_to_nullable_dtype=False,
+    str storage=None,
 ) -> "ArrayLike":
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
@@ -2939,6 +3091,15 @@ def map_infer(
     convert : bint
     ignore_na : bint
         If True, NA values will not have f applied
+    mask : ndarray, optional
+        uint8 dtype ndarray indicating na_value to apply `f` to.
+    na_value : Any, optional
+        The input value to use for masked values.
+    convert_to_nullable_dtype : bool, default False
+        If an array-like object contains only integer or boolean values (and NaN) is
+        encountered, whether to convert and return an Boolean/IntegerArray.
+    storage : {None, "python", "pyarrow", "pyarrow_numpy"}, default None
+        Backend storage
 
     Returns
     -------
@@ -2955,7 +3116,10 @@ def map_infer(
         if ignore_na and checknull(arr[i]):
             result[i] = arr[i]
             continue
-        val = f(arr[i])
+        elif mask is not None and na_value is not None and mask[i]:
+            val = f(na_value)
+        else:
+            val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
@@ -2964,7 +3128,12 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result)
+        return maybe_convert_objects(
+            result,
+            convert_to_nullable_dtype=convert_to_nullable_dtype,
+            convert_non_numeric=True,
+            storage=storage,
+        )
     else:
         return result
 
