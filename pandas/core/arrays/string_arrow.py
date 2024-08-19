@@ -337,20 +337,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ):
-        if not pat.startswith("^"):
-            pat = f"^{pat}"
-        return self._str_contains(pat, case, flags, na, regex=True)
-
-    def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ):
-        if not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"{pat}$"
-        return self._str_match(pat, case, flags, na)
-
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ) -> Self:
@@ -362,22 +348,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
 
+    _str_match = ArrowExtensionArray._str_match
+    _str_fullmatch = ArrowExtensionArray._str_fullmatch
     _str_lower = ArrowExtensionArray._str_lower
     _str_upper = ArrowExtensionArray._str_upper
     _str_strip = ArrowExtensionArray._str_strip
     _str_lstrip = ArrowExtensionArray._str_lstrip
     _str_rstrip = ArrowExtensionArray._str_rstrip
+    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
             return ArrowExtensionArray._str_removeprefix(self, prefix)
         return super()._str_removeprefix(prefix)
-
-    def _str_removesuffix(self, suffix: str):
-        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
-        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
-        result = pc.if_else(ends_with, removed, self._pa_array)
-        return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
