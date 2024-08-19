@@ -770,12 +770,8 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        if np_version_gt2:
-            msg = "The elements provided in the data cannot all be casted to the dtype"
-            err = OverflowError
-        else:
-            msg = "Values are too large to be losslessly converted"
-            err = ValueError
+        msg = "Values are too large to be losslessly converted"
+        err = ValueError
         with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
@@ -803,13 +799,7 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        if np_version_gt2:
-            msg = (
-                f"The elements provided in the data cannot "
-                f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
-            )
-        else:
-            msg = "Trying to coerce negative values to unsigned integers"
+        msg = "Trying to coerce negative values to unsigned integers"
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
@@ -1939,15 +1929,9 @@ class TestSeriesConstructors:
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
-        if not np_version_gt2:
-            raises = pytest.raises(
-                ValueError, match="string values cannot be losslessly cast to int8"
-            )
-        else:
-            raises = pytest.raises(
-                OverflowError, match="The elements provided in the data"
-            )
-        with raises:
+        with pytest.raises(
+            ValueError, match="string values cannot be losslessly cast to int8"
+        ):
             Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
