@@ -161,10 +161,6 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(self, sep: str = "|"):
-        pass
-
-    @abc.abstractmethod
     def _str_isalnum(self):
         pass
 

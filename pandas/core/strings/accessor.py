@@ -2356,8 +2356,22 @@ class StringMethods(NoNewAttributesMixin):
         )
         return self._wrap_result(result)
 
+    from collections.abc import Iterable
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from pandas._typing import NpDtype
+
     @forbid_nonstring_types(["bytes"])
-    def get_dummies(self, sep: str = "|"):
+    def get_dummies(
+        self,
+        sep: str = "|",
+        prefix=None,
+        prefix_sep: str | Iterable[str] | dict[str, str] = "_",
+        dummy_na: bool = False,
+        sparse: bool = False,
+        dtype: NpDtype | None = int,
+    ):
         """
         Return DataFrame of dummy/indicator variables for Series.
 
@@ -2395,13 +2409,67 @@ class StringMethods(NoNewAttributesMixin):
         """
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        result, name = self._data.array._str_get_dummies(sep)
-        return self._wrap_result(
-            result,
-            name=name,
-            expand=True,
-            returns_string=False,
+        # result, name = self._data.array._str_get_dummies(sep)
+        # return self._wrap_result(
+        #     result,
+        #     name=name,
+        #     expand=True,
+        #     returns_string=False,
+        # )
+        from pandas import (
+            MultiIndex,
+            Series,
         )
+        from pandas.core.reshape.encoding import get_dummies
+
+        input_series = Series(self._data) if isinstance(self._data, ABCIndex) else self._data
+        string_series = input_series.apply(lambda x: str(x) if not isna(x) else x)
+        split_series = string_series.str.split(sep, expand=True).stack()
+        valid_split_series = split_series[
+            (split_series.astype(str) != 'None') &
+            ~(split_series.index.get_level_values(0).duplicated(keep='first') & split_series.isna())
+        ]
+
+        dummy_df = get_dummies(
+            valid_split_series,
+            None,
+            None,
+            dummy_na,
+            None,
+            sparse,
+            False,
+            dtype
+        )
+        grouped_dummies = dummy_df.groupby(level=0)
+        if dtype == bool:
+            result_df = grouped_dummies.any()
+        else:
+            result_df = grouped_dummies.sum()
+
+        if isinstance(prefix, str):
+            result_df.columns = [f"{prefix}{prefix_sep}{col}" for col in result_df.columns]
+        elif isinstance(prefix, dict):
+            if len(prefix) != len(result_df.columns):
+                len_msg = (
+                    f"Length of 'prefix' ({len(prefix)}) did not match the "
+                    "length of the columns being encoded "
+                    f"({len(result_df.columns)})."
+                )
+                raise ValueError(len_msg)
+            result_df.columns = [f"{prefix[col]}{prefix_sep}{col}" for col in result_df.columns]
+        elif isinstance(prefix, list):
+            if len(prefix) != len(result_df.columns):
+                len_msg = (
+                    f"Length of 'prefix' ({len(prefix)}) did not match the "
+                    "length of the columns being encoded "
+                    f"({len(result_df.columns)})."
+                )
+                raise ValueError(len_msg)
+            result_df.columns = [f"{prefix[i]}{prefix_sep}{col}" for i, col in enumerate(result_df.columns)]
+
+        if isinstance(self._data, ABCIndex):
+            return MultiIndex.from_frame(result_df)
+        return result_df
 
     @forbid_nonstring_types(["bytes"])
     def translate(self, table):
