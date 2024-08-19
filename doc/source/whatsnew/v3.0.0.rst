@@ -484,7 +484,6 @@ Other Removals
 - Removed the ``method`` keyword in ``ExtensionArray.fillna``, implement ``ExtensionArray._pad_or_backfill`` instead (:issue:`53621`)
 - Removed the attribute ``dtypes`` from :class:`.DataFrameGroupBy` (:issue:`51997`)
 - Enforced deprecation of ``argmin``, ``argmax``, ``idxmin``, and ``idxmax`` returning a result when ``skipna=False`` and an NA value is encountered or all values are NA values; these operations will now raise in such cases (:issue:`33941`, :issue:`51276`)
-- Replaced ``AttributeError`` with ``ValueError`` when using :meth:`Series.replace` with ``dict_like`` and ``dict_like`` (:issue:`59452`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.performance:
