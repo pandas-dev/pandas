@@ -6,7 +6,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_numeric_dtype,
     is_object_dtype,
-    is_string_dtype,
 )
 
 import pandas as pd
@@ -151,7 +150,6 @@ class BaseGroupbyTests:
             is_numeric_dtype(dtype)
             or is_bool_dtype(dtype)
             or dtype.name == "decimal"
-            or is_string_dtype(dtype)
             or is_object_dtype(dtype)
             or dtype.kind == "m"  # in particular duration[*][pyarrow]
         ):
