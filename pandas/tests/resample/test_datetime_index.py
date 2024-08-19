@@ -2039,10 +2039,6 @@ def test_resample_quarters_non_unitary():
         freq="2QS-MAR",
     )
     expected = Series(0.0, index=expected_idx)
-    print("actual")
-    print(actual)
-    print("expected")
-    print(expected)
 
     tm.assert_series_equal(expected, actual)
 
