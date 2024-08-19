@@ -254,6 +254,28 @@ cdef class _Timestamp(ABCTimestamp):
         """
         The abbreviation associated with self._creso.
 
+        This property returns a string representing the time unit of the Timestamp's
+        resolution. It corresponds to the smallest time unit that can be represented
+        by this Timestamp object. The possible values are:
+        - 's' (second)
+        - 'ms' (millisecond)
+        - 'us' (microsecond)
+        - 'ns' (nanosecond)
+
+        Returns
+        -------
+        str
+            A string abbreviation of the Timestamp's resolution unit:
+            - 's' for second
+            - 'ms' for millisecond
+            - 'us' for microsecond
+            - 'ns' for nanosecond
+
+        See Also
+        --------
+        Timestamp.resolution : Return resolution of the Timestamp.
+        Timedelta : A duration expressing the difference between two dates or times.
+
         Examples
         --------
         >>> pd.Timestamp("2020-01-01 12:34:56").unit
@@ -1560,6 +1582,21 @@ class Timestamp(_Timestamp):
 
         Construct a timezone-aware UTC datetime from a POSIX timestamp.
 
+        This method creates a datetime object from a POSIX timestamp, keeping the
+        Timestamp object's timezone.
+
+        Parameters
+        ----------
+        ts : float
+            POSIX timestamp.
+
+        See Also
+        --------
+        Timezone.tzname : Return time zone name.
+        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
+        Timestamp.fromtimestamp : Transform timestamp[, tz] to tz's local
+            time from POSIX timestamp.
+
         Notes
         -----
         Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
@@ -1735,6 +1772,13 @@ class Timestamp(_Timestamp):
         """
         Return time zone name.
 
+        This method returns the name of the Timestamp's time zone as a string.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
@@ -1749,6 +1793,22 @@ class Timestamp(_Timestamp):
         """
         Return utc offset.
 
+        This method returns the difference between UTC and the local time
+        as a `timedelta` object. It is useful for understanding the time
+        difference between the current timezone and UTC.
+
+        Returns
+        --------
+        timedelta
+            The difference between UTC and the local time as a `timedelta` object.
+
+        See Also
+        --------
+        datetime.datetime.utcoffset :
+            Standard library method to get the UTC offset of a datetime object.
+        Timestamp.tzname : Return the name of the timezone.
+        Timestamp.dst : Return the daylight saving time (DST) adjustment.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
@@ -1761,7 +1821,24 @@ class Timestamp(_Timestamp):
 
     def utctimetuple(self):
         """
-        Return UTC time tuple, compatible with time.localtime().
+        Return UTC time tuple, compatible with `time.localtime()`.
+
+        This method converts the Timestamp to UTC and returns a time tuple
+        containing 9 components: year, month, day, hour, minute, second,
+        weekday, day of year, and DST flag. This is particularly useful for
+        converting a Timestamp to a format compatible with time module functions.
+
+        Returns
+        -------
+        time.struct_time
+            A time.struct_time object representing the UTC time.
+
+        See Also
+        --------
+        datetime.datetime.utctimetuple :
+            Return UTC time tuple, compatible with time.localtime().
+        Timestamp.timetuple : Return time tuple of local time.
+        time.struct_time : Time tuple structure used by time functions.
 
         Examples
         --------
@@ -2104,9 +2181,9 @@ class Timestamp(_Timestamp):
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
-        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+        nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -2117,7 +2194,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -2207,9 +2284,9 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
-        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+        nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -2220,7 +2297,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Raises
@@ -2302,9 +2379,9 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
-        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+        nonexistent : {'raise', 'shift_forward', 'shift_backward', 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -2315,7 +2392,7 @@ timedelta}, default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Raises
@@ -2441,9 +2518,9 @@ timedelta}, default 'raise'
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
-            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
+            * 'raise' will raise a ValueError for an ambiguous time.
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -2456,7 +2533,7 @@ default 'raise'
               closest existing time.
             * 'NaT' will return NaT where there are nonexistent times.
             * timedelta objects will shift nonexistent times by the timedelta.
-            * 'raise' will raise an NonExistentTimeError if there are
+            * 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -2467,6 +2544,13 @@ default 'raise'
         ------
         TypeError
             If the Timestamp is tz-aware and tz is not None.
+
+        See Also
+        --------
+        Timestamp.tzinfo : Returns the timezone information of the Timestamp.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        DatetimeIndex.tz_localize : Localize a DatetimeIndex to a specific time zone.
+        datetime.datetime.astimezone : Convert a datetime object to another time zone.
 
         Examples
         --------

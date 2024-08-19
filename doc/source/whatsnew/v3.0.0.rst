@@ -50,8 +50,10 @@ Other enhancements
 - :meth:`DataFrame.pivot_table` and :func:`pivot_table` now allow the passing of keyword arguments to ``aggfunc`` through ``**kwargs`` (:issue:`57884`)
 - :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
 - :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
+- :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
+- Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 
@@ -220,6 +222,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | Package                | New Minimum Version |
 +========================+=====================+
+| pytz                   | 2023.4              |
++------------------------+---------------------+
 | fastparquet            | 2023.10.0           |
 +------------------------+---------------------+
 | adbc-driver-postgresql | 0.10.0              |
@@ -228,6 +232,37 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_300.api_breaking.pytz:
+
+``pytz`` now an optional dependency
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas now uses :py:mod:`zoneinfo` from the standard library as the default timezone implementation when passing a timezone
+string to various methods. (:issue:`34916`)
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [1]: ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
+    In [2]: ts.tz
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+*New behavior:*
+
+.. ipython:: python
+
+    ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
+    ts.tz
+
+``pytz`` timezone objects are still supported when passed directly, but they will no longer be returned by default
+from string inputs. Moreover, ``pytz`` is no longer a required dependency of pandas, but can be installed
+with the pip extra ``pip install pandas[timezone]``.
+
+
+Additionally, pandas no longer throws ``pytz`` exceptions for timezone operations leading to ambiguous or nonexistent
+times. These cases will now raise a ``ValueError``.
 
 .. _whatsnew_300.api_breaking.other:
 
@@ -618,7 +653,9 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`qcut` where values at the quantile boundaries could be incorrectly assigned (:issue:`59355`)
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 
@@ -631,6 +668,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
+- Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 
 Styler

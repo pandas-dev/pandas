@@ -19,11 +19,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    IntegerArray,
-    StringArray,
-)
+from pandas.core.arrays import IntegerArray
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -463,11 +459,8 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
-    pa = pytest.importorskip("pyarrow")
-
     with pd.option_context("mode.string_storage", string_storage):
         parser = all_parsers
 
@@ -477,21 +470,13 @@ b,
 """
         result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-        if string_storage == "python":
-            expected = DataFrame(
-                {
-                    "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                    "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                }
-            )
-        else:
-            expected = DataFrame(
-                {
-                    "a": ArrowStringArray(pa.array(["a", "b"])),
-                    "b": ArrowStringArray(pa.array(["x", None])),
-                }
-            )
-        tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": pd.array(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": pd.array(["x", pd.NA], dtype=pd.StringDtype(string_storage)),
+            },
+        )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_dtype_backend_ea_dtype_specified(all_parsers):
@@ -507,7 +492,6 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")

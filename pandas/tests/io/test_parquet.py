@@ -17,6 +17,7 @@ from pandas.compat.pyarrow import (
     pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -955,11 +956,16 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+        if (
+            timezone_aware_date_list.tzinfo != datetime.timezone.utc
+            and pa_version_under18p0
+        ):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason="temporary skip this test until it is properly resolved: "
-                    "https://github.com/pandas-dev/pandas/issues/37286"
+                    reason=(
+                        "pyarrow returns pytz.FixedOffset while pandas "
+                        "constructs datetime.timezone https://github.com/pandas-dev/pandas/issues/37286"
+                    )
                 )
             )
         idx = 5 * [timezone_aware_date_list]
@@ -1187,6 +1193,10 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(
+        Version(np.__version__) >= Version("2.0.0"),
+        reason="fastparquet uses np.float_ in numpy2",
+    )
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
