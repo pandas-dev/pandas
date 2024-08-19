@@ -1889,6 +1889,21 @@ class Timestamp(_Timestamp):
         """
         Return time tuple, compatible with time.localtime().
 
+        This method extracts the year, month, day, hour, and other
+        standard information from the pd.Timestamp object and
+        returns a time.struct_time object. These attributes are
+        accessible by both name and index in the return value.
+
+        See Also
+        --------
+        time.struct_time : Class with named tuple interface,
+            with attributes for the standard parts of a timestamp
+            (year, month, day, hour, and so on).
+        datetime.datetime.timetuple : Return a time.struct_time
+            object corresponding to the datetime object.
+        time.localtime : Convert a float-type POSIX timestamp
+            to time.struct_time expressed using the local timezone.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00')
