@@ -3,10 +3,12 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -79,8 +81,7 @@ def test_astype_different_target_dtype(dtype):
 
 def test_astype_numpy_to_ea():
     ser = Series([1, 2, 3])
-    with pd.option_context("mode.copy_on_write", True):
-        result = ser.astype("Int64")
+    result = ser.astype("Int64")
     assert np.shares_memory(get_array(ser), get_array(result))
 
 
@@ -197,6 +198,7 @@ def test_astype_arrow_timestamp():
         assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
@@ -212,6 +214,7 @@ def test_convert_dtypes_infer_objects():
     tm.assert_series_equal(ser, ser_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_convert_dtypes():
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()

@@ -6,10 +6,11 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import IndexingError
 
 from pandas import (
-    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -114,7 +115,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             values = obj.values
         else:
-            values = obj._mgr.arrays[0]
+            values = obj._mgr.blocks[0].values
 
         if frame_or_series is Series:
             obj.iloc[:2] = index_or_series_or_array(arr[2:])
@@ -528,10 +529,9 @@ class TestiLocBaseIndependent:
         assert len(df._mgr.blocks) == 1
 
         # if the assigned values cannot be held by existing integer arrays,
-        #  we cast
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        #  we raise
+        with pytest.raises(TypeError, match="Invalid value"):
             df.iloc[:, 0] = df.iloc[:, 0] + 0.5
-        assert len(df._mgr.blocks) == 2
 
         expected = df.copy()
 
@@ -1198,6 +1198,7 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_iloc_setitem_multicolumn_to_datetime(self):
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
@@ -1445,7 +1446,5 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
-        expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)

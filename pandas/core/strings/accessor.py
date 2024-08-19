@@ -5,7 +5,6 @@ from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
 )
@@ -50,6 +49,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )
@@ -161,6 +161,16 @@ class StringMethods(NoNewAttributesMixin):
     NAs stay NA unless handled otherwise by a particular method.
     Patterned after Python's string methods, with some inspiration from
     R's stringr package.
+
+    Parameters
+    ----------
+    data : Series or Index
+        The content of the Series or Index.
+
+    See Also
+    --------
+    Series.str : Vectorized string functions for Series.
+    Index.str : Vectorized string functions for Index.
 
     Examples
     --------
@@ -959,6 +969,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     DataFrame/MultiIndex or Series/Index of objects
+        Returns appropriate type based on `expand` parameter with strings
+        split based on the `sep` parameter.
 
     See Also
     --------
@@ -1075,6 +1087,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            Series or Index where each value is the extracted element from
+            the corresponding input component.
+
+        See Also
+        --------
+        Series.str.extract : Extract capture groups in the regex as columns
+            in a DataFrame.
 
         Examples
         --------
@@ -1401,6 +1420,9 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index/array of boolean values
+            The function returns a Series, Index, or array of boolean values,
+            where True indicates that the entire string matches the regular
+            expression pattern and False indicates that it does not.
 
         See Also
         --------
@@ -1729,6 +1751,18 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series/Index of objects.
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
+
+    See Also
+    --------
+    Series.str.rjust : Fills the left side of strings with an arbitrary
+        character.
+    Series.str.ljust : Fills the right side of strings with an arbitrary
+        character.
+    Series.str.center : Fills both sides of strings with an arbitrary
+        character.
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+        character.
 
     Examples
     --------
@@ -2004,11 +2038,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`bytes.decode`.
 
         Returns
         -------
         Series or Index
+            A Series or Index with decoded strings.
+
+        See Also
+        --------
+        Series.str.encode : Encodes strings into bytes in a Series/Index.
 
         Examples
         --------
@@ -2043,11 +2085,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`str.encode`.
 
         Returns
         -------
         Series/Index of objects
+            A Series or Index with strings encoded into bytes.
+
+        See Also
+        --------
+        Series.str.decode : Decodes bytes into strings in a Series/Index.
 
         Examples
         --------
@@ -2079,6 +2129,7 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Series or Index with the strings being stripped from the %(side)s.
 
     See Also
     --------
@@ -2398,7 +2449,11 @@ class StringMethods(NoNewAttributesMixin):
         """
         Map all characters in the string through the given mapping table.
 
-        Equivalent to standard :meth:`str.translate`.
+        This method is equivalent to the standard :meth:`str.translate`
+        method for strings. It maps each character in the string to a new
+        character according to the translation table provided. Unmapped
+        characters are left unchanged, while characters mapped to None
+        are removed.
 
         Parameters
         ----------
@@ -2411,6 +2466,14 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            A new Series or Index with translated strings.
+
+        See Also
+        --------
+        Series.str.replace : Replace occurrences of pattern/regex in the
+            Series with some other string.
+        Index.str.replace : Replace occurrences of pattern/regex in the
+            Index with some other string.
 
         Examples
         --------
@@ -2949,6 +3012,9 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of int.
+        A Series (if the input is a Series) or an Index (if the input is an
+        Index) of the %(side)s indexes corresponding to the positions where the
+        substring is found in each string of the input.
 
     See Also
     --------
@@ -2958,9 +3024,9 @@ class StringMethods(NoNewAttributesMixin):
     --------
     For Series.str.find:
 
-    >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
+    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
     >>> ser.str.find("_")
-    0   3
+    0   0
     1   4
     2   2
     dtype: int64
@@ -3057,6 +3123,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Returns a Series or an Index of the %(side)s indexes
+        in each string of the input.
 
     See Also
     --------
@@ -3172,7 +3240,8 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series or Index of object
+    Series or Index of objects
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
 
     See Also
     --------

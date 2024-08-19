@@ -557,11 +557,12 @@ is being raised, using ``pytest.raises`` instead.
 Testing a warning
 ^^^^^^^^^^^^^^^^^
 
-Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning
+and specify the warning message using the ``match`` argument.
 
 .. code-block:: python
 
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(DeprecationWarning, match="the warning message"):
         pd.deprecated_function()
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
@@ -761,8 +762,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
-to find out which tests hit the lines of code you've modified, and then run only those).
+entire suite.
 
 The easiest way to do this is with::
 

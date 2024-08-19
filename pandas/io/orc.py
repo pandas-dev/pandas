@@ -9,7 +9,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -61,19 +61,20 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
-        Filesystem object to use when reading the parquet file.
+        Filesystem object to use when reading the orc file.
 
         .. versionadded:: 2.1.0
 
@@ -84,6 +85,14 @@ def read_orc(
     -------
     DataFrame
         DataFrame based on the ORC file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_sas : Load a SAS file into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Notes
     -----
@@ -99,7 +108,7 @@ def read_orc(
     --------
     >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
-    # we require a newer version of pyarrow than we support for parquet
+    # we require a newer version of pyarrow than we support for orc
 
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -128,7 +137,7 @@ def read_orc(
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
-        if using_pyarrow_string_dtype():
+        if using_string_dtype():
             types_mapper = arrow_string_types_mapper()
         else:
             types_mapper = None

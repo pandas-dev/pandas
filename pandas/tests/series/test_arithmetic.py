@@ -9,6 +9,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
 
@@ -359,12 +361,13 @@ class TestSeriesArithmetic:
             else None
         )
         ser = Series([True, None, False], dtype="boolean")
-        with tm.assert_produces_warning(warning):
+        msg = "operator is not supported by numexpr for the bool dtype"
+        with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match=msg):
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
@@ -499,6 +502,7 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_comparisons(self, using_infer_string):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])

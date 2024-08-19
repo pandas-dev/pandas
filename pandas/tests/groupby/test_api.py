@@ -185,13 +185,15 @@ def test_frame_consistency(groupby_func):
     elif groupby_func in ("cummax", "cummin"):
         exclude_expected = {"axis", "skipna", "args"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"axis", "skipna", "numeric_only"}
+        exclude_expected = {"axis", "skipna"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
     elif groupby_func in ("rank",):
         exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
+    elif groupby_func in ["corrwith"]:
+        exclude_expected = {"min_periods"}
     if groupby_func not in ["pct_change", "size"]:
         exclude_expected |= {"axis"}
 
@@ -243,6 +245,7 @@ def test_series_consistency(request, groupby_func):
         exclude_result = {"numeric_only"}
     elif groupby_func in ("cumprod", "cumsum"):
         exclude_expected = {"skipna"}
+        exclude_result = {"numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
     elif groupby_func in ("rank",):

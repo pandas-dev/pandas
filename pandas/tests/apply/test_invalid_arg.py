@@ -12,6 +12,9 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.errors import SpecificationError
 
 from pandas import (
@@ -118,15 +121,15 @@ def test_dict_nested_renaming_depr(method):
 def test_missing_column(method, func):
     # GH 40004
     obj = DataFrame({"A": [1]})
-    match = re.escape("Column(s) ['B'] do not exist")
-    with pytest.raises(KeyError, match=match):
+    msg = r"Label\(s\) \['B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
         getattr(obj, method)(func)
 
 
 def test_transform_mixed_column_name_dtypes():
     # GH39025
     df = DataFrame({"a": ["1"]})
-    msg = r"Column\(s\) \[1, 'b'\] do not exist"
+    msg = r"Label\(s\) \[1, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.transform({"a": int, 1: str, "b": int})
 
@@ -209,6 +212,10 @@ def test_apply_modify_traceback():
         data.apply(transform, axis=1)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "df, func, expected",
     tm.get_cython_table_params(
@@ -229,6 +236,10 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_str
             df.agg(func, axis=axis)
 
 
+# we should raise a proper TypeError instead of propagating the pyarrow error
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -359,3 +370,15 @@ def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
         obj.transform(op)
+
+
+def test_transform_missing_labels_raises():
+    # GH 58474
+    df = DataFrame({"foo": [2, 4, 6], "bar": [1, 2, 3]}, index=["A", "B", "C"])
+    msg = r"Label\(s\) \['A', 'B'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"A": lambda x: x + 2, "B": lambda x: x * 2}, axis=0)
+
+    msg = r"Label\(s\) \['bar', 'foo'\] do not exist"
+    with pytest.raises(KeyError, match=msg):
+        df.transform({"foo": lambda x: x + 2, "bar": lambda x: x * 2}, axis=1)

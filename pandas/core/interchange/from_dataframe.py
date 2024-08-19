@@ -36,6 +36,19 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
+    .. note::
+
+       For new development, we highly recommend using the Arrow C Data Interface
+       alongside the Arrow PyCapsule Interface instead of the interchange protocol
+
+    .. warning::
+
+        Due to severe implementation issues, we recommend only considering using the
+        interchange protocol in the following cases:
+
+        - converting to pandas: for pandas >= 2.0.3
+        - converting from pandas: for pandas >= 3.0.0
+
     Parameters
     ----------
     df : DataFrameXchg

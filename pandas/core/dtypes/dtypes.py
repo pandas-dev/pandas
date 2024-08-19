@@ -18,9 +18,9 @@ from typing import (
     cast,
 )
 import warnings
+import zoneinfo
 
 import numpy as np
-import pytz
 
 from pandas._config.config import get_option
 
@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Scalar,
         Self,
         npt,
         type_t,
@@ -204,7 +205,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     by providing an empty index. As follows,
 
     >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
-    dtype('<M8[ns]')
+    dtype('<M8[s]')
     """
 
     # TODO: Document public vs. private API
@@ -622,6 +623,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        See Also
+        --------
+        ordered : Whether the categories have an ordered relationship.
+
         Examples
         --------
         >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
@@ -634,6 +639,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        See Also
+        --------
+        categories : An Index containing the unique categories allowed.
 
         Examples
         --------
@@ -671,10 +680,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
 
         # categorical is aware of Sparse -> extract sparse subdtypes
-        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        subtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
         # extract the categories' dtype
         non_cat_dtypes = [
-            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x
+            for x in subtypes
         ]
         # TODO should categorical always give an answer?
         from pandas.core.dtypes.cast import find_common_type
@@ -716,6 +726,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
     ------
     ZoneInfoNotFoundError
         When the requested timezone cannot be found.
+
+    See Also
+    --------
+    numpy.datetime64 : Numpy data type for datetime.
+    datetime.datetime : Python datetime object.
 
     Examples
     --------
@@ -774,7 +789,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.maybe_get_tz(tz)
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
-            raise pytz.UnknownTimeZoneError(tz)
+            raise zoneinfo.ZoneInfoNotFoundError(tz)
         if tz is None:
             raise TypeError("A 'tz' is required.")
 
@@ -793,6 +808,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        See Also
+        --------
+        DatetimeTZDtype.tz : Retrieves the timezone.
+
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
@@ -806,6 +825,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Retrieves precision of the datetime data.
 
         Examples
         --------
@@ -859,7 +882,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 return cls(unit=d["unit"], tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
-                #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
                 # TypeError if we pass a nonsense tz;
                 # ValueError if we pass a unit other than "ns"
                 raise TypeError(msg) from err
@@ -1173,6 +1196,9 @@ class IntervalDtype(PandasExtensionDtype):
     ----------
     subtype : str, np.dtype
         The dtype of the Interval bounds.
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
 
     Attributes
     ----------
@@ -1181,6 +1207,10 @@ class IntervalDtype(PandasExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    PeriodDtype : An ExtensionDtype for Period data.
 
     Examples
     --------
@@ -1281,6 +1311,10 @@ class IntervalDtype(PandasExtensionDtype):
     def subtype(self):
         """
         The dtype of the Interval bounds.
+
+        See Also
+        --------
+        IntervalDtype: An ExtensionDtype for Interval data.
 
         Examples
         --------
@@ -1538,6 +1572,25 @@ class BaseMaskedDtype(ExtensionDtype):
 
     base = None
     type: type
+    _internal_fill_value: Scalar
+
+    @property
+    def _truthy_value(self):
+        # Fill values used for 'any'
+        if self.kind == "f":
+            return 1.0
+        if self.kind in "iu":
+            return 1
+        return True
+
+    @property
+    def _falsey_value(self):
+        # Fill values used for 'all'
+        if self.kind == "f":
+            return 0.0
+        if self.kind in "iu":
+            return 0
+        return False
 
     @property
     def na_value(self) -> libmissing.NAType:
@@ -1613,7 +1666,10 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    This dtype implements the pandas ExtensionDtype interface.
+    ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
+    more efficient storage of data that contains a significant number of
+    repetitive values typically represented by a fill value. It supports any
+    scalar dtype as the underlying data type of the non-fill values.
 
     Parameters
     ----------
@@ -1621,19 +1677,20 @@ class SparseDtype(ExtensionDtype):
         The dtype of the underlying array storing the non-fill value values.
     fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
-        depends on `dtype`.
+        depends on ``dtype``.
 
         =========== ==========
         dtype       na_value
         =========== ==========
         float       ``np.nan``
+        complex     ``np.nan``
         int         ``0``
         bool        ``False``
         datetime64  ``pd.NaT``
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The default value may be overridden by specifying a `fill_value`.
+        The default value may be overridden by specifying a ``fill_value``.
 
     Attributes
     ----------
@@ -1642,6 +1699,11 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    arrays.SparseArray : The array structure that uses SparseDtype
+        for data representation.
 
     Examples
     --------

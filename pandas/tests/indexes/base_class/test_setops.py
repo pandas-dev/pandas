@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     Index,
@@ -84,13 +86,13 @@ class TestIndexSetOps:
         # https://github.com/pandas-dev/pandas/issues/24959
         idx = Index([1, pd.Timestamp("2000")])
         # default (sort=None)
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = idx.union(idx[:1])
 
         tm.assert_index_equal(result, idx)
 
         # sort=None
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = idx.union(idx[:1], sort=None)
         tm.assert_index_equal(result, idx)
 
@@ -231,6 +233,7 @@ class TestIndexSetOps:
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("first_list", [["b", "a"], []])
     @pytest.mark.parametrize("second_list", [["a", "b"], []])
     @pytest.mark.parametrize(

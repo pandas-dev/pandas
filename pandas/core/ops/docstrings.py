@@ -436,6 +436,7 @@ missing data in either one of the inputs.
 Parameters
 ----------
 other : Series or scalar value
+    The second operand in this operation.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.

@@ -13,7 +13,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
     Literal,
     cast,
@@ -78,6 +77,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -157,6 +157,12 @@ class ExtensionArray:
     _reduce
     _values_for_argsort
     _values_for_factorize
+
+    See Also
+    --------
+    api.extensions.ExtensionDtype : A custom data type, to be paired with an
+        ExtensionArray.
+    api.extensions.ExtensionArray.dtype : An instance of ExtensionDtype.
 
     Notes
     -----
@@ -289,6 +295,13 @@ class ExtensionArray:
         -------
         ExtensionArray
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence_of_strings : Construct a new
+            ExtensionArray from a sequence of strings.
+        api.extensions.ExtensionArray._hash_pandas_object : Hook for
+            hash_pandas_object.
+
         Examples
         --------
         >>> pd.arrays.IntegerArray._from_sequence([4, 5])
@@ -351,6 +364,16 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._from_sequence : Construct a new ExtensionArray
+            from a sequence of scalars.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
+            after factorization.
+        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
+            allowing only sequences of scalars that should be specifically inferred to
+            the given dtype.
 
         Examples
         --------
@@ -597,6 +620,13 @@ class ExtensionArray:
         """
         Return a tuple of the array dimensions.
 
+        See Also
+        --------
+        numpy.ndarray.shape : Similar attribute which returns the shape of an array.
+        DataFrame.shape : Return a tuple representing the dimensionality of the
+            DataFrame.
+        Series.shape : Return a tuple representing the dimensionality of the Series.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -742,7 +772,8 @@ class ExtensionArray:
         If returning an ExtensionArray, then
 
         * ``na_values._is_boolean`` should be True
-        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._reduce`
+        * ``na_values`` should implement :func:`ExtensionArray._accumulate`
         * ``na_values.any`` and ``na_values.all`` should be implemented
 
         Examples
@@ -1045,19 +1076,12 @@ class ExtensionArray:
             Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            The maximum number of entries where NA values will be filled.
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
             For ExtensionArray subclasses that cannot do this, it is at the
             author's discretion whether to ignore "copy=False" or to raise.
-            The base class implementation ignores the keyword in pad/backfill
-            cases.
 
         Returns
         -------
@@ -1073,6 +1097,15 @@ class ExtensionArray:
         Length: 6, dtype: Int64
         """
         mask = self.isna()
+        if limit is not None and limit < len(self):
+            # isna can return an ExtensionArray, we're assuming that comparisons
+            # are implemented.
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
@@ -1158,6 +1191,13 @@ class ExtensionArray:
         -------
         ExtensionArray
             Shifted.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.transpose : Return a transposed view on
+            this array.
+        api.extensions.ExtensionArray.factorize : Encode the extension array as an
+            enumerated type.
 
         Notes
         -----
@@ -1294,12 +1334,23 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
 
+        See Also
+        --------
+        numpy.array_equal : Equivalent method for numpy array.
+        Series.equals : Equivalent method for Series.
+        DataFrame.equals : Equivalent method for DataFrame.
+
         Examples
         --------
         >>> arr1 = pd.array([1, 2, np.nan])
         >>> arr2 = pd.array([1, 2, np.nan])
         >>> arr1.equals(arr2)
         True
+
+        >>> arr1 = pd.array([1, 3, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        False
         """
         if type(self) != type(other):
             return False
@@ -1588,9 +1639,19 @@ class ExtensionArray:
         """
         Return a copy of the array.
 
+        This method creates a copy of the `ExtensionArray` where modifying the
+        data in the copy will not affect the original array. This is useful when
+        you want to manipulate data without altering the original dataset.
+
         Returns
         -------
         ExtensionArray
+            A new `ExtensionArray` object that is a copy of the current instance.
+
+        See Also
+        --------
+        DataFrame.copy : Return a copy of the DataFrame.
+        Series.copy : Return a copy of the Series.
 
         Examples
         --------
@@ -1707,6 +1768,17 @@ class ExtensionArray:
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
+        api.extensions.ExtensionArray._from_sequence : Construct a new
+            ExtensionArray from a sequence of scalars.
+
         Examples
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
@@ -1783,10 +1855,20 @@ class ExtensionArray:
         Parameters
         ----------
         to_concat : sequence of this type
+            An array of the same dtype to concatenate.
 
         Returns
         -------
         ExtensionArray
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
+        api.extensions.ExtensionArray._formatter : Formatting function for
+            scalar values.
+        api.extensions.ExtensionArray._from_factorized : Reconstruct an
+            ExtensionArray after factorization.
 
         Examples
         --------
@@ -1838,10 +1920,19 @@ class ExtensionArray:
         Returns
         -------
         array
+            An array performing the accumulation operation.
 
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._concat_same_type : Concatenate multiple
+            array of this dtype.
+        api.extensions.ExtensionArray.view : Return a view on the array.
+        api.extensions.ExtensionArray._explode : Transform each element of
+            list-like to a row.
 
         Examples
         --------
@@ -1870,12 +1961,6 @@ class ExtensionArray:
         keepdims : bool, default False
             If False, a scalar is returned.
             If True, the result has dimension with size one along the reduced axis.
-
-            .. versionadded:: 2.1
-
-               This parameter is not required in the _reduce signature to keep backward
-               compatibility, but will become required in the future. If the parameter
-               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -1901,7 +1986,10 @@ class ExtensionArray:
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:
-            result = np.array([result])
+            if name in ["min", "max"]:
+                result = self._from_sequence([result], dtype=self.dtype)
+            else:
+                result = np.array([result])
 
         return result
 
@@ -1948,6 +2036,13 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[uint64]
+            An array of hashed values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray._values_for_factorize : Return an array and
+            missing value suitable for factorization.
+        util.hash_array : Given a 1d array, return an array of hashed values.
 
         Examples
         --------
@@ -2224,7 +2319,7 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 

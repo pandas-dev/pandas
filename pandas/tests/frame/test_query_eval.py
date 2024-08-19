@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import (
     NumExprClobberingError,
     UndefinedVariableError,
@@ -58,26 +60,26 @@ class TestCompat:
         result = df.query("A>0")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_None(self, df, expected1, expected2):
         result = df.query("A>0", engine=None)
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_python(self, df, expected1, expected2):
         result = df.query("A>0", engine="python")
         tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, expected2, check_names=False)
+        tm.assert_series_equal(result, expected2)
 
     def test_query_numexpr(self, df, expected1, expected2):
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, expected2, check_names=False)
+            tm.assert_series_equal(result, expected2)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -194,9 +196,32 @@ class TestDataFrameEval:
         df = Series([0.2, 1.5, 2.8], name="a").to_frame()
         res = df.eval("@np.floor(a)", engine=engine, parser=parser)
         expected = np.floor(df["a"])
-        if engine == "numexpr":
-            expected.name = None  # See GH 58069
         tm.assert_series_equal(expected, res)
+
+    def test_eval_simple(self, engine, parser):
+        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        res = df.eval("a", engine=engine, parser=parser)
+        expected = df["a"]
+        tm.assert_series_equal(expected, res)
+
+    def test_extension_array_eval(self, engine, parser, request):
+        # GH#58748
+        if engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr does not support extension array dtypes"
+            )
+            request.applymarker(mark)
+        df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
+        result = df.eval("a / b", engine=engine, parser=parser)
+        expected = Series(pd.array([0.25, 0.40, 0.50]))
+        tm.assert_series_equal(result, expected)
+
+    def test_complex_eval(self, engine, parser):
+        # GH#21374
+        df = DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
+        result = df.eval("a/b", engine=engine, parser=parser)
+        expected = Series([1.5 + 0.5j])
+        tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameQueryWithMultiIndex:
@@ -736,11 +761,12 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query(q, engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
         df_index = date_range(
-            start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+            start="2019-01-01", freq="1D", periods=10, tz=tz, name="time"
         )
         expected = DataFrame(index=df_index)
         df = DataFrame(index=df_index)
@@ -1154,6 +1180,7 @@ class TestDataFrameQueryStrings:
         df_expected = DataFrame({"a": expected}, dtype="string")
         df_expected.index = df_expected.index.astype("int64")
         df = DataFrame({"a": in_list}, dtype="string")
+        df.index = Index(list(df.index), dtype=df.index.dtype)
         res1 = df.query("a == 'asdf'", parser=parser, engine=engine)
         res2 = df[df["a"] == "asdf"]
         res3 = df.query("a <= 'asdf'", parser=parser, engine=engine)
@@ -1396,12 +1423,12 @@ class TestDataFrameQueryBacktickQuoting:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         # GH#50261
-        df = DataFrame({"a": Series([1, 2], dtype=dtype)})
+        df = DataFrame({"a": [1, 2]}, dtype=dtype)
         ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
         with tm.assert_produces_warning(warning):
             result = df.query("a in @ref")
-        expected = DataFrame({"a": Series([2], dtype=dtype, index=[1])})
+        expected = DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("engine", ["python", "numexpr"])
@@ -1420,8 +1447,8 @@ class TestDataFrameQueryBacktickQuoting:
             result = df.query("A == B", engine=engine)
         expected = DataFrame(
             {
-                "A": Series([1, 2], dtype="Int64", index=[0, 2]),
-                "B": Series([1, 2], dtype=dtype, index=[0, 2]),
+                "A": Series([1, 2], dtype="Int64", index=range(0, 4, 2)),
+                "B": Series([1, 2], dtype=dtype, index=range(0, 4, 2)),
             }
         )
         tm.assert_frame_equal(result, expected)

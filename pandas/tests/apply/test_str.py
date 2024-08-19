@@ -4,6 +4,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import WASM
+
 from pandas.core.dtypes.common import is_number
 
 from pandas import (
@@ -28,7 +32,7 @@ from pandas.tests.apply.common import (
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_with_string_funcs(request, float_frame, func, kwds, how):
+def test_apply_with_string_funcs(float_frame, func, kwds, how):
     result = getattr(float_frame, how)(func, **kwds)
     expected = getattr(float_frame, func)(**kwds)
     tm.assert_series_equal(result, expected)
@@ -54,6 +58,7 @@ def test_apply_np_reducer(op, how):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="No fp exception support in wasm")
 @pytest.mark.parametrize(
     "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
 )
@@ -76,6 +81,7 @@ def test_apply_np_transformer(float_frame, op, how):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -134,6 +140,7 @@ def test_agg_cython_table_series(series, func, expected):
         assert result == expected
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "series, func, expected",
     chain(
@@ -284,7 +291,7 @@ def test_transform_groupby_kernel_frame(request, float_frame, op):
     # same thing, but ensuring we have multiple blocks
     assert "E" not in float_frame.columns
     float_frame["E"] = float_frame["A"].copy()
-    assert len(float_frame._mgr.arrays) > 1
+    assert len(float_frame._mgr.blocks) > 1
 
     ones = np.ones(float_frame.shape[0])
     gb2 = float_frame.groupby(ones)

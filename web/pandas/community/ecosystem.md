@@ -360,7 +360,26 @@ Deltalake python package lets you access tables stored in
 JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
 any Delta table into Pandas dataframe.
 
+### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
+
+pandas-gbq provides high performance reads and writes to and from
+[Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
+these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
+Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
+
 ## Out-of-core
+
+### [Bodo](https://bodo.ai/)
+
+Bodo is a high-performance Python computing engine that automatically parallelizes and
+optimizes your code through compilation using HPC (high-performance computing) techniques.
+Designed to operate with native pandas dataframes, Bodo compiles your pandas code to execute
+across multiple cores on a single machine or distributed clusters of multiple compute nodes efficiently.
+Bodo also makes distributed pandas dataframes queryable with SQL.
+
+The community edition of Bodo is free to use on up to 8 cores. Beyond that, Bodo offers a paid
+enterprise edition. Free licenses of Bodo (for more than 8 cores) are available
+[upon request](https://www.bodo.ai/contact) for academic and non-profit use.
 
 ### [Cylon](https://cylondata.org/)
 
@@ -500,6 +519,13 @@ Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
+
+### [db-dtypes](https://github.com/googleapis/python-db-dtypes-pandas)
+
+db-dtypes provides an extension types for working with types like
+DATE, TIME, and JSON from database systems. This package is used
+by pandas-gbq to provide natural dtypes for BigQuery data types without
+a natural numpy type.
 
 ### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
 

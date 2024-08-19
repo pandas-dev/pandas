@@ -7,7 +7,6 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -18,7 +17,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
-    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -175,7 +173,10 @@ if not pa_version_under10p1:
     }
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._libs.missing import NAType
     from pandas._typing import (
@@ -525,6 +526,8 @@ class ArrowExtensionArray(
         if pa_type is not None and pa_array.type != pa_type:
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
+                if pa_array.type != pa_type:
+                    pa_array = pa_array.cast(pa_type)
             else:
                 try:
                     pa_array = pa_array.cast(pa_type)
@@ -572,10 +575,11 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage in (
-                    "pyarrow",
-                    "pyarrow_numpy",
+                if (
+                    isinstance(self._dtype, StringDtype)
+                    and self._dtype.storage == "pyarrow"
                 ):
+                    # TODO(infer_string) should this be large_string?
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -705,7 +709,13 @@ class ArrowExtensionArray(
         if isinstance(
             other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
         ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
-            result = pc_func(self._pa_array, self._box_pa(other))
+            try:
+                result = pc_func(self._pa_array, self._box_pa(other))
+            except pa.ArrowNotImplementedError:
+                # TODO: could this be wrong if other is object dtype?
+                #  in which case we need to operate pointwise?
+                result = ops.invalid_comparison(self, other, op)
+                result = pa.array(result, type=pa.bool_())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
@@ -1050,8 +1060,7 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
-            return self.copy()
+            return self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -1082,7 +1091,6 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
         if limit is not None:
@@ -1423,7 +1431,7 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
@@ -1705,8 +1713,6 @@ class ArrowExtensionArray(
         if name == "median":
             # GH 52679: Use quantile instead of approximate_median; returns array
             result = result[0]
-        if pc.is_null(result).as_py():
-            return result
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
@@ -1878,7 +1884,8 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             if len(indices) == 0:
                 return
-            argsort = np.argsort(indices)
+            # GH#58530 wrong item assignment by repeated key
+            _, argsort = np.unique(indices, return_index=True)
             indices = indices[argsort]
             value = value.take(argsort)
             mask = np.zeros(len(self), dtype=np.bool_)
@@ -2611,17 +2618,19 @@ class ArrowExtensionArray(
     @property
     def _dt_days(self) -> Self:
         return type(self)(
-            pa.array(self._to_timedeltaarray().days, from_pandas=True, type=pa.int32())
+            pa.array(
+                self._to_timedeltaarray().components.days,
+                from_pandas=True,
+                type=pa.int32(),
+            )
         )
 
     @property
     def _dt_hours(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.hours if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.hours,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2630,10 +2639,8 @@ class ArrowExtensionArray(
     def _dt_minutes(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.minutes if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.minutes,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2642,7 +2649,9 @@ class ArrowExtensionArray(
     def _dt_seconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().seconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.seconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2650,10 +2659,8 @@ class ArrowExtensionArray(
     def _dt_milliseconds(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.milliseconds if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.milliseconds,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2662,7 +2669,7 @@ class ArrowExtensionArray(
     def _dt_microseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().microseconds,
+                self._to_timedeltaarray().components.microseconds,
                 from_pandas=True,
                 type=pa.int32(),
             )
@@ -2672,7 +2679,9 @@ class ArrowExtensionArray(
     def _dt_nanoseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().nanoseconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.nanoseconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2790,7 +2799,10 @@ class ArrowExtensionArray(
 
     @property
     def _dt_microsecond(self) -> Self:
-        return type(self)(pc.microsecond(self._pa_array))
+        # GH 59154
+        us = pc.microsecond(self._pa_array)
+        ms_to_us = pc.multiply(pc.millisecond(self._pa_array), 1000)
+        return type(self)(pc.add(us, ms_to_us))
 
     @property
     def _dt_minute(self) -> Self:
@@ -2969,7 +2981,7 @@ def transpose_homogeneous_pyarrow(
     """
     arrays = list(arrays)
     nrows, ncols = len(arrays[0]), len(arrays)
-    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.reshape(-1)
     arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
     arr = arr.take(indices)
     return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]

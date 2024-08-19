@@ -32,6 +32,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -67,7 +69,10 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+    get_unit_from_pa_dtype,
+)
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
@@ -464,17 +469,14 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["kurt", "skew"]:
+            return False
+
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
-        if pa.types.is_temporal(pa_dtype) and op_name in [
-            "sum",
-            "var",
-            "skew",
-            "kurt",
-            "prod",
-        ]:
+        if pa.types.is_temporal(pa_dtype) and op_name in ["sum", "var", "prod"]:
             if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
                 # summing timedeltas is one case that *is* well-defined
                 pass
@@ -490,8 +492,6 @@ class TestArrowArray(base.ExtensionTests):
             "std",
             "sem",
             "var",
-            "skew",
-            "kurt",
         ]:
             return False
 
@@ -503,6 +503,16 @@ class TestArrowArray(base.ExtensionTests):
             # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
             #  but it isn't obvious we _should_.  For now, we keep the pyarrow
             #  behavior which does not support this.
+            return False
+
+        if pa.types.is_boolean(pa_dtype) and op_name in [
+            "median",
+            "std",
+            "var",
+            "skew",
+            "kurt",
+            "sem",
+        ]:
             return False
 
         return True
@@ -529,32 +539,6 @@ class TestArrowArray(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        dtype = data.dtype
-        pa_dtype = dtype.pyarrow_dtype
-
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_numeric_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if all_numeric_reductions in {"skew", "kurt"} and (
-            dtype._is_numeric or dtype.kind == "b"
-        ):
-            request.applymarker(xfail_mark)
-
-        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
-            "sem",
-            "std",
-            "var",
-            "median",
-        }:
-            request.applymarker(xfail_mark)
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
-
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(
         self, data, all_boolean_reductions, skipna, na_value, request
     ):
@@ -574,15 +558,32 @@ class TestArrowArray(base.ExtensionTests):
         return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        pa_type = arr._pa_array.type
+
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
+        elif pa.types.is_temporal(pa_type):
+            if op_name in ["std", "sem"]:
+                if pa.types.is_duration(pa_type):
+                    cmp_dtype = arr.dtype
+                elif pa.types.is_date(pa_type):
+                    cmp_dtype = ArrowDtype(pa.duration("s"))
+                elif pa.types.is_time(pa_type):
+                    unit = get_unit_from_pa_dtype(pa_type)
+                    cmp_dtype = ArrowDtype(pa.duration(unit))
+                else:
+                    cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
+            else:
+                cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
-            if op_name not in ["median", "var", "std"]:
+            if op_name not in ["median", "var", "std", "sem"]:
                 cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
-        elif op_name in ["median", "var", "std", "mean", "skew"]:
+        elif op_name in ["median", "var", "std", "mean", "skew", "sem"]:
             cmp_dtype = "float64[pyarrow]"
+        elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
+            cmp_dtype = "uint64[pyarrow]"
         else:
             cmp_dtype = {
                 "i": "int64[pyarrow]",
@@ -598,6 +599,14 @@ class TestArrowArray(base.ExtensionTests):
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
+        elif (
+            op_name in ["std", "sem"]
+            and pa.types.is_date64(data._pa_array.type)
+            and skipna
+        ):
+            # overflow
+            mark = pytest.mark.xfail(reason="Cannot cast")
+            request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
@@ -1986,6 +1995,7 @@ def test_str_find_large_start():
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
@@ -2437,13 +2447,13 @@ def test_unsupported_dt(data):
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
-        ["microsecond", 5],
+        ["microsecond", 2000],
         ["month", 1],
         ["nanosecond", 6],
         ["quarter", 1],
         ["second", 7],
         ["date", date(2023, 1, 2)],
-        ["time", time(3, 4, 7, 5)],
+        ["time", time(3, 4, 7, 2000)],
     ],
 )
 def test_dt_properties(prop, expected):
@@ -2456,7 +2466,7 @@ def test_dt_properties(prop, expected):
                 hour=3,
                 minute=4,
                 second=7,
-                microsecond=5,
+                microsecond=2000,
                 nanosecond=6,
             ),
             None,
@@ -2470,6 +2480,28 @@ def test_dt_properties(prop, expected):
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("microsecond", [2000, 5, 0])
+def test_dt_microsecond(microsecond):
+    # GH 59183
+    ser = pd.Series(
+        [
+            pd.Timestamp(
+                year=2024,
+                month=7,
+                day=7,
+                second=5,
+                microsecond=microsecond,
+                nanosecond=6,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.microsecond
+    expected = pd.Series([microsecond, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
@@ -2891,6 +2923,31 @@ def test_dt_components():
     result = ser.dt.components
     expected = pd.DataFrame(
         [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        columns=[
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "milliseconds",
+            "microseconds",
+            "nanoseconds",
+        ],
+        dtype="int32[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_components_large_values():
+    ser = pd.Series(
+        [
+            pd.Timedelta("365 days 23:59:59.999000"),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
         columns=[
             "days",
             "hours",
@@ -3445,7 +3502,7 @@ def test_arrow_floor_division_large_divisor(dtype):
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
-    result = pd.Series(string_dates, dtype="timestamp[ns][pyarrow]")
+    result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
     expected = pd.Series(
         ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
     )
@@ -3496,6 +3553,14 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("arrow_type", [pa.large_string(), pa.string()])
+def test_cast_dictionary_different_value_dtype(arrow_type):
+    df = pd.DataFrame({"a": ["x", "y"]}, dtype="string[pyarrow]")
+    data_type = ArrowDtype(pa.dictionary(pa.int32(), arrow_type))
+    result = df.astype({"a": data_type})
+    assert result.dtypes.iloc[0] == data_type
 
 
 def test_map_numeric_na_action():

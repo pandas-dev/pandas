@@ -148,10 +148,14 @@ class SearchSorted:
 
 
 class Map:
-    params = (["dict", "Series", "lambda"], ["object", "category", "int"])
-    param_names = "mapper"
+    params = (
+        ["dict", "Series", "lambda"],
+        ["object", "category", "int"],
+        [None, "ignore"],
+    )
+    param_names = ["mapper", "dtype", "na_action"]
 
-    def setup(self, mapper, dtype):
+    def setup(self, mapper, dtype, na_action):
         map_size = 1000
         map_data = Series(map_size - np.arange(map_size), dtype=dtype)
 
@@ -168,8 +172,8 @@ class Map:
 
         self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
 
-    def time_map(self, mapper, *args, **kwargs):
-        self.s.map(self.map_data)
+    def time_map(self, mapper, dtype, na_action):
+        self.s.map(self.map_data, na_action=na_action)
 
 
 class Clip:

@@ -23,6 +23,8 @@ class FloatingDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = np.nan
     _default_np_dtype = np.dtype(np.float64)
     _checker = is_float_dtype
 
@@ -112,14 +114,6 @@ class FloatingArray(NumericArray):
     """
 
     _dtype_cls = FloatingDtype
-
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = np.nan
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "float", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = 1.0  # type: ignore[assignment]
-    _falsey_value = 0.0  # type: ignore[assignment]
 
 
 _dtype_docstring = """

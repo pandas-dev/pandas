@@ -134,8 +134,8 @@ to explore, clean, and process your data. In pandas, a data table is called a :c
             <div id="collapseTwo" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
-data sources is provided by function with the prefix ``read_*``. Similarly, the ``to_*`` methods are used to store data.
+pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). The ability to import data from each of these
+data sources is provided by functions with the prefix, ``read_*``. Similarly, the ``to_*`` methods are used to store data.
 
 .. image:: ../_static/schemas/02_io_readwrite.svg
    :align: center
@@ -181,7 +181,7 @@ data sources is provided by function with the prefix ``read_*``. Similarly, the 
             <div id="collapseThree" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Selecting or filtering specific rows and/or columns? Filtering the data on a condition? Methods for slicing, selecting, and extracting the
+Selecting or filtering specific rows and/or columns? Filtering the data on a particular condition? Methods for slicing, selecting, and extracting the
 data you need are available in pandas.
 
 .. image:: ../_static/schemas/03_subset_columns_rows.svg
@@ -228,7 +228,7 @@ data you need are available in pandas.
             <div id="collapseFour" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-pandas provides plotting your data out of the box, using the power of Matplotlib. You can pick the plot type (scatter, bar, boxplot,...)
+pandas provides plotting for your data right out of the box with the power of Matplotlib. Simply pick the plot type (scatter, bar, boxplot,...)
 corresponding to your data.
 
 .. image:: ../_static/schemas/04_plot_overview.svg
@@ -275,7 +275,7 @@ corresponding to your data.
             <div id="collapseFive" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-There is no need to loop over all rows of your data table to do calculations. Data manipulations on a column work elementwise.
+There's no need to loop over all rows of your data table to do calculations. Column data manipulations work elementwise in pandas.
 Adding a column to a :class:`DataFrame` based on existing data in other columns is straightforward.
 
 .. image:: ../_static/schemas/05_newcolumn_2.svg
@@ -322,7 +322,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
             <div id="collapseSix" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire
+Basic statistics (mean, median, min, max, counts...) are easily calculable across data frames. These, or even custom aggregations, can be applied on the entire
 data set, a sliding window of the data, or grouped by categories. The latter is also known as the split-apply-combine approach.
 
 .. image:: ../_static/schemas/06_groupby.svg
@@ -369,8 +369,8 @@ data set, a sliding window of the data, or grouped by categories. The latter is 
             <div id="collapseSeven" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot`
-from long to wide format. With aggregations built-in, a pivot table is created with a single command.
+Change the structure of your data table in a variety of ways. You can use :func:`~pandas.melt` to reshape your data from a wide format to a long and tidy one. Use :func:`~pandas.pivot`
+ to go from long to wide format. With aggregations built-in, a pivot table can be created with a single command.
 
 .. image:: ../_static/schemas/07_melt.svg
    :align: center
@@ -416,7 +416,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
             <div id="collapseEight" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Multiple tables can be concatenated both column wise and row wise as database-like join/merge operations are provided to combine multiple tables of data.
+Multiple tables can be concatenated column wise or row wise with pandas' database-like join and merge operations.
 
 .. image:: ../_static/schemas/08_concat_row.svg
    :align: center
@@ -505,7 +505,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
+Data sets often contain more than just numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 
@@ -551,9 +551,9 @@ the pandas-equivalent operations compared to software you already know:
         :class-card: comparison-card
         :shadow: md
 
-        The `R programming language <https://www.r-project.org/>`__ provides the
-        ``data.frame`` data structure and multiple packages, such as
-        `tidyverse <https://www.tidyverse.org>`__ use and extend ``data.frame``
+        The `R programming language <https://www.r-project.org/>`__ provides a
+        ``data.frame`` data structure as well as packages like
+        `tidyverse <https://www.tidyverse.org>`__ which use and extend ``data.frame``
         for convenient data handling functionalities similar to pandas.
 
         +++
@@ -572,8 +572,8 @@ the pandas-equivalent operations compared to software you already know:
         :class-card: comparison-card
         :shadow: md
 
-        Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
-        Most of these SQL manipulations do have equivalents in pandas.
+        Already familiar with ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
+        Many SQL manipulations have equivalents in pandas.
 
         +++
 
@@ -631,10 +631,10 @@ the pandas-equivalent operations compared to software you already know:
         :class-card: comparison-card
         :shadow: md
 
-        The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
-        also provides the ``data set`` corresponding to the pandas ``DataFrame``.
-        Also SAS vectorized operations, filtering, string processing operations,
-        and more have similar functions in pandas.
+        `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, the statistical software suite,
+        uses the ``data set`` structure, which closely corresponds pandas' ``DataFrame``.
+        Also SAS vectorized operations such as filtering or string processing operations
+        have similar functions in pandas.
 
         +++
 

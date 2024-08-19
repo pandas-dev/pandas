@@ -18,10 +18,10 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -30,7 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -75,6 +75,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -101,6 +102,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,
@@ -124,7 +126,8 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.internals import Block
+    from pandas.core.internals.blocks import Block
+
 
 # versioning attribute
 _version = "0.15.2"
@@ -593,7 +596,7 @@ class HDFStore:
     def __setitem__(self, key: str, value) -> None:
         self.put(key, value)
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str) -> int | None:
         return self.remove(key)
 
     def __getattr__(self, name: str):
@@ -1203,7 +1206,7 @@ class HDFStore:
             dropna=dropna,
         )
 
-    def remove(self, key: str, where=None, start=None, stop=None) -> None:
+    def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
         Remove pandas object partially by specifying the where condition
 
@@ -1251,14 +1254,12 @@ class HDFStore:
         # remove the node
         if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
+            return None
 
         # delete from the table
-        else:
-            if not s.is_table:
-                raise ValueError(
-                    "can only remove with where on objects written as tables"
-                )
-            return s.delete(where=where, start=start, stop=stop)
+        if not s.is_table:
+            raise ValueError("can only remove with where on objects written as tables")
+        return s.delete(where=where, start=start, stop=stop)
 
     def append(
         self,
@@ -2655,7 +2656,7 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
-            converted = _set_tz(converted, tz)
+            converted = _set_tz(converted, tz, dtype)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -2895,7 +2896,7 @@ class Fixed:
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> Series | DataFrame:
         raise NotImplementedError(
             "cannot read on an abstract storer: subclasses should implement"
         )
@@ -2907,7 +2908,7 @@ class Fixed:
 
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
-    ) -> None:
+    ) -> int | None:
         """
         support fully deleting the node in its entirety (only) - where
         specification must be None
@@ -3036,7 +3037,7 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                ret = _set_tz(ret, tz)
+                ret = _set_tz(ret, tz, dtype)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -3294,8 +3295,8 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+        if using_string_dtype() and is_string_array(values, skipna=True):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3363,8 +3364,8 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+            if using_string_dtype() and is_string_array(values, skipna=True):
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3601,7 +3602,7 @@ class Table(Fixed):
 
         return dict(d1 + d2 + d3)
 
-    def index_cols(self):
+    def index_cols(self) -> list[tuple[Any, Any]]:
         """return a list of my index cols"""
         # Note: each `i.cname` below is assured to be a str.
         return [(i.axis, i.cname) for i in self.index_axes]
@@ -3731,7 +3732,7 @@ class Table(Fixed):
         dc = set(self.data_columns)
         base_pos = len(_indexables)
 
-        def f(i, c):
+        def f(i, c: str) -> DataCol:
             assert isinstance(c, str)
             klass = DataCol
             if c in dc:
@@ -3897,7 +3898,7 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4590,7 +4591,9 @@ class AppendableTable(Table):
             self.table.append(rows)
             self.table.flush()
 
-    def delete(self, where=None, start: int | None = None, stop: int | None = None):
+    def delete(
+        self, where=None, start: int | None = None, stop: int | None = None
+    ) -> int | None:
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -4733,13 +4736,13 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+            if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(
+            if using_string_dtype() and is_string_array(
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:
@@ -4918,7 +4921,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> DataFrame:
         df = super().read(where=where, columns=columns, start=start, stop=stop)
         df = df.set_index(self.levels)
 
@@ -4962,7 +4965,9 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
-def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeArray:
+def _set_tz(
+    values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
+) -> DatetimeArray:
     """
     Coerce the values to a DatetimeArray with appropriate tz.
 
@@ -4970,11 +4975,13 @@ def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeA
     ----------
     values : ndarray[int64]
     tz : str, tzinfo, or None
+    datetime64_dtype : str, e.g. "datetime64[ns]", "datetime64[25s]"
     """
     assert values.dtype == "i8", values.dtype
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
-    dtype = tz_to_dtype(tz=tz, unit="ns")  # type: ignore[arg-type]
+    unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
 
@@ -5379,7 +5386,13 @@ class Selection:
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
 
-    def generate(self, where):
+    @overload
+    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+
+    @overload
+    def generate(self, where: None) -> None: ...
+
+    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None

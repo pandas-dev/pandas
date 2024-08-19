@@ -124,7 +124,7 @@ def test_setattr_warnings():
         #  this should not raise a warning
         df.two.not_an_index = [1, 2]
 
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(UserWarning, match="doesn't allow columns"):
         #  warn when setting column to nonexistent name
         df.four = df.two + 2
         assert df.four.sum() > df.two.sum()

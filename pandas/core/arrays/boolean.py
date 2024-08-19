@@ -68,6 +68,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name: ClassVar[str] = "boolean"
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = False
+
     # https://github.com/python/mypy/issues/4125
     # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
@@ -293,13 +296,6 @@ class BooleanArray(BaseMaskedArray):
     Length: 3, dtype: boolean
     """
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = False
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "bool", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = True  # type: ignore[assignment]
-    _falsey_value = False  # type: ignore[assignment]
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -333,15 +329,21 @@ class BooleanArray(BaseMaskedArray):
         copy: bool = False,
         true_values: list[str] | None = None,
         false_values: list[str] | None = None,
+        none_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
-        def map_string(s) -> bool:
+        if none_values is None:
+            none_values = []
+
+        def map_string(s) -> bool | None:
             if s in true_values_union:
                 return True
             elif s in false_values_union:
                 return False
+            elif s in none_values:
+                return None
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
 

@@ -90,9 +90,7 @@ def test_apply_function_with_indexing():
         result = df.groupby(["col1"], as_index=False).apply(fn)
     expected = pd.Series(
         [1, 2, 0, 4, 5, 0],
-        index=pd.MultiIndex.from_tuples(
-            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
-        ),
+        index=range(6),
         name="col2",
     )
     tm.assert_series_equal(result, expected)

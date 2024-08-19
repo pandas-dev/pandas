@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -214,7 +216,7 @@ class TestDataFrameCorr:
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.arrays) == 2  # i.e. 2 blocks
+        assert len(df._mgr.blocks) == 2
 
         _ = df.corr(numeric_only=True)
 
@@ -285,7 +287,7 @@ class TestDataFrameCorrWith:
         b = datetime_frame.add(noise, axis=0)
 
         # make sure order does not matter
-        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
+        b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][len(a) // 2 :])
         del b["B"]
 
         colcorr = a.corrwith(b, axis=0)
@@ -301,7 +303,7 @@ class TestDataFrameCorrWith:
         dropped = a.corrwith(b, axis=1, drop=True)
         assert a.index[-1] not in dropped.index
 
-        # non time-series data
+    def test_corrwith_non_timeseries_data(self):
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(
@@ -318,6 +320,7 @@ class TestDataFrameCorrWith:
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_corrwith_with_objects(self, using_infer_string):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
@@ -459,5 +462,30 @@ class TestDataFrameCorrWith:
         )
         ser_bool = Series([True, True, False, True])
         result = df_bool.corrwith(ser_bool)
+        expected = Series([0.57735, 0.57735], index=["A", "B"])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_min_periods_method(self):
+        # GH#9490
+        pytest.importorskip("scipy")
+        df1 = DataFrame(
+            {
+                "A": [1, np.nan, 7, 8],
+                "B": [False, True, True, False],
+                "C": [10, 4, 9, 3],
+            }
+        )
+        df2 = df1[["B", "C"]]
+        result = (df1 + 1).corrwith(df2.B, method="spearman", min_periods=2)
+        expected = Series([0.0, 1.0, 0.0], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_min_periods_boolean(self):
+        # GH#9490
+        df_bool = DataFrame(
+            {"A": [True, True, False, False], "B": [True, False, False, True]}
+        )
+        ser_bool = Series([True, True, False, True])
+        result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)

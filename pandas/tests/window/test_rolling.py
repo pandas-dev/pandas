@@ -6,10 +6,14 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import (
+    HAS_PYARROW,
     IS64,
     is_platform_arm,
     is_platform_power,
+    is_platform_riscv64,
 )
 
 from pandas import (
@@ -577,7 +581,7 @@ def test_missing_minp_zero_variable():
         [np.nan] * 4,
         index=DatetimeIndex(["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]),
     )
-    result = x.rolling(Timedelta("2d"), min_periods=0).sum()
+    result = x.rolling(Timedelta("2D"), min_periods=0).sum()
     expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
@@ -1081,7 +1085,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    is_platform_arm() or is_platform_power(),
+    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
     reason="GH 38921",
 )
 @pytest.mark.parametrize(
@@ -1152,7 +1156,7 @@ def test_timeoffset_as_window_parameter_for_corr(unit):
         index=dti,
     )
 
-    res = df.rolling(window="3d").corr()
+    res = df.rolling(window="3D").corr()
 
     tm.assert_frame_equal(exp, res)
 
@@ -1325,6 +1329,9 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -1379,17 +1386,20 @@ def test_invalid_method():
         Series(range(1)).rolling(1, method="foo")
 
 
-@pytest.mark.parametrize("window", [1, "1d"])
-def test_rolling_descending_date_order_with_offset(window, frame_or_series):
+def test_rolling_descending_date_order_with_offset(frame_or_series):
     # GH#40002
-    idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
-    obj = frame_or_series(range(1, 4), index=idx)
-    result = obj.rolling("1d", closed="left").sum()
+    msg = "'d' is deprecated and will be removed in a future version."
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
+        obj = frame_or_series(range(1, 4), index=idx)
+        result = obj.rolling("1d", closed="left").sum()
+
     expected = frame_or_series([np.nan, 1, 2], index=idx)
     tm.assert_equal(result, expected)
 
-    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
-    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
+    result = obj.iloc[::-1].rolling("1D", closed="left").sum()
+    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1D")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)
 
