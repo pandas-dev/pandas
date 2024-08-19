@@ -611,7 +611,11 @@ def sanitize_array(
                 dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
-            if subarr is data and copy:
+            if (
+                subarr is data
+                or subarr.dtype == "str"
+                and subarr.dtype.storage == "python"
+            ) and copy:
                 subarr = subarr.copy()
 
         else:

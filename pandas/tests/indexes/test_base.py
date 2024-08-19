@@ -82,7 +82,7 @@ class TestIndex:
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
         assert new_index.name == "name"
-        if using_infer_string and HAS_PYARROW:
+        if using_infer_string:
             tm.assert_extension_array_equal(
                 new_index.values, pd.array(arr, dtype="str")
             )
