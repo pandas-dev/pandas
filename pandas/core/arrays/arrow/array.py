@@ -2448,9 +2448,6 @@ class ArrowExtensionArray(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
 
-    def _str_len(self) -> Self:
-        return type(self)(pc.utf8_length(self._pa_array))
-
     def _str_lower(self) -> Self:
         return type(self)(pc.utf8_lower(self._pa_array))
 
