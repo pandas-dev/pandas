@@ -18,7 +18,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     Literal,
     cast,
@@ -31,7 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -77,6 +76,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -103,6 +103,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,
@@ -2660,7 +2661,7 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
-            converted = _set_tz(converted, tz)
+            converted = _set_tz(converted, tz, dtype)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -3041,7 +3042,7 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                ret = _set_tz(ret, tz)
+                ret = _set_tz(ret, tz, dtype)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -3299,8 +3300,8 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+        if using_string_dtype() and is_string_array(values, skipna=True):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3368,8 +3369,8 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+            if using_string_dtype() and is_string_array(values, skipna=True):
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4740,13 +4741,13 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+            if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(
+            if using_string_dtype() and is_string_array(
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:
@@ -4969,7 +4970,9 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
-def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeArray:
+def _set_tz(
+    values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
+) -> DatetimeArray:
     """
     Coerce the values to a DatetimeArray with appropriate tz.
 
@@ -4977,11 +4980,13 @@ def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeA
     ----------
     values : ndarray[int64]
     tz : str, tzinfo, or None
+    datetime64_dtype : str, e.g. "datetime64[ns]", "datetime64[25s]"
     """
     assert values.dtype == "i8", values.dtype
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
-    dtype = tz_to_dtype(tz=tz, unit="ns")  # type: ignore[arg-type]
+    unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
 

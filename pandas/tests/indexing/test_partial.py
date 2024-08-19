@@ -227,7 +227,7 @@ class TestEmptyFrameSetitemExpansion:
             {
                 "x": Series(
                     ["1", "2"],
-                    dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+                    dtype=object if not using_infer_string else "str",
                 ),
                 "y": Series([np.nan, np.nan], dtype=object),
             }
@@ -580,7 +580,7 @@ class TestPartialSetting:
                 ],
             ),
             (
-                date_range(start="2000", periods=20, freq="D"),
+                date_range(start="2000", periods=20, freq="D", unit="s"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
                     Timestamp("2000-01-04"),

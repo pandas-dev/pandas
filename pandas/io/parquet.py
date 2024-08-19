@@ -10,9 +10,12 @@ from typing import (
     Any,
     Literal,
 )
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -254,7 +257,7 @@ class PyArrowImpl(BaseImpl):
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
             to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -271,7 +274,13 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if pa_table.schema.metadata:
                 if b"PANDAS_ATTRS" in pa_table.schema.metadata:
@@ -384,7 +393,15 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+                return parquet_file.to_pandas(
+                    columns=columns, filters=filters, **kwargs
+                )
         finally:
             if handles is not None:
                 handles.close()
@@ -525,14 +542,15 @@ def read_parquet(
 
         .. versionadded:: 1.3.0
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 

@@ -5,9 +5,12 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
+import itertools
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 from pandas.errors import InvalidIndexError
 
@@ -44,6 +47,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_concat_copy(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
@@ -51,35 +55,39 @@ class TestConcatenate:
 
         # These are actual copies.
         result = concat([df, df2, df3], axis=1)
-        for arr in result._mgr.arrays:
-            assert arr.base is not None
+        for block in result._mgr.blocks:
+            assert block.values.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1)
 
-        for arr in result._mgr.arrays:
+        for block in result._mgr.blocks:
+            arr = block.values
             if arr.dtype.kind == "f":
-                assert arr.base is df._mgr.arrays[0].base
+                assert arr.base is df._mgr.blocks[0].values.base
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1)
-        for arr in result._mgr.arrays:
+        for blocks in result._mgr.blocks:
+            arr = blocks.values
             if arr.dtype.kind == "f":
                 # this is a view on some array in either df or df4
                 assert any(
-                    np.shares_memory(arr, other)
-                    for other in df._mgr.arrays + df4._mgr.arrays
+                    np.shares_memory(arr, block.values)
+                    for block in itertools.chain(df._mgr.blocks, df4._mgr.blocks)
                 )
             elif arr.dtype.kind in ["i", "u"]:
-                assert arr.base is df2._mgr.arrays[0].base
+                assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 # this is a view on df3
-                assert any(np.shares_memory(arr, other) for other in df3._mgr.arrays)
+                assert any(
+                    np.shares_memory(arr, block.values) for block in df3._mgr.blocks
+                )
 
     def test_concat_with_group_keys(self):
         # axis=0
@@ -931,3 +939,14 @@ def test_concat_with_series_and_frame_returns_rangeindex_columns():
     result = concat([ser, df])
     expected = DataFrame([0, 1, 2], index=[0, 0, 1])
     tm.assert_frame_equal(result, expected, check_column_type=True)
+
+
+def test_concat_with_moot_ignore_index_and_keys():
+    df1 = DataFrame([[0]])
+    df2 = DataFrame([[42]])
+
+    ignore_index = True
+    keys = ["df1", "df2"]
+    msg = f"Cannot set {ignore_index=} and specify keys. Either should be used."
+    with pytest.raises(ValueError, match=msg):
+        concat([df1, df2], keys=keys, ignore_index=ignore_index)

@@ -45,6 +45,7 @@ from pandas.tests.plotting.common import (
     _check_visible,
     get_y_axis,
 )
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -1120,7 +1121,7 @@ class TestDataFramePlots:
 
     def test_kde_df(self):
         pytest.importorskip("scipy")
-        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ax = _check_plot_works(df.plot, kind="kde")
         expected = [pprint_thing(c) for c in df.columns]
         _check_legend_labels(ax, labels=expected)
@@ -1177,20 +1178,16 @@ class TestDataFramePlots:
         _check_ticks_props(axes, xrot=40, yrot=0)
 
     def test_hist_df_series_cumulative_density(self):
-        from matplotlib.patches import Rectangle
-
         series = Series(np.random.default_rng(2).random(10))
         ax = series.plot.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
-        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+        rects = [x for x in ax.get_children() if isinstance(x, mpl.patches.Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
     def test_hist_df_series_cumulative(self):
-        from matplotlib.patches import Rectangle
-
         series = Series(np.random.default_rng(2).random(10))
         ax = series.plot.hist(cumulative=True, bins=4)
-        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+        rects = [x for x in ax.get_children() if isinstance(x, mpl.patches.Rectangle)]
 
         tm.assert_almost_equal(rects[-2].get_height(), 10.0)
 
@@ -1385,8 +1382,6 @@ class TestDataFramePlots:
         ],
     )
     def test_style_by_column(self, markers):
-        import matplotlib.pyplot as plt
-
         fig = plt.gcf()
         fig.clf()
         fig.add_subplot(111)
@@ -1969,9 +1964,6 @@ class TestDataFramePlots:
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
-
-        plt.close("all")
         gs, axes = _generate_4_axes_via_gridspec()
 
         df = DataFrame(
@@ -2009,8 +2001,6 @@ class TestDataFramePlots:
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
-
         df = DataFrame(
             {
                 "a": [1, 2, 3, 4, 5, 6],
@@ -2035,8 +2025,6 @@ class TestDataFramePlots:
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
-
         gs, axes = _generate_4_axes_via_gridspec()
 
         df = DataFrame(
@@ -2073,8 +2061,6 @@ class TestDataFramePlots:
 
     def test_sharey_and_ax_tight(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
-        import matplotlib.pyplot as plt
-
         df = DataFrame(
             {
                 "a": [1, 2, 3, 4, 5, 6],
@@ -2134,9 +2120,6 @@ class TestDataFramePlots:
 
     def test_df_gridspec_patterns_vert_horiz(self):
         # GH 10819
-        from matplotlib import gridspec
-        import matplotlib.pyplot as plt
-
         ts = Series(
             np.random.default_rng(2).standard_normal(10),
             index=date_range("1/1/2000", periods=10),
@@ -2149,14 +2132,14 @@ class TestDataFramePlots:
         )
 
         def _get_vertical_grid():
-            gs = gridspec.GridSpec(3, 1)
+            gs = mpl.gridspec.GridSpec(3, 1)
             fig = plt.figure()
             ax1 = fig.add_subplot(gs[:2, :])
             ax2 = fig.add_subplot(gs[2, :])
             return ax1, ax2
 
         def _get_horizontal_grid():
-            gs = gridspec.GridSpec(1, 3)
+            gs = mpl.gridspec.GridSpec(1, 3)
             fig = plt.figure()
             ax1 = fig.add_subplot(gs[:, :2])
             ax2 = fig.add_subplot(gs[:, 2])
@@ -2217,9 +2200,6 @@ class TestDataFramePlots:
 
     def test_df_gridspec_patterns_boxed(self):
         # GH 10819
-        from matplotlib import gridspec
-        import matplotlib.pyplot as plt
-
         ts = Series(
             np.random.default_rng(2).standard_normal(10),
             index=date_range("1/1/2000", periods=10),
@@ -2227,7 +2207,7 @@ class TestDataFramePlots:
 
         # boxed
         def _get_boxed_grid():
-            gs = gridspec.GridSpec(3, 3)
+            gs = mpl.gridspec.GridSpec(3, 3)
             fig = plt.figure()
             ax1 = fig.add_subplot(gs[:2, :2])
             ax2 = fig.add_subplot(gs[:2, 2])
@@ -2486,8 +2466,14 @@ class TestDataFramePlots:
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = DataFrame(d)
 
-        with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
-            df.plot(subplots=[("a", "bad_name")])
+        if Version(np.__version__) < Version("2.0.0"):
+            with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
+                df.plot(subplots=[("a", "bad_name")])
+        else:
+            with pytest.raises(
+                ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
+            ):
+                df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
         d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
@@ -2595,8 +2581,6 @@ class TestDataFramePlots:
 
 
 def _generate_4_axes_via_gridspec():
-    import matplotlib.pyplot as plt
-
     gs = mpl.gridspec.GridSpec(2, 2)
     ax_tl = plt.subplot(gs[0, 0])
     ax_ll = plt.subplot(gs[1, 0])

@@ -364,14 +364,16 @@ class TestDataFrameColor:
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_area_colors(self):
-        from matplotlib.collections import PolyCollection
-
         custom_colors = "rgcby"
         df = DataFrame(np.random.default_rng(2).random((5, 5)))
 
         ax = df.plot.area(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = [
+            o
+            for o in ax.get_children()
+            if isinstance(o, mpl.collections.PolyCollection)
+        ]
         _check_colors(poly, facecolors=custom_colors)
 
         handles, _ = ax.get_legend_handles_labels()
@@ -381,14 +383,15 @@ class TestDataFrameColor:
             assert h.get_alpha() is None
 
     def test_area_colors_poly(self):
-        from matplotlib import cm
-        from matplotlib.collections import PolyCollection
-
         df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.area(colormap="jet")
-        jet_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
+        jet_colors = [mpl.cm.jet(n) for n in np.linspace(0, 1, len(df))]
         _check_colors(ax.get_lines(), linecolors=jet_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = [
+            o
+            for o in ax.get_children()
+            if isinstance(o, mpl.collections.PolyCollection)
+        ]
         _check_colors(poly, facecolors=jet_colors)
 
         handles, _ = ax.get_legend_handles_labels()
@@ -397,15 +400,16 @@ class TestDataFrameColor:
             assert h.get_alpha() is None
 
     def test_area_colors_stacked_false(self):
-        from matplotlib import cm
-        from matplotlib.collections import PolyCollection
-
         df = DataFrame(np.random.default_rng(2).random((5, 5)))
-        jet_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
+        jet_colors = [mpl.cm.jet(n) for n in np.linspace(0, 1, len(df))]
         # When stacked=False, alpha is set to 0.5
-        ax = df.plot.area(colormap=cm.jet, stacked=False)
+        ax = df.plot.area(colormap=mpl.cm.jet, stacked=False)
         _check_colors(ax.get_lines(), linecolors=jet_colors)
-        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        poly = [
+            o
+            for o in ax.get_children()
+            if isinstance(o, mpl.collections.PolyCollection)
+        ]
         jet_with_alpha = [(c[0], c[1], c[2], 0.5) for c in jet_colors]
         _check_colors(poly, facecolors=jet_with_alpha)
 

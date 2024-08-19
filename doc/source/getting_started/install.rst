@@ -21,7 +21,7 @@ Instructions for installing :ref:`from source <install.source>`,
 Python version support
 ----------------------
 
-Officially Python 3.9, 3.10, 3.11 and 3.12.
+See :ref:`Python support policy <policies.python_support>`.
 
 Installing pandas
 -----------------
@@ -161,7 +161,7 @@ Python terminal.
 
     >>> import pandas as pd
     >>> pd.test()
-    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.10/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
@@ -205,7 +205,6 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.23.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 `tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
 ================================================================ ==========================
 
@@ -419,3 +418,14 @@ Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 Zstandard                 0.19.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
+
+Timezone
+^^^^^^^^
+
+Installable with ``pip install "pandas[timezone]"``
+
+========================= ================== =================== =============================================================
+Dependency                Minimum Version    pip extra           Notes
+========================= ================== =================== =============================================================
+pytz                      2023.4             timezone            Alternative timezone library to ``zoneinfo``.
+========================= ================== =================== =============================================================

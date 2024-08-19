@@ -703,6 +703,11 @@ class IndexOpsMixin(OpsMixin):
         """
         Indicator whether Index is empty.
 
+        An Index is considered empty if it has no elements. This property can be
+        useful for quickly checking the state of an Index, especially in data
+        processing and analysis workflows where handling of empty datasets might
+        be required.
+
         Returns
         -------
         bool
@@ -714,10 +719,10 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        >>> idx_empty = pd.Index([1, 2, 3])
-        >>> idx_empty
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
         Index([1, 2, 3], dtype='int64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
 
         >>> idx_empty = pd.Index([])
@@ -728,10 +733,10 @@ class IndexOpsMixin(OpsMixin):
 
         If we only have NaNs in our DataFrame, it is not considered empty!
 
-        >>> idx_empty = pd.Index([np.nan, np.nan])
-        >>> idx_empty
+        >>> idx = pd.Index([np.nan, np.nan])
+        >>> idx
         Index([nan, nan], dtype='float64')
-        >>> idx_empty.empty
+        >>> idx.empty
         False
         """
         return not self.size
@@ -1044,6 +1049,34 @@ class IndexOpsMixin(OpsMixin):
         4.0    1
         NaN    1
         Name: count, dtype: int64
+
+        **Categorical Dtypes**
+
+        Rows with categorical type will be counted as one group
+        if they have same categories and order.
+        In the example below, even though ``a``, ``c``, and ``d``
+        all have the same data types of ``category``,
+        only ``c`` and ``d`` will be counted as one group
+        since ``a`` doesn't have the same categories.
+
+        >>> df = pd.DataFrame({"a": [1], "b": ["2"], "c": [3], "d": [3]})
+        >>> df = df.astype({"a": "category", "c": "category", "d": "category"})
+        >>> df
+           a  b  c  d
+        0  1  2  3  3
+
+        >>> df.dtypes
+        a    category
+        b      object
+        c    category
+        d    category
+        dtype: object
+
+        >>> df.dtypes.value_counts()
+        category    2
+        category    1
+        object      1
+        Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
             self,
@@ -1329,7 +1362,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[ns]
+        dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
         3

@@ -73,14 +73,6 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
-delim_whitespace : boolean, default False
-  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
-  will be used as the delimiter. Equivalent to setting ``sep='\s+'``.
-  If this option is set to ``True``, nothing should be passed in for the
-  ``delimiter`` parameter.
-
-  .. deprecated: 2.2.0
-    Use ``sep="\\s+" instead.
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
@@ -270,15 +262,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
-  * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
-    column.
-  * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
 
   .. note::
      A fast-path exists for iso8601-formatted dates.
-keep_date_col : boolean, default ``False``
-  If ``True`` and parse_dates specifies combining multiple columns then keep the
-  original columns.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
@@ -810,71 +796,8 @@ The simplest case is to just pass in ``parse_dates=True``:
 
 It is often the case that we may want to store date and time data separately,
 or store various date fields separately. the ``parse_dates`` keyword can be
-used to specify a combination of columns to parse the dates and/or times from.
+used to specify columns to parse the dates and/or times.
 
-You can specify a list of column lists to ``parse_dates``, the resulting date
-columns will be prepended to the output (so as to not affect the existing column
-order) and the new column names will be the concatenation of the component
-column names:
-
-.. ipython:: python
-   :okwarning:
-
-   data = (
-       "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-       "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-       "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-       "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-       "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-       "KORD,19990127, 23:00:00, 22:56:00, -0.5900"
-   )
-
-   with open("tmp.csv", "w") as fh:
-       fh.write(data)
-
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-   df
-
-By default the parser removes the component date columns, but you can choose
-to retain them via the ``keep_date_col`` keyword:
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
-   )
-   df
-
-Note that if you wish to combine multiple columns into a single date column, a
-nested list must be used. In other words, ``parse_dates=[1, 2]`` indicates that
-the second and third columns should each be parsed as separate date columns
-while ``parse_dates=[[1, 2]]`` means the two columns should be parsed into a
-single column.
-
-You can also use a dict to specify custom name columns:
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
-   df
-
-It is important to remember that if multiple text columns are to be parsed into
-a single date column, then a new column is prepended to the data. The ``index_col``
-specification is based off of this new set of columns rather than the original
-data columns:
-
-
-.. ipython:: python
-   :okwarning:
-
-   date_spec = {"nominal": [1, 2], "actual": [1, 3]}
-   df = pd.read_csv(
-       "tmp.csv", header=None, parse_dates=date_spec, index_col=0
-   )  # index is the nominal column
-   df
 
 .. note::
    If a column or index contains an unparsable date, the entire column or
@@ -887,10 +810,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-.. deprecated:: 2.2.0
-   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
-   on the relevant result columns instead.
 
 
 Date parsing functions
@@ -905,12 +824,6 @@ Performance-wise, you should try these methods of parsing dates in order:
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
    then use ``to_datetime``.
-
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
 
 
 .. _io.csv.mixed_timezones:
@@ -1598,7 +1511,6 @@ Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
-* ``sep=None`` with ``delim_whitespace=False``
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
@@ -1613,7 +1525,6 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``memory_map``
 * ``dialect``
 * ``on_bad_lines``
-* ``delim_whitespace``
 * ``quoting``
 * ``lineterminator``
 * ``converters``
@@ -2250,7 +2161,7 @@ a JSON string with two fields, ``schema`` and ``data``.
        {
            "A": [1, 2, 3],
            "B": ["a", "b", "c"],
-           "C": pd.date_range("2016-01-01", freq="d", periods=3),
+           "C": pd.date_range("2016-01-01", freq="D", periods=3),
        },
        index=pd.Index(range(3), name="idx"),
    )
@@ -2359,7 +2270,7 @@ round-trippable manner.
        {
            "foo": [1, 2, 3, 4],
            "bar": ["a", "b", "c", "d"],
-           "baz": pd.date_range("2018-01-01", freq="d", periods=4),
+           "baz": pd.date_range("2018-01-01", freq="D", periods=4),
            "qux": pd.Categorical(["a", "b", "c", "c"]),
        },
        index=pd.Index(range(4), name="idx"),
@@ -3092,7 +3003,7 @@ However, if XPath does not reference node names such as default, ``/*``, then
 .. note::
 
    Since ``xpath`` identifies the parent of content to be parsed, only immediate
-   desendants which include child nodes or current attributes are parsed.
+   descendants which include child nodes or current attributes are parsed.
    Therefore, ``read_xml`` will not parse the text of grandchildren or other
    descendants and will not parse attributes of any descendant. To retrieve
    lower level content, adjust xpath to lower level. For example,
@@ -3624,7 +3535,7 @@ For example, to read in a ``MultiIndex`` index without names:
    df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
    df
 
-If the index has level names, they will parsed as well, using the same
+If the index has level names, they will be parsed as well, using the same
 parameters.
 
 .. ipython:: python
@@ -5079,7 +4990,7 @@ Caveats
   convenience you can use ``store.flush(fsync=True)`` to do this for you.
 * Once a ``table`` is created columns (DataFrame)
   are fixed; only exactly the same columns can be appended
-* Be aware that timezones (e.g., ``pytz.timezone('US/Eastern')``)
+* Be aware that timezones (e.g., ``zoneinfo.ZoneInfo('US/Eastern')``)
   are not necessarily equal across timezone versions.  So if data is
   localized to a specific timezone in the HDFStore using one version
   of a timezone library and that data is updated with another version, the data
@@ -5258,6 +5169,8 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
 
+   import pytz
+
    df = pd.DataFrame(
        {
            "a": list("abc"),
@@ -5267,7 +5180,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
            "e": [True, False, True],
            "f": pd.Categorical(list("abc")),
            "g": pd.date_range("20130101", periods=3),
-           "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "h": pd.date_range("20130101", periods=3, tz=pytz.timezone("US/Eastern")),
            "i": pd.date_range("20130101", periods=3, freq="ns"),
        }
    )
@@ -5936,10 +5849,10 @@ You can check if a table exists using :func:`~pandas.io.sql.has_table`
 Schema support
 ''''''''''''''
 
-Reading from and writing to different schema's is supported through the ``schema``
+Reading from and writing to different schemas is supported through the ``schema``
 keyword in the :func:`~pandas.read_sql_table` and :func:`~pandas.DataFrame.to_sql`
 functions. Note however that this depends on the database flavor (sqlite does not
-have schema's). For example:
+have schemas). For example:
 
 .. code-block:: python
 

@@ -18,9 +18,9 @@ from typing import (
     cast,
 )
 import warnings
+import zoneinfo
 
 import numpy as np
-import pytz
 
 from pandas._config.config import get_option
 
@@ -205,7 +205,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     by providing an empty index. As follows,
 
     >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
-    dtype('<M8[ns]')
+    dtype('<M8[s]')
     """
 
     # TODO: Document public vs. private API
@@ -680,10 +680,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
 
         # categorical is aware of Sparse -> extract sparse subdtypes
-        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        subtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
         # extract the categories' dtype
         non_cat_dtypes = [
-            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x
+            for x in subtypes
         ]
         # TODO should categorical always give an answer?
         from pandas.core.dtypes.cast import find_common_type
@@ -788,7 +789,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             tz = timezones.maybe_get_tz(tz)
             tz = timezones.tz_standardize(tz)
         elif tz is not None:
-            raise pytz.UnknownTimeZoneError(tz)
+            raise zoneinfo.ZoneInfoNotFoundError(tz)
         if tz is None:
             raise TypeError("A 'tz' is required.")
 
@@ -881,7 +882,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 return cls(unit=d["unit"], tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
-                #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
                 # TypeError if we pass a nonsense tz;
                 # ValueError if we pass a unit other than "ns"
                 raise TypeError(msg) from err
@@ -1665,7 +1666,10 @@ class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
 
-    This dtype implements the pandas ExtensionDtype interface.
+    ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
+    more efficient storage of data that contains a significant number of
+    repetitive values typically represented by a fill value. It supports any
+    scalar dtype as the underlying data type of the non-fill values.
 
     Parameters
     ----------
@@ -1673,19 +1677,20 @@ class SparseDtype(ExtensionDtype):
         The dtype of the underlying array storing the non-fill value values.
     fill_value : scalar, optional
         The scalar value not stored in the SparseArray. By default, this
-        depends on `dtype`.
+        depends on ``dtype``.
 
         =========== ==========
         dtype       na_value
         =========== ==========
         float       ``np.nan``
+        complex     ``np.nan``
         int         ``0``
         bool        ``False``
         datetime64  ``pd.NaT``
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        The default value may be overridden by specifying a `fill_value`.
+        The default value may be overridden by specifying a ``fill_value``.
 
     Attributes
     ----------
@@ -1694,6 +1699,11 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    See Also
+    --------
+    arrays.SparseArray : The array structure that uses SparseDtype
+        for data representation.
 
     Examples
     --------

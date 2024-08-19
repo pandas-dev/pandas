@@ -75,6 +75,7 @@ def tips_df(datapath):
 
 
 @pytest.mark.single_cpu
+@pytest.mark.network
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:

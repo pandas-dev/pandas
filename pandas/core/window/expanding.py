@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -32,6 +31,8 @@ from pandas.core.window.rolling import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         QuantileInterpolation,
         WindowingRankType,

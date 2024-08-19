@@ -8,6 +8,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import SpecificationError
 
 import pandas as pd
@@ -209,7 +211,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
+    msg = r"Label\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
@@ -224,7 +226,7 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
-    msg = r"Column\(s\) \['ma'\] do not exist"
+    msg = r"Label\(s\) \['ma'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
@@ -306,6 +308,7 @@ def test_series_agg_multikey():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_series_agg_multi_pure_python():
     data = DataFrame(
         {

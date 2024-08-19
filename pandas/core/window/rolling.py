@@ -13,7 +13,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -90,6 +89,7 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Hashable,
         Iterator,

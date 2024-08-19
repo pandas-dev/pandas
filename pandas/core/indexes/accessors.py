@@ -459,7 +459,7 @@ class TimedeltaProperties(Properties):
 
         Examples
         --------
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="d"))
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit="D"))
         >>> s
         0   0 days
         1   1 days
@@ -489,9 +489,19 @@ class TimedeltaProperties(Properties):
         """
         Return a Dataframe of the components of the Timedeltas.
 
+        Each row of the DataFrame corresponds to a Timedelta in the original
+        Series and contains the individual components (days, hours, minutes,
+        seconds, milliseconds, microseconds, nanoseconds) of the Timedelta.
+
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.components : Return a DataFrame of the individual resolution
+            components of the Timedeltas.
+        Series.dt.total_seconds : Return the total number of seconds in the duration.
 
         Examples
         --------

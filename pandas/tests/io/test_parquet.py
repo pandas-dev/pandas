@@ -9,11 +9,15 @@ import pathlib
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
+    pa_version_under17p0,
+    pa_version_under18p0,
 )
 
 import pandas as pd
@@ -48,6 +52,7 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 
@@ -670,6 +675,7 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
+    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -706,6 +712,14 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
+        if pa_version_under11p0:
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "M8[ns]"
+            )
+        else:
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "M8[ms]"
+            )
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
@@ -942,11 +956,16 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         pytest.importorskip("pyarrow", "11.0.0")
 
-        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
+        if (
+            timezone_aware_date_list.tzinfo != datetime.timezone.utc
+            and pa_version_under18p0
+        ):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason="temporary skip this test until it is properly resolved: "
-                    "https://github.com/pandas-dev/pandas/issues/37286"
+                    reason=(
+                        "pyarrow returns pytz.FixedOffset while pandas "
+                        "constructs datetime.timezone https://github.com/pandas-dev/pandas/issues/37286"
+                    )
                 )
             )
         idx = 5 * [timezone_aware_date_list]
@@ -961,7 +980,11 @@ class TestParquetPyArrow(Base):
         # they both implement datetime.tzinfo
         # they both wrap datetime.timedelta()
         # this use-case sets the resolution to 1 minute
-        check_round_trip(df, pa, check_dtype=False)
+
+        expected = df[:]
+        if pa_version_under11p0:
+            expected.index = expected.index.as_unit("ns")
+        check_round_trip(df, pa, check_dtype=False, expected=expected)
 
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
@@ -972,6 +995,7 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
 
@@ -988,12 +1012,13 @@ class TestParquetPyArrow(Base):
         if pa_version_under13p0:
             # pyarrow infers datetimes as us instead of ns
             expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "timestamp[us][pyarrow]"
-            )
             expected["datetime_tz"] = expected["datetime_tz"].astype(
                 pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
             )
+
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+            "timestamp[ms][pyarrow]"
+        )
 
         check_round_trip(
             df,
@@ -1018,6 +1043,9 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
+    @pytest.mark.xfail(
+        pa_version_under17p0, reason="pa.pandas_compat passes 'datetime64' to .astype"
+    )
     def test_columns_dtypes_not_invalid(self, pa):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -1107,13 +1135,17 @@ class TestParquetPyArrow(Base):
     #     df.to_parquet(tmp_path / "test.parquet")
     #     result = read_parquet(tmp_path / "test.parquet")
     #     assert result["strings"].dtype == "string"
+    # FIXME: don't leave commented-out
 
 
 class TestParquetFastParquet(Base):
+    @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
     def test_basic(self, fp, df_full):
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
         df = df_full
 
-        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz=tz)
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
@@ -1146,6 +1178,10 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(
+        Version(np.__version__) >= Version("2.0.0"),
+        reason="fastparquet uses np.float_ in numpy2",
+    )
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
@@ -1253,6 +1289,25 @@ class TestParquetFastParquet(Base):
                 partition_on=partition_cols,
                 partition_cols=partition_cols,
             )
+
+    def test_empty_dataframe(self, fp):
+        # GH #27339
+        df = pd.DataFrame()
+        expected = df.copy()
+        check_round_trip(df, fp, expected=expected)
+
+    @pytest.mark.xfail(
+        reason="fastparquet passed mismatched values/dtype to DatetimeArray "
+        "constructor, see https://github.com/dask/fastparquet/issues/891"
+    )
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+        idx = 5 * [timezone_aware_date_list]
+
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
+        expected = df.copy()
+        expected.index.name = "index"
+        check_round_trip(df, fp, expected=expected)
 
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:

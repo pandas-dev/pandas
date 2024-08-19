@@ -15,7 +15,6 @@ __all__ = [
     "describe_option",
     "option_context",
     "options",
-    "using_copy_on_write",
 ]
 from pandas._config import config
 from pandas._config import dates  # pyright: ignore[reportUnusedImport]  # noqa: F401
@@ -31,10 +30,6 @@ from pandas._config.config import (
 from pandas._config.display import detect_console_encoding
 
 
-def using_copy_on_write() -> bool:
-    return True
-
-
-def using_pyarrow_string_dtype() -> bool:
+def using_string_dtype() -> bool:
     _mode_options = _global_config["future"]
     return _mode_options["infer_string"]

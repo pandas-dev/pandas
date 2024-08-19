@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -24,6 +26,7 @@ class TestSeriesToCSV:
 
         return out
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_from_csv(self, datetime_series, string_series, temp_file):
         # freq doesn't round-trip
         datetime_series.index = datetime_series.index._with_freq(None)
@@ -31,7 +34,9 @@ class TestSeriesToCSV:
         path = temp_file
         datetime_series.to_csv(path, header=False)
         ts = self.read_csv(path, parse_dates=True)
-        tm.assert_series_equal(datetime_series, ts, check_names=False)
+        expected = datetime_series.copy()
+        expected.index = expected.index.as_unit("s")
+        tm.assert_series_equal(expected, ts, check_names=False)
 
         assert ts.name is None
         assert ts.index.name is None
@@ -57,6 +62,7 @@ class TestSeriesToCSV:
 
         series = self.read_csv(path, sep="|", parse_dates=True)
         check_series = Series({datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
+        check_series.index = check_series.index.as_unit("s")
         tm.assert_series_equal(check_series, series)
 
         series = self.read_csv(path, sep="|", parse_dates=False)
@@ -170,8 +176,5 @@ class TestSeriesToCSV:
 
         # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
         expected = s
-        if using_infer_string:
-            expected.index = expected.index.astype("string[pyarrow_numpy]")
-        else:
-            expected.index = expected.index.astype(str)
+        expected.index = expected.index.astype("str")
         tm.assert_series_equal(result, expected)
