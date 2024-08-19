@@ -357,6 +357,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         elif index.dtype == "str" and not index.dtype.storage == "python":
+            # TODO(infer_string): Make the errors consistent
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
