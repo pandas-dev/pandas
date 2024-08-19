@@ -22,6 +22,13 @@ runs:
         fi
       shell: bash -el {0}
 
+    - name: Uninstall nomlk
+      run: |
+        if conda list nomkl 1>/dev/null; then
+          conda remove nomkl -yes
+        fi
+      shell: bash -el {0}
+
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
