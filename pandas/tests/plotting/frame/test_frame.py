@@ -44,6 +44,7 @@ from pandas.tests.plotting.common import (
     _check_visible,
     get_y_axis,
 )
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -2487,8 +2488,14 @@ class TestDataFramePlots:
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = DataFrame(d)
 
-        with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
-            df.plot(subplots=[("a", "bad_name")])
+        if Version(np.__version__) < Version("2.0.0"):
+            with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
+                df.plot(subplots=[("a", "bad_name")])
+        else:
+            with pytest.raises(
+                ValueError, match=r"Column label\(s\) \[np\.str\_\('bad_name'\)\]"
+            ):
+                df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
         d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
