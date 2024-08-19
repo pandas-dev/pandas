@@ -1137,6 +1137,21 @@ class TestParquetPyArrow(Base):
     #     assert result["strings"].dtype == "string"
     # FIXME: don't leave commented-out
 
+    def test_non_nanosecond_timestamps(self, temp_file):
+        # GH#49236
+        pa = pytest.importorskip("pyarrow", "11.0.0")
+        pq = pytest.importorskip("pyarrow.parquet")
+
+        arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
+        table = pa.table([arr], names=["timestamp"])
+        pq.write_table(table, temp_file)
+        result = read_parquet(temp_file)
+        expected = pd.DataFrame(
+            data={"timestamp": [datetime.datetime(1600, 1, 1)]},
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestParquetFastParquet(Base):
     @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
