@@ -1928,6 +1928,20 @@ class Timestamp(_Timestamp):
         """
         Return time object with same time and tzinfo.
 
+        This method returns a datetime.time object with
+        the time and tzinfo corresponding to the pd.Timestamp
+        object, ignoring any information about the day/date.
+
+        See Also
+        --------
+        datetime.datetime.timetz : Return datetime.time object with the
+            same hour, minute, second, microsecond, fold, and
+            tzinfo attributes as the datetime object.
+        datetime.time : Class to represent the time of day, independent
+            of any particular day.
+        datetime.datetime.tzinfo : Attribute of datetime.datetime objects
+            representing the timezone of the datetime object.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
