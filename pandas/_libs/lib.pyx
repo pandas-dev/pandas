@@ -2489,6 +2489,21 @@ def _convert_to_based_masked(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def _seen_to_numpy_dtype(Seen seen):
+    if seen.bool_:
+        return np.dtype(bool)
+    elif seen.uint_:
+        return np.dtype(np.uint)
+    elif seen.int_ or seen.sint_:
+        return np.dtype(int)
+    elif seen.float_:
+        return np.dtype(float)
+    else:
+        return None
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
@@ -2710,9 +2725,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     numpy_dtype = None
     if len(val_types) == 1:
-        numpy_dtype = np.dtype(val_types.pop())
+        numpy_dtype = _seen_to_numpy_dtype(seen)
         if (
-                numpy_dtype.kind in "biuf"
+                numpy_dtype and numpy_dtype.kind in "biuf"
                 and convert_to_nullable_dtype):
             return _convert_to_based_masked(objects, numpy_dtype)
     if storage == "pyarrow":
