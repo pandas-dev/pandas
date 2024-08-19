@@ -2422,23 +2422,21 @@ class StringMethods(NoNewAttributesMixin):
         )
         from pandas.core.reshape.encoding import get_dummies
 
-        input_series = Series(self._data) if isinstance(self._data, ABCIndex) else self._data
+        input_series = (
+            Series(self._data) if isinstance(self._data, ABCIndex) else self._data
+        )
         string_series = input_series.apply(lambda x: str(x) if not isna(x) else x)
         split_series = string_series.str.split(sep, expand=True).stack()
         valid_split_series = split_series[
-            (split_series.astype(str) != 'None') &
-            ~(split_series.index.get_level_values(0).duplicated(keep='first') & split_series.isna())
+            (split_series.astype(str) != "None")
+            & ~(
+                split_series.index.get_level_values(0).duplicated(keep="first")
+                & split_series.isna()
+            )
         ]
 
         dummy_df = get_dummies(
-            valid_split_series,
-            None,
-            None,
-            dummy_na,
-            None,
-            sparse,
-            False,
-            dtype
+            valid_split_series, None, None, dummy_na, None, sparse, False, dtype
         )
         grouped_dummies = dummy_df.groupby(level=0)
         if dtype == bool:
@@ -2447,7 +2445,9 @@ class StringMethods(NoNewAttributesMixin):
             result_df = grouped_dummies.sum()
 
         if isinstance(prefix, str):
-            result_df.columns = [f"{prefix}{prefix_sep}{col}" for col in result_df.columns]
+            result_df.columns = [
+                f"{prefix}{prefix_sep}{col}" for col in result_df.columns
+            ]
         elif isinstance(prefix, dict):
             if len(prefix) != len(result_df.columns):
                 len_msg = (
@@ -2456,7 +2456,9 @@ class StringMethods(NoNewAttributesMixin):
                     f"({len(result_df.columns)})."
                 )
                 raise ValueError(len_msg)
-            result_df.columns = [f"{prefix[col]}{prefix_sep}{col}" for col in result_df.columns]
+            result_df.columns = [
+                f"{prefix[col]}{prefix_sep}{col}" for col in result_df.columns
+            ]
         elif isinstance(prefix, list):
             if len(prefix) != len(result_df.columns):
                 len_msg = (
@@ -2465,7 +2467,10 @@ class StringMethods(NoNewAttributesMixin):
                     f"({len(result_df.columns)})."
                 )
                 raise ValueError(len_msg)
-            result_df.columns = [f"{prefix[i]}{prefix_sep}{col}" for i, col in enumerate(result_df.columns)]
+            result_df.columns = [
+                f"{prefix[i]}{prefix_sep}{col}"
+                for i, col in enumerate(result_df.columns)
+            ]
 
         if isinstance(self._data, ABCIndex):
             return MultiIndex.from_frame(result_df)

@@ -53,6 +53,7 @@ def test_get_dummies_with_name_dummy_index():
     )
     tm.assert_index_equal(result, expected)
 
+
 def test_get_dummies_with_prefix(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies(sep="|", prefix="prefix")
@@ -119,4 +120,3 @@ def test_get_dummies_with_prefix_dict(any_string_dtype):
         columns=["alpha_a", "beta_b", "gamma_c"],
     )
     tm.assert_frame_equal(result, expected)
-

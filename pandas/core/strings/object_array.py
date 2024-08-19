@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import re
 import textwrap
 from typing import (
