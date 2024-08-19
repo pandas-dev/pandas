@@ -2367,7 +2367,7 @@ class StringMethods(NoNewAttributesMixin):
         self,
         sep: str = "|",
         prefix=None,
-        prefix_sep: str | Iterable[str] | dict[str, str] = "_",
+        prefix_sep: str | Iterable[str] | dict[str, str] | None = "_",
         dummy_na: bool = False,
         sparse: bool = False,
         dtype: NpDtype | None = int,
