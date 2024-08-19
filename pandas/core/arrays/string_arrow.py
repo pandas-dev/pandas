@@ -358,7 +358,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not isinstance(repeats, int):
             return super()._str_repeat(repeats)
         else:
-            return type(self)(pc.binary_repeat(self._pa_array, repeats))
+            return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
@@ -379,13 +379,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ) -> Self:
         if stop is None:
             return super()._str_slice(start, stop, step)
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
+        return ArrowExtensionArray._str_slice(self, start=start, stop=stop, step=step)
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
@@ -427,39 +421,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_dtype(result)
 
-    def _str_lower(self) -> Self:
-        return type(self)(pc.utf8_lower(self._pa_array))
-
-    def _str_upper(self) -> Self:
-        return type(self)(pc.utf8_upper(self._pa_array))
-
-    def _str_strip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_trim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_trim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_lstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_ltrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_rstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_rtrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
+    _str_lower = ArrowExtensionArray._str_lower
+    _str_upper = ArrowExtensionArray._str_upper
+    _str_strip = ArrowExtensionArray._str_strip
+    _str_lstrip = ArrowExtensionArray._str_lstrip
+    _str_rstrip = ArrowExtensionArray._str_rstrip
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return type(self)(result)
+            return ArrowExtensionArray._str_removeprefix(self, prefix)
         return super()._str_removeprefix(prefix)
 
     def _str_removesuffix(self, suffix: str):
