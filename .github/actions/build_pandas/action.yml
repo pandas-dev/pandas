@@ -22,7 +22,7 @@ runs:
         fi
       shell: bash -el {0}
 
-    - name: Uninstall nomlk
+    - name: Uninstall nomkl
       run: |
         if conda list nomkl 1>/dev/null; then
           conda remove nomkl -yes
