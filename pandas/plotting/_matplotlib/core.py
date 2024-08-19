@@ -546,7 +546,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax  # type: ignore[return-value]
+            return new_ax
 
     @final
     @cache_readonly
