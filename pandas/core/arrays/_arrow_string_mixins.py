@@ -23,6 +23,54 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
+    def _result_converter(self, result: pa.Array, na=None):
+        # Convert bool-dtype results to the appropriate output type
+        raise NotImplementedError
+
+    def _str_isalnum(self) -> Self:
+        result = pc.utf8_is_alnum(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isalpha(self):
+        result = pc.utf8_is_alpha(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isdecimal(self):
+        result = pc.utf8_is_decimal(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isdigit(self):
+        result = pc.utf8_is_digit(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_islower(self):
+        result = pc.utf8_is_lower(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isnumeric(self):
+        result = pc.utf8_is_numeric(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isspace(self):
+        result = pc.utf8_is_space(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_istitle(self):
+        result = pc.utf8_is_title(self._pa_array)
+        return self._result_converter(result)
+
+    def _str_isupper(self):
+        result = pc.utf8_is_upper(self._pa_array)
+        return self._result_converter(result)
+
+    def _convert_int_dtype(self, result):
+        # Convert int-dtype results to the appropriate output type
+        raise NotImplementedError
+
+    def _str_len(self):
+        result = pc.utf8_length(self._pa_array)
+        return self._convert_int_dtype(result)
+
     def _str_pad(
         self,
         width: int,

@@ -52,7 +52,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        AxisInt,
         Dtype,
         Scalar,
         Self,
@@ -367,45 +366,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_slice(start, stop, step)
         return ArrowExtensionArray._str_slice(self, start=start, stop=stop, step=step)
 
-    def _str_isalnum(self):
-        result = pc.utf8_is_alnum(self._pa_array)
-        return self._result_converter(result)
+    _str_isalnum = ArrowStringArrayMixin._str_isalnum
+    _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
+    _str_isdigit = ArrowStringArrayMixin._str_isdigit
+    _str_islower = ArrowStringArrayMixin._str_islower
+    _str_isnumeric = ArrowStringArrayMixin._str_isnumeric
+    _str_isspace = ArrowStringArrayMixin._str_isspace
+    _str_istitle = ArrowStringArrayMixin._str_istitle
+    _str_isupper = ArrowStringArrayMixin._str_isupper
 
-    def _str_isalpha(self):
-        result = pc.utf8_is_alpha(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_isdecimal(self):
-        result = pc.utf8_is_decimal(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_isdigit(self):
-        result = pc.utf8_is_digit(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_islower(self):
-        result = pc.utf8_is_lower(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_isnumeric(self):
-        result = pc.utf8_is_numeric(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_isspace(self):
-        result = pc.utf8_is_space(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_istitle(self):
-        result = pc.utf8_is_title(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_isupper(self):
-        result = pc.utf8_is_upper(self._pa_array)
-        return self._result_converter(result)
-
-    def _str_len(self):
-        result = pc.utf8_length(self._pa_array)
-        return self._convert_int_dtype(result)
+    _str_len = ArrowStringArrayMixin._str_len
 
     _str_match = ArrowExtensionArray._str_match
     _str_fullmatch = ArrowExtensionArray._str_fullmatch
@@ -424,8 +395,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             return super()._str_count(pat, flags)
-        result = pc.count_substring_regex(self._pa_array, pat)
-        return self._convert_int_dtype(result)
+        return ArrowExtensionArray._str_count(self, pat, flags)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if start != 0 and end is not None:
@@ -481,27 +451,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return result
 
-    def _rank(
-        self,
-        *,
-        axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
-        ascending: bool = True,
-        pct: bool = False,
-    ):
-        """
-        See Series.rank.__doc__.
-        """
-        return self._convert_int_dtype(
-            self._rank_calc(
-                axis=axis,
-                method=method,
-                na_option=na_option,
-                ascending=ascending,
-                pct=pct,
-            )
-        )
+    _rank = ArrowExtensionArray._rank
 
     def value_counts(self, dropna: bool = True) -> Series:
         result = super().value_counts(dropna=dropna)
