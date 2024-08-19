@@ -656,7 +656,7 @@ cdef class BaseOffset:
         """
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
-            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
+            dt = dt - type(self)(self.n, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt) -> datetime:
@@ -670,7 +670,7 @@ cdef class BaseOffset:
         """
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
-            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
+            dt = dt + type(self)(self.n, normalize=self.normalize, **self.kwds)
         return dt
 
     def _get_offset_day(self, other: datetime) -> int:
