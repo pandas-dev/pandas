@@ -595,12 +595,41 @@ cdef class BaseOffset:
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         return self._prefix
 
     @cache_readonly
     def freqstr(self) -> str:
         """
         Return a string representing the frequency.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay.freqstr :
+            Return a string representing an offset frequency in Business Days.
+        tseries.offsets.BusinessHour.freqstr :
+            Return a string representing an offset frequency in Business Hours.
+        tseries.offsets.Week.freqstr :
+            Return a string representing an offset frequency in Weeks.
+        tseries.offsets.Hour.freqstr :
+            Return a string representing an offset frequency in Hours.
 
         Examples
         --------
@@ -779,6 +808,26 @@ cdef class BaseOffset:
 
     @property
     def nanos(self):
+        """
+        Returns a integer of the total number of nanoseconds for fixed frequencies.
+
+        Raises
+        ------
+        ValueError
+            If the frequency is non-fixed.
+
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(n=1).nanos
+        ValueError: Week: weekday=None is a non-fixed frequency
+        """
         raise ValueError(f"{self} is a non-fixed frequency")
 
     # ------------------------------------------------------------------
@@ -986,12 +1035,14 @@ cdef class Tick(SingleConstructorOffset):
     @property
     def nanos(self) -> int64_t:
         """
-        Return an integer of the total number of nanoseconds.
+        Returns an integer of the total number of nanoseconds.
 
-        Raises
-        ------
-        ValueError
-            If the frequency is non-fixed.
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
 
         Examples
         --------
@@ -1147,7 +1198,7 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -1183,7 +1234,7 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of minutes represented.
@@ -1219,7 +1270,7 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of seconds represented.
@@ -1255,7 +1306,7 @@ cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of milliseconds represented.
@@ -1292,7 +1343,7 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of microseconds represented.
@@ -1329,7 +1380,7 @@ cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of nanoseconds represented.
@@ -1616,7 +1667,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of time periods the offset represents.
@@ -2426,6 +2477,24 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+
+        >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
+        'WOM-1MON'
+        """
         weekday = int_to_weekday.get(self.weekday, "")
         if self.week == -1:
             # LastWeekOfMonth
@@ -2472,6 +2541,24 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.rule_code :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.rule_code :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.tseries.offsets.YearBegin(n=1, month=2).rule_code
+        'YS-FEB'
+
+        >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
+        'YE-JUN'
+        """
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -2506,7 +2593,7 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
@@ -2804,7 +2891,7 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2886,7 +2973,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -2984,7 +3071,7 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3272,7 +3359,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3304,7 +3391,7 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of weeks represented.
@@ -3458,6 +3545,24 @@ cdef class Week(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        See Also
+        --------
+        tseries.offsets.Hour.name :
+            Returns a string representing the base frequency of 'h'.
+        tseries.offsets.Day.name :
+            Returns a string representing the base frequency of 'D'.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour().rule_code
+        'h'
+
+        >>> pd.offsets.Week(5).rule_code
+        'W'
+        """
         suffix = ""
         if self.weekday is not None:
             weekday = int_to_weekday[self.weekday]
@@ -3477,7 +3582,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month".
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3554,7 +3659,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     For example "the last Tuesday of each month".
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of months represented.
@@ -3694,7 +3799,7 @@ cdef class FY5253(FY5253Mixin):
     X is a specific day of the week.
     Y is a certain month of the year
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of fiscal years represented.
@@ -3897,7 +4002,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Parameters
+    Attributes
     ----------
     n : int
         The number of business quarters represented.
@@ -4132,7 +4237,7 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of years represented.
