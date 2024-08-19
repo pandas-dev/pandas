@@ -251,6 +251,13 @@ cdef class _NaT(datetime):
         The copy parameter is available here only for compatibility. Its value
         will not affect the return value.
 
+        Parameters
+        ----------
+        dtype : numpy.dtype, default None
+            Must be None. Otherwise, a ValueError is raised.
+        copy : bool, default False
+            Must be False. Otherwise, a ValueError is raised.
+
         Returns
         -------
         numpy.datetime64 or numpy.timedelta64
@@ -1456,22 +1463,43 @@ default 'raise'
         """
         Implements datetime.replace, handles nanoseconds.
 
+        Returns a new timestamp with the same attributes,
+        except for those given new value.
+
         Parameters
         ----------
         year : int, optional
+            New year value.
         month : int, optional
+            New month value.
         day : int, optional
+            New day value.
         hour : int, optional
+            New hour value.
         minute : int, optional
+            New minute value.
         second : int, optional
+            New second value.
         microsecond : int, optional
+            New microsecond value.
         nanosecond : int, optional
+            New nanosecond value.
         tzinfo : tz-convertible, optional
+            New tzinfo value.
         fold : int, optional
+            New fold value.
 
         Returns
         -------
         Timestamp with fields replaced
+
+        See Also
+        --------
+        Timestamp.normalize : Normalize the Timestamp to midnight,
+            preserving tz information.
+        Timestamp.tz_convert : Convert timezone-aware Timestamp to another time zone.
+        Timestamp.tz_localize : Localize the Timestamp to a timezone.
+        datetime.datetime.replace : Return a new datetime with replaced attributes.
 
         Examples
         --------
