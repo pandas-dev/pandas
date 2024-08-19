@@ -2020,6 +2020,33 @@ def test_resample_empty_series_with_tz():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_quarters_non_unitary():
+    # https://github.com/pandas-dev/pandas/issues/29576
+
+    d = Series(
+        data=np.zeros(365), index=date_range("1950-01-01", "1950-12-31", freq="D")
+    )
+
+    actual = d.resample("2QS-MAR").mean()
+    expected_idx = DatetimeIndex(
+        np.array(
+            [
+                "1949-09-01",
+                "1950-03-01",
+                "1950-09-01",
+            ]
+        ).astype("datetime64[ns]"),
+        freq="2QS-MAR",
+    )
+    expected = Series(0.0, index=expected_idx)
+    print("actual")
+    print(actual)
+    print("expected")
+    print(expected)
+
+    tm.assert_series_equal(expected, actual)
+
+
 @pytest.mark.parametrize("freq", ["2M", "2m", "2Q", "2Q-SEP", "2q-sep", "1Y", "2Y-MAR"])
 def test_resample_M_Q_Y_raises(freq):
     msg = f"Invalid frequency: {freq}"
