@@ -2744,15 +2744,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
-    def _str_get_dummies(self, sep: str = "|"):
-        # sep may not be in categories. Just bail on this.
-        from pandas.core.arrays import NumpyExtensionArray
-
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
-
-    # ------------------------------------------------------------------------
-    # GroupBy Methods
-
     def _groupby_op(
         self,
         *,
