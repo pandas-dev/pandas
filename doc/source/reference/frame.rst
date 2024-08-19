@@ -16,17 +16,11 @@ Constructor
 
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Axes**
-
 .. autosummary::
    :toctree: api/
 
    DataFrame.index
    DataFrame.columns
-
-.. autosummary::
-   :toctree: api/
-
    DataFrame.dtypes
    DataFrame.info
    DataFrame.select_dtypes
