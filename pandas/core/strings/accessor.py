@@ -2442,6 +2442,7 @@ class StringMethods(NoNewAttributesMixin):
         )
         if isinstance(self._data.dtype, ArrowDtype):
             import pyarrow as pa
+
             dtype = ArrowDtype(pa.bool_())
         string_series = input_series.apply(lambda x: str(x) if not isna(x) else x)
         split_series = string_series.str.split(sep, expand=True).stack()
@@ -2489,10 +2490,10 @@ class StringMethods(NoNewAttributesMixin):
                 f"{prefix[i]}{prefix_sep}{col}"
                 for i, col in enumerate(result_df.columns)
             ]
-        
+
         if isinstance(self._data, ABCIndex):
             return MultiIndex.from_frame(result_df)
-            
+
         result_df.attrs = self._data.attrs
         if dtype is not None and not sparse:
             return result_df.astype(dtype)
