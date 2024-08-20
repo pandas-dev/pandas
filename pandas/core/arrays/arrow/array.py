@@ -2380,7 +2380,7 @@ class ArrowExtensionArray(
             if sub == "":
                 # GH 56792
                 result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-                return type(self)(pa.chunked_array(result))
+                return self._convert_int_result(pa.chunked_array(result))
             if start is None:
                 start_offset = 0
                 start = 0
@@ -2394,7 +2394,7 @@ class ArrowExtensionArray(
             found = pc.not_equal(result, pa.scalar(-1, type=result.type))
             offset_result = pc.add(result, start_offset)
             result = pc.if_else(found, offset_result, -1)
-        return type(self)(result)
+        return self._convert_int_result(result)
 
     def _str_join(self, sep: str) -> Self:
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
