@@ -3119,12 +3119,6 @@ default 'raise'
 
         See Also
         --------
-        pd.to_datetime : Convert argument to datetime.
-        Timestamp.to_datetime64 : Convert pd.Timestamp instance
-            to NumPy datetime64 object.
-
-        See Also
-        --------
         Timestamp.toordinal : Return proleptic Gregorian ordinal.
         Timestamp.timestamp : Return POSIX timestamp as float.
         Timestamp : Represents a single timestamp.
