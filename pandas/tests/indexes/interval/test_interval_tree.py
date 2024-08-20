@@ -4,10 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.interval import IntervalTree
-from pandas.compat import (
-    IS64,
-    WASM,
-)
+from pandas.compat import IS64
 
 import pandas._testing as tm
 
