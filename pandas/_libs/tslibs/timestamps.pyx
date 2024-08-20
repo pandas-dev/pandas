@@ -1342,7 +1342,17 @@ cdef class _Timestamp(ABCTimestamp):
 
     cpdef to_datetime64(self):
         """
-        Return a numpy.datetime64 object with same precision.
+        Return a NumPy datetime64 object with same precision.
+
+        This method returns a numpy.datetime64 object with the same
+        date and time information and precision as the pd.Timestamp object.
+
+        See Also
+        --------
+        numpy.datetime64 : Class to represent dates and times with high precision.
+        Timestamp.to_numpy : Alias for this method.
+        Timestamp.asm8 : Alias for this method.
+        pd.to_datetime : Convert argument to datetime.
 
         Examples
         --------
@@ -2093,6 +2103,19 @@ class Timestamp(_Timestamp):
         """
         Return time object with same time and tzinfo.
 
+        This method returns a datetime.time object with
+        the time and tzinfo corresponding to the pd.Timestamp
+        object, ignoring any information about the day/date.
+
+        See Also
+        --------
+        datetime.datetime.timetz : Return datetime.time object with the
+            same time attributes as the datetime object.
+        datetime.time : Class to represent the time of day, independent
+            of any particular day.
+        datetime.datetime.tzinfo : Attribute of datetime.datetime objects
+            representing the timezone of the datetime object.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
@@ -2141,9 +2164,27 @@ class Timestamp(_Timestamp):
     @classmethod
     def strptime(cls, date_string, format):
         """
-        Timestamp.strptime(string, format)
+        Convert string argument to datetime.
 
-        Function is not implemented. Use pd.to_datetime().
+        This method is not implemented; calling it will raise NotImplementedError.
+        Use pd.to_datetime() instead.
+
+        Parameters
+        ----------
+        date_string : str
+            String to convert to a datetime.
+        format : str, default None
+            The format string to parse time, e.g. "%d/%m/%Y".
+
+        See Also
+        --------
+        pd.to_datetime : Convert argument to datetime.
+        datetime.datetime.strptime : Return a datetime corresponding to a string
+            representing a date and time, parsed according to a separate
+            format string.
+        datetime.datetime.strftime : Return a string representing the date and
+            time, controlled by an explicit format string.
+        Timestamp.isoformat : Return the time formatted according to ISO 8601.
 
         Examples
         --------
@@ -3073,7 +3114,8 @@ default 'raise'
         """
         Convert TimeStamp to a Julian Date.
 
-        0 Julian date is noon January 1, 4713 BC.
+        This method returns the number of days as a float since
+        0 Julian date, which is noon January 1, 4713 BC.
 
         See Also
         --------
