@@ -2366,8 +2366,8 @@ class StringMethods(NoNewAttributesMixin):
     def get_dummies(
         self,
         sep: str = "|",
-        prefix=None,
-        prefix_sep: str | Iterable[str] | dict[str, str] | None = "_",
+        prefix: str | Iterable[str] | dict[str, str] | None = None,
+        prefix_sep: str | None = "_",
         dummy_na: bool = False,
         sparse: bool = False,
         dtype: NpDtype | None = int,
@@ -2382,6 +2382,21 @@ class StringMethods(NoNewAttributesMixin):
         ----------
         sep : str, default "|"
             String to split on.
+        prefix : str, list of str, or dict of str, default None
+        String to append DataFrame column names.
+        Pass a list with length equal to the number of columns
+        when calling get_dummies on a DataFrame. Alternatively, `prefix`
+        can be a dictionary mapping column names to prefixes.
+        prefix_sep : str, default '_'
+            If appending prefix, separator/delimiter to use. Or pass a
+            list or dictionary as with `prefix`.
+        dummy_na : bool, default False
+            Add a column to indicate NaNs, if False NaNs are ignored.
+        sparse : bool, default False
+            Whether the dummy-encoded columns should be backed by
+            a :class:`SparseArray` (True) or a regular NumPy array (False).
+        dtype : dtype, default bool
+            Data type for new columns. Only a single dtype is allowed.
 
         Returns
         -------
