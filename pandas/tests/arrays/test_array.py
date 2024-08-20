@@ -5,6 +5,8 @@ import zoneinfo
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -218,7 +220,9 @@ def test_dt64_array(dtype_unit):
             "str",
             pd.StringDtype(na_value=np.nan)
             .construct_array_type()
-            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan)),
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan))
+            if using_string_dtype()
+            else NumpyExtensionArray(np.array(["a", "None"])),
         ),
         (
             ["a", None],
