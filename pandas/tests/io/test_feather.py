@@ -215,6 +215,10 @@ class TestFeather:
                 }
             )
 
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_int_columns_and_index(self):
