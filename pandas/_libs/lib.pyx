@@ -1121,7 +1121,12 @@ def is_hashable(obj: object) -> bool:
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
 
-    return PyObject_Hash(obj) != -1
+    try:
+        PyObject_Hash(obj)
+    except TypeError:
+        return False
+    else:
+        return True
 
 
 def is_integer(obj: object) -> bool:
