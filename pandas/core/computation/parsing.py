@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from io import StringIO
 from keyword import iskeyword
 import token
@@ -32,12 +33,20 @@ def create_valid_python_identifier(name: str) -> str:
     ------
     SyntaxError
         If the returned name is not a Python valid identifier, raise an exception.
-        This can happen if there is a hashtag in the name, as the tokenizer will
-        than terminate and not find the backtick.
-        But also for characters that fall out of the range of (U+0001..U+007F).
     """
     if name.isidentifier() and not iskeyword(name):
         return name
+
+    # Escape characters that fall outside the ASCII range (U+0001..U+007F).
+    # GH 49633
+    gen = (
+        (c, "".join(chr(b) for b in c.encode("ascii", "backslashreplace")))
+        for c in name
+    )
+    name = "".join(
+        c_escaped.replace("\\", "_UNICODE_" if c != c_escaped else "_BACKSLASH_")
+        for c, c_escaped in gen
+    )
 
     # Create a dict with the special characters and their replacement string.
     # EXACT_TOKEN_TYPES contains these special characters
@@ -54,11 +63,10 @@ def create_valid_python_identifier(name: str) -> str:
             "$": "_DOLLARSIGN_",
             "€": "_EUROSIGN_",
             "°": "_DEGREESIGN_",
-            # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
-            # Currently not possible. Terminates parser and won't find backtick.
-            # "#": "_HASH_",
+            "#": "_HASH_",
+            "`": "_BACKTICK_",
         }
     )
 
@@ -127,6 +135,9 @@ def clean_column_name(name: Hashable) -> Hashable:
         which is not caught and propagates to the user level.
     """
     try:
+        # Escape backticks
+        name = name.replace("`", "``") if isinstance(name, str) else name
+
         tokenized = tokenize_string(f"`{name}`")
         tokval = next(tokenized)[1]
         return create_valid_python_identifier(tokval)
@@ -168,6 +179,91 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
+class ParseState(Enum):
+    DEFAULT = 0
+    IN_BACKTICK = 1
+    IN_SINGLE_QUOTE = 2
+    IN_DOUBLE_QUOTE = 3
+
+
+def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
+    """
+    Splits a str into substrings along backtick characters (`).
+
+    Disregards backticks inside quotes.
+
+    Parameters
+    ----------
+    s : str
+        The Python source code string.
+
+    Returns
+    -------
+    substrings: list[tuple[bool, str]]
+        List of tuples, where each tuple has two elements:
+        The first is a boolean indicating if the substring is backtick-quoted.
+        The second is the actual substring.
+    """
+    substrings = []
+    substr: list[str] = []  # Will join into a string before adding to `substrings`
+    i = 0
+    parse_state = ParseState.DEFAULT
+    while i < len(s):
+        char = s[i]
+
+        match char:
+            case "`":
+                # start of a backtick-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    if substr:
+                        substrings.append((False, "".join(substr)))
+
+                    substr = [char]
+                    i += 1
+                    parse_state = ParseState.IN_BACKTICK
+                    continue
+
+                elif parse_state == ParseState.IN_BACKTICK:
+                    # escaped backtick inside a backtick-quoted string
+                    next_char = s[i + 1] if (i != len(s) - 1) else None
+                    if next_char == "`":
+                        substr.append(char)
+                        substr.append(next_char)
+                        i += 2
+                        continue
+
+                    # end of the backtick-quoted string
+                    else:
+                        substr.append(char)
+                        substrings.append((True, "".join(substr)))
+
+                        substr = []
+                        i += 1
+                        parse_state = ParseState.DEFAULT
+                        continue
+            case "'":
+                # start of a single-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    parse_state = ParseState.IN_SINGLE_QUOTE
+                # end of a single-quoted string
+                elif (parse_state == ParseState.IN_SINGLE_QUOTE) and (s[i - 1] != "\\"):
+                    parse_state = ParseState.DEFAULT
+            case '"':
+                # start of a double-quoted string
+                if parse_state == ParseState.DEFAULT:
+                    parse_state = ParseState.IN_DOUBLE_QUOTE
+                # end of a double-quoted string
+                elif (parse_state == ParseState.IN_DOUBLE_QUOTE) and (s[i - 1] != "\\"):
+                    parse_state = ParseState.DEFAULT
+        substr.append(char)
+        i += 1
+
+    if substr:
+        substrings.append((False, "".join(substr)))
+
+    return substrings
+
+
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.
@@ -182,18 +278,19 @@ def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     tok_generator : Iterator[Tuple[int, str]]
         An iterator yielding all tokens with only toknum and tokval (Tuple[ing, str]).
     """
+    # GH 59285
+    # Escape characters, including backticks
+    source = "".join(
+        (
+            create_valid_python_identifier(substring[1:-1])
+            if is_backtick_quoted
+            else substring
+        )
+        for is_backtick_quoted, substring in _split_by_backtick(source)
+    )
+
     line_reader = StringIO(source).readline
     token_generator = tokenize.generate_tokens(line_reader)
 
-    # Loop over all tokens till a backtick (`) is found.
-    # Then, take all tokens till the next backtick to form a backtick quoted string
-    for toknum, tokval, start, _, _ in token_generator:
-        if tokval == "`":
-            try:
-                yield tokenize_backtick_quoted_string(
-                    token_generator, source, string_start=start[1] + 1
-                )
-            except Exception as err:
-                raise SyntaxError(f"Failed to parse backticks in '{source}'.") from err
-        else:
-            yield toknum, tokval
+    for toknum, tokval, _, _, _ in token_generator:
+        yield toknum, tokval

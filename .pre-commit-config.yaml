@@ -23,6 +23,7 @@ repos:
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+        exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
@@ -31,7 +32,7 @@ repos:
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
-        exclude: ^scripts
+        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.11'
     hooks:
@@ -85,6 +86,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
       - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
