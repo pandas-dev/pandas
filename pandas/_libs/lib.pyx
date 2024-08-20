@@ -24,6 +24,7 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject,
+    PyObject_Hash,
     PyObject_RichCompareBool,
 )
 from cpython.ref cimport Py_INCREF
@@ -1087,6 +1088,40 @@ def is_float(obj: object) -> bool:
     False
     """
     return util.is_float_object(obj)
+
+
+def is_hashable(obj: object) -> bool:
+    """
+    Return True if hash(obj) will succeed, False otherwise.
+
+    Some types will pass a test against collections.abc.Hashable but fail when
+    they are actually hashed with hash().
+
+    Distinguish between these and other types by trying the call to hash() and
+    seeing if they raise TypeError.
+
+    Returns
+    -------
+    bool
+
+    Examples
+    --------
+    >>> import collections
+    >>> from pandas.api.types import is_hashable
+    >>> a = ([],)
+    >>> isinstance(a, collections.abc.Hashable)
+    True
+    >>> is_hashable(a)
+    False
+    """
+    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
+    # which can be faster than calling hash. That is because numpy scalars
+    # fail this test.
+
+    # Reconsider this decision once this numpy bug is fixed:
+    # https://github.com/numpy/numpy/issues/5562
+
+    return PyObject_Hash(obj) != -1
 
 
 def is_integer(obj: object) -> bool:

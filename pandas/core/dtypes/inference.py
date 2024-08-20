@@ -13,8 +13,6 @@ import numpy as np
 from pandas._libs import lib
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
-
     from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
@@ -22,6 +20,8 @@ is_bool = lib.is_bool
 is_integer = lib.is_integer
 
 is_float = lib.is_float
+
+is_hashable = lib.is_hashable
 
 is_complex = lib.is_complex
 
@@ -328,45 +328,6 @@ def is_named_tuple(obj: object) -> bool:
     False
     """
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
-
-
-def is_hashable(obj: object) -> TypeGuard[Hashable]:
-    """
-    Return True if hash(obj) will succeed, False otherwise.
-
-    Some types will pass a test against collections.abc.Hashable but fail when
-    they are actually hashed with hash().
-
-    Distinguish between these and other types by trying the call to hash() and
-    seeing if they raise TypeError.
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
-    >>> import collections
-    >>> from pandas.api.types import is_hashable
-    >>> a = ([],)
-    >>> isinstance(a, collections.abc.Hashable)
-    True
-    >>> is_hashable(a)
-    False
-    """
-    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
-    # which can be faster than calling hash. That is because numpy scalars
-    # fail this test.
-
-    # Reconsider this decision once this numpy bug is fixed:
-    # https://github.com/numpy/numpy/issues/5562
-
-    try:
-        hash(obj)
-    except TypeError:
-        return False
-    else:
-        return True
 
 
 def is_sequence(obj: object) -> bool:
