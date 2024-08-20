@@ -106,7 +106,8 @@ class _Version(NamedTuple):
 
 
 def parse(version: str) -> Version:
-    """Parse the given version string.
+    """
+    Parse the given version string.
 
     >>> parse("1.0.dev1")
     <Version('1.0.dev1')>
@@ -118,7 +119,8 @@ def parse(version: str) -> Version:
 
 
 class InvalidVersion(ValueError):
-    """Raised when a version string is not a valid version.
+    """
+    Raised when a version string is not a valid version.
 
     >>> Version("invalid")
     Traceback (most recent call last):
@@ -220,7 +222,8 @@ flags set.
 
 
 class Version(_BaseVersion):
-    """This class abstracts handling of a project's versions.
+    """
+    This class abstracts handling of a project's versions.
 
     A :class:`Version` instance is comparison aware and can be compared and
     sorted using the standard Python interfaces.
@@ -247,7 +250,8 @@ class Version(_BaseVersion):
     _key: CmpKey
 
     def __init__(self, version: str) -> None:
-        """Initialize a Version object.
+        """
+        Initialize a Version object.
 
         :param version:
             The string representation of a version which will be parsed and normalized
@@ -285,7 +289,8 @@ class Version(_BaseVersion):
         )
 
     def __repr__(self) -> str:
-        """A representation of the Version that shows all internal state.
+        """
+        A representation of the Version that shows all internal state.
 
         >>> Version("1.0.0")
         <Version('1.0.0')>
@@ -293,7 +298,8 @@ class Version(_BaseVersion):
         return f"<Version('{self}')>"
 
     def __str__(self) -> str:
-        """A string representation of the version that can be round-tripped.
+        """
+        A string representation of the version that can be round-tripped.
 
         >>> str(Version("1.0a5"))
         '1.0a5'
