@@ -6,36 +6,18 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
 import csv
 import sys
-from textwrap import fill
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Literal,
-    TypedDict,
-    overload,
-)
 import warnings
+from collections import abc, defaultdict
+from textwrap import fill
+from typing import IO, TYPE_CHECKING, Any, Generic, Literal, TypedDict, overload
 
 import numpy as np
 
+from pandas import Series
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas.errors import (
-    AbstractMethodError,
-    ParserWarning,
-)
-from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import check_dtype_backend
-
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
@@ -43,38 +25,21 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
 )
-
-from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
-
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-    stringify_path,
-    validate_header_arg,
-)
+from pandas.errors import AbstractMethodError, ParserWarning
+from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
-from pandas.io.parsers.base_parser import (
-    ParserBase,
-    is_index_col,
-    parser_defaults,
-)
+from pandas.io.parsers.base_parser import ParserBase, is_index_col, parser_defaults
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-from pandas.io.parsers.python_parser import (
-    FixedWidthFieldParser,
-    PythonParser,
-)
+from pandas.io.parsers.python_parser import FixedWidthFieldParser, PythonParser
+from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Hashable,
-        Iterable,
-        Mapping,
-        Sequence,
-    )
+    from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import TracebackType
 
     from pandas._typing import (
@@ -138,6 +103,7 @@ if TYPE_CHECKING:
         float_precision: Literal["high", "legacy", "round_trip"] | None
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
+
 else:
     _read_shared = dict
 
@@ -321,20 +287,18 @@ parse_dates : bool, None, list of Hashable, default None
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
-    The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
-    `strftime documentation
-    <https://docs.python.org/3/library/datetime.html
-    #strftime-and-strptime-behavior>`_ for more information on choices, though
-    note that :const:`"%f"` will parse all the way up to nanoseconds.
-    You can also pass:
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
+    This format should be specified using the `strftime` directives (e.g., :const:`"%d/%m/%Y"`).
+    Refer to the `strftime documentation <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior>`_
+    for more details on format choices. Note that :const:`"%f"` will parse all the way up to nanoseconds.
 
-    - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
-      time string (not necessarily in exactly the same format);
-    - "mixed", to infer the format for each element individually. This is risky,
-      and you should probably use it along with `dayfirst`.
+    You can also pass the following special values:
+
+    - "ISO8601": To parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ time string (not necessarily in exactly the same format).
+    - "mixed": To infer the format for each element individually. This is less predictable and should generally be used with `dayfirst` for safer parsing.
 
     .. versionadded:: 2.0.0
+    
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
 cache_dates : bool, default True
@@ -792,10 +756,9 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -927,10 +890,9 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
