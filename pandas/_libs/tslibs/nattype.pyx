@@ -783,6 +783,18 @@ class NaTType(_NaT):
 
         Transform timestamp[, tz] to tz's local time from POSIX timestamp.
 
+        Parameters
+        ----------
+        ts : float
+            The POSIX timestamp to convert.
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, default None
+            Time zone for time which Timestamp will be converted to.
+            If None, uses the system's local timezone.
+
+        See Also
+        --------
+        datetime.datetime.fromtimestamp : Standard library function to convert a timestamp to a datetime object.
+
         Examples
         --------
         >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
@@ -913,6 +925,12 @@ class NaTType(_NaT):
             Date corresponding to a proleptic Gregorian ordinal.
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        See Also
+        --------
+        Timestamp.fromtimestamp : Create a Timestamp from a POSIX timestamp.
+        Timestamp.toordinal: Return proleptic Gregorian ordinal.
+        datetime.datetime.fromordinal : Standard library function to convert an ordinal to a datetime.
 
         Notes
         -----
