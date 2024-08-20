@@ -24,7 +24,7 @@ runs:
 
     - name: Uninstall nomkl
       run: |
-        if conda list nomkl 1>/dev/null; then
+        if conda list nomkl | grep nomkl 1>/dev/null; then
           conda remove nomkl -y
         fi
       shell: bash -el {0}
