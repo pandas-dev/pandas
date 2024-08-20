@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
+from pandas.compat import IS64
 
 from pandas import (
     Index,
