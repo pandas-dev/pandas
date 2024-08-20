@@ -2892,7 +2892,14 @@ default 'raise'
         """
         Convert TimeStamp to a Julian Date.
 
-        0 Julian date is noon January 1, 4713 BC.
+        This method returns the number of days as a float since
+        0 Julian date, which is noon January 1, 4713 BC.
+
+        See Also
+        --------
+        pd.to_datetime : Convert argument to datetime.
+        Timestamp.to_datetime64 : Convert pd.Timestamp instance
+            to NumPy datetime64 object.
 
         Examples
         --------
