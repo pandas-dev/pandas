@@ -501,7 +501,7 @@ class TestSeriesReplace:
         s = pd.Series([1, 2, 3, 4, 5])
         to_replace = pd.Series([1])
         value = pd.Series([75])
-        msg = "Series.replace cannot use dict-like to_replace dict-like."
+        msg = "to_replace and value cannot be dict-like for Series.replace"
         with pytest.raises(ValueError, match=msg):
             s.replace(to_replace, value)
 
