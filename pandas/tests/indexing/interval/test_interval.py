@@ -210,7 +210,7 @@ class TestIntervalIndexInsideMultiIndex:
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(not WASM, reason="GH 23440")
+    @pytest.mark.xfail(WASM, reason="GH 23440")
     @pytest.mark.parametrize("base", [101, 1010])
     def test_reindex_behavior_with_interval_index(self, base):
         # GH 51826

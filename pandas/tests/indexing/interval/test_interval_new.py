@@ -214,7 +214,7 @@ class TestIntervalIndex:
             obj.loc[[4, 5, 6]]
 
 
-@pytest.mark.xfail(not WASM, reason="GH 23440")
+@pytest.mark.xfail(WASM, reason="GH 23440")
 @pytest.mark.parametrize(
     "intervals",
     [
