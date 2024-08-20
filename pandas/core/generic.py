@@ -7490,7 +7490,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     if isinstance(self, ABCSeries):
                         raise ValueError(
-                            "to_replace and value cannot be dict-like for Series.replace"
+                            "to_replace and value cannot be dict-like for "
+                            "Series.replace"
                         )
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
