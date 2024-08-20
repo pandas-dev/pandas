@@ -751,8 +751,7 @@ class NaTType(_NaT):
         See Also
         --------
         datetime.datetime.timetz : Return datetime.time object with the
-            same hour, minute, second, microsecond, fold, and
-            tzinfo attributes as the datetime object.
+            same time attributes as the datetime object.
         datetime.time : Class to represent the time of day, independent
             of any particular day.
         datetime.datetime.tzinfo : Attribute of datetime.datetime objects
