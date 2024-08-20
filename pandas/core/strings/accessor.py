@@ -2370,7 +2370,7 @@ class StringMethods(NoNewAttributesMixin):
         prefix_sep: str | None = "_",
         dummy_na: bool = False,
         sparse: bool = False,
-        dtype: NpDtype | None = int,
+        dtype: NpDtype | None = np.int64,
     ):
         """
         Return DataFrame of dummy/indicator variables for Series.
