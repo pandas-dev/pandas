@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.interval import IntervalTree
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    WASM,
+)
 
 import pandas._testing as tm
 
@@ -186,6 +189,7 @@ class TestIntervalTree:
         expected = (50 + np.iinfo(np.int64).max) / 2
         assert result == expected
 
+    @pytest.mark.xfail(not WASM, reason="GH 23440")
     @pytest.mark.parametrize(
         "left, right, expected",
         [
