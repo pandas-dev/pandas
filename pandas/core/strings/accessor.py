@@ -2387,6 +2387,8 @@ class StringMethods(NoNewAttributesMixin):
             If appending prefix, separator/delimiter to use.
         dummy_na : bool, default False
             Add a column to indicate NaNs, if False NaNs are ignored.
+        dtype: dtype, default int64
+            Data type for new columns. Only a single dtype is allowed.
 
         Returns
         -------
