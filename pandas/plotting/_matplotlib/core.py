@@ -455,6 +455,8 @@ class MPLPlot(ABC):
                 styles = self.style
             else:
                 styles = [self.style]
+            if isinstance(self.style, dict):
+                styles = [self.style[col] for col in self.columns if col in self.style]
             # need only a single match
             for s in styles:
                 if _color_in_style(s):
