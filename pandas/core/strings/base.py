@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     import re
 
     from pandas._typing import (
+        NpDtype,
         Scalar,
         Self,
     )
@@ -161,7 +162,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(
+        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype = None
+    ):
         pass
 
     @abc.abstractmethod

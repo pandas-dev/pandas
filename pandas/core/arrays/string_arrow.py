@@ -550,12 +550,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_find(sub, start, end)
         return self._convert_int_dtype(result)
 
-    def _str_get_dummies(self, sep: str = "|"):
-        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+    def _str_get_dummies(
+        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype = None
+    ):
+        if dtype is None:
+            dtype = np.int64
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
+            sep, dummy_na, dtype
+        )
         if len(labels) == 0:
-            return np.empty(shape=(0, 0), dtype=np.int64), labels
+            return np.empty(shape=(0, 0), dtype=dtype), labels
         dummies = np.vstack(dummies_pa.to_numpy())
-        return dummies.astype(np.int64, copy=False), labels
+        return dummies.astype(dtype, copy=False), labels
 
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)

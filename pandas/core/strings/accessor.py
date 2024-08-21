@@ -51,8 +51,11 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Iterator,
     )
+
+    from pandas._typing import NpDtype
 
     from pandas import (
         DataFrame,
@@ -2357,7 +2360,14 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def get_dummies(self, sep: str = "|"):
+    def get_dummies(
+        self,
+        sep: str = "|",
+        prefix: str | Iterable[str] | dict[str, str] | None = None,
+        prefix_sep: str = "_",
+        dummy_na: bool = False,
+        dtype: NpDtype | None = None,
+    ):
         """
         Return DataFrame of dummy/indicator variables for Series.
 
@@ -2368,6 +2378,15 @@ class StringMethods(NoNewAttributesMixin):
         ----------
         sep : str, default "|"
             String to split on.
+        prefix : str, list of str, or dict of str, default None
+            String to append DataFrame column names.
+            Pass a list with length equal to the number of columns
+            when calling get_dummies on a DataFrame. Alternatively, `prefix`
+            can be a dictionary mapping column names to prefixes.
+        prefix_sep : str, default '_'
+            If appending prefix, separator/delimiter to use.
+        dummy_na : bool, default False
+            Add a column to indicate NaNs, if False NaNs are ignored.
 
         Returns
         -------
@@ -2392,10 +2411,58 @@ class StringMethods(NoNewAttributesMixin):
         0  1  1  0
         1  0  0  0
         2  1  0  1
+
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(dummy_na=True)
+           a  b  c  NaN
+        0  1  1  0    0
+        1  0  0  0    1
+        2  1  0  1    0
+
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(prefix="prefix")
+              prefix_a  prefix_b  prefix_c
+        0          1         1         0
+        1          0         0         0
+        2          1         0         1
+
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(
+        ...     prefix={"a": "alpha", "b": "beta", "c": "gamma"}
+        ... )
+              alpha_a  beta_b  gamma_c
+        0          1       1       0
+        1          0       0       0
+        2          1       0       1
+
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies(dtype=bool)
+                a      b      c
+        0   True   True    False
+        1   False  False   False
+        2   True   False   True
         """
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        result, name = self._data.array._str_get_dummies(sep)
+        result, name = self._data.array._str_get_dummies(sep, dummy_na, dtype)
+        name = [np.nan if x == "NaN" else x for x in name]
+        if isinstance(prefix, str):
+            name = [f"{prefix}{prefix_sep}{col}" for col in name]
+        elif isinstance(prefix, dict):
+            if len(prefix) != len(name):
+                len_msg = (
+                    f"Length of 'prefix' ({len(prefix)}) did not match the "
+                    "length of the columns being encoded "
+                    f"({len(name)})."
+                )
+                raise ValueError(len_msg)
+            name = [f"{prefix[col]}{prefix_sep}{col}" for col in name]
+        elif isinstance(prefix, list):
+            if len(prefix) != len(name):
+                len_msg = (
+                    f"Length of 'prefix' ({len(prefix)}) did not match the "
+                    "length of the columns being encoded "
+                    f"({len(name)})."
+                )
+                raise ValueError(len_msg)
+            name = [f"{prefix[i]}{prefix_sep}{col}" for i, col in enumerate(name)]
+
         return self._wrap_result(
             result,
             name=name,
