@@ -945,6 +945,7 @@ class TestParquetPyArrow(Base):
         with pd.option_context("string_storage", string_storage):
             if using_infer_string:
                 expected = df.astype("str")
+                expected.columns = expected.columns.astype("str")
             else:
                 expected = df.astype(f"string[{string_storage}]")
             check_round_trip(df, pa, expected=expected)
