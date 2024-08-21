@@ -40,6 +40,9 @@ matplotlib.use("template")
 
 # Styler methods are Jinja2 objects who's docstrings we don't own.
 IGNORE_VALIDATION = {
+    "util.version.parse",
+    "util.version.InvalidVersion",
+    "util.version.Version",
     "Styler.env",
     "Styler.template_html",
     "Styler.template_html_style",
