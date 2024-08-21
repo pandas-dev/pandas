@@ -37,7 +37,6 @@ requirements:
     - numpy >=1.21.6  # [py<311]
     - numpy >=1.23.2  # [py>=311]
     - python-dateutil >=2.8.2
-    - pytz >=2020.1
     - python-tzdata >=2022.7
 
 test:

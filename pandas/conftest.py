@@ -32,7 +32,10 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 from dateutil.tz import (
@@ -43,11 +46,8 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import (
-    FixedOffset,
-    utc,
-)
 
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -92,12 +92,7 @@ else:
     del pa
     has_pyarrow = True
 
-import zoneinfo
-
-try:
-    zoneinfo.ZoneInfo("UTC")
-except zoneinfo.ZoneInfoNotFoundError:
-    zoneinfo = None  # type: ignore[assignment]
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 
 # ----------------------------------------------------------------
@@ -1199,19 +1194,19 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    FixedOffset(300),
-    FixedOffset(0),
-    FixedOffset(-300),
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
-if zoneinfo is not None:
+if pytz is not None:
     TIMEZONES.extend(
-        [
-            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
-            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
-        ]
+        (
+            pytz.FixedOffset(300),
+            pytz.FixedOffset(0),
+            pytz.FixedOffset(-300),
+            pytz.timezone("US/Pacific"),
+            pytz.timezone("UTC"),
+        )
     )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
@@ -1234,9 +1229,10 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
-if zoneinfo is not None:
-    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+
+if pytz is not None:
+    _UTCS.append(pytz.utc)
 
 
 @pytest.fixture(params=_UTCS)
@@ -2046,12 +2042,12 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
-if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
+_warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if pytz is not None:
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
 
 
-@pytest.fixture(params=warsaws)
+@pytest.fixture(params=_warsaws)
 def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
