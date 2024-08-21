@@ -508,6 +508,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.take` when ``indices`` is a full range indexer from zero to length of index (:issue:`56806`)
 - Performance improvement in :meth:`Index.to_frame` returning a :class:`RangeIndex` columns of a :class:`Index` when possible. (:issue:`58018`)
 - Performance improvement in :meth:`MultiIndex._engine` to use smaller dtypes if possible (:issue:`58411`)
+- Performance improvement in :class:`MultiIndex` when setting :attr:`MultiIndex.names` doesn't invalidate all cached operations (:issue:`?`)
 - Performance improvement in :meth:`MultiIndex.equals` for equal length indexes (:issue:`56990`)
 - Performance improvement in :meth:`MultiIndex.memory_usage` to ignore the index engine when it isn't already cached. (:issue:`58385`)
 - Performance improvement in :meth:`RangeIndex.__getitem__` with a boolean mask or integers returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57588`)
