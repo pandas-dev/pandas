@@ -207,18 +207,10 @@ def _isna(obj):
     elif isinstance(obj, ABCSeries):
         result = _isna_array(obj._values)
         # box
-        if isinstance(obj.dtype, ArrowDtype):
-            result = obj._constructor(
-                result,
-                index=obj.index,
-                name=obj.name,
-                copy=False,
-                dtype="bool[pyarrow]",
-            )
-        else:
-            result = obj._constructor(
-                result, index=obj.index, name=obj.name, copy=False
-            )
+        new_dtype = "bool[pyarrow]" if isinstance(obj.dtype, ArrowDtype) else None
+        result = obj._constructor(
+            result, index=obj.index, name=obj.name, copy=False, dtype=new_dtype
+        )
         return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
