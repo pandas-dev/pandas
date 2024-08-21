@@ -36,9 +36,8 @@ def test_config(string_storage, using_infer_string):
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    dtype = StringDtype(
-        string_storage, na_value=np.nan if using_infer_string else pd.NA
-    )
+    # pd.array(..) by default always returns the NA-variant
+    dtype = StringDtype(string_storage, na_value=pd.NA)
     expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
