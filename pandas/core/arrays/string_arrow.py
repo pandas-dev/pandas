@@ -59,6 +59,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
+        NpDtype,
         Scalar,
         Self,
         npt,
