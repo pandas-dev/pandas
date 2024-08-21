@@ -100,7 +100,7 @@ class TestDataFrameColor:
         style = {"g": "-", "h": "--"}
         expected_color = ["black", "brown"]
         expected_style = ["-", "--"]
-        df = pd.DataFrame({"g": [1, 2], "h": [2, 3]}, index=[1, 2])
+        df = DataFrame({"g": [1, 2], "h": [2, 3]}, index=[1, 2])
         ax = df.plot.line(color=color, style=style)
         color = [i.get_color() for i in ax.lines]
         style = [i.get_linestyle() for i in ax.lines]
