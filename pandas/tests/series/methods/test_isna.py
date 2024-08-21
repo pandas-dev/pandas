@@ -34,3 +34,8 @@ class TestIsna:
         expected = Series([False, False, True])
         tm.assert_series_equal(ser.isna(), expected)
         tm.assert_series_equal(ser.notna(), ~expected)
+
+    def test_is_valid_na_for_dtype_pyarrow(self):
+        s = Series([0, None, 4, 5], dtype="u1[pyarrow]")
+        assert s.isna().dtype == "bool[pyarrow]"
+        assert s.isna().dtype != "bool"
