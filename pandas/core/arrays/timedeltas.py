@@ -152,9 +152,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",

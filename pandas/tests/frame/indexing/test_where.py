@@ -6,6 +6,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -938,6 +940,9 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051
@@ -1018,6 +1023,9 @@ def test_where_producing_ea_cond_for_np_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
