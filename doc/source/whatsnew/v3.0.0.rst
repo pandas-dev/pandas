@@ -650,6 +650,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.cumsum` where it did not return the correct dtype when the label contained ``None``. (:issue:`58811`)
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
+- Bug in :meth:`Series.resample` could raise when the the date range ended shortly before a non-existent time. (:issue:`58380`)
 
 Reshaping
 ^^^^^^^^^
