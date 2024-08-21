@@ -28,6 +28,13 @@ runs:
         fi
       shell: bash -el {0}
 
+    - name: Uninstall nomkl
+      run: |
+        if conda list nomkl | grep nomkl 1>/dev/null; then
+          conda remove nomkl -y
+        fi
+      shell: bash -el {0}
+
     - name: Build Pandas
       run: |
         export CFLAGS="$CFLAGS ${{ inputs.cflags_adds }}"
