@@ -403,7 +403,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if dummy_na:
             nan_col = Series(self).isna().astype(dtype).to_numpy()
             dummies = np.column_stack((dummies, nan_col))
-            tags2.append(np.nan)
+            tags2.append("NaN")
         return dummies, tags2
 
     def _str_upper(self):
