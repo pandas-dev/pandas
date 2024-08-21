@@ -73,7 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.max RT03" \
         -i "pandas.DataFrame.mean RT03" \
         -i "pandas.DataFrame.median RT03" \
-        -i "pandas.DataFrame.min RT03" \
         -i "pandas.DataFrame.plot PR02" \
         -i "pandas.Grouper PR02" \
         -i "pandas.MultiIndex.append PR07,SA01" \

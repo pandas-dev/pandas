@@ -12532,16 +12532,6 @@ def make_doc(name: str, ndim: int) -> str:
         see_also = _all_see_also
         examples = _all_examples
         kwargs = {"empty_value": "True"}
-    elif name == "min":
-        base_doc = _num_doc
-        desc = (
-            "Return the minimum of the values over the requested axis.\n\n"
-            "If you want the *index* of the minimum, use ``idxmin``. This is "
-            "the equivalent of the ``numpy.ndarray`` method ``argmin``."
-        )
-        see_also = _stat_func_see_also
-        examples = _min_examples
-        kwargs = {"min_count": ""}
     elif name == "max":
         base_doc = _num_doc
         desc = (
