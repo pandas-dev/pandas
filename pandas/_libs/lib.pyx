@@ -19,7 +19,11 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
+from cpython.dict cimport PyDict_CheckExact
+from cpython.float cimport PyFloat_CheckExact
 from cpython.iterator cimport PyIter_Check
+from cpython.list cimport PyList_CheckExact
+from cpython.long cimport PyLong_CheckExact
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
@@ -29,10 +33,16 @@ from cpython.object cimport (
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
+from cpython.set cimport (
+    PyAnySet_CheckExact,
+    PyFrozenSet_CheckExact,
+)
 from cpython.tuple cimport (
+    PyTuple_CheckExact,
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
+from cpython.unicode cimport PyUnicode_CheckExact
 from cython cimport (
     Py_ssize_t,
     floating,
@@ -1090,7 +1100,7 @@ def is_float(obj: object) -> bool:
     return util.is_float_object(obj)
 
 
-def is_hashable(obj: object) -> bool:
+cpdef bint is_hashable(object obj):
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -1114,12 +1124,26 @@ def is_hashable(obj: object) -> bool:
     >>> is_hashable(a)
     False
     """
-    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
-    # which can be faster than calling hash. That is because numpy scalars
-    # fail this test.
+    if (
+        PyLong_CheckExact(obj)
+        or PyFloat_CheckExact(obj)
+        or PyUnicode_CheckExact(obj)
+    ):
+        return True
 
-    # Reconsider this decision once this numpy bug is fixed:
-    # https://github.com/numpy/numpy/issues/5562
+    # tuple and frozenset is hashable if and only if all elements are hashable
+    if PyTuple_CheckExact(obj) or PyFrozenSet_CheckExact(obj):
+        for o in obj:
+            if not is_hashable(o):
+                return False
+        return True
+
+    if (
+        PyDict_CheckExact(obj)
+        or PyList_CheckExact(obj)
+        or PyAnySet_CheckExact(obj)
+    ):
+        return False
 
     try:
         PyObject_Hash(obj)
