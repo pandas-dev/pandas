@@ -2745,7 +2745,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return take_nd(result, codes, fill_value=na_value)
 
     def _str_get_dummies(
-        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype = None
+        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype | None = None
     ):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray

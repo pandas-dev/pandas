@@ -2534,7 +2534,7 @@ class ArrowExtensionArray(
         return type(self)(pa.chunked_array(result))
 
     def _str_get_dummies(
-        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype = None
+        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype | None = None
     ):
         if dtype is None:
             dtype = np.bool_
