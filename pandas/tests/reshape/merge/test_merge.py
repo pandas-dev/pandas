@@ -1464,10 +1464,7 @@ class TestMerge:
         data2 = DataFrame(
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
-        msg = (
-            "'full' is not a valid Merge type "
-            "('left', 'right', 'inner', 'outer', 'cross', 'asof')"
-        )
+        msg = "'full' is not a valid Merge type: left, right, inner, outer, cross, asof"
         with pytest.raises(ValueError, match=re.escape(msg)):
             data1.merge(data2, how="full")
 

@@ -277,10 +277,7 @@ def test_join_index(float_frame):
     tm.assert_index_equal(joined.index, float_frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    join_msg = (
-        "'foo' is not a valid Merge type "
-        "('left', 'right', 'inner', 'outer', 'cross', 'asof')"
-    )
+    join_msg = "'foo' is not a valid Merge type: left, right, inner, outer, cross, asof"
     with pytest.raises(ValueError, match=re.escape(join_msg)):
         f.join(f2, how="foo")
 
