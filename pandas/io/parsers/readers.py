@@ -321,7 +321,7 @@ parse_dates : bool, None, list of Hashable, default None
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
     `strftime documentation
     <https://docs.python.org/3/library/datetime.html
