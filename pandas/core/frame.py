@@ -13488,26 +13488,29 @@ class DataFrame(NDFrame, OpsMixin):
     )
     columns = properties.AxisProperty(
         axis=0,
-        doc=dedent(
-            """
-                The column labels of the DataFrame.
+        doc="""
+        The column labels of the DataFrame.
 
-                See Also
-                --------
-                DataFrame.index: The index (row labels) of the DataFrame.
-                DataFrame.axes: Return a list representing the axes of the DataFrame.
+        Returns
+        -------
+        pandas.Index
+            The column labels of the DataFrame.
 
-                Examples
-                --------
-                >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
-                >>> df
-                     A  B
-                0    1  3
-                1    2  4
-                >>> df.columns
-                Index(['A', 'B'], dtype='object')
-                """
-        ),
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.axes: Return a list representing the axes of the DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df
+                A  B
+        0    1  3
+        1    2  4
+        >>> df.columns
+        Index(['A', 'B'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------
