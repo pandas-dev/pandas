@@ -4556,17 +4556,8 @@ class DataFrame(NDFrame, OpsMixin):
         quoted string are replaced by strings that are allowed as a Python identifier.
         These characters include all operators in Python, the space character, the
         question mark, the exclamation mark, the dollar sign, and the euro sign.
-        For other characters that fall outside the ASCII range (U+0001..U+007F)
-        and those that are not further specified in PEP 3131,
-        the query parser will raise an error.
-        This excludes whitespace different than the space character,
-        but also the hashtag (as it is used for comments) and the backtick
-        itself (backtick can also not be escaped).
 
-        In a special case, quotes that make a pair around a backtick can
-        confuse the parser.
-        For example, ```it's` > `that's``` will raise an error,
-        as it forms a quoted string (``'s > `that'``) with a backtick inside.
+        A backtick can be escaped by double backticks.
 
         See also the `Python documentation about lexical analysis
         <https://docs.python.org/3/reference/lexical_analysis.html>`__
@@ -4620,6 +4611,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
+
         res = self.eval(expr, **kwargs)
 
         try:
