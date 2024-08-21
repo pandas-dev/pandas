@@ -191,9 +191,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
-        -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.timetz SA01" \
-        -i "pandas.Timestamp.to_datetime64 SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
