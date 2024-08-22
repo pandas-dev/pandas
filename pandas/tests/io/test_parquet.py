@@ -1137,6 +1137,21 @@ class TestParquetPyArrow(Base):
     #     assert result["strings"].dtype == "string"
     # FIXME: don't leave commented-out
 
+    def test_non_nanosecond_timestamps(self, temp_file):
+        # GH#49236
+        pa = pytest.importorskip("pyarrow", "11.0.0")
+        pq = pytest.importorskip("pyarrow.parquet")
+
+        arr = pa.array([datetime.datetime(1600, 1, 1)], type=pa.timestamp("us"))
+        table = pa.table([arr], names=["timestamp"])
+        pq.write_table(table, temp_file)
+        result = read_parquet(temp_file)
+        expected = pd.DataFrame(
+            data={"timestamp": [datetime.datetime(1600, 1, 1)]},
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestParquetFastParquet(Base):
     @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
@@ -1178,6 +1193,10 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(
+        Version(np.__version__) >= Version("2.0.0"),
+        reason="fastparquet uses np.float_ in numpy2",
+    )
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
