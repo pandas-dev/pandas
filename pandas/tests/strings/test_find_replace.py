@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under13p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -982,22 +981,13 @@ def test_find_bad_arg_raises(any_string_dtype):
         ser.str.rfind(0)
 
 
-def test_find_nan(any_string_dtype, request):
+def test_find_nan(any_string_dtype):
     ser = Series(
         ["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"], dtype=any_string_dtype
     )
     expected_dtype = (
         np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
     )
-    if (
-        pa_version_under13p0
-        and isinstance(ser.dtype, pd.StringDtype)
-        and ser.dtype.storage == "pyarrow"
-    ):
-        # https://github.com/apache/arrow/issues/36311
-        mark = pytest.mark.xfail(reason="https://github.com/apache/arrow/issues/36311")
-        # raises pa.lib.ArrowInvalid with Negative buffer resize
-        request.node.add_marker(mark)
 
     result = ser.str.find("EF")
     expected = Series([4, np.nan, 1, np.nan, -1], dtype=expected_dtype)

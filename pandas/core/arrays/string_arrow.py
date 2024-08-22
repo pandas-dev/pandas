@@ -416,6 +416,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
 
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # https://github.com/pandas-dev/pandas/pull/59562/files#r1725688888
+            return super()._str_find(sub, start, end)
+        return ArrowExtensionArray._str_find(self, sub, start, end)
+
     def _str_get_dummies(self, sep: str = "|"):
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
         if len(labels) == 0:
