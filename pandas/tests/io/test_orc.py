@@ -9,8 +9,6 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
@@ -20,12 +18,9 @@ pytest.importorskip("pyarrow.orc")
 
 import pyarrow as pa
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 @pytest.fixture
@@ -33,7 +28,7 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-def test_orc_reader_empty(dirpath):
+def test_orc_reader_empty(dirpath, using_infer_string):
     columns = [
         "boolean1",
         "byte1",
@@ -54,11 +49,12 @@ def test_orc_reader_empty(dirpath):
         "float32",
         "float64",
         "object",
-        "object",
+        "str" if using_infer_string else "object",
     ]
     expected = pd.DataFrame(index=pd.RangeIndex(0))
     for colname, dtype in zip(columns, dtypes):
         expected[colname] = pd.Series(dtype=dtype)
+    expected.columns = expected.columns.astype("str")
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     got = read_orc(inputfile, columns=columns)
@@ -305,7 +301,7 @@ def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
         df.to_orc()
 
 
-def test_orc_dtype_backend_pyarrow():
+def test_orc_dtype_backend_pyarrow(using_infer_string):
     pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {
@@ -338,6 +334,13 @@ def test_orc_dtype_backend_pyarrow():
             for col in df.columns
         }
     )
+    if using_infer_string:
+        # ORC does not preserve distinction between string and large string
+        # -> the default large string comes back as string
+        string_dtype = pd.ArrowDtype(pa.string())
+        expected["string"] = expected["string"].astype(string_dtype)
+        expected["string_with_nan"] = expected["string_with_nan"].astype(string_dtype)
+        expected["string_with_none"] = expected["string_with_none"].astype(string_dtype)
 
     tm.assert_frame_equal(result, expected)
 

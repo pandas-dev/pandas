@@ -27,6 +27,8 @@ def _arrow_dtype_mapping() -> dict:
         pa.string(): pd.StringDtype(),
         pa.float32(): pd.Float32Dtype(),
         pa.float64(): pd.Float64Dtype(),
+        pa.string(): pd.StringDtype(),
+        pa.large_string(): pd.StringDtype(),
     }
 
 
