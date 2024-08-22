@@ -95,6 +95,18 @@ class TestDataFrameColor:
         assert all(i.get_linestyle() == "--" for i in ax.lines)
         assert all(i.get_marker() == "d" for i in ax.lines)
 
+    def test_color_and_style(self):
+        color = {"g": "black", "h": "brown"}
+        style = {"g": "-", "h": "--"}
+        expected_color = ["black", "brown"]
+        expected_style = ["-", "--"]
+        df = DataFrame({"g": [1, 2], "h": [2, 3]}, index=[1, 2])
+        ax = df.plot.line(color=color, style=style)
+        color = [i.get_color() for i in ax.lines]
+        style = [i.get_linestyle() for i in ax.lines]
+        assert color == expected_color
+        assert style == expected_style
+
     def test_bar_colors(self):
         default_colors = _unpack_cycler(plt.rcParams)
 
