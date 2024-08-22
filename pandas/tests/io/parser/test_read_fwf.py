@@ -1001,7 +1001,9 @@ def test_dtype_backend(string_storage, dtype_backend):
         )
         expected["i"] = ArrowExtensionArray(pa.array([None, None]))
 
-    tm.assert_frame_equal(result, expected)
+    # the storage of the str columns' Index is also affected by the
+    # string_storage setting -> ignore that for checking the result
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 def test_invalid_dtype_backend():
