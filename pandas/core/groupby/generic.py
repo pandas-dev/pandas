@@ -9,12 +9,12 @@ which here returns a DataFrameGroupBy object.
 from __future__ import annotations
 
 from collections import abc
+from collections.abc import Callable
 from functools import partial
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NamedTuple,
     TypeVar,
@@ -123,6 +123,10 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+
+    See Also
+    --------
+    DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
 
     Examples
     --------
@@ -682,7 +686,8 @@ class SeriesGroupBy(GroupBy[Series]):
         b    1
         dtype: int64
         """
-        ids, ngroups = self._grouper.group_info
+        ids = self._grouper.ids
+        ngroups = self._grouper.ngroups
         val = self.obj._values
         codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 

@@ -210,6 +210,7 @@ class TestFromArrays(ConstructorTests):
 
     @pytest.fixture
     def constructor(self):
+        """Fixture for IntervalIndex.from_arrays constructor"""
         return IntervalIndex.from_arrays
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -282,6 +283,7 @@ class TestFromBreaks(ConstructorTests):
 
     @pytest.fixture
     def constructor(self):
+        """Fixture for IntervalIndex.from_breaks constructor"""
         return IntervalIndex.from_breaks
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -320,6 +322,7 @@ class TestFromTuples(ConstructorTests):
 
     @pytest.fixture
     def constructor(self):
+        """Fixture for IntervalIndex.from_tuples constructor"""
         return IntervalIndex.from_tuples
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):
@@ -370,6 +373,7 @@ class TestClassConstructors(ConstructorTests):
 
     @pytest.fixture
     def constructor(self):
+        """Fixture for IntervalIndex class constructor"""
         return IntervalIndex
 
     def get_kwargs_from_breaks(self, breaks, closed="right"):

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -40,6 +42,7 @@ def test_consolidate():
     assert df.loc[0, "b"] == 0.1
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
 @pytest.mark.parametrize(
     "locs, arr",

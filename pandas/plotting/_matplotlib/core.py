@@ -55,7 +55,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
 from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
@@ -94,6 +93,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
+        DataFrame,
         Index,
         Series,
     )
@@ -183,7 +183,7 @@ class MPLPlot(ABC):
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
@@ -546,7 +546,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax  # type: ignore[return-value]
+            return new_ax
 
     @final
     @cache_readonly
@@ -586,7 +586,7 @@ class MPLPlot(ABC):
                 fig.set_size_inches(self.figsize)
             axes = self.ax
 
-        axes = flatten_axes(axes)
+        axes = np.fromiter(flatten_axes(axes), dtype=object)
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
@@ -893,7 +893,13 @@ class MPLPlot(ABC):
         elif self.subplots and self.legend:
             for ax in self.axes:
                 if ax.get_visible():
-                    ax.legend(loc="best")
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "No artists with labels found to put in legend.",
+                            UserWarning,
+                        )
+                        ax.legend(loc="best")
 
     @final
     @staticmethod
@@ -2029,9 +2035,12 @@ class PiePlot(MPLPlot):
 
     _layout_type = "horizontal"
 
-    def __init__(self, data, kind=None, **kwargs) -> None:
+    def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        if (data < 0).any().any():
+        lt_zero = data < 0
+        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
+        elif isinstance(data, ABCSeries) and lt_zero.any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 

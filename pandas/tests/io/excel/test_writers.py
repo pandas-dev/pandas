@@ -12,7 +12,8 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas.compat._constants import PY310
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -50,7 +51,7 @@ def frame(float_frame):
     return float_frame[:10]
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False, "columns"])
 def merge_cells(request):
     return request.param
 
@@ -331,6 +332,7 @@ class TestRoundTrip:
                     ],
                 ]
             ),
+            columns=Index([0]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -376,7 +378,10 @@ class TestExcelWriter:
             col_df.to_excel(tmp_excel)
 
     def test_excel_sheet_by_name_raise(self, tmp_excel):
-        gt = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        gt = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=Index(list(range(10))),
+        )
         gt.to_excel(tmp_excel)
 
         with ExcelFile(tmp_excel) as xl:
@@ -497,7 +502,9 @@ class TestExcelWriter:
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
         df = DataFrame(
-            np.random.default_rng(2).integers(-10, 10, size=(10, 2)), dtype=np_type
+            np.random.default_rng(2).integers(-10, 10, size=(10, 2)),
+            dtype=np_type,
+            index=Index(list(range(10))),
         )
         df.to_excel(tmp_excel, sheet_name="test1")
 
@@ -513,7 +520,11 @@ class TestExcelWriter:
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, tmp_excel):
         # Test np.float values read come back as float.
-        df = DataFrame(np.random.default_rng(2).random(10), dtype=np_type)
+        df = DataFrame(
+            np.random.default_rng(2).random(10),
+            dtype=np_type,
+            index=Index(list(range(10))),
+        )
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -525,7 +536,7 @@ class TestExcelWriter:
 
     def test_bool_types(self, tmp_excel):
         # Test np.bool_ values read come back as float.
-        df = DataFrame([1, 0, True, False], dtype=np.bool_)
+        df = DataFrame([1, 0, True, False], dtype=np.bool_, index=Index(list(range(4))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -536,7 +547,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_inf_roundtrip(self, tmp_excel):
-        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
+        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)], index=Index(list(range(3))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -633,7 +644,13 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
+        df = (
+            DataFrame(
+                np.random.default_rng(2).standard_normal((10, 2)),
+                index=Index(list(range(10))),
+            )
+            >= 0
+        )
         df.to_excel(
             tmp_excel, sheet_name="test1", index_label="test", merge_cells=merge_cells
         )
@@ -757,7 +774,7 @@ class TestExcelWriter:
 
         df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )
 
         df.to_excel(tmp_excel, sheet_name="test1")
@@ -1251,13 +1268,12 @@ class TestExcelWriter:
             "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
         }
 
-        if PY310:
-            msgs["openpyxl"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
-            msgs["xlsxwriter"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
+        msgs["openpyxl"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
+        msgs["xlsxwriter"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and not os.path.exists(tmp_excel):
@@ -1318,6 +1334,7 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),

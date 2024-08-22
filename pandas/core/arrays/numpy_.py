@@ -557,7 +557,3 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan

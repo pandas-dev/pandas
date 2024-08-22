@@ -384,6 +384,10 @@ PyMODINIT_FUNC PyInit_json(void) {
     return NULL;
   }
 
+#ifdef Py_GIL_DISABLED
+  PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
+
 #ifndef PYPY_VERSION
   PyObject *mod_decimal = PyImport_ImportModule("decimal");
   if (mod_decimal) {

@@ -9,7 +9,6 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
-    Callable,
     overload,
 )
 
@@ -55,6 +54,7 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
@@ -66,6 +66,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         Concatenate,
+        ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
         IntervalClosedType,
@@ -551,7 +552,7 @@ class Styler(StylerRenderer):
         startrow: int = 0,
         startcol: int = 0,
         engine: str | None = None,
-        merge_cells: bool = True,
+        merge_cells: ExcelWriterMergeCells = True,
         encoding: str | None = None,
         inf_rep: str = "inf",
         verbose: bool = True,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -14,7 +15,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -267,14 +267,15 @@ skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable
+      :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -957,7 +958,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -1004,7 +1005,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
 
@@ -1728,14 +1729,15 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
         **kwds : dict, optional

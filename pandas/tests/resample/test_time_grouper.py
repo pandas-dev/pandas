@@ -193,7 +193,7 @@ def test_aggregate_nth():
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
     ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
-    result = methodcaller(method, **method_args)(ser.resample("2d"))
+    result = methodcaller(method, **method_args)(ser.resample("2D"))
 
     exp_dti = pd.DatetimeIndex(["2017-01-01", "2017-01-03"], dtype="M8[ns]", freq="2D")
     expected = Series([0.0, unit], index=exp_dti)
@@ -372,7 +372,7 @@ def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
 
     for df in dfs:
         result = df.groupby("volume").apply(
-            lambda x: x.resample("1d").interpolate(method="linear"),
+            lambda x: x.resample("1D").interpolate(method="linear"),
             include_groups=False,
         )
 

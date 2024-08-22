@@ -15,6 +15,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.config import get_option
 
 from pandas._libs import (
@@ -158,15 +159,8 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
             # these return a boolean by-definition
             return result
 
-        if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(result, fill_value=None)
-
-        else:
-            result = fields.get_date_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(
-                result, fill_value=None, convert="float64"
-            )
+        result = fields.get_date_field(values, field, reso=self._creso)
+        result = self._maybe_mask_results(result, fill_value=None, convert="float64")
 
         return result
 
@@ -243,7 +237,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops: list[str] = ["freq", "tz"]
     _field_ops: list[str] = [
         "year",
         "month",
@@ -264,7 +257,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _other_ops + ["unit"]
+        _field_ops + _bool_ops + _other_ops + ["unit", "freq", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -594,7 +587,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Returns
         -------
-        datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+        zoneinfo.ZoneInfo,, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
 
         See Also
@@ -624,7 +617,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         ... )
         >>> idx.tz
         datetime.timezone.utc
-        """
+        """  # noqa: E501
         # GH 18595
         return getattr(self.dtype, "tz", None)
 
@@ -863,7 +856,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
@@ -923,7 +916,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
                         dtype='datetime64[ns]', freq='h')
-        """
+        """  # noqa: E501
         tz = timezones.maybe_get_tz(tz)
 
         if self.tz is None:
@@ -955,7 +948,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Parameters
         ----------
-        tz : str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -972,7 +965,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
               non-DST time (note that this flag is only applicable for
               ambiguous times)
             - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+            - 'raise' will raise a ValueError if there are ambiguous
               times.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
@@ -986,7 +979,7 @@ default 'raise'
               closest existing time
             - 'NaT' will return NaT where there are nonexistent times
             - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
+            - 'raise' will raise a ValueError if there are
               nonexistent times.
 
         Returns
@@ -1081,7 +1074,7 @@ default 'raise'
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
-        """
+        """  # noqa: E501
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta
@@ -1340,6 +1333,13 @@ default 'raise'
             values, "month_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
@@ -1401,6 +1401,14 @@ default 'raise'
             values, "day_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
+        if using_string_dtype():
+            # TODO: no tests that check for dtype of result as of 2024-08-15
+            from pandas import (
+                StringDtype,
+                array as pd_array,
+            )
+
+            return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
     @property
@@ -2274,6 +2282,19 @@ default 'raise'
 
     # -----------------------------------------------------------------
     # Reductions
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims and isinstance(result, np.ndarray):
+            if name == "std":
+                from pandas.core.arrays import TimedeltaArray
+
+                return TimedeltaArray._from_sequence(result)
+            else:
+                return self._from_sequence(result, dtype=self.dtype)
+        return result
 
     def std(
         self,

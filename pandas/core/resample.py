@@ -4,7 +4,6 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     final,
@@ -92,7 +91,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
         Any,
@@ -2464,7 +2466,7 @@ def _get_timestamp_range_edges(
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz)
+            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()

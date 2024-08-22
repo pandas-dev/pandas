@@ -10,7 +10,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     CategoricalIndex,
@@ -38,7 +38,7 @@ class TestDataFrameToStringFormatters:
     def test_keyword_deprecation(self):
         # GH 57280
         msg = (
-            "Starting with pandas version 3.0.0 all arguments of to_string "
+            "Starting with pandas version 4.0 all arguments of to_string "
             "except for the argument 'buf' will be keyword-only."
         )
         s = Series(["a", "b"])
@@ -849,7 +849,7 @@ class TestDataFrameToString:
         frame.to_string()
 
     # TODO: split or simplify this test?
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="fix when arrow is default")
+    @pytest.mark.xfail(using_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
         df = DataFrame(

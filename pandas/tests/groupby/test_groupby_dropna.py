@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -10,6 +13,9 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -53,6 +59,9 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -97,6 +106,7 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dropna, idx, outputs",
     [
@@ -128,6 +138,9 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, idx, expected",
     [
@@ -202,6 +215,9 @@ def test_groupby_dataframe_slice_then_transform(dropna, index):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -283,6 +299,9 @@ def test_groupby_dropna_datetime_like_data(
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
+)
 @pytest.mark.parametrize(
     "dropna, data, selected_data, levels",
     [
@@ -368,6 +387,9 @@ def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_groupby_nan_included():
     # GH 35646
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -420,7 +442,7 @@ def test_groupby_drop_nan_with_multi_index():
             ),
         ),
         "datetime64[ns]",
-        "period[d]",
+        "period[D]",
         "Sparse[float]",
     ],
 )
@@ -437,7 +459,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
-    elif dtype in ("datetime64[ns]", "period[d]"):
+    elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}

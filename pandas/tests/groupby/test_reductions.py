@@ -5,6 +5,8 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -468,6 +470,7 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_max_min_object_multiple_columns():
     # GH#41111 case where the aggregation is valid for some columns but not
     # others; we split object blocks column-wise, consistent with
@@ -982,7 +985,7 @@ def test_groupby_sum_timedelta_with_nat():
     df = DataFrame(
         {
             "a": [1, 1, 2, 2],
-            "b": [pd.Timedelta("1d"), pd.Timedelta("2d"), pd.Timedelta("3d"), pd.NaT],
+            "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
         }
     )
     td3 = pd.Timedelta(days=3)

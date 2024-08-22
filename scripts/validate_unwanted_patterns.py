@@ -12,14 +12,14 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-from collections.abc import Iterable
+from collections.abc import (
+    Callable,
+    Iterable,
+)
 import sys
 import token
 import tokenize
-from typing import (
-    IO,
-    Callable,
-)
+from typing import IO
 
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
