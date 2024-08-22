@@ -451,12 +451,12 @@ class MPLPlot(ABC):
             )
 
         if self.style is not None:
-            if is_list_like(self.style):
+            if isinstance(self.style, dict):
+                styles = [self.style[col] for col in self.columns if col in self.style]
+            elif is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
-            if isinstance(self.style, dict):
-                styles = [self.style[col] for col in self.columns if col in self.style]
             # need only a single match
             for s in styles:
                 if _color_in_style(s):
