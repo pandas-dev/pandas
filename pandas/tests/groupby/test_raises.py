@@ -219,7 +219,13 @@ def test_groupby_raises_string(
         elif groupby_func in ["cummin", "cummax"]:
             msg = msg.replace("object", "str")
         elif groupby_func == "corrwith":
-            msg = "'.*NumpySemantics' with dtype str does not support operation 'mean'"
+            if df["d"].dtype.storage == "pyarrow":
+                msg = (
+                    "ArrowStringArrayNumpySemantics' with dtype str does not "
+                    "support operation 'mean'"
+                )
+            else:
+                msg = "Cannot perform reduction 'mean' with string dtype"
 
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
