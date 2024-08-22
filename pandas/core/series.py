@@ -3211,6 +3211,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         other : Series, or object coercible into Series
+            Other Series that provides values to update the current Series.
+
+        See Also
+        --------
+        Series.combine : Perform element-wise operation on two Series
+            using a given function.
+        Series.transform: Modify a Series using a function.
 
         Examples
         --------
