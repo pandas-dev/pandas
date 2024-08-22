@@ -2088,7 +2088,9 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = list(range(8))
 
-        tm.assert_frame_equal(result, expected)
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
