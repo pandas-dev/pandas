@@ -1171,11 +1171,13 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            bint non_null_na_value
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -1186,7 +1188,12 @@ cdef class StringHashTable(HashTable):
 
             if (ignore_na
                 and (not isinstance(val, str)
-                     or (use_na_value and val == na_value))):
+                     or (use_na_value and (
+                        (non_null_na_value and val == na_value) or
+                        (not non_null_na_value and is_matching_na(val, na_value)))
+                        )
+                    )
+                ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), we can skip the actual value, and
                 # replace the label with na_sentinel directly
@@ -1452,10 +1459,11 @@ cdef class PyObjectHashTable(HashTable):
             object val
             khiter_t k
             bint use_na_value
-
+            bint non_null_na_value
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         for i in range(n):
             val = values[i]
@@ -1463,7 +1471,11 @@ cdef class PyObjectHashTable(HashTable):
 
             if ignore_na and (
                 checknull(val)
-                or (use_na_value and val == na_value)
+                or (use_na_value and (
+                    (non_null_na_value and val == na_value) or
+                    (not non_null_na_value and is_matching_na(val, na_value))
+                    )
+                )
             ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and

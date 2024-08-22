@@ -387,9 +387,6 @@ def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_groupby_nan_included():
     # GH 35646
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}

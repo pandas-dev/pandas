@@ -137,9 +137,6 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
-        return type(self)(arr)
-
     # ------------------------------------------------------------------------
     # Data
 

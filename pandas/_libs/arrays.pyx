@@ -67,6 +67,10 @@ cdef class NDArrayBacked:
         """
         Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
 
+        The returned array has the same dtype as self.
+
+        Caller is responsible for ensuring `values.dtype == self._ndarray.dtype`.
+
         This should round-trip:
             self == self._from_backing_data(self._ndarray)
         """
