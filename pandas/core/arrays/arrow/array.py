@@ -2282,7 +2282,9 @@ class ArrowExtensionArray(
                 "var",
                 "skew",
             ]:
-                raise TypeError(f"{self.dtype} dtype does not support {how} operations")
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
+                )
             return super()._groupby_op(
                 how=how,
                 has_dropped_na=has_dropped_na,

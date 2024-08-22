@@ -61,6 +61,7 @@ class TestDataFrame:
                 "D": np.random.default_rng(2).standard_normal(8),
             }
         )
+        df = df.astype({"A": object, "B": object})
         result = df.groupby("A").sum()
         tm.assert_metadata_equivalent(df, result)
 

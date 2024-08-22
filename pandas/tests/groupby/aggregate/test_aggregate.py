@@ -1020,7 +1020,7 @@ def test_groupby_as_index_agg(df):
 
     result2 = grouped.agg({"C": "mean", "D": "sum"})
     expected2 = grouped.mean(numeric_only=True)
-    expected2["D"] = grouped.sum()["D"]
+    expected2["D"] = grouped.sum(numeric_only=True)["D"]
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)

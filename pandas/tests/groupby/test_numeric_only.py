@@ -28,7 +28,7 @@ class TestNumericOnly:
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": list("abc"),
+                "string": Series(["a", "b", "c"], dtype=object),
                 "category_string": Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
                 "datetime": date_range("20130101", periods=3),
@@ -180,7 +180,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    f"str dtype does not support {method} operations",
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -198,7 +198,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    f"str dtype does not support {method} operations",
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):

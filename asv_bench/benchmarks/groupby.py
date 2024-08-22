@@ -760,6 +760,8 @@ class String:
         )
 
     def time_str_func(self, dtype, method):
+        if dtype == "string[python]" and method == "sum":
+            raise NotImplementedError
         self.df.groupby("a")[self.df.columns[1:]].agg(method)
 
 

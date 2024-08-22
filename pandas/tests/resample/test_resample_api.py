@@ -198,7 +198,7 @@ def tests_raises_on_nuisance(test_frame, using_infer_string):
     expected = r[["A", "B", "C"]].mean()
     msg = re.escape("agg function failed [how->mean,dtype->")
     if using_infer_string:
-        msg = "str dtype does not support mean operations"
+        msg = "dtype 'str' does not support operation 'mean'"
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -903,10 +903,10 @@ def test_frame_downsample_method(
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{method},dtype->")
             if using_infer_string:
-                msg = f"str dtype does not support {method} operations"
+                msg = f"dtype 'str' does not support operation '{method}'"
         elif method in ["sum", "std", "sem"] and using_infer_string:
             klass = TypeError
-            msg = f"str dtype does not support {method} operations"
+            msg = f"dtype 'str' does not support operation '{method}'"
         else:
             klass = ValueError
             msg = expected_data
@@ -914,7 +914,7 @@ def test_frame_downsample_method(
             _ = func(**kwargs)
     elif method == "sum" and using_infer_string and numeric_only is not True:
         klass = TypeError
-        msg = "str dtype does not support sum operations"
+        msg = f"dtype 'str' does not support operation '{method}'"
         with pytest.raises(klass, match=msg):
             _ = func(**kwargs)
     else:
@@ -965,11 +965,11 @@ def test_series_downsample_method(
     elif method == "prod":
         msg = re.escape("agg function failed [how->prod,dtype->")
         if using_infer_string:
-            msg = "str dtype does not support prod operations"
+            msg = "dtype 'str' does not support operation 'prod'"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "sum" and using_infer_string and numeric_only is not True:
-        msg = "str dtype does not support sum operations"
+        msg = "dtype 'str' does not support operation 'sum'"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
 

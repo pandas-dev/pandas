@@ -2548,7 +2548,7 @@ class ExtensionArray:
                 "skew",
             ]:
                 raise TypeError(
-                    f"{self.dtype} dtype does not support {op.how} operations"
+                    f"dtype '{self.dtype}' does not support operation '{how}'"
                 )
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object

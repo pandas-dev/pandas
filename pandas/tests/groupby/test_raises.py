@@ -194,7 +194,7 @@ def test_groupby_raises_string(
             "skew",
             "quantile",
         ]:
-            msg = f"str dtype does not support {groupby_func} operations"
+            msg = f"dtype 'str' does not support operation '{groupby_func}'"
             if groupby_func == "sum":
                 # The object-dtype allows this, StringArray variants do not.
                 klass = TypeError
@@ -213,14 +213,13 @@ def test_groupby_raises_string(
             #  there.
             import pyarrow as pa
 
+            # TODO(infer_string): avoid bubbling up pyarrow exceptions
             klass = pa.lib.ArrowNotImplementedError
             msg = "Function 'subtract_checked' has no kernel matching input types"
         elif groupby_func in ["cummin", "cummax"]:
             msg = msg.replace("object", "str")
         elif groupby_func == "corrwith":
-            msg = (
-                "'.*NumpySemantics' with dtype str does " "not support operation 'mean'"
-            )
+            msg = "'.*NumpySemantics' with dtype str does not support operation 'mean'"
 
     if groupby_func == "fillna":
         kind = "Series" if groupby_series else "DataFrame"
@@ -275,7 +274,10 @@ def test_groupby_raises_string_np(
     if using_infer_string:
         klass = TypeError
         if df["d"].dtype.storage == "python":
-            msg = "Cannot perform reduction 'mean' with string dtype"
+            msg = (
+                f"Cannot perform reduction '{groupby_func_np.__name__}' "
+                "with string dtype"
+            )
         else:
             msg = (
                 "'ArrowStringArrayNumpySemantics' with dtype str does not "

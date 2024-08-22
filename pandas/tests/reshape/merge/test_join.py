@@ -632,7 +632,7 @@ class TestJoin:
         grouped = df.groupby("id")
         msg = re.escape("agg function failed [how->mean,dtype->")
         if using_infer_string:
-            msg = "str dtype does not support mean operations"
+            msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)

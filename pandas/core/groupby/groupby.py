@@ -4289,7 +4289,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             elif isinstance(vals.dtype, StringDtype):
                 raise TypeError(
-                    f"{vals.dtype} dtype does not support quantile operations"
+                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
                 )
 
             inference: DtypeObj | None = None
