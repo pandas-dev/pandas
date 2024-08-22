@@ -161,7 +161,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.zfill RT03" \
         -i "pandas.Series.struct.dtypes SA01" \
         -i "pandas.Series.to_markdown SA01" \
-        -i "pandas.Series.update PR07,SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
@@ -191,9 +190,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.nanosecond GL08" \
         -i "pandas.Timestamp.resolution PR02" \
         -i "pandas.Timestamp.second GL08" \
-        -i "pandas.Timestamp.strptime PR01,SA01" \
-        -i "pandas.Timestamp.timetz SA01" \
-        -i "pandas.Timestamp.to_datetime64 SA01" \
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \

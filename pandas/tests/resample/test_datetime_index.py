@@ -958,6 +958,19 @@ def test_resample_origin_with_day_freq_on_dst(unit):
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_dst_midnight_last_nonexistent():
+    # GH 58380
+    ts = Series(
+        1,
+        date_range("2024-04-19", "2024-04-20", tz="Africa/Cairo", freq="15min"),
+    )
+
+    expected = Series([len(ts)], index=DatetimeIndex([ts.index[0]], freq="7D"))
+
+    result = ts.resample("7D").sum()
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_daily_anchored(unit):
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="min").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
