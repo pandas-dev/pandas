@@ -108,7 +108,16 @@ def parse(version: str) -> Version:
     return Version(version)
 
 
-class InvalidVersion(ValueError): ...
+class InvalidVersion(ValueError):
+    """
+    An invalid version was found, users should refer to PEP 440.
+
+    Examples
+    --------
+    >>> pd.util.version.Version("1.")
+    Traceback (most recent call last):
+    InvalidVersion: Invalid version: '1.'
+    """
 
 
 class _BaseVersion:
