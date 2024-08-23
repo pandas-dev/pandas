@@ -400,7 +400,7 @@ class DatetimeProperties(Properties):
         ...         "2022-02-22 11:22:22-06:00",
         ...     ]
         ... )
-        >>> datetimeindex.freq
+        >>> datetimeindex.dt.freq
         <H>
         """
         return self._get_values().inferred_freq
