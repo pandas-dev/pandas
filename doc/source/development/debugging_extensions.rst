@@ -19,7 +19,7 @@ Debugging locally
 
 By default building pandas from source will generate a release build. To generate a development build you can type::
 
-    pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
+    pip install -ve . --no-build-isolation -Cbuilddir="debug" -Csetup-args="-Dbuildtype=debug"
 
 .. note::
 
@@ -42,7 +42,7 @@ Inside the image, you can use meson to build/install pandas and place the build 
 
 .. code-block:: sh
 
-    python -m pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
+    python -m pip install -ve . --no-build-isolation -Cbuilddir="debug" -Csetup-args="-Dbuildtype=debug"
 
 If planning to use cygdb, the files required by that application are placed within the build folder. So you have to first ``cd`` to the build folder, then start that application.
 
