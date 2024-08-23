@@ -37,8 +37,6 @@ from cython cimport (
     floating,
 )
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
@@ -2489,8 +2487,12 @@ def _convert_to_based_masked(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _seen_to_numpy_dtype(Seen seen):
-    if seen.bool_:
+def _seen_to_numpy_dtype(Seen seen, object scalar_type):
+    # Numpy scalar type
+    if issubclass(scalar_type, np.generic):
+        return np.dtype(scalar_type)
+    # Native python type
+    elif seen.bool_:
         return np.dtype(bool)
     elif seen.uint_:
         return np.dtype(np.uint)
@@ -2723,15 +2725,16 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
+    if storage == "pyarrow":
+        return _convert_to_pyarrow(objects, mask)
+
     numpy_dtype = None
     if len(val_types) == 1:
-        numpy_dtype = _seen_to_numpy_dtype(seen)
+        numpy_dtype = _seen_to_numpy_dtype(seen, val_types.pop())
         if (
                 numpy_dtype and numpy_dtype.kind in "biuf"
                 and convert_to_nullable_dtype):
             return _convert_to_based_masked(objects, numpy_dtype)
-    if storage == "pyarrow":
-        return _convert_to_pyarrow(objects, mask)
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
