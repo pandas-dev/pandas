@@ -13,7 +13,6 @@ from typing import (
     Any,
     NamedTuple,
     SupportsInt,
-    Tuple,
     Union,
 )
 
@@ -106,27 +105,10 @@ class _Version(NamedTuple):
 
 
 def parse(version: str) -> Version:
-    """
-    Parse the given version string.
-
-    >>> parse("1.0.dev1")
-    <Version('1.0.dev1')>
-
-    :param version: The version string to parse.
-    :raises InvalidVersion: When the version string is not a valid version.
-    """
     return Version(version)
 
 
-class InvalidVersion(ValueError):
-    """
-    Raised when a version string is not a valid version.
-
-    >>> Version("invalid")
-    Traceback (most recent call last):
-        ...
-    packaging.version.InvalidVersion: Invalid version: 'invalid'
-    """
+class InvalidVersion(ValueError): ...
 
 
 class _BaseVersion:
@@ -209,58 +191,13 @@ _VERSION_PATTERN = r"""
 """
 
 VERSION_PATTERN = _VERSION_PATTERN
-"""
-A string containing the regular expression used to match a valid version.
-
-The pattern is not anchored at either end, and is intended for embedding in larger
-expressions (for example, matching a version number as part of a file name). The
-regular expression should be compiled with the ``re.VERBOSE`` and ``re.IGNORECASE``
-flags set.
-
-:meta hide-value:
-"""
 
 
 class Version(_BaseVersion):
-    """
-    This class abstracts handling of a project's versions.
-
-    A :class:`Version` instance is comparison aware and can be compared and
-    sorted using the standard Python interfaces.
-
-    >>> v1 = Version("1.0a5")
-    >>> v2 = Version("1.0")
-    >>> v1
-    <Version('1.0a5')>
-    >>> v2
-    <Version('1.0')>
-    >>> v1 < v2
-    True
-    >>> v1 == v2
-    False
-    >>> v1 > v2
-    False
-    >>> v1 >= v2
-    False
-    >>> v1 <= v2
-    True
-    """
-
     _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
     _key: CmpKey
 
     def __init__(self, version: str) -> None:
-        """
-        Initialize a Version object.
-
-        :param version:
-            The string representation of a version which will be parsed and normalized
-            before use.
-        :raises InvalidVersion:
-            If the ``version`` does not conform to PEP 440 in any way then this
-            exception will be raised.
-        """
-
         # Validate the version and parse it into pieces
         match = self._regex.search(version)
         if not match:
@@ -289,21 +226,9 @@ class Version(_BaseVersion):
         )
 
     def __repr__(self) -> str:
-        """
-        A representation of the Version that shows all internal state.
-
-        >>> Version("1.0.0")
-        <Version('1.0.0')>
-        """
         return f"<Version('{self}')>"
 
     def __str__(self) -> str:
-        """
-        A string representation of the version that can be round-tripped.
-
-        >>> str(Version("1.0a5"))
-        '1.0a5'
-        """
         parts = []
 
         # Epoch
@@ -333,83 +258,26 @@ class Version(_BaseVersion):
 
     @property
     def epoch(self) -> int:
-        """
-        The epoch of the version.
-
-        >>> Version("2.0.0").epoch
-        0
-        >>> Version("1!2.0.0").epoch
-        1
-        """
         return self._version.epoch
 
     @property
     def release(self) -> tuple[int, ...]:
-        """
-        The components of the "release" segment of the version.
-
-        >>> Version("1.2.3").release
-        (1, 2, 3)
-        >>> Version("2.0.0").release
-        (2, 0, 0)
-        >>> Version("1!2.0.0.post0").release
-        (2, 0, 0)
-
-        Includes trailing zeroes but not the epoch or any pre-release / development /
-        post-release suffixes.
-        """
         return self._version.release
 
     @property
     def pre(self) -> tuple[str, int] | None:
-        """
-        The pre-release segment of the version.
-
-        >>> print(Version("1.2.3").pre)
-        None
-        >>> Version("1.2.3a1").pre
-        ('a', 1)
-        >>> Version("1.2.3b1").pre
-        ('b', 1)
-        >>> Version("1.2.3rc1").pre
-        ('rc', 1)
-        """
         return self._version.pre
 
     @property
     def post(self) -> int | None:
-        """
-        The post-release number of the version.
-
-        >>> print(Version("1.2.3").post)
-        None
-        >>> Version("1.2.3.post1").post
-        1
-        """
         return self._version.post[1] if self._version.post else None
 
     @property
     def dev(self) -> int | None:
-        """
-        The development number of the version.
-
-        >>> print(Version("1.2.3").dev)
-        None
-        >>> Version("1.2.3.dev1").dev
-        1
-        """
         return self._version.dev[1] if self._version.dev else None
 
     @property
     def local(self) -> str | None:
-        """
-        The local version segment of the version.
-
-        >>> print(Version("1.2.3").local)
-        None
-        >>> Version("1.2.3+abc").local
-        'abc'
-        """
         if self._version.local:
             return ".".join(str(x) for x in self._version.local)
         else:
@@ -417,33 +285,10 @@ class Version(_BaseVersion):
 
     @property
     def public(self) -> str:
-        """
-        The public portion of the version.
-
-        >>> Version("1.2.3").public
-        '1.2.3'
-        >>> Version("1.2.3+abc").public
-        '1.2.3'
-        >>> Version("1!1.2.3dev1+abc").public
-        '1!1.2.3.dev1'
-        """
         return str(self).split("+", 1)[0]
 
     @property
     def base_version(self) -> str:
-        """
-        The "base version" of the version.
-
-        >>> Version("1.2.3").base_version
-        '1.2.3'
-        >>> Version("1.2.3+abc").base_version
-        '1.2.3'
-        >>> Version("1!1.2.3dev1+abc").base_version
-        '1!1.2.3'
-
-        The "base version" is the public version of the project without any pre or post
-        release markers.
-        """
         parts = []
 
         # Epoch
@@ -457,78 +302,26 @@ class Version(_BaseVersion):
 
     @property
     def is_prerelease(self) -> bool:
-        """
-        Whether this version is a pre-release.
-
-        >>> Version("1.2.3").is_prerelease
-        False
-        >>> Version("1.2.3a1").is_prerelease
-        True
-        >>> Version("1.2.3b1").is_prerelease
-        True
-        >>> Version("1.2.3rc1").is_prerelease
-        True
-        >>> Version("1.2.3dev1").is_prerelease
-        True
-        """
         return self.dev is not None or self.pre is not None
 
     @property
     def is_postrelease(self) -> bool:
-        """
-        Whether this version is a post-release.
-
-        >>> Version("1.2.3").is_postrelease
-        False
-        >>> Version("1.2.3.post1").is_postrelease
-        True
-        """
         return self.post is not None
 
     @property
     def is_devrelease(self) -> bool:
-        """
-        Whether this version is a development release.
-
-        >>> Version("1.2.3").is_devrelease
-        False
-        >>> Version("1.2.3.dev1").is_devrelease
-        True
-        """
         return self.dev is not None
 
     @property
     def major(self) -> int:
-        """
-        The first item of :attr:`release` or ``0`` if unavailable.
-
-        >>> Version("1.2.3").major
-        1
-        """
         return self.release[0] if len(self.release) >= 1 else 0
 
     @property
     def minor(self) -> int:
-        """
-        The second item of :attr:`release` or ``0`` if unavailable.
-
-        >>> Version("1.2.3").minor
-        2
-        >>> Version("1").minor
-        0
-        """
         return self.release[1] if len(self.release) >= 2 else 0
 
     @property
     def micro(self) -> int:
-        """
-        The third item of :attr:`release` or ``0`` if unavailable.
-
-        >>> Version("1.2.3").micro
-        3
-        >>> Version("1").micro
-        0
-        """
         return self.release[2] if len(self.release) >= 3 else 0
 
 
@@ -571,9 +364,6 @@ _local_version_separators = re.compile(r"[\._-]")
 
 
 def _parse_local_version(local: str | None) -> LocalType | None:
-    """
-    Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
-    """
     if local is not None:
         return tuple(
             part.lower() if not part.isdigit() else int(part)
