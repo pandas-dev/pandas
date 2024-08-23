@@ -2619,6 +2619,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
         >>> s1.corr(s2)
         -1.0
+
+        If the input is a constant array, the correlation is not defined in this case,
+        and ``np.nan`` is returned.
+
+        >>> s1 = pd.Series([0.45, 0.45])
+        >>> s1.corr(s1)
+        nan
         """  # noqa: E501
         this, other = self.align(other, join="inner")
         if len(this) == 0:
