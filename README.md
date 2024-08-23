@@ -138,7 +138,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 
 
 ```sh
-python -m pip install -ve . --no-build-isolation --config-settings=editable-verbose=true
+python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
