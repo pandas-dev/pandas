@@ -616,13 +616,11 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Returns the hour component of the timestamp.
 
-        Extended Summary
-        --------
         The hour is represented as an integer ranging from 0 to 23, where 0 corresponds
         to midnight (00:00) and 23 corresponds to the last hour of the day (23:00).
 
         Returns
-        --------
+        -------
         int
             The hour component of the timestamp as an integer between 0 and 23.
 
