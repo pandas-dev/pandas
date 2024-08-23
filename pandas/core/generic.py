@@ -600,9 +600,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
+        dtypes = self.dtypes
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=self.dtypes[k]
+                v, copy=False, index=self.index, name=k, dtype=dtypes[k]
             ).__finalize__(self)
             for k, v in zip(self.columns, self._iter_column_arrays())
             if not isinstance(k, int)
@@ -7486,9 +7487,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if inplace:
                     return None
                 return self.copy(deep=False)
-
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
+                    if isinstance(self, ABCSeries):
+                        raise ValueError(
+                            "to_replace and value cannot be dict-like for "
+                            "Series.replace"
+                        )
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
