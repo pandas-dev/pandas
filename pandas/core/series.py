@@ -580,15 +580,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         PyCapsule
         """
         pa = import_optional_dependency("pyarrow", min_version="16.0.0")
-        if requested_schema is not None:
-            # todo: how should this be supported?
-            msg = (
-                "Passing `requested_schema` to `Series.__arrow_c_stream__` is not yet "
-                "supported"
-            )
-            raise NotImplementedError(msg)
         ca = pa.chunked_array([pa.Array.from_pandas(self, type=requested_schema)])
-        return ca.__arrow_c_stream__()
+        return ca.__arrow_c_stream__(requested_schema)
 
     # ----------------------------------------------------------------------
 
