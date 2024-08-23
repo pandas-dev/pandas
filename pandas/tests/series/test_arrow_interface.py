@@ -2,14 +2,11 @@ import ctypes
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 
-pa = pytest.importorskip("pyarrow")
+pa = pytest.importorskip("pyarrow", minversion="16.0")
 
 
-@td.skip_if_no("pyarrow", min_version="16.0")
 def test_series_arrow_interface():
     s = pd.Series([1, 4, 2])
 
