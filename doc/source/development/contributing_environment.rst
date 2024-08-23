@@ -291,7 +291,7 @@ At this point you may want to try
 
 When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified.
 By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's
-output when importing pandas, you can set the environment variable ``MESONPY_EDTIABLE_VERBOSE``. For example, this would be::
+output when importing pandas, you can set the environment variable ``MESONPY_EDITABLE_VERBOSE``. For example, this would be::
 
    # On Linux/macOS
    MESONPY_EDITABLE_VERBOSE=1 python
