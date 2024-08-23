@@ -297,9 +297,7 @@ class SharedTests:
         assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(
-        self, arr1d, box, string_storage, using_infer_string
-    ):
+    def test_searchsorted_castable_strings(self, arr1d, box, string_storage):
         arr = arr1d
         if box is None:
             pass
@@ -335,8 +333,7 @@ class SharedTests:
                 TypeError,
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    "or array of those. Got "
-                    f"{'str' if using_infer_string else 'string'} array instead."
+                    "or array of those. Got string array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
@@ -891,20 +888,24 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_datetime_array_equal(result, expected)
 
-    def test_strftime(self, arr1d):
+    def test_strftime(self, arr1d, using_infer_string):
         arr = arr1d
 
         result = arr.strftime("%Y %b")
         expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        if using_infer_string:
+            expected = pd.array(expected, dtype=pd.StringDtype(na_value=np.nan))
+        tm.assert_equal(result, expected)
 
-    def test_strftime_nat(self):
+    def test_strftime_nat(self, using_infer_string):
         # GH 29578
         arr = DatetimeIndex(["2019-01-01", NaT])._data
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        if using_infer_string:
+            expected = pd.array(expected, dtype=pd.StringDtype(na_value=np.nan))
+        tm.assert_equal(result, expected)
 
 
 class TestTimedeltaArray(SharedTests):
@@ -1161,20 +1162,24 @@ class TestPeriodArray(SharedTests):
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_strftime(self, arr1d):
+    def test_strftime(self, arr1d, using_infer_string):
         arr = arr1d
 
         result = arr.strftime("%Y")
         expected = np.array([per.strftime("%Y") for per in arr], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        if using_infer_string:
+            expected = pd.array(expected, dtype=pd.StringDtype(na_value=np.nan))
+        tm.assert_equal(result, expected)
 
-    def test_strftime_nat(self):
+    def test_strftime_nat(self, using_infer_string):
         # GH 29578
         arr = PeriodArray(PeriodIndex(["2019-01-01", NaT], dtype="period[D]"))
 
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        if using_infer_string:
+            expected = pd.array(expected, dtype=pd.StringDtype(na_value=np.nan))
+        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
