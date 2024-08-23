@@ -181,9 +181,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
         -i "pandas.Timestamp.day GL08" \
         -i "pandas.Timestamp.fold GL08" \
-        -i "pandas.Timestamp.max PR02" \
-        -i "pandas.Timestamp.microsecond GL08" \
-        -i "pandas.Timestamp.min PR02" \
         -i "pandas.Timestamp.minute GL08" \
         -i "pandas.Timestamp.month GL08" \
         -i "pandas.Timestamp.nanosecond GL08" \
