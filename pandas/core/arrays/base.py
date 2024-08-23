@@ -653,6 +653,11 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
 
+        See Also
+        --------
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
+
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
@@ -665,6 +670,11 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        See Also
+        --------
+        ExtensionArray.shape: Return a tuple of the array dimensions.
+        ExtensionArray.size: The number of elements in the array.
 
         Examples
         --------
@@ -770,6 +780,11 @@ class ExtensionArray:
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
             returned.
+
+        See Also
+        --------
+        ExtensionArray.dropna: Return ExtensionArray without NA values.
+        ExtensionArray.fillna: Fill NA/NaN values using the specified method.
 
         Notes
         -----
@@ -1584,6 +1599,7 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            An array formed with selected `indices`.
 
         Raises
         ------
@@ -1836,6 +1852,11 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+            A flattened view on the array.
+
+        See Also
+        --------
+        ExtensionArray.tolist: Return a list of the values.
 
         Notes
         -----

@@ -5,19 +5,15 @@ import zoneinfo
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 pa = pytest.importorskip("pyarrow")
 
@@ -150,8 +146,8 @@ class TestFeather:
     def test_passthrough_keywords(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
@@ -165,7 +161,9 @@ class TestFeather:
             res = read_feather(httpserver.url)
         tm.assert_frame_equal(expected, res)
 
-    def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
+    def test_read_feather_dtype_backend(
+        self, string_storage, dtype_backend, using_infer_string
+    ):
         # GH#50765
         df = pd.DataFrame(
             {
@@ -187,7 +185,10 @@ class TestFeather:
 
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            string_dtype = pd.ArrowDtype(pa.string())
+            if using_infer_string:
+                string_dtype = pd.ArrowDtype(pa.large_string())
+            else:
+                string_dtype = pd.ArrowDtype(pa.string())
         else:
             string_dtype = pd.StringDtype(string_storage)
 
@@ -214,6 +215,10 @@ class TestFeather:
                 }
             )
 
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_int_columns_and_index(self):
