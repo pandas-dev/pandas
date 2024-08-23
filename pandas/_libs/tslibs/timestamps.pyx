@@ -632,16 +632,15 @@ cdef class _Timestamp(ABCTimestamp):
 
         Examples
         --------
-            >>> ts = pd.Timestamp('2024-08-23 14:30:15.123456')
-            >>> ts.microsecond
-            123456
+        >>> ts = pd.Timestamp('2024-08-23 14:30:15.123456')
+        >>> ts.microsecond
+        123456
         """
         return self.microsecond
 
     def max(self):
         """
-        A constant that represents the maximum valid date and time value for a
-        pandas Timestamp object.
+        A constant that represents the maximum valid date and time value.
 
         This property returns the highest datetime value that can be represented
         by a pandas.Timestamp object, which is equivalent to
@@ -654,13 +653,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.min : Return the minimum valid date and time value for
-        pandas Timestamp object.
+        Timestamp.min : Return the minimum valid date and time value for Timestamp.
 
         Examples
         --------
-            >>> pd.Timestamp.max
-            Timestamp('2262-04-11 23:47:16.854775807')
+        >>> pd.Timestamp.max
+        Timestamp('2262-04-11 23:47:16.854775807')
         """
         return max
 
@@ -706,13 +704,13 @@ cdef class _Timestamp(ABCTimestamp):
 
         Examples
         --------
-            >>> ts = pd.Timestamp('2020-03-14T12:32:52.192548651')
-            >>> ts.hour()
-            12
+        >>> ts = pd.Timestamp('2020-03-14T12:32:52.192548651')
+        >>> ts.hour()
+        12
 
-            >>> ts = pd.Timestamp('2020-03-14T22:43:12.192547851')
-            >>> ts.hour()
-            22
+        >>> ts = pd.Timestamp('2020-03-14T22:43:12.192547851')
+        >>> ts.hour()
+        22
         """
         return self.hour
 
