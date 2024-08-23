@@ -91,9 +91,9 @@ if TYPE_CHECKING:
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE), 113 (Stata 8/9), "
-    "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
-    "and 119 (Stata 15/16, over 32,767 variables)."
+    "versions 102, 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE),  "
+    "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
+    "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 _statafile_processing_params1 = """\
@@ -983,6 +983,19 @@ class StataParser:
                 np.float64(struct.unpack("<d", float64_max)[0]),
             ),
         }
+        self.OLD_VALID_RANGE = {
+            "b": (-128, 126),
+            "h": (-32768, 32766),
+            "l": (-2147483648, 2147483646),
+            "f": (
+                np.float32(struct.unpack("<f", float32_min)[0]),
+                np.float32(struct.unpack("<f", float32_max)[0]),
+            ),
+            "d": (
+                np.float64(struct.unpack("<d", float64_min)[0]),
+                np.float64(struct.unpack("<d", float64_max)[0]),
+            ),
+        }
 
         self.OLD_TYPE_MAPPING = {
             98: 251,  # byte
@@ -994,7 +1007,7 @@ class StataParser:
 
         # These missing values are the generic '.' in Stata, and are used
         # to replace nans
-        self.MISSING_VALUES = {
+        self.MISSING_VALUES: dict[str, int | np.float32 | np.float64] = {
             "b": 101,
             "h": 32741,
             "l": 2147483621,
@@ -1352,8 +1365,10 @@ class StataReader(StataParser, abc.Iterator):
     def _get_nobs(self) -> int:
         if self._format_version >= 118:
             return self._read_uint64()
-        else:
+        elif self._format_version >= 103:
             return self._read_uint32()
+        else:
+            return self._read_uint16()
 
     def _get_data_label(self) -> str:
         if self._format_version >= 118:
@@ -1393,9 +1408,24 @@ class StataReader(StataParser, abc.Iterator):
 
     def _read_old_header(self, first_char: bytes) -> None:
         self._format_version = int(first_char[0])
-        if self._format_version not in [103, 104, 105, 108, 110, 111, 113, 114, 115]:
+        if self._format_version not in [
+            102,
+            103,
+            104,
+            105,
+            108,
+            110,
+            111,
+            113,
+            114,
+            115,
+        ]:
             raise ValueError(_version_error.format(version=self._format_version))
         self._set_encoding()
+        # Note 102 format will have a zero in this header position, so support
+        # relies on little-endian being set whenever this value isn't one,
+        # even though for later releases strictly speaking the value should
+        # be either one or two to be valid
         self._byteorder = ">" if self._read_int8() == 0x1 else "<"
         self._filetype = self._read_int8()
         self._path_or_buf.read(1)  # unused
@@ -1787,15 +1817,31 @@ the string values returned are correct."""
         return data
 
     def _do_convert_missing(self, data: DataFrame, convert_missing: bool) -> DataFrame:
+        # missing code for double was different in version 105 and prior
+        old_missingdouble = float.fromhex("0x1.0p333")
+
         # Check for missing values, and replace if found
         replacements = {}
         for i in range(len(data.columns)):
             fmt = self._typlist[i]
-            if fmt not in self.VALID_RANGE:
-                continue
+            # recode instances of the old missing code to the currently used value
+            if self._format_version <= 105 and fmt == "d":
+                data.iloc[:, i] = data.iloc[:, i].replace(
+                    old_missingdouble, self.MISSING_VALUES["d"]
+                )
 
-            fmt = cast(str, fmt)  # only strs in VALID_RANGE
-            nmin, nmax = self.VALID_RANGE[fmt]
+            if self._format_version <= 111:
+                if fmt not in self.OLD_VALID_RANGE:
+                    continue
+
+                fmt = cast(str, fmt)  # only strs in OLD_VALID_RANGE
+                nmin, nmax = self.OLD_VALID_RANGE[fmt]
+            else:
+                if fmt not in self.VALID_RANGE:
+                    continue
+
+                fmt = cast(str, fmt)  # only strs in VALID_RANGE
+                nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 
             # appreciably faster to do this with ndarray instead of Series
@@ -1810,7 +1856,12 @@ the string values returned are correct."""
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
-                    missing_value = StataMissingValue(um)
+                    if self._format_version <= 111:
+                        missing_value = StataMissingValue(
+                            float(self.MISSING_VALUES[fmt])
+                        )
+                    else:
+                        missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
                     replacement.iloc[loc] = missing_value

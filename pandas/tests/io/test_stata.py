@@ -11,6 +11,8 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -120,9 +122,11 @@ class TestStata:
         expected["a"] = expected["a"].astype(np.int32)
         tm.assert_frame_equal(read_df, expected, check_index_type=True)
 
-    @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
-    def test_read_dta1(self, file, datapath):
-        file = datapath("io", "data", "stata", f"{file}.dta")
+    @pytest.mark.parametrize(
+        "version", [102, 103, 104, 105, 108, 110, 111, 113, 114, 115, 117, 118, 119]
+    )
+    def test_read_dta1(self, version, datapath):
+        file = datapath("io", "data", "stata", f"stata1_{version}.dta")
         parsed = self.read_dta(file)
 
         # Pandas uses np.nan as missing value.
@@ -135,6 +139,18 @@ class TestStata:
         # this is an oddity as really the nan should be float64, but
         # the casting doesn't fail so need to match stata here
         expected["float_miss"] = expected["float_miss"].astype(np.float32)
+
+        # Column names too long for older Stata formats
+        if version <= 108:
+            expected = expected.rename(
+                columns={
+                    "float_miss": "f_miss",
+                    "double_miss": "d_miss",
+                    "byte_miss": "b_miss",
+                    "int_miss": "i_miss",
+                    "long_miss": "l_miss",
+                }
+            )
 
         tm.assert_frame_equal(parsed, expected)
 
@@ -267,7 +283,7 @@ class TestStata:
         # stata doesn't save .category metadata
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("version", [103, 104, 105, 108])
+    @pytest.mark.parametrize("version", [102, 103, 104, 105, 108])
     def test_readold_dta4(self, version, datapath):
         # This test is the same as test_read_dta4 above except that the columns
         # had to be renamed to match the restrictions in older file format
@@ -419,6 +435,7 @@ class TestStata:
             check_index_type=False,
         )
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta10(self, version, temp_file):
         original = DataFrame(
@@ -904,8 +921,8 @@ class TestStata:
         )
         assert val.string == ".z"
 
-    @pytest.mark.parametrize("file", ["stata8_113", "stata8_115", "stata8_117"])
-    def test_missing_value_conversion(self, file, datapath):
+    @pytest.mark.parametrize("version", [113, 115, 117])
+    def test_missing_value_conversion(self, version, datapath):
         columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
         smv = StataMissingValue(101)
         keys = sorted(smv.MISSING_VALUES.keys())
@@ -916,7 +933,41 @@ class TestStata:
         expected = DataFrame(data, columns=columns)
 
         parsed = read_stata(
-            datapath("io", "data", "stata", f"{file}.dta"), convert_missing=True
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize("version", [104, 105, 108, 110, 111])
+    def test_missing_value_conversion_compat(self, version, datapath):
+        columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
+        smv = StataMissingValue(101)
+        keys = sorted(smv.MISSING_VALUES.keys())
+        data = []
+        row = [StataMissingValue(keys[j * 27]) for j in range(5)]
+        data.append(row)
+        expected = DataFrame(data, columns=columns)
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    # The byte type was not supported prior to the 104 format
+    @pytest.mark.parametrize("version", [102, 103])
+    def test_missing_value_conversion_compat_nobyte(self, version, datapath):
+        columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
+        smv = StataMissingValue(101)
+        keys = sorted(smv.MISSING_VALUES.keys())
+        data = []
+        row = [StataMissingValue(keys[j * 27]) for j in [1, 1, 2, 3, 4]]
+        data.append(row)
+        expected = DataFrame(data, columns=columns)
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata8_{version}.dta"),
+            convert_missing=True,
         )
         tm.assert_frame_equal(parsed, expected)
 
@@ -1225,6 +1276,7 @@ class TestStata:
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
@@ -1317,6 +1369,7 @@ class TestStata:
             from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
@@ -1621,6 +1674,7 @@ The repeated labels are:\n-+\nwolof
             path = temp_file
             df.to_stata(path)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_pathlib(self):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -1645,6 +1699,7 @@ The repeated labels are:\n-+\nwolof
             value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_set_index(self, temp_file):
         # GH 17328
         df = DataFrame(
@@ -1678,6 +1733,7 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("byteorder", ["little", "big"])
     def test_writer_117(self, byteorder, temp_file):
         original = DataFrame(
@@ -1789,6 +1845,7 @@ The repeated labels are:\n-+\nwolof
         with pytest.raises(ValueError, match=msg):
             original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version, temp_file):
         # GH 21041
@@ -1807,6 +1864,7 @@ The repeated labels are:\n-+\nwolof
         reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_gzip_writing(self, temp_file):
         # writing version 117 requires seek and cannot be used with gzip
         df = DataFrame(
@@ -1849,6 +1907,7 @@ The repeated labels are:\n-+\nwolof
 
         tm.assert_frame_equal(unicode_df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_mixed_string_strl(self, temp_file):
         # GH 23633
         output = [{"mixed": "string" * 500, "number": 0}, {"mixed": None, "number": 1}]
@@ -1941,6 +2000,7 @@ the string values returned are correct."""
                 reader._ensure_open()
                 assert reader._nvar == 32999
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("version", [118, 119, None])
     @pytest.mark.parametrize("byteorder", ["little", "big"])
     def test_utf8_writer(self, version, byteorder, temp_file):
@@ -2035,6 +2095,52 @@ the string values returned are correct."""
 
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
+    @pytest.mark.parametrize("version", [113, 114, 115, 117, 118, 119])
+    def test_read_data_int_validranges(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-127, 100], dtype=np.int8),
+                "int": np.array([-32767, 32740], dtype=np.int16),
+                "long": np.array([-2147483647, 2147483620], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    @pytest.mark.parametrize("version", [104, 105, 108, 110, 111])
+    def test_read_data_int_validranges_compat(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-128, 126], dtype=np.int8),
+                "int": np.array([-32768, 32766], dtype=np.int16),
+                "long": np.array([-2147483648, 2147483646], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
+
+    # The byte type was not supported prior to the 104 format
+    @pytest.mark.parametrize("version", [102, 103])
+    def test_read_data_int_validranges_compat_nobyte(self, version, datapath):
+        expected = DataFrame(
+            {
+                "byte": np.array([-128, 126], dtype=np.int16),
+                "int": np.array([-32768, 32766], dtype=np.int16),
+                "long": np.array([-2147483648, 2147483646], dtype=np.int32),
+            }
+        )
+
+        parsed = read_stata(
+            datapath("io", "data", "stata", f"stata_int_validranges_{version}.dta")
+        )
+        tm.assert_frame_equal(parsed, expected)
+
 
 @pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114])
 def test_backward_compat(version, datapath):
@@ -2058,6 +2164,19 @@ def test_backward_compat_nodateconversion(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+@pytest.mark.parametrize("version", [102])
+def test_backward_compat_nostring(version, datapath):
+    # The Stata data format prior to 105 did not support a date format
+    # so read the raw values for comparison
+    ref = datapath("io", "data", "stata", "stata-compat-118.dta")
+    old = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
+    expected = read_stata(ref, convert_dates=False)
+    # The Stata data format prior to 103 did not support string data
+    expected = expected.drop(columns=["s10"])
+    old_dta = read_stata(old, convert_dates=False)
+    tm.assert_frame_equal(old_dta, expected, check_dtype=False)
+
+
 @pytest.mark.parametrize("version", [105, 108, 110, 111, 113, 114, 118])
 def test_bigendian(version, datapath):
     ref = datapath("io", "data", "stata", f"stata-compat-{version}.dta")
@@ -2067,6 +2186,7 @@ def test_bigendian(version, datapath):
     tm.assert_frame_equal(big_dta, expected)
 
 
+# Note: 102 format does not support big-endian byte order
 @pytest.mark.parametrize("version", [103, 104])
 def test_bigendian_nodateconversion(version, datapath):
     # The Stata data format prior to 105 did not support a date format
@@ -2228,6 +2348,7 @@ def test_iterator_errors(datapath, chunksize):
             pass
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_iterator_value_labels(temp_file):
     # GH 31544
     values = ["c_label", "b_label"] + ["a_label"] * 500

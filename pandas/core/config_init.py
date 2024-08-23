@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import os
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -451,16 +452,30 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype. This option is ignored if
-    ``future.infer_string`` is set to True.
+    The default storage for StringDtype.
 """
+
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["auto", "python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        if value == "pyarrow_numpy":
+            # TODO: we can remove extra message after 3.0
+            msg += (
+                ". 'pyarrow_numpy' was specified, but this option should be "
+                "enabled using pandas.options.future.infer_string instead"
+            )
+        raise ValueError(msg)
+
 
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
-        "python",
+        "auto",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
@@ -858,7 +873,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        True if os.environ.get("PANDAS_FUTURE_INFER_STRING", "0") == "1" else False,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",

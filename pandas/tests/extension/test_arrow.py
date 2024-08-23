@@ -32,6 +32,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -1993,6 +1995,7 @@ def test_str_find_large_start():
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )

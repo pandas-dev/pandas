@@ -15,15 +15,16 @@ jobs:
       - checkout
       - run:
           name: Install Environment and Run Tests
-          shell: /bin/bash -exuo pipefail
+          shell: /bin/bash -exo pipefail
+          # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
           command: |
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
-            wget -q $MAMBA_URL -O minimamba.sh
-            chmod +x minimamba.sh
-            MAMBA_DIR="$HOME/miniconda3"
-            rm -rf $MAMBA_DIR
-            ./minimamba.sh -b -p $MAMBA_DIR
-            export PATH=$MAMBA_DIR/bin:$PATH
+            MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge3-24.3.0-0-Linux-aarch64.sh"
+            wget -q $MINI_URL -O Miniforge3.sh
+            chmod +x Miniforge3.sh
+            MINI_DIR="$HOME/miniconda3"
+            rm -rf $MINI_DIR
+            ./Miniforge3.sh -b -p $MINI_DIR
+            export PATH=$MINI_DIR/bin:$PATH
             conda info -a
             conda env create -q -n pandas-dev -f $ENV_FILE
             conda list -n pandas-dev
@@ -33,6 +34,7 @@ jobs:
             fi
             python -m pip install --no-build-isolation -ve . --config-settings=setup-args="--werror"
             PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
+            sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
             ci/run_tests.sh
   test-linux-musl:
     docker:
@@ -54,7 +56,7 @@ jobs:
             /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
             . ~/virtualenvs/pandas-dev/bin/activate
             python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-            python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+            python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
             python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
             python -m pip list --no-cache-dir
             export PANDAS_CI=1
@@ -89,29 +91,24 @@ jobs:
           name: Build aarch64 wheels
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.18.1
-            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+            pip3 install cibuildwheel==2.20.0
+            cibuildwheel --output-dir wheelhouse
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
       - run:
           name: Install Anaconda Client & Upload Wheels
+          shell: /bin/bash -exo pipefail
           command: |
-            echo "Install Mambaforge"
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-aarch64.sh"
-            echo "Downloading $MAMBA_URL"
-            wget -q $MAMBA_URL -O minimamba.sh
-            chmod +x minimamba.sh
-
-            MAMBA_DIR="$HOME/miniconda3"
-            rm -rf $MAMBA_DIR
-            ./minimamba.sh -b -p $MAMBA_DIR
-
-            export PATH=$MAMBA_DIR/bin:$PATH
-
-            mamba install -y -c conda-forge anaconda-client
-
+            MINI_URL="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge3-24.3.0-0-Linux-aarch64.sh"
+            wget -q $MINI_URL -O Miniforge3.sh
+            chmod +x Miniforge3.sh
+            MINI_DIR="$HOME/miniconda3"
+            rm -rf $MINI_DIR
+            ./Miniforge3.sh -b -p $MINI_DIR
+            export PATH=$MINI_DIR/bin:$PATH
+            conda install -y -c conda-forge anaconda-client
             source ci/upload_wheels.sh
             set_upload_vars
             upload_wheels

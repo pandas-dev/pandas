@@ -32,7 +32,10 @@ from decimal import Decimal
 import gc
 import operator
 import os
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 from dateutil.tz import (
@@ -43,11 +46,8 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import (
-    FixedOffset,
-    utc,
-)
 
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -92,12 +92,7 @@ else:
     del pa
     has_pyarrow = True
 
-import zoneinfo
-
-try:
-    zoneinfo.ZoneInfo("UTC")
-except zoneinfo.ZoneInfoNotFoundError:
-    zoneinfo = None  # type: ignore[assignment]
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 
 # ----------------------------------------------------------------
@@ -1199,19 +1194,19 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    FixedOffset(300),
-    FixedOffset(0),
-    FixedOffset(-300),
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
-if zoneinfo is not None:
+if pytz is not None:
     TIMEZONES.extend(
-        [
-            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
-            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
-        ]
+        (
+            pytz.FixedOffset(300),
+            pytz.FixedOffset(0),
+            pytz.FixedOffset(-300),
+            pytz.timezone("US/Pacific"),
+            pytz.timezone("UTC"),
+        )
     )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
@@ -1234,9 +1229,10 @@ def tz_aware_fixture(request):
     return request.param
 
 
-_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
-if zoneinfo is not None:
-    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
+
+if pytz is not None:
+    _UTCS.append(pytz.utc)
 
 
 @pytest.fixture(params=_UTCS)
@@ -1296,7 +1292,6 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1305,7 +1300,25 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
-    * 'pyarrow_numpy'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ]
+)
+def string_dtype_arguments(request):
+    """
+    Parametrized fixture for StringDtype storage and na_value.
+
+    * 'python' + pd.NA
+    * 'pyarrow' + pd.NA
+    * 'pyarrow' + np.nan
     """
     return request.param
 
@@ -1354,20 +1367,36 @@ def object_dtype(request):
 
 @pytest.fixture(
     params=[
-        "object",
-        "string[python]",
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-    ]
+        np.dtype("object"),
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=object",
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
 )
 def any_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
-    * 'string[python]'
-    * 'string[pyarrow]'
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
     """
-    return request.param
+    if isinstance(request.param, np.dtype):
+        return request.param
+    else:
+        # need to instantiate the StringDtype here instead of in the params
+        # to avoid importing pyarrow during test collection
+        storage, na_value = request.param
+        return pd.StringDtype(storage, na_value)
 
 
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
@@ -2013,25 +2042,17 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
-if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
+_warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if pytz is not None:
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
 
 
-@pytest.fixture(params=warsaws)
+@pytest.fixture(params=_warsaws)
 def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
-
-
-@pytest.fixture
-def arrow_string_storage():
-    """
-    Fixture that lists possible PyArrow values for StringDtype storage field.
-    """
-    return ("pyarrow", "pyarrow_numpy")
 
 
 @pytest.fixture
