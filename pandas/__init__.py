@@ -28,8 +28,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python -m pip install -ve . --no-build-isolation --config-settings "
-        "editable-verbose=true' to build the C extensions first."
+        "'python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true' "
+        "to build the C extensions first."
     ) from _err
 
 from pandas._config import (
