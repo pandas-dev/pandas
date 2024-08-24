@@ -97,7 +97,6 @@ from pandas._libs.missing cimport (
     is_null_timedelta64,
 )
 
-from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
@@ -2771,19 +2770,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
 
     elif seen.datetime_:
-        if storage == "pyarrow":
-            from pandas.core.dtypes.dtypes import ArrowDtype
-
-            if isinstance(val, datetime):
-                objects[mask] = None
-            else:
-                objects[mask] = np.datetime64("NaT")
-            datetime64_array = objects.astype(val.dtype)
-            pa_array = pa.array(datetime64_array)
-            dtype = ArrowDtype(pa_array.type)
-            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
-
-        elif is_datetime_or_datetime64_array(objects):
+        if is_datetime_or_datetime64_array(objects):
             from pandas import DatetimeIndex
 
             try:
@@ -2795,43 +2782,18 @@ def maybe_convert_objects(ndarray[object] objects,
                 return dti._data._ndarray
         seen.object_ = True
 
-    elif seen.date_:
-        if storage == "pyarrow":
-
-            from pandas.core.dtypes.dtypes import ArrowDtype
-
-            objects[mask] = None
-            pa_array = pa.array(objects)
-            dtype = ArrowDtype(pa_array.type)
-            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
-
     elif seen.timedelta_:
-        if storage == "pyarrow":
-            from pandas.core.dtypes.dtypes import ArrowDtype
+        if is_timedelta_or_timedelta64_array(objects):
+            from pandas import TimedeltaIndex
 
-            timedelta64_array = None
-            if isinstance(val, timedelta):
-                objects[mask] = None
-                timedelta64_array = objects.astype(Timedelta)
+            try:
+                tdi = TimedeltaIndex(objects)
+            except OutOfBoundsTimedelta:
+                pass
             else:
-                objects[mask] = np.timedelta64("NaT")
-                timedelta64_array = objects.astype(val.dtype)
-            pa_array = pa.array(timedelta64_array)
-
-            dtype = ArrowDtype(pa_array.type)
-            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
-        else:
-            if is_timedelta_or_timedelta64_array(objects):
-                from pandas import TimedeltaIndex
-
-                try:
-                    tdi = TimedeltaIndex(objects)
-                except OutOfBoundsTimedelta:
-                    pass
-                else:
-                    # unbox to ndarray[timedelta64[ns]]
-                    return tdi._data._ndarray
-            seen.object_ = True
+                # unbox to ndarray[timedelta64[ns]]
+                return tdi._data._ndarray
+        seen.object_ = True
 
     elif seen.period_:
         if is_period_array(objects):
@@ -2967,19 +2929,12 @@ def maybe_convert_objects(ndarray[object] objects,
 
         # TODO: do these after the itemsize check?
         if (result is ints or result is uints) and convert_to_nullable_dtype:
-            if storage == "pyarrow":
-                from pandas.core.dtypes.dtypes import ArrowDtype
+            from pandas.core.arrays import IntegerArray
 
-                dtype = ArrowDtype(pa.int64())
-                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
-            else:
-                from pandas.core.arrays import IntegerArray
-
-                # Set these values to 1 to be deterministic, match
-                #  IntegerDtype._internal_fill_value
-                result[mask] = 1
-                result = IntegerArray(result, mask)
-
+            # Set these values to 1 to be deterministic, match
+            #  IntegerDtype._internal_fill_value
+            result[mask] = 1
+            result = IntegerArray(result, mask)
         elif result is floats and convert_to_nullable_dtype:
             from pandas.core.arrays import FloatingArray
 
