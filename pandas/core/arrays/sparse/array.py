@@ -603,6 +603,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         An ndarray containing the non- ``fill_value`` values.
 
+        See Also
+        --------
+        SparseArray : Array type for storing sparse data.
+        SparseArray.sp_index : The index object storing the positions of
+            non-``fill_value`` values.
+        SparseArray.fill_value : The value considered as "missing" or not stored.
+        SparseArray.sp_values : Returns the non-``fill_value`` values in the sparse
+            array.
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray
@@ -622,6 +631,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        See Also
+        --------
+        pd.SparseDtype : Type for sparse data which holds the dtype and fill_value.
+        pd.Series.sparse : Accessor object for sparse data in a Series.
 
         Examples
         --------
@@ -684,6 +698,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def npoints(self) -> int:
         """
         The number of non- ``fill_value`` points.
+
+        See Also
+        --------
+        SparseArray : Array type for storing sparse data.
+        SparseIndex : Stores the locations and counts of non-``fill_value`` data.
+        SparseArray.fill_value : The value considered as "missing" or not stored.
 
         Examples
         --------

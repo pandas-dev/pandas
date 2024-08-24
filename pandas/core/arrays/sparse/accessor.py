@@ -79,6 +79,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Parameters
         ----------
         A : scipy.sparse.coo_matrix
+            A sparse matrix in COOrdinate format. The matrix should have
+            non-zero elements that will be used to create a Series with sparse
+            values. The row and column indices of these elements form the index
+            of the Series.
         dense_index : bool, default False
             If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
@@ -89,6 +93,14 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         -------
         s : Series
             A Series with sparse values.
+
+        See Also
+        --------
+        scipy.sparse.coo_matrix : Sparse matrix in COOrdinate format.
+        pd.Series.sparse : Accessor object for sparse data in a Series.
+        pd.DataFrame.sparse.from_spmatrix : Create a DataFrame with sparse
+            values from a scipy sparse matrix.
+        pd.SparseArray : Array type for storing sparse data.
 
         Examples
         --------
@@ -135,7 +147,13 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Parameters
         ----------
         row_levels : tuple/list
+            The levels of the MultiIndex to use for the row coordinates in the
+            resulting sparse matrix. These can be specified as the names or
+            numerical positions of the levels.
         column_levels : tuple/list
+            The levels of the MultiIndex to use for the column coordinates in the
+            resulting sparse matrix. These can be specified as the names or
+            numerical positions of the levels.
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
             When `row_levels` and/or `column_levels` refer to a single level,
@@ -144,8 +162,22 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Returns
         -------
         y : scipy.sparse.coo_matrix
+            A sparse matrix in COOrdinate format representing the non-NA values
+            of the Series.
         rows : list (row labels)
+            The row labels corresponding to the row coordinates in the sparse matrix.
         columns : list (column labels)
+            The column labels corresponding to the column coordinates in the sparse
+            matrix.
+
+            See Also
+        --------
+        scipy.sparse.coo_matrix : Sparse matrix in COOrdinate format.
+        pd.Series.sparse.from_coo : Create a Series with sparse values from a
+            scipy.sparse.coo_matrix.
+        pd.DataFrame.sparse.from_spmatrix : Create a DataFrame with sparse values
+            from a scipy sparse matrix.
+        pd.SparseArray : Array type for storing sparse data.
 
         Examples
         --------
