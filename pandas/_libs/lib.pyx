@@ -1790,7 +1790,7 @@ cdef class Validator:
                                   "must define is_value_typed")
 
     cdef bint is_valid_null(self, object value) except -1:
-        return value is None or value is C_NA or util.is_nan(value)
+        return value is None or value is C_NA or util.is_nan(value) or value is NaT
         # TODO: include decimal NA?
 
     cdef bint is_array_typed(self) except -1:
