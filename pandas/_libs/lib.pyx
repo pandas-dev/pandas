@@ -96,9 +96,6 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
 )
-
-from pandas._libs.tslibs.timestamps import Timestamp
-
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -1303,7 +1300,6 @@ cdef class Seen:
         bint object_          # seen_object
         bint complex_         # seen_complex
         bint datetime_        # seen_datetime
-        bint date_            # seen_date
         bint coerce_numeric   # coerce data to numeric
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
@@ -1332,7 +1328,6 @@ cdef class Seen:
         self.object_ = False
         self.complex_ = False
         self.datetime_ = False
-        self.date_ = False
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
@@ -2675,16 +2670,6 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
-        elif (
-            PyDate_Check(val)
-            or (pa is not None and isinstance(val, (pa.Date32Scalar, pa.Date64Scalar)))
-        ):
-            if convert_non_numeric:
-                seen.date_ = True
-                break
-            else:
-                seen.object_ = True
-                break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True
@@ -2739,35 +2724,18 @@ def maybe_convert_objects(ndarray[object] objects,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if storage == "pyarrow":
-            from pandas.core.dtypes.dtypes import ArrowDtype
+        if is_datetime_with_singletz_array(objects):
+            from pandas import DatetimeIndex
 
-            datetime64_array = None
-            if isinstance(val, datetime):
-                objects[mask] = None
-                datetime64_array = objects.astype(Timestamp)
+            try:
+                dti = DatetimeIndex(objects)
+            except OutOfBoundsDatetime:
+                # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
+                pass
             else:
-                objects[mask] = np.datetime64("NaT")
-                datetime64_array = objects.astype(val.dtype)
-            pa_array = pa.array(datetime64_array).cast(
-                pa.timestamp(val.resolution.unit, val.tzinfo)
-            )
-            dtype = ArrowDtype(pa_array.type)
-            return dtype.construct_array_type()._from_sequence(pa_array, dtype=dtype)
-
-        else:
-            if is_datetime_with_singletz_array(objects):
-                from pandas import DatetimeIndex
-
-                try:
-                    dti = DatetimeIndex(objects)
-                except OutOfBoundsDatetime:
-                    # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
-                    pass
-                else:
-                    # unbox to DatetimeArray
-                    return dti._data
-            seen.object_ = True
+                # unbox to DatetimeArray
+                return dti._data
+        seen.object_ = True
 
     elif seen.datetime_:
         if is_datetime_or_datetime64_array(objects):
