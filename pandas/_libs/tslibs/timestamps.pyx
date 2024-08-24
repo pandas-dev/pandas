@@ -962,7 +962,7 @@ cdef class _Timestamp(ABCTimestamp):
         return ((self.month - 1) // 3) + 1
 
     @property
-    def day(self) -> bool:
+    def day(self) -> int:
         """
         Return the day of the Timestamp.
 
