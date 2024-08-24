@@ -746,7 +746,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Block Placement
 
-    cdef _rebuild_blknos_and_blklocs(self):
+    cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.
         """
