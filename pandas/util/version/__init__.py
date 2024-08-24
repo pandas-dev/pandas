@@ -108,6 +108,8 @@ def parse(version: str) -> Version:
     return Version(version)
 
 
+# The docstring is from an older version of the packaging library to avoid
+# errors in the docstring validation.
 class InvalidVersion(ValueError):
     """
     An invalid version was found, users should refer to PEP 440.
