@@ -2239,11 +2239,18 @@ class ExtensionArray:
         Parameters
         ----------
         loc : int
+            Index where the `item` needs to be inserted.
         item : scalar-like
+            Value to be inserted.
 
         Returns
         -------
-        same type as self
+        ExtensionArray
+            With `item` inserted at `loc`.
+
+        See Also
+        --------
+        Index.insert: Make new Index inserting new item at location.
 
         Notes
         -----
