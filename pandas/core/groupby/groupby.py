@@ -3025,6 +3025,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Computed prod of values within each group.
 
+        See Also
+        --------
+        DataFrame.prod : Return the product of the values over the requested axis.
+        
         Examples
         --------
         For SeriesGroupBy:
@@ -3058,10 +3062,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1   16   10
         2   30   72
-
-        See Also
-        --------
-        DataFrame.prod : Return the product of the values over the requested axis.
         """
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
