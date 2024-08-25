@@ -28,7 +28,6 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :attr:`MultiIndex.names` containing ``None`` no longer throws ``AssertionError`` during join (:issue:`58721`)
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
@@ -655,6 +654,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- :attr:`MultiIndex.names` containing ``None`` no longer throws ``AssertionError`` during join (:issue:`58721`)
 - Bug in :func:`qcut` where values at the quantile boundaries could be incorrectly assigned (:issue:`59355`)
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
 - Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)
