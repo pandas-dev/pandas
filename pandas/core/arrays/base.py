@@ -608,6 +608,11 @@ class ExtensionArray:
         """
         An instance of ExtensionDtype.
 
+        See Also
+        --------
+        DataFrame.dtypes: Return the dtypes in the DataFrame.
+        Series.dtype: Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> pd.array([1, 2, 3]).dtype
