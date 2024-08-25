@@ -2619,6 +2619,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
         >>> s1.corr(s2)
         -1.0
+
+        If the input is a constant array, the correlation is not defined in this case,
+        and ``np.nan`` is returned.
+
+        >>> s1 = pd.Series([0.45, 0.45])
+        >>> s1.corr(s1)
+        nan
         """  # noqa: E501
         this, other = self.align(other, join="inner")
         if len(this) == 0:
@@ -4093,7 +4100,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        type of caller (new object)
+        Series
+            Type of caller with index as MultiIndex (new object).
+
+        See Also
+        --------
+        DataFrame.reorder_levels : Rearrange index or column levels using
+            input ``order``.
 
         Examples
         --------
@@ -5047,6 +5060,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         scalar
             Value that is popped from series.
+
+        See Also
+        --------
+        Series.drop: Drop specified values from Series.
+        Series.drop_duplicates: Return Series with duplicate values removed.
 
         Examples
         --------
