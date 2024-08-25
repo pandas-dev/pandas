@@ -1774,6 +1774,12 @@ class ExtensionArray:
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.ravel: Return a flattened view on input array.
+        Index.view: Equivalent function for Index.
+        ndarray.view: New view of array with the same data.
+
         Examples
         --------
         This gives view on the underlying data of an ``ExtensionArray`` and is not a
