@@ -1617,6 +1617,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         str
             {klass} in Markdown-friendly format.
 
+        See Also
+        -------
+        Series.to_frame : Rrite a text representation of object to the system clipboard.
+        Series.to_latex : Render Series to LaTeX-formatted table.
+
         Notes
         -----
         Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.

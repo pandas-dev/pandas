@@ -159,8 +159,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.str.replace SA01" \
         -i "pandas.Series.str.wrap RT03,SA01" \
         -i "pandas.Series.str.zfill RT03" \
-        -i "pandas.Series.struct.dtypes SA01" \
-        -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
