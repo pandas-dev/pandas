@@ -133,9 +133,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.tz_convert PR01,PR02" \
         -i "pandas.Series.dt.tz_localize PR01,PR02" \
         -i "pandas.Series.dt.unit GL08" \
-        -i "pandas.Series.gt SA01" \
-        -i "pandas.Series.lt SA01" \
-        -i "pandas.Series.ne SA01" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
