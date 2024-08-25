@@ -1452,10 +1452,18 @@ class ExtensionArray:
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            Values to compare every element in the array against.
 
         Returns
         -------
         np.ndarray[bool]
+            With true at indices where value is in `values`.
+
+        See Also
+        --------
+        DataFrame.isin: Whether each element in the DataFrame is contained in values.
+        Index.isin: Return a boolean array where the index values are in values.
+        Series.isin: Whether elements in Series are contained in values.
 
         Examples
         --------
