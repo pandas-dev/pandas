@@ -43,7 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    c_DEPR_ABBREVS,
+    c_DEPR_UNITS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -719,15 +719,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
-    elif unit in c_DEPR_ABBREVS:
+    elif unit in c_DEPR_UNITS:
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
-            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        unit = c_DEPR_ABBREVS[unit]
+        unit = c_DEPR_UNITS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -1078,9 +1078,21 @@ cdef class _Timedelta(timedelta):
         """
         Returns the days of the timedelta.
 
+        The `days` attribute of a `pandas.Timedelta` object provides the number
+        of days represented by the `Timedelta`. This is useful for extracting
+        the day component from a `Timedelta` that may also include hours, minutes,
+        seconds, and smaller time units. This attribute simplifies the process
+        of working with durations where only the day component is of interest.
+
         Returns
         -------
         int
+
+        See Also
+        --------
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
+        Timedelta.total_seconds : Returns the total duration in seconds.
 
         Examples
         --------
@@ -1731,6 +1743,12 @@ cdef class _Timedelta(timedelta):
         -------
         Timedelta
 
+        See Also
+        --------
+        Timedelta : Represents a duration, the difference between two dates or times.
+        to_timedelta : Convert argument to timedelta.
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -1785,6 +1803,7 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, or int
+        Input value.
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
@@ -1799,16 +1818,25 @@ class Timedelta(_Timedelta):
         * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
-        .. deprecated:: 2.2.0
+        .. deprecated:: 3.0.0
 
-            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
-            of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
+            Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
+            are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
+
+    See Also
+    --------
+    Timestamp : Represents a single timestamp in time.
+    TimedeltaIndex : Immutable Index of timedelta64 data.
+    DateOffset : Standard kind of date increment used for a date range.
+    to_timedelta : Convert argument to timedelta.
+    datetime.timedelta : Represents a duration in the datetime module.
+    numpy.timedelta64 : Represents a duration compatible with NumPy.
 
     Notes
     -----

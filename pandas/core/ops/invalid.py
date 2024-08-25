@@ -8,13 +8,14 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NoReturn,
 )
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         ArrayLike,
         Scalar,

@@ -5,6 +5,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from itertools import (
     product,
@@ -14,7 +15,6 @@ import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
@@ -388,6 +388,22 @@ class TestDatetime64SeriesComparison:
         result = op(ser, datetimelike)
         expected = Series(expected, name="A")
         tm.assert_series_equal(result, expected)
+
+    def test_ts_series_numpy_maximum(self):
+        # GH#50864, test numpy.maximum does not fail
+        # given a TimeStamp and Series(with dtype datetime64) comparison
+        ts = Timestamp("2024-07-01")
+        ts_series = Series(
+            ["2024-06-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        expected = Series(
+            ["2024-07-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        tm.assert_series_equal(expected, np.maximum(ts, ts_series))
 
 
 class TestDatetimeIndexComparisons:
@@ -1870,8 +1886,10 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
-        dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
+            unit
+        )
+        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)

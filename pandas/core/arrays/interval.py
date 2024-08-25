@@ -8,7 +8,6 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     Union,
     overload,
@@ -99,6 +98,7 @@ from pandas.core.ops import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
@@ -1436,12 +1436,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
     )
 
-    @Appender(
-        _interval_shared_docs["set_closed"]
-        % {
-            "klass": "IntervalArray",
-            "examples": textwrap.dedent(
-                """\
+    def set_closed(self, closed: IntervalClosedType) -> Self:
+        """
+        Return an identical IntervalArray closed on the specified side.
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        IntervalArray
+            A new IntervalArray with the specified side closures.
+
+        See Also
+        --------
+        IntervalArray.closed : Returns inclusive side of the Interval.
+        arrays.IntervalArray.closed : Returns inclusive side of the IntervalArray.
+
         Examples
         --------
         >>> index = pd.arrays.IntervalArray.from_breaks(range(4))
@@ -1449,15 +1463,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
         Length: 3, dtype: interval[int64, right]
-        >>> index.set_closed('both')
+        >>> index.set_closed("both")
         <IntervalArray>
         [[0, 1], [1, 2], [2, 3]]
         Length: 3, dtype: interval[int64, both]
         """
-            ),
-        }
-    )
-    def set_closed(self, closed: IntervalClosedType) -> Self:
         if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)

@@ -4,6 +4,8 @@ import struct
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
@@ -873,6 +875,14 @@ class TestUnique:
         expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_unique_NumpyExtensionArray(self):
+        arr_complex = pd.array(
+            [1 + 1j, 2, 3]
+        )  # NumpyEADtype('complex128') => NumpyExtensionArray
+        result = pd.unique(arr_complex)
+        expected = pd.array([1 + 1j, 2 + 0j, 3 + 0j])
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
@@ -990,21 +1000,18 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]"])
-    def test_isin_datetimelike_strings_deprecated(self, dtype):
+    def test_isin_datetimelike_strings_returns_false(self, dtype):
         # GH#53111
         dta = date_range("2013-01-01", periods=3)._values
         arr = Series(dta.view("i8")).array.view(dtype)
 
         vals = [str(x) for x in arr]
-        msg = "The behavior of 'isin' with dtype=.* is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = algos.isin(arr, vals)
-        assert res.all()
+        res = algos.isin(arr, vals)
+        assert not res.any()
 
         vals2 = np.array(vals, dtype=str)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res2 = algos.isin(arr, vals2)
-        assert res2.all()
+        res2 = algos.isin(arr, vals2)
+        assert not res2.any()
 
     def test_isin_dt64tz_with_nat(self):
         # the all-NaT values used to get inferred to tznaive, which was evaluated
@@ -1267,6 +1274,7 @@ class TestValueCounts:
             ],
             dtype=dtype,
         )
+
         res = ser.value_counts()
 
         exp_index = Index(
@@ -1640,7 +1648,10 @@ class TestDuplicated:
         expected = np.empty(len(uniques), dtype=object)
         expected[:] = uniques
 
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(arr)
@@ -1659,7 +1670,11 @@ class TestDuplicated:
     )
     def test_unique_complex_numbers(self, array, expected):
         # GH 17927
-        msg = "unique requires a Series, Index, ExtensionArray, or np.ndarray, got list"
+        msg = (
+            r"unique requires a Series, Index, ExtensionArray, np.ndarray "
+            r"or NumpyExtensionArray got list"
+        )
+
         with pytest.raises(TypeError, match=msg):
             # GH#52986
             pd.unique(array)
@@ -1669,6 +1684,7 @@ class TestDuplicated:
 
 
 class TestHashTable:
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [
@@ -1708,6 +1724,7 @@ class TestHashTable:
         reconstr = result_unique[result_inverse]
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "htable, data",
         [

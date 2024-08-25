@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.parsers import (
     _maybe_upcast,
     na_values,
@@ -84,6 +86,7 @@ def test_maybe_upcaste_all_nan():
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("val", [na_values[np.object_], "c"])
 def test_maybe_upcast_object(val, string_storage):
     # GH#36712

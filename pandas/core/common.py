@@ -12,6 +12,7 @@ from collections import (
     defaultdict,
 )
 from collections.abc import (
+    Callable,
     Collection,
     Generator,
     Hashable,
@@ -24,7 +25,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     TypeVar,
     cast,
     overload,
@@ -145,7 +145,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:  # noqa: E721
+            if type(key) is not list:
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -335,11 +335,12 @@ def is_empty_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line) -> list[bool]:
+def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
     """
-    Find non-trivial slices in "line": return a list of booleans with same length.
+    Find non-trivial slices in "line": yields a bool.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
+    for k in line:
+        yield isinstance(k, slice) and not is_null_slice(k)
 
 
 # TODO: used only once in indexing; belongs elsewhere?
