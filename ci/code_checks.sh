@@ -139,7 +139,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.sem PR01,RT03,SA01" \
         -i "pandas.Series.sparse PR01,SA01" \
-        -i "pandas.Series.sparse.density SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
         -i "pandas.Series.sparse.npoints SA01" \
