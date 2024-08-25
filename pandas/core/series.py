@@ -4098,7 +4098,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
-        DataFrame.reorder_levels : Rearrange index or column levels using input ``order``.
+        DataFrame.reorder_levels : Rearrange index or column levels using
+            input ``order``.
 
         Examples
         --------
@@ -5057,7 +5058,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Series.drop: Drop specified values from Series.
         Series.drop_duplicates: Return Series with duplicate values removed.
-            
+
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3])

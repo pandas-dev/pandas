@@ -675,7 +675,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
             scipy sparse matrix.
-        
+
         Examples
         --------
         >>> from pandas.arrays import SparseArray

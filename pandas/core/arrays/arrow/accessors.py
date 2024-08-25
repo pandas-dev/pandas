@@ -97,7 +97,7 @@ class ListAccessor(ArrowAccessor):
         str.len : Python built-in function returning the length of an object.
         Series.size : Returns the length of the Series.
         StringMethods.len : Compute the length of each element in the Series/Index.
-            
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -137,7 +137,7 @@ class ListAccessor(ArrowAccessor):
         See Also
         --------
         ListAccessor.flatten : Flatten list values.
-            
+
         Examples
         --------
         >>> import pyarrow as pa
