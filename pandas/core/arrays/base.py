@@ -1149,6 +1149,15 @@ class ExtensionArray:
 
         Returns
         -------
+        ExtensionArray
+            Without NA values.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.fillna : Fill NA/NaN values using
+            the specified method.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
 
         Examples
         --------
