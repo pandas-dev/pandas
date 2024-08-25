@@ -1319,6 +1319,13 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+            With unique values from the input array.
+
+        See Also
+        --------
+        Index.unique: Return unique values in the index.
+        Series.unique: Return unique values of Series object.
+        unique: Return unique values based on a hash table.
 
         Examples
         --------
