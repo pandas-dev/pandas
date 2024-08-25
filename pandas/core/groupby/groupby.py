@@ -3027,8 +3027,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
+        Series.prod : Return the product of the values over the requested axis.
         DataFrame.prod : Return the product of the values over the requested axis.
-        
+
         Examples
         --------
         For SeriesGroupBy:

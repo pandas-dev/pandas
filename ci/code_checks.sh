@@ -275,7 +275,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.prod SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sum SA01" \
         -i "pandas.core.resample.Resampler.__iter__ RT03,SA01" \
