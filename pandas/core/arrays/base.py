@@ -2225,6 +2225,12 @@ class ExtensionArray:
         Returns
         -------
         list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
 
         Examples
         --------
