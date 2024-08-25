@@ -4093,7 +4093,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        type of caller (new object)
+        Series
+            Type of caller with index as MultiIndex (new object).
+
+        See Also
+        --------
+        DataFrame.reorder_levels : Rearrange index or column levels using input ``order``.
 
         Examples
         --------
@@ -5048,6 +5053,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         scalar
             Value that is popped from series.
 
+        See Also
+        --------
+        Series.drop: Drop specified values from Series.
+        Series.drop_duplicates: Return Series with duplicate values removed.
+            
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3])
