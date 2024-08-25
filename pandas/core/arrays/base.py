@@ -1108,6 +1108,13 @@ class ExtensionArray:
         ExtensionArray
             With NA/NaN filled.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
+
         Examples
         --------
         >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
