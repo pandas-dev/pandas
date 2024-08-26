@@ -1137,6 +1137,13 @@ class ExtensionArray:
         ExtensionArray
             With NA/NaN filled.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
+
         Examples
         --------
         >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
@@ -1220,6 +1227,15 @@ class ExtensionArray:
         Returns
         -------
         ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
 
         Examples
         --------
@@ -1303,6 +1319,13 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+            With unique values from the input array.
+
+        See Also
+        --------
+        Index.unique: Return unique values in the index.
+        Series.unique: Return unique values of Series object.
+        unique: Return unique values based on a hash table.
 
         Examples
         --------
@@ -1436,10 +1459,18 @@ class ExtensionArray:
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            Values to compare every element in the array against.
 
         Returns
         -------
         np.ndarray[bool]
+            With true at indices where value is in `values`.
+
+        See Also
+        --------
+        DataFrame.isin: Whether each element in the DataFrame is contained in values.
+        Index.isin: Return a boolean array where the index values are in values.
+        Series.isin: Whether elements in Series are contained in values.
 
         Examples
         --------
@@ -1742,6 +1773,12 @@ class ExtensionArray:
         -------
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.ravel: Return a flattened view on input array.
+        Index.view: Equivalent function for Index.
+        ndarray.view: New view of array with the same data.
 
         Examples
         --------
@@ -2201,6 +2238,12 @@ class ExtensionArray:
         Returns
         -------
         list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
 
         Examples
         --------
@@ -2223,11 +2266,18 @@ class ExtensionArray:
         Parameters
         ----------
         loc : int
+            Index where the `item` needs to be inserted.
         item : scalar-like
+            Value to be inserted.
 
         Returns
         -------
-        same type as self
+        ExtensionArray
+            With `item` inserted at `loc`.
+
+        See Also
+        --------
+        Index.insert: Make new Index inserting new item at location.
 
         Notes
         -----
