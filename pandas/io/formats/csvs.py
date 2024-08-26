@@ -320,7 +320,11 @@ class CSVFormatter:
         res = df._get_values_for_csv(**self._number_format)
         data = list(res._iter_column_arrays())
 
-        ix = self.data_index[slicer]._get_values_for_csv(**self._number_format)
+        ix = (
+            self.data_index[slicer]._get_values_for_csv(**self._number_format)
+            if self.nlevels != 0
+            else np.full(end_i - start_i, None)
+        )
         libwriters.write_csv_rows(
             data,
             ix,
