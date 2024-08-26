@@ -553,14 +553,19 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
-        extra_parameters=textwrap.dedent(
+        encoding_parameter=textwrap.dedent(
             """\
         encoding : str or None, default None
             Unused parameter, present for compatibility.
+        """
+        ),
+        verbose_parameter=textwrap.dedent(
+            """\
         verbose : str, default True
             Optional unused parameter, present for compatibility.
         """
         ),
+        extra_parameters="",
     )
     def to_excel(
         self,
@@ -576,11 +581,11 @@ class Styler(StylerRenderer):
         startcol: int = 0,
         engine: str | None = None,
         merge_cells: ExcelWriterMergeCells = True,
+        encoding: str | None = None,
         inf_rep: str = "inf",
+        verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
-        encoding: str | None = None,
-        verbose: bool = True,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 

@@ -2123,11 +2123,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         klass="object",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.2.0",
+        encoding_parameter="",
+        verbose_parameter="",
         extra_parameters=textwrap.dedent(
             """\
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
-    """
+        """
         ),
     )
     def to_excel(
@@ -2196,9 +2198,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
+        {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel).
+        {verbose_parameter}
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
