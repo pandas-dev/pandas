@@ -227,7 +227,7 @@ To compile pandas with meson, run::
    # By default, this will print verbose output
    # showing the "rebuild" taking place on import (see section below for explanation)
    # If you do not want to see this, omit everything after --no-build-isolation
-   python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+   python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 
 .. note::
    The version number is pulled from the latest repository tag. Be sure to fetch the latest tags from upstream
@@ -242,15 +242,15 @@ To compile pandas with meson, run::
 It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
 install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
 
-You can pass a build directory to pandas by appending ``--config-settings builddir="your builddir here"`` to your pip command.
+You can pass a build directory to pandas by appending ``-Cbuilddir="your builddir here"`` to your pip command.
 This option allows you to configure where meson stores your built C extensions, and allows for fast rebuilds.
 
 Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
-Appending ``--config-settings setup-args="-Ddebug=true"`` will do the trick.
+Appending ``-Csetup-args="-Ddebug=true"`` will do the trick.
 
 With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
 and building with debug symbols would look like
-``--config-settings builddir="your builddir here" --config-settings=setup-args="-Dbuildtype=debug"``.
+``-Cbuilddir="your builddir here" -Csetup-args="-Dbuildtype=debug"``.
 
 **Compiling pandas with setup.py**
 
@@ -291,7 +291,7 @@ At this point you may want to try
 
 When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified.
 By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's
-output when importing pandas, you can set the environment variable ``MESONPY_EDTIABLE_VERBOSE``. For example, this would be::
+output when importing pandas, you can set the environment variable ``MESONPY_EDITABLE_VERBOSE``. For example, this would be::
 
    # On Linux/macOS
    MESONPY_EDITABLE_VERBOSE=1 python
@@ -302,7 +302,7 @@ output when importing pandas, you can set the environment variable ``MESONPY_EDT
 
 If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::
 
-   python -m pip install -ve . --config-settings editable-verbose=true
+   python -m pip install -ve . -Ceditable-verbose=true
 
 .. tip::
    If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
