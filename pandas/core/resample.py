@@ -2173,7 +2173,11 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]
+                if binner.freqstr == "B":
+                    labels = labels[1:-1]
+                    bins = bins[0:-1]
+                else:
+                    labels = labels[1:]
         elif self.label == "right":
             labels = labels[1:]
 
