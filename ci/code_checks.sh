@@ -142,8 +142,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Series.sparse.to_coo PR07,RT03,SA01" \
         -i "pandas.Series.std PR01,RT03,SA01" \
-        -i "pandas.Series.struct.dtypes SA01" \
-        -i "pandas.Series.to_markdown SA01" \
         -i "pandas.Timedelta.asm8 SA01" \
         -i "pandas.Timedelta.ceil SA01" \
         -i "pandas.Timedelta.components SA01" \
