@@ -3484,7 +3484,7 @@ def test_unknown_tz_raises():
 
 def test_unformatted_input_raises():
     valid, invalid = "2024-01-01", "N"
-    S = Series([valid] * 45000 + [invalid])
+    ser = Series([valid] * start_caching_at + [invalid])
     msg = 'time data "N" doesn\'t match format "%Y-%m-%d"'
 
     with pytest.raises(ValueError, match=msg):
