@@ -1853,6 +1853,7 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects.
+            A Series or Index where the strings are prepended with '0' characters.
 
         See Also
         --------
@@ -2385,6 +2386,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            A Series or Index where the strings are wrapped at the specified line width.
+
+        See Also
+        --------
+        Series.str.strip : Remove leading and trailing characters in Series/Index.
+        Series.str.lstrip : Remove leading characters in Series/Index.
+        Series.str.rstrip : Remove trailing characters in Series/Index.
 
         Notes
         -----
