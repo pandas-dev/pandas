@@ -1894,6 +1894,7 @@ class MultiIndex(Index):
         Returns
         -------
         DataFrame
+            DataFrame representation of the MultiIndex, with levels as columns.
 
         See Also
         --------
