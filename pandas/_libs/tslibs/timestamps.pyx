@@ -962,6 +962,29 @@ cdef class _Timestamp(ABCTimestamp):
         return ((self.month - 1) // 3) + 1
 
     @property
+    def day(self) -> int:
+        """
+        Return the day of the Timestamp.
+
+        Returns
+        -------
+        int
+            The day of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.week : Return the week number of the year.
+        Timestamp.weekday : Return the day of the week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.day
+        31
+        """
+        return super().day
+
+    @property
     def week(self) -> int:
         """
         Return the week number of the year.
