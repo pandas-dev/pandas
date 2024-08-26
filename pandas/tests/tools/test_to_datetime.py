@@ -3488,7 +3488,7 @@ def test_unformatted_input_raises():
     msg = 'time data "N" doesn\'t match format "%Y-%m-%d"'
 
     with pytest.raises(ValueError, match=msg):
-        to_datetime(S, format="%Y-%m-%d", exact=True)
+        to_datetime(ser, format="%Y-%m-%d", exact=True, cache=True)
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
