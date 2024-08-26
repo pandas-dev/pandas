@@ -2390,7 +2390,11 @@ class ArrowExtensionArray(
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = lib.no_default
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ) -> Self:
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"

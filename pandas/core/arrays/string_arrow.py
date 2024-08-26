@@ -313,7 +313,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return result
 
     def _str_startswith(
-        self, pat: str | tuple[str, ...], na: Scalar | None = lib.no_default
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
     ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
@@ -337,7 +337,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = result.fill_null(na)
         return self._predicate_result_converter(result)
 
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_endswith(
+        self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
         else:
@@ -389,14 +391,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         pat: str,
         case: bool = True,
         flags: int = 0,
-        na: Scalar | None = lib.no_default,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = lib.no_default
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
