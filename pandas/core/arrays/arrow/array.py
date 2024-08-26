@@ -763,7 +763,7 @@ class ArrowExtensionArray(
                         result = pc.binary_join_element_wise(self._pa_array, other, sep)
                     elif op is roperator.radd:
                         result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                except pa.lib.ArrowNotImplementedError as err:
+                except pa.ArrowNotImplementedError as err:
                     raise TypeError(
                         self._op_method_error_message(other_original, op)
                     ) from err
@@ -804,7 +804,7 @@ class ArrowExtensionArray(
 
         try:
             result = pc_func(self._pa_array, other)
-        except pa.lib.ArrowNotImplementedError as err:
+        except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
         return type(self)(result)
 
