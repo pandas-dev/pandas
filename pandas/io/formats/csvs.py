@@ -323,7 +323,7 @@ class CSVFormatter:
         ix = (
             self.data_index[slicer]._get_values_for_csv(**self._number_format)
             if self.nlevels != 0
-            else np.full(end_i - start_i, None)
+            else np.empty(end_i - start_i)
         )
         libwriters.write_csv_rows(
             data,
