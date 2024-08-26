@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterator,
     Mapping,
@@ -18,7 +19,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     Optional,
     Protocol,
@@ -90,18 +90,12 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
-    from typing import SupportsIndex
-
-    if sys.version_info >= (3, 10):
-        from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-        from typing import ParamSpec
-        from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
-    else:
-        from typing_extensions import (  # pyright: ignore[reportUnusedImport]
-            Concatenate,
-            ParamSpec,
-            TypeGuard,
-        )
+    from typing import (
+        ParamSpec,
+        SupportsIndex,
+    )
+    from typing import Concatenate  # pyright: ignore[reportUnusedImport]
+    from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
 
     P = ParamSpec("P")
 
@@ -239,6 +233,7 @@ T = TypeVar("T")
 # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
 FuncType = Callable[..., Any]
 F = TypeVar("F", bound=FuncType)
+TypeT = TypeVar("TypeT", bound=type)
 
 # types of vectorized key functions for DataFrame::sort_values and
 # DataFrame::sort_index, among others
@@ -313,7 +308,7 @@ class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
-    def truncate(self, size: int | None = ...) -> int: ...
+    def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
@@ -515,6 +510,7 @@ ToStataByteorder = Literal[">", "<", "little", "big"]
 
 # ExcelWriter
 ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
+ExcelWriterMergeCells = Union[bool, Literal["columns"]]
 
 # Offsets
 OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]
@@ -530,3 +526,5 @@ UsecolsArgType = Union[
 
 # maintaine the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
+
+SliceType = Optional[Hashable]

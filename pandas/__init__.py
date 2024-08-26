@@ -3,7 +3,7 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "pytz", "dateutil")
+_hard_dependencies = ("numpy", "dateutil")
 _missing_dependencies = []
 
 for _dependency in _hard_dependencies:
@@ -28,7 +28,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext' to build the C extensions first."
+        "'python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true' "
+        "to build the C extensions first."
     ) from _err
 
 from pandas._config import (

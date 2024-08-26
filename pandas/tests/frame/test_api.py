@@ -5,8 +5,10 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 from pandas._config.config import option_context
+
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -113,7 +115,9 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="surrogates not allowed")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="surrogates not allowed"
+    )
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
@@ -356,9 +360,7 @@ class TestDataFrameMisc:
         assert obj.iloc[key] == 1
 
         # Now we do copy.
-        result = obj.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
+        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 

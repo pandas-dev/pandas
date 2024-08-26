@@ -16,13 +16,14 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.1
+    rev: v0.5.0
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+        exclude: ^pandas/tests/frame/test_query_eval.py
     -   id: ruff
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
@@ -30,34 +31,28 @@ repos:
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
-    -   id: ruff
-        name: ruff-use-pd_array-in-core
-        alias: ruff-use-pd_array-in-core
-        files: ^pandas/core/
-        exclude: ^pandas/core/api\.py$
-        args: [--select, "ICN001", --exit-non-zero-on-fix]
     -   id: ruff-format
-        exclude: ^scripts
+        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.10'
+    rev: 'v2.11'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.0
+    rev: v0.16.2
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
     -   id: check-case-conflict
     -   id: check-toml
@@ -73,34 +68,16 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.1
-    hooks:
-    -   id: pylint
-        stages: [manual]
-        args: [--load-plugins=pylint.extensions.redefined_loop_name]
-    -   id: pylint
-        alias: redefined-outer-name
-        name: Redefining name from outer scope
-        files: ^pandas/
-        exclude: |
-            (?x)
-            ^pandas/tests  # keep excluded
-            |/_testing/  # keep excluded
-            |^pandas/util/_test_decorators\.py  # keep excluded
-            |^pandas/_version\.py  # keep excluded
-            |^pandas/conftest\.py  # keep excluded
-        args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
+        args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.16.0
     hooks:
     -   id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -109,14 +86,16 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
       - id: rst-inline-touching-normal
+        exclude: ^pandas/tests/frame/test_query_eval.py
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
     rev: v0.9.1
     hooks:
     - id: sphinx-lint
+      args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.6
+    rev: v18.1.8
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -133,7 +112,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.351
+        - pyright@1.1.352
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues

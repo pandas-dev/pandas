@@ -216,9 +216,7 @@ def test_can_hold_identifiers(idx):
 def test_metadata_immutable(idx):
     levels, codes = idx.levels, idx.codes
     # shouldn't be able to set at either the top level or base level
-    mutable_regex = re.compile(
-        "does not support mutable operations|does not support item assignment"
-    )
+    mutable_regex = re.compile("does not support mutable operations")
     with pytest.raises(TypeError, match=mutable_regex):
         levels[0] = levels[0]
     with pytest.raises(TypeError, match=mutable_regex):

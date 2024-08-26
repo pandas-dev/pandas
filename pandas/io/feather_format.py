@@ -6,8 +6,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -91,14 +92,15 @@ def read_feather(
         Whether to parallelize reading using multiple threads.
     {storage_options}
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -106,6 +108,14 @@ def read_feather(
     -------
     type of object stored in file
         DataFrame object stored in the file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_sas : Read SAS file into a pandas DataFrame.
 
     Examples
     --------
@@ -122,10 +132,17 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
-            return feather.read_feather(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
-            )
+        if dtype_backend is lib.no_default and not using_string_dtype():
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "make_block is deprecated",
+                    DeprecationWarning,
+                )
+
+                return feather.read_feather(
+                    handles.handle, columns=columns, use_threads=bool(use_threads)
+                )
 
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)
@@ -139,7 +156,7 @@ def read_feather(
         elif dtype_backend == "pyarrow":
             return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
 
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             raise NotImplementedError

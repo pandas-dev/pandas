@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -121,7 +123,7 @@ def test_multiindex_symmetric_difference():
 
     idx2 = idx.copy().rename(["A", "B"])
     result = idx.symmetric_difference(idx2)
-    assert result.names == (None, None)
+    assert result.names == [None, None]
 
 
 def test_empty(idx):
@@ -382,7 +384,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning):
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
@@ -752,6 +754,7 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
     series1 = Series(

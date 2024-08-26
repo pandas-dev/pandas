@@ -7,6 +7,10 @@ import time
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import PY312
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -31,7 +35,10 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 tables = pytest.importorskip("tables")
 
@@ -611,10 +618,14 @@ def test_store_index_name(setup_path):
 @pytest.mark.parametrize("table_format", ["table", "fixed"])
 def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz):
     # GH #13492
-    idx = DatetimeIndex(
-        [dt.date(2000, 1, 1), dt.date(2000, 1, 2)],
-        name="cols\u05d2",
-    ).tz_localize(tz)
+    idx = (
+        DatetimeIndex(
+            [dt.date(2000, 1, 1), dt.date(2000, 1, 2)],
+            name="cols\u05d2",
+        )
+        .tz_localize(tz)
+        .as_unit(unit)
+    )
     idx1 = (
         DatetimeIndex(
             [dt.date(2010, 1, 1), dt.date(2010, 1, 2)],
@@ -866,7 +877,7 @@ def test_start_stop_fixed(setup_path):
         df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(setup_path):
+def test_select_filter_corner(setup_path, request):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
@@ -874,6 +885,13 @@ def test_select_filter_corner(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="table")
 
+        request.applymarker(
+            pytest.mark.xfail(
+                PY312,
+                reason="AST change in PY312",
+                raises=ValueError,
+            )
+        )
         crit = "columns=df.columns[:75]"
         result = store.select("frame", [crit])
         tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])
@@ -1015,7 +1033,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
-    data_columns = list(df.index.names) + df.columns.tolist()
+    data_columns = df.index.names + df.columns.tolist()
     path = tmp_path / setup_path
     df.to_hdf(
         path,

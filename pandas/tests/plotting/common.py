@@ -76,8 +76,6 @@ def _check_data(xp, rs):
     xp : matplotlib Axes object
     rs : matplotlib Axes object
     """
-    import matplotlib.pyplot as plt
-
     xp_lines = xp.get_lines()
     rs_lines = rs.get_lines()
 
@@ -86,8 +84,6 @@ def _check_data(xp, rs):
         xpdata = xpl.get_xydata()
         rsdata = rsl.get_xydata()
         tm.assert_almost_equal(xpdata, rsdata)
-
-    plt.close("all")
 
 
 def _check_visible(collections, visible=True):
@@ -495,6 +491,28 @@ def get_y_axis(ax):
     return ax._shared_axes["y"]
 
 
+def assert_is_valid_plot_return_object(objs) -> None:
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
+
+    if isinstance(objs, (Series, np.ndarray)):
+        if isinstance(objs, Series):
+            objs = objs._values
+        for el in objs.reshape(-1):
+            msg = (
+                "one of 'objs' is not a matplotlib Axes instance, "
+                f"type encountered {type(el).__name__!r}"
+            )
+            assert isinstance(el, (Axes, dict)), msg
+    else:
+        msg = (
+            "objs is neither an ndarray of Artist instances nor a single "
+            "ArtistArtist instance, tuple, or dict, 'objs' is a "
+            f"{type(objs).__name__!r}"
+        )
+        assert isinstance(objs, (Artist, tuple, dict)), msg
+
+
 def _check_plot_works(f, default_axes=False, **kwargs):
     """
     Create plot and ensure that plot return object is valid.
@@ -530,15 +548,11 @@ def _check_plot_works(f, default_axes=False, **kwargs):
         gen_plots = _gen_two_subplots
 
     ret = None
-    try:
-        fig = kwargs.get("figure", plt.gcf())
-        plt.clf()
+    fig = kwargs.get("figure", plt.gcf())
+    fig.clf()
 
-        for ret in gen_plots(f, fig, **kwargs):
-            tm.assert_is_valid_plot_return_object(ret)
-
-    finally:
-        plt.close(fig)
+    for ret in gen_plots(f, fig, **kwargs):
+        assert_is_valid_plot_return_object(ret)
 
     return ret
 

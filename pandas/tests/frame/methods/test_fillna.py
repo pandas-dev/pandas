@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas import (
     Categorical,
@@ -47,7 +47,7 @@ class TestFillNA:
         assert np.isnan(arr[:, 0]).all()
 
         # i.e. we didn't create a new 49-column block
-        assert len(df._mgr.arrays) == 1
+        assert len(df._mgr.blocks) == 1
         assert np.shares_memory(df.values, arr)
 
     def test_fillna_datetime(self, datetime_frame):
@@ -58,31 +58,22 @@ class TestFillNA:
         zero_filled = datetime_frame.fillna(0)
         assert (zero_filled.loc[zero_filled.index[:5], "A"] == 0).all()
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            padded = datetime_frame.fillna(method="pad")
+        padded = datetime_frame.ffill()
         assert np.isnan(padded.loc[padded.index[:5], "A"]).all()
-        assert (
-            padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
-        ).all()
 
-        msg = "Must specify a fill 'value' or 'method'"
-        with pytest.raises(ValueError, match=msg):
+        msg = r"missing 1 required positional argument: 'value'"
+        with pytest.raises(TypeError, match=msg):
             datetime_frame.fillna()
-        msg = "Cannot specify both 'value' and 'method'"
-        with pytest.raises(ValueError, match=msg):
-            datetime_frame.fillna(5, method="ffill")
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
+    # TODO(infer_string) test as actual error instead of xfail
+    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fillna_mixed_type(self, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
         mf.loc[mf.index[-10:], "A"] = np.nan
         # TODO: make stronger assertion here, GH 25640
         mf.fillna(value=0)
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            mf.fillna(method="pad")
+        mf.ffill()
 
     def test_fillna_mixed_float(self, mixed_float_frame):
         # mixed numeric (but no float16)
@@ -90,12 +81,10 @@ class TestFillNA:
         mf.loc[mf.index[-10:], "A"] = np.nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype={"C": None})
-
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = mf.fillna(method="pad")
+        result = mf.ffill()
         _check_mixed_float(result, dtype={"C": None})
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_fillna_different_dtype(self, using_infer_string):
         # with different dtype (GH#3386)
         df = DataFrame(
@@ -159,9 +148,7 @@ class TestFillNA:
                 ]
             }
         )
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.fillna(method="pad")
+        res = df.ffill()
         tm.assert_frame_equal(res, exp)
 
         df = DataFrame({"A": [NaT, Timestamp("2012-11-11 00:00:00+01:00")]})
@@ -173,9 +160,7 @@ class TestFillNA:
                 ]
             }
         )
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.fillna(method="bfill")
+        res = df.bfill()
         tm.assert_frame_equal(res, exp)
 
     def test_fillna_tzaware_different_column(self):
@@ -187,9 +172,7 @@ class TestFillNA:
                 "B": [1, 2, np.nan, np.nan],
             }
         )
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna(method="pad")
+        result = df.ffill()
         expected = DataFrame(
             {
                 "A": date_range("20130101", periods=4, tz="US/Eastern"),
@@ -220,9 +203,7 @@ class TestFillNA:
         with pytest.raises(TypeError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.fillna(method="pad")
+        res = df.ffill()
         tm.assert_frame_equal(res, df_exp_fill)
 
         # dropna
@@ -295,6 +276,7 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_fillna_dtype_conversion(self, using_infer_string):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -368,19 +350,14 @@ class TestFillNA:
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            alt = datetime_frame.fillna(method="ffill")
+        alt = datetime_frame.ffill()
         tm.assert_frame_equal(datetime_frame.ffill(), alt)
 
     def test_bfill(self, datetime_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            alt = datetime_frame.fillna(method="bfill")
-
+        alt = datetime_frame.bfill()
         tm.assert_frame_equal(datetime_frame.bfill(), alt)
 
     def test_frame_pad_backfill_limit(self):
@@ -389,16 +366,13 @@ class TestFillNA:
 
         result = df[:2].reindex(index, method="pad", limit=5)
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df[:2].reindex(index).fillna(method="pad")
+        expected = df[:2].reindex(index).ffill()
         expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index, method="backfill", limit=5)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df[-2:].reindex(index).fillna(method="backfill")
+        expected = df[-2:].reindex(index).bfill()
         expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
@@ -407,21 +381,16 @@ class TestFillNA:
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=index)
 
         result = df[:2].reindex(index)
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = result.fillna(method="pad", limit=5)
+        result = result.ffill(limit=5)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df[:2].reindex(index).fillna(method="pad")
+        expected = df[:2].reindex(index).ffill()
         expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = result.fillna(method="backfill", limit=5)
+        result = result.bfill(limit=5)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df[-2:].reindex(index).fillna(method="backfill")
+        expected = df[-2:].reindex(index).bfill()
         expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
@@ -465,13 +434,10 @@ class TestFillNA:
 
         df.loc[:4, 1] = np.nan
         df.loc[-4:, 3] = np.nan
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.fillna(method="ffill")
+        expected = df.ffill()
         assert expected is not df
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.fillna(method="ffill", inplace=True)
+        df.ffill(inplace=True)
         tm.assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):
@@ -500,7 +466,7 @@ class TestFillNA:
 
         # disable this for now
         with pytest.raises(NotImplementedError, match="column by column"):
-            df.fillna(df.max(1), axis=1)
+            df.fillna(df.max(axis=1), axis=1)
 
     def test_fillna_dataframe(self):
         # GH#8377
@@ -542,23 +508,14 @@ class TestFillNA:
         arr[:, ::2] = np.nan
         df = DataFrame(arr)
 
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna(method="ffill", axis=1)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.T.fillna(method="pad").T
+        result = df.ffill(axis=1)
+        expected = df.T.ffill().T
         tm.assert_frame_equal(result, expected)
 
         df.insert(6, "foo", 5)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.fillna(method="ffill", axis=1)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.astype(float).fillna(method="ffill", axis=1)
+        result = df.ffill(axis=1)
+        expected = df.astype(float).ffill(axis=1)
         tm.assert_frame_equal(result, expected)
-
-    def test_fillna_invalid_method(self, float_frame):
-        with pytest.raises(ValueError, match="ffil"):
-            float_frame.fillna(method="ffil")
 
     def test_fillna_invalid_value(self, float_frame):
         # list
@@ -580,12 +537,11 @@ class TestFillNA:
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.default_rng(2).random((20, 5))
         df = DataFrame(index=range(20), columns=cols, data=data)
-        msg = "DataFrame.fillna with 'method' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            filled = df.fillna(method="ffill")
+        filled = df.ffill()
         assert df.columns.tolist() == filled.columns.tolist()
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
+    # TODO(infer_string) test as actual error instead of xfail
+    @pytest.mark.xfail(using_string_dtype(), reason="can't fill 0 in string")
     def test_fill_corner(self, float_frame, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
@@ -824,3 +780,17 @@ def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
     expected = DataFrame(expected_data)
     result = getattr(df, method)(**kwargs)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_frame", [True, False])
+@pytest.mark.parametrize("dtype", ["float", "object"])
+def test_fillna_with_none_object(test_frame, dtype):
+    # GH#57723
+    obj = Series([1, np.nan, 3], dtype=dtype)
+    if test_frame:
+        obj = obj.to_frame()
+    result = obj.fillna(value=None)
+    expected = Series([1, None, 3], dtype=dtype)
+    if test_frame:
+        expected = expected.to_frame()
+    tm.assert_equal(result, expected)

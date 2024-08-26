@@ -502,8 +502,8 @@ def test_expanding_apply_min_periods_0(engine_and_raw):
 
 def test_expanding_cov_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().cov(s2)
     expected = Series([None, None, 2.0])
     tm.assert_series_equal(result, expected)
@@ -515,14 +515,14 @@ def test_expanding_cov_diff_index():
     s1 = Series([7, 8, 10], index=[0, 1, 3])
     s2 = Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().cov(s2)
-    expected = Series([None, None, None, 4.5])
+    expected = Series([None, None, None, 4.5], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding_corr_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().corr(s2)
     expected = Series([None, None, 1.0])
     tm.assert_series_equal(result, expected)
@@ -534,7 +534,7 @@ def test_expanding_corr_diff_index():
     s1 = Series([7, 8, 10], index=[0, 1, 3])
     s2 = Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().corr(s2)
-    expected = Series([None, None, None, 1.0])
+    expected = Series([None, None, None, 1.0], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
@@ -550,7 +550,7 @@ def test_expanding_cov_pairwise_diff_length():
     df2a = DataFrame(
         [[5, 6], [2, 1]], index=[0, 2], columns=Index(["X", "Y"], name="foo")
     )
-    # TODO: xref gh-15826
+    # xref gh-15826
     # .loc is not preserving the names
     result1 = df1.expanding().cov(df2, pairwise=True).loc[2]
     result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
@@ -691,10 +691,3 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
-
-
-def test_keyword_quantile_deprecated():
-    # GH #52550
-    ser = Series([1, 2, 3, 4])
-    with tm.assert_produces_warning(FutureWarning):
-        ser.expanding().quantile(quantile=0.5)

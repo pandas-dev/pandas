@@ -33,6 +33,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Parameters
     ----------
     ax : Matplotlib axes object
+        The axes on which to draw the table.
     data : DataFrame or Series
         Data for table contents.
     **kwargs
@@ -43,6 +44,12 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Returns
     -------
     matplotlib table object
+        The created table as a matplotlib Table object.
+
+    See Also
+    --------
+    DataFrame.plot : Make plots of DataFrame using matplotlib.
+    matplotlib.pyplot.table : Create a table from data in a Matplotlib plot.
 
     Examples
     --------
@@ -472,6 +479,7 @@ def parallel_coordinates(
     Parameters
     ----------
     frame : DataFrame
+        The DataFrame to be plotted.
     class_column : str
         Column name containing class names.
     cols : list, optional
@@ -498,6 +506,13 @@ def parallel_coordinates(
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the parallel coordinates plot.
+
+    See Also
+    --------
+    plotting.andrews_curves : Generate a matplotlib plot for visualizing clusters
+        of multivariate data.
+    plotting.radviz : Plot a multidimensional dataset in 2D.
 
     Examples
     --------
@@ -591,6 +606,12 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the autocorrelation plot.
+
+    See Also
+    --------
+    Series.autocorr : Compute the lag-N autocorrelation for a Series.
+    plotting.lag_plot : Lag plot for time series.
 
     Examples
     --------
@@ -617,6 +638,14 @@ class _Options(dict):
     the same as the plot function parameters, but is stored in a canonical
     format that makes it easy to breakdown into groups later.
 
+    See Also
+    --------
+    plotting.register_matplotlib_converters : Register pandas formatters and
+        converters with matplotlib.
+    plotting.bootstrap_plot : Bootstrap plot on mean, median and mid-range statistics.
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    plotting.lag_plot : Lag plot for time series.
+
     Examples
     --------
 
@@ -637,8 +666,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated: bool = False) -> None:
-        self._deprecated = deprecated
+    def __init__(self) -> None:
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
@@ -672,7 +700,7 @@ class _Options(dict):
         # error: Cannot access "__init__" directly
         self.__init__()  # type: ignore[misc]
 
-    def _get_canonical_key(self, key):
+    def _get_canonical_key(self, key: str) -> str:
         return self._ALIASES.get(key, key)
 
     @contextmanager

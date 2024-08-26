@@ -64,7 +64,7 @@ class TestRename:
             assert ser.name == name
             exp = np.array(["a", "b", "c"], dtype=np.object_)
             if using_infer_string:
-                exp = array(exp, dtype="string[pyarrow_numpy]")
+                exp = array(exp, dtype="str")
                 tm.assert_extension_array_equal(ser.index.values, exp)
             else:
                 tm.assert_numpy_array_equal(ser.index.values, exp)
@@ -173,7 +173,7 @@ class TestRename:
         # GH 46889
         ser = Series(["foo", "bar"])
         ser_orig = ser.copy()
-        shallow_copy = ser.rename({1: 9}, copy=False)
+        shallow_copy = ser.rename({1: 9})
         ser[0] = "foobar"
         assert ser_orig[0] == shallow_copy[0]
         assert ser_orig[1] == shallow_copy[9]

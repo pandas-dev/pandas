@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     MutableMapping,
@@ -9,7 +10,6 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     TypeVar,
     overload,

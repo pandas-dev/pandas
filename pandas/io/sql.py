@@ -23,7 +23,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -32,7 +31,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -67,6 +66,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterator,
         Mapping,
@@ -157,6 +157,7 @@ def _convert_arrays_to_dataframe(
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
+    idx_len = content.shape[0]
     arrays = convert_object_array(
         list(content.T),
         dtype=None,
@@ -177,9 +178,9 @@ def _convert_arrays_to_dataframe(
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
-        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
-        df.columns = columns
-        return df
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=range(idx_len), verify_integrity=False
+        )
     else:
         return DataFrame(columns=columns)
 
@@ -305,14 +306,15 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -442,14 +444,15 @@ def read_sql_query(
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -473,8 +476,9 @@ def read_sql_query(
     --------
     >>> from sqlalchemy import create_engine  # doctest: +SKIP
     >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> sql_query = "SELECT int_column FROM test_data"  # doctest: +SKIP
     >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
-    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
+    ...     data = pd.read_sql_query(sql_query, conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -584,14 +588,15 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -1012,7 +1017,7 @@ class SQLTable(PandasObject):
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
         if self.index is not None:
-            temp = self.frame.copy()
+            temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
                 temp.reset_index(inplace=True)
@@ -1681,14 +1686,15 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
@@ -2146,14 +2152,15 @@ class ADBCDatabase(PandasSQL):
             schema of the SQL database object.
         chunksize : int, default None
             Raises NotImplementedError
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
-            (still experimental). Behaviour is as follows:
+            (still experimental). If not specified, the default behavior
+            is to not use nullable data types. If specified, the behavior
+            is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-              (default).
-            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-              DataFrame.
+            * ``"pyarrow"``: returns pyarrow-backed nullable
+              :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
 
@@ -2195,7 +2202,7 @@ class ADBCDatabase(PandasSQL):
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping().get
-        elif using_pyarrow_string_dtype():
+        elif using_string_dtype():
             from pandas.io._util import arrow_string_types_mapper
 
             arrow_string_types_mapper()
@@ -2380,7 +2387,9 @@ class ADBCDatabase(PandasSQL):
             raise ValueError("datatypes not supported") from exc
 
         with self.con.cursor() as cur:
-            total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
+            total_inserted = cur.adbc_ingest(
+                table_name=name, data=tbl, mode=mode, db_schema_name=schema
+            )
 
         self.con.commit()
         return total_inserted

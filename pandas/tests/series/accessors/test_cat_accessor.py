@@ -200,6 +200,9 @@ class TestCatAccessor:
             if func == "to_period" and getattr(idx, "tz", None) is not None:
                 # dropping TZ
                 warn_cls.append(UserWarning)
+            elif func == "to_pytimedelta":
+                # GH 57463
+                warn_cls.append(FutureWarning)
             if warn_cls:
                 warn_cls = tuple(warn_cls)
             else:

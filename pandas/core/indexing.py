@@ -25,7 +25,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import _chained_assignment_msg
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -159,7 +158,7 @@ class IndexingMixin:
         """
         Purely integer-location based indexing for selection by position.
 
-        .. deprecated:: 2.2.0
+        .. versionchanged:: 3.0
 
            Returning a tuple from a callable is deprecated.
 
@@ -227,7 +226,7 @@ class IndexingMixin:
            a  b  c  d
         0  1  2  3  4
         >>> type(df.iloc[[0]])
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
 
         >>> df.iloc[[0, 1]]
              a    b    c    d
@@ -757,7 +756,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         if self.name == "loc":
             # always holds here bc iloc overrides _get_setitem_indexer
-            self._ensure_listlike_indexer(key)
+            self._ensure_listlike_indexer(key, axis=self.axis)
 
         if isinstance(key, tuple):
             for x in key:
@@ -811,8 +810,11 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
-                    # test_loc_setitem_ndframe_values_alignment
-                    value = self.obj.iloc._align_series(indexer, value)
+                    if len(newkey) == 0:
+                        value = value.iloc[:0]
+                    else:
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
                     indexer = (newkey, icols)
 
                 elif (
@@ -828,8 +830,11 @@ class _LocationIndexer(NDFrameIndexerBase):
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
-                        # test_loc_setitem_ndframe_values_alignment
-                        value = self.obj.iloc._align_frame(indexer, value)
+                        if len(newkey) == 0:
+                            value = value.iloc[:0]
+                        else:
+                            # test_loc_setitem_ndframe_values_alignment
+                            value = self.obj.iloc._align_frame(indexer, value)
                         indexer = (newkey, icols)
         elif com.is_bool_indexer(indexer):
             indexer = indexer.nonzero()[0]
@@ -857,8 +862,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
             # if length of key is > 1 set key to column part
-            key = key[column_axis]
-            axis = column_axis
+            # unless axis is already specified, then go with that
+            if axis is None:
+                axis = column_axis
+            key = key[axis]
 
         if (
             axis == column_axis
@@ -899,11 +906,11 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
-            key = self._check_deprecated_callable_usage(key, maybe_callable)
+            key = self._raise_callable_usage(key, maybe_callable)
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
@@ -1145,7 +1152,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH#41369 Loop in reverse order ensures indexing along columns before rows
         # which selects only necessary blocks which avoids dtype conversion if possible
         axis = len(tup) - 1
-        for key in tup[::-1]:
+        for key in reversed(tup):
             if com.is_null_slice(key):
                 axis -= 1
                 continue
@@ -1162,14 +1169,11 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _convert_to_indexer(self, key, axis: AxisInt):
         raise AbstractMethodError(self)
 
-    def _check_deprecated_callable_usage(self, key: Any, maybe_callable: T) -> T:
+    def _raise_callable_usage(self, key: Any, maybe_callable: T) -> T:
         # GH53533
         if self.name == "iloc" and callable(key) and isinstance(maybe_callable, tuple):
-            warnings.warn(
-                "Returning a tuple from a callable with iloc "
-                "is deprecated and will be removed in a future version",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                "Returning a tuple from a callable with iloc is not allowed.",
             )
         return maybe_callable
 
@@ -1177,7 +1181,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         if type(key) is tuple:
-            key = tuple(list(x) if is_iterator(x) else x for x in key)
+            key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 return self.obj._get_value(*key, takeable=self._takeable)
@@ -1187,17 +1191,17 @@ class _LocationIndexer(NDFrameIndexerBase):
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
-            maybe_callable = self._check_deprecated_callable_usage(key, maybe_callable)
+            maybe_callable = self._raise_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _getitem_tuple(self, tup: tuple):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         raise AbstractMethodError(self)
@@ -1805,10 +1809,10 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and len(self.obj._mgr.arrays) and self.ndim > 1:
+        if not take_split_path and len(self.obj._mgr.blocks) and self.ndim > 1:
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
-            arr = self.obj._mgr.arrays[0]
+            arr = self.obj._mgr.blocks[0].values
             take_split_path = not can_hold_element(
                 arr, extract_array(val, extract_numpy=True)
             )
@@ -1896,15 +1900,7 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    with warnings.catch_warnings():
-                        # TODO: re-issue this with setitem-specific message?
-                        warnings.filterwarnings(
-                            "ignore",
-                            "The behavior of Index.insert with object-dtype "
-                            "is deprecated",
-                            category=FutureWarning,
-                        )
-                        labels = index.insert(len(index), key)
+                    labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -2133,14 +2129,14 @@ class _iLocIndexer(_LocationIndexer):
                 self.obj._mgr.column_setitem(
                     loc, plane_indexer, value, inplace_only=True
                 )
-            except (ValueError, TypeError, LossySetitemError):
+            except (ValueError, TypeError, LossySetitemError) as exc:
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
                 dtype = self.obj.dtypes.iloc[loc]
                 if dtype not in (np.void, object) and not self.obj.empty:
                     # - Exclude np.void, as that is a special case for expansion.
-                    #   We want to warn for
+                    #   We want to raise for
                     #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'a'] = .3
                     #   but not for
@@ -2149,14 +2145,9 @@ class _iLocIndexer(_LocationIndexer):
                     # - Exclude `object`, as then no upcasting happens.
                     # - Exclude empty initial object with enlargement,
                     #   as then there's nothing to be inconsistent with.
-                    warnings.warn(
-                        f"Setting an item of incompatible dtype is deprecated "
-                        "and will raise in a future error of pandas. "
-                        f"Value '{value}' has dtype incompatible with {dtype}, "
-                        "please explicitly cast to a compatible dtype first.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    raise TypeError(
+                        f"Invalid value '{value}' for dtype '{dtype}'"
+                    ) from exc
                 self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
@@ -2222,14 +2213,7 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            with warnings.catch_warnings():
-                # TODO: re-issue this with setitem-specific message?
-                warnings.filterwarnings(
-                    "ignore",
-                    "The behavior of Index.insert with object-dtype is deprecated",
-                    category=FutureWarning,
-                )
-                new_index = index.insert(len(index), indexer)
+            new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so
@@ -2388,8 +2372,7 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                # TODO(CoW): copy shouldn't be needed here
-                ser_values = ser.reindex(obj.axes[0][indexer[0]]).copy()._values
+                ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
@@ -2412,7 +2395,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix):
+                    if not len(new_ix) or ser.index.equals(new_ix):
                         if using_cow:
                             return ser
                         return ser._values.copy()
@@ -2457,7 +2440,7 @@ class _iLocIndexer(_LocationIndexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
                     if isinstance(ix, np.ndarray):
-                        ix = ix.ravel()
+                        ix = ix.reshape(-1)
                     if idx is None:
                         idx = ax[ix]
                     elif cols is None:

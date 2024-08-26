@@ -18,10 +18,10 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -30,7 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
-    using_pyarrow_string_dtype,
+    using_string_dtype,
 )
 
 from pandas._libs import (
@@ -75,6 +75,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     concat,
     isna,
@@ -101,6 +102,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,
@@ -124,7 +126,8 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.internals import Block
+    from pandas.core.internals.blocks import Block
+
 
 # versioning attribute
 _version = "0.15.2"
@@ -292,14 +295,14 @@ def to_hdf(
             dropna=dropna,
         )
 
-    path_or_buf = stringify_path(path_or_buf)
-    if isinstance(path_or_buf, str):
+    if isinstance(path_or_buf, HDFStore):
+        f(path_or_buf)
+    else:
+        path_or_buf = stringify_path(path_or_buf)
         with HDFStore(
             path_or_buf, mode=mode, complevel=complevel, complib=complib
         ) as store:
             f(store)
-    else:
-        f(path_or_buf)
 
 
 def read_hdf(
@@ -593,7 +596,7 @@ class HDFStore:
     def __setitem__(self, key: str, value) -> None:
         self.put(key, value)
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str) -> int | None:
         return self.remove(key)
 
     def __getattr__(self, name: str):
@@ -655,6 +658,12 @@ class HDFStore:
         Raises
         ------
         raises ValueError if kind has an illegal value
+
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
@@ -779,11 +788,17 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object to retrieve from file. Raises KeyError if not found.
 
         Returns
         -------
         object
             Same type as object stored in file.
+
+        See Also
+        --------
+        HDFStore.get_node : Returns the node with the key.
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
@@ -846,6 +861,12 @@ class HDFStore:
         -------
         object
             Retrieved object from file.
+
+        See Also
+        --------
+        HDFStore.select_as_coordinates : Returns the selection as an index.
+        HDFStore.select_column : Returns a single column from the table.
+        HDFStore.select_as_multiple : Retrieves pandas objects from multiple tables.
 
         Examples
         --------
@@ -1110,7 +1131,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to store in file.
         value : {Series, DataFrame}
+            Value of object to store in file.
         format : 'fixed(f)|table(t)', default is 'fixed'
             Format to use when storing object in HDFStore. Value can be one of:
 
@@ -1124,18 +1147,38 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
+        complib : default None
+            This parameter is currently not accepted.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        min_itemsize : int, dict, or None
+            Dict of columns that specify minimum str sizes.
+        nan_rep : str
+            Str to use as str nan representation.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
+        errors : str, default 'strict'
+            The error handling scheme to use for encoding errors.
+            The default is 'strict' meaning that encoding errors raise a
+            UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
+            'xmlcharrefreplace' as well as any other name registered with
+            codecs.register_error that can handle UnicodeEncodeErrors.
         track_times : bool, default True
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
+
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
@@ -1163,7 +1206,7 @@ class HDFStore:
             dropna=dropna,
         )
 
-    def remove(self, key: str, where=None, start=None, stop=None) -> None:
+    def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
         Remove pandas object partially by specifying the where condition
 
@@ -1211,14 +1254,12 @@ class HDFStore:
         # remove the node
         if com.all_none(where, start, stop):
             s.group._f_remove(recursive=True)
+            return None
 
         # delete from the table
-        else:
-            if not s.is_table:
-                raise ValueError(
-                    "can only remove with where on objects written as tables"
-                )
-            return s.delete(where=where, start=start, stop=stop)
+        if not s.is_table:
+            raise ValueError("can only remove with where on objects written as tables")
+        return s.delete(where=where, start=start, stop=stop)
 
     def append(
         self,
@@ -1248,7 +1289,9 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Key of object to append.
         value : {Series, DataFrame}
+            Value of object to append.
         format : 'table' is the default
             Format to use when storing object in HDFStore.  Value can be one of:
 
@@ -1256,23 +1299,47 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
+        axes : default None
+            This parameter is currently not accepted.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
+        complib : default None
+            This parameter is currently not accepted.
+        complevel : int, 0-9, default None
+            Specifies a compression level for data.
+            A value of 0 or None disables compression.
+        columns : default None
+            This parameter is currently not accepted, try data_columns.
+        min_itemsize : int, dict, or None
+            Dict of columns that specify minimum str sizes.
+        nan_rep : str
+            Str to use as str nan representation.
+        chunksize : int or None
+            Size to chunk the writing.
+        expectedrows : int
+            Expected TOTAL row size of this table.
+        dropna : bool, default False, optional
+            Do not write an ALL nan row to the store settable
+            by the option 'io.hdf.dropna_table'.
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        min_itemsize : dict of columns that specify minimum str sizes
-        nan_rep : str to use as str nan representation
-        chunksize : size to chunk the writing
-        expectedrows : expected TOTAL row size of this table
-        encoding : default None, provide an encoding for str
-        dropna : bool, default False, optional
-            Do not write an ALL nan row to the store settable
-            by the option 'io.hdf.dropna_table'.
+        encoding : default None
+            Provide an encoding for str.
+        errors : str, default 'strict'
+            The error handling scheme to use for encoding errors.
+            The default is 'strict' meaning that encoding errors raise a
+            UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
+            'xmlcharrefreplace' as well as any other name registered with
+            codecs.register_error that can handle UnicodeEncodeErrors.
+
+        See Also
+        --------
+        HDFStore.append_to_multiple : Append to multiple tables.
 
         Notes
         -----
@@ -1470,6 +1537,10 @@ class HDFStore:
         list
             List of objects.
 
+        See Also
+        --------
+        HDFStore.get_node : Returns the node with the key.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1524,6 +1595,10 @@ class HDFStore:
             Names (strings) of the groups contained in `path`.
         leaves : list
             Names (strings) of the pandas objects contained in `path`.
+
+        See Also
+        --------
+        HDFStore.info : Prints detailed information on the store.
 
         Examples
         --------
@@ -1650,17 +1725,26 @@ class HDFStore:
         Returns
         -------
         str
+            A String containing the python pandas class name, filepath to the HDF5
+            file and all the object keys along with their respective dataframe shapes.
+
+        See Also
+        --------
+        HDFStore.get_storer : Returns the storer object for a key.
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["C", "D"])
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
-        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.put("data1", df1)  # doctest: +SKIP
+        >>> store.put("data2", df2)  # doctest: +SKIP
         >>> print(store.info())  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         <class 'pandas.io.pytables.HDFStore'>
         File path: store.h5
-        /data    frame    (shape->[2,2])
+        /data1            frame        (shape->[2,2])
+        /data2            frame        (shape->[2,2])
         """
         path = pprint_thing(self._path)
         output = f"{type(self)}\nFile path: {path}\n"
@@ -2572,7 +2656,7 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
-            converted = _set_tz(converted, tz)
+            converted = _set_tz(converted, tz, dtype)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -2812,7 +2896,7 @@ class Fixed:
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> Series | DataFrame:
         raise NotImplementedError(
             "cannot read on an abstract storer: subclasses should implement"
         )
@@ -2824,7 +2908,7 @@ class Fixed:
 
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
-    ) -> None:
+    ) -> int | None:
         """
         support fully deleting the node in its entirety (only) - where
         specification must be None
@@ -2953,7 +3037,7 @@ class GenericFixed(Fixed):
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
-                ret = _set_tz(ret, tz)
+                ret = _set_tz(ret, tz, dtype)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -3211,8 +3295,8 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            result = result.astype("string[pyarrow_numpy]")
+        if using_string_dtype() and is_string_array(values, skipna=True):
+            result = result.astype(StringDtype(na_value=np.nan))
         return result
 
     def write(self, obj, **kwargs) -> None:
@@ -3280,8 +3364,8 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                df = df.astype("string[pyarrow_numpy]")
+            if using_string_dtype() and is_string_array(values, skipna=True):
+                df = df.astype(StringDtype(na_value=np.nan))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3518,7 +3602,7 @@ class Table(Fixed):
 
         return dict(d1 + d2 + d3)
 
-    def index_cols(self):
+    def index_cols(self) -> list[tuple[Any, Any]]:
         """return a list of my index cols"""
         # Note: each `i.cname` below is assured to be a str.
         return [(i.axis, i.cname) for i in self.index_axes]
@@ -3648,7 +3732,7 @@ class Table(Fixed):
         dc = set(self.data_columns)
         base_pos = len(_indexables)
 
-        def f(i, c):
+        def f(i, c: str) -> DataCol:
             assert isinstance(c, str)
             klass = DataCol
             if c in dc:
@@ -3814,7 +3898,7 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4507,7 +4591,9 @@ class AppendableTable(Table):
             self.table.append(rows)
             self.table.flush()
 
-    def delete(self, where=None, start: int | None = None, stop: int | None = None):
+    def delete(
+        self, where=None, start: int | None = None, stop: int | None = None
+    ) -> int | None:
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -4650,13 +4736,13 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+            if not (using_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(
+            if using_string_dtype() and is_string_array(
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                df = df.astype("string[pyarrow_numpy]")
+                df = df.astype(StringDtype(na_value=np.nan))
             frames.append(df)
 
         if len(frames) == 1:
@@ -4835,7 +4921,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         columns=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> DataFrame:
         df = super().read(where=where, columns=columns, start=start, stop=stop)
         df = df.set_index(self.levels)
 
@@ -4879,7 +4965,9 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
-def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeArray:
+def _set_tz(
+    values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
+) -> DatetimeArray:
     """
     Coerce the values to a DatetimeArray with appropriate tz.
 
@@ -4887,11 +4975,13 @@ def _set_tz(values: npt.NDArray[np.int64], tz: str | tzinfo | None) -> DatetimeA
     ----------
     values : ndarray[int64]
     tz : str, tzinfo, or None
+    datetime64_dtype : str, e.g. "datetime64[ns]", "datetime64[25s]"
     """
     assert values.dtype == "i8", values.dtype
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
-    dtype = tz_to_dtype(tz=tz, unit="ns")  # type: ignore[arg-type]
+    unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
 
@@ -5296,7 +5386,13 @@ class Selection:
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
 
-    def generate(self, where):
+    @overload
+    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+
+    @overload
+    def generate(self, where: None) -> None: ...
+
+    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None

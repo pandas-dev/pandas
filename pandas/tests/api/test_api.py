@@ -248,6 +248,7 @@ class TestApi(Base):
         "indexers",
         "interchange",
         "typing",
+        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
@@ -256,6 +257,7 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
@@ -265,6 +267,7 @@ class TestApi(Base):
         "RollingGroupby",
         "SeriesGroupBy",
         "StataReader",
+        "SASReader",
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
@@ -395,9 +398,5 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_pandas_array_alias():
-    msg = "PandasArray has been renamed NumpyExtensionArray"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = pd.arrays.PandasArray
-
-    assert res is pd.arrays.NumpyExtensionArray
+def test_set_module():
+    assert pd.DataFrame.__module__ == "pandas"

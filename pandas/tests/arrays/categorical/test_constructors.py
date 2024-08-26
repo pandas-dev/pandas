@@ -6,7 +6,9 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -24,6 +26,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -34,13 +37,6 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
-    def test_fastpath_deprecated(self):
-        codes = np.array([1, 2, 3])
-        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
-        msg = "The 'fastpath' keyword in Categorical is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            Categorical(codes, dtype=dtype, fastpath=True)
-
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
@@ -448,7 +444,9 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="Can't be NumPy strings")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="Can't be NumPy strings"
+    )
     def test_constructor_np_strs(self):
         # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
@@ -779,3 +777,17 @@ class TestCategoricalConstructors:
         result = cat.categories.freq
 
         assert expected == result
+
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            [range(5), None],
+            [range(4), range(5)],
+            [[0, 1, 2, 3], range(5)],
+            [[], range(5)],
+        ],
+    )
+    def test_range_values_preserves_rangeindex_categories(self, values, categories):
+        result = Categorical(values=values, categories=categories).categories
+        expected = RangeIndex(range(5))
+        tm.assert_index_equal(result, expected, exact=True)

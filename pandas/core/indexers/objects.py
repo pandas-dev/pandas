@@ -48,16 +48,32 @@ class BaseIndexer:
     """
     Base class for window bounds calculations.
 
+    Parameters
+    ----------
+    index_array : np.ndarray, default None
+        Array-like structure representing the indices for the data points.
+        If None, the default indices are assumed. This can be useful for
+        handling non-uniform indices in data, such as in time series
+        with irregular timestamps.
+    window_size : int, default 0
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. The default is to consider all
+        observations within the window.
+    **kwargs
+        Additional keyword arguments passed to the subclass's methods.
+
+    See Also
+    --------
+    DataFrame.rolling : Provides rolling window calculations on dataframe.
+    Series.rolling : Provides rolling window calculations on series.
+
     Examples
     --------
     >>> from pandas.api.indexers import BaseIndexer
     >>> class CustomIndexer(BaseIndexer):
     ...     def get_window_bounds(self, num_values, min_periods, center, closed, step):
-    ...         start = np.empty(num_values, dtype=np.int64)
-    ...         end = np.empty(num_values, dtype=np.int64)
-    ...         for i in range(num_values):
-    ...             start[i] = i
-    ...             end[i] = i + self.window_size
+    ...         start = np.arange(num_values, dtype=np.int64)
+    ...         end = np.arange(num_values, dtype=np.int64) + self.window_size
     ...         return start, end
     >>> df = pd.DataFrame({"values": range(5)})
     >>> indexer = CustomIndexer(window_size=2)
@@ -150,6 +166,31 @@ class VariableWindowIndexer(BaseIndexer):
 class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default 0
+        Array-like structure specifying the indices for data points.
+        This parameter is currently not used.
+
+    window_size : int, optional, default 0
+        Specifies the number of data points in each window.
+        This parameter is currently not used.
+
+    index : DatetimeIndex, optional
+        ``DatetimeIndex`` of the labels of each observation.
+
+    offset : BaseOffset, optional
+        ``DateOffset`` representing the size of the window.
+
+    **kwargs
+        Additional keyword arguments passed to the parent class ``BaseIndexer``.
+
+    See Also
+    --------
+    api.indexers.BaseIndexer : Base class for all indexers.
+    DataFrame.rolling : Rolling window calculations on DataFrames.
+    offsets : Module providing various time offset classes.
 
     Examples
     --------
@@ -298,6 +339,26 @@ class ExpandingIndexer(BaseIndexer):
 class FixedForwardWindowIndexer(BaseIndexer):
     """
     Creates window boundaries for fixed-length windows that include the current row.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default None
+        Array-like structure representing the indices for the data points.
+        If None, the default indices are assumed. This can be useful for
+        handling non-uniform indices in data, such as in time series
+        with irregular timestamps.
+    window_size : int, default 0
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. The default is to consider all
+        observations within the window.
+    **kwargs
+        Additional keyword arguments passed to the subclass's methods.
+
+    See Also
+    --------
+    DataFrame.rolling : Provides rolling window calculations.
+    api.indexers.VariableWindowIndexer : Calculate window bounds based on
+        variable-sized windows.
 
     Examples
     --------

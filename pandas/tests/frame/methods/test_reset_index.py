@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -600,8 +602,8 @@ class TestResetIndex:
                 {"a": [pd.NaT, Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
             ),
             (
-                [(pd.NaT, 1), (pd.Timedelta(123, "d"), 2)],
-                {"a": [pd.NaT, pd.Timedelta(123, "d")], "b": [1, 2], "x": [11, 12]},
+                [(pd.NaT, 1), (pd.Timedelta(123, "D"), 2)],
+                {"a": [pd.NaT, pd.Timedelta(123, "D")], "b": [1, 2], "x": [11, 12]},
             ),
         ],
     )
@@ -642,6 +644,7 @@ class TestResetIndex:
         tm.assert_frame_equal(res, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "array, dtype",
     [
@@ -659,7 +662,7 @@ def test_reset_index_dtypes_on_empty_frame_with_multiindex(
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
     if using_infer_string and dtype == object:
-        dtype = "string"
+        dtype = pd.StringDtype(na_value=np.nan)
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
@@ -692,7 +695,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
     if using_infer_string:
-        expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
+        expected["c2"] = expected["c2"].astype("str")
     tm.assert_frame_equal(result, expected)
 
 

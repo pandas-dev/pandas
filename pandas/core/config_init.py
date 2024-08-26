@@ -12,8 +12,9 @@ module is imported, register them here rather than in the module.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
-from typing import Callable
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -37,7 +38,7 @@ use_bottleneck_doc = """
 """
 
 
-def use_bottleneck_cb(key) -> None:
+def use_bottleneck_cb(key: str) -> None:
     from pandas.core import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
@@ -51,7 +52,7 @@ use_numexpr_doc = """
 """
 
 
-def use_numexpr_cb(key) -> None:
+def use_numexpr_cb(key: str) -> None:
     from pandas.core.computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
@@ -65,7 +66,7 @@ use_numba_doc = """
 """
 
 
-def use_numba_cb(key) -> None:
+def use_numba_cb(key: str) -> None:
     from pandas.core.util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
@@ -93,11 +94,6 @@ pc_precision_doc = """
     Floating point output precision in terms of number of places after the
     decimal, for regular formatting as well as scientific notation. Similar
     to ``precision`` in :meth:`numpy.set_printoptions`.
-"""
-
-pc_colspace_doc = """
-: int
-    Default space for DataFrame columns.
 """
 
 pc_max_rows_doc = """
@@ -205,11 +201,6 @@ pc_east_asian_width_doc = """
     Enabling this may affect to the performance (default: False)
 """
 
-pc_ambiguous_as_wide_doc = """
-: boolean
-    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
-    (default: False)
-"""
 
 pc_table_schema_doc = """
 : boolean
@@ -287,7 +278,7 @@ pc_memory_usage_doc = """
 """
 
 
-def table_schema_cb(key) -> None:
+def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
     enable_data_resource_formatter(cf.get_option(key))
@@ -461,16 +452,30 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype. This option is ignored if
-    ``future.infer_string`` is set to True.
+    The default storage for StringDtype.
 """
+
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["auto", "python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        if value == "pyarrow_numpy":
+            # TODO: we can remove extra message after 3.0
+            msg += (
+                ". 'pyarrow_numpy' was specified, but this option should be "
+                "enabled using pandas.options.future.infer_string instead"
+            )
+        raise ValueError(msg)
+
 
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
-        "python",
+        "auto",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
@@ -612,7 +617,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key) -> None:
+def register_plotting_backend_cb(key: str | None) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -626,7 +631,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,  # type: ignore[arg-type]
     )
 
 
@@ -638,7 +643,7 @@ register_converter_doc = """
 """
 
 
-def register_converter_cb(key) -> None:
+def register_converter_cb(key: str) -> None:
     from pandas.plotting import (
         deregister_matplotlib_converters,
         register_matplotlib_converters,
@@ -868,7 +873,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        True if os.environ.get("PANDAS_FUTURE_INFER_STRING", "0") == "1" else False,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",

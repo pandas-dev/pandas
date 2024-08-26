@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.common import ensure_platform_int
@@ -87,8 +89,8 @@ def test_transform():
 def test_transform_fast():
     df = DataFrame(
         {
-            "id": np.arange(100000) / 3,
-            "val": np.random.default_rng(2).standard_normal(100000),
+            "id": np.arange(10) / 3,
+            "val": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -370,6 +372,7 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_transform_nuisance_raises(df):
     # case that goes through _transform_item_by_item
 
@@ -442,6 +445,7 @@ def test_transform_coercion():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_with_int():
     # GH 3740, make sure that we might upcast on item-by-item transform
 
@@ -701,6 +705,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
@@ -749,6 +754,7 @@ def test_cython_transform_frame_column(
         msg = "|".join(
             [
                 "does not support .* operations",
+                "does not support operation",
                 ".* is not supported for object dtype",
                 "is not implemented for this dtype",
             ]
@@ -1024,6 +1030,7 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_dtype():
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})
@@ -1103,7 +1110,14 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         return
 
     args = get_groupby_method_args(reduction_func, obj)
-    result = g.transform(func, *args)
+    if func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1231,9 +1245,9 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_frame_equal(result, expected_explicit)
 
     # Series case
-    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
-        "sum"
-    )
+    gb = df_with_categorical.groupby(["A", "C"], observed=observed)
+    gbp = gb["B"]
+    result = gbp.transform("sum")
     expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
     tm.assert_series_equal(result, expected)
     expected_explicit = Series([4, 2, 4], name="B")
@@ -1467,8 +1481,12 @@ def test_as_index_no_change(keys, df, groupby_func):
     args = get_groupby_method_args(groupby_func, df)
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
-    warn = FutureWarning if groupby_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
+    if groupby_func == "corrwith":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.corrwith is deprecated"
+    else:
+        warn = None
+        msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         result = gb_as_index_true.transform(groupby_func, *args)
     with tm.assert_produces_warning(warn, match=msg):
@@ -1490,3 +1508,101 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
         msg = f"DataFrameGroupBy.{how} with skipna=False encountered an NA value"
         with pytest.raises(ValueError, match=msg):
             gb.transform(how, skipna, numeric_only)
+
+
+def test_transform_sum_one_column_no_matching_labels():
+    df = DataFrame({"X": [1.0]})
+    series = Series(["Y"])
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_sum_no_matching_labels():
+    df = DataFrame({"X": [1.0, -93204, 4935]})
+    series = Series(["A", "B", "C"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0, -93204, 4935]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_sum_one_column_with_matching_labels():
+    df = DataFrame({"X": [1.0, -93204, 4935]})
+    series = Series(["A", "B", "A"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [4936.0, -93204, 4936.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_sum_one_column_with_missing_labels():
+    df = DataFrame({"X": [1.0, -93204, 4935]})
+    series = Series(["A", "C"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [1.0, -93204, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_sum_one_column_with_matching_labels_and_missing_labels():
+    df = DataFrame({"X": [1.0, -93204, 4935]})
+    series = Series(["A", "A"])
+
+    result = df.groupby(series, as_index=False).transform("sum")
+    expected = DataFrame({"X": [-93203.0, -93203.0, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int32", "float32"])
+def test_min_one_unobserved_category_no_type_coercion(dtype):
+    # GH#58084
+    df = DataFrame({"A": Categorical([1, 1, 2], categories=[1, 2, 3]), "B": [3, 4, 5]})
+    df["B"] = df["B"].astype(dtype)
+    gb = df.groupby("A", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"B": [3, 3, 5]}, dtype=dtype)
+    tm.assert_frame_equal(expected, result)
+
+
+def test_min_all_empty_data_no_type_coercion():
+    # GH#58084
+    df = DataFrame(
+        {
+            "X": Categorical(
+                [],
+                categories=[1, "randomcat", 100],
+            ),
+            "Y": [],
+        }
+    )
+    df["Y"] = df["Y"].astype("int32")
+
+    gb = df.groupby("X", observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": []}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+
+
+def test_min_one_dim_no_type_coercion():
+    # GH#58084
+    df = DataFrame({"Y": [9435, -5465765, 5055, 0, 954960]})
+    df["Y"] = df["Y"].astype("int32")
+    categories = Categorical([1, 2, 2, 5, 1], categories=[1, 2, 3, 4, 5])
+
+    gb = df.groupby(categories, observed=False)
+    result = gb.transform("min")
+
+    expected = DataFrame({"Y": [9435, -5465765, -5465765, 0, 9435]}, dtype="int32")
+    tm.assert_frame_equal(expected, result)
+
+
+def test_nan_in_cumsum_group_label():
+    # GH#58811
+    df = DataFrame({"A": [1, None], "B": [2, 3]}, dtype="Int16")
+    gb = df.groupby("A")["B"]
+    result = gb.cumsum()
+    expected = Series([2, None], dtype="Int16", name="B")
+    tm.assert_series_equal(expected, result)

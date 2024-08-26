@@ -14,7 +14,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 
@@ -60,6 +60,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
+    maybe_sequence_to_range,
     union_indexes,
 )
 from pandas.core.internals.blocks import (
@@ -191,6 +192,7 @@ def ndarray_to_mgr(
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
+    infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
         if columns is None:
@@ -286,22 +288,21 @@ def ndarray_to_mgr(
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values.dtype):
+    if dtype is None and infer_object and is_object_dtype(values.dtype):
         obj_columns = list(values)
         maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
         # don't convert (and copy) the objects if no type inference occurs
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
-            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
-                new_block_2d(dvals_list[n], placement=BlockPlacement(n))
-                for n in range(len(dvals_list))
+                new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
+                for n, dval in enumerate(maybe_datetime)
             ]
         else:
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        dtype = StringDtype(storage="pyarrow_numpy")
+    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
+        dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)
         block_values = [
@@ -403,7 +404,7 @@ def dict_to_mgr(
                 arrays[i] = arr
 
     else:
-        keys = list(data.keys())
+        keys = maybe_sequence_to_range(list(data.keys()))
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
 
@@ -566,7 +567,7 @@ def _extract_index(data) -> Index:
     if len(data) == 0:
         return default_index(0)
 
-    raw_lengths = []
+    raw_lengths = set()
     indexes: list[list[Hashable] | Index] = []
 
     have_raw_arrays = False
@@ -582,7 +583,7 @@ def _extract_index(data) -> Index:
             indexes.append(list(val.keys()))
         elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
             have_raw_arrays = True
-            raw_lengths.append(len(val))
+            raw_lengths.add(len(val))
         elif isinstance(val, np.ndarray) and val.ndim > 1:
             raise ValueError("Per-column arrays must each be 1-dimensional")
 
@@ -595,24 +596,23 @@ def _extract_index(data) -> Index:
         index = union_indexes(indexes, sort=False)
 
     if have_raw_arrays:
-        lengths = list(set(raw_lengths))
-        if len(lengths) > 1:
+        if len(raw_lengths) > 1:
             raise ValueError("All arrays must be of the same length")
 
         if have_dicts:
             raise ValueError(
                 "Mixing dicts with non-Series may lead to ambiguous ordering."
             )
-
+        raw_length = raw_lengths.pop()
         if have_series:
-            if lengths[0] != len(index):
+            if raw_length != len(index):
                 msg = (
-                    f"array length {lengths[0]} does not match index "
+                    f"array length {raw_length} does not match index "
                     f"length {len(index)}"
                 )
                 raise ValueError(msg)
         else:
-            index = default_index(lengths[0])
+            index = default_index(raw_length)
 
     return ensure_index(index)
 
@@ -842,7 +842,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
+    data = [d if type(d) is dict else dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns

@@ -1,7 +1,7 @@
 # PDEP-7: Consistent copy/view semantics in pandas with Copy-on-Write
 
 - Created: July 2021
-- Status: Accepted
+- Status: Implemented
 - Discussion: [#36195](https://github.com/pandas-dev/pandas/issues/36195)
 - Author: [Joris Van den Bossche](https://github.com/jorisvandenbossche)
 - Revision: 1

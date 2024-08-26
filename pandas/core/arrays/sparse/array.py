@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -40,7 +39,6 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
-    construct_1d_arraylike_from_scalar,
     find_common_type,
     maybe_box_datetimelike,
 )
@@ -88,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):
@@ -98,10 +99,7 @@ if TYPE_CHECKING:
 
     from scipy.sparse import spmatrix
 
-    from pandas._typing import (
-        FillnaOptions,
-        NumpySorter,
-    )
+    from pandas._typing import NumpySorter
 
     SparseIndexKind = Literal["integer", "block"]
 
@@ -402,19 +400,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             dtype = dtype.subtype
 
         if is_scalar(data):
-            warnings.warn(
-                f"Constructing {type(self).__name__} with scalar data is deprecated "
-                "and will raise in a future version. Pass a sequence instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"Cannot construct {type(self).__name__} from scalar data. "
+                "Pass a sequence instead."
             )
-            if sparse_index is None:
-                npoints = 1
-            else:
-                npoints = sparse_index.length
-
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
-            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -673,12 +662,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _null_fill_value(self) -> bool:
         return self._dtype._is_na_fill_value
 
-    def _fill_value_matches(self, fill_value) -> bool:
-        if self._null_fill_value:
-            return isna(fill_value)
-        else:
-            return self.fill_value == fill_value
-
     @property
     def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
@@ -687,6 +670,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def density(self) -> float:
         """
         The percent of non- ``fill_value`` points, as decimal.
+
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+            scipy sparse matrix.
 
         Examples
         --------
@@ -723,24 +711,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mask[self.sp_index.indices] = isna(self.sp_values)
         return type(self)(mask, fill_value=False, dtype=dtype)
 
-    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
-    ) -> Self:
-        # TODO(3.0): We can remove this method once deprecation for fillna method
-        #  keyword is enforced.
-        return super()._pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
-
     def fillna(
         self,
-        value=None,
-        method: FillnaOptions | None = None,
+        value,
         limit: int | None = None,
         copy: bool = True,
     ) -> Self:
@@ -749,17 +722,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        value : scalar, optional
-        method : str, optional
-
-            .. warning::
-
-               Using 'method' will result in high memory use,
-               as all `fill_value` methods will be converted to
-               an in-memory ndarray
-
+        value : scalar
         limit : int, optional
-
+            Not supported for SparseArray, must be None.
         copy: bool, default True
             Ignored for SparseArray.
 
@@ -779,22 +744,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
-        if (method is None and value is None) or (
-            method is not None and value is not None
-        ):
-            raise ValueError("Must specify one of 'method' or 'value'.")
+        if limit is not None:
+            raise ValueError("limit must be None")
+        new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
-        if method is not None:
-            return super().fillna(method=method, limit=limit)
-
+        if self._null_fill_value:
+            # This is essentially just updating the dtype.
+            new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)
         else:
-            new_values = np.where(isna(self.sp_values), value, self.sp_values)
-
-            if self._null_fill_value:
-                # This is essentially just updating the dtype.
-                new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)
-            else:
-                new_dtype = self.dtype
+            new_dtype = self.dtype
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
@@ -1302,7 +1260,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action=None) -> Self:
+    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
         """
         Map categories using an input mapping or function.
 
@@ -1663,13 +1621,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def argmax(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmax")
 
     def argmin(self, skipna: bool = True) -> int:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------

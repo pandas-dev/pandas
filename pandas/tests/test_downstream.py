@@ -20,10 +20,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
 
 
 @pytest.fixture
@@ -222,7 +218,7 @@ def test_missing_required_dependency():
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()
-    for name in ["numpy", "pytz", "dateutil"]:
+    for name in ["numpy", "dateutil"]:
         assert name in output
 
 
@@ -283,14 +279,6 @@ def test_from_obscure_array(dtype, box):
         data = xr.DataArray(arr)
     else:
         data = box(arr)
-
-    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    depr_msg = f"{cls.__name__}.__init__ is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        expected = cls(arr)
-    result = cls._from_sequence(data, dtype=dtype)
-    tm.assert_extension_array_equal(result, expected)
 
     if not isinstance(data, memoryview):
         # FIXME(GH#44431) these raise on memoryview and attempted fix

@@ -10,7 +10,6 @@ import time
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 import pandas._libs.json as ujson
 from pandas.compat import IS64
@@ -370,6 +369,7 @@ class TestUltraJSONTests:
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
+        pytz = pytest.importorskip("pytz")
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.ujson_dumps(test)
         expected = f'"{test.isoformat()}"'
@@ -1036,11 +1036,7 @@ class TestPandasJSONTests:
         )
 
     def test_encode_big_set(self):
-        s = set()
-
-        for x in range(100000):
-            s.add(x)
-
+        s = set(range(100000))
         # Make sure no Exception is raised.
         ujson.ujson_dumps(s)
 

@@ -234,16 +234,7 @@ class TestSparseArray(base.ExtensionTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_limit_backfill(self, data_missing):
-        warns = FutureWarning
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data, request):
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -272,6 +263,16 @@ class TestSparseArray(base.ExtensionTests):
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
 
     _combine_le_expected_dtype = "Sparse[bool]"
 
@@ -400,6 +401,8 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
+            "truediv",
+            "rtruediv",
             "pow",
             "mod",
             "rmod",

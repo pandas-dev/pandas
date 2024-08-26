@@ -148,14 +148,15 @@ def to_dict(
         Return a collections.abc.MutableMapping object representing the
         DataFrame. The resulting transformation depends on the `orient` parameter.
     """
-    if not df.columns.is_unique:
+    if orient != "tight" and not df.columns.is_unique:
         warnings.warn(
             "DataFrame columns are not unique, some columns will be omitted.",
             UserWarning,
             stacklevel=find_stack_level(),
         )
     # GH16122
-    into_c = com.standardize_mapping(into)
+    # error: Call to untyped function "standardize_mapping" in typed context
+    into_c = com.standardize_mapping(into)  # type: ignore[no-untyped-call]
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',

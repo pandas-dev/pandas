@@ -68,6 +68,14 @@ def test_nans_equal():
     assert b == a
 
 
+def test_nans_not_equal():
+    # GH 54770
+    a = SparseDtype(float, 0)
+    b = SparseDtype(float, pd.NA)
+    assert a != b
+    assert b != a
+
+
 with warnings.catch_warnings():
     msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
     warnings.filterwarnings("ignore", msg, category=FutureWarning)
@@ -76,7 +84,6 @@ with warnings.catch_warnings():
         (SparseDtype("float64"), SparseDtype("float32")),
         (SparseDtype("float64"), SparseDtype("float64", 0)),
         (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
-        (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
         (SparseDtype("float64"), np.dtype("float64")),
     ]
 

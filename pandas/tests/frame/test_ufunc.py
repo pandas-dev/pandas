@@ -245,6 +245,7 @@ def test_alignment_deprecation_enforced():
         np.add(s2, df1)
 
 
+@pytest.mark.single_cpu
 def test_alignment_deprecation_many_inputs_enforced():
     # Enforced in 2.0
     # https://github.com/pandas-dev/pandas/issues/39184

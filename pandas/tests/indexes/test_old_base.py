@@ -6,9 +6,10 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -222,17 +223,13 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
+            msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
                 idx.any()
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):
             pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
@@ -249,6 +246,11 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -331,6 +333,30 @@ class TestBase:
         if index.inferred_type == "object":
             assert result3 > result2
 
+    def test_memory_usage_doesnt_trigger_engine(self, index):
+        index._cache.clear()
+        assert "_engine" not in index._cache
+
+        res_without_engine = index.memory_usage()
+        assert "_engine" not in index._cache
+
+        # explicitly load and cache the engine
+        _ = index._engine
+        assert "_engine" in index._cache
+
+        res_with_engine = index.memory_usage()
+
+        # the empty engine doesn't affect the result even when initialized with values,
+        # because engine.sizeof() doesn't consider the content of engine.values
+        assert res_with_engine == res_without_engine
+
+        if len(index) == 0:
+            assert res_without_engine == 0
+            assert res_with_engine == 0
+        else:
+            assert res_without_engine > 0
+            assert res_with_engine > 0
+
     def test_argsort(self, index):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
@@ -409,23 +435,17 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
+        # GH#51363
         trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
-        # test 0th element
-        warn = None
-        if index.dtype == object and index.inferred_type == "boolean":
-            # GH#51363
-            warn = FutureWarning
-        msg = "The behavior of Index.insert with object-dtype is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = trimmed.insert(0, index[0])
+        result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="completely different behavior, tested elsewher",
     )
     def test_insert_out_of_bounds(self, index):
@@ -809,12 +829,14 @@ class TestBase:
 
         result = index.append(index)
         assert result.dtype == index.dtype
-        tm.assert_index_equal(result[:N], index, check_exact=True)
-        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
+        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
 
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 
@@ -891,10 +913,13 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "Passing a type in .*Index.view is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx_view = idx.view(index_cls)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
+        with pytest.raises(TypeError, match=msg):
+            # GH#55709
+            idx.view(index_cls)
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

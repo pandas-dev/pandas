@@ -235,7 +235,7 @@ category in a column.
         </li>
     </ul>
 
-The function is a shortcut, as it is actually a groupby operation in combination with counting of the number of records
+The function is a shortcut, it is actually a groupby operation in combination with counting the number of records
 within each group:
 
 .. ipython:: python

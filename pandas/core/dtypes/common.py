@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import warnings
 
@@ -55,6 +54,8 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -186,6 +187,10 @@ def is_sparse(arr) -> bool:
     bool
         Whether or not the array-like is a pandas sparse array.
 
+    See Also
+    --------
+    api.types.SparseDtype : The dtype object for pandas sparse arrays.
+
     Examples
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
@@ -250,7 +255,7 @@ def is_scipy_sparse(arr) -> bool:
     """
     global _is_scipy_sparse
 
-    if _is_scipy_sparse is None:  # pylint: disable=used-before-assignment
+    if _is_scipy_sparse is None:
         try:
             from scipy.sparse import issparse as _is_scipy_sparse
         except ImportError:
@@ -362,6 +367,13 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the timedelta64 dtype.
 
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_period_dtype : Check whether an array-like or dtype is of the
+        Period dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_timedelta64_dtype
@@ -399,6 +411,13 @@ def is_period_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array-like or dtype is of the Period dtype.
+
+    See Also
+    --------
+    api.types.is_timedelta64_ns_dtype : Check whether the provided array or dtype is
+        of the timedelta64[ns] dtype.
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
 
     Examples
     --------
@@ -549,6 +568,11 @@ def is_string_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of the string dtype.
+
+    See Also
+    --------
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                is of the string dtype.
 
     Examples
     --------
@@ -707,6 +731,15 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
         Whether or not the array or dtype is of a signed integer dtype
         and not an instance of timedelta64.
 
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype: Check whether the provided array or dtype
+        is of a numeric dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+
     Examples
     --------
     >>> from pandas.core.dtypes.common import is_signed_integer_dtype
@@ -762,6 +795,15 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of an unsigned integer dtype.
+
+    See Also
+    --------
+    api.types.is_signed_integer_dtype : Check whether the provided array
+        or dtype is of an signed integer dtype.
+    api.types.is_integer_dtype : Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_numeric_dtype : Check whether the provided array or dtype
+        is of a numeric dtype.
 
     Examples
     --------
@@ -873,6 +915,15 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     bool
         Whether or not the array or dtype is of the datetime64 dtype.
 
+    See Also
+    --------
+    api.types.is_datetime64_dtype : Check whether an array-like or dtype is of the
+        datetime64 dtype.
+    api.is_datetime64_ns_dtype : Check whether the provided array or dtype is of the
+        datetime64[ns] dtype.
+    api.is_datetime64tz_dtype : Check whether an array-like or dtype is of a
+        DatetimeTZDtype dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_any_dtype
@@ -976,6 +1027,11 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of the timedelta64[ns] dtype.
+
+    See Also
+    --------
+    api.types.is_timedelta64_dtype: Check whether an array-like or dtype
+        is of the timedelta64 dtype.
 
     Examples
     --------
@@ -1096,6 +1152,15 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of a numeric dtype.
 
+    See Also
+    --------
+    api.types.is_integer_dtype: Check whether the provided array or dtype
+        is of an integer dtype.
+    api.types.is_unsigned_integer_dtype: Check whether the provided array
+        or dtype is of an unsigned integer dtype.
+    api.types.is_signed_integer_dtype: Check whether the provided array
+        or dtype is of an signed integer dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_numeric_dtype
@@ -1140,6 +1205,12 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a real number dtype.
+
+    See Also
+    --------
+    is_numeric_dtype : Check if a dtype is numeric.
+    is_complex_dtype : Check if a dtype is complex.
+    is_bool_dtype : Check if a dtype is boolean.
 
     Examples
     --------
@@ -1203,6 +1274,10 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a boolean dtype.
 
+    This function verifies whether a given object is a boolean data type. The input
+    can be an array or a dtype object. Accepted array types include instances
+    of ``np.array``, ``pd.Series``, ``pd.Index``, and similar array-like structures.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1212,6 +1287,10 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a boolean dtype.
+
+    See Also
+    --------
+    api.types.is_bool : Check if an object is a boolean.
 
     Notes
     -----

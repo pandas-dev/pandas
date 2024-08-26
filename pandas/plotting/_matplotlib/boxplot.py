@@ -7,7 +7,7 @@ from typing import (
 )
 import warnings
 
-from matplotlib.artist import setp
+import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
@@ -82,7 +82,7 @@ class BoxPlot(LinePlot):
 
         self.return_type = return_type
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
@@ -274,13 +274,13 @@ def maybe_color_bp(bp, color_tup, **kwds) -> None:
     # GH#30346, when users specifying those arguments explicitly, our defaults
     # for these four kwargs should be overridden; if not, use Pandas settings
     if not kwds.get("boxprops"):
-        setp(bp["boxes"], color=color_tup[0], alpha=1)
+        mpl.artist.setp(bp["boxes"], color=color_tup[0], alpha=1)
     if not kwds.get("whiskerprops"):
-        setp(bp["whiskers"], color=color_tup[1], alpha=1)
+        mpl.artist.setp(bp["whiskers"], color=color_tup[1], alpha=1)
     if not kwds.get("medianprops"):
-        setp(bp["medians"], color=color_tup[2], alpha=1)
+        mpl.artist.setp(bp["medians"], color=color_tup[2], alpha=1)
     if not kwds.get("capprops"):
-        setp(bp["caps"], color=color_tup[3], alpha=1)
+        mpl.artist.setp(bp["caps"], color=color_tup[3], alpha=1)
 
 
 def _grouped_plot_by_column(
@@ -311,8 +311,6 @@ def _grouped_plot_by_column(
         layout=layout,
     )
 
-    _axes = flatten_axes(axes)
-
     # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
     if kwargs.get("vert", True):
@@ -322,8 +320,7 @@ def _grouped_plot_by_column(
 
     ax_values = []
 
-    for i, col in enumerate(columns):
-        ax = _axes[i]
+    for ax, col in zip(flatten_axes(axes), columns):
         gp_col = grouped[col]
         keys, values = zip(*gp_col)
         re_plotf = plotf(keys, values, ax, xlabel=xlabel, ylabel=ylabel, **kwargs)
@@ -455,7 +452,7 @@ def boxplot(
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}
-            with plt.rc_context(rc):
+            with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
         naxes = len(data.columns)
@@ -531,16 +528,14 @@ def boxplot_frame_groupby(
             figsize=figsize,
             layout=layout,
         )
-        axes = flatten_axes(axes)
-
-        ret = pd.Series(dtype=object)
-
-        for (key, group), ax in zip(grouped, axes):
+        data = {}
+        for (key, group), ax in zip(grouped, flatten_axes(axes)):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            ret.loc[key] = d
+            data[key] = d
+        ret = pd.Series(data)
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)

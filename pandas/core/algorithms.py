@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     ensure_platform_int,
-    is_array_like,
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
@@ -69,6 +68,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -223,16 +223,17 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
-    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+    if not isinstance(
+        values,
+        (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray, ABCNumpyExtensionArray),
+    ):
         # GH#52986
         if func_name != "isin-targets":
             # Make an exception for the comps argument in isin.
-            warnings.warn(
-                f"{func_name} with argument that is not not a Series, Index, "
-                "ExtensionArray, or np.ndarray is deprecated and will raise in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{func_name} requires a Series, Index, "
+                f"ExtensionArray, np.ndarray or NumpyExtensionArray "
+                f"got {type(values).__name__}."
             )
 
         inferred = lib.infer_dtype(values, skipna=False)
@@ -323,10 +324,12 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
+        The input array-like object containing values from which to extract
+        unique values.
 
     Returns
     -------
-    numpy.ndarray or ExtensionArray
+    numpy.ndarray, ExtensionArray or NumpyExtensionArray
 
         The return can be:
 
@@ -334,7 +337,7 @@ def unique(values):
         * Categorical : when the input is a Categorical dtype
         * ndarray : when the input is a Series/ndarray
 
-        Return numpy.ndarray or ExtensionArray.
+        Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
 
     See Also
     --------
@@ -350,14 +353,15 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
 
     >>> pd.unique(
     ...     pd.Series(
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     <DatetimeArray>
@@ -369,7 +373,8 @@ def unique(values):
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
@@ -404,6 +409,13 @@ def unique(values):
 
     >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
+
+    An NumpyExtensionArray of complex
+
+    >>> pd.unique(pd.array([1 + 1j, 2, 3]))
+    <NumpyExtensionArray>
+    [(1+1j), (2+0j), (3+0j)]
+    Length: 3, dtype: complex128
     """
     return unique_with_mask(values)
 
@@ -437,6 +449,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
+        return values.unique()
+
+    if isinstance(values, ABCIndex):
+        # Dispatch to Index's unique.
         return values.unique()
 
     original = values
@@ -888,26 +904,9 @@ def value_counts_internal(
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
-            # For backwards compatibility, we let Index do its normal type
-            #  inference, _except_ for if if infers from object to bool.
-            idx = Index(keys)
-            if idx.dtype == bool and keys.dtype == object:
-                idx = idx.astype(object)
-            elif (
-                idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
-                and idx.dtype != "string[pyarrow_numpy]"
-            ):
-                warnings.warn(
-                    # GH#56161
-                    "The behavior of value_counts with object-dtype is deprecated. "
-                    "In a future version, this will *not* perform dtype inference "
-                    "on the resulting index. To retain the old behavior, use "
-                    "`result.index = result.index.infer_objects()`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            idx.name = index_name
-
+            # Starting in 3.0, we no longer perform dtype inference on the
+            #  Index object we construct here, xref GH#56161
+            idx = Index(keys, dtype=keys.dtype, name=index_name)
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
@@ -1174,30 +1173,35 @@ def take(
     ... )
     array([ 10,  10, -10])
     """
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+    if not isinstance(
+        arr,
+        (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCNumpyExtensionArray),
+    ):
         # GH#52981
-        warnings.warn(
-            "pd.api.extensions.take accepting non-standard inputs is deprecated "
-            "and will raise in a future version. Pass either a numpy.ndarray, "
-            "ExtensionArray, Index, or Series instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise TypeError(
+            "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
+            f"Index, Series, or NumpyExtensionArray got {type(arr).__name__}."
         )
-
-    if not is_array_like(arr):
-        arr = np.asarray(arr)
 
     indices = ensure_platform_int(indices)
 
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
+        # error: Argument 1 to "take_nd" has incompatible type
+        # "ndarray[Any, Any] | ExtensionArray | Index | Series"; expected
+        # "ndarray[Any, Any]"
         result = take_nd(
-            arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
+            arr,  # type: ignore[arg-type]
+            indices,
+            axis=axis,
+            allow_fill=True,
+            fill_value=fill_value,
         )
     else:
         # NumPy style
-        result = arr.take(indices, axis=axis)
+        # error: Unexpected keyword argument "axis" for "take" of "ExtensionArray"
+        result = arr.take(indices, axis=axis)  # type: ignore[call-arg,assignment]
     return result
 
 
@@ -1525,9 +1529,7 @@ def safe_sort(
         order2 = sorter.argsort()
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
-            codes[mask] = 0
-        else:
-            mask = None
+            codes[mask] = -1
         new_codes = take_nd(order2, codes, fill_value=-1)
     else:
         reverse_indexer = np.empty(len(sorter), dtype=int)
@@ -1535,14 +1537,6 @@ def safe_sort(
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
         new_codes = reverse_indexer.take(codes, mode="wrap")
-
-        if use_na_sentinel:
-            mask = codes == -1
-            if verify:
-                mask = mask | (codes < -len(values)) | (codes >= len(values))
-
-    if use_na_sentinel and mask is not None:
-        np.putmask(new_codes, mask, -1)
 
     return ordered, ensure_platform_int(new_codes)
 
@@ -1602,16 +1596,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    with warnings.catch_warnings():
-        # filter warning from object dtype inference; we will end up discarding
-        # the index here, so the deprecation does not affect the end result here.
-        warnings.filterwarnings(
-            "ignore",
-            "The behavior of value_counts with object-dtype is deprecated",
-            category=FutureWarning,
-        )
-        l_count = value_counts_internal(lvals, dropna=False)
-        r_count = value_counts_internal(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)

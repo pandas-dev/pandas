@@ -11,7 +11,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -251,9 +253,6 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't compare string and int"
-    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -1097,7 +1096,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning  # "evaluating in Python space because ..."
+                    warn = UserWarning
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1105,17 +1104,16 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                    # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
             else:
@@ -1546,6 +1544,9 @@ class TestFrameArithmeticUnsorted:
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
         # GH 11565
         df = DataFrame(
@@ -2100,6 +2101,7 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_mixed_col_index_dtype():
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])

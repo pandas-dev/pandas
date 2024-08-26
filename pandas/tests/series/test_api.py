@@ -4,6 +4,10 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -107,7 +111,7 @@ class TestSeriesMisc:
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
         tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
-        assert s.dropna().sum("rows") == 3
+        assert s.dropna().sum(axis="rows") == 3
         assert s._get_axis_number("rows") == 0
         assert s._get_axis_name("rows") == "index"
 
@@ -160,6 +164,9 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_inspect_getmembers(self):
         # GH38782
         pytest.importorskip("jinja2")
@@ -195,7 +202,6 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",
         [

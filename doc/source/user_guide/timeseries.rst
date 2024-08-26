@@ -326,7 +326,7 @@ which can be specified. These are computed from the starting point specified by 
 .. note::
 
    The ``unit`` parameter does not use the same strings as the ``format`` parameter
-   that was discussed :ref:`above<timeseries.converting.format>`). The
+   that was discussed :ref:`above<timeseries.converting.format>`. The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
@@ -797,8 +797,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     day_of_year,"The ordinal day of year"
-    weekofyear,"The week ordinal of the year"
-    week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
@@ -811,6 +809,10 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
+
+.. note::
+
+   You can use ``DatetimeIndex.isocalendar().week`` to access week of year date information.
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
@@ -1271,6 +1273,10 @@ frequencies. We will refer to these aliases as *offset aliases*.
    are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
+   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
+   ``YE``, ``ME``, ``QE``.
+
+
 .. note::
 
     When using the offset aliases above, it should be noted that functions
@@ -1466,11 +1472,16 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
+    "next_workday", "move Saturday and Sunday to Monday"
+    "previous_workday", "move Saturday and Sunday to Friday"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
+    "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
+    "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"
     "sunday_to_monday", "move Sunday to following Monday"
     "next_monday_or_tuesday", "move Saturday to Monday and Sunday/Monday to Tuesday"
-    "previous_friday", move Saturday and Sunday to previous Friday"
+    "previous_friday", "move Saturday and Sunday to previous Friday"
     "next_monday", "move Saturday and Sunday to following Monday"
+    "weekend_to_monday", "same as ``next_monday``"
 
 An example of how holidays and holiday calendars are defined:
 
@@ -1853,7 +1864,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("ME", on="date")[["a"]].sum()
+   df.resample("MS", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1861,7 +1872,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("ME", level="d")[["a"]].sum()
+   df.resample("MS", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 
@@ -2326,7 +2337,7 @@ Time zone handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
+zones using the ``zoneinfo``, ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
 objects from the standard library.
 
 
@@ -2343,14 +2354,14 @@ By default, pandas objects are time zone unaware:
 To localize these dates to a time zone (assign a particular time zone to a naive date),
 you can use the ``tz_localize`` method or the ``tz`` keyword argument in
 :func:`date_range`, :class:`Timestamp`, or :class:`DatetimeIndex`.
-You can either pass ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
+You can either pass ``zoneinfo``, ``pytz`` or ``dateutil`` time zone objects or Olson time zone database strings.
 Olson time zone strings will return ``pytz`` time zone objects by default.
 To return ``dateutil`` time zone objects, append ``dateutil/`` before the string.
 
-* In ``pytz`` you can find a list of common (and less common) time zones using
-  ``from pytz import common_timezones, all_timezones``.
+* For ``zoneinfo``, a list of available timezones are available from :py:func:`zoneinfo.available_timezones`.
+* In ``pytz`` you can find a list of common (and less common) time zones using ``pytz.all_timezones``.
 * ``dateutil`` uses the OS time zones so there isn't a fixed list available. For
-  common zones, the names are the same as ``pytz``.
+  common zones, the names are the same as ``pytz`` and ``zoneinfo``.
 
 .. ipython:: python
 
@@ -2455,7 +2466,7 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-    If you are using dates beyond 2038-01-18, due to current deficiencies
+    If you are using dates beyond 2038-01-18 with ``pytz``, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
     the DST transitions will be applied.
@@ -2464,9 +2475,11 @@ you can use the ``tz_convert`` method.
 
     .. ipython:: python
 
+      import pytz
+
        d_2037 = "2037-03-31T010101"
        d_2038 = "2038-03-31T010101"
-       DST = "Europe/London"
+       DST = pytz.timezone("Europe/London")
        assert pd.Timestamp(d_2037, tz=DST) != pd.Timestamp(d_2037, tz="GMT")
        assert pd.Timestamp(d_2038, tz=DST) == pd.Timestamp(d_2038, tz="GMT")
 
@@ -2556,7 +2569,7 @@ Ambiguous times when localizing
 because daylight savings time (DST) in a local time zone causes some times to occur
 twice within one day ("clocks fall back"). The following options are available:
 
-* ``'raise'``: Raises a ``pytz.AmbiguousTimeError`` (the default behavior)
+* ``'raise'``: Raises a ``ValueError`` (the default behavior)
 * ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
@@ -2591,7 +2604,7 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times ("clocks spring forward"). The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``'raise'``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``'raise'``: Raises a ``ValueError`` (the default behavior)
 * ``'NaT'``: Replaces nonexistent times with ``NaT``
 * ``'shift_forward'``: Shifts nonexistent times forward to the closest real time
 * ``'shift_backward'``: Shifts nonexistent times backward to the closest real time

@@ -187,9 +187,9 @@ class TestDataFramePlotsSubplots:
         data = {
             "numeric": np.array([1, 2, 5]),
             "period": [
-                pd.Period("2017-08-01 00:00:00", freq="H"),
-                pd.Period("2017-08-01 02:00", freq="H"),
-                pd.Period("2017-08-02 00:00:00", freq="H"),
+                pd.Period("2017-08-01 00:00:00", freq="h"),
+                pd.Period("2017-08-01 02:00", freq="h"),
+                pd.Period("2017-08-02 00:00:00", freq="h"),
             ],
             "categorical": pd.Categorical(
                 ["c", "b", "a"], categories=["a", "b", "c"], ordered=False
@@ -335,7 +335,7 @@ class TestDataFramePlotsSubplots:
             np.random.default_rng(2).random((10, 4)),
             index=list(string.ascii_letters[:10]),
         )
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="layout keyword is ignored"):
             returned = df.plot(
                 subplots=True, ax=axes, layout=layout, sharex=False, sharey=False
             )
@@ -501,7 +501,7 @@ class TestDataFramePlotsSubplots:
             columns=list("AB"),
         )
         _, axes = plt.subplots(2, 1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=axes, sharex=True)
         for ax in axes:
             assert len(ax.lines) == 1

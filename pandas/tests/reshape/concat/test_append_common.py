@@ -1,3 +1,5 @@
+import zoneinfo
+
 import numpy as np
 import pytest
 
@@ -19,12 +21,12 @@ import pandas._testing as tm
             "float64": [1.1, np.nan, 3.3],
             "category": Categorical(["X", "Y", "Z"]),
             "object": ["a", "b", "c"],
-            "datetime64[ns]": [
+            "datetime64[s]": [
                 pd.Timestamp("2011-01-01"),
                 pd.Timestamp("2011-01-02"),
                 pd.Timestamp("2011-01-03"),
             ],
-            "datetime64[ns, US/Eastern]": [
+            "datetime64[s, US/Eastern]": [
                 pd.Timestamp("2011-01-01", tz="US/Eastern"),
                 pd.Timestamp("2011-01-02", tz="US/Eastern"),
                 pd.Timestamp("2011-01-03", tz="US/Eastern"),
@@ -353,14 +355,15 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(res, Series(exp, index=[0, 1, 0, 1]))
 
         # different tz
-        dti3 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="US/Pacific")
+        tz_diff = zoneinfo.ZoneInfo("US/Hawaii")
+        dti3 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz=tz_diff)
 
         exp = Index(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 pd.Timestamp("2011-01-02", tz=tz),
-                pd.Timestamp("2012-01-01", tz="US/Pacific"),
-                pd.Timestamp("2012-01-02", tz="US/Pacific"),
+                pd.Timestamp("2012-01-01", tz=tz_diff),
+                pd.Timestamp("2012-01-02", tz=tz_diff),
             ],
             dtype=object,
         )
@@ -691,15 +694,12 @@ class TestConcatAppendCommon:
 
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
+        exp = s2.astype(object)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
+        tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-            tm.assert_series_equal(s1._append(s2, ignore_index=True), s2)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
-            tm.assert_series_equal(s2._append(s1, ignore_index=True), s2)
+        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
+        tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 
         s1 = Series([], dtype="category")
         s2 = Series([], dtype="category")
@@ -719,15 +719,12 @@ class TestConcatAppendCommon:
         s1 = Series([], dtype="category")
         s2 = Series([np.nan, np.nan])
 
-        # empty Series is ignored
-        exp = Series([np.nan, np.nan])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
-            tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
+        exp = Series([np.nan, np.nan], dtype=object)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
+        tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
-            tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
+        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
+        tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 
     def test_categorical_concat_append(self):
         cat = Categorical(["a", "b"], categories=["a", "b"])

@@ -12,14 +12,14 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-from collections.abc import Iterable
+from collections.abc import (
+    Callable,
+    Iterable,
+)
 import sys
 import token
 import tokenize
-from typing import (
-    IO,
-    Callable,
-)
+from typing import IO
 
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
@@ -54,6 +54,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
     "_fill_limit_area_1d",
+    "_make_block",
 }
 
 

@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import parsers as libparsers
 from pandas.errors import DtypeWarning
 
@@ -229,6 +231,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -253,7 +256,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     else:
         df = parser.read_csv_check_warnings(
             warning_type,
-            r"Columns \(0\) have mixed types. "
+            r"Columns \(0: a\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )

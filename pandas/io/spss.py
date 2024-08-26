@@ -40,14 +40,15 @@ def read_spss(
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True
         Convert categorical columns into pd.Categorical.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed
+          nullable :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
     **kwargs
@@ -58,6 +59,15 @@ def read_spss(
     Returns
     -------
     DataFrame
+        DataFrame based on the SPSS file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_sas : Read an SAS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Examples
     --------

@@ -8,7 +8,7 @@ _chained_assignment_msg = (
     "the assignment in a single step.\n\n"
     "See the caveats in the documentation: "
     "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-    "indexing.html#returning-a-view-versus-a-copy"
+    "copy_on_write.html"
 )
 
 

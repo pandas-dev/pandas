@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Generator,
     Hashable,
     Mapping,
@@ -22,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     cast,
 )
@@ -855,7 +855,7 @@ class DataFrameRenderer:
         - to_csv
         - to_latex
 
-    Called in pandas.core.frame.DataFrame:
+    Called in pandas.DataFrame:
         - to_html
         - to_string
 

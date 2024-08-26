@@ -92,6 +92,12 @@ class ListAccessor(ArrowAccessor):
         pandas.Series
             The length of each list.
 
+        See Also
+        --------
+        str.len : Python built-in function returning the length of an object.
+        Series.size : Returns the length of the Series.
+        StringMethods.len : Compute the length of each element in the Series/Index.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -110,7 +116,9 @@ class ListAccessor(ArrowAccessor):
         from pandas import Series
 
         value_lengths = pc.list_value_length(self._pa_array)
-        return Series(value_lengths, dtype=ArrowDtype(value_lengths.type))
+        return Series(
+            value_lengths, dtype=ArrowDtype(value_lengths.type), index=self._data.index
+        )
 
     def __getitem__(self, key: int | slice) -> Series:
         """
@@ -125,6 +133,10 @@ class ListAccessor(ArrowAccessor):
         -------
         pandas.Series
             The list at requested index.
+
+        See Also
+        --------
+        ListAccessor.flatten : Flatten list values.
 
         Examples
         --------
@@ -149,7 +161,9 @@ class ListAccessor(ArrowAccessor):
             # if key < 0:
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
             element = pc.list_element(self._pa_array, key)
-            return Series(element, dtype=ArrowDtype(element.type))
+            return Series(
+                element, dtype=ArrowDtype(element.type), index=self._data.index
+            )
         elif isinstance(key, slice):
             if pa_version_under11p0:
                 raise NotImplementedError(
@@ -167,7 +181,7 @@ class ListAccessor(ArrowAccessor):
             if step is None:
                 step = 1
             sliced = pc.list_slice(self._pa_array, start, stop, step)
-            return Series(sliced, dtype=ArrowDtype(sliced.type))
+            return Series(sliced, dtype=ArrowDtype(sliced.type), index=self._data.index)
         else:
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
 
@@ -183,6 +197,10 @@ class ListAccessor(ArrowAccessor):
         pandas.Series
             The data from all lists in the series flattened.
 
+        See Also
+        --------
+        ListAccessor.__getitem__ : Index or slice values in the Series.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -195,15 +213,17 @@ class ListAccessor(ArrowAccessor):
         ... )
         >>> s.list.flatten()
         0    1
-        1    2
-        2    3
-        3    3
+        0    2
+        0    3
+        1    3
         dtype: int64[pyarrow]
         """
         from pandas import Series
 
-        flattened = pc.list_flatten(self._pa_array)
-        return Series(flattened, dtype=ArrowDtype(flattened.type))
+        counts = pa.compute.list_value_length(self._pa_array)
+        flattened = pa.compute.list_flatten(self._pa_array)
+        index = self._data.index.repeat(counts.fill_null(pa.scalar(0, counts.type)))
+        return Series(flattened, dtype=ArrowDtype(flattened.type), index=index)
 
 
 class StructAccessor(ArrowAccessor):
@@ -237,6 +257,10 @@ class StructAccessor(ArrowAccessor):
         -------
         pandas.Series
             The data type of each child field.
+
+        See Also
+        --------
+        Series.dtype: Return the dtype object of the underlying data.
 
         Examples
         --------

@@ -12,6 +12,7 @@ def group_median_float64(
     min_count: int = ...,  # Py_ssize_t
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    is_datetimelike: bool = ...,  # bint
 ) -> None: ...
 def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]

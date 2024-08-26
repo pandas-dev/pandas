@@ -6,7 +6,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -19,7 +18,10 @@ from pandas._typing import (
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
 
 def deprecate(
@@ -503,3 +505,24 @@ __all__ = [
     "future_version_msg",
     "Substitution",
 ]
+
+
+def set_module(module) -> Callable[[F], F]:
+    """Private decorator for overriding __module__ on a function or class.
+
+    Example usage::
+
+        @set_module("pandas")
+        def example():
+            pass
+
+
+        assert example.__module__ == "pandas"
+    """
+
+    def decorator(func: F) -> F:
+        if module is not None:
+            func.__module__ = module
+        return func
+
+    return decorator

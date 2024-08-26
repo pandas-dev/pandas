@@ -34,6 +34,7 @@ from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
 )
 from pandas.core.series import Series
 
@@ -71,6 +72,9 @@ class Grouper:
         Currently unused, reserved for future use.
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
+
+    Attributes
+    ----------
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
@@ -116,6 +120,11 @@ class Grouper:
     Grouper or pandas.api.typing.TimeGrouper
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
+
+    See Also
+    --------
+    Series.groupby : Apply a function groupby to a Series.
+    DataFrame.groupby : Apply a function groupby.
 
     Examples
     --------
@@ -238,7 +247,6 @@ class Grouper:
 
     sort: bool
     dropna: bool
-    _gpr_index: Index | None
     _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
@@ -264,10 +272,7 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self._grouper_deprecated = None
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
-        self._obj_deprecated = None
-        self._gpr_index = None
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
@@ -295,10 +300,6 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
-        # Without setting this, subsequent lookups to .groups raise
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
@@ -380,10 +381,6 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=0)
 
-        # error: Incompatible types in assignment (expression has type
-        # "NDFrameT", variable has type "None")
-        self._obj_deprecated = obj  # type: ignore[assignment]
-        self._gpr_index = ax
         return obj, ax, indexer
 
     @final
@@ -433,7 +430,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
 
@@ -452,7 +448,6 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
-        self._all_grouper = None
         self._orig_cats = None
         self._index = index
         self._sort = sort
@@ -536,9 +531,7 @@ class Grouping:
         elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
-            grouping_vector, self._all_grouper = recode_for_groupby(
-                grouping_vector, sort, observed
-            )
+            grouping_vector = recode_for_groupby(grouping_vector, sort, observed)
 
         self.grouping_vector = grouping_vector
 
@@ -678,6 +671,28 @@ class Grouping:
         uniques = Index._with_infer(uniques, name=self.name)
         cats = Categorical.from_codes(codes, uniques, validate=False)
         return self._index.groupby(cats)
+
+    @property
+    def observed_grouping(self) -> Grouping:
+        if self._observed:
+            return self
+
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
+        grouping = Grouping(
+            self._index,
+            self._orig_grouper,
+            obj=self.obj,
+            level=self.level,
+            sort=self._sort,
+            observed=True,
+            in_axis=self.in_axis,
+            dropna=self._dropna,
+            uniques=self._uniques,
+        )
+        return grouping
 
 
 def get_grouper(
@@ -890,7 +905,7 @@ def get_grouper(
     if len(groupings) == 0 and len(obj):
         raise ValueError("No group keys passed!")
     if len(groupings) == 0:
-        groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
+        groupings.append(Grouping(default_index(0), np.array([], dtype=np.intp)))
 
     # create the internals grouper
     grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)

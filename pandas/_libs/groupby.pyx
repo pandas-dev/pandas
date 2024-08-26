@@ -81,6 +81,8 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
         for i in range(n):
@@ -99,7 +101,11 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
+cdef float64_t median_linear(
+    float64_t* a,
+    int n,
+    bint is_datetimelike=False
+) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -109,21 +115,34 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
         return NaN
 
     # count NAs
-    for i in range(n):
-        if a[i] != a[i]:
-            na_count += 1
+    if is_datetimelike:
+        for i in range(n):
+            if a[i] == NPY_NAT:
+                na_count += 1
+    else:
+        for i in range(n):
+            if a[i] != a[i]:
+                na_count += 1
 
     if na_count:
         if na_count == n:
             return NaN
 
         tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+        if tmp is NULL:
+            raise MemoryError()
 
         j = 0
-        for i in range(n):
-            if a[i] == a[i]:
-                tmp[j] = a[i]
-                j += 1
+        if is_datetimelike:
+            for i in range(n):
+                if a[i] != NPY_NAT:
+                    tmp[j] = a[i]
+                    j += 1
+        else:
+            for i in range(n):
+                if a[i] == a[i]:
+                    tmp[j] = a[i]
+                    j += 1
 
         a = tmp
         n -= na_count
@@ -166,6 +185,7 @@ def group_median_float64(
     Py_ssize_t min_count=-1,
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint is_datetimelike=False,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -224,7 +244,7 @@ def group_median_float64(
                 ptr += _counts[0]
                 for j in range(ngroups):
                     size = _counts[j + 1]
-                    out[j, i] = median_linear(ptr, size)
+                    out[j, i] = median_linear(ptr, size, is_datetimelike)
                     ptr += size
 
 
@@ -378,8 +398,14 @@ def group_cumsum(
         for i in range(N):
             lab = labels[i]
 
-            if lab < 0:
+            if uses_mask and lab < 0:
+                # GH#58811
+                result_mask[i, :] = True
+                out[i, :] = 0
                 continue
+            elif lab < 0:
+                continue
+
             for j in range(K):
                 val = values[i, j]
 
@@ -491,9 +517,9 @@ def group_shift_indexer(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_fillna_indexer(
-    ndarray[intp_t] out,
-    ndarray[intp_t] labels,
-    ndarray[uint8_t] mask,
+    Py_ssize_t[::1] out,
+    const intp_t[::1] labels,
+    const uint8_t[:] mask,
     int64_t limit,
     bint compute_ffill,
     int ngroups,
@@ -1159,13 +1185,13 @@ def group_ohlc(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_quantile(
-    ndarray[float64_t, ndim=2] out,
+    float64_t[:, ::1] out,
     ndarray[numeric_t, ndim=1] values,
-    ndarray[intp_t] labels,
+    const intp_t[::1] labels,
     const uint8_t[:] mask,
     const float64_t[:] qs,
-    ndarray[int64_t] starts,
-    ndarray[int64_t] ends,
+    const int64_t[::1] starts,
+    const int64_t[::1] ends,
     str interpolation,
     uint8_t[:, ::1] result_mask,
     bint is_datetimelike,
@@ -1368,7 +1394,7 @@ cdef inline void _check_below_mincount(
     uint8_t[:, ::1] result_mask,
     Py_ssize_t ncounts,
     Py_ssize_t K,
-    int64_t[:, ::1] nobs,
+    const int64_t[:, ::1] nobs,
     int64_t min_count,
     mincount_t[:, ::1] resx,
 ) noexcept:
@@ -1415,14 +1441,12 @@ cdef inline void _check_below_mincount(
                         out[i, j] = 0
 
 
-# TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last(
     numeric_object_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_object_t, ndim=2] values,
+    const numeric_object_t[:, :] values,
     const intp_t[::1] labels,
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,
@@ -1482,14 +1506,12 @@ def group_last(
     )
 
 
-# TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(
     numeric_object_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_object_t, ndim=2] values,
+    const numeric_object_t[:, :] values,
     const intp_t[::1] labels,
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,

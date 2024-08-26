@@ -679,6 +679,8 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_isdst = -1
 
     result = <char*>malloc(result_len * sizeof(char))
+    if result is NULL:
+        raise MemoryError()
 
     strftime(result, result_len, fmt, &c_date)
 
@@ -1911,20 +1913,58 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency. If passing a `str`, it needs to be a
-            valid :ref:`period alias <timeseries.period_aliases>`.
+            The target frequency to convert the Period object to.
+            If a string is provided,
+            it must be a valid :ref:`period alias <timeseries.period_aliases>`.
+
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan.
+            Specifies whether to align the period to the start or end of the interval:
+            - 'E' or 'end': Align to the end of the interval.
+            - 'S' or 'start': Align to the start of the interval.
 
         Returns
         -------
-        resampled : Period
+        Period : Period object with the specified frequency, aligned to the parameter.
+
+        See Also
+        --------
+        Period.end_time : Return the end Timestamp.
+        Period.start_time : Return the start Timestamp.
+        Period.dayofyear : Return the day of the year.
+        Period.dayofweek : Return the day of the week.
 
         Examples
         --------
-        >>> period = pd.Period('2023-1-1', freq='D')
+        Convert a daily period to an hourly period, aligning to the end of the day:
+
+        >>> period = pd.Period('2023-01-01', freq='D')
         >>> period.asfreq('h')
         Period('2023-01-01 23:00', 'h')
+
+        Convert a monthly period to a daily period, aligning to the start of the month:
+
+        >>> period = pd.Period('2023-01', freq='M')
+        >>> period.asfreq('D', how='start')
+        Period('2023-01-01', 'D')
+
+        Convert a yearly period to a monthly period, aligning to the last month:
+
+        >>> period = pd.Period('2023', freq='Y')
+        >>> period.asfreq('M', how='end')
+        Period('2023-12', 'M')
+
+        Convert a monthly period to an hourly period,
+        aligning to the first day of the month:
+
+        >>> period = pd.Period('2023-01', freq='M')
+        >>> period.asfreq('h', how='start')
+        Period('2023-01-01 00:00', 'H')
+
+        Convert a weekly period to a daily period, aligning to the last day of the week:
+
+        >>> period = pd.Period('2023-08-01', freq='W')
+        >>> period.asfreq('D', how='end')
+        Period('2023-08-04', 'D')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -1998,11 +2038,44 @@ cdef class _Period(PeriodMixin):
         """
         Return the year this Period falls on.
 
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        period.month : Get the month of the year for the given Period.
+        period.day : Return the day of the month the Period falls on.
+
+        Notes
+        -----
+        The year is based on the `ordinal` and `base` attributes of the Period.
+
         Examples
         --------
-        >>> period = pd.Period('2022-01', 'M')
+        Create a Period object for January 2023 and get the year:
+
+        >>> period = pd.Period('2023-01', 'M')
         >>> period.year
-        2022
+        2023
+
+        Create a Period object for 01 January 2023 and get the year:
+
+        >>> period = pd.Period('2023', 'D')
+        >>> period.year
+        2023
+
+        Get the year for a period representing a quarter:
+
+        >>> period = pd.Period('2023Q2', 'Q')
+        >>> period.year
+        2023
+
+        Handle a case where the Period object is empty, which results in `NaN`:
+
+        >>> period = pd.Period('nan', 'M')
+        >>> period.year
+        nan
         """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
@@ -2012,11 +2085,45 @@ cdef class _Period(PeriodMixin):
         """
         Return the month this Period falls on.
 
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        period.week : Get the week of the year on the given Period.
+        Period.year : Return the year this Period falls on.
+        Period.day : Return the day of the month this Period falls on.
+
+        Notes
+        -----
+        The month is based on the `ordinal` and `base` attributes of the Period.
+
         Examples
         --------
+        Create a Period object for January 2022 and get the month:
+
         >>> period = pd.Period('2022-01', 'M')
         >>> period.month
         1
+
+        Period object with no specified frequency, resulting in a default frequency:
+
+        >>> period = pd.Period('2022', 'Y')
+        >>> period.month
+        12
+
+        Create a Period object with a specified frequency but an incomplete date string:
+
+        >>> period = pd.Period('2022', 'M')
+        >>> period.month
+        1
+
+        Handle a case where the Period object is empty, which results in `NaN`:
+
+        >>> period = pd.Period('nan', 'M')
+        >>> period.month
+        nan
         """
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
@@ -2327,6 +2434,12 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        See Also
+        --------
+        Timestamp.quarter : Return the quarter of the Timestamp.
+        Period.year : Return the year of the period.
+        Period.month : Return the month of the period.
+
         Examples
         --------
         >>> period = pd.Period('2022-04', 'M')
@@ -2441,6 +2554,12 @@ cdef class _Period(PeriodMixin):
         """
         Return True if the period's year is in a leap year.
 
+        See Also
+        --------
+        Timestamp.is_leap_year : Check if the year in a Timestamp is a leap year.
+        DatetimeIndex.is_leap_year : Boolean indicator if the date belongs to a
+            leap year.
+
         Examples
         --------
         >>> period = pd.Period('2022-01', 'M')
@@ -2458,10 +2577,23 @@ cdef class _Period(PeriodMixin):
         """
         Return the period of now's date.
 
+        The `now` method provides a convenient way to generate a period
+        object for the current date and time. This can be particularly
+        useful in financial and economic analysis, where data is often
+        collected and analyzed in regular intervals (e.g., hourly, daily,
+        monthly). By specifying the frequency, users can create periods
+        that match the granularity of their data.
+
         Parameters
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        See Also
+        --------
+        to_datetime : Convert argument to datetime.
+        Period : Represents a period of time.
+        Period.to_timestamp : Return the Timestamp representation of the Period.
 
         Examples
         --------
@@ -2690,6 +2822,12 @@ class Period(_Period):
         Minute value of the period.
     second : int, default 0
         Second value of the period.
+
+    See Also
+    --------
+    Timestamp : Pandas replacement for python datetime.datetime object.
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Generates a fixed frequency range of timedeltas.
 
     Examples
     --------

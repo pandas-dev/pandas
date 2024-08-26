@@ -7,6 +7,10 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -128,28 +132,14 @@ class TestReductions:
         obj = klass([NaT, datetime(2011, 11, 1)])
         assert getattr(obj, arg_op)() == 1
 
-        msg = (
-            "The behavior of (DatetimeIndex|Series).argmax/argmin with "
-            "skipna=False and NAs"
-        )
-        if klass is Series:
-            msg = "The behavior of Series.(idxmax|idxmin) with all-NA"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = getattr(obj, arg_op)(skipna=False)
-        if klass is Series:
-            assert np.isnan(result)
-        else:
-            assert result == -1
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            getattr(obj, arg_op)(skipna=False)
 
         obj = klass([NaT, datetime(2011, 11, 1), NaT])
         # check DatetimeIndex non-monotonic path
         assert getattr(obj, arg_op)() == 1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = getattr(obj, arg_op)(skipna=False)
-        if klass is Series:
-            assert np.isnan(result)
-        else:
-            assert result == -1
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            getattr(obj, arg_op)(skipna=False)
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize("dtype", ["M8[ns]", "datetime64[ns, UTC]"])
@@ -175,40 +165,38 @@ class TestReductions:
         obj = Index([np.nan, 1, np.nan, 2])
         assert obj.argmin() == 1
         assert obj.argmax() == 3
-        msg = "The behavior of Index.argmax/argmin with skipna=False and NAs"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin(skipna=False) == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax(skipna=False) == -1
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmax(skipna=False)
 
         obj = Index([np.nan])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin() == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax() == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin(skipna=False) == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax(skipna=False) == -1
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            obj.argmin()
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            obj.argmax()
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmax(skipna=False)
 
-        msg = "The behavior of DatetimeIndex.argmax/argmin with skipna=False and NAs"
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
         assert obj.argmin() == 1
         assert obj.argmax() == 2
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin(skipna=False) == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax(skipna=False) == -1
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmax(skipna=False)
 
         obj = Index([NaT])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin() == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax() == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmin(skipna=False) == -1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert obj.argmax(skipna=False) == -1
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            obj.argmin()
+        with pytest.raises(ValueError, match="Encountered all NA values"):
+            obj.argmax()
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            obj.argmax(skipna=False)
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
@@ -394,7 +382,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support reduction '{opname}'",
+                f"does not support operation '{opname}'",
             ]
         )
 
@@ -681,7 +669,7 @@ class TestSeriesReductions:
 
             # GH#844 (changed in GH#9422)
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
-            assert (getattr(df, method)(1) == unit).all()
+            assert (getattr(df, method)(axis=1) == unit).all()
 
             s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
@@ -730,7 +718,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "does not support reduction 'var'",
+                    "does not support operation 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -841,26 +829,16 @@ class TestSeriesReductions:
         # GH#43587 should have NaT instead of NaN
         dti = DatetimeIndex(["NaT", "2015-02-08", "NaT"]).as_unit(unit)
         ser = Series([1.0, 2.0, np.nan], index=dti)
-        msg = "The behavior of Series.idxmin with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.idxmin(skipna=False)
-        assert res is NaT
-        msg = "The behavior of Series.idxmax with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.idxmax(skipna=False)
-        assert res is NaT
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            ser.idxmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            ser.idxmax(skipna=False)
 
         df = ser.to_frame()
-        msg = "The behavior of DataFrame.idxmin with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.idxmin(skipna=False)
-        assert res.dtype == f"M8[{unit}]"
-        assert res.isna().all()
-        msg = "The behavior of DataFrame.idxmax with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.idxmax(skipna=False)
-        assert res.dtype == f"M8[{unit}]"
-        assert res.isna().all()
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            df.idxmin(skipna=False)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            df.idxmax(skipna=False)
 
     def test_idxmin(self):
         # test idxmin
@@ -872,9 +850,8 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmin()] == string_series.min()
-        msg = "The behavior of Series.idxmin"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isna(string_series.idxmin(skipna=False))
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            string_series.idxmin(skipna=False)
 
         # no NaNs
         nona = string_series.dropna()
@@ -883,8 +860,9 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isna(allna.idxmin())
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
+            allna.idxmin()
 
         # datetime64[ns]
         s = Series(date_range("20130102", periods=6))
@@ -905,8 +883,7 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmax()] == string_series.max()
-        msg = "The behavior of Series.idxmax with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="Encountered an NA value"):
             assert isna(string_series.idxmax(skipna=False))
 
         # no NaNs
@@ -916,9 +893,9 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        msg = "The behavior of Series.idxmax with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isna(allna.idxmax())
+        msg = "Encountered all NA values"
+        with pytest.raises(ValueError, match=msg):
+            allna.idxmax()
 
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
@@ -1038,32 +1015,41 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        msg = "'(any|all)' with datetime64 dtypes is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        # GH#34479
+        msg = "datetime64 type does not support operation '(any|all)'"
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-            assert ser.all()
-            assert ser.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
+        # GH#34479
+        with pytest.raises(TypeError, match=msg):
+            dta.all()
+        with pytest.raises(TypeError, match=msg):
+            dta.any()
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#34479
-            assert dta.all()
-            assert dta.any()
+        with pytest.raises(TypeError, match=msg):
+            ser.all()
+        with pytest.raises(TypeError, match=msg):
+            ser.any()
 
-            assert ser.all()
-            assert ser.any()
-
-            assert df.any().all()
-            assert df.all().all()
+        with pytest.raises(TypeError, match=msg):
+            df.any().all()
+        with pytest.raises(TypeError, match=msg):
+            df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)
@@ -1078,25 +1064,62 @@ class TestSeriesReductions:
         assert df.any().all()
         assert not df.all().any()
 
-    def test_any_all_pyarrow_string(self):
+    def test_any_all_string_dtype(self, any_string_dtype):
         # GH#54591
-        pytest.importorskip("pyarrow")
-        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
+        if (
+            isinstance(any_string_dtype, pd.StringDtype)
+            and any_string_dtype.na_value is pd.NA
+        ):
+            # the nullable string dtype currently still raise an error
+            # https://github.com/pandas-dev/pandas/issues/51939
+            ser = Series(["a", "b"], dtype=any_string_dtype)
+            with pytest.raises(TypeError):
+                ser.any()
+            with pytest.raises(TypeError):
+                ser.all()
+            return
+
+        ser = Series(["", "a"], dtype=any_string_dtype)
         assert ser.any()
         assert not ser.all()
-
-        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
-        assert ser.any()
-        assert ser.all()
+        assert ser.any(skipna=False)
         assert not ser.all(skipna=False)
 
-        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
-        assert not ser.any()
-        assert not ser.all()
-
-        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser = Series([np.nan, "a"], dtype=any_string_dtype)
         assert ser.any()
         assert ser.all()
+        assert ser.any(skipna=False)
+        assert ser.all(skipna=False)  # NaN is considered truthy
+
+        ser = Series([np.nan, ""], dtype=any_string_dtype)
+        assert not ser.any()
+        assert not ser.all()
+        assert ser.any(skipna=False)  # NaN is considered truthy
+        assert not ser.all(skipna=False)
+
+        ser = Series(["a", "b"], dtype=any_string_dtype)
+        assert ser.any()
+        assert ser.all()
+        assert ser.any(skipna=False)
+        assert ser.all(skipna=False)
+
+        ser = Series([], dtype=any_string_dtype)
+        assert not ser.any()
+        assert ser.all()
+        assert not ser.any(skipna=False)
+        assert ser.all(skipna=False)
+
+        ser = Series([""], dtype=any_string_dtype)
+        assert not ser.any()
+        assert not ser.all()
+        assert not ser.any(skipna=False)
+        assert not ser.all(skipna=False)
+
+        ser = Series([np.nan], dtype=any_string_dtype)
+        assert not ser.any()
+        assert ser.all()
+        assert ser.any(skipna=False)  # NaN is considered truthy
+        assert ser.all(skipna=False)  # NaN is considered truthy
 
     def test_timedelta64_analytics(self):
         # index min/max
@@ -1183,6 +1206,9 @@ class TestSeriesReductions:
             with pytest.raises(TypeError, match=msg):
                 ser3.idxmin(skipna=False)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+    )
     def test_idxminmax_object_frame(self):
         # GH#4279
         df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
@@ -1228,14 +1254,12 @@ class TestSeriesReductions:
         s = Series([0, -np.inf, np.inf, np.nan])
 
         assert s.idxmin() == 1
-        msg = "The behavior of Series.idxmin with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert np.isnan(s.idxmin(skipna=False))
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            s.idxmin(skipna=False)
 
         assert s.idxmax() == 2
-        msg = "The behavior of Series.idxmax with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert np.isnan(s.idxmax(skipna=False))
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            s.idxmax(skipna=False)
 
     def test_sum_uint64(self):
         # GH 53401
@@ -1407,6 +1431,7 @@ class TestSeriesMode:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2, expected3",
         [(True, ["b"], ["bar"], ["nan"]), (False, ["b"], [np.nan], ["nan"])],
@@ -1434,6 +1459,7 @@ class TestSeriesMode:
         expected3 = Series(expected3)
         tm.assert_series_equal(result, expected3)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
         [(True, ["foo"], ["foo"]), (False, ["foo"], [np.nan])],
@@ -1571,6 +1597,7 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
@@ -1578,7 +1605,7 @@ class TestSeriesMode:
         expected = Series(["foo", np.nan])
         s = Series([1, "foo", "foo", np.nan, np.nan])
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 
@@ -1588,7 +1615,7 @@ class TestSeriesMode:
         # GH#42107
         ser = Series([True, False, True, pd.NA], dtype="boolean")
         result = ser.mode()
-        expected = Series({0: True}, dtype="boolean")
+        expected = Series([True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

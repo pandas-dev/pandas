@@ -55,11 +55,8 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Literal,
     NamedTuple,
     cast,
-    overload,
 )
 import warnings
 
@@ -68,8 +65,8 @@ from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
-        Iterable,
         Sequence,
     )
 
@@ -160,6 +157,12 @@ def get_option(pat: str) -> Any:
     ------
     OptionError : if no such option exists
 
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
+
     Notes
     -----
     For all available options, please view the :ref:`User Guide <options.available>`
@@ -207,6 +210,14 @@ def set_option(*args) -> None:
     ValueError if odd numbers of non-keyword arguments are provided
     TypeError if keyword arguments are provided
     OptionError if no such option exists
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
+    option_context : Context manager to temporarily set options in a ``with``
+        statement.
 
     Notes
     -----
@@ -268,6 +279,12 @@ def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
     str
         If the description(s) as a string if ``_print_desc=False``.
 
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
+
     Notes
     -----
     For all available options, please view the
@@ -311,6 +328,12 @@ def reset_option(pat: str) -> None:
     -------
     None
         No return value.
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
+    describe_option : Print the description for one or more registered options.
 
     Notes
     -----
@@ -402,6 +425,18 @@ def option_context(*args) -> Generator[None, None, None]:
     -------
     None
         No return value.
+
+    Yields
+    ------
+    None
+        No yield value.
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option.
+    reset_option : Reset one or more options to their default value.
+    describe_option : Print the description for one or more registered options.
 
     Notes
     -----
@@ -583,12 +618,6 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
     return cursor, path[-1]
 
 
-def _is_deprecated(key: str) -> bool:
-    """Returns True if the given option has been deprecated"""
-    key = key.lower()
-    return key in _deprecated_options
-
-
 def _get_deprecated_option(key: str):
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
@@ -685,54 +714,6 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-@overload
-def pp_options_list(
-    keys: Iterable[str], *, width: int = ..., _print: Literal[False] = ...
-) -> str: ...
-
-
-@overload
-def pp_options_list(
-    keys: Iterable[str], *, width: int = ..., _print: Literal[True]
-) -> None: ...
-
-
-def pp_options_list(
-    keys: Iterable[str], *, width: int = 80, _print: bool = False
-) -> str | None:
-    """Builds a concise listing of available options, grouped by prefix"""
-    from itertools import groupby
-    from textwrap import wrap
-
-    def pp(name: str, ks: Iterable[str]) -> list[str]:
-        pfx = "- " + name + ".[" if name else ""
-        ls = wrap(
-            ", ".join(ks),
-            width,
-            initial_indent=pfx,
-            subsequent_indent="  ",
-            break_long_words=False,
-        )
-        if ls and ls[-1] and name:
-            ls[-1] = ls[-1] + "]"
-        return ls
-
-    ls: list[str] = []
-    singles = [x for x in sorted(keys) if x.find(".") < 0]
-    if singles:
-        ls += pp("", singles)
-    keys = [x for x in keys if x.find(".") >= 0]
-
-    for k, g in groupby(sorted(keys), lambda x: x[: x.rfind(".")]):
-        ks = [x[len(k) + 1 :] for x in list(g)]
-        ls += pp(k, ks)
-    s = "\n".join(ls)
-    if _print:
-        print(s)
-    return s
-
-
-#
 # helpers
 
 

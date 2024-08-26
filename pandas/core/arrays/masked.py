@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    cast,
     overload,
 )
 import warnings
@@ -16,29 +16,12 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    DtypeObj,
-    FillnaOptions,
-    InterpolateOptions,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    Self,
-    SequenceIndexer,
-    Shape,
-    npt,
-)
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -89,6 +72,7 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Iterator,
         Sequence,
@@ -98,6 +82,20 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        DtypeObj,
+        FillnaOptions,
+        InterpolateOptions,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        Self,
+        SequenceIndexer,
+        Shape,
+        npt,
     )
     from pandas._libs.missing import NAType
     from pandas.core.arrays import FloatingArray
@@ -112,15 +110,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     numpy based
     """
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
     _mask: npt.NDArray[np.bool_]
-
-    # Fill values used for any/all
-    _truthy_value = Scalar  # bool(_truthy_value) = True
-    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
@@ -156,8 +148,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @classmethod
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
-        values = np.empty(shape, dtype=dtype.type)
-        values.fill(cls._internal_fill_value)
+        dtype = cast(BaseMaskedDtype, dtype)
+        values: np.ndarray = np.empty(shape, dtype=dtype.type)
+        values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
         result = cls(values, mask)
         if not isinstance(result, cls) or dtype != result.dtype:
@@ -237,32 +230,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        value, method = validate_fillna_kwargs(value, method)
-
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
+        if limit is not None and limit < len(self):
+            modify = mask.cumsum() > limit
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
 
         value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._data.T
-                new_mask = mask.T
-                if copy:
-                    npvalues = npvalues.copy()
-                    new_mask = new_mask.copy()
-                func(npvalues, limit=limit, mask=new_mask)
-                return self._simple_new(npvalues.T, new_mask.T)
+            # fill with value
+            if copy:
+                new_values = self.copy()
             else:
-                # fill with value
-                if copy:
-                    new_values = self.copy()
-                else:
-                    new_values = self[:]
-                new_values[mask] = value
+                new_values = self[:]
+            new_values[mask] = value
         else:
             if copy:
                 new_values = self.copy()
@@ -932,7 +917,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         # we always fill with 1 internally
         # to avoid upcasting
-        data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
+        data_fill_value = (
+            self.dtype._internal_fill_value if isna(fill_value) else fill_value
+        )
         result = take(
             self._data,
             indexer,
@@ -1211,7 +1198,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt"]:
+        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1331,7 +1318,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
@@ -1412,12 +1399,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype._falsey_value)
         result = values.any()
         if skipna:
             return result
@@ -1505,12 +1487,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
         if skipna:

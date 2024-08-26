@@ -328,7 +328,7 @@ def test_agg_consistency():
 
     r = df.resample("3min")
 
-    msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
+    msg = r"Label\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
 
@@ -343,7 +343,7 @@ def test_agg_consistency_int_str_column_mix():
 
     r = df.resample("3min")
 
-    msg = r"Column\(s\) \[2, 'b'\] do not exist"
+    msg = r"Label\(s\) \[2, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         r.agg({2: "mean", "b": "sum"})
 
@@ -534,7 +534,7 @@ def test_agg_with_lambda(cases, agg):
     ],
 )
 def test_agg_no_column(cases, agg):
-    msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
+    msg = r"Label\(s\) \['result1', 'result2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         cases[["A", "B"]].agg(**agg)
 
@@ -582,7 +582,7 @@ def test_agg_specificationerror_series(cases, agg):
 def test_agg_specificationerror_invalid_names(cases):
     # errors
     # invalid names in the agg specification
-    msg = r"Column\(s\) \['B'\] do not exist"
+    msg = r"Label\(s\) \['B'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         cases[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
@@ -631,7 +631,7 @@ def test_try_aggregate_non_existing_column():
     df = DataFrame(data).set_index("dt")
 
     # Error as we don't have 'z' column
-    msg = r"Column\(s\) \['z'\] do not exist"
+    msg = r"Label\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.resample("30min").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
@@ -708,7 +708,9 @@ def test_selection_api_validation():
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    with pytest.raises(TypeError, match="datetime64 type does not support sum"):
+    with pytest.raises(
+        TypeError, match="datetime64 type does not support operation 'sum'"
+    ):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)
     tm.assert_frame_equal(exp, result)
@@ -730,7 +732,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         ),
         columns=[col_name],
     )
-    result = df.resample("1d").aggregate(["mean"])
+    result = df.resample("1D").aggregate(["mean"])
     expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
