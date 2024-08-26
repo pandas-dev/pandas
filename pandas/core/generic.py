@@ -7047,7 +7047,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # see test_fillna_dict_inplace_nonunique_columns
                         locs = result.columns.get_loc(k)
                         if isinstance(locs, slice):
-                            locs = np.arange(self.shape[1])[locs]
+                            locs = range(self.shape[1])[locs]
                         elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
                             locs = locs.nonzero()[0]
                         elif not (
