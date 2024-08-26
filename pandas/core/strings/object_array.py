@@ -42,7 +42,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         raise NotImplementedError
 
     def _str_map(
-        self, f, na_value=None, dtype: NpDtype | None = None, convert: bool = True
+        self,
+        f,
+        na_value=lib.no_default,
+        dtype: NpDtype | None = None,
+        convert: bool = True,
     ):
         """
         Map a callable over valid elements of the array.
@@ -63,7 +67,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         """
         if dtype is None:
             dtype = np.dtype("object")
-        if na_value is None:
+        if na_value is lib.no_default:
             na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not len(self):
@@ -127,7 +131,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f)
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
     ):
         if regex:
             if not case:
@@ -144,11 +153,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 f = lambda x: upper_pat in x.upper()
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
-    def _str_startswith(self, pat, na=None):
+    def _str_startswith(self, pat, na=lib.no_default):
         f = lambda x: x.startswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_endswith(self, pat, na=None):
+    def _str_endswith(self, pat, na=lib.no_default):
         f = lambda x: x.endswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 

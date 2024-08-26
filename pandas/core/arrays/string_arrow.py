@@ -221,11 +221,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _result_converter(self, values, na=None):
+    def _predicate_result_converter(self, values, na=lib.no_default):
         if self.dtype.na_value is np.nan:
-            if not isna(na):
+            if na is lib.no_default:
+                na_value = False
+            elif not isna(na):
                 values = values.fill_null(bool(na))
-            return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
+                na_value = lib.no_default
+            else:
+                na_value = np.nan
+            return ArrowExtensionArray(values).to_numpy(na_value=na_value)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -282,7 +287,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_map = BaseStringArray._str_map
 
     def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
     ):
         if flags:
             if get_option("mode.performance_warnings"):
@@ -293,12 +303,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._result_converter(result, na=na)
-        if not isna(na):
+        result = self._predicate_result_converter(result, na=na)
+        if (
+            self.dtype.na_value is libmissing.NA
+            and na is not lib.no_default
+            and not isna(na)
+        ):
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+    def _str_startswith(
+        self, pat: str | tuple[str, ...], na: Scalar | None = lib.no_default
+    ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
         else:
@@ -313,9 +329,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
+        if (
+            self.dtype.na_value is libmissing.NA
+            and na is not lib.no_default
+            and not isna(na)
+        ):
             result = result.fill_null(na)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
         if isinstance(pat, str):
@@ -332,9 +352,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
+        if (
+            self.dtype.na_value is libmissing.NA
+            and na is not lib.no_default
+            and not isna(na)
+        ):
             result = result.fill_null(na)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_replace(
         self,
@@ -361,14 +385,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return type(self)(pc.binary_repeat(self._pa_array, repeats))
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+        self,
+        pat: str,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | None = lib.no_default,
     ):
         if not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = lib.no_default
     ):
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
@@ -389,39 +417,39 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isalpha(self):
         result = pc.utf8_is_alpha(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isdigit(self):
         result = pc.utf8_is_digit(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_islower(self):
         result = pc.utf8_is_lower(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isnumeric(self):
         result = pc.utf8_is_numeric(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isspace(self):
         result = pc.utf8_is_space(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_istitle(self):
         result = pc.utf8_is_title(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
-        return self._result_converter(result)
+        return self._predicate_result_converter(result)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)

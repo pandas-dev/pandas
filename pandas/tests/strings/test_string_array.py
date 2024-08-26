@@ -13,7 +13,7 @@ from pandas import (
 
 
 @pytest.mark.filterwarnings("ignore:Falling back")
-def test_string_array(nullable_string_dtype, any_string_method):
+def test_string_array(nullable_string_dtype, any_string_method, using_infer_string):
     method_name, args, kwargs = any_string_method
 
     data = ["a", "bb", np.nan, "ccc"]
@@ -39,7 +39,7 @@ def test_string_array(nullable_string_dtype, any_string_method):
             expected.values, skipna=True
         ):
             assert result.dtype == "boolean"
-            result = result.astype(object)
+            expected = expected.astype("boolean")
 
         elif expected.dtype == "bool":
             assert result.dtype == "boolean"

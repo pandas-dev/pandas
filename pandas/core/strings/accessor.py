@@ -1222,7 +1222,12 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
     ):
         r"""
         Test if pattern or regex is contained within a string of a Series or Index.
@@ -1359,7 +1364,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat: str, case: bool = True, flags: int = 0, na=None):
+    def match(self, pat: str, case: bool = True, flags: int = 0, na=lib.no_default):
         """
         Determine if each string starts with a match of a regular expression.
 
@@ -1403,7 +1408,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def fullmatch(self, pat, case: bool = True, flags: int = 0, na=None):
+    def fullmatch(self, pat, case: bool = True, flags: int = 0, na=lib.no_default):
         """
         Determine if each string entirely matches a regular expression.
 
@@ -2581,7 +2586,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def startswith(
-        self, pat: str | tuple[str, ...], na: Scalar | None = None
+        self, pat: str | tuple[str, ...], na: Scalar | None = lib.no_default
     ) -> Series | Index:
         """
         Test if the start of each string element matches a pattern.
@@ -2651,7 +2656,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def endswith(
-        self, pat: str | tuple[str, ...], na: Scalar | None = None
+        self, pat: str | tuple[str, ...], na: Scalar | None = lib.no_default
     ) -> Series | Index:
         """
         Test if the end of each string element matches a pattern.
