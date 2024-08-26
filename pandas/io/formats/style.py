@@ -7,6 +7,7 @@ from __future__ import annotations
 import copy
 from functools import partial
 import operator
+import textwrap
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -306,6 +307,12 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified Styler appended.
+
+        See Also
+        --------
+        Styler.clear : Reset the ``Styler``, removing any previously applied styles.
+        Styler.export : Export the styles applied to the current Styler.
 
         Notes
         -----
@@ -447,6 +454,15 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with DataFrame set for strings on ``Styler``
+                generating ``:hover`` tooltips.
+
+        See Also
+        --------
+        Styler.set_table_attributes : Set the table attributes added to the
+            ``<table>`` HTML element.
+        Styler.set_table_styles : Set the table styles included within the
+            ``<style>`` HTML element.
 
         Notes
         -----
@@ -537,7 +553,14 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
-        extra_parameters="",
+        extra_parameters=textwrap.dedent(
+            """\
+        encoding : str or None, default None
+            Unused parameter, present for compatibility.
+        verbose : str, default True
+            Optional unused parameter, present for compatibility.
+        """
+        ),
     )
     def to_excel(
         self,
@@ -553,11 +576,11 @@ class Styler(StylerRenderer):
         startcol: int = 0,
         engine: str | None = None,
         merge_cells: ExcelWriterMergeCells = True,
-        encoding: str | None = None,
         inf_rep: str = "inf",
-        verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
+        encoding: str | None = None,
+        verbose: bool = True,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -1456,6 +1479,10 @@ class Styler(StylerRenderer):
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
 
+        See Also
+        --------
+        DataFrame.to_string : Render a DataFrame to a console-friendly tabular output.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
@@ -1495,6 +1522,8 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with ``class`` attribute set for ``<td>``
+                HTML elements.
 
         See Also
         --------
@@ -1700,6 +1729,14 @@ class Styler(StylerRenderer):
 
         Returns None.
 
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.map : Apply a CSS-styling function elementwise.
+        Styler.use : Set the styles on the current Styler.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, np.nan]})
@@ -1821,6 +1858,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -1941,6 +1979,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2041,6 +2080,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2093,10 +2133,12 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         attributes : str
+            Table attributes to be added to the ``<table>`` HTML element.
 
         Returns
         -------
         Styler
+            Instance of class with specified table attributes set.
 
         See Also
         --------
@@ -2123,6 +2165,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         dict
+            Contains data-independent (exportable) styles applied to current Styler.
 
         See Also
         --------
@@ -2199,6 +2242,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with defined styler attributes added.
 
         See Also
         --------
@@ -2246,10 +2290,19 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         uuid : str
+            The uuid to be applied to ``id`` attributes of HTML elements.
 
         Returns
         -------
         Styler
+            Instance of class with specified uuid for `id` attributes set.
+
+        See Also
+        --------
+        Styler.set_caption : Set the text added to a ``<caption>`` HTML element.
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
 
         Notes
         -----
@@ -2290,6 +2343,14 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with text set for ``<caption>`` HTML element.
+
+        See Also
+        --------
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
+        Styler.set_uuid : Set the uuid applied to ``id`` attributes of HTML elements.
 
         Examples
         --------
@@ -2336,6 +2397,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS set for permanently displaying headers
+                in scrolling frame.
+
+        See Also
+        --------
+        Styler.set_properties : Set defined CSS-properties to each ``<td>``
+            HTML element for the given subset.
 
         Notes
         -----
@@ -2496,6 +2564,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified table styles set.
 
         See Also
         --------
@@ -2627,6 +2696,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified headers/rows/columns hidden from display.
+
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.map : Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -2865,6 +2941,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with {name} colored in gradient style.
 
         See Also
         --------
@@ -3002,6 +3079,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-properties set for each ``<td>`` HTML element
+                in the given subset
+
+        See Also
+        --------
+        Styler.set_sticky : Add CSS to permanently display the index or column
+            headers in a scrolling frame.
 
         Notes
         -----
@@ -3099,6 +3183,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Contains list-like attribute with bar chart data as formatted CSS.
+
+        See Also
+        --------
+        PlotAccessor.bar : Vertical bar plot.
+        PlotAccessor.line : Plot Series or DataFrame as lines.
+        PlotAccessor.pie : Generate a pie plot.
 
         Notes
         -----
@@ -3177,6 +3268,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where null values are highlighted with given style.
 
         See Also
         --------
@@ -3231,6 +3323,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where max value is highlighted in given style.
 
         See Also
         --------
@@ -3287,6 +3380,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where min value is highlighted in given style.
 
         See Also
         --------
@@ -3351,6 +3445,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with range highlighted in given style.
 
         See Also
         --------
@@ -3471,6 +3566,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where values in quantile highlighted with given style.
 
         See Also
         --------
@@ -3575,6 +3671,11 @@ class Styler(StylerRenderer):
         MyStyler : subclass of Styler
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
+
+        See Also
+        --------
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.use : Set the styles on the current Styler.
 
         Examples
         --------
