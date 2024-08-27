@@ -807,8 +807,6 @@ class TestArrowArray(base.ExtensionTests):
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
-    divmod_exc = NotImplementedError
-
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
         if short_opname == "rtruediv":
@@ -944,7 +942,7 @@ class TestArrowArray(base.ExtensionTests):
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
         if op_name in ("__divmod__", "__rdivmod__"):
-            return (self.divmod_exc, TypeError)
+            return (NotImplementedError, TypeError)
 
         dtype = tm.get_dtype(obj)
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
@@ -968,10 +966,7 @@ class TestArrowArray(base.ExtensionTests):
             or pa.types.is_integer(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
-            # TODO: in many of these cases, e.g. non-duration temporal,
-            #  these will *never* be allowed. Would it make more sense to
-            #  re-raise as TypeError, more consistent with non-pyarrow cases?
-            exc = (pa.ArrowNotImplementedError, TypeError)
+            exc = TypeError
         else:
             exc = None
         return exc
