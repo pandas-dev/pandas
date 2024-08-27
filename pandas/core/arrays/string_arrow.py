@@ -422,7 +422,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             and not (start != 0 and end is not None)
             and not (start == 0 and end is None)
         ):
-            # https://github.com/pandas-dev/pandas/pull/59562/files#r1725688888
+            # GH#59562
             return super()._str_find(sub, start, end)
         return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
