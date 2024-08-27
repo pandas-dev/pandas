@@ -1023,7 +1023,6 @@ cdef class _Timestamp(ABCTimestamp):
         Timestamp.second : Return the second of the Timestamp.
 
         Examples
-
         --------
         >>> ts = pd.Timestamp("2024-08-31 16:16:30")
         >>> ts.hour
