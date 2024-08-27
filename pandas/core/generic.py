@@ -11847,10 +11847,18 @@ ddof : int, default 1
     where N represents the number of elements.
 numeric_only : bool, default False
     Include only float, int, boolean columns. Not implemented for Series.
+**kwargs : 
+    Additional keywords have no effect but might be accepted
+    for compatibility with NumPy.
 
 Returns
 -------
-{name1} or {name2} (if level specified) \
+{name1} or {name2} (if level specified)
+    {return_desc}
+
+See Also
+--------
+{see_also}\
 {notes}\
 {examples}
 """
@@ -12706,8 +12714,15 @@ def make_doc(name: str, ndim: int) -> str:
             "ddof argument."
         )
         examples = _std_examples
-        see_also = ""
-        kwargs = {"notes": _std_notes}
+        see_also = (
+            "numpy.std : Compute the standard deviation along the specified axis.\n"
+            "{name2}.var : Return unbiased variance over requested axis.\n"
+            "{name2}.sem : Return unbiased standard error of the mean over requested axis.\n"
+            "{name2}.mean : Return the mean of the values over the requested axis.\n"
+            "{name2}.median : Return the median of the values over the requested axis.\n"
+            "{name2}.mode : Return the mode(s) of the Series."
+        ).format(name2=name2)
+        kwargs = {"notes": "", "return_desc": "Standard deviation over requested axis."}
 
     elif name == "sem":
         base_doc = _num_ddof_doc
@@ -12751,8 +12766,15 @@ def make_doc(name: str, ndim: int) -> str:
             >>> df.sem(numeric_only=True)
             a   0.5
             dtype: float64"""
-        see_also = ""
-        kwargs = {"notes": ""}
+        see_also = (
+            "scipy.stats.sem : Compute standard error of the mean.\n"
+            "{name2}.std : Return sample standard deviation over requested axis.\n"            
+            "{name2}.var : Return unbiased variance over requested axis.\n"
+            "{name2}.mean : Return the mean of the values over the requested axis.\n"
+            "{name2}.median : Return the median of the values over the requested axis.\n"
+            "{name2}.mode : Return the mode(s) of the Series."
+        ).format(name2=name2)
+        kwargs = {"notes": "", "return_desc": "Unbiased standard error of the mean over requested axis."}
 
     elif name == "skew":
         base_doc = _num_doc
