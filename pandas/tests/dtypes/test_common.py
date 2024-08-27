@@ -799,3 +799,22 @@ def test_pandas_dtype_ea_not_instance():
     # GH 31356 GH 54592
     with tm.assert_produces_warning(UserWarning):
         assert pandas_dtype(CategoricalDtype) == CategoricalDtype()
+
+
+def test_pandas_dtype_string_dtypes(string_storage):
+    # TODO(infer_string) remove skip if "python" is supported
+    pytest.importorskip("pyarrow")
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype("str")
+    # TODO(infer_string) hardcoded to pyarrow until python is supported
+    assert result == pd.StringDtype("pyarrow", na_value=np.nan)
+
+    with pd.option_context("future.infer_string", False):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype("str")
+    assert result == np.dtype("U")
+
+    with pd.option_context("string_storage", string_storage):
+        result = pandas_dtype("string")
+    assert result == pd.StringDtype(string_storage, na_value=pd.NA)

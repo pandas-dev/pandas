@@ -599,7 +599,7 @@ class TestSeriesDatetimeValues:
             dtype="=U10",
         )
         if using_infer_string:
-            expected = expected.astype("string[pyarrow_numpy]")
+            expected = expected.astype("str")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")

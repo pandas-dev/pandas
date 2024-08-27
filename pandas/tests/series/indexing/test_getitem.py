@@ -363,9 +363,7 @@ class TestSeriesGetitemListLike:
         key = Series(["C"], dtype=object)
         key = box(key)
 
-        msg = (
-            r"None of \[Index\(\['C'\], dtype='object|string'\)\] are in the \[index\]"
-        )
+        msg = r"None of \[Index\(\['C'\], dtype='object|str'\)\] are in the \[index\]"
         with pytest.raises(KeyError, match=msg):
             ser[key]
 

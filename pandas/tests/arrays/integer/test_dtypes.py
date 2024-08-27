@@ -278,12 +278,21 @@ def test_to_numpy_na_raises(dtype):
         a.to_numpy(dtype=dtype)
 
 
-def test_astype_str():
+def test_astype_str(using_infer_string):
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
 
-    tm.assert_numpy_array_equal(a.astype(str), expected)
-    tm.assert_numpy_array_equal(a.astype("str"), expected)
+    if using_infer_string:
+        expected = pd.array(["1", "2", None], dtype=pd.StringDtype(na_value=np.nan))
+        tm.assert_extension_array_equal(a.astype("str"), expected)
+
+        # TODO(infer_string) this should also be a string array like above
+        expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
+        tm.assert_numpy_array_equal(a.astype(str), expected)
+    else:
+        expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
+
+        tm.assert_numpy_array_equal(a.astype(str), expected)
+        tm.assert_numpy_array_equal(a.astype("str"), expected)
 
 
 def test_astype_boolean():

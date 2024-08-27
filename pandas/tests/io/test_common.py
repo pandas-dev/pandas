@@ -377,6 +377,7 @@ Look,a snake,🐍"""
                     expected = f_path.read()
                     assert result == expected
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll

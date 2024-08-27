@@ -657,7 +657,11 @@ class TestDataFrameReshape:
         df2["D"] = "foo"
         df3 = df2.unstack("B")
         result = df3.dtypes
-        dtype = "string" if using_infer_string else np.dtype("object")
+        dtype = (
+            pd.StringDtype(na_value=np.nan)
+            if using_infer_string
+            else np.dtype("object")
+        )
         expected = Series(
             [np.dtype("float64")] * 2 + [dtype] * 2,
             index=MultiIndex.from_arrays(

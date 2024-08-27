@@ -323,7 +323,7 @@ class TestCategoricalRepr:
                 "0     a\n1     b\n"
                 "     ..\n"
                 "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, string): [a, b]"
+                "Length: 50, dtype: category\nCategories (2, str): [a, b]"
             )
         else:
             exp = (
@@ -341,7 +341,7 @@ class TestCategoricalRepr:
             exp = (
                 "0    a\n1    b\n"
                 "dtype: category\n"
-                "Categories (26, string): [a < b < c < d ... w < x < y < z]"
+                "Categories (26, str): [a < b < c < d ... w < x < y < z]"
             )
         else:
             exp = (
