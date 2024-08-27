@@ -1064,14 +1064,6 @@ class TestArrowArray(base.ExtensionTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
-            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=TypeError, reason="Can only string multiply by an integer."
-                )
-            )
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
