@@ -25,10 +25,6 @@ if TYPE_CHECKING:
 
 
 class ArrowStringArrayMixin:
-    # _object_compat specifies whether we should 1) attempt to match behaviors
-    #  of the object-backed StringDtype and 2) fall back to object-based
-    #  computation for cases that pyarrow does not support natively.
-    _object_compat = False
     _pa_array: Sized
 
     def __init__(self, *args, **kwargs) -> None:
@@ -114,17 +110,9 @@ class ArrowStringArrayMixin:
             result = pc.starts_with(self._pa_array, pattern=pat)
         else:
             if len(pat) == 0:
-                if self._object_compat:
-                    # mimic existing behaviour of string extension array
-                    # and python string method
-                    result = pa.array(
-                        np.zeros(len(self._pa_array), dtype=np.bool_),
-                        mask=isna(self._pa_array),
-                    )
-                else:
-                    # For empty tuple, pd.StringDtype() returns null for missing values
-                    # and false for valid values.
-                    result = pc.if_else(pc.is_null(self._pa_array), None, False)
+                # For empty tuple we return null for missing values and False
+                #  for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
             else:
                 result = pc.starts_with(self._pa_array, pattern=pat[0])
 
@@ -139,17 +127,9 @@ class ArrowStringArrayMixin:
             result = pc.ends_with(self._pa_array, pattern=pat)
         else:
             if len(pat) == 0:
-                if self._object_compat:
-                    # mimic existing behaviour of string extension array
-                    # and python string method
-                    result = pa.array(
-                        np.zeros(len(self._pa_array), dtype=np.bool_),
-                        mask=isna(self._pa_array),
-                    )
-                else:
-                    # For empty tuple, pd.StringDtype() returns null for missing values
-                    # and false for valid values.
-                    result = pc.if_else(pc.is_null(self._pa_array), None, False)
+                # For empty tuple we return null for missing values and False
+                #  for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
             else:
                 result = pc.ends_with(self._pa_array, pattern=pat[0])
 
