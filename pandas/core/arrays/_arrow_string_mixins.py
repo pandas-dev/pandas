@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -20,7 +21,10 @@ if not pa_version_under10p1:
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import Sized
+    from collections.abc import (
+        Callable,
+        Sized,
+    )
 
     from pandas._typing import (
         Scalar,
@@ -40,6 +44,9 @@ class ArrowStringArrayMixin:
 
     def _convert_int_result(self, result):
         # Convert an integer-dtype result to the appropriate result type
+        raise NotImplementedError
+
+    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
     def _str_pad(
