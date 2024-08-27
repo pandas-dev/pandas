@@ -439,7 +439,7 @@ cpdef array_to_datetime(
                 raise TypeError(f"{type(val)} is not convertible to datetime")
 
         except (TypeError, OverflowError, ValueError) as ex:
-            ex.args = (f"{ex}, at position {i}",)
+            ex.args = (f"{ex}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
