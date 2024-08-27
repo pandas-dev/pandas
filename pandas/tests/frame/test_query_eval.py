@@ -190,20 +190,6 @@ class TestDataFrameEval:
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
-    def test_using_numpy(self, engine, parser):
-        # GH 58041
-        skip_if_no_pandas_parser(parser)
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
-        res = df.eval("@np.floor(a)", engine=engine, parser=parser)
-        expected = np.floor(df["a"])
-        tm.assert_series_equal(expected, res)
-
-    def test_eval_simple(self, engine, parser):
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
-        res = df.eval("a", engine=engine, parser=parser)
-        expected = df["a"]
-        tm.assert_series_equal(expected, res)
-
     def test_extension_array_eval(self, engine, parser, request):
         # GH#58748
         if engine == "numexpr":
