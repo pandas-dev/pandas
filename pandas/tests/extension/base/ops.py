@@ -39,14 +39,6 @@ class BaseOpsUtil:
         else:
             result = self.frame_scalar_exc
 
-        if using_string_dtype() and result is not None:
-            import pyarrow as pa
-
-            result = (  # type: ignore[assignment]
-                result,
-                pa.lib.ArrowNotImplementedError,
-                NotImplementedError,
-            )
         return result
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):

@@ -4,8 +4,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -347,7 +345,6 @@ class TestSeriesLogicalOps:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
@@ -413,15 +410,12 @@ class TestSeriesLogicalOps:
             tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
-            warn = FutureWarning if using_infer_string else None
             if using_infer_string:
-                import pyarrow as pa
-
-                with tm.assert_produces_warning(warn, match="Operation between non"):
-                    with pytest.raises(
-                        pa.lib.ArrowNotImplementedError, match="has no kernel"
-                    ):
-                        result = a[a | e]
+                # TODO(infer_string) should this behave differently?
+                with pytest.raises(
+                    TypeError, match="not supported for dtype|unsupported operand type"
+                ):
+                    result = a[a | e]
             else:
                 result = a[a | e]
             tm.assert_series_equal(result, a[a])
