@@ -24,7 +24,7 @@ class BaseOpsUtil:
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | tuple[type[Exception]] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
 
