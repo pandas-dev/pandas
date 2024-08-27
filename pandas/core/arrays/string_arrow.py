@@ -462,7 +462,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _na_value = np.nan
     _str_get = ArrowStringArrayMixin._str_get
-    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
