@@ -66,14 +66,14 @@ class BaseMethodsTests:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
 
-        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+        if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
+        elif getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
             data.dtype, pd.ArrowDtype
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
-        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
-            # TODO: avoid special-casing
-            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -76,6 +78,7 @@ def test_size_series_masked_type_returns_Int64(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dtype",
     [

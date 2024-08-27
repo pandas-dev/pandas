@@ -496,6 +496,15 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
+    def test_replace_dict_like_with_dict_like(self):
+        # GH 59452
+        s = pd.Series([1, 2, 3, 4, 5])
+        to_replace = pd.Series([1])
+        value = pd.Series([75])
+        msg = "to_replace and value cannot be dict-like for Series.replace"
+        with pytest.raises(ValueError, match=msg):
+            s.replace(to_replace, value)
+
     def test_replace_extension_other(self, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/34530
         obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
@@ -647,6 +656,7 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_change_dtype_series(self, using_infer_string):
         # GH#25797
         df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})

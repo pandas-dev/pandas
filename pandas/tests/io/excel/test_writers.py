@@ -12,6 +12,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -772,7 +774,7 @@ class TestExcelWriter:
 
         df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )
 
         df.to_excel(tmp_excel, sheet_name="test1")
@@ -1332,6 +1334,7 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),

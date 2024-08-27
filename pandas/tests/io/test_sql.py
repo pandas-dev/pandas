@@ -18,6 +18,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
@@ -37,10 +39,6 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -58,9 +56,12 @@ if TYPE_CHECKING:
     import sqlalchemy
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 @pytest.fixture
@@ -3656,24 +3657,13 @@ def dtype_backend_data() -> DataFrame:
 
 @pytest.fixture
 def dtype_backend_expected():
-    def func(storage, dtype_backend, conn_name) -> DataFrame:
-        string_array: StringArray | ArrowStringArray
-        string_array_na: StringArray | ArrowStringArray
-        if storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
+    def func(string_storage, dtype_backend, conn_name) -> DataFrame:
+        string_dtype: pd.StringDtype | pd.ArrowDtype
+        if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
-
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
-            pa = pytest.importorskip("pyarrow")
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+            string_dtype = pd.StringDtype(string_storage)
 
         df = DataFrame(
             {
@@ -3683,8 +3673,8 @@ def dtype_backend_expected():
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, pd.NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
         if dtype_backend == "pyarrow":

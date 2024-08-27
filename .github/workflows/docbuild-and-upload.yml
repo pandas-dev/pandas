@@ -46,6 +46,10 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
+    - name: Extra installs
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+
     - name: Test website
       run: python -m pytest web/
 

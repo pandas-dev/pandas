@@ -982,6 +982,14 @@ class _MergeOperation:
             )
             raise MergeError(msg)
 
+        # GH 59435: raise when "how" is not a valid Merge type
+        merge_type = {"left", "right", "inner", "outer", "cross", "asof"}
+        if how not in merge_type:
+            raise ValueError(
+                f"'{how}' is not a valid Merge type: "
+                f"left, right, inner, outer, cross, asof"
+            )
+
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         (
@@ -2677,8 +2685,7 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            isinstance(lk.dtype, StringDtype)
-            and lk.dtype.storage in ["pyarrow", "pyarrow_numpy"]
+            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
             import pyarrow.compute as pc

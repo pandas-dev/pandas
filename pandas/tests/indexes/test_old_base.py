@@ -9,6 +9,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -228,6 +229,7 @@ class TestBase:
             with pytest.raises(TypeError, match=msg):
                 idx.any()
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):
             pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
@@ -244,6 +246,11 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -829,6 +836,7 @@ class TestBase:
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 

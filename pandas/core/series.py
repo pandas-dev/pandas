@@ -34,6 +34,7 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -555,6 +556,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if data and index is not None:
             s = s.reindex(index)
         return s._mgr, s.index
+
+    # ----------------------------------------------------------------------
+
+    def __arrow_c_stream__(self, requested_schema=None):
+        """
+        Export the pandas Series as an Arrow C stream PyCapsule.
+
+        This relies on pyarrow to convert the pandas Series to the Arrow
+        format (and follows the default behaviour of ``pyarrow.Array.from_pandas``
+        in its handling of the index, i.e. to ignore it).
+        This conversion is not necessarily zero-copy.
+
+        Parameters
+        ----------
+        requested_schema : PyCapsule, default None
+            The schema to which the dataframe should be casted, passed as a
+            PyCapsule containing a C ArrowSchema representation of the
+            requested schema.
+
+        Returns
+        -------
+        PyCapsule
+        """
+        pa = import_optional_dependency("pyarrow", min_version="16.0.0")
+        ca = pa.chunked_array([pa.Array.from_pandas(self, type=requested_schema)])
+        return ca.__arrow_c_stream__(requested_schema)
 
     # ----------------------------------------------------------------------
 
@@ -1617,6 +1644,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         str
             {klass} in Markdown-friendly format.
 
+        See Also
+        --------
+        Series.to_frame : Rrite a text representation of object to the system clipboard.
+        Series.to_latex : Render Series to LaTeX-formatted table.
+
         Notes
         -----
         Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
@@ -1815,14 +1847,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot     30.0
         Parrot     20.0
         Name: Max Speed, dtype: float64
+
+        We can pass a list of values to group the Series data by custom labels:
+
         >>> ser.groupby(["a", "b", "a", "b"]).mean()
         a    210.0
         b    185.0
         Name: Max Speed, dtype: float64
+
+        Grouping by numeric labels yields similar results:
+
+        >>> ser.groupby([0, 1, 0, 1]).mean()
+        0    210.0
+        1    185.0
+        Name: Max Speed, dtype: float64
+
+        We can group by a level of the index:
+
         >>> ser.groupby(level=0).mean()
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
+
+        We can group by a condition applied to the Series values:
+
         >>> ser.groupby(ser > 100).mean()
         Max Speed
         False     25.0
@@ -1845,11 +1893,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parrot  Captive     30.0
                 Wild        20.0
         Name: Max Speed, dtype: float64
+
         >>> ser.groupby(level=0).mean()
         Animal
         Falcon    370.0
         Parrot     25.0
         Name: Max Speed, dtype: float64
+
+        We can also group by the 'Type' level of the hierarchical index
+        to get the mean speed for each type:
+
         >>> ser.groupby(level="Type").mean()
         Type
         Captive    210.0
@@ -1865,11 +1918,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    3
         dtype: int64
 
+        To include `NA` values in the group keys, set `dropna=False`:
+
         >>> ser.groupby(level=0, dropna=False).sum()
         a    3
         b    3
         NaN  3
         dtype: int64
+
+        We can also group by a custom list with NaN values to handle
+        missing group labels:
 
         >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
         >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
@@ -2593,6 +2651,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
         >>> s1.corr(s2)
         -1.0
+
+        If the input is a constant array, the correlation is not defined in this case,
+        and ``np.nan`` is returned.
+
+        >>> s1 = pd.Series([0.45, 0.45])
+        >>> s1.corr(s1)
+        nan
         """  # noqa: E501
         this, other = self.align(other, join="inner")
         if len(this) == 0:
@@ -3185,6 +3250,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         other : Series, or object coercible into Series
+            Other Series that provides values to update the current Series.
+
+        See Also
+        --------
+        Series.combine : Perform element-wise operation on two Series
+            using a given function.
+        Series.transform: Modify a Series using a function.
 
         Examples
         --------
@@ -4060,7 +4132,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        type of caller (new object)
+        Series
+            Type of caller with index as MultiIndex (new object).
+
+        See Also
+        --------
+        DataFrame.reorder_levels : Rearrange index or column levels using
+            input ``order``.
 
         Examples
         --------
@@ -5014,6 +5092,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         scalar
             Value that is popped from series.
+
+        See Also
+        --------
+        Series.drop: Drop specified values from Series.
+        Series.drop_duplicates: Return Series with duplicate values removed.
 
         Examples
         --------

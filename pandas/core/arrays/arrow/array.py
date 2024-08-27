@@ -575,10 +575,11 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage in (
-                    "pyarrow",
-                    "pyarrow_numpy",
+                if (
+                    isinstance(self._dtype, StringDtype)
+                    and self._dtype.storage == "pyarrow"
                 ):
+                    # TODO(infer_string) should this be large_string?
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -708,7 +709,13 @@ class ArrowExtensionArray(
         if isinstance(
             other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
         ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
-            result = pc_func(self._pa_array, self._box_pa(other))
+            try:
+                result = pc_func(self._pa_array, self._box_pa(other))
+            except pa.ArrowNotImplementedError:
+                # TODO: could this be wrong if other is object dtype?
+                #  in which case we need to operate pointwise?
+                result = ops.invalid_comparison(self, other, op)
+                result = pa.array(result, type=pa.bool_())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
