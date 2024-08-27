@@ -973,6 +973,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+        pytest.importorskip("pyarrow", "11.0.0")
+
         if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             request.applymarker(
                 pytest.mark.xfail(
