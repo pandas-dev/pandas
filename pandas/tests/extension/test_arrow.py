@@ -1855,6 +1855,7 @@ def test_str_replace_negative_n():
     expected = pd.Series(["bc", ""], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(expected, actual)
 
+    # Same bug for pyarrow-backed StringArray GH#59628
     ser2 = ser.astype(pd.StringDtype(storage="pyarrow"))
     actual2 = ser2.str.replace("a", "", -3, True)
     expected2 = expected.astype(ser2.dtype)
