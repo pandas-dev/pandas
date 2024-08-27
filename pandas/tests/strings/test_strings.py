@@ -217,8 +217,21 @@ def test_ismethods(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(item, method)() for item in ser]
-    assert list(result) == expected
+    expected_stdlib = [getattr(item, method)() for item in ser]
+    assert list(result) == expected_stdlib
+
+    # with missing value
+    ser.iloc[[1, 2, 3, 4]] = np.nan
+    result = getattr(ser.str, method)()
+    if ser.dtype == "object":
+        expected = expected.astype(object)
+        expected.iloc[[1, 2, 3, 4]] = np.nan
+    elif ser.dtype == "str":
+        # NaN propagates as False
+        expected.iloc[[1, 2, 3, 4]] = False
+    else:
+        # nullable dtypes propagate NaN
+        expected.iloc[[1, 2, 3, 4]] = np.nan
 
 
 @pytest.mark.parametrize(
