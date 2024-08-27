@@ -12737,10 +12737,7 @@ def make_doc(name: str, ndim: int) -> str:
         )
         examples = _std_examples
         see_also = _std_see_also.format(name2=name2)
-        kwargs = {
-            "notes": "",
-            "return_desc": _std_return_desc
-        }
+        kwargs = {"notes": "", "return_desc": _std_return_desc}
 
     elif name == "sem":
         base_doc = _num_ddof_doc
@@ -12785,10 +12782,7 @@ def make_doc(name: str, ndim: int) -> str:
             a   0.5
             dtype: float64"""
         see_also = _sem_see_also.format(name2=name2)
-        kwargs = {
-            "notes": "",
-            "return_desc": _sem_return_desc
-        }
+        kwargs = {"notes": "", "return_desc": _sem_return_desc}
 
     elif name == "skew":
         base_doc = _num_doc
