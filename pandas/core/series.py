@@ -5916,6 +5916,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
+
+        if not this.attrs and other.attrs:
+            this.attrs = other.attrs
+
         out = this._construct_result(result, name)
         return cast(Series, out)
 
