@@ -214,9 +214,9 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|mod not"
+        msg = "not all arguments converted during string formatting|'mod' not supported"
 
-        with pytest.raises((TypeError, NotImplementedError), match=msg):
+        with pytest.raises(TypeError, match=msg):
             s2 % s1
 
     def test_add_with_duplicate_index(self):

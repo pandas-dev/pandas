@@ -6,8 +6,6 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import HAS_PYARROW
-
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -146,10 +144,7 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
-    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
+    def test_logical_operators_int_dtype_with_object(self):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -158,14 +153,10 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
-                s_0123 & s_abNd
-        else:
-            with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
-                s_0123 & s_abNd
+        with pytest.raises(
+            TypeError, match="unsupported.* 'int' and 'str'|'rand_' not supported"
+        ):
+            s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")

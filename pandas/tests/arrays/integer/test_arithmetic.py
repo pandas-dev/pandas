@@ -172,7 +172,7 @@ def test_numpy_zero_dim_ndarray(other):
 # -----------------------------------------------------------------------------
 
 
-def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
+def test_error_invalid_values(data, all_arithmetic_operators):
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
