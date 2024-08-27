@@ -823,8 +823,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
-            other = np.asarray(other)
+            # for array-likes, first filter out NAs before converting to numpy
+            if not is_array_like(other):
+                other = np.asarray(other)
             other = other[valid]
+            other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
