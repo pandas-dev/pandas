@@ -942,7 +942,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         if op_name in ("__divmod__", "__rdivmod__"):
             return (self.divmod_exc, TypeError)
 
