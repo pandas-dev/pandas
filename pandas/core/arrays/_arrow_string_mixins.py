@@ -55,7 +55,12 @@ class ArrowStringArrayMixin:
         elif side == "both":
             if pa_version_under17p0:
                 # GH#59624 fall back to object dtype
-                return super()._str_pad(width, side, fillchar)
+                from pandas import array
+
+                obj_arr = self.astype(object, copy=False)  # type: ignore[attr-defined]
+                obj = array(obj_arr, dtype=object)
+                result = obj._str_pad(width, side, fillchar)  # type: ignore[attr-defined]
+                return type(self)._from_sequence(result, dtype=self.dtype)  # type: ignore[attr-defined]
             else:
                 # GH#54792
                 pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=False)
