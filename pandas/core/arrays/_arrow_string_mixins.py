@@ -118,7 +118,7 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
+        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
 
@@ -135,6 +135,6 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
+        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
