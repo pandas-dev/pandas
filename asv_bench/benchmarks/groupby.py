@@ -752,6 +752,9 @@ class String:
     ]
 
     def setup(self, dtype, method):
+        if dtype == "string[python]" and method == "sum":
+            raise NotImplementedError  # skip benchmark
+
         cols = list("abcdefghjkl")
         self.df = DataFrame(
             np.random.randint(0, 100, size=(10_000, len(cols))),
@@ -760,8 +763,6 @@ class String:
         )
 
     def time_str_func(self, dtype, method):
-        if dtype == "string[python]" and method == "sum":
-            raise NotImplementedError
         self.df.groupby("a")[self.df.columns[1:]].agg(method)
 
 
