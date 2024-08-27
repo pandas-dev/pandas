@@ -281,9 +281,10 @@ def assert_index_equal(
     # MultiIndex special comparison for little-friendly error messages
     if isinstance(left, MultiIndex):
         right = cast(MultiIndex, right)
+        root_obj = "MultiIndex" if obj == "Index" else obj
 
         for level in range(left.nlevels):
-            lobj = f"{obj} level [{level}]"
+            lobj = f"{root_obj} level [{level}]"
             try:
                 # try comparison on levels/codes to avoid densifying MultiIndex
                 assert_index_equal(
