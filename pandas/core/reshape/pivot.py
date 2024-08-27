@@ -558,8 +558,8 @@ def _generate_marginal_results(
                 margin_keys.append(all_key)
         else:
             margin = (
-                data[[cols[0]] + values]
-                .groupby([cols[0]], observed=observed)
+                data[cols[:1] + values]
+                .groupby(cols[:1], observed=observed)
                 .agg(aggfunc, **kwargs)
                 .T
             )
