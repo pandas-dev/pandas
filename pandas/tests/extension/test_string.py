@@ -165,24 +165,15 @@ class TestStringArray(base.ExtensionTests):
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
-        if op_name in ["__divmod__", "__rdivmod__"]:
-            if (
-                isinstance(obj, pd.Series)
-                and cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow"
-            ):
-                # TODO: re-raise as TypeError?
-                return NotImplementedError
-            elif (
-                isinstance(other, pd.Series)
-                and cast(StringDtype, tm.get_dtype(other)).storage == "pyarrow"
-            ):
-                # TODO: re-raise as TypeError?
-                return NotImplementedError
-            return TypeError
-        elif op_name in ["__mod__", "__rmod__", "__pow__", "__rpow__"]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
-                return NotImplementedError
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
+        if op_name in [
+            "__mod__",
+            "__rmod__",
+            "__divmod__",
+            "__rdivmod__",
+            "__pow__",
+            "__rpow__",
+        ]:
             return TypeError
         elif op_name in ["__mul__", "__rmul__"]:
             # Can only multiply strings by integers
@@ -195,11 +186,6 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
-                import pyarrow as pa
-
-                # TODO: better to re-raise as TypeError?
-                return pa.ArrowNotImplementedError
             return TypeError
 
         return None
