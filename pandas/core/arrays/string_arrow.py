@@ -352,9 +352,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
-        func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
-        return type(self)(result)
+        return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if not isinstance(repeats, int):
