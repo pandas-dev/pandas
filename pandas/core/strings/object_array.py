@@ -156,10 +156,26 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_startswith(self, pat, na=None):
         f = lambda x: x.startswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=None):
         f = lambda x: x.endswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_replace(

@@ -268,6 +268,34 @@ def test_contains_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 
 
+def test_startswith_endswith_validate_na(any_string_dtype):
+    # GH#59615
+    ser = Series(
+        ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"],
+        dtype=any_string_dtype,
+    )
+
+    dtype = ser.dtype
+    if (
+        isinstance(dtype, pd.StringDtype) and dtype.storage == "python"
+    ) or dtype == np.dtype("object"):
+        msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.str.startswith("kapow", na="baz")
+        msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.str.endswith("bar", na="baz")
+    else:
+        # TODO: don't surface pyarrow errors
+        import pyarrow as pa
+
+        msg = "Could not convert 'baz' with type str: tried to convert to boolean"
+        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
+            ser.str.startswith("kapow", na="baz")
+        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
+            ser.str.endswith("kapow", na="baz")
+
+
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
