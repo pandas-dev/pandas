@@ -102,7 +102,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`56404`)
 -
 
 Interval
