@@ -188,7 +188,7 @@ def assert_index_equal(
     check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
-    obj: str = "Index",
+    obj: str | None = None,
 ) -> None:
     """
     Check that left and right Index are equal.
@@ -217,7 +217,7 @@ def assert_index_equal(
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-    obj : str, default 'Index'
+    obj : str, default 'Index' or 'MultiIndex'
         Specify object name being compared, internally used to show appropriate
         assertion message.
 
@@ -234,6 +234,9 @@ def assert_index_equal(
     >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
+
+    if obj is None:
+        obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
@@ -281,10 +284,9 @@ def assert_index_equal(
     # MultiIndex special comparison for little-friendly error messages
     if isinstance(left, MultiIndex):
         right = cast(MultiIndex, right)
-        root_obj = "MultiIndex" if obj == "Index" else obj
 
         for level in range(left.nlevels):
-            lobj = f"{root_obj} level [{level}]"
+            lobj = f"{obj} level [{level}]"
             try:
                 # try comparison on levels/codes to avoid densifying MultiIndex
                 assert_index_equal(
