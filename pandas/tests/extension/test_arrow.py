@@ -944,6 +944,7 @@ class TestArrowArray(base.ExtensionTests):
         if op_name in ("__divmod__", "__rdivmod__"):
             return (NotImplementedError, TypeError)
 
+        exc: type[Exception] | tuple[type[Exception], ...] | None
         dtype = tm.get_dtype(obj)
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
         # attribute "pyarrow_dtype"
