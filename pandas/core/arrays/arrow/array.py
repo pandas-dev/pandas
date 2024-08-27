@@ -2373,29 +2373,6 @@ class ArrowExtensionArray(
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if (start == 0 or start is None) and end is None:
-            result = pc.find_substring(self._pa_array, sub)
-        else:
-            if sub == "":
-                # GH 56792
-                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-                return self._convert_int_result(pa.chunked_array(result))
-            if start is None:
-                start_offset = 0
-                start = 0
-            elif start < 0:
-                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
-                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
-            else:
-                start_offset = start
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(found, offset_result, -1)
-        return self._convert_int_result(result)
-
     def _str_join(self, sep: str) -> Self:
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
             self._pa_array.type

@@ -424,7 +424,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         ):
             # https://github.com/pandas-dev/pandas/pull/59562/files#r1725688888
             return super()._str_find(sub, start, end)
-        return ArrowExtensionArray._str_find(self, sub, start, end)
+        return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
     def _str_get_dummies(self, sep: str = "|"):
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
