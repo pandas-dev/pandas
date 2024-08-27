@@ -278,7 +278,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     # ------------------------------------------------------------------------
     # String methods interface
-    _object_compat = True
 
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
