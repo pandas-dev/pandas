@@ -1828,8 +1828,7 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects.
-            A Series or Index where the strings are modified by prepending
-            '0' characters.
+            A Series or Index where the strings are prepended with '0' characters.
 
         See Also
         --------
