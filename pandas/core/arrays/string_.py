@@ -825,6 +825,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
+            # for array-likes, first filter out NAs before converting to numpy
+            if not is_array_like(other):
+                other = np.asarray(other)
             other = other[valid]
             other = np.asarray(other)
 
