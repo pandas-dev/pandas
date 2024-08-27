@@ -985,6 +985,121 @@ cdef class _Timestamp(ABCTimestamp):
         return super().day
 
     @property
+    def month(self) -> int:
+        """
+        Return the month of the Timestamp.
+
+        Returns
+        -------
+        int
+            The month of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.day : Return the day of the year.
+        Timestamp.year : Return the year of the week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.month
+        8
+        """
+        return super().month
+
+    @property
+    def hour(self) -> int:
+        """
+        Return the hour of the Timestamp.
+
+        Returns
+        -------
+        int
+            The hour of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.minute : Return the minute of the Timestamp.
+        Timestamp.second : Return the second of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.hour
+        16
+        """
+        return super().hour
+
+    @property
+    def minute(self) -> int:
+        """
+        Return the minute of the Timestamp.
+
+        Returns
+        -------
+        int
+            The minute of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.hour : Return the hour of the Timestamp.
+        Timestamp.second : Return the second of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.minute
+        16
+        """
+        return super().minute
+
+    @property
+    def second(self) -> int:
+        """
+        Return the second of the Timestamp.
+
+        Returns
+        -------
+        int
+            The second of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.microsecond : Return the microsecond of the Timestamp.
+        Timestamp.minute : Return the minute of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.second
+        30
+        """
+        return super().second
+
+    @property
+    def microsecond(self) -> int:
+        """
+        Return the microsecond of the Timestamp.
+
+        Returns
+        -------
+        int
+            The microsecond of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.second : Return the second of the Timestamp.
+        Timestamp.minute : Return the minute of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30.2304")
+        >>> ts.microsecond
+        230400
+        """
+        return super().microsecond
+
+    @property
     def week(self) -> int:
         """
         Return the week number of the year.
