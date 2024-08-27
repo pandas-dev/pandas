@@ -54,8 +54,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
     See Also
     --------
-    Series.sparse.to_coo : Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
-    Series.sparse.from_coo : Create a Series with sparse values from a scipy.sparse.coo_matrix.
+    Series.sparse.to_coo : Create a scipy.sparse.coo_matrix from a Series with 
+        MultiIndex.
+    Series.sparse.from_coo : Create a Series with sparse values from a 
+        scipy.sparse.coo_matrix.
 
     Examples
     --------
@@ -164,7 +166,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         See Also
         --------
-        Series.sparse.from_coo : Create a Series with sparse values from a scipy.sparse.coo_matrix.
+        Series.sparse.from_coo : Create a Series with sparse values from a
+            scipy.sparse.coo_matrix.
 
         Examples
         --------
