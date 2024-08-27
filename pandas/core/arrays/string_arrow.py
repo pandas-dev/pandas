@@ -223,14 +223,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _predicate_result_converter(self, values, na=lib.no_default):
         if self.dtype.na_value is np.nan:
-            na_value: bool | float | lib.NoDefault
+            na_value: bool | lib.NoDefault
             if na is lib.no_default:
                 na_value = False
-            elif not isna(na):
-                values = values.fill_null(bool(na))
+            elif isna(na):
+                # NaN propagates as False
+                values = values.fill_null(False)
                 na_value = lib.no_default
             else:
-                na_value = np.nan
+                values = values.fill_null(bool(na))
+                na_value = lib.no_default
             return ArrowExtensionArray(values).to_numpy(na_value=na_value)
         return BooleanDtype().__from_arrow__(values)
 
@@ -336,7 +338,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             and not isna(na)
         ):
             result = result.fill_null(na)
-        return self._predicate_result_converter(result)
+        return self._predicate_result_converter(result, na=na)
 
     def _str_endswith(
         self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
@@ -361,7 +363,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             and not isna(na)
         ):
             result = result.fill_null(na)
-        return self._predicate_result_converter(result)
+        return self._predicate_result_converter(result, na=na)
 
     def _str_replace(
         self,

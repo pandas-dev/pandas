@@ -453,7 +453,8 @@ class BaseStringArray(ExtensionArray):
                 if is_integer_dtype(dtype):
                     na_value = 0
                 else:
-                    na_value = True
+                    # NaN propagates as False
+                    na_value = False
 
             result = lib.map_infer_mask(
                 arr,
@@ -463,15 +464,13 @@ class BaseStringArray(ExtensionArray):
                 na_value=na_value,
                 dtype=np.dtype(cast(type, dtype)),
             )
-            if na_value_is_na and mask.any():
+            if na_value_is_na and is_integer_dtype(dtype) and mask.any():
                 # TODO: we could alternatively do this check before map_infer_mask
                 #  and adjust the dtype/na_value we pass there. Which is more
                 #  performant?
-                if is_integer_dtype(dtype):
-                    result = result.astype("float64")
-                else:
-                    result = result.astype("object")
+                result = result.astype("float64")
                 result[mask] = np.nan
+
             return result
 
         else:

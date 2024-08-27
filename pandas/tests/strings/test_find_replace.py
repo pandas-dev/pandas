@@ -311,20 +311,31 @@ def test_startswith(pat, dtype, null_value, na):
 
 
 @pytest.mark.parametrize("na", [None, True, False])
-def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
+def test_startswith_string_dtype(any_string_dtype, na):
     values = Series(
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
-        dtype=nullable_string_dtype,
+        dtype=any_string_dtype,
     )
     result = values.str.startswith("foo", na=na)
+
+    expected_dtype = (
+        (object if na is None else bool)
+        if is_object_or_nan_string_dtype(any_string_dtype)
+        else "boolean"
+    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        if na is None:
+            na = False
     exp = Series(
-        [False, na, True, False, False, na, True, False, False], dtype="boolean"
+        [False, na, True, False, False, na, True, False, False], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
     result = values.str.startswith("rege.", na=na)
     exp = Series(
-        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+        [False, na, False, False, False, na, False, False, True], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
@@ -369,20 +380,30 @@ def test_endswith(pat, dtype, null_value, na):
 
 
 @pytest.mark.parametrize("na", [None, True, False])
-def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
+def test_endswith_string_dtype(any_string_dtype, na):
     values = Series(
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
-        dtype=nullable_string_dtype,
+        dtype=any_string_dtype,
     )
     result = values.str.endswith("foo", na=na)
+    expected_dtype = (
+        (object if na is None else bool)
+        if is_object_or_nan_string_dtype(any_string_dtype)
+        else "boolean"
+    )
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        expected_dtype = bool
+        if na is None:
+            na = False
     exp = Series(
-        [False, na, False, False, True, na, True, False, False], dtype="boolean"
+        [False, na, False, False, True, na, True, False, False], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
     result = values.str.endswith("rege.", na=na)
     exp = Series(
-        [False, na, False, False, False, na, False, False, True], dtype="boolean"
+        [False, na, False, False, False, na, False, False, True], dtype=expected_dtype
     )
     tm.assert_series_equal(result, exp)
 
