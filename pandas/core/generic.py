@@ -11847,7 +11847,7 @@ ddof : int, default 1
     where N represents the number of elements.
 numeric_only : bool, default False
     Include only float, int, boolean columns. Not implemented for Series.
-**kwargs : 
+**kwargs :
     Additional keywords have no effect but might be accepted
     for compatibility with NumPy.
 
@@ -11862,6 +11862,28 @@ See Also
 {notes}\
 {examples}
 """
+
+_sem_see_also = """\
+scipy.stats.sem : Compute standard error of the mean.
+{name2}.std : Return sample standard deviation over requested axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_sem_return_desc = """\
+Unbiased standard error of the mean over requested axis."""
+
+_std_see_also = """\
+numpy.std : Compute the standard deviation along the specified axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.sem : Return unbiased standard error of the mean over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_std_return_desc = """\
+Standard deviation over requested axis."""
 
 _std_notes = """
 
@@ -12714,15 +12736,11 @@ def make_doc(name: str, ndim: int) -> str:
             "ddof argument."
         )
         examples = _std_examples
-        see_also = (
-            "numpy.std : Compute the standard deviation along the specified axis.\n"
-            "{name2}.var : Return unbiased variance over requested axis.\n"
-            "{name2}.sem : Return unbiased standard error of the mean over requested axis.\n"
-            "{name2}.mean : Return the mean of the values over the requested axis.\n"
-            "{name2}.median : Return the median of the values over the requested axis.\n"
-            "{name2}.mode : Return the mode(s) of the Series."
-        ).format(name2=name2)
-        kwargs = {"notes": "", "return_desc": "Standard deviation over requested axis."}
+        see_also = _std_see_also.format(name2=name2)
+        kwargs = {
+            "notes": "",
+            "return_desc": _std_return_desc
+        }
 
     elif name == "sem":
         base_doc = _num_ddof_doc
@@ -12766,15 +12784,11 @@ def make_doc(name: str, ndim: int) -> str:
             >>> df.sem(numeric_only=True)
             a   0.5
             dtype: float64"""
-        see_also = (
-            "scipy.stats.sem : Compute standard error of the mean.\n"
-            "{name2}.std : Return sample standard deviation over requested axis.\n"            
-            "{name2}.var : Return unbiased variance over requested axis.\n"
-            "{name2}.mean : Return the mean of the values over the requested axis.\n"
-            "{name2}.median : Return the median of the values over the requested axis.\n"
-            "{name2}.mode : Return the mode(s) of the Series."
-        ).format(name2=name2)
-        kwargs = {"notes": "", "return_desc": "Unbiased standard error of the mean over requested axis."}
+        see_also = _sem_see_also.format(name2=name2)
+        kwargs = {
+            "notes": "",
+            "return_desc": _sem_return_desc
+        }
 
     elif name == "skew":
         base_doc = _num_doc
