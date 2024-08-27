@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -7,7 +8,10 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    pa_version_under10p1,
+    pa_version_under17p0,
+)
 
 from pandas.core.dtypes.missing import isna
 
@@ -49,7 +53,11 @@ class ArrowStringArrayMixin:
         elif side == "right":
             pa_pad = pc.utf8_rpad
         elif side == "both":
-            pa_pad = pc.utf8_center
+            if pa_version_under17p0:
+                pa_pad = pc.utf8_center
+            else:
+                # GH#54792
+                pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=False)
         else:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
