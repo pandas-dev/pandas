@@ -220,7 +220,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return type(self)._from_sequence(result, dtype=self.dtype)
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+        self,
+        pat: str,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not case:
             flags |= re.IGNORECASE
@@ -235,7 +239,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
-        na: Scalar | None = None,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not case:
             flags |= re.IGNORECASE

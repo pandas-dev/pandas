@@ -223,6 +223,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _predicate_result_converter(self, values, na=lib.no_default):
         if self.dtype.na_value is np.nan:
+            na_value: bool | float | lib.NoDefault
             if na is lib.no_default:
                 na_value = False
             elif not isna(na):

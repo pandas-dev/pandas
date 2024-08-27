@@ -2383,7 +2383,7 @@ class ArrowExtensionArray(
         pat: str,
         case: bool = True,
         flags: int = 0,
-        na: Scalar | None = lib.no_default,
+        na: Scalar | lib.NoDefault = lib.no_default,
     ) -> Self:
         if not pat.startswith("^"):
             pat = f"^{pat}"
