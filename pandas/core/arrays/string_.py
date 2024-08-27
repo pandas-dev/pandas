@@ -660,7 +660,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
-        arr = self._ndarray.copy()
+        arr = self._ndarray
 
         return arr, self.dtype.na_value
 
