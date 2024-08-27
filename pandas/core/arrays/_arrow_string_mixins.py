@@ -54,7 +54,8 @@ class ArrowStringArrayMixin:
             pa_pad = pc.utf8_rpad
         elif side == "both":
             if pa_version_under17p0:
-                pa_pad = pc.utf8_center
+                # GH#59624 fall back to object dtype
+                return super()._str_pad(width, side, fillchar)
             else:
                 # GH#54792
                 pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=False)
