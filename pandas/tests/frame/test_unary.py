@@ -5,6 +5,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gte1p25
 
 import pandas as pd
@@ -53,22 +54,13 @@ class TestDataFrameUnaryOperators:
         df = pd.DataFrame({"a": df_data})
         msg = (
             "bad operand type for unary -: 'str'|"
-            r"bad operand type for unary -: 'DatetimeArray'"
+            r"bad operand type for unary -: 'DatetimeArray'|"
+            "unary '-' not supported for dtype"
         )
-        if using_infer_string and df.dtypes.iloc[0] == "string":
-            import pyarrow as pa
-
-            msg = "has no kernel"
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df)
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df["a"])
-
-        else:
-            with pytest.raises(TypeError, match=msg):
-                (-df)
-            with pytest.raises(TypeError, match=msg):
-                (-df["a"])
+        with pytest.raises(TypeError, match=msg):
+            (-df)
+        with pytest.raises(TypeError, match=msg):
+            (-df["a"])
 
     def test_invert(self, float_frame):
         df = float_frame
@@ -130,7 +122,9 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
+    )
     @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
     def test_pos_object_raises(self):
         # GH#21380

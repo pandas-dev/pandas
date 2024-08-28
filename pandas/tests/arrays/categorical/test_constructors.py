@@ -8,6 +8,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -442,7 +444,9 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Can't be NumPy strings")
+    @pytest.mark.xfail(
+        using_string_dtype() and HAS_PYARROW, reason="Can't be NumPy strings"
+    )
     def test_constructor_np_strs(self):
         # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
@@ -735,7 +739,6 @@ class TestCategoricalConstructors:
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:
         arr = pd.arrays.StringArray._from_sequence(

@@ -32,33 +32,22 @@ class TestGetIndexer:
     def test_get_indexer_strings_raises(self, using_infer_string):
         index = Index(["b", "c"])
 
-        if using_infer_string:
-            import pyarrow as pa
+        msg = "|".join(
+            [
+                "operation 'sub' not supported for dtype 'str'",
+                r"unsupported operand type\(s\) for -: 'str' and 'str'",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(["a", "b", "c", "d"], method="nearest")
 
-            msg = "has no kernel"
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="nearest")
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
 
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(
-                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-                )
-
-        else:
-            msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="nearest")
-
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
-
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(
-                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-                )
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(
+                ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
+            )
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -171,6 +160,7 @@ class TestGetIndexerNonUnique:
 
 
 class TestSliceLocs:
+    # TODO(infer_string) parametrize over multiple string dtypes
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -209,6 +199,7 @@ class TestSliceLocs:
         expected = Index(list(expected), dtype=dtype)
         tm.assert_index_equal(result, expected)
 
+    # TODO(infer_string) parametrize over multiple string dtypes
     @td.skip_if_no("pyarrow")
     def test_slice_locs_negative_step_oob(self):
         index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")

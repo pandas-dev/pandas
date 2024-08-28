@@ -10,6 +10,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -594,7 +595,7 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
         dtype = (
-            "string[pyarrow_numpy]"
+            "str"
             if using_infer_string and not isinstance(nulls_fixture, Decimal)
             else object
         )
@@ -822,6 +823,11 @@ class SetitemCastingEquivalents:
         else:
             indexer_sli(obj)[mask] = val
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
