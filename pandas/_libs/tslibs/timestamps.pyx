@@ -985,6 +985,31 @@ cdef class _Timestamp(ABCTimestamp):
         return super().day
 
     @property
+    def fold(self) -> int:
+        """
+        Return the fold value of the Timestamp, which indicates whether the time is in the 
+        fold of a transition (typically during daylight saving time transitions).
+
+        Returns
+        -------
+        int
+            The fold value of the Timestamp, where 0 indicates the first occurrence 
+            of the ambiguous time, and 1 indicates the second.
+
+        See Also
+        --------
+        Timestamp.dst : Return the daylight saving time (DST) adjustment.
+        Timestamp.tzinfo : Return the timezone information associated with the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-11-03 01:30:00", fold=1, tz="America/New_York")
+        >>> ts.fold
+        1
+        """
+        return super().fold
+
+    @property
     def month(self) -> int:
         """
         Return the month of the Timestamp.
