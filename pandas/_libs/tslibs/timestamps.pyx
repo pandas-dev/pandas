@@ -985,6 +985,30 @@ cdef class _Timestamp(ABCTimestamp):
         return super().day
 
     @property
+    def fold(self) -> int:
+        """
+        Return the fold value of the Timestamp.
+
+        Returns
+        -------
+        int
+            The fold value of the Timestamp, where 0 indicates the first occurrence
+            of the ambiguous time, and 1 indicates the second.
+
+        See Also
+        --------
+        Timestamp.dst : Return the daylight saving time (DST) adjustment.
+        Timestamp.tzinfo : Return the timezone information associated.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-11-03 01:30:00")
+        >>> ts.fold
+        0
+        """
+        return super().fold
+
+    @property
     def month(self) -> int:
         """
         Return the month of the Timestamp.
