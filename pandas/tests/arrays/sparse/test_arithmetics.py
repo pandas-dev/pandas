@@ -477,7 +477,7 @@ def test_mismatched_length_cmp_op(cons):
 )
 def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
     op = all_arithmetic_functions
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
         op(a, b)
 
 
