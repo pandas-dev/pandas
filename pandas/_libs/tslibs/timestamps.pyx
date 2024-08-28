@@ -987,8 +987,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def fold(self) -> int:
         """
-        Return the fold value of the Timestamp,
-        which indicates whether the time is in the fold of a transition.
+        Return the fold value of the Timestamp.
 
         Returns
         -------
