@@ -1350,6 +1350,13 @@ class Window(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        dedent(
+            """
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+        """
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         kwargs_scipy,
         create_section_header("Returns"),
