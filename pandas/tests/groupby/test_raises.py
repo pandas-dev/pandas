@@ -166,7 +166,7 @@ def test_groupby_raises_string(
             TypeError,
             re.escape("agg function failed [how->prod,dtype->object]"),
         ),
-        "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
+        "quantile": (TypeError, "dtype 'object' does not support operation 'quantile'"),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
