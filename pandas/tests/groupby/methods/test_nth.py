@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -679,14 +677,14 @@ def test_first_multi_key_groupby_categorical():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
 def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
-    expected = Series(["y"])
+    expected = Series(["y"], dtype=object)
     data = Series(
         [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
         index=[0, 0, 0, 0, 0],
+        dtype=object,
     ).groupby(level=0)
 
     if method == "nth":

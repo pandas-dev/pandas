@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -73,7 +71,6 @@ def test_series_describe_as_index(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_frame_describe_multikey(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -82,7 +79,7 @@ def test_frame_describe_multikey(tsframe):
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = MultiIndex(
-            levels=[[col], group.columns],
+            levels=[Index([col], dtype=tsframe.columns.dtype), group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
         group = DataFrame(group.values, columns=group_col, index=group.index)
@@ -249,7 +246,6 @@ def test_describe_non_cython_paths():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("dtype", [int, float, object])
 @pytest.mark.parametrize(
     "kwargs",
@@ -271,5 +267,5 @@ def test_groupby_empty_dataset(dtype, kwargs):
 
     result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([])
+    expected.index = Index([], dtype=df.columns.dtype)
     tm.assert_frame_equal(result, expected)
