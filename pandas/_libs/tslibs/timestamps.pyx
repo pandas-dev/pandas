@@ -987,19 +987,19 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def fold(self) -> int:
         """
-        Return the fold value of the Timestamp, which indicates whether the time is in the 
-        fold of a transition (typically during daylight saving time transitions).
+        Return the fold value of the Timestamp,
+        which indicates whether the time is in the fold of a transition.
 
         Returns
         -------
         int
-            The fold value of the Timestamp, where 0 indicates the first occurrence 
+            The fold value of the Timestamp, where 0 indicates the first occurrence
             of the ambiguous time, and 1 indicates the second.
 
         See Also
         --------
         Timestamp.dst : Return the daylight saving time (DST) adjustment.
-        Timestamp.tzinfo : Return the timezone information associated with the Timestamp.
+        Timestamp.tzinfo : Return the timezone information associated.
 
         Examples
         --------
