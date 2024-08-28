@@ -2285,6 +2285,12 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
+    def _convert_bool_result(self, result):
+        return type(self)(result)
+
+    def _convert_int_result(self, result):
+        return type(self)(result)
+
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
