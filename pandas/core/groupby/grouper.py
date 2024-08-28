@@ -349,12 +349,11 @@ class Grouper:
                     reverse_indexer = self._indexer.argsort()
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
-                else:
-                    if not isinstance(obj.index, RangeIndex):
-                        # GH 59350: Index is ignored when using the on keyword argument
-                        # to resample.
-                        obj = obj.reset_index(drop=True)
+                elif isinstance(obj.index, RangeIndex):
                     ax = self._grouper.take(obj.index)
+                else:
+                    # GH 59350
+                    ax = self._grouper
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
