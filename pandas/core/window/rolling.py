@@ -1350,6 +1350,13 @@ class Window(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        dedent(
+            """
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+        """
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         kwargs_scipy,
         create_section_header("Returns"),
@@ -1392,6 +1399,13 @@ class Window(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        dedent(
+            """
+        ddof : int, default 1
+            Delta Degrees of Freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+        """
+        ).replace("\n", "", 1),
         kwargs_numeric_only,
         kwargs_scipy,
         create_section_header("Returns"),
@@ -2099,7 +2113,19 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
+        dedent(
+            """
+            *args : iterable, optional
+                Positional arguments passed into ``func``.\n
+            """
+        ).replace("\n", "", 1),
         window_agg_numba_parameters(),
+        dedent(
+            """
+            **kwargs : mapping, optional
+                A dictionary of keyword arguments passed into ``func``.\n
+            """
+        ).replace("\n", "", 1),
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
