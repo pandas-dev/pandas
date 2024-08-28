@@ -47,6 +47,18 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
 
+    Parameters
+    ----------
+    data : Series or DataFrame
+        The Series or DataFrame to which the SparseAccessor is attached.
+
+    See Also
+    --------
+    Series.sparse.to_coo : Create a scipy.sparse.coo_matrix from a Series with
+        MultiIndex.
+    Series.sparse.from_coo : Create a Series with sparse values from a
+        scipy.sparse.coo_matrix.
+
     Examples
     --------
     >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
@@ -135,7 +147,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Parameters
         ----------
         row_levels : tuple/list
+            MultiIndex levels to use for row coordinates, specified by name or index.
         column_levels : tuple/list
+            MultiIndex levels to use for column coordinates, specified by name or index.
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
             When `row_levels` and/or `column_levels` refer to a single level,
@@ -144,8 +158,16 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Returns
         -------
         y : scipy.sparse.coo_matrix
+            The sparse matrix in coordinate format.
         rows : list (row labels)
+            Labels corresponding to the row coordinates.
         columns : list (column labels)
+            Labels corresponding to the column coordinates.
+
+        See Also
+        --------
+        Series.sparse.from_coo : Create a Series with sparse values from a
+            scipy.sparse.coo_matrix.
 
         Examples
         --------
