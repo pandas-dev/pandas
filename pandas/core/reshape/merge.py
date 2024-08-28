@@ -1018,18 +1018,12 @@ class _MergeOperation:
                 raise ValueError(
                     f'Index "{index}" is not supported for merges on both indexes.'
                 )
+        elif index is not None:
+            pass
         elif self.right_index:
-            if len(self.left) > 0:
-                index = "left"
-            else:
-                index = "right"
+            index = "right"
         elif self.left_index:
-            if self.how == "asof":
-                index = "left"
-            elif len(self.right) > 0:
-                index = "right"
-            else:
-                index = "left"
+            index = "left"
         else:
             index = "reset"
 
@@ -2172,6 +2166,7 @@ class _OrderedMerge(_MergeOperation):
             how=how,
             suffixes=suffixes,
             sort=True,  # factorize sorts
+            index="left" if left_index or right_index else "reset",
         )
 
     def get_result(self) -> DataFrame:
