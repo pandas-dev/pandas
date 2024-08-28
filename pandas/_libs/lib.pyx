@@ -1124,25 +1124,45 @@ cpdef bint is_hashable(object obj):
     >>> is_hashable(a)
     False
     """
-    if (
-        PyLong_CheckExact(obj)
-        or PyFloat_CheckExact(obj)
-        or PyUnicode_CheckExact(obj)
-    ):
+    cdef:
+        bint is_none
+        bint is_long
+        bint is_float
+        bint is_unicode
+        bint is_tuple
+        bint is_frozen_set
+        bint is_dict
+        bint is_list
+        bint is_any_set
+
+    # Perform all checks in order to be nice to the branch predictor
+    is_none = obj is None
+    is_long = PyLong_CheckExact(obj)
+    is_float = PyFloat_CheckExact(obj)
+    is_unicode = PyUnicode_CheckExact(obj)
+    is_tuple = PyTuple_CheckExact(obj)
+    is_frozen_set = PyFrozenSet_CheckExact(obj)
+    is_dict = PyDict_CheckExact(obj)
+    is_list = PyList_CheckExact(obj)
+    is_any_set = PyAnySet_CheckExact(obj)
+
+    if is_none or is_long or is_float or is_unicode:
         return True
 
     # tuple and frozenset is hashable if and only if all elements are hashable
-    if PyTuple_CheckExact(obj) or PyFrozenSet_CheckExact(obj):
-        for o in obj:
+    if is_tuple:
+        for o in <tuple>obj:
             if not is_hashable(o):
                 return False
         return True
 
-    if (
-        PyDict_CheckExact(obj)
-        or PyList_CheckExact(obj)
-        or PyAnySet_CheckExact(obj)
-    ):
+    if is_frozen_set:
+        for o in <frozenset>obj:
+            if not is_hashable(o):
+                return False
+            return True
+
+    if is_dict or is_list or is_any_set:
         return False
 
     try:
