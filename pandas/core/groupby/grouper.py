@@ -34,6 +34,7 @@ from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    RangeIndex,
     default_index,
 )
 from pandas.core.series import Series
@@ -349,6 +350,10 @@ class Grouper:
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
                 else:
+                    if not isinstance(obj.index, RangeIndex):
+                        # GH 59350: Index is ignored when using the on keyword argument
+                        # to resample.
+                        obj = obj.reset_index(drop=True)
                     ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:

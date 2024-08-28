@@ -1597,9 +1597,6 @@ class _GroupByMixin(PandasObject, SelectionMixin):
             if isinstance(key, list) and self.key not in key and self.key is not None:
                 key.append(self.key)
             groupby = self._groupby[key]
-            # GH 59350: Index is ignored when using the on keyword argument to resample
-            if self.key is not None:
-                groupby.obj = groupby.obj.reset_index(drop=True)
         except IndexError:
             groupby = self._groupby
 
