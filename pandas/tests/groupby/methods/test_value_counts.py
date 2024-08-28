@@ -7,9 +7,6 @@ and proper parameter handling
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -276,7 +273,6 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
     return df[keys].value_counts(normalize=normalize, sort=sort, ascending=ascending)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("groupby", ["column", "array", "function"])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize(
@@ -289,7 +285,16 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 )
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
-    education_df, groupby, normalize, name, sort, ascending, as_index, frame, request
+    education_df,
+    groupby,
+    normalize,
+    name,
+    sort,
+    ascending,
+    as_index,
+    frame,
+    request,
+    using_infer_string,
 ):
     # test all parameters:
     # - Use column, array or function as by= parameter
@@ -350,17 +355,24 @@ def test_against_frame_and_seriesgroupby(
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
             index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
             del index_frame["both"]
-            index_frame = index_frame.rename({0: None}, axis=1)
-            expected.index = MultiIndex.from_frame(index_frame)
+            index_frame2 = index_frame.rename({0: None}, axis=1)
+            expected.index = MultiIndex.from_frame(index_frame2)
+
+            if index_frame2.columns.isna()[0]:
+                # with using_infer_string, the columns in index_frame as string
+                #  dtype, which makes the rename({0: None}) above use np.nan
+                #  instead of None, so we need to set None more explicitly.
+                expected.index.names = [None] + expected.index.names[1:]
             tm.assert_series_equal(result, expected)
         else:
             expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
             expected.insert(2, "education", expected["both"].str.split("-").str.get(1))
+            if using_infer_string:
+                expected = expected.astype({"gender": "str", "education": "str"})
             del expected["both"]
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -387,6 +399,7 @@ def test_compound(
     expected_count,
     expected_group_size,
     dtype,
+    using_infer_string,
 ):
     education_df = education_df.astype(dtype)
     education_df.columns = education_df.columns.astype(dtype)
@@ -409,6 +422,11 @@ def test_compound(
         expected["count"] = expected_count
         if dtype == "string[pyarrow]":
             expected["count"] = expected["count"].convert_dtypes()
+    if using_infer_string and dtype == object:
+        expected = expected.astype(
+            {"country": "str", "gender": "str", "education": "str"}
+        )
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -501,9 +519,6 @@ def test_dropna_combinations(
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 @pytest.mark.parametrize(
     "dropna, expected_data, expected_index",
     [
