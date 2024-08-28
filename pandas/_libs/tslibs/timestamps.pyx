@@ -1003,9 +1003,9 @@ cdef class _Timestamp(ABCTimestamp):
 
         Examples
         --------
-        >>> ts = pd.Timestamp("2024-11-03 01:30:00", fold=1, tz="America/New_York")
+        >>> ts = pd.Timestamp("2024-11-03 01:30:00")
         >>> ts.fold
-        1
+        0
         """
         return super().fold
 
