@@ -2154,7 +2154,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         if not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
-            self._cache.clear()
+            self._reset_cache()
 
         arr = self.array
 
@@ -2179,7 +2179,7 @@ class SingleBlockManager(BaseBlockManager):
         nb = self._block.delete(indexer)[0]
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
-        self._cache.clear()
+        self._reset_cache()
         return self
 
     def fast_xs(self, loc):
