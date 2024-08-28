@@ -59,8 +59,9 @@ def chunked(request):
 
 
 @pytest.fixture
-def dtype(string_storage):
-    return StringDtype(storage=string_storage)
+def dtype(string_dtype_arguments):
+    storage, na_value = string_dtype_arguments
+    return StringDtype(storage=storage, na_value=na_value)
 
 
 @pytest.fixture
@@ -116,8 +117,22 @@ class TestStringArray(base.ExtensionTests):
         # because StringDtype is a string type
         assert is_string_dtype(dtype)
 
-    def test_view(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_is_dtype_from_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            result = type(dtype).is_dtype(dtype.name)
+            assert result is False
+        else:
+            super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string_own_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            with pytest.raises(TypeError, match="Cannot construct a 'StringDtype'"):
+                dtype.construct_from_string(dtype.name)
+        else:
+            super().test_construct_from_string_own_name(dtype)
+
+    def test_view(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -125,13 +140,13 @@ class TestStringArray(base.ExtensionTests):
         # base test uses string representation of dtype
         pass
 
-    def test_transpose(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_transpose(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
-    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
-        if data.dtype.storage in arrow_string_storage:
+    def test_setitem_preserves_views(self, data):
+        if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
@@ -150,24 +165,15 @@ class TestStringArray(base.ExtensionTests):
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
-        if op_name in ["__divmod__", "__rdivmod__"]:
-            if (
-                isinstance(obj, pd.Series)
-                and cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow"
-            ):
-                # TODO: re-raise as TypeError?
-                return NotImplementedError
-            elif (
-                isinstance(other, pd.Series)
-                and cast(StringDtype, tm.get_dtype(other)).storage == "pyarrow"
-            ):
-                # TODO: re-raise as TypeError?
-                return NotImplementedError
-            return TypeError
-        elif op_name in ["__mod__", "__rmod__", "__pow__", "__rpow__"]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
-                return NotImplementedError
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
+        if op_name in [
+            "__mod__",
+            "__rmod__",
+            "__divmod__",
+            "__rdivmod__",
+            "__pow__",
+            "__rpow__",
+        ]:
             return TypeError
         elif op_name in ["__mul__", "__rmul__"]:
             # Can only multiply strings by integers
@@ -180,11 +186,6 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if cast(StringDtype, tm.get_dtype(obj)).storage == "pyarrow":
-                import pyarrow as pa
-
-                # TODO: better to re-raise as TypeError?
-                return pa.ArrowNotImplementedError
             return TypeError
 
         return None

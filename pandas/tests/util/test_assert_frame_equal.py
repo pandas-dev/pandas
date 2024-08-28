@@ -112,7 +112,7 @@ def test_empty_dtypes(check_dtype):
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_index_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.index are different
@@ -134,7 +134,7 @@ At positional index 2, first diff: c != d"""
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_columns_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.columns are different

@@ -158,11 +158,10 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v2.20.0
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
-          CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
           CIBW_PLATFORM: ${{ matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide' || 'auto' }}
