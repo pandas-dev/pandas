@@ -162,7 +162,8 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype 'object' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
