@@ -23,6 +23,14 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
+    def _convert_bool_result(self, result):
+        # Convert a bool-dtype result to the appropriate result type
+        raise NotImplementedError
+
+    def _convert_int_result(self, result):
+        # Convert an integer-dtype result to the appropriate result type
+        raise NotImplementedError
+
     def _str_pad(
         self,
         width: int,

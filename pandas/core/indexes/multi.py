@@ -1302,7 +1302,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
         result._cache = self._cache.copy()
-        result._cache.pop("levels", None)  # GH32669
+        result._reset_cache("levels")  # GH32669
         return result
 
     # --------------------------------------------------------------------
@@ -1384,7 +1384,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
         new_index._cache = self._cache.copy()
-        new_index._cache.pop("levels", None)  # GH32669
+        new_index._reset_cache("levels")  # GH32669
         if keep_id:
             new_index._id = self._id
         return new_index
@@ -1894,6 +1894,7 @@ class MultiIndex(Index):
         Returns
         -------
         DataFrame
+            DataFrame representation of the MultiIndex, with levels as columns.
 
         See Also
         --------
