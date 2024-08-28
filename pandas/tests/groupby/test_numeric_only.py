@@ -299,7 +299,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "idxmin":
+        if kernel == "quantile":
+            msg = "dtype 'object' does not support operation 'quantile'"
+        elif kernel == "idxmin":
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
@@ -379,7 +381,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
         if groupby_func == "quantile":
-            msg = "cannot be performed against 'object' dtypes"
+            msg = "dtype 'object' does not support operation 'quantile'"
         else:
             msg = "is not supported for object dtype"
         with pytest.raises(TypeError, match=msg):

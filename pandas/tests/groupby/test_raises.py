@@ -204,18 +204,12 @@ def test_groupby_raises_string(
         elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":
             # This doesn't go through EA._groupby_op so the message isn't controlled
             #  there.
-            import pyarrow as pa
-
-            klass = pa.lib.ArrowNotImplementedError
-            msg = "Function 'divide' has no kernel matching input types"
+            msg = "operation 'truediv' not supported for dtype 'str' with dtype 'str'"
         elif groupby_func == "diff" and df["d"].dtype.storage == "pyarrow":
             # This doesn't go through EA._groupby_op so the message isn't controlled
             #  there.
-            import pyarrow as pa
+            msg = "operation 'sub' not supported for dtype 'str' with dtype 'str'"
 
-            # TODO(infer_string): avoid bubbling up pyarrow exceptions
-            klass = pa.lib.ArrowNotImplementedError
-            msg = "Function 'subtract_checked' has no kernel matching input types"
         elif groupby_func in ["cummin", "cummax"]:
             msg = msg.replace("object", "str")
         elif groupby_func == "corrwith":

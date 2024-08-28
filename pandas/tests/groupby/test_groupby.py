@@ -983,17 +983,10 @@ def test_groupby_with_hier_columns():
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
 
-def test_grouping_ndarray(df, using_infer_string):
+def test_grouping_ndarray(df):
+    df = df.astype({"A": object, "B": object})
     grouped = df.groupby(df["A"].values)
     grouped2 = df.groupby(df["A"].rename(None))
-
-    if using_infer_string:
-        msg = "dtype 'str' does not support operation 'sum'"
-        with pytest.raises(TypeError, match=msg):
-            grouped.sum()
-        with pytest.raises(TypeError, match=msg):
-            grouped2.sum()
-        return
 
     result = grouped.sum()
     expected = grouped2.sum()
@@ -1495,18 +1488,11 @@ def test_group_name_available_in_inference_pass():
     assert names == expected_names
 
 
-def test_no_dummy_key_names(df, using_infer_string):
+def test_no_dummy_key_names(df):
     # see gh-1291
+    df = df.astype({"A": object, "B": object})
     gb = df.groupby(df["A"].values)
     gb2 = df.groupby([df["A"].values, df["B"].values])
-    if using_infer_string:
-        msg = "dtype 'str' does not support operation 'sum'"
-        with pytest.raises(TypeError, match=msg):
-            gb.sum()
-        with pytest.raises(TypeError, match=msg):
-            gb2.sum()
-        return
-
     result = gb.sum()
     assert result.index.name is None
 
