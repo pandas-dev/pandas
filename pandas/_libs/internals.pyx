@@ -1,9 +1,13 @@
 from collections import defaultdict
 
 cimport cython
+from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
-from cpython.weakref cimport PyWeakref_NewRef
+from cpython.weakref cimport (
+    PyWeakref_GetObject,
+    PyWeakref_NewRef,
+)
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -24,6 +28,10 @@ from pandas._libs.util cimport (
     is_array,
     is_integer_object,
 )
+
+
+cdef extern from "Python.h":
+    PyObject* Py_None
 
 
 @cython.final
@@ -902,7 +910,8 @@ cdef class BlockValuesRefs:
         # see GH#55245 and GH#55008
         if force or len(self.referenced_blocks) > self.clear_counter:
             self.referenced_blocks = [
-                ref for ref in self.referenced_blocks if ref() is not None
+                ref for ref in self.referenced_blocks
+                if PyWeakref_GetObject(ref) != Py_None
             ]
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
