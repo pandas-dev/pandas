@@ -468,6 +468,19 @@ def test_mismatched_length_cmp_op(cons):
         left & right
 
 
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (SparseArray([0, 1, 2], fill_value=0), np.array([0, 1, 2, 3])),
+        (SparseArray([0, 1, 2, 3], fill_value=0), np.array([0, 1, 2])),
+    ],
+)
+def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
+    op = all_arithmetic_functions
+    with pytest.raises(AssertionError):
+        op(a, b)
+
+
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])
 @pytest.mark.parametrize("fill_value", [np.nan, 3])
 def test_binary_operators(op, fill_value):
