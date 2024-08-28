@@ -324,6 +324,22 @@ class TestDataFrameMisc:
         assert result.attrs == df.attrs
         assert result.attrs["tags"] is not df.attrs["tags"]
 
+    def test_attrs_binary_operations(self):
+        # GH 51607
+        df_1 = DataFrame({"A": [2, 3]})
+        df_2 = DataFrame({"A": [-3, 9]})
+        attrs = {"info": "DataFrame"}
+        df_1.attrs = attrs
+        assert (df_1 + df_2).attrs == attrs
+        assert (df_2 + df_1).attrs == attrs
+        assert (df_2 - df_1).attrs == attrs
+        assert (df_2 / df_1).attrs == attrs
+        assert (df_2 * df_1).attrs == attrs
+        assert (df_2.add(df_1)).attrs == attrs
+        assert (df_2.sub(df_1)).attrs == attrs
+        assert (df_2.div(df_1)).attrs == attrs
+        assert (df_2.mul(df_1)).attrs == attrs
+
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
         self,
