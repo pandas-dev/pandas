@@ -1184,6 +1184,7 @@ class TestParquetPyArrow(Base):
             df,
             pa,
             write_kwargs={"schema": schema},
+            read_kwargs={"to_pandas_kwargs": {"maps_as_pydicts": "strict"}},
         )
 
 
