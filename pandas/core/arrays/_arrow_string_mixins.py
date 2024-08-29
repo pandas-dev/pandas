@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.compat import (
     pa_version_under10p1,
+    pa_version_under13p0,
     pa_version_under17p0,
 )
 
@@ -214,6 +215,15 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # GH#59562
+            result = self._apply_elementwise(lambda val: val.find(sub, start, end))
+            return self._convert_int_result(pa.chunked_array(result))
+
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:
