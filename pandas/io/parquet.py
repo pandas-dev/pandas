@@ -257,7 +257,7 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype
         elif using_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
