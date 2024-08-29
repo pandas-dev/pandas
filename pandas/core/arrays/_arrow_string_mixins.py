@@ -221,16 +221,18 @@ class ArrowStringArrayMixin:
             and not (start == 0 and end is None)
         ):
             # GH#59562
-            result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-            return self._convert_int_result(pa.chunked_array(result))
+            res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
+            return self._convert_int_result(pa.chunked_array(res_list))
 
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:
             if sub == "":
                 # GH#56792
-                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-                return self._convert_int_result(pa.chunked_array(result))
+                res_list = self._apply_elementwise(
+                    lambda val: val.find(sub, start, end)
+                )
+                return self._convert_int_result(pa.chunked_array(res_list))
             if start is None:
                 start_offset = 0
                 start = 0
