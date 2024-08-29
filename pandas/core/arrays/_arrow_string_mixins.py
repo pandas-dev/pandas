@@ -63,7 +63,9 @@ class ArrowStringArrayMixin:
                 return type(self)._from_sequence(result, dtype=self.dtype)  # type: ignore[attr-defined]
             else:
                 # GH#54792
-                pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=False)
+                # https://github.com/apache/arrow/issues/15053#issuecomment-2317032347
+                lean_left = (width % 2) == 0
+                pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=lean_left)
         else:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
