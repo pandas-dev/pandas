@@ -245,11 +245,12 @@ class PyArrowImpl(BaseImpl):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
         filesystem=None,
+        to_pandas_kwargs=None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        to_pandas_kwargs = {}
+        to_pandas_kwargs = to_pandas_kwargs if to_pandas_kwargs is not None else {}
         if dtype_backend == "numpy_nullable":
             from pandas.io._util import _arrow_dtype_mapping
 
