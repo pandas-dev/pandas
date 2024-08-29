@@ -608,6 +608,14 @@ class ExtensionArray:
         """
         An instance of ExtensionDtype.
 
+        See Also
+        --------
+        api.extensions.ExtensionDtype : Base class for extension dtypes.
+        api.extensions.ExtensionArray : Base class for extension array types.
+        api.extensions.ExtensionArray.dtype : The dtype of an ExtensionArray.
+        Series.dtype : The dtype of a Series.
+        DataFrame.dtype : The dtype of a DataFrame.
+
         Examples
         --------
         >>> pd.array([1, 2, 3]).dtype
@@ -712,6 +720,16 @@ class ExtensionArray:
         np.ndarray or pandas.api.extensions.ExtensionArray
             An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
             otherwise a Numpy ndarray with ``dtype`` for its dtype.
+
+        See Also
+        --------
+        Series.astype : Cast a Series to a different dtype.
+        DataFrame.astype : Cast a DataFrame to a different dtype.
+        api.extensions.ExtensionArray : Base class for ExtensionArray objects.
+        core.arrays.DatetimeArray._from_sequence : Create a DatetimeArray from a
+            sequence.
+        core.arrays.TimedeltaArray._from_sequence : Create a TimedeltaArray from
+            a sequence.
 
         Examples
         --------
@@ -1032,6 +1050,12 @@ class ExtensionArray:
             maximum number of entries along the entire axis where NaNs will be
             filled.
 
+        limit_area : {'inside', 'outside'} or None, default None
+            Specifies which area to limit filling.
+            - 'inside': Limit the filling to the area within the gaps.
+            - 'outside': Limit the filling to the area outside the gaps.
+            If `None`, no limitation is applied.
+
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -1043,6 +1067,16 @@ class ExtensionArray:
         Returns
         -------
         Same type as self
+            The filled array with the same type as the original.
+
+        See Also
+        --------
+        Series.ffill : Forward fill missing values.
+        Series.bfill : Backward fill missing values.
+        DataFrame.ffill : Forward fill missing values in DataFrame.
+        DataFrame.bfill : Backward fill missing values in DataFrame.
+        api.types.isna : Check for missing values.
+        api.types.isnull : Check for missing values.
 
         Examples
         --------
@@ -1103,6 +1137,13 @@ class ExtensionArray:
         ExtensionArray
             With NA/NaN filled.
 
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
+
         Examples
         --------
         >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
@@ -1149,6 +1190,16 @@ class ExtensionArray:
 
         Returns
         -------
+        Self
+            An ExtensionArray of the same type as the original but with all
+            NA values removed.
+
+        See Also
+        --------
+        Series.dropna : Remove missing values from a Series.
+        DataFrame.dropna : Remove missing values from a DataFrame.
+        api.extensions.ExtensionArray.isna : Check for missing values in
+            an ExtensionArray.
 
         Examples
         --------
@@ -1176,6 +1227,15 @@ class ExtensionArray:
         Returns
         -------
         ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
 
         Examples
         --------
@@ -1259,6 +1319,13 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+            With unique values from the input array.
+
+        See Also
+        --------
+        Index.unique: Return unique values in the index.
+        Series.unique: Return unique values of Series object.
+        unique: Return unique values based on a hash table.
 
         Examples
         --------
@@ -1392,10 +1459,18 @@ class ExtensionArray:
         Parameters
         ----------
         values : np.ndarray or ExtensionArray
+            Values to compare every element in the array against.
 
         Returns
         -------
         np.ndarray[bool]
+            With true at indices where value is in `values`.
+
+        See Also
+        --------
+        DataFrame.isin: Whether each element in the DataFrame is contained in values.
+        Index.isin: Return a boolean array where the index values are in values.
+        Series.isin: Whether elements in Series are contained in values.
 
         Examples
         --------
@@ -1422,6 +1497,10 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        See Also
+        --------
+        util.hash_pandas_object : Hash the pandas object.
 
         Notes
         -----
@@ -1694,6 +1773,12 @@ class ExtensionArray:
         -------
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.ravel: Return a flattened view on input array.
+        Index.view: Equivalent function for Index.
+        ndarray.view: New view of array with the same data.
 
         Examples
         --------
@@ -1988,16 +2073,43 @@ class ExtensionArray:
 
         Returns
         -------
-        scalar
+        scalar or ndarray:
+            The result of the reduction operation. The type of the result
+            depends on `keepdims`:
+            - If `keepdims` is `False`, a scalar value is returned.
+            - If `keepdims` is `True`, the result is wrapped in a numpy array with
+            a single element.
 
         Raises
         ------
         TypeError : subclass does not define operations
 
+        See Also
+        --------
+        Series.min : Return the minimum value.
+        Series.max : Return the maximum value.
+        Series.sum : Return the sum of values.
+        Series.mean : Return the mean of values.
+        Series.median : Return the median of values.
+        Series.std : Return the standard deviation.
+        Series.var : Return the variance.
+        Series.prod : Return the product of values.
+        Series.sem : Return the standard error of the mean.
+        Series.kurt : Return the kurtosis.
+        Series.skew : Return the skewness.
+
         Examples
         --------
         >>> pd.array([1, 2, 3])._reduce("min")
         1
+        >>> pd.array([1, 2, 3])._reduce("max")
+        3
+        >>> pd.array([1, 2, 3])._reduce("sum")
+        6
+        >>> pd.array([1, 2, 3])._reduce("mean")
+        2.0
+        >>> pd.array([1, 2, 3])._reduce("median")
+        2.0
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -2126,6 +2238,12 @@ class ExtensionArray:
         Returns
         -------
         list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
 
         Examples
         --------
@@ -2148,11 +2266,18 @@ class ExtensionArray:
         Parameters
         ----------
         loc : int
+            Index where the `item` needs to be inserted.
         item : scalar-like
+            Value to be inserted.
 
         Returns
         -------
-        same type as self
+        ExtensionArray
+            With `item` inserted at `loc`.
+
+        See Also
+        --------
+        Index.insert: Make new Index inserting new item at location.
 
         Notes
         -----

@@ -681,7 +681,12 @@ class ArrowExtensionArray(
             return type(self)(pc.invert(self._pa_array))
 
     def __neg__(self) -> Self:
-        return type(self)(pc.negate_checked(self._pa_array))
+        try:
+            return type(self)(pc.negate_checked(self._pa_array))
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(
+                f"unary '-' not supported for dtype '{self.dtype}'"
+            ) from err
 
     def __pos__(self) -> Self:
         return type(self)(self._pa_array)
@@ -736,8 +741,19 @@ class ArrowExtensionArray(
             )
         return ArrowExtensionArray(result)
 
+    def _op_method_error_message(self, other, op) -> str:
+        if hasattr(other, "dtype"):
+            other_type = f"dtype '{other.dtype}'"
+        else:
+            other_type = f"object of type {type(other)}"
+        return (
+            f"operation '{op.__name__}' not supported for "
+            f"dtype '{self.dtype}' with {other_type}"
+        )
+
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
+        other_original = other
         other = self._box_pa(other)
 
         if (
@@ -747,10 +763,15 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
-                if op is operator.add:
-                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
-                elif op is roperator.radd:
-                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                try:
+                    if op is operator.add:
+                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                    elif op is roperator.radd:
+                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                except pa.ArrowNotImplementedError as err:
+                    raise TypeError(
+                        self._op_method_error_message(other_original, op)
+                    ) from err
                 return type(self)(result)
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
@@ -782,9 +803,14 @@ class ArrowExtensionArray(
 
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
+            if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+                raise TypeError(self._op_method_error_message(other_original, op))
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
-        result = pc_func(self._pa_array, other)
+        try:
+            result = pc_func(self._pa_array, other)
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
         return type(self)(result)
 
     def _logical_method(self, other, op) -> Self:
@@ -2284,6 +2310,12 @@ class ArrowExtensionArray(
             ]
             for chunk in self._pa_array.iterchunks()
         ]
+
+    def _convert_bool_result(self, result):
+        return type(self)(result)
+
+    def _convert_int_result(self, result):
+        return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
