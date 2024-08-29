@@ -1588,7 +1588,7 @@ class TestStata:
     def test_repeated_column_labels(self, datapath):
         # GH 13923, 25772
         msg = """
-Value labels for column ethnicsn are not unique. These cannot be converted to
+Value labels for column ethics are not unique. These cannot be converted to
 pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
