@@ -280,6 +280,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # String methods interface
 
     _str_map = BaseStringArray._str_map
+    _str_startswith = ArrowStringArrayMixin._str_startswith
+    _str_endswith = ArrowStringArrayMixin._str_endswith
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -297,44 +299,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
-
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
 
     def _str_replace(
         self,
