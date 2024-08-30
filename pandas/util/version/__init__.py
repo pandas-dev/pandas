@@ -1,27 +1,22 @@
-# Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
-# and https://github.com/pypa/packaging/blob/main/packaging/_structures.py
-# changeset ae891fd74d6dd4c6063bb04f2faeadaac6fc6313
-# 04/30/2021
+# Vendored from https://github.com/pypa/packaging/blob/main/src/packaging/_structures.py
+# and https://github.com/pypa/packaging/blob/main/src/packaging/version.py
+# changeset 24e5350b2ff3c5c7a36676c2af5f2cb39fd1baf8
 
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. Licence at LICENSES/PACKAGING_LICENSE
 from __future__ import annotations
 
-import collections
-from collections.abc import (
-    Callable,
-    Iterator,
-)
+from collections.abc import Callable
 import itertools
 import re
 from typing import (
+    Any,
+    NamedTuple,
     SupportsInt,
-    Tuple,
     Union,
 )
-import warnings
 
-__all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
+__all__ = ["VERSION_PATTERN", "InvalidVersion", "Version", "parse"]
 
 
 class InfinityType:
@@ -39,9 +34,6 @@ class InfinityType:
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, type(self))
-
-    def __ne__(self, other: object) -> bool:
-        return not isinstance(other, type(self))
 
     def __gt__(self, other: object) -> bool:
         return True
@@ -72,9 +64,6 @@ class NegativeInfinityType:
     def __eq__(self, other: object) -> bool:
         return isinstance(other, type(self))
 
-    def __ne__(self, other: object) -> bool:
-        return not isinstance(other, type(self))
-
     def __gt__(self, other: object) -> bool:
         return False
 
@@ -88,45 +77,39 @@ class NegativeInfinityType:
 NegativeInfinity = NegativeInfinityType()
 
 
-InfiniteTypes = Union[InfinityType, NegativeInfinityType]
-PrePostDevType = Union[InfiniteTypes, tuple[str, int]]
-SubLocalType = Union[InfiniteTypes, int, str]
-LocalType = Union[
+LocalType = tuple[Union[int, str], ...]
+
+CmpPrePostDevType = Union[InfinityType, NegativeInfinityType, tuple[str, int]]
+CmpLocalType = Union[
     NegativeInfinityType,
-    tuple[
-        Union[
-            SubLocalType,
-            tuple[SubLocalType, str],
-            tuple[NegativeInfinityType, SubLocalType],
-        ],
-        ...,
-    ],
+    tuple[Union[tuple[int, str], tuple[NegativeInfinityType, Union[int, str]]], ...],
 ]
 CmpKey = tuple[
-    int, tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
+    int,
+    tuple[int, ...],
+    CmpPrePostDevType,
+    CmpPrePostDevType,
+    CmpPrePostDevType,
+    CmpLocalType,
 ]
-LegacyCmpKey = tuple[int, tuple[str, ...]]
-VersionComparisonMethod = Callable[
-    [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
-]
-
-_Version = collections.namedtuple(
-    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
-)
+VersionComparisonMethod = Callable[[CmpKey, CmpKey], bool]
 
 
-def parse(version: str) -> LegacyVersion | Version:
-    """
-    Parse the given version string and return either a :class:`Version` object
-    or a :class:`LegacyVersion` object depending on if the given version is
-    a valid PEP 440 version or a legacy version.
-    """
-    try:
-        return Version(version)
-    except InvalidVersion:
-        return LegacyVersion(version)
+class _Version(NamedTuple):
+    epoch: int
+    release: tuple[int, ...]
+    dev: tuple[str, int] | None
+    pre: tuple[str, int] | None
+    post: tuple[str, int] | None
+    local: LocalType | None
 
 
+def parse(version: str) -> Version:
+    return Version(version)
+
+
+# The docstring is from an older version of the packaging library to avoid
+# errors in the docstring validation.
 class InvalidVersion(ValueError):
     """
     An invalid version was found, users should refer to PEP 440.
@@ -140,7 +123,7 @@ class InvalidVersion(ValueError):
 
 
 class _BaseVersion:
-    _key: CmpKey | LegacyCmpKey
+    _key: tuple[Any, ...]
 
     def __hash__(self) -> int:
         return hash(self._key)
@@ -185,132 +168,16 @@ class _BaseVersion:
         return self._key != other._key
 
 
-class LegacyVersion(_BaseVersion):
-    def __init__(self, version: str) -> None:
-        self._version = str(version)
-        self._key = _legacy_cmpkey(self._version)
-
-        warnings.warn(
-            "Creating a LegacyVersion has been deprecated and will be "
-            "removed in the next major release.",
-            DeprecationWarning,
-        )
-
-    def __str__(self) -> str:
-        return self._version
-
-    def __repr__(self) -> str:
-        return f"<LegacyVersion('{self}')>"
-
-    @property
-    def public(self) -> str:
-        return self._version
-
-    @property
-    def base_version(self) -> str:
-        return self._version
-
-    @property
-    def epoch(self) -> int:
-        return -1
-
-    @property
-    def release(self) -> None:
-        return None
-
-    @property
-    def pre(self) -> None:
-        return None
-
-    @property
-    def post(self) -> None:
-        return None
-
-    @property
-    def dev(self) -> None:
-        return None
-
-    @property
-    def local(self) -> None:
-        return None
-
-    @property
-    def is_prerelease(self) -> bool:
-        return False
-
-    @property
-    def is_postrelease(self) -> bool:
-        return False
-
-    @property
-    def is_devrelease(self) -> bool:
-        return False
-
-
-_legacy_version_component_re = re.compile(r"(\d+ | [a-z]+ | \.| -)", re.VERBOSE)
-
-_legacy_version_replacement_map = {
-    "pre": "c",
-    "preview": "c",
-    "-": "final-",
-    "rc": "c",
-    "dev": "@",
-}
-
-
-def _parse_version_parts(s: str) -> Iterator[str]:
-    for part in _legacy_version_component_re.split(s):
-        mapped_part = _legacy_version_replacement_map.get(part, part)
-
-        if not mapped_part or mapped_part == ".":
-            continue
-
-        if mapped_part[:1] in "0123456789":
-            # pad for numeric comparison
-            yield mapped_part.zfill(8)
-        else:
-            yield "*" + mapped_part
-
-    # ensure that alpha/beta/candidate are before final
-    yield "*final"
-
-
-def _legacy_cmpkey(version: str) -> LegacyCmpKey:
-    # We hardcode an epoch of -1 here. A PEP 440 version can only have a epoch
-    # greater than or equal to 0. This will effectively put the LegacyVersion,
-    # which uses the defacto standard originally implemented by setuptools,
-    # as before all PEP 440 versions.
-    epoch = -1
-
-    # This scheme is taken from pkg_resources.parse_version setuptools prior to
-    # it's adoption of the packaging library.
-    parts: list[str] = []
-    for part in _parse_version_parts(version.lower()):
-        if part.startswith("*"):
-            # remove "-" before a prerelease tag
-            if part < "*final":
-                while parts and parts[-1] == "*final-":
-                    parts.pop()
-
-            # remove trailing zeros from each series of numeric parts
-            while parts and parts[-1] == "00000000":
-                parts.pop()
-
-        parts.append(part)
-
-    return epoch, tuple(parts)
-
-
 # Deliberately not anchored to the start and end of the string, to make it
 # easier for 3rd party code to reuse
-VERSION_PATTERN = r"""
+_VERSION_PATTERN = r"""
     v?
     (?:
         (?:(?P<epoch>[0-9]+)!)?                           # epoch
         (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
         (?P<pre>                                          # pre-release
             [-_\.]?
-            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            (?P<pre_l>alpha|a|beta|b|preview|pre|c|rc)
             [-_\.]?
             (?P<pre_n>[0-9]+)?
         )?
@@ -334,9 +201,12 @@ VERSION_PATTERN = r"""
     (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
 """
 
+VERSION_PATTERN = _VERSION_PATTERN
+
 
 class Version(_BaseVersion):
     _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
+    _key: CmpKey
 
     def __init__(self, version: str) -> None:
         # Validate the version and parse it into pieces
@@ -377,11 +247,11 @@ class Version(_BaseVersion):
             parts.append(f"{self.epoch}!")
 
         # Release segment
-        parts.append(".".join([str(x) for x in self.release]))
+        parts.append(".".join(str(x) for x in self.release))
 
         # Pre-release
         if self.pre is not None:
-            parts.append("".join([str(x) for x in self.pre]))
+            parts.append("".join(str(x) for x in self.pre))
 
         # Post-release
         if self.post is not None:
@@ -399,18 +269,15 @@ class Version(_BaseVersion):
 
     @property
     def epoch(self) -> int:
-        _epoch: int = self._version.epoch
-        return _epoch
+        return self._version.epoch
 
     @property
     def release(self) -> tuple[int, ...]:
-        _release: tuple[int, ...] = self._version.release
-        return _release
+        return self._version.release
 
     @property
     def pre(self) -> tuple[str, int] | None:
-        _pre: tuple[str, int] | None = self._version.pre
-        return _pre
+        return self._version.pre
 
     @property
     def post(self) -> int | None:
@@ -423,7 +290,7 @@ class Version(_BaseVersion):
     @property
     def local(self) -> str | None:
         if self._version.local:
-            return ".".join([str(x) for x in self._version.local])
+            return ".".join(str(x) for x in self._version.local)
         else:
             return None
 
@@ -440,7 +307,7 @@ class Version(_BaseVersion):
             parts.append(f"{self.epoch}!")
 
         # Release segment
-        parts.append(".".join([str(x) for x in self.release]))
+        parts.append(".".join(str(x) for x in self.release))
 
         return "".join(parts)
 
@@ -470,7 +337,7 @@ class Version(_BaseVersion):
 
 
 def _parse_letter_version(
-    letter: str, number: str | bytes | SupportsInt
+    letter: str | None, number: str | bytes | SupportsInt | None
 ) -> tuple[str, int] | None:
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
@@ -507,10 +374,7 @@ def _parse_letter_version(
 _local_version_separators = re.compile(r"[\._-]")
 
 
-def _parse_local_version(local: str) -> LocalType | None:
-    """
-    Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
-    """
+def _parse_local_version(local: str | None) -> LocalType | None:
     if local is not None:
         return tuple(
             part.lower() if not part.isdigit() else int(part)
@@ -525,7 +389,7 @@ def _cmpkey(
     pre: tuple[str, int] | None,
     post: tuple[str, int] | None,
     dev: tuple[str, int] | None,
-    local: tuple[SubLocalType] | None,
+    local: LocalType | None,
 ) -> CmpKey:
     # When we compare a release version, we want to compare it with all of the
     # trailing zeros removed. So we'll use a reverse the list, drop all the now
@@ -541,7 +405,7 @@ def _cmpkey(
     # if there is not a pre or a post segment. If we have one of those then
     # the normal sorting rules will handle this case correctly.
     if pre is None and post is None and dev is not None:
-        _pre: PrePostDevType = NegativeInfinity
+        _pre: CmpPrePostDevType = NegativeInfinity
     # Versions without a pre-release (except as noted above) should sort after
     # those with one.
     elif pre is None:
@@ -551,21 +415,21 @@ def _cmpkey(
 
     # Versions without a post segment should sort before those with one.
     if post is None:
-        _post: PrePostDevType = NegativeInfinity
+        _post: CmpPrePostDevType = NegativeInfinity
 
     else:
         _post = post
 
     # Versions without a development segment should sort after those with one.
     if dev is None:
-        _dev: PrePostDevType = Infinity
+        _dev: CmpPrePostDevType = Infinity
 
     else:
         _dev = dev
 
     if local is None:
         # Versions without a local segment should sort before those with one.
-        _local: LocalType = NegativeInfinity
+        _local: CmpLocalType = NegativeInfinity
     else:
         # Versions with a local segment need that segment parsed to implement
         # the sorting rules in PEP440.
