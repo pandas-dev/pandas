@@ -318,7 +318,7 @@ New keywords
 - :func:`Series.set_axis` and :func:`DataFrame.set_axis` now support the ``inplace`` parameter. (:issue:`14636`)
 - :func:`Series.to_pickle` and :func:`DataFrame.to_pickle` have gained a ``protocol`` parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
-- :func:`DataFrame.clip()` and :func:`Series.clip()` have gained an ``inplace`` argument. (:issue:`15388`)
+- :func:`DataFrame.clip` and :func:`Series.clip` have gained an ``inplace`` argument. (:issue:`15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when ``margins=True``. (:issue:`15972`)
 - :func:`read_json` now accepts a ``chunksize`` parameter that can be used when ``lines=True``. If ``chunksize`` is passed, read_json now returns an iterator which reads in ``chunksize`` lines with each iteration. (:issue:`17048`)
 - :func:`read_json` and :func:`~DataFrame.to_json` now accept a ``compression`` argument which allows them to transparently handle compressed files. (:issue:`17798`)
@@ -977,10 +977,10 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-- :meth:`DataFrame.from_csv` and :meth:`Series.from_csv` have been deprecated in favor of :func:`read_csv()` (:issue:`4191`)
-- :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
-- :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
-- :func:`read_csv()` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
+- :meth:`DataFrame.from_csv` and :meth:`Series.from_csv` have been deprecated in favor of :func:`read_csv` (:issue:`4191`)
+- :func:`read_excel` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
+- :func:`read_excel` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
+- :func:`read_csv` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
 - :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. MultiIndex columns will be always written as rows in the CSV file (:issue:`17060`)
 - The ``convert`` parameter has been deprecated in the ``.take()`` method, as it was not being respected (:issue:`16948`)
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
@@ -1045,7 +1045,7 @@ return the position of the maximum or minimum.
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
+- :func:`read_excel` has dropped the ``has_index_names`` parameter (:issue:`10967`)
 - The ``pd.options.display.height`` configuration has been dropped (:issue:`3663`)
 - The ``pd.options.display.line_width`` configuration has been dropped (:issue:`2881`)
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
@@ -1154,7 +1154,7 @@ GroupBy/resample/rolling
 
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)
 - Bug in :func:`infer_freq` causing indices with 2-day gaps during the working week to be wrongly inferred as business daily (:issue:`16624`)
-- Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile()` and :func:`DataFrame.quantile()` (:issue:`9413`, :issue:`16211`)
+- Bug in ``.rolling(...).quantile()`` which incorrectly used different defaults than :func:`Series.quantile` and :func:`DataFrame.quantile` (:issue:`9413`, :issue:`16211`)
 - Bug in ``groupby.transform()`` that would coerce boolean dtypes back to float (:issue:`16875`)
 - Bug in ``Series.resample(...).apply()`` where an empty ``Series`` modified the source index and did not return the name of a ``Series`` (:issue:`14313`)
 - Bug in ``.rolling(...).apply(...)`` with a ``DataFrame`` with a ``DatetimeIndex``, a ``window`` of a timedelta-convertible and ``min_periods >= 1`` (:issue:`15305`)
@@ -1194,7 +1194,7 @@ Reshaping
 Numeric
 ^^^^^^^
 - Bug in ``.clip()`` with ``axis=1`` and a list-like for ``threshold`` is passed; previously this raised ``ValueError`` (:issue:`15390`)
-- :func:`Series.clip()` and :func:`DataFrame.clip()` now treat NA values for upper and lower arguments as ``None`` instead of raising ``ValueError`` (:issue:`17276`).
+- :func:`Series.clip` and :func:`DataFrame.clip` now treat NA values for upper and lower arguments as ``None`` instead of raising ``ValueError`` (:issue:`17276`).
 
 
 Categorical

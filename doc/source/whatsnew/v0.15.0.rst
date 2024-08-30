@@ -490,7 +490,7 @@ Rolling/expanding moments improvements
   ``ddof`` argument (with a default value of ``1``) was previously undocumented. (:issue:`8064`)
 
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now interpret ``min_periods`` in the same manner that the :func:`rolling_*()` and :func:`expanding_*()` functions do:
+  now interpret ``min_periods`` in the same manner that the :func:`rolling_*` and :func:`expanding_*` functions do:
   a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
   at least ``min_periods`` values. The previous behavior was to set to ``NaN`` the ``min_periods`` entries
   starting with the first non- ``NaN`` value. (:issue:`7977`)
@@ -567,7 +567,7 @@ Rolling/expanding moments improvements
 
   .. warning::
 
-     By default (``ignore_na=False``) the :func:`ewm*()` functions' weights calculation
+     By default (``ignore_na=False``) the :func:`ewm*` functions' weights calculation
      in the presence of missing values is different than in pre-0.15.0 versions.
      To reproduce the pre-0.15.0 calculation of weights in the presence of missing values
      one must specify explicitly ``ignore_na=True``.
@@ -576,7 +576,7 @@ Rolling/expanding moments improvements
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-- Bug in :func:`rolling_count` and :func:`expanding_*()` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
+- Bug in :func:`rolling_count` and :func:`expanding_*` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
 - Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
 - Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
 - Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
@@ -875,7 +875,7 @@ Other notable API changes:
   The behaviour of assigning a column to an existing dataframe as ``df['a'] = i``
   remains unchanged (this already returned an  ``object`` column with a timezone).
 
-- When passing multiple levels to :meth:`~pandas.DataFrame.stack()`, it will now raise a ``ValueError`` when the
+- When passing multiple levels to :meth:`~pandas.DataFrame.stack`, it will now raise a ``ValueError`` when the
   levels aren't all level names or all level numbers (:issue:`7660`). See
   :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
 
@@ -1110,7 +1110,7 @@ Other:
 
 - ``DataFrame.fillna`` can now accept a ``DataFrame`` as a fill value (:issue:`8377`)
 
-- Passing multiple levels to :meth:`~pandas.DataFrame.stack()` will now work when multiple level
+- Passing multiple levels to :meth:`~pandas.DataFrame.stack` will now work when multiple level
   numbers are passed (:issue:`7660`). See
   :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
 

@@ -1504,7 +1504,7 @@ Plotting with error bars
 
 Plotting with error bars is supported in :meth:`DataFrame.plot` and :meth:`Series.plot`.
 
-Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot()`. The error values can be specified using a variety of formats:
+Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot`. The error values can be specified using a variety of formats:
 
 * As a :class:`DataFrame` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting :class:`DataFrame` or matching the ``name`` attribute of the :class:`Series`.
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.

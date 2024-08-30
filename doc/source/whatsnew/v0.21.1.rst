@@ -176,7 +176,7 @@ Categorical
 String
 ^^^^^^
 
-- :meth:`Series.str.split()` will now propagate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
+- :meth:`Series.str.split` will now propagate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
 
 
 .. _whatsnew_0.21.1.contributors:
