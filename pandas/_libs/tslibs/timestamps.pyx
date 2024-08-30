@@ -612,8 +612,7 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freq_name, month_kw, self._creso)
         return out[0]
 
-    @property
-    def max(self):
+    def max(self) -> "Timestamp":
         """
         A constant that represents the maximum valid date and time value.
 
@@ -635,10 +634,9 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.Timestamp.max
         Timestamp('2262-04-11 23:47:16.854775807')
         """
-        return self.max
+        return max
 
-    @property
-    def min(self):
+    def min(self) -> "Timestamp":
         """
         Return the minimum representable Timestamp.
 
@@ -660,7 +658,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.Timestamp.min
         Timestamp('1677-09-21 00:12:43.145224193')
         """
-        return self.min
+        return min
 
     @property
     def is_month_start(self) -> bool:
