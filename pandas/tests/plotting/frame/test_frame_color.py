@@ -219,6 +219,12 @@ class TestDataFrameColor:
             ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
 
         assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 3  # r/g/b
+        assert (
+            np.unique(ax.collections[0].get_facecolor(), axis=0)
+            == np.array(
+                [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 0.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
+            )  # r/g/b
+        ).all()
         assert ax.collections[0].colorbar is None
 
     def test_scatter_with_c_column_name_without_colors(self):
@@ -269,7 +275,13 @@ class TestDataFrameColor:
         df = DataFrame({"x": [1, 2, 3], "y": [1, 2, 3]})
         with tm.assert_produces_warning(None):
             ax = df.plot.scatter(x="x", y="y", c="b")
-            assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 1  # b
+            assert (
+                len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 1
+            )  # blue
+            assert (
+                np.unique(ax.collections[0].get_facecolor(), axis=0)
+                == np.array([[0.0, 0.0, 1.0, 1.0]])
+            ).all()  # blue
 
     def test_scatter_colors_default(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
