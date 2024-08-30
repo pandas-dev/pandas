@@ -634,7 +634,6 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.Timestamp.max
         Timestamp('2262-04-11 23:47:16.854775807')
         """
-        return max
 
     def min(self) -> "Timestamp":
         """
@@ -658,7 +657,6 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.Timestamp.min
         Timestamp('1677-09-21 00:12:43.145224193')
         """
-        return min
 
     @property
     def is_month_start(self) -> bool:
