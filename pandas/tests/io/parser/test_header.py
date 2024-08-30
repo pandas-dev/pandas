@@ -538,7 +538,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -670,7 +670,7 @@ def test_header_none_and_on_bad_lines_skip(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_missing_rows(all_parsers):
     # GH#47400
     parser = all_parsers

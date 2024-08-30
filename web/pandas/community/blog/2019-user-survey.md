@@ -77,7 +77,7 @@ For environment isolation, [conda](https://conda.io/en/latest/) was the most pop
 ![png]({{ base_url }}/static/img/blog/2019-user-survey/2019_13_0.png)
 
 
-Most repondents are Python 3 only.
+Most respondents are Python 3 only.
 
 
 

@@ -613,7 +613,7 @@ the pandas-equivalent operations compared to software you already know:
 
         Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
         or other spreadsheet programs will find that many of the concepts are
-        transferrable to pandas.
+        transferable to pandas.
 
         +++
 

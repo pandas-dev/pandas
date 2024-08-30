@@ -34,7 +34,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_as
         NPY_FR_GENERIC
 
-    int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
+    int64_t NPY_DATETIME_NAT  # elsewhere we call this NPY_NAT
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":

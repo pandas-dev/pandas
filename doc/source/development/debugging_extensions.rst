@@ -30,7 +30,7 @@ By specifying ``builddir="debug"`` all of the targets will be built and placed i
 Using Docker
 ------------
 
-To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locallly.
+To simplify the debugging process, pandas has created a Docker image with a debug build of Python and the gdb/Cython debuggers pre-installed. You may either ``docker pull pandas/pandas-debug`` to get access to this image or build it from the ``tooling/debug`` folder locally.
 
 You can then mount your pandas repository into this image via:
 

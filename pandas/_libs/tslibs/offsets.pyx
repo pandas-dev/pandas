@@ -792,7 +792,7 @@ cdef class BaseOffset:
 
     def __getstate__(self):
         """
-        Return a pickleable state
+        Return a picklable state
         """
         state = {}
         state["n"] = self.n
@@ -1456,7 +1456,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     def __getstate__(self):
         """
-        Return a pickleable state
+        Return a picklable state
         """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__

@@ -2199,7 +2199,7 @@ class DataFrame(NDFrame, OpsMixin):
         ) -> tuple[list[ArrayLike], Index, Index | None]:
             """
             If our desired 'columns' do not match the data's pre-existing 'arr_columns',
-            we re-order our arrays.  This is like a pre-emptive (cheap) reindex.
+            we re-order our arrays.  This is like a preemptive (cheap) reindex.
             """
             if len(arrays):
                 length = len(arrays[0])
@@ -4484,7 +4484,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             You can refer to column names that are not valid Python variable names
             by surrounding them in backticks. Thus, column names containing spaces
-            or punctuations (besides underscores) or starting with digits must be
+            or punctuation (besides underscores) or starting with digits must be
             surrounded by backticks. (For example, a column named "Area (cm^2)" would
             be referenced as ```Area (cm^2)```). Column names which are Python keywords
             (like "if", "for", "import", etc) cannot be used.
@@ -12360,7 +12360,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         Series.std : Return standard deviation over Series values.
         DataFrame.mean : Return the mean of the values over the requested axis.
-        DataFrame.mediam : Return the mediam of the values over the requested axis.
+        DataFrame.median : Return the median of the values over the requested axis.
         DataFrame.mode : Get the mode(s) of each element along the requested axis.
         DataFrame.sum : Return the sum of the values over the requested axis.
 

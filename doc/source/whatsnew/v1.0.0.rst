@@ -900,7 +900,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed ``pandas.plotting._matplotlib.tsplot``, use :meth:`Series.plot` instead (:issue:`19980`)
 - ``pandas.tseries.converter.register`` has been moved to :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18307`)
 - :meth:`Series.plot` no longer accepts positional arguments, pass keyword arguments instead (:issue:`30003`)
-- :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passinig a tuple instead (:issue:`30003`)
+- :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passing a tuple instead (:issue:`30003`)
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
 - :class:`TimedeltaIndex` and :class:`DatetimeIndex` no longer accept non-nanosecond dtype strings like "timedelta64" or "datetime64", use "timedelta64[ns]" and "datetime64[ns]" instead (:issue:`24806`)
 - Changed the default "skipna" argument in :func:`pandas.api.types.infer_dtype` from ``False`` to ``True`` (:issue:`24050`)

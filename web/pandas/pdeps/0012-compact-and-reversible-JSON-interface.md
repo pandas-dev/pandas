@@ -448,7 +448,7 @@ To conclude,
 
 ## Core team decision
 
-Vote was open from september-11 to setpember-26:
+Vote was open from september-11 to september-26:
 
 - Final tally is 0 approvals, 5 abstentions, 7 disapprove. The quorum has been met. The PDEP fails.
 
