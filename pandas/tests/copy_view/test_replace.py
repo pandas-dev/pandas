@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -9,6 +13,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "replace_kwargs",
     [
@@ -56,6 +61,7 @@ def test_replace_regex_inplace_refs():
     tm.assert_frame_equal(view, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace():
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
@@ -253,6 +259,7 @@ def test_replace_empty_list():
     assert not df2._mgr._has_no_reference(0)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
     df = DataFrame({"a": ["a", "b", "c"]})

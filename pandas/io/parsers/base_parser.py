@@ -4,6 +4,7 @@ from collections import defaultdict
 from copy import copy
 import csv
 from enum import Enum
+import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -271,7 +272,7 @@ class ParserBase:
 
     @final
     def _make_index(
-        self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
+        self, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
         if isinstance(self.index_col, list) and len(self.index_col):
@@ -326,7 +327,11 @@ class ParserBase:
         converters = self._clean_mapping(self.converters)
         clean_dtypes = self._clean_mapping(self.dtype)
 
-        for i, arr in enumerate(index):
+        if self.index_names is not None:
+            names: Iterable = self.index_names
+        else:
+            names = itertools.cycle([None])
+        for i, (arr, name) in enumerate(zip(index, names)):
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
@@ -369,12 +374,17 @@ class ParserBase:
             arr, _ = self._infer_types(
                 arr, col_na_values | col_na_fvalues, cast_type is None, try_num_bool
             )
-            arrays.append(arr)
+            if cast_type is not None:
+                # Don't perform RangeIndex inference
+                idx = Index(arr, name=name, dtype=cast_type)
+            else:
+                idx = ensure_index_from_sequences([arr], [name])
+            arrays.append(idx)
 
-        names = self.index_names
-        index = ensure_index_from_sequences(arrays, names)
-
-        return index
+        if len(arrays) == 1:
+            return arrays[0]
+        else:
+            return MultiIndex.from_arrays(arrays)
 
     @final
     def _set_noconvert_dtype_columns(
@@ -704,12 +714,11 @@ class ParserBase:
         dtype_dict: defaultdict[Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
-            default_dtype = dtype or object
-            dtype_dict = defaultdict(lambda: default_dtype)
+            dtype_dict = defaultdict(lambda: dtype)
         else:
             dtype = cast(dict, dtype)
             dtype_dict = defaultdict(
-                lambda: object,
+                lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
             )
 
@@ -726,8 +735,14 @@ class ParserBase:
         if (index_col is None or index_col is False) or index_names is None:
             index = default_index(0)
         else:
-            data = [Series([], dtype=dtype_dict[name]) for name in index_names]
-            index = ensure_index_from_sequences(data, names=index_names)
+            # TODO: We could return default_index(0) if dtype_dict[name] is None
+            data = [
+                Index([], name=name, dtype=dtype_dict[name]) for name in index_names
+            ]
+            if len(data) == 1:
+                index = data[0]
+            else:
+                index = MultiIndex.from_arrays(data)
             index_col.sort()
 
             for i, n in enumerate(index_col):

@@ -601,6 +601,7 @@ class TestDataFrameReplace:
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_mixed2(self, using_infer_string):
         # to object block upcasting
         df = DataFrame(
@@ -1268,6 +1269,7 @@ class TestDataFrameReplace:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_value_category_type(self):
         """
         Test for #23305: to ensure category dtypes are maintained
@@ -1364,6 +1366,7 @@ class TestDataFrameReplace:
         expected = DataFrame(["z", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_replace_intervals(self):
         # https://github.com/pandas-dev/pandas/issues/35931
         df = DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})

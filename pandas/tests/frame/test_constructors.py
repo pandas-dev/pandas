@@ -24,6 +24,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 
@@ -256,7 +257,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self, float_string_frame, using_infer_string):
-        dtype = "string" if using_infer_string else np.object_
+        dtype = "str" if using_infer_string else np.object_
         assert float_string_frame["foo"].dtype == dtype
 
     def test_constructor_cast_failure(self):
@@ -299,7 +300,7 @@ class TestDataFrameConstructors:
         df2 = DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
-    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
+    @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
@@ -760,7 +761,7 @@ class TestDataFrameConstructors:
 
         frame = DataFrame(test_data)
         assert len(frame) == 3
-        assert frame["B"].dtype == np.object_ if not using_infer_string else "string"
+        assert frame["B"].dtype == np.object_ if not using_infer_string else "str"
         assert frame["A"].dtype == np.float64
 
     def test_constructor_dict_cast2(self):
@@ -1182,7 +1183,7 @@ class TestDataFrameConstructors:
         assert df["bool"].dtype == np.bool_
         assert df["float"].dtype == np.float64
         assert df["complex"].dtype == np.complex128
-        assert df["object"].dtype == np.object_ if not using_infer_string else "string"
+        assert df["object"].dtype == np.object_ if not using_infer_string else "str"
 
     def test_constructor_arrays_and_scalars(self):
         df = DataFrame({"a": np.random.default_rng(2).standard_normal(10), "b": True})
@@ -1265,7 +1266,7 @@ class TestDataFrameConstructors:
         # GH #484
         df = DataFrame(data=[[1, "a"], [2, "b"]], columns=["num", "str"])
         assert is_integer_dtype(df["num"])
-        assert df["str"].dtype == np.object_ if not using_infer_string else "string"
+        assert df["str"].dtype == np.object_ if not using_infer_string else "str"
 
         # GH 4851
         # list of 0-dim ndarrays
@@ -1833,7 +1834,12 @@ class TestDataFrameConstructors:
         result = df.dtypes
         expected = Series(
             [np.dtype("int64")]
-            + [np.dtype(objectname) if not using_infer_string else "string"] * 2
+            + [
+                np.dtype(objectname)
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan)
+            ]
+            * 2
             + [np.dtype("M8[s]"), np.dtype("M8[us]")],
             index=list("ABCDE"),
         )
@@ -1855,7 +1861,11 @@ class TestDataFrameConstructors:
         expected = Series(
             [np.dtype("float64")]
             + [np.dtype("int64")]
-            + [np.dtype("object") if not using_infer_string else "string"]
+            + [
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan)
+            ]
             + [np.dtype("float64")]
             + [np.dtype(intname)],
             index=["a", "b", "c", floatname, intname],
@@ -1877,7 +1887,11 @@ class TestDataFrameConstructors:
         expected = Series(
             [np.dtype("float64")]
             + [np.dtype("int64")]
-            + [np.dtype("object") if not using_infer_string else "string"]
+            + [
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan)
+            ]
             + [np.dtype("float64")]
             + [np.dtype(intname)],
             index=["a", "b", "c", floatname, intname],
@@ -1935,6 +1949,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction
@@ -2102,7 +2117,9 @@ class TestDataFrameConstructors:
             [
                 np.dtype("int64"),
                 np.dtype("float64"),
-                np.dtype("object") if not using_infer_string else "string",
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan),
                 np.dtype("datetime64[us]"),
                 np.dtype("float64"),
             ],

@@ -157,7 +157,7 @@ and then run::
     git bisect start
     git bisect good v1.4.0
     git bisect bad v1.5.0
-    git bisect run bash -c "python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true; python t.py"
+    git bisect run bash -c "python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; python t.py"
 
 This finds the first commit that changed the behavior. The C extensions have to be
 rebuilt at every step, so the search can take a while.
@@ -165,7 +165,7 @@ rebuilt at every step, so the search can take a while.
 Exit bisect and rebuild the current version::
 
     git bisect reset
-    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+    python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
 
 Report your findings under the corresponding issue and ping the commit author to get
 their input.

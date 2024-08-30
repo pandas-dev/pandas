@@ -451,7 +451,9 @@ class MPLPlot(ABC):
             )
 
         if self.style is not None:
-            if is_list_like(self.style):
+            if isinstance(self.style, dict):
+                styles = [self.style[col] for col in self.columns if col in self.style]
+            elif is_list_like(self.style):
                 styles = self.style
             else:
                 styles = [self.style]
@@ -546,7 +548,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax  # type: ignore[return-value]
+            return new_ax
 
     @final
     @cache_readonly

@@ -8,6 +8,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
@@ -257,7 +259,7 @@ class TestFancy:
             with pytest.raises(
                 KeyError,
                 match=re.escape(
-                    "\"None of [Index(['E'], dtype='string')] are in the [index]\""
+                    "\"None of [Index(['E'], dtype='str')] are in the [index]\""
                 ),
             ):
                 dfnu.loc[["E"]]
@@ -526,6 +528,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_astype_assignment(self, using_infer_string):
         # GH4312 (iloc)
         df_orig = DataFrame(
