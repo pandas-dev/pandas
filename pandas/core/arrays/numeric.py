@@ -4,7 +4,6 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -28,7 +27,10 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
     import pyarrow
 

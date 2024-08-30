@@ -6,9 +6,10 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -228,6 +229,7 @@ class TestBase:
             with pytest.raises(TypeError, match=msg):
                 idx.any()
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):
             pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
@@ -244,6 +246,11 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -438,7 +445,7 @@ class TestBase:
         assert index[0:4].equals(result)
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="completely different behavior, tested elsewher",
     )
     def test_insert_out_of_bounds(self, index):
@@ -822,8 +829,9 @@ class TestBase:
 
         result = index.append(index)
         assert result.dtype == index.dtype
-        tm.assert_index_equal(result[:N], index, check_exact=True)
-        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
+        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
 
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
@@ -841,21 +849,14 @@ class TestBase:
             tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
-                err = TypeError
                 msg = "ufunc 'invert' not supported for the input types"
-            elif using_infer_string and idx.dtype == "string":
-                import pyarrow as pa
-
-                err = pa.lib.ArrowNotImplementedError
-                msg = "has no kernel"
             else:
-                err = TypeError
-                msg = "bad operand"
-            with pytest.raises(err, match=msg):
+                msg = "bad operand|__invert__ is not supported for string dtype"
+            with pytest.raises(TypeError, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(err, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
 

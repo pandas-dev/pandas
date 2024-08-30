@@ -29,7 +29,7 @@ class TestTimedeltas:
         #  supported GH#29794
         msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
 
-        ser = Series([pd.NaT])
+        ser = Series([pd.NaT], dtype="M8[ns]")
         with pytest.raises(TypeError, match=msg):
             to_timedelta(ser)
         with pytest.raises(TypeError, match=msg):
@@ -56,7 +56,10 @@ class TestTimedeltas:
     def test_to_timedelta_series(self):
         # Series
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
-        result = to_timedelta(Series(["1d", "1days 00:00:01"]))
+
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(Series(["1d", "1days 00:00:01"]))
         tm.assert_series_equal(result, expected)
 
     def test_to_timedelta_units(self):

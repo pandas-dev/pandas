@@ -2,7 +2,8 @@ import datetime
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -2071,7 +2072,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -2083,7 +2084,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-01"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value2": list("ABCDE"),
@@ -2097,7 +2098,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.timezone.utc,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -3063,6 +3064,7 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_merge_datatype_error_raises(self, using_infer_string):
         if using_infer_string:
             msg = "incompatible merge keys"
@@ -3162,7 +3164,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan, np.nan, np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_by_col_tz_aware(self):
@@ -3213,7 +3215,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])

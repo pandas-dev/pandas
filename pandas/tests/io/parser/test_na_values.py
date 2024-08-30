@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import (
@@ -259,6 +261,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -426,6 +429,7 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",
@@ -532,6 +536,7 @@ def test_na_values_dict_aliasing(all_parsers):
     tm.assert_dict_equal(na_values, na_values_copy)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_na_values_dict_null_column_name(all_parsers):
     # see gh-57547
     parser = all_parsers
@@ -662,6 +667,7 @@ def test_inf_na_values_with_int_index(all_parsers):
     tm.assert_frame_equal(out, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @xfail_pyarrow  # mismatched shape
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
@@ -713,6 +719,7 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
 # TODO: this test isn't about the na_values keyword, it is about the empty entries
 #  being returned with NaN entries, whereas the pyarrow engine returns "nan"
 @xfail_pyarrow  # mismatched shapes
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_str_nan_dropped(all_parsers):
     # see gh-21131
     parser = all_parsers

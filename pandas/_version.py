@@ -10,13 +10,13 @@
 
 """Git implementation of _version.py."""
 
+from collections.abc import Callable
 import errno
 import functools
 import os
 import re
 import subprocess
 import sys
-from typing import Callable
 
 
 def get_keywords():

@@ -68,6 +68,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -227,13 +228,17 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
-    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+    if not isinstance(
+        values,
+        (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray, ABCNumpyExtensionArray),
+    ):
         # GH#52986
         if func_name != "isin-targets":
             # Make an exception for the comps argument in isin.
             raise TypeError(
                 f"{func_name} requires a Series, Index, "
-                f"ExtensionArray, or np.ndarray, got {type(values).__name__}."
+                f"ExtensionArray, np.ndarray or NumpyExtensionArray "
+                f"got {type(values).__name__}."
             )
 
         inferred = lib.infer_dtype(values, skipna=False)
@@ -327,10 +332,12 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
+        The input array-like object containing values from which to extract
+        unique values.
 
     Returns
     -------
-    numpy.ndarray or ExtensionArray
+    numpy.ndarray, ExtensionArray or NumpyExtensionArray
 
         The return can be:
 
@@ -338,7 +345,7 @@ def unique(values):
         * Categorical : when the input is a Categorical dtype
         * ndarray : when the input is a Series/ndarray
 
-        Return numpy.ndarray or ExtensionArray.
+        Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
 
     See Also
     --------
@@ -354,14 +361,15 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
 
     >>> pd.unique(
     ...     pd.Series(
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     <DatetimeArray>
@@ -373,7 +381,8 @@ def unique(values):
     ...         [
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
     ...             pd.Timestamp("20160101", tz="US/Eastern"),
-    ...         ]
+    ...         ],
+    ...         dtype="M8[ns, US/Eastern]",
     ...     )
     ... )
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
@@ -408,6 +417,13 @@ def unique(values):
 
     >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
+
+    An NumpyExtensionArray of complex
+
+    >>> pd.unique(pd.array([1 + 1j, 2, 3]))
+    <NumpyExtensionArray>
+    [(1+1j), (2+0j), (3+0j)]
+    Length: 3, dtype: complex128
     """
     return unique_with_mask(values)
 
@@ -1170,11 +1186,14 @@ def take(
     ... )
     array([ 10,  10, -10])
     """
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+    if not isinstance(
+        arr,
+        (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCNumpyExtensionArray),
+    ):
         # GH#52981
         raise TypeError(
-            "pd.api.extensions.take requires a numpy.ndarray, "
-            f"ExtensionArray, Index, or Series, got {type(arr).__name__}."
+            "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
+            f"Index, Series, or NumpyExtensionArray got {type(arr).__name__}."
         )
 
     indices = ensure_platform_int(indices)
@@ -1523,9 +1542,7 @@ def safe_sort(
         order2 = sorter.argsort()
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
-            codes[mask] = 0
-        else:
-            mask = None
+            codes[mask] = -1
         new_codes = take_nd(order2, codes, fill_value=-1)
     else:
         reverse_indexer = np.empty(len(sorter), dtype=int)
@@ -1533,14 +1550,6 @@ def safe_sort(
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
         new_codes = reverse_indexer.take(codes, mode="wrap")
-
-        if use_na_sentinel:
-            mask = codes == -1
-            if verify:
-                mask = mask | (codes < -len(values)) | (codes >= len(values))
-
-    if use_na_sentinel and mask is not None:
-        np.putmask(new_codes, mask, -1)
 
     return ordered, ensure_platform_int(new_codes)
 

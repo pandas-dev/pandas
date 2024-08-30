@@ -7,7 +7,6 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -18,7 +17,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
-    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -175,7 +173,10 @@ if not pa_version_under10p1:
     }
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._libs.missing import NAType
     from pandas._typing import (
@@ -574,10 +575,11 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage in (
-                    "pyarrow",
-                    "pyarrow_numpy",
+                if (
+                    isinstance(self._dtype, StringDtype)
+                    and self._dtype.storage == "pyarrow"
                 ):
+                    # TODO(infer_string) should this be large_string?
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -679,7 +681,12 @@ class ArrowExtensionArray(
             return type(self)(pc.invert(self._pa_array))
 
     def __neg__(self) -> Self:
-        return type(self)(pc.negate_checked(self._pa_array))
+        try:
+            return type(self)(pc.negate_checked(self._pa_array))
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(
+                f"unary '-' not supported for dtype '{self.dtype}'"
+            ) from err
 
     def __pos__(self) -> Self:
         return type(self)(self._pa_array)
@@ -707,7 +714,13 @@ class ArrowExtensionArray(
         if isinstance(
             other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
         ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
-            result = pc_func(self._pa_array, self._box_pa(other))
+            try:
+                result = pc_func(self._pa_array, self._box_pa(other))
+            except pa.ArrowNotImplementedError:
+                # TODO: could this be wrong if other is object dtype?
+                #  in which case we need to operate pointwise?
+                result = ops.invalid_comparison(self, other, op)
+                result = pa.array(result, type=pa.bool_())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
@@ -728,8 +741,19 @@ class ArrowExtensionArray(
             )
         return ArrowExtensionArray(result)
 
+    def _op_method_error_message(self, other, op) -> str:
+        if hasattr(other, "dtype"):
+            other_type = f"dtype '{other.dtype}'"
+        else:
+            other_type = f"object of type {type(other)}"
+        return (
+            f"operation '{op.__name__}' not supported for "
+            f"dtype '{self.dtype}' with {other_type}"
+        )
+
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
+        other_original = other
         other = self._box_pa(other)
 
         if (
@@ -739,10 +763,15 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
-                if op is operator.add:
-                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
-                elif op is roperator.radd:
-                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                try:
+                    if op is operator.add:
+                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                    elif op is roperator.radd:
+                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                except pa.ArrowNotImplementedError as err:
+                    raise TypeError(
+                        self._op_method_error_message(other_original, op)
+                    ) from err
                 return type(self)(result)
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
@@ -774,9 +803,14 @@ class ArrowExtensionArray(
 
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
+            if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+                raise TypeError(self._op_method_error_message(other_original, op))
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
-        result = pc_func(self._pa_array, other)
+        try:
+            result = pc_func(self._pa_array, other)
+        except pa.ArrowNotImplementedError as err:
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
         return type(self)(result)
 
     def _logical_method(self, other, op) -> Self:
@@ -1705,8 +1739,6 @@ class ArrowExtensionArray(
         if name == "median":
             # GH 52679: Use quantile instead of approximate_median; returns array
             result = result[0]
-        if pc.is_null(result).as_py():
-            return result
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
@@ -2279,6 +2311,12 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
+    def _convert_bool_result(self, result):
+        return type(self)(result)
+
+    def _convert_int_result(self, result):
+        return type(self)(result)
+
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
@@ -2299,38 +2337,7 @@ class ArrowExtensionArray(
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
+    def _result_converter(self, result):
         return type(self)(result)
 
     def _str_replace(
@@ -2612,17 +2619,19 @@ class ArrowExtensionArray(
     @property
     def _dt_days(self) -> Self:
         return type(self)(
-            pa.array(self._to_timedeltaarray().days, from_pandas=True, type=pa.int32())
+            pa.array(
+                self._to_timedeltaarray().components.days,
+                from_pandas=True,
+                type=pa.int32(),
+            )
         )
 
     @property
     def _dt_hours(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.hours if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.hours,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2631,10 +2640,8 @@ class ArrowExtensionArray(
     def _dt_minutes(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.minutes if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.minutes,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2643,7 +2650,9 @@ class ArrowExtensionArray(
     def _dt_seconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().seconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.seconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2651,10 +2660,8 @@ class ArrowExtensionArray(
     def _dt_milliseconds(self) -> Self:
         return type(self)(
             pa.array(
-                [
-                    td.components.milliseconds if td is not NaT else None
-                    for td in self._to_timedeltaarray()
-                ],
+                self._to_timedeltaarray().components.milliseconds,
+                from_pandas=True,
                 type=pa.int32(),
             )
         )
@@ -2663,7 +2670,7 @@ class ArrowExtensionArray(
     def _dt_microseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().microseconds,
+                self._to_timedeltaarray().components.microseconds,
                 from_pandas=True,
                 type=pa.int32(),
             )
@@ -2673,7 +2680,9 @@ class ArrowExtensionArray(
     def _dt_nanoseconds(self) -> Self:
         return type(self)(
             pa.array(
-                self._to_timedeltaarray().nanoseconds, from_pandas=True, type=pa.int32()
+                self._to_timedeltaarray().components.nanoseconds,
+                from_pandas=True,
+                type=pa.int32(),
             )
         )
 
@@ -2791,7 +2800,10 @@ class ArrowExtensionArray(
 
     @property
     def _dt_microsecond(self) -> Self:
-        return type(self)(pc.microsecond(self._pa_array))
+        # GH 59154
+        us = pc.microsecond(self._pa_array)
+        ms_to_us = pc.multiply(pc.millisecond(self._pa_array), 1000)
+        return type(self)(pc.add(us, ms_to_us))
 
     @property
     def _dt_minute(self) -> Self:
@@ -2970,7 +2982,7 @@ def transpose_homogeneous_pyarrow(
     """
     arrays = list(arrays)
     nrows, ncols = len(arrays[0]), len(arrays)
-    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.reshape(-1)
     arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
     arr = arr.take(indices)
     return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]

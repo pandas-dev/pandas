@@ -46,9 +46,8 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         # In cases with c.ordered, this is equivalent to
         #  return c.remove_unused_categories(), c
 
-        unique_codes = unique1d(c.codes)  # type: ignore[no-untyped-call]
+        take_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
 
-        take_codes = unique_codes[unique_codes != -1]
         if sort:
             take_codes = np.sort(take_codes)
 
@@ -67,17 +66,18 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
 
     # sort=False should order groups in as-encountered order (GH-8868)
 
-    # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
-    all_codes = np.arange(c.categories.nunique())
+    # GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     # GH 38140: exclude nan from indexer for categories
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
     if sort:
         unique_notnan_codes = np.sort(unique_notnan_codes)
-    if len(all_codes) > len(unique_notnan_codes):
+    if (num_cat := len(c.categories)) > len(unique_notnan_codes):
         # GH 13179: All categories need to be present, even if missing from the data
-        missing_codes = np.setdiff1d(all_codes, unique_notnan_codes, assume_unique=True)
+        missing_codes = np.setdiff1d(
+            np.arange(num_cat), unique_notnan_codes, assume_unique=True
+        )
         take_codes = np.concatenate((unique_notnan_codes, missing_codes))
     else:
         take_codes = unique_notnan_codes
 
-    return Categorical(c, c.unique().categories.take(take_codes))
+    return Categorical(c, c.categories.take(take_codes))

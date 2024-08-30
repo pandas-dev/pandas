@@ -8,7 +8,6 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     Union,
     overload,
@@ -99,6 +98,7 @@ from pandas.core.ops import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )

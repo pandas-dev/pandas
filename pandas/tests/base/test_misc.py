@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import PYPY
 from pandas.compat.numpy import np_version_gt2
@@ -83,8 +83,8 @@ def test_ndarray_compat_properties(index_or_series_obj):
 
 
 @pytest.mark.skipif(
-    PYPY or using_pyarrow_string_dtype(),
-    reason="not relevant for PyPy, doesn't work properly for arrow strings",
+    PYPY or using_string_dtype() or np_version_gt2,
+    reason="not relevant for PyPy doesn't work properly for arrow strings",
 )
 def test_memory_usage(index_or_series_memory_obj, request):
     obj = index_or_series_memory_obj
@@ -106,11 +106,6 @@ def test_memory_usage(index_or_series_memory_obj, request):
     is_string_array = is_dtype_equal(obj, "string[python]") or (
         is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
-    if is_string_array and np_version_gt2:
-        mark = pytest.mark.xfail(
-            reason="NumPy does not expose an API to get StringDType memory usage"
-        )
-        request.applymarker(mark)
 
     if len(obj) == 0:
         expected = 0

@@ -16,7 +16,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -554,7 +554,7 @@ def sanitize_array(
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
-    data_was_index = isinstance(data, ABCIndex)
+    infer_object = not isinstance(data, (ABCIndex, ABCSeries))
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
@@ -571,14 +571,10 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        if (
-            isinstance(data, str)
-            and using_pyarrow_string_dtype()
-            and original_dtype is None
-        ):
+        if isinstance(data, str) and using_string_dtype() and original_dtype is None:
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype("pyarrow_numpy")
+            dtype = StringDtype(na_value=np.nan)
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         return data
@@ -607,12 +603,12 @@ def sanitize_array(
 
         if dtype is None:
             subarr = data
-            if data.dtype == object and not data_was_index:
+            if data.dtype == object and infer_object:
                 subarr = maybe_infer_to_datetimelike(data)
-            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+            elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
-                dtype = StringDtype(storage="pyarrow_numpy")
+                dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:

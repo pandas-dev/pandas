@@ -5,7 +5,6 @@ import re
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
 )
@@ -24,7 +23,10 @@ from pandas.core.arrays.integer import IntegerArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         NpDtype,
@@ -36,8 +38,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     """
     String Methods operating on object-dtype ndarrays.
     """
-
-    _str_na_value = np.nan
 
     def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
@@ -56,7 +56,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         na_value : Scalar, optional
             The value to set for NA values. Might also be used for the
             fill value if the callable `f` raises an exception.
-            This defaults to ``self._str_na_value`` which is ``np.nan``
+            This defaults to ``self.dtype.na_value`` which is ``np.nan``
             for object-dtype and Categorical and ``pd.NA`` for StringArray.
         dtype : Dtype, optional
             The dtype of the result array.
@@ -66,7 +66,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
-            na_value = self._str_na_value
+            na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not len(self):
             return np.array([], dtype=dtype)
@@ -273,7 +273,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
-            return self._str_na_value
+            return self.dtype.na_value  # type: ignore[attr-defined]
 
         return self._str_map(f)
 
@@ -460,23 +460,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda x: x.rstrip(to_strip))
 
     def _str_removeprefix(self, prefix: str):
-        # outstanding question on whether to use native methods for users on Python 3.9+
-        # https://github.com/pandas-dev/pandas/pull/39226#issuecomment-836719770,
-        # in which case we could do return self._str_map(str.removeprefix)
-
-        def removeprefix(text: str) -> str:
-            if text.startswith(prefix):
-                return text[len(prefix) :]
-            return text
-
-        return self._str_map(removeprefix)
+        return self._str_map(lambda x: x.removeprefix(prefix))
 
     def _str_removesuffix(self, suffix: str):
         return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
-        na_value = self._str_na_value
+        na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not expand:
 
@@ -516,34 +507,53 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         if isinstance(pat, tuple) or na is not None:
             return super()._str_endswith(pat, na)
 
-        pat = np.asarray(pat, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        pat = np.asarray(
+            pat, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         result = np.strings.endswith(self._ndarray, pat)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_find(self, sub, start: int = 0, end=None) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_find(sub, start, end)
-        sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        sub = np.asarray(
+            sub, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         result[~na_mask] = np.strings.find(self._ndarray[~na_mask], sub, start, end)
-        return IntegerArray(result, na_mask)
+        res = IntegerArray(result, na_mask)
+        if self.dtype.na_value is not libmissing.NA:
+            # Cast to float64 if necessary
+            res = res.to_numpy()
+        return res
 
     def _str_rfind(self, sub, start: int = 0, end=None) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_rfind(sub, start, end)
 
-        sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        sub = np.asarray(
+            sub, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         result[~na_mask] = np.strings.rfind(self._ndarray[~na_mask], sub, start, end)
-        return IntegerArray(result, na_mask)
+        res = IntegerArray(result, na_mask)
+        if self.dtype.na_value is not libmissing.NA:
+            # Cast to float64 if necessary
+            res = res.to_numpy()
+        return res
 
     def _str_index(self, sub, start: int = 0, end=None) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_index(sub, start, end)
 
-        sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        sub = np.asarray(
+            sub, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         if start is None:
@@ -551,12 +561,18 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         result[~na_mask] = np.strings.index(
             self._ndarray[~na_mask], sub, start=start, end=end
         )
-        return IntegerArray(result, na_mask)
+        res = IntegerArray(result, na_mask)
+        if self.dtype.na_value is not libmissing.NA:
+            # Cast to float64 if necessary
+            res = res.to_numpy()
+        return res
 
     def _str_rindex(self, sub, start: int = 0, end=None) -> IntegerArray:
         if self._ndarray.dtype == object:
             return super()._str_rindex(sub, start, end)
-        sub = np.asarray(sub, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        sub = np.asarray(
+            sub, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         if start is None:
@@ -564,61 +580,92 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         result[~na_mask] = np.strings.rindex(
             self._ndarray[~na_mask], sub, start=start, end=end
         )
-        return IntegerArray(result, na_mask)
+        res = IntegerArray(result, na_mask)
+        if self.dtype.na_value is not libmissing.NA:
+            # Cast to float64 if necessary
+            res = res.to_numpy()
+        return res
 
     def _str_isalnum(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isalnum()
         result = np.strings.isalnum(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isalpha(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isalpha()
         result = np.strings.isalpha(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isdigit(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isdigit()
         result = np.strings.isdigit(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isdecimal(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isdecimal()
         result = np.strings.isdecimal(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_islower(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_islower()
         result = np.strings.islower(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isnumeric(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isnumeric()
         result = np.strings.isnumeric(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isspace(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isspace()
         result = np.strings.isspace(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_istitle(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_istitle()
         result = np.strings.istitle(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_isupper(self) -> BooleanArray:
         if self._ndarray.dtype == object:
             return super()._str_isupper()
         result = np.strings.isupper(self._ndarray)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_len(self) -> IntegerArray:
         if self._ndarray.dtype == object:
@@ -626,14 +673,18 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         na_mask = isna(self._ndarray)
         result = np.empty_like(self._ndarray, dtype="int64")
         result[~na_mask] = np.strings.str_len(self._ndarray[~na_mask])
-        return IntegerArray(result, isna(self._ndarray))
+        res = IntegerArray(result, na_mask)
+        if self.dtype.na_value is not libmissing.NA:
+            # Cast to float64 if necessary
+            res = res.to_numpy()
+        return res
 
     def _str_lstrip(self, to_strip=None):
         if self._ndarray.dtype == object:
             return super()._str_lstrip(to_strip)
         if to_strip is not None:
             to_strip = np.asarray(
-                to_strip, dtype=np.dtypes.StringDType(na_object=libmissing.NA)
+                to_strip, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
             )
         return np.strings.lstrip(self._ndarray, to_strip)
 
@@ -643,8 +694,12 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
         if regex or case is not None:
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
-        pat = np.asarray(pat, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
-        repl = np.asarray(repl, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        pat = np.asarray(
+            pat, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
+        repl = np.asarray(
+            repl, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         return np.strings.replace(self._ndarray, pat, repl, n)
 
     def _str_rstrip(self, to_strip=None):
@@ -652,7 +707,7 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
             return super()._str_rstrip(to_strip)
         if to_strip is not None:
             to_strip = np.asarray(
-                to_strip, dtype=np.dtypes.StringDType(na_object=libmissing.NA)
+                to_strip, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
             )
         return np.strings.rstrip(self._ndarray, to_strip)
 
@@ -661,7 +716,7 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
             return super()._str_strip(to_strip)
         if to_strip is not None:
             to_strip = np.asarray(
-                to_strip, dtype=np.dtypes.StringDType(na_object=libmissing.NA)
+                to_strip, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
             )
         return np.strings.strip(self._ndarray, to_strip)
 
@@ -670,9 +725,14 @@ class NumpyStringArrayMixin(ObjectStringArrayMixin):
             return super()._str_startswith(pat, na)
         if isinstance(pat, tuple) or na is not None:
             return super()._str_startswith(pat, na)
-        pat = np.asarray(pat, dtype=np.dtypes.StringDType(na_object=libmissing.NA))
+        pat = np.asarray(
+            pat, dtype=np.dtypes.StringDType(na_object=self.dtype.na_value)
+        )
         result = np.strings.startswith(self._ndarray, pat)
-        return BooleanArray(result, isna(self._ndarray))
+        res = BooleanArray(result, isna(self._ndarray))
+        if self.dtype.na_value is not libmissing.NA:
+            res = res.to_numpy(na_value=self.dtype.na_value)
+        return res
 
     def _str_zfill(self, width):
         if self._ndarray.dtype == object:

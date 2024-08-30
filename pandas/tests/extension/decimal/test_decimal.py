@@ -68,10 +68,12 @@ def data_for_grouping():
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["kurt", "sem"]:
+            return False
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):

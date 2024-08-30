@@ -10,6 +10,7 @@ authors
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -87,6 +88,15 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
+    warnings.warn(
+        # GH#56815
+        "make_block is deprecated and will be removed in a future version. "
+        "Use pd.api.internals.create_dataframe_from_blocks or "
+        "(recommended) higher-level public APIs instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 

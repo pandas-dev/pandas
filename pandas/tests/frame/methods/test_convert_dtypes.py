@@ -11,13 +11,9 @@ class TestConvertDtypes:
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_convert_dtypes(
-        self, convert_integer, expected, string_storage, using_infer_string
-    ):
+    def test_convert_dtypes(self, convert_integer, expected, string_storage):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
-        if using_infer_string:
-            string_storage = "pyarrow_numpy"
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),

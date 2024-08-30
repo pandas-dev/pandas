@@ -67,6 +67,21 @@ class TestEngine:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_numba_min_periods(self):
+        # GH 58868
+        def last_row(x):
+            assert len(x) == 3
+            return x[-1]
+
+        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]])
+
+        result = df.rolling(3, method="table", min_periods=3).apply(
+            last_row, raw=True, engine="numba"
+        )
+
+        expected = DataFrame([[np.nan, np.nan], [np.nan, np.nan], [5, 6], [7, 8]])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "data",
         [
@@ -304,7 +319,9 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
-    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
+    with pytest.raises(
+        NumbaUtilError, match="numba does not support keyword-only arguments"
+    ):
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )

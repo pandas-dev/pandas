@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -214,7 +216,7 @@ class TestDataFrameCorr:
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.arrays) == 2  # i.e. 2 blocks
+        assert len(df._mgr.blocks) == 2
 
         _ = df.corr(numeric_only=True)
 
@@ -318,6 +320,7 @@ class TestDataFrameCorrWith:
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_corrwith_with_objects(self, using_infer_string):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),

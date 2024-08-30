@@ -79,7 +79,7 @@ def test_frame_describe_multikey(tsframe):
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = MultiIndex(
-            levels=[[col], group.columns],
+            levels=[Index([col], dtype=tsframe.columns.dtype), group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
         group = DataFrame(group.values, columns=group_col, index=group.index)
@@ -267,5 +267,5 @@ def test_groupby_empty_dataset(dtype, kwargs):
 
     result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([])
+    expected.index = Index([], dtype=df.columns.dtype)
     tm.assert_frame_equal(result, expected)

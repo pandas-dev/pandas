@@ -149,9 +149,6 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
-        return type(self)(arr)
-
     # ------------------------------------------------------------------------
     # Data
 
@@ -579,7 +576,3 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan
