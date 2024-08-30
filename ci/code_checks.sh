@@ -70,7 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
-        -i "pandas.MultiIndex.reorder_levels RT03,SA01" \
         -i "pandas.NA SA01" \
         -i "pandas.NaT SA01" \
         -i "pandas.Period.freq GL08" \
