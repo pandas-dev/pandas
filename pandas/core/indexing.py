@@ -2308,11 +2308,11 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int | np.integer] | np.ndarray
+        ilocs: Sequence[int | np.integer] | np.ndarray | range
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+            ilocs = range(len(self.obj.columns))[column_indexer]
         elif (
             isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):
