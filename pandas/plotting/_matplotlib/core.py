@@ -21,10 +21,6 @@ import warnings
 
 import matplotlib as mpl
 import numpy as np
-from seaborn._base import (
-    HueMapping,
-    VectorPlotter,
-)
 
 from pandas._libs import lib
 from pandas.errors import AbstractMethodError
@@ -1351,38 +1347,28 @@ class ScatterPlot(PlanePlot):
         # if a list of non color strings is passed in as c, color points
         # by uniqueness of the strings, such same strings get same color
         create_colors = not self._are_valid_colors(c_values)
+        if create_colors:
+            color_mapping = self._get_color_mapping(c_values)
+            c_values = [color_mapping[s] for s in c_values]
 
-        # Plot as normal
-        if not create_colors:
-            scatter = ax.scatter(
-                data[x].values,
-                data[y].values,
-                c=c_values,
-                label=label,
-                cmap=cmap,
-                norm=norm,
-                s=self.s,
-                **self.kwds,
-            )
-        # Have to custom color
-        else:
-            scatter = ax.scatter(
-                data[x].values,
-                data[y].values,
-                label=label,
-                cmap=cmap,
-                norm=norm,
-                s=self.s,
-                **self.kwds,
+            # build legend for labeling custom colors
+            ax.legend(
+                handles=[
+                    mpl.patches.Circle((0, 0), facecolor=c, label=s)
+                    for s, c in color_mapping.items()
+                ]
             )
 
-            # set colors via Seaborn as it contains all the logic for handling color
-            # decision all nicely packaged
-            scatter.set_facecolor(
-                HueMapping(
-                    VectorPlotter(data=data, variables={"x": x, "y": y, "hue": c})
-                )(c_values)
-            )
+        scatter = ax.scatter(
+            data[x].values,
+            data[y].values,
+            c=c_values,
+            label=label,
+            cmap=cmap,
+            norm=norm,
+            s=self.s,
+            **self.kwds,
+        )
 
         if cb:
             cbar_label = c if c_is_column else ""
@@ -1423,7 +1409,7 @@ class ScatterPlot(PlanePlot):
             c_values = c
         return c_values
 
-    def _are_valid_colors(self, c_values: np.ndarray):
+    def _are_valid_colors(self, c_values: Series):
         # check if c_values contains strings and if these strings are valid mpl colors.
         # no need to check numerics as these (and mpl colors) will be validated for us
         # in .Axes.scatter._parse_scatter_color_args(...)
@@ -1436,6 +1422,16 @@ class ScatterPlot(PlanePlot):
 
         except (TypeError, ValueError) as _:
             return False
+
+    def _get_color_mapping(self, c_values: Series) -> dict[str, str]:
+        unique = np.unique(c_values)
+        n_colors = len(unique)
+
+        # passing `None` here will default to :rc:`image.cmap`
+        cmap = mpl.colormaps.get_cmap(self.colormap)
+        colors = cmap(np.linspace(0, 1, n_colors))  # RGB tuples
+
+        return dict(zip(unique, colors))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
