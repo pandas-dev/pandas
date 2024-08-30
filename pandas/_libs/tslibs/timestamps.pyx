@@ -321,7 +321,7 @@ cdef class _Timestamp(ABCTimestamp):
     def _from_dt64(cls, dt64: np.datetime64):
         # construct a Timestamp from a np.datetime64 object, keeping the
         #  resolution of the input.
-        # This is herely mainly so we can incrementally implement non-nano
+        # This is here mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)
         cdef:
             int64_t value
@@ -985,6 +985,30 @@ cdef class _Timestamp(ABCTimestamp):
         return super().day
 
     @property
+    def fold(self) -> int:
+        """
+        Return the fold value of the Timestamp.
+
+        Returns
+        -------
+        int
+            The fold value of the Timestamp, where 0 indicates the first occurrence
+            of the ambiguous time, and 1 indicates the second.
+
+        See Also
+        --------
+        Timestamp.dst : Return the daylight saving time (DST) adjustment.
+        Timestamp.tzinfo : Return the timezone information associated.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-11-03 01:30:00")
+        >>> ts.fold
+        0
+        """
+        return super().fold
+
+    @property
     def month(self) -> int:
         """
         Return the month of the Timestamp.
@@ -1335,7 +1359,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def as_unit(self, str unit, bint round_ok=True):
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------

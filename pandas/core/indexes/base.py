@@ -2943,7 +2943,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         With mismatched timezones, cast both to UTC.
         """
-        # Caller is responsibelf or checking
+        # Caller is responsible for checking
         #  `self.dtype != other.dtype`
         if (
             isinstance(self, ABCDatetimeIndex)
