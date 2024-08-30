@@ -18,14 +18,23 @@ decided against moving forward with this PDEP for pandas 3.0.
 
 The primary reasons for rejecting this PDEP are twofold:
 
-1) Requiring pyarrow as a dependency causes installation problems.
+1) Requiring pyarrow as a dependency can cause installation problems for a significant portion of users.
 
    - Pyarrow does not fit or has a hard time fitting in space-constrained environments
 such as AWS Lambda, due to its large size of around ~40 MB for a compiled wheel
 (which is larger than pandas' own wheel sizes)
+     - This can also cause problems for downstream libraries that use pandas as a dependency
+       as while pandas + pyarrow can potentially fit in an AWS Lambda environment, the combination of
+       pandas, pyarrow, and the downstream library may not fit.
+     - While it may potentially be possible to work around this issue by using the AWS Lambda Layer from
+       the [AWS SDK for pandas](https://aws-sdk-pandas.readthedocs.io/en/stable/install.html#aws-lambda-layer),
+       the primary benefit of pyarrow strings is not enough to force users to make a disruptive change.
 
    - Installation of pyarrow is not possible on some platforms. We provide support for some
 less widely used platforms such as Alpine Linux, which pyarrow does not provide wheels for.
+     - While pyarrow has made great strides towards supporting most platforms that pandas is installable on
+       (e.g. the recent addition of pyodide support in pyarrow), we would still have to drop support for some
+       platforms like musllinux (the feature request is tracked [here](https://github.com/apache/arrow/issues/18036)) if pyarrow was to be required.
 
    While installation issues are mentioned in the drawbacks section of PDEP-10, at the time of the writing
 of the PDEP, we underestimated the impact this would have on users, and also downstream developers.
@@ -55,10 +64,9 @@ of the PDEP, we underestimated the impact this would have on users, and also dow
      - The Arrow C Data Interface would allow us to import/export pandas DataFrames to and from other libraries
        that support Arrow in a zero-copy manner.
 
-     - Support for the Arrow C Data interface in pandas and other libraries in the ecosystem is still very new, though,
-       (support in pandas itself was only added as of pandas 2.2), and the dataframe interchange protocol, which allows
-       for dataframe interchange between Python dataframe implementations is currently better supported in downstream
-       libraries.
+     - While several libraries have adopted the Arrow C Data Interface, e.g. polars, xgboost, duckdb, etc., the main
+       beneficiaries of Arrow C Data Interface are other dataframe libraries, as most downstream libraries tend to
+       already support using pandas dataframes as input.
 
 Although this PR recommends not adopting pyarrow as a required dependency in pandas 3.0, this does not mean that we are
 abandoning pyarrow support and integration in pandas. Adopting support for pyarrow arrays
