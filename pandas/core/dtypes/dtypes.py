@@ -611,7 +611,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             dtype = cast(CategoricalDtype, dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
-        if dtype.categories is not None and dtype.ordered is not None:
+        if (
+            isinstance(dtype, CategoricalDtype)
+            and dtype.categories is not None
+            and dtype.ordered is not None
+        ):
             # Avoid re-validation in CategoricalDtype constructor
             return dtype
         new_categories = (
