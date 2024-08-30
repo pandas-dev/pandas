@@ -1821,7 +1821,7 @@ default 'raise'
 
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------
