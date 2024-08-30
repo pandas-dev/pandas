@@ -613,31 +613,6 @@ cdef class _Timestamp(ABCTimestamp):
         return out[0]
 
     @property
-    def microsecond(self) -> int:
-        """
-        Return the microsecond component of the Timestamp.
-
-        The microsecond component represents the number of microseconds
-        (0 to 999,999) of the Timestamp.
-
-        Returns
-        -------
-        int
-            Microsecond component of the Timestamp, ranging from 0 to 999,999.
-
-        See Also
-        --------
-        Timestamp.second : Return the second component of the Timestamp.
-        Timestamp.minute : Return the minute component of the Timestamp.
-
-        Examples
-        --------
-        >>> ts = pd.Timestamp('2024-08-23 14:30:15.123456')
-        >>> ts.microsecond
-        123456
-        """
-        return self.microsecond
-
     def max(self):
         """
         A constant that represents the maximum valid date and time value.
@@ -662,6 +637,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return max
 
+    @property
     def min(self):
         """
         Return the minimum representable Timestamp.
@@ -685,34 +661,6 @@ cdef class _Timestamp(ABCTimestamp):
         Timestamp('1677-09-21 00:12:43.145224193')
         """
         return min
-
-    def hour(self) -> int:
-        """
-        Returns the hour component of the timestamp.
-
-        The hour is represented as an integer ranging from 0 to 23, where 0 corresponds
-        to midnight (00:00) and 23 corresponds to the last hour of the day (23:00).
-
-        Returns
-        -------
-        int
-            The hour component of the timestamp as an integer between 0 and 23.
-
-        See Also
-        --------
-        Timestamp.minute : Similar property indicating the minute of the timestamp.
-
-        Examples
-        --------
-        >>> ts = pd.Timestamp('2020-03-14T12:32:52.192548651')
-        >>> ts.hour()
-        12
-
-        >>> ts = pd.Timestamp('2020-03-14T22:43:12.192547851')
-        >>> ts.hour()
-        22
-        """
-        return self.hour
 
     @property
     def is_month_start(self) -> bool:
