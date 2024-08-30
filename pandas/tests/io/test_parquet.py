@@ -1174,7 +1174,7 @@ class TestParquetPyArrow(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_maps_as_pydicts(self, pa):
-        import pyarrow
+        pyarrow = pytest.importorskip("pyarrow", "13.0.0")
 
         schema = pyarrow.schema(
             [("foo", pyarrow.map_(pyarrow.string(), pyarrow.int64()))]
