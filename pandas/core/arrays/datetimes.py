@@ -250,6 +250,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         "dayofyear",
         "day_of_year",
         "quarter",
+        "qyear",
         "days_in_month",
         "daysinmonth",
         "microsecond",
@@ -1152,6 +1153,15 @@ default 'raise'
         This method is available on Series with datetime values under
         the ``.dt`` accessor, and directly on Datetime Array/Index.
 
+        Parameters
+        ----------
+        *args : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
         Returns
         -------
         DatetimeArray, DatetimeIndex or Series
@@ -1917,6 +1927,50 @@ default 'raise'
         ...                         "2/1/2020 11:00:00+00:00"])
         >>> idx.quarter
         Index([1, 1], dtype='int32')
+        """,
+    )
+    qyear = _field_accessor(
+        "qyear",
+        "qy",
+        """
+        Fiscal year the Period lies in according to its starting-quarter.
+
+        The `year` and the `qyear` of the period will be the same if the fiscal
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
+
+        Returns
+        -------
+        int
+            The fiscal year of the period.
+
+        See Also
+        --------        
+        DatetimeIndex.year : Return the calendar year of the date.
+        DatetimeIndex.quarter : Return the quarter of the date
+        
+        Examples
+        --------
+        If the natural and fiscal year are the same, `qyear` and `year` will
+        be the same.
+
+        >>> per = pd.Period('2018Q1', freq='Q')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2018
+
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
+        will be the fiscal year, 2018.
+
+        >>> per = pd.Period('2018Q1', freq='Q-MAR')
+        >>> per.start_time
+        Timestamp('2017-04-01 00:00:00')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2017        
         """,
     )
     days_in_month = _field_accessor(
