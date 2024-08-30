@@ -169,7 +169,7 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
   implementation when "numpy_nullable" is set, pyarrow is used for all
   dtypes if "pyarrow" is set.
 
-  The dtype_backends are still experiential.
+  The dtype_backends are still experimental.
 
   .. versionadded:: 2.0
 
