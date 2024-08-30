@@ -587,7 +587,7 @@ See installation and usage instructions on the [GitHub page](https://github.com/
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was designed to help one manage a
 Pandas code base, specifically with respect to feature engineering for machine learning models.
 
-It prescibes an opinionated paradigm, that ensures all code is:
+It prescribes an opinionated paradigm, that ensures all code is:
 
 * unit testable
 * integration testing friendly
