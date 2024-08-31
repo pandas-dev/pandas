@@ -34,7 +34,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _convert_bool_result(self, result, na=lib.no_default):
+    def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
         # Convert a bool-dtype result to the appropriate result type
         raise NotImplementedError
 
@@ -130,7 +130,7 @@ class ArrowStringArrayMixin:
             and not isna(na)
         ):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
-        return self._convert_bool_result(result, na=na)
+        return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
         self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
@@ -153,4 +153,4 @@ class ArrowStringArrayMixin:
             and not isna(na)
         ):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
-        return self._convert_bool_result(result, na=na)
+        return self._convert_bool_result(result, na=na, method_name="endswith")

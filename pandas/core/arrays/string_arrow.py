@@ -223,7 +223,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values, na=lib.no_default):
+    def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
         if self.dtype.na_value is np.nan:
             na_value: bool | lib.NoDefault
             if na is lib.no_default:
@@ -233,6 +233,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 values = values.fill_null(False)
                 na_value = lib.no_default
             else:
+                if not isinstance(na, bool):
+                    # GH#59561
+                    warnings.warn(
+                        f"Allowing a non-bool 'na' in obj.str.{method_name} is "
+                        "deprecated and will raise in a future version.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 values = values.fill_null(bool(na))
                 na_value = lib.no_default
             return ArrowExtensionArray(values).to_numpy(na_value=na_value)
@@ -310,7 +318,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._convert_bool_result(result, na=na)
+        result = self._convert_bool_result(result, na=na, method_name="contains")
         if (
             self.dtype.na_value is libmissing.NA
             and na is not lib.no_default

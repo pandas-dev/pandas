@@ -299,7 +299,8 @@ def test_startswith_endswith_validate_na(any_string_dtype):
 
     dtype = ser.dtype
     if (
-        isinstance(dtype, pd.StringDtype) and dtype.storage == "python"
+        isinstance(dtype, pd.StringDtype)
+        and (dtype.storage == "python" or dtype.na_value is np.nan)
     ) or dtype == np.dtype("object"):
         msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
