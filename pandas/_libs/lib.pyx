@@ -2449,18 +2449,18 @@ def maybe_convert_numeric(
 @cython.wraparound(False)
 def _convert_to_pyarrow(
                         ndarray[object] objects,
-                        ndarray[uint8_t] mask) -> "ArrayLike":
+                        ndarray[uint8_t] mask,
+                        object na_value=None) -> "ArrayLike":
     from pandas.core.dtypes.dtypes import ArrowDtype
 
     from pandas.core.arrays.string_ import StringDtype
 
-    na_value = np.nan
-    if mask is not None and any(mask):
-        na_value = objects[mask][0]
-
+    # pa.array does not support na_value as pd.NA,
+    # so we replace them by None and then restore them after
     objects[mask] = None
     pa_array = pa.array(objects)
 
+    # Pyarrow large string are StringDtype (not ArrowDtype)
     if pa.types.is_large_string(pa_array.type):
         dtype = StringDtype(storage="pyarrow", na_value=na_value)
     else:
@@ -2510,7 +2510,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
                           object dtype_if_all_nat=None,
-                          str storage=None) -> "ArrayLike":
+                          str storage=None,
+                          object na_value=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2712,7 +2713,7 @@ def maybe_convert_objects(ndarray[object] objects,
             break
 
     if storage == "pyarrow":
-        return _convert_to_pyarrow(objects, mask)
+        return _convert_to_pyarrow(objects, mask, na_value)
 
     numpy_dtype = None
     if len(val_types) == 1:
@@ -3009,6 +3010,7 @@ def map_infer_mask(
             convert_to_nullable_dtype=convert_to_nullable_dtype,
             convert_non_numeric=convert_non_numeric,
             storage=storage,
+            na_value=na_value,
         )
     else:
         return result
@@ -3079,6 +3081,7 @@ def map_infer(
             convert_to_nullable_dtype=convert_to_nullable_dtype,
             convert_non_numeric=True,
             storage=storage,
+            na_value=na_value,
         )
     else:
         return result

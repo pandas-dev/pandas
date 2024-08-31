@@ -102,6 +102,7 @@ def maybe_convert_objects(
     convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
     storage: str | None = ...,
+    na_value: Any = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
 @overload
 def maybe_convert_objects(
@@ -114,6 +115,7 @@ def maybe_convert_objects(
     convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
     storage: str | None = ...,
+    na_value: Any = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -126,6 +128,7 @@ def maybe_convert_objects(
     convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
     storage: str | None = ...,
+    na_value: Any = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_numeric(
