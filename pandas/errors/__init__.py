@@ -285,6 +285,30 @@ class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
 
+    The `AbstractMethodError` is designed for use in classes that follow an abstract
+    base class pattern. By raising this error in the method, it ensures that a subclass
+    must implement the method to provide specific functionality. This is useful in a
+    framework or library where certain methods must be implemented by the user to
+    ensure correct behavior.
+
+    Parameters
+    ----------
+    class_instance : object
+        The instance of the class where the abstract method is being called.
+    methodtype : str, default "method"
+        A string indicating the type of method that is abstract.
+        Must be one of {"method", "classmethod", "staticmethod", "property"}.
+
+    See Also
+    --------
+    api.extensions.ExtensionArray
+        An example of a pandas extension mechanism that requires implementing
+        specific abstract methods.
+    NotImplementedError
+        A built-in exception that can also be used for abstract methods but lacks
+        the specificity of `AbstractMethodError` in indicating the need for subclass
+        implementation.
+
     Examples
     --------
     >>> class Foo:
