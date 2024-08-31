@@ -6994,7 +6994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f'you passed a "{type(value).__name__}"'
             )
 
-        # set the default here, so functions examining the signaure
+        # set the default here, so functions examining the signature
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
             axis = 0
@@ -7051,7 +7051,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # see test_fillna_dict_inplace_nonunique_columns
                         locs = result.columns.get_loc(k)
                         if isinstance(locs, slice):
-                            locs = np.arange(self.shape[1])[locs]
+                            locs = range(self.shape[1])[locs]
                         elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
                             locs = locs.nonzero()[0]
                         elif not (
@@ -11847,13 +11847,43 @@ ddof : int, default 1
     where N represents the number of elements.
 numeric_only : bool, default False
     Include only float, int, boolean columns. Not implemented for Series.
+**kwargs :
+    Additional keywords have no effect but might be accepted
+    for compatibility with NumPy.
 
 Returns
 -------
-{name1} or {name2} (if level specified) \
+{name1} or {name2} (if level specified)
+    {return_desc}
+
+See Also
+--------
+{see_also}\
 {notes}\
 {examples}
 """
+
+_sem_see_also = """\
+scipy.stats.sem : Compute standard error of the mean.
+{name2}.std : Return sample standard deviation over requested axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_sem_return_desc = """\
+Unbiased standard error of the mean over requested axis."""
+
+_std_see_also = """\
+numpy.std : Compute the standard deviation along the specified axis.
+{name2}.var : Return unbiased variance over requested axis.
+{name2}.sem : Return unbiased standard error of the mean over requested axis.
+{name2}.mean : Return the mean of the values over the requested axis.
+{name2}.median : Return the median of the values over the requested axis.
+{name2}.mode : Return the mode(s) of the Series."""
+
+_std_return_desc = """\
+Standard deviation over requested axis."""
 
 _std_notes = """
 
@@ -12706,8 +12736,8 @@ def make_doc(name: str, ndim: int) -> str:
             "ddof argument."
         )
         examples = _std_examples
-        see_also = ""
-        kwargs = {"notes": _std_notes}
+        see_also = _std_see_also.format(name2=name2)
+        kwargs = {"notes": "", "return_desc": _std_return_desc}
 
     elif name == "sem":
         base_doc = _num_ddof_doc
@@ -12751,8 +12781,8 @@ def make_doc(name: str, ndim: int) -> str:
             >>> df.sem(numeric_only=True)
             a   0.5
             dtype: float64"""
-        see_also = ""
-        kwargs = {"notes": ""}
+        see_also = _sem_see_also.format(name2=name2)
+        kwargs = {"notes": "", "return_desc": _sem_return_desc}
 
     elif name == "skew":
         base_doc = _num_doc
