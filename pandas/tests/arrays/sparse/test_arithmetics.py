@@ -471,14 +471,14 @@ def test_mismatched_length_cmp_op(cons):
 @pytest.mark.parametrize(
     "a, b",
     [
-        (SparseArray([0, 1, 2], fill_value=0), np.array([0, 1, 2, 3])),
-        (SparseArray([0, 1, 2, 3], fill_value=0), np.array([0, 1, 2])),
+        ([0, 1, 2], [0, 1, 2, 3]),
+        ([0, 1, 2, 3], [0, 1, 2]),
     ],
 )
 def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
     op = all_arithmetic_functions
     with pytest.raises(AssertionError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
-        op(a, b)
+        op(SparseArray(a, fill_value=0), np.array(b))
 
 
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])
