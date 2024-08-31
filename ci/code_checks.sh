@@ -75,7 +75,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
-        -i "pandas.PeriodDtype SA01" \
         -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex PR07" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
