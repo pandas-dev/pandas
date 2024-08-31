@@ -1362,7 +1362,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """Removes columns from a block by splitting the block.
 
         Avoids copying the whole block through slicing and updates the manager
-        after determinint the new block structure. Optionally adds a new block,
+        after determining the new block structure. Optionally adds a new block,
         otherwise has to be done by the caller.
 
         Parameters
