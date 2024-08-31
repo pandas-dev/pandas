@@ -986,6 +986,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    Period : Represents a single time period.
+    PeriodIndex : Immutable index for period data.
+    date_range : Return a fixed frequency DatetimeIndex.
+    Series : One-dimensional array with axis labels.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
     >>> pd.PeriodDtype(freq="D")
