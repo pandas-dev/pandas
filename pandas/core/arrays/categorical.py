@@ -1008,6 +1008,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Set the Categorical to be unordered.
 
+        This method sets the `ordered` attribute of the Categorical to `False`.
+        An unordered Categorical does not have any meaningful ordering among
+        its categories, which can be useful when the order of the categories
+        is not relevant for analysis or visualization.
+
+        Parameters
+        ----------
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+            A dictionary of keyword arguments passed into `func`.
+
         Returns
         -------
         Categorical

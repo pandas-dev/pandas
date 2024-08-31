@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.RangeIndex.stop SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
         -i "pandas.Series.cat.as_ordered PR01" \
-        -i "pandas.Series.cat.as_unordered PR01" \
         -i "pandas.Series.cat.remove_categories PR01,PR02" \
         -i "pandas.Series.cat.remove_unused_categories PR01" \
         -i "pandas.Series.cat.rename_categories PR01,PR02" \
