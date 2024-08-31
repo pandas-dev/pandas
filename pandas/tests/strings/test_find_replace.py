@@ -286,7 +286,7 @@ def test_startswith_endswith_validate_na(any_string_dtype):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             ser.str.endswith("bar", na="baz")
     else:
-        # TODO: don't surface pyarrow errors
+        # TODO(infer_string): don't surface pyarrow errors
         import pyarrow as pa
 
         msg = "Could not convert 'baz' with type str: tried to convert to boolean"
