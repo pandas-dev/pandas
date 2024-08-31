@@ -1100,7 +1100,7 @@ def is_float(obj: object) -> bool:
     return util.is_float_object(obj)
 
 
-cpdef bint is_hashable(object obj):
+cpdef bint is_hashable(object obj) noexcept:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
