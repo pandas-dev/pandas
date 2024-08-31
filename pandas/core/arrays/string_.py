@@ -660,7 +660,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
-        arr = self._ndarray.copy()
+        arr = self._ndarray
 
         return arr, self.dtype.na_value
 
@@ -825,8 +825,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
-            other = np.asarray(other)
+            # for array-likes, first filter out NAs before converting to numpy
+            if not is_array_like(other):
+                other = np.asarray(other)
             other = other[valid]
+            other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
