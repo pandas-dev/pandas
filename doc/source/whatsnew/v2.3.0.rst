@@ -53,7 +53,7 @@ notable_bug_fix1
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
 -
 
 .. ---------------------------------------------------------------------------
