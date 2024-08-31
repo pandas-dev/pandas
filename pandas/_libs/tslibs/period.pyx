@@ -2755,6 +2755,27 @@ cdef class _Period(PeriodMixin):
         | ``%%``    | A literal ``'%'`` character.   |       |
         +-----------+--------------------------------+-------+
 
+        The `strftime` method provides a way to represent a :class:`Period`
+        object as a string in a specified format. This is particularly useful
+        when displaying date and time data in different locales or customized
+        formats, suitable for reports or user interfaces. It extends the standard
+        Python string formatting capabilities with additional directives specific
+        to `pandas`, accommodating features like fiscal years and precise
+        sub-second components.
+
+        Parameters
+        ----------
+        fmt : str or None
+            String containing the desired format directives. If ``None``, the
+            format is determined based on the Period's frequency.
+
+        See Also
+        --------
+        Timestamp.strftime : Return a formatted string of the Timestamp.
+        to_datetime : Convert argument to datetime.
+        time.strftime : Format a time object as a string according to a
+            specified format string in the standard Python library.
+
         Notes
         -----
 
