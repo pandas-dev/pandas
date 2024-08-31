@@ -300,6 +300,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
         result = self._convert_bool_result(result, na=na)
         if not isna(na):
+            if not isinstance(na, bool):
+                # GH#59561
+                warnings.warn(
+                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                    "and will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             result[isna(result)] = bool(na)
         return result
 
