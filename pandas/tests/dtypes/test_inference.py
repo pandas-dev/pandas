@@ -944,8 +944,9 @@ class TestInference:
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
         tm.assert_extension_array_equal(out, exp)
 
-        arr = np.array([True, False, pd.NaT], dtype=object)
-        exp = BooleanArray._from_sequence([True, False, pd.NaT], dtype="boolean")
+        # pd.NaT are not supported in BooleanArray, but pd.NA are supported
+        arr = np.array([True, False, pd.NA], dtype=object)
+        exp = BooleanArray._from_sequence([True, False, pd.NA], dtype="boolean")
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
         tm.assert_extension_array_equal(out, exp)
 
