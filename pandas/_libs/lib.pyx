@@ -1146,21 +1146,15 @@ cpdef bint is_hashable(object obj):
     is_list = PyList_CheckExact(obj)
     is_any_set = PyAnySet_CheckExact(obj)
 
-    if is_none or is_long or is_float or is_unicode:
+    if is_none or is_long or is_float or is_unicode or is_frozen_set:
         return True
 
-    # tuple and frozenset is hashable if and only if all elements are hashable
+    # tuple is hashable if and only if all elements are hashable
     if is_tuple:
         for o in <tuple>obj:
             if not is_hashable(o):
                 return False
         return True
-
-    if is_frozen_set:
-        for o in <frozenset>obj:
-            if not is_hashable(o):
-                return False
-            return True
 
     if is_dict or is_list or is_any_set:
         return False
