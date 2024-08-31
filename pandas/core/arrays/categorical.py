@@ -1302,10 +1302,24 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Add new categories.
 
-        `new_categories` will be included at the last/highest place in the
-        categories and will be unused directly after this call.
+        `new_categories` will be included at the last/highest place in the categories
+        and will be unused directly after this call. This method is useful when
+        working with categorical data that needs to be updated or extended with new
+        categories over time. Adding categories in this way avoids the need to
+        redefine the entire set of categories, which can be especially helpful in
+        scenarios where the categorical data is large or frequently updated. New
+        categories are added to the end of the list of categories, and their presence
+        will not affect the current categorical values directly until they are
+        explicitly used.
 
         Parameters
+        ----------
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+            A dictionary of keyword arguments passed into `func`.
+
+        Attributes
         ----------
         new_categories : category or list-like of category
             The new categories to be included.
