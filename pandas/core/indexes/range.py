@@ -90,7 +90,9 @@ class RangeIndex(Index):
     start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
+        The end value of the range (exclusive).
     step : int (default: 1)
+        The step size of the range.
     dtype : np.int64
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
