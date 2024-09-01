@@ -1585,6 +1585,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
+        if isinstance(self.obj, type(self.obj)):
+            result = self.obj._constructor(result)
+
         return result
 
     agg = aggregate
