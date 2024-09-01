@@ -2483,7 +2483,7 @@ def _convert_to_based_masked(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _seen_to_numpy_dtype(Seen seen, object scalar_type):
+def _maybe_get_numpy_dtype(Seen seen, object scalar_type):
     # Numpy scalar type
     if issubclass(scalar_type, np.generic):
         return np.dtype(scalar_type)
@@ -2496,6 +2496,25 @@ def _seen_to_numpy_dtype(Seen seen, object scalar_type):
         return np.dtype(int)
     elif seen.float_:
         return np.dtype(float)
+    else:
+        return None
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _maybe_get_based_masked_scalar_numpy_dtype(
+        val_types,
+        seen,
+        convert_to_nullable_dtype):
+    # If we have no type or more than one type we cannot build a based masked array
+    if not val_types or len(val_types) > 1:
+        return None
+
+    numpy_dtype = _maybe_get_numpy_dtype(seen, val_types.pop())
+    if (
+            numpy_dtype and numpy_dtype.kind in "biuf"
+            and convert_to_nullable_dtype):
+        return numpy_dtype
     else:
         return None
 
@@ -2715,13 +2734,13 @@ def maybe_convert_objects(ndarray[object] objects,
     if storage == "pyarrow":
         return _convert_to_pyarrow(objects, mask, na_value)
 
-    numpy_dtype = None
-    if len(val_types) == 1:
-        numpy_dtype = _seen_to_numpy_dtype(seen, val_types.pop())
-        if (
-                numpy_dtype and numpy_dtype.kind in "biuf"
-                and convert_to_nullable_dtype):
-            return _convert_to_based_masked(objects, numpy_dtype)
+    based_masked_scalar_numpy_dtype = _maybe_get_based_masked_scalar_numpy_dtype(
+        val_types,
+        seen,
+        convert_to_nullable_dtype)
+
+    if based_masked_scalar_numpy_dtype:
+        return _convert_to_based_masked(objects, based_masked_scalar_numpy_dtype)
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
@@ -2789,10 +2808,7 @@ def maybe_convert_objects(ndarray[object] objects,
         elif storage == "python":
             from pandas.core.arrays.string_ import StringDtype
 
-            if mask is not None and any(mask):
-                dtype = StringDtype(storage=storage, na_value=objects[mask][0])
-            else:
-                dtype = StringDtype(storage=storage)
+            dtype = StringDtype(storage=storage, na_value=na_value)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
