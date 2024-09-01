@@ -370,6 +370,10 @@ def array(
 
         elif data.dtype.kind == "b":
             return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
+        # elif inferred_dtype != "mixed":
+        #     dtype = pandas_dtype(inferred_dtype)
+        #     cls = dtype.construct_array_type()
+        #     return cls._from_sequence(data, dtype=dtype, copy=copy)
         else:
             # e.g. complex
             return NumpyExtensionArray._from_sequence(data, dtype=data.dtype, copy=copy)

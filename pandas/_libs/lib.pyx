@@ -107,6 +107,8 @@ from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport tz_compare
 
+from pandas.core.dtypes.base import _registry
+
 # constants that will be compared to potentially arbitrarily large
 # python int
 cdef:
@@ -1692,6 +1694,11 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     elif isinstance(val, Interval):
         if is_interval_array(values):
             return "interval"
+
+    print("infer_dtype")
+    reg_dtype = _registry.match_scalar(val)
+    if reg_dtype:
+        return str(reg_dtype)
 
     cnp.PyArray_ITER_RESET(it)
     for i in range(n):

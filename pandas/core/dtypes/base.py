@@ -444,6 +444,13 @@ class ExtensionDtype:
         """
         return False
 
+    def is_unambiguous_scalar(self):
+        return False
+
+    @classmethod
+    def construct_from_scalar(cls, scalar):
+        return cls()
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
@@ -580,6 +587,14 @@ class Registry:
             except TypeError:
                 pass
 
+        return None
+
+    def match_scalar(
+        self, scalar: Any
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
+        for dtype in self.dtypes:
+            if dtype.is_unambiguous_scalar(scalar):
+                return dtype.construct_from_scalar(scalar)
         return None
 
 
