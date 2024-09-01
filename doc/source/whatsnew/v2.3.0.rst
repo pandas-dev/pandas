@@ -142,7 +142,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.groupby` followed by :meth:`DataFrameGroupBy.agg` not preserving subclass type of the original DataFrame (:issue:`59667`)
 -
 
 Reshaping

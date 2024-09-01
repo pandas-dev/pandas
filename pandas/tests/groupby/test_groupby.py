@@ -3004,6 +3004,30 @@ def test_groupby_agg_namedagg_with_duplicate_columns():
 
     tm.assert_frame_equal(result, expected)
 
+class MyDataFrame(DataFrame):
+    @property
+    def _constructor(self):
+        return MyDataFrame
+
+@pytest.mark.parametrize("data, agg_dict, expected", [
+    pytest.param(
+        {"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]},
+        {"B": "sum"},
+        DataFrame({"B": [3, 7]}, index=Index([1, 2], name="A"))
+    ),
+    pytest.param(
+        {"A": [1, 1, 2, 2], "B": [1, 2, 3, 4], "C": [4, 3, 2, 1]},
+        {"B": "sum", "C": "mean"},
+        DataFrame({"B": [3, 7], "C": [3.5, 1.5]}, index=Index([1, 2], name="A"))
+    ),
+])
+def test_groupby_agg_preserves_subclass(data, agg_dict, expected):
+    # GH#59667
+    df = MyDataFrame(data)
+    result = df.groupby("A").agg(agg_dict)
+    
+    assert isinstance(result, MyDataFrame)
+    tm.assert_frame_equal(result, expected)
 
 def test_groupby_multi_index_codes():
     # GH#54347
