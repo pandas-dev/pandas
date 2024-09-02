@@ -541,9 +541,10 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
         expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        expected.columns = expected.columns.astype(
-            pd.StringDtype(string_storage, na_value=np.nan)
-        )
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
         # ensure the missing value is represented by NA and not np.nan or None
         assert result.loc[2, "a"] is result["a"].dtype.na_value
@@ -571,9 +572,10 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
         expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        expected.columns = expected.columns.astype(
-            pd.StringDtype(string_storage, na_value=np.nan)
-        )
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
 
