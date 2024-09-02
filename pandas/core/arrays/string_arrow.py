@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -19,6 +20,7 @@ from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -257,7 +259,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.is_in(
             self._pa_array, value_set=pa.array(value_set, type=self._pa_array.type)
         )
-        # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
+        # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
 
@@ -280,6 +282,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # String methods interface
 
     _str_map = BaseStringArray._str_map
+    _str_startswith = ArrowStringArrayMixin._str_startswith
+    _str_endswith = ArrowStringArrayMixin._str_endswith
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -295,46 +299,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
         result = self._convert_bool_result(result, na=na)
         if not isna(na):
+            if not isinstance(na, bool):
+                # GH#59561
+                warnings.warn(
+                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                    "and will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             result[isna(result)] = bool(na)
         return result
-
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._convert_bool_result(result)
 
     def _str_replace(
         self,

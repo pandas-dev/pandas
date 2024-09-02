@@ -1130,7 +1130,7 @@ Performance improvements
 - Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
 - Performance improvement in :func:`to_datetime` when format is given or can be inferred (:issue:`50465`)
 - Performance improvement in :meth:`Series.median` for nullable dtypes (:issue:`50838`)
-- Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsetes (:issue:`35296`)
+- Performance improvement in :func:`read_csv` when passing :func:`to_datetime` lambda-function to ``date_parser`` and inputs have mixed timezone offsets (:issue:`35296`)
 - Performance improvement in :func:`isna` and :func:`isnull` (:issue:`50658`)
 - Performance improvement in :meth:`.SeriesGroupBy.value_counts` with categorical dtype (:issue:`46202`)
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
