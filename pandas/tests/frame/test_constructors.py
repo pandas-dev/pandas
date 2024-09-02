@@ -82,7 +82,7 @@ class TestDataFrameConstructors:
         #  with an array of strings each of which is e.g. "[0 1 2]"
         arr = np.arange(12).reshape(4, 3)
         df = DataFrame(arr, dtype=str)
-        expected = DataFrame(arr.astype(str), dtype=object)
+        expected = DataFrame(arr.astype(str), dtype="str")
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_from_2d_datetimearray(self):
@@ -1766,12 +1766,18 @@ class TestDataFrameConstructors:
 
         tm.assert_frame_equal(idf, edf)
 
-    def test_constructor_empty_with_string_dtype(self):
+    def test_constructor_empty_with_string_dtype(self, using_infer_string):
         # GH 9428
         expected = DataFrame(index=[0, 1], columns=[0, 1], dtype=object)
+        expected_str = DataFrame(
+            index=[0, 1], columns=[0, 1], dtype=pd.StringDtype(na_value=np.nan)
+        )
 
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=str)
-        tm.assert_frame_equal(df, expected)
+        if using_infer_string:
+            tm.assert_frame_equal(df, expected_str)
+        else:
+            tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")

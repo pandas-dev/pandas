@@ -562,6 +562,12 @@ class Registry:
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
+            # builtin aliases
+            if dtype is str:
+                from pandas.core.arrays.string_ import StringDtype
+
+                return StringDtype(na_value=np.nan)
+
             dtype_type: type_t
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
