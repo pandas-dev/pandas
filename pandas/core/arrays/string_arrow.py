@@ -286,6 +286,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
+    _str_pad = ArrowStringArrayMixin._str_pad
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -546,7 +547,6 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _str_get = ArrowStringArrayMixin._str_get
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
-    _str_pad = ArrowStringArrayMixin._str_pad
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -7,7 +8,10 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    pa_version_under10p1,
+    pa_version_under17p0,
+)
 
 from pandas.core.dtypes.missing import isna
 
@@ -46,7 +50,19 @@ class ArrowStringArrayMixin:
         elif side == "right":
             pa_pad = pc.utf8_rpad
         elif side == "both":
-            pa_pad = pc.utf8_center
+            if pa_version_under17p0:
+                # GH#59624 fall back to object dtype
+                from pandas import array
+
+                obj_arr = self.astype(object, copy=False)  # type: ignore[attr-defined]
+                obj = array(obj_arr, dtype=object)
+                result = obj._str_pad(width, side, fillchar)  # type: ignore[attr-defined]
+                return type(self)._from_sequence(result, dtype=self.dtype)  # type: ignore[attr-defined]
+            else:
+                # GH#54792
+                # https://github.com/apache/arrow/issues/15053#issuecomment-2317032347
+                lean_left = (width % 2) == 0
+                pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=lean_left)
         else:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
