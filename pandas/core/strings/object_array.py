@@ -405,7 +405,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         try:
             arr = sep + arr + sep
         except (TypeError, NotImplementedError):
-            # TODO
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()

@@ -3658,6 +3658,7 @@ class Index(IndexOpsMixin, PandasObject):
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
+
         self._check_indexing_method(method, limit, tolerance)
 
         if not self._index_as_unique:
@@ -7730,7 +7731,6 @@ def get_values_for_csv(
         values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:
-            # TODO
             result = np.asarray(values).astype(str)
         else:
             result = np.array(values, dtype=object, copy=True)
