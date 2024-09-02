@@ -297,12 +297,14 @@ class StringDtype(StorageExtensionDtype):
             else:
                 return None
 
+        storage: str
         if len(storages) == 2:
             # if both python and pyarrow storage -> priority to pyarrow
             storage = "pyarrow"
         else:
             storage = next(iter(storages))
 
+        na_value: libmissing.NAType | float
         if len(na_values) == 2:
             # if both NaN and NA -> priority to NA
             na_value = libmissing.NA
