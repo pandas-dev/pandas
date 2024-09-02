@@ -473,7 +473,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         elif is_string_dtype(dtype):
             if isinstance(dtype, ExtensionDtype):
-                arr_object = self._format_native_types(na_rep=dtype.na_value)
+                arr_object = self._format_native_types(na_rep=dtype.na_value)  # type: ignore[arg-type]
                 cls = dtype.construct_array_type()
                 return cls._from_sequence(arr_object, dtype=dtype, copy=False)
             else:
