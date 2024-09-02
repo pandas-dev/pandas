@@ -285,8 +285,6 @@ class StringDtype(StorageExtensionDtype):
             return ArrowStringArrayNumpySemantics
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        allowed_numpy_kinds = {"S", "U"}
-
         storages = set()
         na_values = set()
 
@@ -294,7 +292,7 @@ class StringDtype(StorageExtensionDtype):
             if isinstance(dtype, StringDtype):
                 storages.add(dtype.storage)
                 na_values.add(dtype.na_value)
-            elif isinstance(dtype, np.dtype) and dtype.kind in allowed_numpy_kinds:
+            elif isinstance(dtype, np.dtype) and dtype.kind == "U":
                 continue
             else:
                 return None
