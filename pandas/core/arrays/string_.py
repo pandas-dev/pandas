@@ -173,7 +173,7 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = storage
+        self.storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -297,7 +297,6 @@ class StringDtype(StorageExtensionDtype):
             else:
                 return None
 
-        storage: str
         if len(storages) == 2:
             # if both python and pyarrow storage -> priority to pyarrow
             storage = "pyarrow"
