@@ -1009,6 +1009,29 @@ cdef class _Timestamp(ABCTimestamp):
         return super().fold
 
     @property
+    def year(self) -> int:
+        """
+        Return the year of the Timestamp.
+
+        Returns
+        -------
+        int
+            The year of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.month : Return the month of the Timestamp.
+        Timestamp.day : Return the day of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.year
+        2024
+        """
+        return super().year
+
+    @property
     def month(self) -> int:
         """
         Return the month of the Timestamp.
@@ -1020,8 +1043,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         See Also
         --------
-        Timestamp.day : Return the day of the year.
-        Timestamp.year : Return the year of the week.
+        Timestamp.day : Return the day of the Timestamp.
+        Timestamp.year : Return the year of the Timestamp.
 
         Examples
         --------
@@ -1122,6 +1145,29 @@ cdef class _Timestamp(ABCTimestamp):
         230400
         """
         return super().microsecond
+
+    @property
+    def nanosecond(self) -> int:
+        """
+        Return the nanosecond of the Timestamp.
+
+        Returns
+        -------
+        int
+            The nanosecond of the Timestamp.
+
+        See Also
+        --------
+        Timestamp.second : Return the second of the Timestamp.
+        Timestamp.microsecond : Return the microsecond of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30.230400015")
+        >>> ts.nanosecond
+        15
+        """
+        return super().nanosecond
 
     @property
     def week(self) -> int:
