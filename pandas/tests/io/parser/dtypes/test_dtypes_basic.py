@@ -580,7 +580,7 @@ z,a"""
     with pd.option_context("future.infer_string", True):
         result = parser.read_csv(StringIO(data), dtype=dtype)
 
-    expected_dtype = "str" if dtype is str and using_infer_string else object
+    expected_dtype = pd.StringDtype(na_value=np.nan) if dtype is str else object
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),

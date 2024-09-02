@@ -365,9 +365,9 @@ class TestGetIndexer:
         # TODO: with mismatched resolution get_indexer currently raises;
         #  this should probably coerce?
         target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
-        # result = ii.get_indexer(target)
+        result = ii.get_indexer(target)
         expected = np.array([0], dtype=np.intp)
-        # tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         result = ii.get_indexer(target.astype(str))
         tm.assert_numpy_array_equal(result, expected)

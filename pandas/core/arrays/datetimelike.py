@@ -472,12 +472,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
         elif is_string_dtype(dtype):
-            arr_object = self._format_native_types()
             if isinstance(dtype, ExtensionDtype):
+                arr_object = self._format_native_types(na_rep=dtype.na_value)
                 cls = dtype.construct_array_type()
                 return cls._from_sequence(arr_object, dtype=dtype, copy=False)
             else:
-                return arr_object
+                return self._format_native_types()
 
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)

@@ -173,10 +173,10 @@ class TestAstype:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_str_float(self):
+    def test_astype_str_float(self, using_infer_string):
         # see GH#11302
         result = DataFrame([np.nan]).astype(str)
-        expected = DataFrame(["nan"], dtype="str")
+        expected = DataFrame([np.nan if using_infer_string else "nan"], dtype="str")
 
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
@@ -647,9 +647,10 @@ class TestAstype:
             # dt64tz->dt64 deprecated
             timezone_frame.astype("datetime64[ns]")
 
-    def test_astype_dt64tz_to_str(self, timezone_frame):
+    def test_astype_dt64tz_to_str(self, timezone_frame, using_infer_string):
         # str formatting
         result = timezone_frame.astype(str)
+        na_value = np.nan if using_infer_string else "NaT"
         expected = DataFrame(
             [
                 [
@@ -657,7 +658,7 @@ class TestAstype:
                     "2013-01-01 00:00:00-05:00",
                     "2013-01-01 00:00:00+01:00",
                 ],
-                ["2013-01-02", "NaT", "NaT"],
+                ["2013-01-02", na_value, na_value],
                 [
                     "2013-01-03",
                     "2013-01-03 00:00:00-05:00",
@@ -665,7 +666,7 @@ class TestAstype:
                 ],
             ],
             columns=timezone_frame.columns,
-            dtype="object",
+            dtype="str",
         )
         tm.assert_frame_equal(result, expected)
 
