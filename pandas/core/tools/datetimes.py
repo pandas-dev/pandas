@@ -418,7 +418,7 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
-            npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            npvalues = np.full(len(arg), np.datetime64("NaT", "ns"))
             return DatetimeIndex(npvalues, name=name)
         raise
 
