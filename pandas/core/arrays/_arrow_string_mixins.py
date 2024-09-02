@@ -27,9 +27,12 @@ if TYPE_CHECKING:
         Self,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
 
 class ArrowStringArrayMixin:
     _pa_array: Sized
+    dtype: ExtensionDtype
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
