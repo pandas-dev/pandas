@@ -14,8 +14,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._libs.properties import cache_readonly
@@ -564,12 +562,6 @@ class Registry:
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            # builtin aliases
-            if dtype is str and using_string_dtype():
-                from pandas.core.arrays.string_ import StringDtype
-
-                return StringDtype(na_value=np.nan)
-
             dtype_type: type_t
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
