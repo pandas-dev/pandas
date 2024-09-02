@@ -107,7 +107,7 @@ class TestDatetimeIndex:
 
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
         result = idx.astype(str)
-        expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
+        expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype="str")
         tm.assert_index_equal(result, expected)
 
     def test_astype_str(self):
@@ -117,7 +117,7 @@ class TestDatetimeIndex:
         expected = Index(
             ["2012-01-01", "2012-01-02", "2012-01-03", "2012-01-04"],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -132,7 +132,7 @@ class TestDatetimeIndex:
                 "2012-01-03 00:00:00-05:00",
             ],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -143,7 +143,7 @@ class TestDatetimeIndex:
         expected = Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -155,7 +155,7 @@ class TestDatetimeIndex:
         result = dti.astype(str)
         expected = Index(
             ["2012-03-06 00:00:00+00:00", "2012-03-06 01:00:00+00:00"],
-            dtype=object,
+            dtype="str",
             name="test_name",
         )
         tm.assert_index_equal(result, expected)

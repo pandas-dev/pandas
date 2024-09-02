@@ -168,7 +168,7 @@ class TestAstype:
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             },
-            dtype="object",
+            dtype="str",
         )
 
         tm.assert_frame_equal(result, expected)
@@ -176,13 +176,13 @@ class TestAstype:
     def test_astype_str_float(self):
         # see GH#11302
         result = DataFrame([np.nan]).astype(str)
-        expected = DataFrame(["nan"], dtype="object")
+        expected = DataFrame(["nan"], dtype="str")
 
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
 
         val = "1.1234567890123457"
-        expected = DataFrame([val], dtype="object")
+        expected = DataFrame([val], dtype="str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -284,7 +284,7 @@ class TestAstype:
         result = df.astype(dtypes)
         expected = DataFrame(
             {
-                0: Series(vals[:, 0].astype(str), dtype=object),
+                0: Series(vals[:, 0].astype(str), dtype="str"),
                 1: vals[:, 1],
                 2: pd.array(vals[:, 2], dtype="Float64"),
                 3: vals[:, 3],

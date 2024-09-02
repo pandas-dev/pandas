@@ -3658,7 +3658,6 @@ class Index(IndexOpsMixin, PandasObject):
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
-
         self._check_indexing_method(method, limit, tolerance)
 
         if not self._index_as_unique:
@@ -6261,7 +6260,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         dtype = _unpack_nested_dtype(other)
-        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
+        return (
+            self._is_comparable_dtype(dtype)
+            or is_object_dtype(dtype)
+            or is_string_dtype(dtype)
+        )
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -7727,6 +7730,7 @@ def get_values_for_csv(
         values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:
+            # TODO
             result = np.asarray(values).astype(str)
         else:
             result = np.array(values, dtype=object, copy=True)

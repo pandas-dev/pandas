@@ -31,7 +31,7 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
 @pytest.mark.usefixtures("pyarrow_xfail")
-def test_dtype_all_columns(all_parsers, dtype, check_orig):
+def test_dtype_all_columns(all_parsers, dtype, check_orig, using_infer_string):
     # see gh-3795, gh-6607
     parser = all_parsers
 
@@ -49,8 +49,10 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         if check_orig:
             expected = df.copy()
             result = result.astype(float)
-        else:
+        elif using_infer_string and dtype is str:
             expected = df.astype(str)
+        else:
+            expected = df.astype(str).astype(object)
 
         tm.assert_frame_equal(result, expected)
 
@@ -566,7 +568,7 @@ y,2
 
 
 @pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
-def test_string_inference_object_dtype(all_parsers, dtype):
+def test_string_inference_object_dtype(all_parsers, dtype, using_infer_string):
     # GH#56047
     pytest.importorskip("pyarrow")
 
@@ -578,10 +580,11 @@ z,a"""
     with pd.option_context("future.infer_string", True):
         result = parser.read_csv(StringIO(data), dtype=dtype)
 
+    expected_dtype = "str" if dtype is str and using_infer_string else object
     expected = DataFrame(
         {
-            "a": pd.Series(["x", "y", "z"], dtype=object),
-            "b": pd.Series(["a", "a", "a"], dtype=object),
+            "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
+            "b": pd.Series(["a", "a", "a"], dtype=expected_dtype),
         },
         columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
     )
@@ -592,7 +595,7 @@ z,a"""
 
     expected = DataFrame(
         {
-            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
             "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
         },
         columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
