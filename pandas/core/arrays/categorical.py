@@ -2689,9 +2689,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas.core.arrays import NumpyExtensionArray
 
         if using_string_dtype():
-            return NumpyExtensionArray(self.astype(str).to_numpy())._str_get_dummies(
-                sep
-            )
+            return NumpyExtensionArray(
+                self.astype(str).to_numpy(na_value="NaN")
+            )._str_get_dummies(sep)
 
         return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
 

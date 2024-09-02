@@ -101,13 +101,16 @@ class TestDatetimeIndex:
             # dt64->dt64tz deprecated
             idx._data.astype("datetime64[ns, US/Eastern]")
 
-    def test_astype_str_nat(self):
+    def test_astype_str_nat(self, using_infer_string):
         # GH 13149, GH 13209
         # verify that we are returning NaT as a string (and not unicode)
 
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
         result = idx.astype(str)
-        expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype="str")
+        if using_infer_string:
+            expected = Index(["2016-05-16", None, None, None], dtype="str")
+        else:
+            expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_astype_str(self):

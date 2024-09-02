@@ -76,9 +76,6 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_constructor_copy(self, using_infer_string):
         index = Index(list("abc"), name="name")
         arr = np.array(index)
