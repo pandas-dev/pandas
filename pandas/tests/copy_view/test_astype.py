@@ -92,7 +92,12 @@ def test_astype_string_and_object(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if new_dtype == "string":
+        # cast to string has to copy to avoid mutating the original during
+        # the call to ensure_string_array -> never a delayed copy
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df2.iloc[0, 0] = "x"
     tm.assert_frame_equal(df, df_orig)
@@ -105,7 +110,12 @@ def test_astype_string_and_object_update_original(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df2 = df.astype(new_dtype)
     df_orig = df2.copy()
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if new_dtype == "string":
+        # cast to string has to copy to avoid mutating the original during
+        # the call to ensure_string_array -> never a delayed copy
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df.iloc[0, 0] = "x"
     tm.assert_frame_equal(df2, df_orig)
@@ -220,7 +230,7 @@ def test_convert_dtypes():
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
     assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
