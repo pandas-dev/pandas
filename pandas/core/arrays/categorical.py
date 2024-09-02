@@ -13,10 +13,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_string_dtype,
-)
+from pandas._config import get_option
 
 from pandas._libs import (
     NaT,
@@ -2688,12 +2685,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        if using_string_dtype():
-            return NumpyExtensionArray(
-                self.astype(str).to_numpy(na_value="NaN")  # type: ignore[attr-defined]
-            )._str_get_dummies(sep)
-
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.to_numpy(str, na_value="NaN"))._str_get_dummies(
+            sep
+        )
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
