@@ -171,7 +171,7 @@ class StringDtype(StorageExtensionDtype):
             # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
             na_value = np.nan
         elif na_value is not libmissing.NA:
-            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+            raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
         self.storage = storage
         self._na_value = na_value
@@ -283,6 +283,35 @@ class StringDtype(StorageExtensionDtype):
             return StringArrayNumpySemantics
         else:
             return ArrowStringArrayNumpySemantics
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        allowed_numpy_kinds = {"S", "U"}
+
+        storages = set()
+        na_values = set()
+
+        for dtype in dtypes:
+            if isinstance(dtype, StringDtype):
+                storages.add(dtype.storage)
+                na_values.add(dtype.na_value)
+            elif isinstance(dtype, np.dtype) and dtype.kind in allowed_numpy_kinds:
+                continue
+            else:
+                return None
+
+        if len(storages) == 2:
+            # if both python and pyarrow storage -> priority to pyarrow
+            storage = "pyarrow"
+        else:
+            storage = next(iter(storages))
+
+        if len(na_values) == 2:
+            # if both NaN and NA -> priority to NA
+            na_value = libmissing.NA
+        else:
+            na_value = next(iter(na_values))
+
+        return StringDtype(storage=storage, na_value=na_value)
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
