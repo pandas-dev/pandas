@@ -91,7 +91,7 @@ def quantile_with_mask(
     if is_empty:
         # create the array of na_values
         # 2d len(values) * len(qs)
-        flat = np.array([fill_value] * len(qs))
+        flat = np.full(len(qs), fill_value)
         result = np.repeat(flat, len(values)).reshape(len(values), len(qs))
     else:
         result = _nanquantile(
