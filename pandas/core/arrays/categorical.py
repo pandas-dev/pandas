@@ -544,7 +544,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return res
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> ArrayLike: ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
     def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
@@ -2690,7 +2690,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if using_string_dtype():
             return NumpyExtensionArray(
-                self.astype(str).to_numpy(na_value="NaN")
+                self.astype(str).to_numpy(na_value="NaN")  # type: ignore[attr-defined]
             )._str_get_dummies(sep)
 
         return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
