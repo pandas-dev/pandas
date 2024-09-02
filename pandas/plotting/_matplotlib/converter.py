@@ -92,7 +92,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Generator[None, None, None]:
+def pandas_converters() -> Generator[None]:
     """
     Context manager registering pandas' converters for a plot.
 
