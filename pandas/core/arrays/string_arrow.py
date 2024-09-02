@@ -200,7 +200,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return cls(pc.cast(scalars, pa.large_string()))
 
         # convert non-na-likes to str
-        result = lib.ensure_string_array(scalars, copy=True)
+        result = lib.ensure_string_array(scalars, copy=copy)
         return cls(pa.array(result, type=pa.large_string(), from_pandas=True))
 
     @classmethod
