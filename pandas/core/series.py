@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     ExtensionDtype,
     SparseDtype,
@@ -580,8 +581,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         PyCapsule
         """
         pa = import_optional_dependency("pyarrow", min_version="16.0.0")
-        ca = pa.chunked_array([pa.Array.from_pandas(self, type=requested_schema)])
-        return ca.__arrow_c_stream__(requested_schema)
+        type = (
+            pa.DataType._import_from_c_capsule(requested_schema)
+            if requested_schema is not None
+            else None
+        )
+        if isinstance(self.dtype, ArrowDtype):
+            # fastpath!
+            ca = self.values._pa_array
+            if type is not None:
+                ca = ca.cast(type)
+        else:
+            ca = pa.chunked_array([pa.Array.from_pandas(self, type=type)])
+        return ca.__arrow_c_stream__()
 
     # ----------------------------------------------------------------------
 
