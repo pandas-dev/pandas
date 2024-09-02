@@ -1170,6 +1170,30 @@ cdef class _Timestamp(ABCTimestamp):
         return super().nanosecond
 
     @property
+    def value(self) -> int:
+        """
+        Return the value of the Timestamp.
+
+        Returns
+        -------
+        int
+            The integer representation of the Timestamp object in nanoseconds
+            since the Unix epoch (1970-01-01 00:00:00 UTC).
+
+        See Also
+        --------
+        Timestamp.second : Return the second of the Timestamp.
+        Timestamp.minute : Return the minute of the Timestamp.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2024-08-31 16:16:30")
+        >>> ts.value
+        1725120990000000000
+        """
+        return super().value
+
+    @property
     def week(self) -> int:
         """
         Return the week number of the year.
