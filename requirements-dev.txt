@@ -31,6 +31,7 @@ numba>=0.56.4
 numexpr>=2.8.4
 openpyxl>=3.1.0
 odfpy>=1.4.1
+py
 psycopg2-binary>=2.9.6
 pyarrow>=10.0.1
 pymysql>=1.0.2
@@ -53,7 +54,7 @@ moto
 flask
 asv>=0.6.1
 flake8==6.1.0
-mypy==1.11.2
+mypy==1.9.0
 tokenize-rt
 pre-commit>=3.6.0
 gitpython
