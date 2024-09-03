@@ -1883,7 +1883,7 @@ class TestMode:
 
         ser = Series(data, dtype=dt)
         exp = Series(exp, dtype=dt)
-        if using_infer_string:
+        if using_infer_string and dt is str:
             tm.assert_extension_array_equal(algos.mode(ser.values), exp.values)
         else:
             tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
