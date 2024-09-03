@@ -418,7 +418,7 @@ Other enhancements
 - :func:`~DataFrame.to_parquet` now supports writing a ``DataFrame`` as a directory of parquet files partitioned by a subset of the columns when ``engine = 'pyarrow'`` (:issue:`23283`)
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`8917`, :issue:`24466`)
 - :meth:`Index.difference`, :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference` now have an optional ``sort`` parameter to control whether the results should be sorted if possible (:issue:`17839`, :issue:`24471`)
-- :meth:`read_excel()` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
+- :meth:`read_excel` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
 - :meth:`MultiIndex.to_flat_index` has been added to flatten multiple levels into a single-level :class:`Index` object.
 - :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed string columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
@@ -723,8 +723,8 @@ Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
 
 The time values in :class:`Period` and :class:`PeriodIndex` objects are now set
 to '23:59:59.999999999' when calling :attr:`Series.dt.end_time`, :attr:`Period.end_time`,
-:attr:`PeriodIndex.end_time`, :func:`Period.to_timestamp()` with ``how='end'``,
-or :func:`PeriodIndex.to_timestamp()` with ``how='end'`` (:issue:`17157`)
+:attr:`PeriodIndex.end_time`, :func:`Period.to_timestamp` with ``how='end'``,
+or :func:`PeriodIndex.to_timestamp` with ``how='end'`` (:issue:`17157`)
 
 *Previous behavior*:
 
@@ -1289,15 +1289,15 @@ ways of adding operator support.
 
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`~Series.shift` now dispatches to :meth:`ExtensionArray.shift` (:issue:`22386`)
-- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
-- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+- :meth:`Series.combine` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine` with scalar argument now works for any function type (:issue:`21248`)
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Bug when concatenating multiple ``Series`` with different extension dtypes not casting to object dtype (:issue:`22994`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - :meth:`DataFrame.stack` no longer converts to object dtype for DataFrames where each column has the same extension dtype. The output Series will have the same dtype as the columns (:issue:`23077`).
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
-- Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
+- Bug when grouping :meth:`Dataframe.groupby` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 - Bug in :func:`pandas.merge` when merging on an extension array-backed column (:issue:`23020`).
 
 
@@ -1586,7 +1586,7 @@ Categorical
 - Constructing a :class:`CategoricalIndex` with empty values and boolean categories was raising a ``ValueError`` after a change to dtype coercion (:issue:`22702`).
 - Bug in :meth:`Categorical.take` with a user-provided ``fill_value`` not encoding the ``fill_value``, which could result in a ``ValueError``, incorrect results, or a segmentation fault (:issue:`23296`).
 - In :meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
-- Bug when resampling :meth:`DataFrame.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
+- Bug when resampling :meth:`DataFrame.resample` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 - Bug in many methods of the ``.str``-accessor, which always failed on calling the ``CategoricalIndex.str`` constructor (:issue:`23555`, :issue:`23556`)
 - Bug in :meth:`Series.where` losing the categorical dtype for categorical data (:issue:`24077`)
 - Bug in :meth:`Categorical.apply` where ``NaN`` values could be handled unpredictably. They now remain unchanged (:issue:`24241`)
@@ -1656,7 +1656,7 @@ Timedelta
 - Fixed bug in adding a :class:`DataFrame` with all-``timedelta64[ns]`` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 - Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
 - Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-``NaT`` :class:`DatetimeIndex` instead of an all-``NaT`` :class:`TimedeltaIndex` (:issue:`23215`)
-- Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` have inconsistencies in supported unit string (:issue:`21762`)
 - Bug in :class:`TimedeltaIndex` division where dividing by another :class:`TimedeltaIndex` raised ``TypeError`` instead of returning a :class:`Float64Index` (:issue:`23829`, :issue:`22631`)
 - Bug in :class:`TimedeltaIndex` comparison operations where comparing against non-``Timedelta``-like objects would raise ``TypeError`` instead of returning all-``False`` for ``__eq__`` and all-``True`` for ``__ne__`` (:issue:`24056`)
 - Bug in :class:`Timedelta` comparisons when comparing with a ``Tick`` object incorrectly raising ``TypeError`` (:issue:`24710`)
@@ -1803,39 +1803,39 @@ IO
 - Bug in :func:`read_csv` in which unicode column names were not being properly recognized with Python 2.x (:issue:`13253`)
 - Bug in :meth:`DataFrame.to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
 - Bug in :meth:`DataFrame.to_sql` where a naive :class:`DatetimeIndex` would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
-- Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
-- :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
-- :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
-- :func:`read_csv()` and :func:`read_table()` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
-- :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
-- Bug in :func:`read_csv()` in which memory management was prematurely optimized for the C engine when the data was being read in chunks (:issue:`23509`)
-- Bug in :func:`read_csv()` in unnamed columns were being improperly identified when extracting a multi-index (:issue:`23687`)
-- :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
-- :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
-- :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
-- Bug in :func:`read_sas()` in which an incorrect error was raised on an invalid file format. (:issue:`24548`)
+- Bug in :meth:`read_excel` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
+- :func:`read_html` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
+- :func:`read_excel` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
+- :func:`read_csv` and :func:`read_table` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
+- :func:`read_csv` will correctly parse timezone-aware datetimes (:issue:`22256`)
+- Bug in :func:`read_csv` in which memory management was prematurely optimized for the C engine when the data was being read in chunks (:issue:`23509`)
+- Bug in :func:`read_csv` in unnamed columns were being improperly identified when extracting a multi-index (:issue:`23687`)
+- :func:`read_sas` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
+- :func:`read_sas` will correctly parse sas7bdat files with many columns (:issue:`22628`)
+- :func:`read_sas` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
+- Bug in :func:`read_sas` in which an incorrect error was raised on an invalid file format. (:issue:`24548`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
-- Bug in :func:`DataFrame.to_html()` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
-- Bug in :func:`DataFrame.to_html()` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
-- Bug in :func:`DataFrame.to_html()` with ``index_names=False`` displaying index name (:issue:`22747`)
-- Bug in :func:`DataFrame.to_html()` with ``header=False`` not displaying row index names (:issue:`23788`)
-- Bug in :func:`DataFrame.to_html()` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
-- Bug in :func:`DataFrame.to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
-- Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
+- Bug in :func:`DataFrame.to_html` with ``index=False`` misses truncation indicators (...) on truncated DataFrame (:issue:`15019`, :issue:`22783`)
+- Bug in :func:`DataFrame.to_html` with ``index=False`` when both columns and row index are ``MultiIndex`` (:issue:`22579`)
+- Bug in :func:`DataFrame.to_html` with ``index_names=False`` displaying index name (:issue:`22747`)
+- Bug in :func:`DataFrame.to_html` with ``header=False`` not displaying row index names (:issue:`23788`)
+- Bug in :func:`DataFrame.to_html` with ``sparsify=False`` that caused it to raise ``TypeError`` (:issue:`22887`)
+- Bug in :func:`DataFrame.to_string` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
+- Bug in :func:`DataFrame.to_string` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - :class:`HDFStore` will raise ``ValueError`` when the ``format`` kwarg is passed to the constructor (:issue:`13291`)
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
-- Bug in :func:`read_csv()` in which memory leaks occurred in the C engine when parsing ``NaN`` values due to insufficient cleanup on completion or error (:issue:`21353`)
-- Bug in :func:`read_csv()` in which incorrect error messages were being raised when ``skipfooter`` was passed in along with ``nrows``, ``iterator``, or ``chunksize`` (:issue:`23711`)
-- Bug in :func:`read_csv()` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
-- Bug in :func:`read_csv()` in which unnecessary warnings were being raised when the dialect's values conflicted with the default arguments (:issue:`23761`)
-- Bug in :func:`read_html()` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
-- Bug in :meth:`read_excel()` in which extraneous header names were extracted, even though none were specified (:issue:`11733`)
-- Bug in :meth:`read_excel()` in which column names were not being properly converted to string sometimes in Python 2.x (:issue:`23874`)
-- Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`18792`, :issue:`20480`)
-- Bug in :meth:`read_excel()` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
+- Bug in :func:`read_csv` in which memory leaks occurred in the C engine when parsing ``NaN`` values due to insufficient cleanup on completion or error (:issue:`21353`)
+- Bug in :func:`read_csv` in which incorrect error messages were being raised when ``skipfooter`` was passed in along with ``nrows``, ``iterator``, or ``chunksize`` (:issue:`23711`)
+- Bug in :func:`read_csv` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
+- Bug in :func:`read_csv` in which unnecessary warnings were being raised when the dialect's values conflicted with the default arguments (:issue:`23761`)
+- Bug in :func:`read_html` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
+- Bug in :meth:`read_excel` in which extraneous header names were extracted, even though none were specified (:issue:`11733`)
+- Bug in :meth:`read_excel` in which column names were not being properly converted to string sometimes in Python 2.x (:issue:`23874`)
+- Bug in :meth:`read_excel` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`18792`, :issue:`20480`)
+- Bug in :meth:`read_excel` in which ``usecols`` was not being validated for proper column names when passed in as a string (:issue:`20480`)
 - Bug in :meth:`DataFrame.to_dict` when the resulting dict contains non-Python scalars in the case of numeric data (:issue:`23753`)
-- :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()`, :func:`DataFrame.to_latex()` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
+- :func:`DataFrame.to_string`, :func:`DataFrame.to_html`, :func:`DataFrame.to_latex` will correctly format output when a string is passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
 - Bug in :func:`read_csv` that caused the C engine on Python 3.6+ on Windows to improperly read CSV filenames with accented or special characters (:issue:`15086`)
 - Bug in :func:`read_fwf` in which the compression type of a file was not being properly inferred (:issue:`22199`)
@@ -1843,7 +1843,7 @@ IO
 - Bug in :meth:`DataFrame.to_stata`, :class:`pandas.io.stata.StataWriter` and :class:`pandas.io.stata.StataWriter117` where a exception would leave a partially written and invalid dta file (:issue:`23573`)
 - Bug in :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` that produced invalid files when using strLs with non-ASCII characters (:issue:`23573`)
 - Bug in :class:`HDFStore` that caused it to raise ``ValueError`` when reading a Dataframe in Python 3 from fixed format written in Python 2 (:issue:`24510`)
-- Bug in :func:`DataFrame.to_string()` and more generally in the floating ``repr`` formatter. Zeros were not trimmed if ``inf`` was present in a columns while it was the case with NA values. Zeros are now trimmed as in the presence of NA (:issue:`24861`).
+- Bug in :func:`DataFrame.to_string` and more generally in the floating ``repr`` formatter. Zeros were not trimmed if ``inf`` was present in a columns while it was the case with NA values. Zeros are now trimmed as in the presence of NA (:issue:`24861`).
 - Bug in the ``repr`` when truncating the number of columns and having a wide last column (:issue:`24849`).
 
 Plotting
