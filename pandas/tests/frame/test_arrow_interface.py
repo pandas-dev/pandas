@@ -87,3 +87,7 @@ def test_dataframe_from_arrow():
 
     result = pd.DataFrame.from_arrow(ArrowArrayWrapper(batch))
     tm.assert_frame_equal(result, expected)
+
+    # only accept actual Arrow objects
+    with pytest.raises(TypeError, match="Expected an Arrow-compatible tabular object"):
+        pd.DataFrame.from_arrow({"a": [1, 2, 3], "b": ["a", "b", "c"]})

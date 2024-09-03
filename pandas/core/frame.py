@@ -1776,6 +1776,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, pa.Table):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.table(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible tabular object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
             data = pa.table(data)
 
         df = data.to_pandas()
