@@ -1024,7 +1024,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
+) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.

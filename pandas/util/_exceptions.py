@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @contextlib.contextmanager
-def rewrite_exception(old_name: str, new_name: str) -> Generator[None]:
+def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:
     """
     Rewrite the message of an exception.
     """
@@ -66,7 +66,7 @@ def rewrite_warning(
     target_category: type[Warning],
     new_message: str,
     new_category: type[Warning] | None = None,
-) -> Generator[None]:
+) -> Generator[None, None, None]:
     """
     Rewrite the message of a warning.
 

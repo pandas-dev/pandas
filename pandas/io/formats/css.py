@@ -36,7 +36,7 @@ def _side_expander(prop_fmt: str) -> Callable:
 
     def expand(
         self: CSSResolver, prop: str, value: str
-    ) -> Generator[tuple[str, str]]:
+    ) -> Generator[tuple[str, str], None, None]:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
 
@@ -83,7 +83,7 @@ def _border_expander(side: str = "") -> Callable:
 
     def expand(
         self: CSSResolver, prop: str, value: str
-    ) -> Generator[tuple[str, str]]:
+    ) -> Generator[tuple[str, str], None, None]:
         """
         Expand border into color, style, and width tuples
 
@@ -392,7 +392,7 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
+    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
             prop = prop.lower()
             value = value.lower()

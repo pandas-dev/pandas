@@ -131,7 +131,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle() -> Generator[None]:
+def patch_pickle() -> Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """

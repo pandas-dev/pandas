@@ -411,7 +411,7 @@ options = DictWrapper(_global_config)
 
 
 @contextmanager
-def option_context(*args) -> Generator[None]:
+def option_context(*args) -> Generator[None, None, None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
 
@@ -718,7 +718,7 @@ def _build_option_description(k: str) -> str:
 
 
 @contextmanager
-def config_prefix(prefix: str) -> Generator[None]:
+def config_prefix(prefix: str) -> Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

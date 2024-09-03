@@ -865,7 +865,7 @@ class BaseGrouper:
         return unob_index, unob_ids
 
     @final
-    def get_group_levels(self) -> Generator[Index]:
+    def get_group_levels(self) -> Generator[Index, None, None]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         result_index = self.result_index
