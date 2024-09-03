@@ -2607,6 +2607,17 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
 
+        This property provides the frequency string associated with the `Period`
+        object. The frequency string describes the granularity of the time span
+        represented by the `Period`. Common frequency strings include 'D' for
+        daily, 'M' for monthly, 'Y' for yearly, etc.
+
+        See Also
+        --------
+        Period.asfreq : Convert Period to desired frequency, at the start or end
+            of the interval.
+        period_range : Return a fixed frequency PeriodIndex.
+
         Examples
         --------
         >>> pd.Period('2020-01', 'D').freqstr
@@ -2743,6 +2754,27 @@ cdef class _Period(PeriodMixin):
         +-----------+--------------------------------+-------+
         | ``%%``    | A literal ``'%'`` character.   |       |
         +-----------+--------------------------------+-------+
+
+        The `strftime` method provides a way to represent a :class:`Period`
+        object as a string in a specified format. This is particularly useful
+        when displaying date and time data in different locales or customized
+        formats, suitable for reports or user interfaces. It extends the standard
+        Python string formatting capabilities with additional directives specific
+        to `pandas`, accommodating features like fiscal years and precise
+        sub-second components.
+
+        Parameters
+        ----------
+        fmt : str or None
+            String containing the desired format directives. If ``None``, the
+            format is determined based on the Period's frequency.
+
+        See Also
+        --------
+        Timestamp.strftime : Return a formatted string of the Timestamp.
+        to_datetime : Convert argument to datetime.
+        time.strftime : Format a time object as a string according to a
+            specified format string in the standard Python library.
 
         Notes
         -----

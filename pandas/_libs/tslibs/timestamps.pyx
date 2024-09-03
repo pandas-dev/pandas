@@ -321,7 +321,7 @@ cdef class _Timestamp(ABCTimestamp):
     def _from_dt64(cls, dt64: np.datetime64):
         # construct a Timestamp from a np.datetime64 object, keeping the
         #  resolution of the input.
-        # This is herely mainly so we can incrementally implement non-nano
+        # This is here mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)
         cdef:
             int64_t value
@@ -1359,7 +1359,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def as_unit(self, str unit, bint round_ok=True):
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------
