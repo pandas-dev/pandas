@@ -2533,23 +2533,13 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_get_dummies(
-        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype | None = None
-    ):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
             dtype = np.bool_
         split = pc.split_pattern(self._pa_array, sep)
         flattened_values = pc.list_flatten(split)
-        if dummy_na:
-            nan_mask = self._pa_array.is_null()
-            flattened_values = flattened_values.fill_null(pa.NA)
         uniques = flattened_values.unique()
         uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
-        if dummy_na:
-            if "__nan__" not in uniques_sorted.to_pylist():
-                uniques_sorted = pa.concat_arrays(
-                    [uniques_sorted, pa.array(["__nan__"], type=uniques_sorted.type)]
-                )
         lengths = pc.list_value_length(split).fill_null(0).to_numpy()
         n_rows = len(self)
         n_cols = len(uniques)
@@ -2558,14 +2548,7 @@ class ArrowExtensionArray(
         dummies = np.zeros(n_rows * n_cols, dtype=dtype)
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
-        if dummy_na:
-            nan_column = nan_mask.to_numpy().reshape(-1, 1)
-            dummies = np.hstack([dummies, nan_column])
         result = type(self)(pa.array(list(dummies)))
-        if dummy_na:
-            uniques_sorted = pa.array(
-                ["NaN" if x == "__nan__" else x for x in uniques_sorted.to_pylist()]
-            )
         return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None) -> Self:

@@ -162,9 +162,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_get_dummies(
-        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype | None = None
-    ):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         pass
 
     @abc.abstractmethod

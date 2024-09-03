@@ -32,78 +32,94 @@ def test_get_dummies_index():
     tm.assert_index_equal(result, expected)
 
 
-def test_get_dummies_with_name_dummy(any_string_dtype):
-    # GH 12180
-    # Dummies named 'name' should work as expected
-    s = Series(["a", "b,name", "b"], dtype=any_string_dtype)
-    result = s.str.get_dummies(",")
-    expected = DataFrame([[1, 0, 0], [0, 1, 1], [0, 1, 0]], columns=["a", "b", "name"])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_get_dummies_with_name_dummy_index():
-    # GH 12180
-    # Dummies named 'name' should work as expected
-    idx = Index(["a|b", "name|c", "b|name"])
-    result = idx.str.get_dummies("|")
-
-    expected = MultiIndex.from_tuples(
-        [(1, 1, 0, 0), (0, 0, 1, 1), (0, 1, 0, 1)], names=("a", "b", "c", "name")
-    )
-    tm.assert_index_equal(result, expected)
-
-
-def test_get_dummies_with_prefix(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies(sep="|", prefix="prefix")
+def test_get_dummies_int8_dtype():
+    s = Series(["1|2", "1|3", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.int8)
     expected = DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
-        columns=["prefix_a", "prefix_b", "prefix_c"],
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("123"), dtype=np.int8
     )
     tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.int8).all()
 
 
-def test_get_dummies_with_prefix_sep(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies(sep="|", prefix=None, prefix_sep="__")
-    expected = DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=["a", "b", "c"])
-    tm.assert_frame_equal(result, expected)
-
-    result = s.str.get_dummies(sep="|", prefix="col", prefix_sep="__")
+def test_get_dummies_uint8_dtype():
+    s = Series(["a|b", "a|c", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.uint8)
     expected = DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
-        columns=["col__a", "col__b", "col__c"],
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=np.uint8
     )
     tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.uint8).all()
 
 
-def test_get_dummies_with_dummy_na(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies(sep="|", dummy_na=True)
+def test_get_dummies_int16_dtype():
+    s = Series(["a|b", "a|c", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.int16)
     expected = DataFrame(
-        [[1, 1, 0, 0], [1, 0, 1, 0], [0, 0, 0, 1]],
-        columns=["a", "b", "c", np.nan],
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=np.int16
     )
     tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.int16).all()
 
 
-def test_get_dummies_with_dtype(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies(sep="|", dtype=bool)
+def test_get_dummies_uint16_dtype():
+    s = Series(["a|b", "a|c", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.uint16)
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=np.uint16
+    )
+    tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.uint16).all()
+
+
+def test_get_dummies_int32_dtype():
+    s = Series(["x|y", "x|z", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.int32)
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("xyz"), dtype=np.int32
+    )
+    tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.int32).all()
+
+
+def test_get_dummies_uint32_dtype():
+    s = Series(["x|y", "x|z", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.uint32)
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("xyz"), dtype=np.uint32
+    )
+    tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.uint32).all()
+
+
+def test_get_dummies_int64_dtype():
+    s = Series(["foo|bar", "foo|baz", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.int64)
+    expected = DataFrame(
+        [[1, 0, 1], [0, 1, 1], [0, 0, 0]], columns=["bar", "baz", "foo"], dtype=np.int64
+    )
+    tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.int64).all()
+
+
+def test_get_dummies_uint64_dtype():
+    s = Series(["foo|bar", "foo|baz", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=np.uint64)
+    expected = DataFrame(
+        [[1, 0, 1], [0, 1, 1], [0, 0, 0]],
+        columns=["bar", "baz", "foo"],
+        dtype=np.uint64,
+    )
+    tm.assert_frame_equal(result, expected)
+    assert (result.dtypes == np.uint64).all()
+
+
+def test_get_dummies_bool_dtype():
+    s = Series(["a|b", "a|c", np.nan], dtype="string")
+    result = s.str.get_dummies("|", dtype=bool)
     expected = DataFrame(
         [[True, True, False], [True, False, True], [False, False, False]],
         columns=["a", "b", "c"],
     )
     tm.assert_frame_equal(result, expected)
     assert (result.dtypes == bool).all()
-
-
-def test_get_dummies_with_prefix_dict(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    prefix = {"a": "alpha", "b": "beta", "c": "gamma"}
-    result = s.str.get_dummies(sep="|", prefix=prefix)
-    expected = DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
-        columns=["alpha_a", "beta_b", "gamma_c"],
-    )
-    tm.assert_frame_equal(result, expected)

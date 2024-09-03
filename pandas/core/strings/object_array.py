@@ -372,9 +372,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(
-        self, sep: str = "|", dummy_na: bool = False, dtype: NpDtype | None = None
-    ):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         from pandas import Series
 
         if dtype is None:
@@ -400,10 +398,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             dummies[:, i] = lib.map_infer(
                 arr.to_numpy(), functools.partial(_isin, element=pat)
             )
-        if dummy_na:
-            nan_col = Series(self).isna().astype(dtype).to_numpy()
-            dummies = np.column_stack((dummies, nan_col))
-            tags2.append("NaN")
         return dummies, tags2
 
     def _str_upper(self):
