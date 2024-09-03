@@ -503,6 +503,7 @@ Performance improvements
 - :meth:`Series.str.extract` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57542`)
 - :meth:`Series.str.partition` with :class:`ArrowDtype` returns a :class:`RangeIndex` columns instead of an :class:`Index` column when possible (:issue:`57768`)
 - Performance improvement in :class:`DataFrame` when ``data`` is a ``dict`` and ``columns`` is specified (:issue:`24368`)
+- Performance improvement in :class:`MultiIndex` when setting :attr:`MultiIndex.names` doesn't invalidate all cached operations (:issue:`59578`)
 - Performance improvement in :meth:`DataFrame.join` for sorted but non-unique indexes (:issue:`56941`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are non-unique and ``how`` is ``"left"``, ``"right"``, or ``"inner"`` (:issue:`56817`)
 - Performance improvement in :meth:`DataFrame.join` with ``how="left"`` or ``how="right"`` and ``sort=True`` (:issue:`56919`)

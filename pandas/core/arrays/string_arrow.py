@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -19,6 +20,7 @@ from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -282,6 +284,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
+    _str_pad = ArrowStringArrayMixin._str_pad
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -297,6 +300,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
         result = self._convert_bool_result(result, na=na)
         if not isna(na):
+            if not isinstance(na, bool):
+                # GH#59561
+                warnings.warn(
+                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                    "and will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             result[isna(result)] = bool(na)
         return result
 
@@ -536,7 +547,6 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _str_get = ArrowStringArrayMixin._str_get
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
-    _str_pad = ArrowStringArrayMixin._str_pad
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace

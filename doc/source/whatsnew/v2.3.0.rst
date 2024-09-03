@@ -53,7 +53,7 @@ notable_bug_fix1
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -103,7 +103,8 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`59628`)
--
+- Bug in the ``center`` method on :class:`Series` and :class:`Index` object ``str`` accessors with pyarrow-backed dtype not matching the python behavior in corner cases with an odd number of fill characters (:issue:`54792`)
+
 
 Interval
 ^^^^^^^^

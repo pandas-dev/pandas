@@ -73,11 +73,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.NA SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.Period.strftime PR01,SA01" \
         -i "pandas.Period.to_timestamp SA01" \
-        -i "pandas.PeriodDtype SA01" \
         -i "pandas.PeriodDtype.freq SA01" \
-        -i "pandas.RangeIndex PR07" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.start SA01" \
         -i "pandas.RangeIndex.step SA01" \
@@ -135,7 +132,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.value GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray.interpolate PR01,SA01" \
-        -i "pandas.api.interchange.from_dataframe RT03,SA01" \
         -i "pandas.api.types.is_bool PR01,SA01" \
         -i "pandas.api.types.is_categorical_dtype SA01" \
         -i "pandas.api.types.is_complex PR01,SA01" \
@@ -222,7 +218,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
         -i "pandas.core.resample.Resampler.var SA01" \
         -i "pandas.date_range RT03" \
-        -i "pandas.errors.AbstractMethodError PR01,SA01" \
         -i "pandas.errors.AttributeConflictWarning SA01" \
         -i "pandas.errors.CSSWarning SA01" \
         -i "pandas.errors.CategoricalConversionWarning SA01" \
