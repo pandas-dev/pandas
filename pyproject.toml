@@ -334,6 +334,8 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
+  # unnecessary-default-type-args
+  "UP043",
 
   # Additional pylint rules
   # literal-membership
