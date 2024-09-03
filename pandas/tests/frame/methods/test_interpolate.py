@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -64,8 +64,9 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
+    # TODO(infer_string) raise proper TypeError in case of string dtype
     @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+        using_string_dtype(), reason="interpolate doesn't work for string"
     )
     def test_interp_basic(self):
         df = DataFrame(
@@ -90,7 +91,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(df["D"]._values, dvalues)
 
     @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+        using_string_dtype(), reason="interpolate doesn't work for string"
     )
     def test_interp_basic_with_non_range_index(self, using_infer_string):
         df = DataFrame(

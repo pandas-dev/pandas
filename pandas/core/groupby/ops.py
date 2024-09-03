@@ -12,7 +12,6 @@ import collections
 import functools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Generic,
     final,
 )
@@ -70,10 +69,10 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Hashable,
         Iterator,
-        Sequence,
     )
 
     from pandas.core.generic import NDFrame
@@ -581,24 +580,20 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence[grouper.Grouping],
+        groupings: list[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
 
         self.axis = axis
-        self._groupings: list[grouper.Grouping] = list(groupings)
+        self._groupings = groupings
         self._sort = sort
         self.dropna = dropna
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
         return self._groupings
-
-    @property
-    def shape(self) -> Shape:
-        return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self) -> Iterator[Hashable]:
         return iter(self.indices)
@@ -628,11 +623,15 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
         """
-        ids, ngroups = self.group_info
-        return _get_splitter(
+        if isinstance(data, Series):
+            klass: type[DataSplitter] = SeriesSplitter
+        else:
+            # i.e. DataFrame
+            klass = FrameSplitter
+
+        return klass(
             data,
-            ids,
-            ngroups,
+            self.ngroups,
             sorted_ids=self._sorted_ids,
             sort_idx=self.result_ilocs,
         )
@@ -692,7 +691,8 @@ class BaseGrouper:
         """
         Compute group sizes.
         """
-        ids, ngroups = self.group_info
+        ids = self.ids
+        ngroups = self.ngroups
         out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
@@ -728,12 +728,6 @@ class BaseGrouper:
         Whether grouper has null value(s) that are dropped.
         """
         return bool((self.ids < 0).any())
-
-    @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
-        result_index, ids = self.result_index_and_ids
-        ngroups = len(result_index)
-        return ids, ngroups
 
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
@@ -1124,10 +1118,6 @@ class BinGrouper(BaseGrouper):
         return indices
 
     @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
-        return self.ids, self.ngroups
-
-    @cache_readonly
     def codes(self) -> list[npt.NDArray[np.intp]]:
         return [self.ids]
 
@@ -1191,29 +1181,25 @@ class DataSplitter(Generic[NDFrameT]):
     def __init__(
         self,
         data: NDFrameT,
-        labels: npt.NDArray[np.intp],
         ngroups: int,
         *,
         sort_idx: npt.NDArray[np.intp],
         sorted_ids: npt.NDArray[np.intp],
     ) -> None:
         self.data = data
-        self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
 
     def __iter__(self) -> Iterator:
-        sdata = self._sorted_data
-
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
             return
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
-
+        sdata = self._sorted_data
         for start, end in zip(starts, ends):
             yield self._chop(sdata, slice(start, end))
 
@@ -1241,20 +1227,3 @@ class FrameSplitter(DataSplitter):
         mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
-
-
-def _get_splitter(
-    data: NDFrame,
-    labels: npt.NDArray[np.intp],
-    ngroups: int,
-    *,
-    sort_idx: npt.NDArray[np.intp],
-    sorted_ids: npt.NDArray[np.intp],
-) -> DataSplitter:
-    if isinstance(data, Series):
-        klass: type[DataSplitter] = SeriesSplitter
-    else:
-        # i.e. DataFrame
-        klass = FrameSplitter
-
-    return klass(data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids)

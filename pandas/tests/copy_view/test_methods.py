@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -712,6 +716,7 @@ def test_head_tail(method):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_infer_objects():
     df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
     df_orig = df.copy()
@@ -727,6 +732,9 @@ def test_infer_objects():
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
+)
 def test_infer_objects_no_reference():
     df = DataFrame(
         {
@@ -896,6 +904,7 @@ def test_sort_values_inplace(obj, kwargs):
     tm.assert_equal(view, obj_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})
@@ -1105,26 +1114,26 @@ def test_putmask_aligns_rhs_no_reference(dtype):
     assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
-@pytest.mark.parametrize(
-    "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
-)
-def test_putmask_dont_copy_some_blocks(val, exp, warn):
+@pytest.mark.parametrize("val, exp, raises", [(5.5, True, True), (5, False, False)])
+def test_putmask_dont_copy_some_blocks(val, exp, raises: bool):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+    if raises:
+        with pytest.raises(TypeError, match="Invalid value"):
+            df[indexer] = val
+    else:
         df[indexer] = val
-
-    assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
-    # TODO(CoW): Could split blocks to avoid copying the whole block
-    assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
-    assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
-    assert df._mgr._has_no_reference(1) is not exp
-    assert not df._mgr._has_no_reference(2)
-    tm.assert_frame_equal(view, df_orig)
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        # TODO(CoW): Could split blocks to avoid copying the whole block
+        assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
+        assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
+        assert df._mgr._has_no_reference(1) is not exp
+        assert not df._mgr._has_no_reference(2)
+        tm.assert_frame_equal(view, df_orig)
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])

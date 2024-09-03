@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import (
+    Callable,
+    Sequence,
+)
 from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     DefaultDict,
     Optional,
     TypedDict,
@@ -1050,7 +1052,7 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
-        When instantiating a Styler, default formatting can be applied be setting the
+        When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
           - ``styler.format.formatter``: default None.

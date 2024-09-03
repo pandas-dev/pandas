@@ -69,6 +69,7 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
+    treat_tz_as_pytz,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
@@ -606,37 +607,42 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         # equiv: datetime.today().replace(tzinfo=tz)
         return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     else:
-        string_to_dts_failed = string_to_dts(
-            ts, &dts, &out_bestunit, &out_local,
-            &out_tzoffset, False
-        )
-        if not string_to_dts_failed:
-            reso = get_supported_reso(out_bestunit)
-            check_dts_bounds(&dts, reso)
-            obj = _TSObject()
-            obj.dts = dts
-            obj.creso = reso
-            ival = npy_datetimestruct_to_datetime(reso, &dts)
+        if not dayfirst:  # GH 58859
+            string_to_dts_failed = string_to_dts(
+                ts, &dts, &out_bestunit, &out_local,
+                &out_tzoffset, False
+            )
+            if not string_to_dts_failed:
+                reso = get_supported_reso(out_bestunit)
+                check_dts_bounds(&dts, reso)
+                obj = _TSObject()
+                obj.dts = dts
+                obj.creso = reso
+                ival = npy_datetimestruct_to_datetime(reso, &dts)
 
-            if out_local == 1:
-                obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
-                obj.value = tz_localize_to_utc_single(
-                    ival, obj.tzinfo, ambiguous="raise", nonexistent=None, creso=reso
-                )
-                if tz is None:
-                    check_overflows(obj, reso)
-                    return obj
-                _adjust_tsobject_tz_using_offset(obj, tz)
-                return  obj
-            else:
-                if tz is not None:
-                    # shift for _localize_tso
-                    ival = tz_localize_to_utc_single(
-                        ival, tz, ambiguous="raise", nonexistent=None, creso=reso
+                if out_local == 1:
+                    obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
+                    obj.value = tz_localize_to_utc_single(
+                        ival,
+                        obj.tzinfo,
+                        ambiguous="raise",
+                        nonexistent=None,
+                        creso=reso,
                     )
-                obj.value = ival
-                maybe_localize_tso(obj, tz, obj.creso)
-                return obj
+                    if tz is None:
+                        check_overflows(obj, reso)
+                        return obj
+                    _adjust_tsobject_tz_using_offset(obj, tz)
+                    return  obj
+                else:
+                    if tz is not None:
+                        # shift for _localize_tso
+                        ival = tz_localize_to_utc_single(
+                            ival, tz, ambiguous="raise", nonexistent=None, creso=reso
+                        )
+                    obj.value = ival
+                    maybe_localize_tso(obj, tz, obj.creso)
+                    return obj
 
         dt = parse_datetime_string(
             ts,
@@ -742,11 +748,17 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    try:
+    if treat_tz_as_pytz(tz):
+        import pytz
+
         # datetime.replace with pytz may be incorrect result
         # TODO: try to respect `fold` attribute
-        return tz.localize(dt, is_dst=None)
-    except AttributeError:
+        try:
+            return tz.localize(dt, is_dst=None)
+        except (pytz.AmbiguousTimeError, pytz.NonExistentTimeError) as err:
+            # As of pandas 3.0, we raise ValueErrors instead of pytz exceptions
+            raise ValueError(str(err)) from err
+    else:
         return dt.replace(tzinfo=tz)
 
 

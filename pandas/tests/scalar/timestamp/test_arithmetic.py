@@ -7,7 +7,6 @@ from datetime import (
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
@@ -294,7 +293,7 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "tz",
         [
-            pytz.timezone("US/Eastern"),
+            "pytz/US/Eastern",
             gettz("US/Eastern"),
             "US/Eastern",
             "dateutil/US/Eastern",
@@ -302,7 +301,9 @@ class TestTimestampArithmetic:
     )
     def test_timestamp_add_timedelta_push_over_dst_boundary(self, tz):
         # GH#1389
-
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         # 4 hours before DST transition
         stamp = Timestamp("3/10/2012 22:00", tz=tz)
 

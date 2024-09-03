@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
-import pytz
 
 from pandas._libs import (
     NaT,
@@ -147,7 +146,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+    tz : zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or str
         Set the Timezone of the data.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -162,7 +161,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           non-DST time (note that this flag is only applicable for ambiguous
           times)
         - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
+        - 'raise' will raise a ValueError if there are ambiguous times.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
@@ -264,7 +263,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name, dtype=object)
+        return Index(arr, name=self.name, dtype=arr.dtype)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> Self:
@@ -591,7 +590,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(key, str):
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except (ValueError, pytz.NonExistentTimeError) as err:
+            except ValueError as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 

@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -122,6 +124,7 @@ def test_arith_zero_dim_ndarray(other):
 # -----------------------------------------------------------------------------
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
     op = all_arithmetic_operators
     s = pd.Series(data)

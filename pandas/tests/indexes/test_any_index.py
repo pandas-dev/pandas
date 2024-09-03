@@ -22,12 +22,6 @@ def test_boolean_context_compat(index):
         bool(index)
 
 
-def test_sort(index):
-    msg = "cannot sort an Index object in-place, use sort_values instead"
-    with pytest.raises(TypeError, match=msg):
-        index.sort()
-
-
 def test_hash_error(index):
     with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(index)

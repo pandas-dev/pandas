@@ -17,7 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -30,10 +30,6 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -164,6 +160,36 @@ def xfail_datetimes_with_pyxlsb(engine, request):
 
 
 class TestReaders:
+    @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
+    def test_read_excel_type_check(self, col, tmp_excel, read_ext):
+        # GH 58159
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        df = DataFrame({"bool_column": col}, dtype="boolean")
+        df.to_excel(tmp_excel, index=False)
+        df2 = pd.read_excel(tmp_excel, dtype={"bool_column": "boolean"})
+        tm.assert_frame_equal(df, df2)
+
+    def test_pass_none_type(self, datapath):
+        # GH 58159
+        f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
+
+        with pd.ExcelFile(f_path) as excel:
+            parsed = pd.read_excel(
+                excel,
+                sheet_name="Sheet1",
+                keep_default_na=True,
+                na_values=["nan", "None", "abcd"],
+                dtype="boolean",
+                engine="openpyxl",
+            )
+        expected = DataFrame(
+            {"Test": [True, None, False, None, False, None, True]},
+            dtype="boolean",
+        )
+
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -599,6 +625,7 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -661,43 +688,33 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
-    )
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": np.array(["a", "b"], dtype=np.object_),
+                "b": np.array(["x", pd.NA], dtype=np.object_),
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
 
         with pd.option_context("mode.string_storage", string_storage):
-            df = DataFrame(
-                {
-                    "a": np.array(["a", "b"], dtype=np.object_),
-                    "b": np.array(["x", pd.NA], dtype=np.object_),
-                }
-            )
-            df.to_excel(tmp_excel, sheet_name="test", index=False)
             result = pd.read_excel(
                 tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
             )
 
-            if string_storage == "python":
-                expected = DataFrame(
-                    {
-                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                    }
-                )
-            else:
-                expected = DataFrame(
-                    {
-                        "a": ArrowStringArray(pa.array(["a", "b"])),
-                        "b": ArrowStringArray(pa.array(["x", None])),
-                    }
-                )
-            tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+            }
+        )
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
@@ -1068,7 +1085,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0

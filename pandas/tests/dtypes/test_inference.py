@@ -12,6 +12,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -27,7 +28,6 @@ from typing import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     lib,
@@ -1022,7 +1022,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 

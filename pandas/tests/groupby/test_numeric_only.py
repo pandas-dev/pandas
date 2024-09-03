@@ -180,6 +180,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    re.escape(f"agg function failed [how->{method},dtype->str]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -197,6 +198,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    re.escape(f"agg function failed [how->{method},dtype->str]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -291,8 +293,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             [
                 "not allowed for this dtype",
                 "cannot be performed against 'object' dtypes",
-                # On PY39 message is "a number"; on PY310 and after is "a real number"
-                "must be a string or a.* number",
+                "must be a string or a real number",
                 "unsupported operand type",
                 "function is not implemented for this dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),

@@ -14,7 +14,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 
@@ -301,8 +301,8 @@ def ndarray_to_mgr(
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        dtype = StringDtype(storage="pyarrow_numpy")
+    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
+        dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)
         block_values = [
@@ -842,7 +842,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
+    data = [d if type(d) is dict else dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns
