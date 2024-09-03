@@ -454,7 +454,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if dtype == object:
             if self.dtype.kind == "M":
-                self = cast("DatetimeArray", self)  # noqa: PLW0642
+                self = cast("DatetimeArray", self)
                 # *much* faster than self._box_values
                 #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
                 i8data = self.asi8
@@ -776,7 +776,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return np.zeros(self.shape, dtype=bool)
 
         if self.dtype.kind in "mM":
-            self = cast("DatetimeArray | TimedeltaArray", self)  # noqa: PLW0642
+            self = cast("DatetimeArray | TimedeltaArray", self)
             # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
             values = values.as_unit(self.unit)  # type: ignore[attr-defined]
 
@@ -977,7 +977,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return result
 
         if not isinstance(self.dtype, PeriodDtype):
-            self = cast(TimelikeOps, self)  # noqa: PLW0642
+            self = cast(TimelikeOps, self)
             if self._creso != other._creso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
@@ -1063,7 +1063,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
             )
 
-        self = cast("TimedeltaArray", self)  # noqa: PLW0642
+        self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
         from pandas.core.arrays.datetimes import tz_to_dtype
@@ -1078,8 +1078,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         other = Timestamp(other)
-        self, other = self._ensure_matching_resos(other)  # noqa: PLW0642
-        self = cast("TimedeltaArray", self)  # noqa: PLW0642
+        self, other = self._ensure_matching_resos(other)
+        self = cast("TimedeltaArray", self)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
         result = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
@@ -1107,7 +1107,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if self.dtype.kind != "M":
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
-        self = cast("DatetimeArray", self)  # noqa: PLW0642
+        self = cast("DatetimeArray", self)
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
 
         if isna(other):
@@ -1116,7 +1116,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         ts = Timestamp(other)
 
-        self, ts = self._ensure_matching_resos(ts)  # noqa: PLW0642
+        self, ts = self._ensure_matching_resos(ts)
         return self._sub_datetimelike(ts)
 
     @final
@@ -1127,14 +1127,14 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
-        self = cast("DatetimeArray", self)  # noqa: PLW0642
+        self = cast("DatetimeArray", self)
 
-        self, other = self._ensure_matching_resos(other)  # noqa: PLW0642
+        self, other = self._ensure_matching_resos(other)
         return self._sub_datetimelike(other)
 
     @final
     def _sub_datetimelike(self, other: Timestamp | DatetimeArray) -> TimedeltaArray:
-        self = cast("DatetimeArray", self)  # noqa: PLW0642
+        self = cast("DatetimeArray", self)
 
         from pandas.core.arrays import TimedeltaArray
 
@@ -1183,9 +1183,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return type(self)._simple_new(new_values, dtype=self.dtype)
 
         # PeriodArray overrides, so we only get here with DTA/TDA
-        self = cast("DatetimeArray | TimedeltaArray", self)  # noqa: PLW0642
+        self = cast("DatetimeArray | TimedeltaArray", self)
         other = Timedelta(other)
-        self, other = self._ensure_matching_resos(other)  # noqa: PLW0642
+        self, other = self._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
 
     def _add_timedelta_arraylike(self, other: TimedeltaArray) -> Self:
@@ -1201,7 +1201,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
-        self, other = cast(  # noqa: PLW0642
+        self, other = cast(
             "DatetimeArray | TimedeltaArray", self
         )._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
@@ -1258,7 +1258,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         result.fill(iNaT)
         if self.dtype.kind in "mM":
             # We can retain unit in dtype
-            self = cast("DatetimeArray| TimedeltaArray", self)  # noqa: PLW0642
+            self = cast("DatetimeArray| TimedeltaArray", self)
             return result.view(f"timedelta64[{self.unit}]")
         else:
             return result.view("timedelta64[ns]")
@@ -1272,7 +1272,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 f"cannot subtract {type(other).__name__} from {type(self).__name__}"
             )
 
-        self = cast("PeriodArray", self)  # noqa: PLW0642
+        self = cast("PeriodArray", self)
         self._check_compatible_with(other)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
@@ -1478,7 +1478,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif lib.is_np_dtype(self.dtype, "m"):
-            self = cast("TimedeltaArray", self)  # noqa: PLW0642
+            self = cast("TimedeltaArray", self)
             return (-self) + other
 
         # We get here with e.g. datetime objects
@@ -1697,7 +1697,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
             if isinstance(self.dtype, PeriodDtype):
                 raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
-            self = cast("DatetimeArray | TimedeltaArray", self)  # noqa: PLW0642
+            self = cast("DatetimeArray | TimedeltaArray", self)
             new_dtype = f"m8[{self.unit}]"
             res_values = res_values.view(new_dtype)
             return TimedeltaArray._simple_new(res_values, dtype=res_values.dtype)
@@ -2133,7 +2133,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if self._creso != other._creso:
             # Just as with Timestamp/Timedelta, we cast to the higher resolution
             if self._creso < other._creso:
-                self = self.as_unit(other.unit)  # noqa: PLW0642
+                self = self.as_unit(other.unit)
             else:
                 other = other.as_unit(self.unit)
         return self, other
@@ -2155,7 +2155,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # round the local times
         if isinstance(self.dtype, DatetimeTZDtype):
             # operate on naive timestamps, then convert back to aware
-            self = cast("DatetimeArray", self)  # noqa: PLW0642
+            self = cast("DatetimeArray", self)
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
             return result.tz_localize(

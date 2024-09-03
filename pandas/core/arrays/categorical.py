@@ -569,8 +569,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif isinstance(dtype, CategoricalDtype):
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
-            result = self.copy() if copy else self
-            result = result._set_dtype(dtype)
+            self = self.copy() if copy else self
+            result = self._set_dtype(dtype)
 
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
