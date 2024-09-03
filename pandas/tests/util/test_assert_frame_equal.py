@@ -79,7 +79,7 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ),
-            "MultiIndex level \\[0\\] are different",
+            "DataFrame\\.index level \\[0\\] are different",
         ),
     ],
 )

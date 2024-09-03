@@ -137,7 +137,7 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ).c,
-            "MultiIndex level \\[0\\] are different",
+            "Series\\.index level \\[0\\] are different",
         ),
     ],
 )
