@@ -1343,6 +1343,22 @@ class ScatterPlot(PlanePlot):
             label = self.label
         else:
             label = None
+
+        # if a list of non color strings is passed in as c, color points
+        # by uniqueness of the strings, such same strings get same color
+        create_colors = not self._are_valid_colors(c_values)
+        if create_colors:
+            color_mapping = self._get_color_mapping(c_values)
+            c_values = [color_mapping[s] for s in c_values]
+
+            # build legend for labeling custom colors
+            ax.legend(
+                handles=[
+                    mpl.patches.Circle((0, 0), facecolor=c, label=s)
+                    for s, c in color_mapping.items()
+                ]
+            )
+
         scatter = ax.scatter(
             data[x].values,
             data[y].values,
@@ -1353,6 +1369,7 @@ class ScatterPlot(PlanePlot):
             s=self.s,
             **self.kwds,
         )
+
         if cb:
             cbar_label = c if c_is_column else ""
             cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
@@ -1391,6 +1408,30 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
         return c_values
+
+    def _are_valid_colors(self, c_values: Series) -> bool:
+        # check if c_values contains strings and if these strings are valid mpl colors.
+        # no need to check numerics as these (and mpl colors) will be validated for us
+        # in .Axes.scatter._parse_scatter_color_args(...)
+        unique = np.unique(c_values)
+        try:
+            if len(c_values) and all(isinstance(c, str) for c in unique):
+                mpl.colors.to_rgba_array(unique)
+
+            return True
+
+        except (TypeError, ValueError) as _:
+            return False
+
+    def _get_color_mapping(self, c_values: Series) -> dict[str, np.ndarray]:
+        unique = np.unique(c_values)
+        n_colors = len(unique)
+
+        # passing `None` here will default to :rc:`image.cmap`
+        cmap = mpl.colormaps.get_cmap(self.colormap)
+        colors = cmap(np.linspace(0, 1, n_colors))  # RGB tuples
+
+        return dict(zip(unique, colors))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
