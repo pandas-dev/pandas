@@ -2943,7 +2943,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         With mismatched timezones, cast both to UTC.
         """
-        # Caller is responsibelf or checking
+        # Caller is responsible for checking
         #  `self.dtype != other.dtype`
         if (
             isinstance(self, ABCDatetimeIndex)
@@ -4516,8 +4516,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names_list = list(com.not_none(*self.names))
-        other_names_list = list(com.not_none(*other.names))
+        self_names_list = list(self.names)
+        other_names_list = list(other.names)
         self_names_order = self_names_list.index
         other_names_order = other_names_list.index
         self_names = set(self_names_list)
@@ -4884,7 +4884,10 @@ class Index(IndexOpsMixin, PandasObject):
             return (
                 isinstance(self.dtype, np.dtype)
                 or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
-                or self.dtype == "string[python]"
+                or (
+                    isinstance(self.dtype, StringDtype)
+                    and self.dtype.storage == "python"
+                )
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin

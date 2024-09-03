@@ -315,24 +315,17 @@ class TestArithmetic:
         expected = pd.Index(["1a", "1b", "1c"])
         tm.assert_index_equal("1" + index, expected)
 
-    def test_sub_fail(self, using_infer_string):
+    def test_sub_fail(self):
         index = pd.Index([str(i) for i in range(10)])
 
-        if using_infer_string:
-            import pyarrow as pa
-
-            err = pa.lib.ArrowNotImplementedError
-            msg = "has no kernel"
-        else:
-            err = TypeError
-            msg = "unsupported operand type|Cannot broadcast"
-        with pytest.raises(err, match=msg):
+        msg = "unsupported operand type|Cannot broadcast|sub' not supported"
+        with pytest.raises(TypeError, match=msg):
             index - "a"
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index - index
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index - index.tolist()
-        with pytest.raises(err, match=msg):
+        with pytest.raises(TypeError, match=msg):
             index.tolist() - index
 
     def test_sub_object(self):

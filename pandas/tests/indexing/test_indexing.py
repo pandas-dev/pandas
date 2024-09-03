@@ -259,7 +259,7 @@ class TestFancy:
             with pytest.raises(
                 KeyError,
                 match=re.escape(
-                    "\"None of [Index(['E'], dtype='string')] are in the [index]\""
+                    "\"None of [Index(['E'], dtype='str')] are in the [index]\""
                 ),
             ):
                 dfnu.loc[["E"]]
@@ -676,7 +676,7 @@ class TestMisc:
         cols = ["jim", "joe", "jolie", "joline"]
         df = DataFrame(xs, columns=cols, index=list("abcde"), dtype="int64")
 
-        # right hand side; permute the indices and multiplpy by -2
+        # right hand side; permute the indices and multiply by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
 
         # expected `right` result; just multiply by -2

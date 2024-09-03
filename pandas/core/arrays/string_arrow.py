@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from functools import partial
 import operator
 import re
 from typing import (
     TYPE_CHECKING,
     Union,
-    cast,
 )
+import warnings
 
 import numpy as np
 
@@ -21,13 +20,10 @@ from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_integer_dtype,
-    is_object_dtype,
     is_scalar,
-    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
@@ -41,7 +37,6 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
-from pandas.core.ops import invalid_comparison
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under10p1:
@@ -135,18 +130,22 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __init__(self, values) -> None:
         _chk_pyarrow_available()
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
-            values.type
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
+            pa.types.is_string(values.type)
+            or (
+                pa.types.is_dictionary(values.type)
+                and (
+                    pa.types.is_string(values.type.value_type)
+                    or pa.types.is_large_string(values.type.value_type)
+                )
+            )
         ):
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
 
-        if not pa.types.is_large_string(self._pa_array.type) and not (
-            pa.types.is_dictionary(self._pa_array.type)
-            and pa.types.is_large_string(self._pa_array.type.value_type)
-        ):
+        if not pa.types.is_large_string(self._pa_array.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of "
                 "large_string type"
@@ -218,12 +217,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return self._dtype
 
     def insert(self, loc: int, item) -> ArrowStringArray:
+        if self.dtype.na_value is np.nan and item is np.nan:
+            item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    @classmethod
-    def _result_converter(cls, values, na=None):
+    def _convert_bool_result(self, values, na=None):
+        if self.dtype.na_value is np.nan:
+            if not isna(na):
+                values = values.fill_null(bool(na))
+            return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -255,7 +259,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.is_in(
             self._pa_array, value_set=pa.array(value_set, type=self._pa_array.type)
         )
-        # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
+        # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
 
@@ -277,71 +281,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "ObjectStringArrayMixin" defined the type as "float")
-    _str_na_value = libmissing.NA  # type: ignore[assignment]
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        # TODO: de-duplicate with StringArray method. This method is moreless copy and
-        # paste.
-
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
-
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray | BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            result = pa.array(
-                result, mask=mask, type=pa.large_string(), from_pandas=True
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+    _str_map = BaseStringArray._str_map
+    _str_startswith = ArrowStringArrayMixin._str_startswith
+    _str_endswith = ArrowStringArrayMixin._str_endswith
+    _str_pad = ArrowStringArrayMixin._str_pad
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -355,48 +298,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._result_converter(result, na=na)
+        result = self._convert_bool_result(result, na=na)
         if not isna(na):
+            if not isinstance(na, bool):
+                # GH#59561
+                warnings.warn(
+                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                    "and will raise in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             result[isna(result)] = bool(na)
         return result
-
-    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._result_converter(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # mimic existing behaviour of string extension array
-                # and python string method
-                result = pa.array(
-                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
-                )
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return self._result_converter(result)
 
     def _str_replace(
         self,
@@ -412,9 +325,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
-        func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
-        return type(self)(result)
+        return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if not isinstance(repeats, int):
@@ -451,43 +362,43 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isalpha(self):
         result = pc.utf8_is_alpha(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isdecimal(self):
         result = pc.utf8_is_decimal(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isdigit(self):
         result = pc.utf8_is_digit(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_islower(self):
         result = pc.utf8_is_lower(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isnumeric(self):
         result = pc.utf8_is_numeric(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isspace(self):
         result = pc.utf8_is_space(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_istitle(self):
         result = pc.utf8_is_title(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
-        return self._result_converter(result)
+        return self._convert_bool_result(result)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
-        return self._convert_int_dtype(result)
+        return self._convert_int_result(result)
 
     def _str_lower(self) -> Self:
         return type(self)(pc.utf8_lower(self._pa_array))
@@ -534,7 +445,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if flags:
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._pa_array, pat)
-        return self._convert_int_dtype(result)
+        return self._convert_int_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if start != 0 and end is not None:
@@ -548,7 +459,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.find_substring(slices, sub)
         else:
             return super()._str_find(sub, start, end)
-        return self._convert_int_dtype(result)
+        return self._convert_int_result(result)
 
     def _str_get_dummies(self, sep: str = "|"):
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
@@ -557,15 +468,34 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         dummies = np.vstack(dummies_pa.to_numpy())
         return dummies.astype(np.int64, copy=False), labels
 
-    def _convert_int_dtype(self, result):
+    def _convert_int_result(self, result):
+        if self.dtype.na_value is np.nan:
+            if isinstance(result, pa.Array):
+                result = result.to_numpy(zero_copy_only=False)
+            else:
+                result = result.to_numpy()
+            if result.dtype == np.int32:
+                result = result.astype(np.int64)
+            return result
+
         return Int64Dtype().__from_arrow__(result)
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        if self.dtype.na_value is np.nan and name in ["any", "all"]:
+            if not skipna:
+                nas = pc.is_null(self._pa_array)
+                arr = pc.or_kleene(nas, pc.not_equal(self._pa_array, ""))
+            else:
+                arr = pc.not_equal(self._pa_array, "")
+            return ArrowExtensionArray(arr)._reduce(
+                name, skipna=skipna, keepdims=keepdims, **kwargs
+            )
+
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
-            return self._convert_int_dtype(result)
+            return self._convert_int_result(result)
         elif isinstance(result, pa.Array):
             return type(self)(result)
         else:
@@ -583,7 +513,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         """
         See Series.rank.__doc__.
         """
-        return self._convert_int_dtype(
+        return self._convert_int_result(
             self._rank_calc(
                 axis=axis,
                 method=method,
@@ -593,122 +523,30 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             )
         )
 
-
-class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _storage = "pyarrow"
-    _na_value = np.nan
-
-    @classmethod
-    def _result_converter(cls, values, na=None):
-        if not isna(na):
-            values = values.fill_null(bool(na))
-        return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
-
-    def __getattribute__(self, item):
-        # ArrowStringArray and we both inherit from ArrowExtensionArray, which
-        # creates inheritance problems (Diamond inheritance)
-        if item in ArrowStringArrayMixin.__dict__ and item not in (
-            "_pa_array",
-            "__dict__",
-        ):
-            return partial(getattr(ArrowStringArrayMixin, item), self)
-        return super().__getattribute__(item)
-
-    def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
-        if dtype is None:
-            dtype = self.dtype
-        if na_value is None:
-            na_value = self.dtype.na_value
-
-        mask = isna(self)
-        arr = np.asarray(self)
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            if is_integer_dtype(dtype):
-                na_value = np.nan
-            else:
-                na_value = False
-
-            dtype = np.dtype(cast(type, dtype))
-            if mask.any():
-                # numpy int/bool dtypes cannot hold NaNs so we must convert to
-                # float64 for int (to match maybe_convert_objects) or
-                # object for bool (again to match maybe_convert_objects)
-                if is_integer_dtype(dtype):
-                    dtype = np.dtype("float64")
-                else:
-                    dtype = np.dtype(object)
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=dtype,
+    def value_counts(self, dropna: bool = True) -> Series:
+        result = super().value_counts(dropna=dropna)
+        if self.dtype.na_value is np.nan:
+            res_values = result._values.to_numpy()
+            return result._constructor(
+                res_values, index=result.index, name=result.name, copy=False
             )
-            return result
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            result = pa.array(
-                result, mask=mask, type=pa.large_string(), from_pandas=True
-            )
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
-    def _convert_int_dtype(self, result):
-        if isinstance(result, pa.Array):
-            result = result.to_numpy(zero_copy_only=False)
-        else:
-            result = result.to_numpy()
-        if result.dtype == np.int32:
-            result = result.astype(np.int64)
         return result
 
     def _cmp_method(self, other, op):
-        try:
-            result = super()._cmp_method(other, op)
-        except pa.ArrowNotImplementedError:
-            return invalid_comparison(self, other, op)
-        if op == operator.ne:
-            return result.to_numpy(np.bool_, na_value=True)
-        else:
-            return result.to_numpy(np.bool_, na_value=False)
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import Series
-
-        result = super().value_counts(dropna)
-        return Series(
-            result._values.to_numpy(), index=result.index, name=result.name, copy=False
-        )
-
-    def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
-    ):
-        if name in ["any", "all"]:
-            if not skipna and name == "all":
-                nas = pc.invert(pc.is_null(self._pa_array))
-                arr = pc.and_kleene(nas, pc.not_equal(self._pa_array, ""))
+        result = super()._cmp_method(other, op)
+        if self.dtype.na_value is np.nan:
+            if op == operator.ne:
+                return result.to_numpy(np.bool_, na_value=True)
             else:
-                arr = pc.not_equal(self._pa_array, "")
-            return ArrowExtensionArray(arr)._reduce(
-                name, skipna=skipna, keepdims=keepdims, **kwargs
-            )
-        else:
-            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+                return result.to_numpy(np.bool_, na_value=False)
+        return result
 
-    def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
-        if item is np.nan:
-            item = libmissing.NA
-        return super().insert(loc, item)  # type: ignore[return-value]
+
+class ArrowStringArrayNumpySemantics(ArrowStringArray):
+    _na_value = np.nan
+    _str_get = ArrowStringArrayMixin._str_get
+    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_capitalize = ArrowStringArrayMixin._str_capitalize
+    _str_title = ArrowStringArrayMixin._str_title
+    _str_swapcase = ArrowStringArrayMixin._str_swapcase
+    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace

@@ -812,7 +812,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|string'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1456,6 +1456,18 @@ class TestMerge:
 
         data1.merge(data2)  # no error
 
+    def test_merge_how_validation(self):
+        # https://github.com/pandas-dev/pandas/issues/59422
+        data1 = DataFrame(
+            np.arange(20).reshape((4, 5)) + 1, columns=["a", "b", "c", "d", "e"]
+        )
+        data2 = DataFrame(
+            np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
+        )
+        msg = "'full' is not a valid Merge type: left, right, inner, outer, cross, asof"
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            data1.merge(data2, how="full")
+
 
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:
@@ -1859,7 +1871,7 @@ class TestMergeCategorical:
         # merging on the same, should preserve dtypes
         merged = merge(left, left, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [CategoricalDtype(categories=["foo", "bar"]), dtype, dtype],
             index=["X", "Y_x", "Y_y"],
@@ -1871,7 +1883,7 @@ class TestMergeCategorical:
         # so should preserve the merged column
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -1985,7 +1997,7 @@ class TestMergeCategorical:
 
         merged = merge(left, right, on="X")
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series(
             [
                 CategoricalDtype(categories=["foo", "bar"]),
@@ -2022,7 +2034,7 @@ class TestMergeCategorical:
         merged = merge(left, right, on="X", how=join_type)
 
         result = merged.dtypes.sort_index()
-        dtype = np.dtype("O") if not using_infer_string else "string"
+        dtype = np.dtype("O") if not using_infer_string else "str"
         expected = Series([dtype, dtype, np.dtype("int64")], index=["X", "Y", "Z"])
         tm.assert_series_equal(result, expected)
 
@@ -2998,3 +3010,15 @@ def test_merge_datetime_and_timedelta(how):
     )
     with pytest.raises(ValueError, match=re.escape(msg)):
         right.merge(left, on="key", how=how)
+
+
+def test_merge_on_all_nan_column():
+    # GH#59421
+    left = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6]})
+    right = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "zz": [4, 5, 6]})
+    result = left.merge(right, on=["x", "y"], how="outer")
+    # Should not trigger array bounds eerror with bounds checking or asan enabled.
+    expected = DataFrame(
+        {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6], "zz": [4, 5, 6]}
+    )
+    tm.assert_frame_equal(result, expected)

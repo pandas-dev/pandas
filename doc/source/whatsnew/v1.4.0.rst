@@ -1045,7 +1045,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
 - Bug in :func:`merge` raising ``KeyError`` when joining over differently named indexes with on keywords (:issue:`45094`)
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
-- Bug in :meth:`MultiIndex.join()` with overlapping ``IntervalIndex`` levels (:issue:`44096`)
+- Bug in :meth:`MultiIndex.join` with overlapping ``IntervalIndex`` levels (:issue:`44096`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` results is different ``dtype`` based on ``regex`` parameter (:issue:`44864`)
 - Bug in :meth:`DataFrame.pivot` with ``index=None`` when the :class:`DataFrame` index was a :class:`MultiIndex` (:issue:`23955`)
 

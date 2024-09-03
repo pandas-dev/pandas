@@ -201,7 +201,7 @@ def concat(
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
         Sort non-concatenation axis. One exception to this is when the
-        non-concatentation axis is a DatetimeIndex and join='outer' and the axis is
+        non-concatenation axis is a DatetimeIndex and join='outer' and the axis is
         not already aligned. In that case, the non-concatenation axis is always
         sorted lexicographically.
     copy : bool, default False
@@ -379,6 +379,11 @@ def concat(
     0   1   2
     1   3   4
     """
+    if ignore_index and keys is not None:
+        raise ValueError(
+            f"Cannot set {ignore_index=} and specify keys. Either should be used."
+        )
+
     if copy is not lib.no_default:
         warnings.warn(
             "The copy keyword is deprecated and will be removed in a future "

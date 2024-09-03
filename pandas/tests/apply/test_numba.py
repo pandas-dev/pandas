@@ -73,7 +73,7 @@ def test_numba_vs_python_reductions(reduction, apply_axis):
 
 @pytest.mark.parametrize("colnames", [[1, 2, 3], [1.0, 2.0, 3.0]])
 def test_numba_numeric_colnames(colnames):
-    # Check that numeric column names lower properly and can be indxed on
+    # Check that numeric column names lower properly and can be indexed on
     df = DataFrame(
         np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int64), columns=colnames
     )
@@ -104,13 +104,14 @@ def test_numba_nonunique_unsupported(apply_axis):
 
 
 def test_numba_unsupported_dtypes(apply_axis):
+    pytest.importorskip("pyarrow")
     f = lambda x: x
     df = DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
     df["c"] = df["c"].astype("double[pyarrow]")
 
     with pytest.raises(
         ValueError,
-        match="Column b must have a numeric dtype. Found 'object|string' instead",
+        match="Column b must have a numeric dtype. Found 'object|str' instead",
     ):
         df.apply(f, engine="numba", axis=apply_axis)
 
