@@ -336,6 +336,10 @@ ignore = [
   "E721",
   # unnecessary-default-type-args
   "UP043",
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
 
   # Additional pylint rules
   # literal-membership
