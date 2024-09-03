@@ -2712,13 +2712,17 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype()
-            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            return dtype.construct_array_type()._from_sequence(
+                objects, dtype=dtype, copy=True
+            )
 
         elif using_string_dtype() and is_string_array(objects, skipna=True):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(na_value=np.nan)
-            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            return dtype.construct_array_type()._from_sequence(
+                objects, dtype=dtype, copy=True
+            )
 
         seen.object_ = True
     elif seen.interval_:
