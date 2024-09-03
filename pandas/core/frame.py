@@ -1747,7 +1747,7 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_arrow(cls, data):
+    def from_arrow(cls, data) -> DataFrame:
         """
         Construct a DataFrame from a tabular Arrow object.
 
