@@ -24,7 +24,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 
@@ -300,11 +299,22 @@ class TestDataFrameConstructors:
         df2 = DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
-    @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="conversion copies")
-    def test_1d_object_array_does_not_copy(self):
+    def test_1d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
         df = DataFrame(arr, copy=False)
+        if using_infer_string:
+            if df[0].dtype.storage == "pyarrow":
+                # object dtype strings are converted to arrow memory,
+                # no numpy arrays to compare
+                pass
+            else:
+                # TODO(infer_string): this should be fixed to still share memory?
+                assert not np.shares_memory(df[0].to_numpy(), arr)
+        else:
+            assert np.shares_memory(df.values, arr)
+
+        df = DataFrame(arr, dtype=object, copy=False)
         assert np.shares_memory(df.values, arr)
 
     @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
