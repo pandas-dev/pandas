@@ -334,6 +334,10 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
+  # self-or-cls-assignment
+  "PLW0642",
+  # repeated-equality-comparison
+  "PLR1714",
 
   # Additional pylint rules
   # literal-membership
