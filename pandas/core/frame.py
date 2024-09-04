@@ -2126,8 +2126,8 @@ class DataFrame(NDFrame, OpsMixin):
             associated with them, this argument provides names for the
             columns. Otherwise this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
-            columns).Additionally,specifying `columns` will limit the DataFrame to only include the
-            specified columns, similar to an "include" or "usecols" functionality.
+            columns).Additionally,specifying `columns` will limit the DataFrame to only
+            include the specified columns, similar to an "include" or "usecols" functionality.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
