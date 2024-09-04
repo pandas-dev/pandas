@@ -2442,33 +2442,6 @@ class ArrowExtensionArray(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
 
-    def _str_isalnum(self) -> Self:
-        return type(self)(pc.utf8_is_alnum(self._pa_array))
-
-    def _str_isalpha(self) -> Self:
-        return type(self)(pc.utf8_is_alpha(self._pa_array))
-
-    def _str_isdecimal(self) -> Self:
-        return type(self)(pc.utf8_is_decimal(self._pa_array))
-
-    def _str_isdigit(self) -> Self:
-        return type(self)(pc.utf8_is_digit(self._pa_array))
-
-    def _str_islower(self) -> Self:
-        return type(self)(pc.utf8_is_lower(self._pa_array))
-
-    def _str_isnumeric(self) -> Self:
-        return type(self)(pc.utf8_is_numeric(self._pa_array))
-
-    def _str_isspace(self) -> Self:
-        return type(self)(pc.utf8_is_space(self._pa_array))
-
-    def _str_istitle(self) -> Self:
-        return type(self)(pc.utf8_is_title(self._pa_array))
-
-    def _str_isupper(self) -> Self:
-        return type(self)(pc.utf8_is_upper(self._pa_array))
-
     def _str_len(self) -> Self:
         return type(self)(pc.utf8_length(self._pa_array))
 
