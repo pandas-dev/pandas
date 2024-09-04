@@ -2287,5 +2287,14 @@ def test_read_json_lines_rangeindex():
     expected = RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
 
+
 def test_large_number():
-    assert pd.read_json(StringIO('["9999999999999999"]'),orient="values",typ="series",convert_dates=False)[0] == 9999999999999999
+    assert (
+        pd.read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )[0]
+        == 9999999999999999
+    )
