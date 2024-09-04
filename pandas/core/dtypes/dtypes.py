@@ -453,7 +453,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 # Because left and right have the same length and are unique,
                 #  `indexer` not having any -1s implies that there is a
                 #  bijection between `left` and `right`.
-                return (indexer != -1).all()
+                return bool((indexer != -1).all())
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
