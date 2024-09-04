@@ -416,7 +416,7 @@ See Also
 --------
 {klass}.GroupBy.apply : Apply function func group-wise
     and combine the results together.
-{klass}.GroupBy.transform : Transforms the Series on each group
+{klass}GroupBy.transform : Transforms the Series on each group
     based on the given function.
 {klass}.aggregate : Aggregate using one or more operations.
 
