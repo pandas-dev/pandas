@@ -975,7 +975,7 @@ Numeric
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
 - Bug in :meth:`UInt64Index.where` and :meth:`UInt64Index.putmask` with an ``np.int64`` dtype ``other`` incorrectly raising ``TypeError`` (:issue:`41974`)
-- Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggregation functions when one or more aggregation function fails to produce results (:issue:`33634`)
+- Bug in :meth:`DataFrame.agg` not sorting the aggregated axis in the order of the provided aggregation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 
 Conversion
