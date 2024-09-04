@@ -240,7 +240,7 @@ class TestStringArray(base.ExtensionTests):
                 reason="The pointwise operation result will be inferred to "
                 "string[nan, pyarrow], which does not match the input dtype"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
