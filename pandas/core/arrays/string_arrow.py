@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        AxisInt,
         Dtype,
         Self,
         npt,
@@ -292,19 +291,22 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
-    _str_match = ArrowExtensionArray._str_match
-    _str_fullmatch = ArrowExtensionArray._str_fullmatch
-    _str_lower = ArrowExtensionArray._str_lower
-    _str_upper = ArrowExtensionArray._str_upper
-    _str_strip = ArrowExtensionArray._str_strip
-    _str_lstrip = ArrowExtensionArray._str_lstrip
-    _str_rstrip = ArrowExtensionArray._str_rstrip
+    _str_match = ArrowStringArrayMixin._str_match
+    _str_fullmatch = ArrowStringArrayMixin._str_fullmatch
+    _str_lower = ArrowStringArrayMixin._str_lower
+    _str_upper = ArrowStringArrayMixin._str_upper
+    _str_strip = ArrowStringArrayMixin._str_strip
+    _str_lstrip = ArrowStringArrayMixin._str_lstrip
+    _str_rstrip = ArrowStringArrayMixin._str_rstrip
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
     _str_get = ArrowStringArrayMixin._str_get
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
+    _str_len = ArrowStringArrayMixin._str_len
+
+    _rank = ArrowExtensionArray._rank
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -355,10 +357,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if stop is None:
             return super()._str_slice(start, stop, step)
         return ArrowExtensionArray._str_slice(self, start=start, stop=stop, step=step)
-
-    def _str_len(self):
-        result = pc.utf8_length(self._pa_array)
-        return self._convert_int_result(result)
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
@@ -420,28 +418,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return type(self)(result)
         else:
             return result
-
-    def _rank(
-        self,
-        *,
-        axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
-        ascending: bool = True,
-        pct: bool = False,
-    ):
-        """
-        See Series.rank.__doc__.
-        """
-        return self._convert_int_result(
-            self._rank_calc(
-                axis=axis,
-                method=method,
-                na_option=na_option,
-                ascending=ascending,
-                pct=pct,
-            )
-        )
 
     def value_counts(self, dropna: bool = True) -> Series:
         result = super().value_counts(dropna=dropna)

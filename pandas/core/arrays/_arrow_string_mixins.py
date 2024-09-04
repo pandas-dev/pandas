@@ -50,6 +50,37 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
+    def _str_len(self):
+        result = pc.utf8_length(self._pa_array)
+        return self._convert_int_result(result)
+
+    def _str_lower(self) -> Self:
+        return type(self)(pc.utf8_lower(self._pa_array))
+
+    def _str_upper(self) -> Self:
+        return type(self)(pc.utf8_upper(self._pa_array))
+
+    def _str_strip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_trim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_trim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_lstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_ltrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_rstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_rtrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
     def _str_pad(
         self,
         width: int,
@@ -247,3 +278,17 @@ class ArrowStringArrayMixin:
             offset_result = pc.add(result, start_offset)
             result = pc.if_else(found, offset_result, -1)
         return self._convert_int_result(result)
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.startswith("^"):
+            pat = f"^{pat}"
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.endswith("$") or pat.endswith("\\$"):
+            pat = f"{pat}$"
+        return self._str_match(pat, case, flags, na)
