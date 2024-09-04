@@ -205,6 +205,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axes,
         Axis,
         AxisInt,
@@ -1747,7 +1749,9 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_arrow(cls, data) -> DataFrame:
+    def from_arrow(
+        cls, data: ArrowArrayExportable | ArrowStreamExportable
+    ) -> DataFrame:
         """
         Construct a DataFrame from a tabular Arrow object.
 
