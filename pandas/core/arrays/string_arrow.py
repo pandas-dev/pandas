@@ -56,7 +56,6 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
-        Scalar,
         Self,
         npt,
     )
@@ -293,6 +292,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
+    _str_match = ArrowExtensionArray._str_match
+    _str_fullmatch = ArrowExtensionArray._str_fullmatch
+    _str_lower = ArrowExtensionArray._str_lower
+    _str_upper = ArrowExtensionArray._str_upper
+    _str_strip = ArrowExtensionArray._str_strip
+    _str_lstrip = ArrowExtensionArray._str_lstrip
+    _str_rstrip = ArrowExtensionArray._str_rstrip
+    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_get = ArrowStringArrayMixin._str_get
+    _str_capitalize = ArrowStringArrayMixin._str_capitalize
+    _str_title = ArrowStringArrayMixin._str_title
+    _str_swapcase = ArrowStringArrayMixin._str_swapcase
+    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -347,15 +359,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
-
-    _str_match = ArrowExtensionArray._str_match
-    _str_fullmatch = ArrowExtensionArray._str_fullmatch
-    _str_lower = ArrowExtensionArray._str_lower
-    _str_upper = ArrowExtensionArray._str_upper
-    _str_strip = ArrowExtensionArray._str_strip
-    _str_lstrip = ArrowExtensionArray._str_lstrip
-    _str_rstrip = ArrowExtensionArray._str_rstrip
-    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
@@ -461,8 +464,3 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _na_value = np.nan
-    _str_get = ArrowStringArrayMixin._str_get
-    _str_capitalize = ArrowStringArrayMixin._str_capitalize
-    _str_title = ArrowStringArrayMixin._str_title
-    _str_swapcase = ArrowStringArrayMixin._str_swapcase
-    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
