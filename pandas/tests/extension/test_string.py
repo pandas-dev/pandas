@@ -216,7 +216,7 @@ class TestStringArray(base.ExtensionTests):
     def test_combine_add(self, data_repeated, using_infer_string, request):
         dtype = next(data_repeated(1)).dtype
         if using_infer_string and (
-            (dtype.na_value is pd.NA) and (dtype.storage == "python" and HAS_PYARROW)
+            (dtype.na_value is pd.NA) and dtype.storage == "python"
         ):
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "
