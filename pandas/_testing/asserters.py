@@ -188,7 +188,7 @@ def assert_index_equal(
     check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
-    obj: str = "Index",
+    obj: str | None = None,
 ) -> None:
     """
     Check that left and right Index are equal.
@@ -217,7 +217,7 @@ def assert_index_equal(
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-    obj : str, default 'Index'
+    obj : str, default 'Index' or 'MultiIndex'
         Specify object name being compared, internally used to show appropriate
         assertion message.
 
@@ -234,6 +234,9 @@ def assert_index_equal(
     >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
+
+    if obj is None:
+        obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
@@ -283,7 +286,7 @@ def assert_index_equal(
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
-            lobj = f"MultiIndex level [{level}]"
+            lobj = f"{obj} level [{level}]"
             try:
                 # try comparison on levels/codes to avoid densifying MultiIndex
                 assert_index_equal(
@@ -314,7 +317,7 @@ def assert_index_equal(
                     obj=lobj,
                 )
             # get_level_values may change dtype
-            _check_types(left.levels[level], right.levels[level], obj=obj)
+            _check_types(left.levels[level], right.levels[level], obj=lobj)
 
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
@@ -527,7 +530,7 @@ def assert_interval_array_equal(
         kwargs["check_freq"] = False
 
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
-    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.right", **kwargs)
 
     assert_attr_equal("closed", left, right, obj=obj)
 
