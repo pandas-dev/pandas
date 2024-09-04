@@ -52,10 +52,10 @@ class ArrowStringArrayMixin:
         elif side == "both":
             if pa_version_under17p0:
                 # GH#59624 fall back to object dtype
-                from pandas import array
+                from pandas import array as pd_array
 
                 obj_arr = self.astype(object, copy=False)  # type: ignore[attr-defined]
-                obj = array(obj_arr, dtype=object)
+                obj = pd_array(obj_arr, dtype=object)
                 result = obj._str_pad(width, side, fillchar)  # type: ignore[attr-defined]
                 return type(self)._from_sequence(result, dtype=self.dtype)  # type: ignore[attr-defined]
             else:
@@ -149,4 +149,40 @@ class ArrowStringArrayMixin:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
+        return self._convert_bool_result(result)
+
+    def _str_isalnum(self):
+        result = pc.utf8_is_alnum(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isalpha(self):
+        result = pc.utf8_is_alpha(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdecimal(self):
+        result = pc.utf8_is_decimal(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdigit(self):
+        result = pc.utf8_is_digit(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_islower(self):
+        result = pc.utf8_is_lower(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isnumeric(self):
+        result = pc.utf8_is_numeric(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isspace(self):
+        result = pc.utf8_is_space(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_istitle(self):
+        result = pc.utf8_is_title(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isupper(self):
+        result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
