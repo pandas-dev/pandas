@@ -5917,7 +5917,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         name = ops.get_op_result_name(self, other)
 
-        if not this.attrs and other.attrs:
+        if not getattr(this, "attrs", None) and getattr(other, "attrs", None):
             this.attrs = other.attrs
 
         out = this._construct_result(result, name)

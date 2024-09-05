@@ -1466,7 +1466,7 @@ class IndexOpsMixin(OpsMixin):
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 
-        if not self.attrs and other.attrs:
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
             self.attrs = other.attrs
 
         return self._construct_result(result, name=res_name)

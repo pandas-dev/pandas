@@ -7831,7 +7831,7 @@ class DataFrame(NDFrame, OpsMixin):
         with np.errstate(all="ignore"):
             new_data = self._dispatch_frame_op(other, op, axis=axis)
 
-        if not self.attrs and other.attrs:
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
             self.attrs = other.attrs
 
         return self._construct_result(new_data)
@@ -8189,7 +8189,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_data = self._dispatch_frame_op(other, op)
 
-        if not self.attrs and other.attrs:
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
             self.attrs = other.attrs
 
         return self._construct_result(new_data)
