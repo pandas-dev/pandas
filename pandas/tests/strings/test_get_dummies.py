@@ -69,24 +69,108 @@ def test_get_dummies_with_dtype(any_string_dtype, dtype):
 
 
 @td.skip_if_no("pyarrow")
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        ArrowDtype(pa.int8()),
-        ArrowDtype(pa.uint8()),
-        ArrowDtype(pa.int16()),
-        ArrowDtype(pa.uint16()),
-        ArrowDtype(pa.int32()),
-        ArrowDtype(pa.uint32()),
-        ArrowDtype(pa.int64()),
-        ArrowDtype(pa.uint64()),
-        ArrowDtype(pa.bool_()),
-    ],
-)
-def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
+def test_get_dummies_with_pyarrow_dtype_int8(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
-    result = s.str.get_dummies("|", dtype=dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.int8()))
     expected = DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=dtype
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.int8()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_uint8(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.uint8()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.uint8()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_int16(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.int16()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.int16()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_uint16(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.uint16()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.uint16()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_int32(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.int32()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.int32()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_uint32(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.uint32()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.uint32()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_int64(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.int64()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.int64()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_uint64(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.uint64()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.uint64()),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pyarrow_dtype_bool(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=ArrowDtype(pa.bool_()))
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=ArrowDtype(pa.bool_()),
     )
     tm.assert_frame_equal(result, expected)
