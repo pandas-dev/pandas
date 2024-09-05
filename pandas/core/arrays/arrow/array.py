@@ -2396,6 +2396,10 @@ class ArrowExtensionArray(
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ) -> Self:
+        if step is not None and step < 0:
+            # GH#59710
+            result = self._apply_elementwise(lambda x: x[start:stop:step])
+            return type(self)(pa.chunked_array(result))
         if start is None:
             start = 0
         if step is None:

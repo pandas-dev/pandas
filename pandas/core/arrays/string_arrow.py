@@ -293,6 +293,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
+    _str_slice = ArrowExtensionArray._str_slice
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -350,19 +351,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
-
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if stop is None:
-            return super()._str_slice(start, stop, step)
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
