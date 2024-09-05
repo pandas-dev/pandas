@@ -1469,6 +1469,10 @@ cdef class _Timedelta(timedelta):
         dtype : str or dtype
             The dtype to view the underlying data as.
 
+        See Also
+        --------
+        Timedelta.asm8 : Return a numpy timedelta64 array scalar view.
+
         Examples
         --------
         >>> td = pd.Timedelta('3D')
