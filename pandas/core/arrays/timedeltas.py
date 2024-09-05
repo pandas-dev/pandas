@@ -879,7 +879,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     See Also
     --------
     pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than 1 second).
-    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less 
+    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
         than 1 second) of a datetime.timedelta.
 
     Examples
@@ -964,7 +964,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         See Also
         --------
         TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
-        Timedelta.components : Return a components namedtuple-like of a single 
+        Timedelta.components : Return a components namedtuple-like of a single
             timedelta.
 
         Examples

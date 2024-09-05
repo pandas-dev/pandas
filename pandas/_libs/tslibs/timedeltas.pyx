@@ -1426,10 +1426,10 @@ cdef class _Timedelta(timedelta):
         Parameters
         ----------
         dtype : NoneType
-            It is available here only for compatibility. Its value will not 
+            It is available here only for compatibility. Its value will not
             affect the return value.
         copy : bool, default False
-            It is available here only for compatibility. Its value will not 
+            It is available here only for compatibility. Its value will not
             affect the return value.
 
         Returns
