@@ -261,18 +261,30 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Parameters
         ----------
         year : int, array, or Series, default None
+            Year for the PeriodIndex.
         quarter : int, array, or Series, default None
+            Quarter for the PeriodIndex.
         month : int, array, or Series, default None
+            Month for the PeriodIndex.
         day : int, array, or Series, default None
+            Day for the PeriodIndex.
         hour : int, array, or Series, default None
+            Hour for the PeriodIndex.
         minute : int, array, or Series, default None
+            Minute for the PeriodIndex.
         second : int, array, or Series, default None
+            Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
 
         Returns
         -------
         PeriodIndex
+
+        See Also
+        --------
+        PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------
@@ -310,6 +322,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Returns
         -------
         PeriodIndex
+
+        See Also
+        --------
+        PeriodIndex.from_fields : Construct a PeriodIndex from fields
+            (year, month, day, etc.).
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------

@@ -2311,6 +2311,12 @@ class ArrowExtensionArray(
             for chunk in self._pa_array.iterchunks()
         ]
 
+    def _convert_bool_result(self, result):
+        return type(self)(result)
+
+    def _convert_int_result(self, result):
+        return type(self)(result)
+
     def _str_count(self, pat: str, flags: int = 0) -> Self:
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
@@ -2331,38 +2337,7 @@ class ArrowExtensionArray(
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.starts_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
-    def _str_endswith(self, pat: str | tuple[str, ...], na=None) -> Self:
-        if isinstance(pat, str):
-            result = pc.ends_with(self._pa_array, pattern=pat)
-        else:
-            if len(pat) == 0:
-                # For empty tuple, pd.StringDtype() returns null for missing values
-                # and false for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
-
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if not isna(na):
-            result = result.fill_null(na)
+    def _result_converter(self, result):
         return type(self)(result)
 
     def _str_replace(
@@ -2466,33 +2441,6 @@ class ArrowExtensionArray(
         return type(self)(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
-
-    def _str_isalnum(self) -> Self:
-        return type(self)(pc.utf8_is_alnum(self._pa_array))
-
-    def _str_isalpha(self) -> Self:
-        return type(self)(pc.utf8_is_alpha(self._pa_array))
-
-    def _str_isdecimal(self) -> Self:
-        return type(self)(pc.utf8_is_decimal(self._pa_array))
-
-    def _str_isdigit(self) -> Self:
-        return type(self)(pc.utf8_is_digit(self._pa_array))
-
-    def _str_islower(self) -> Self:
-        return type(self)(pc.utf8_is_lower(self._pa_array))
-
-    def _str_isnumeric(self) -> Self:
-        return type(self)(pc.utf8_is_numeric(self._pa_array))
-
-    def _str_isspace(self) -> Self:
-        return type(self)(pc.utf8_is_space(self._pa_array))
-
-    def _str_istitle(self) -> Self:
-        return type(self)(pc.utf8_is_title(self._pa_array))
-
-    def _str_isupper(self) -> Self:
-        return type(self)(pc.utf8_is_upper(self._pa_array))
 
     def _str_len(self) -> Self:
         return type(self)(pc.utf8_length(self._pa_array))
