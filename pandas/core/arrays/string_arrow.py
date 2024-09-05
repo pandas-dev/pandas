@@ -214,10 +214,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values, na=None):
+    def _convert_bool_result(self, values):
         if self.dtype.na_value is np.nan:
-            if not isna(na):
-                values = values.fill_null(bool(na))
             return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
         return BooleanDtype().__from_arrow__(values)
 
@@ -305,11 +303,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
-        if regex:
-            result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
-        else:
-            result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._convert_bool_result(result, na=na)
         if not isna(na):
             if not isinstance(na, bool):
                 # GH#59561
@@ -319,8 +312,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            result[isna(result)] = bool(na)
-        return result
+                na = bool(na)
+
+        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_replace(
         self,
