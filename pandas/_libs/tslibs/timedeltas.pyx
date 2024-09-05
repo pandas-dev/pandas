@@ -1403,6 +1403,14 @@ cdef class _Timedelta(timedelta):
         """
         Return a numpy.timedelta64 object with 'ns' precision.
 
+        Returns
+        -------
+        numpy.timedelta64
+
+        See Also
+        --------
+        Timedelta.to_numpy : Alias method.
+
         Examples
         --------
         >>> td = pd.Timedelta('3D')
