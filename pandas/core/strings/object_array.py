@@ -18,6 +18,7 @@ import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
@@ -414,7 +415,13 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
-        dummies = np.empty((len(arr), len(tags2)), dtype=dtype)
+        _dtype = pandas_dtype(dtype)
+        dummy_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummy_dtype = _dtype
+        else:
+            dummy_dtype = np.bool_
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummy_dtype)
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements

@@ -471,7 +471,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if len(labels) == 0:
             return np.empty(shape=(0, 0), dtype=dtype), labels
         dummies = np.vstack(dummies_pa.to_numpy())
-        return dummies.astype(dtype, copy=False), labels
+        _dtype = pandas_dtype(dtype)
+        dummy_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummy_dtype = _dtype
+        else:
+            dummy_dtype = np.bool_
+        return dummies.astype(dummy_dtype, copy=False), labels
 
     def _convert_int_result(self, result):
         if self.dtype.na_value is np.nan:

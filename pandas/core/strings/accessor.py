@@ -26,6 +26,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -2481,9 +2482,23 @@ class StringMethods(NoNewAttributesMixin):
         1   False  False   False
         2   True   False   True
         """
+        from pandas.core.frame import DataFrame
+
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
+        if is_extension_array_dtype(dtype):
+            return self._wrap_result(
+                DataFrame(result, columns=name, dtype=dtype),
+                name=name,
+                returns_string=False,
+            )
+        if isinstance(dtype, ArrowDtype):
+            return self._wrap_result(
+                DataFrame(result, columns=name, dtype=dtype),
+                name=name,
+                returns_string=False,
+            )
         return self._wrap_result(
             result,
             name=name,

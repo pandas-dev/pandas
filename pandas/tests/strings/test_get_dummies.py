@@ -1,7 +1,9 @@
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -35,7 +37,25 @@ def test_get_dummies_index():
 
 @pytest.mark.parametrize(
     "dtype",
-    [np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64, bool],
+    [
+        np.uint8,
+        np.int16,
+        np.uint16,
+        np.int32,
+        np.uint32,
+        np.int64,
+        np.uint64,
+        bool,
+        ArrowDtype(pa.int8()),
+        ArrowDtype(pa.int16()),
+        ArrowDtype(pa.int32()),
+        ArrowDtype(pa.int64()),
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "boolean",
+    ],
 )
 def test_get_dummies_with_dtype(any_string_dtype, dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
