@@ -2072,9 +2072,9 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
         s = style.split(";")
         try:
             return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
+                (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
                 for x in s
-                if x.strip() != ""
+                if ":".join(x.split(":")[1:]).strip() != ""
             ]
         except IndexError as err:
             raise ValueError(
