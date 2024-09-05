@@ -2296,21 +2296,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
-    def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
-    ):
-        if flags:
-            raise NotImplementedError(f"contains not implemented with {flags=}")
-
-        if regex:
-            pa_contains = pc.match_substring_regex
-        else:
-            pa_contains = pc.match_substring
-        result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
     def _result_converter(self, result):
         return type(self)(result)
 
