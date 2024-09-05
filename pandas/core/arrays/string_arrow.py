@@ -282,6 +282,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # ------------------------------------------------------------------------
     # String methods interface
 
+    _str_isalnum = ArrowStringArrayMixin._str_isalnum
+    _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
+    _str_isdigit = ArrowStringArrayMixin._str_isdigit
+    _str_islower = ArrowStringArrayMixin._str_islower
+    _str_isnumeric = ArrowStringArrayMixin._str_isnumeric
+    _str_isspace = ArrowStringArrayMixin._str_isspace
+    _str_istitle = ArrowStringArrayMixin._str_istitle
+    _str_isupper = ArrowStringArrayMixin._str_isupper
+
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
@@ -360,42 +370,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return type(self)(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
-
-    def _str_isalnum(self):
-        result = pc.utf8_is_alnum(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isalpha(self):
-        result = pc.utf8_is_alpha(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdecimal(self):
-        result = pc.utf8_is_decimal(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdigit(self):
-        result = pc.utf8_is_digit(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_islower(self):
-        result = pc.utf8_is_lower(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isnumeric(self):
-        result = pc.utf8_is_numeric(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isspace(self):
-        result = pc.utf8_is_space(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_istitle(self):
-        result = pc.utf8_is_title(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isupper(self):
-        result = pc.utf8_is_upper(self._pa_array)
-        return self._convert_bool_result(result)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
