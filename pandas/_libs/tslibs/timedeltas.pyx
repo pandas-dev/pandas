@@ -1857,6 +1857,21 @@ class Timedelta(_Timedelta):
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
+    **Attributes
+    --------
+    resolution: Timedelta
+        Represents the smallest difference between two time units that can be represented
+        by the Timedelta object. 
+        Fixed at 0 days 00:00:00.000000001 (1 nanosecond).
+    min : Timedelta
+        Returns the minimum Timedelta value that can be created or used in
+        pandas operations.
+        Fixed at -106752 days +00:12:43.145224193
+    max : Timedelta
+        Returns the maximum Timedelta value that can be created or used in
+        pandas operations.
+        Fixed at 106751 days 23:47:16.854775807.
+
     See Also
     --------
     Timestamp : Represents a single timestamp in time.
