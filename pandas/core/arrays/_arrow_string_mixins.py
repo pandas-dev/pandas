@@ -202,6 +202,6 @@ class ArrowStringArrayMixin:
         else:
             pa_contains = pc.match_substring
         result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):
+        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
