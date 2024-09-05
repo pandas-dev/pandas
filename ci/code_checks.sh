@@ -114,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timedelta.to_numpy PR01" \
-        -i "pandas.Timedelta.total_seconds SA01" \
         -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
         -i "pandas.TimedeltaIndex.microseconds SA01" \

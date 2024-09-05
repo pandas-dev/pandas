@@ -1189,6 +1189,11 @@ cdef class _Timedelta(timedelta):
         """
         Total seconds in the duration.
 
+        See Also
+        --------
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
+
         Examples
         --------
         >>> td = pd.Timedelta('1min')
