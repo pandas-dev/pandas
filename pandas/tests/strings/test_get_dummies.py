@@ -1,5 +1,4 @@
 import numpy as np
-import pyarrow as pa
 import pytest
 
 from pandas import (
@@ -10,6 +9,11 @@ from pandas import (
     Series,
     _testing as tm,
 )
+
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
 
 
 def test_get_dummies(any_string_dtype):
