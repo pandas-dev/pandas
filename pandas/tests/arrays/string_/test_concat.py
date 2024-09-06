@@ -69,5 +69,5 @@ def test_concat_with_numpy(string_dtype_arguments):
     assert find_common_type([dtype, np.dtype("int64")]) == np.dtype("object")
 
     if Version(np.__version__) >= Version("2"):
-        assert find_common_type([dtype, np.dtypes.StringDtype()]) == dtype
-        assert find_common_type([np.dtypes.StringDtype(), dtype]) == dtype
+        assert find_common_type([dtype, np.dtypes.StringDType()]) == dtype
+        assert find_common_type([np.dtypes.StringDType(), dtype]) == dtype
