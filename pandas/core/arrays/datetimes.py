@@ -1947,7 +1947,7 @@ default 'raise'
         See Also
         --------        
         DatetimeIndex.year : Return the calendar year of the date.
-        DatetimeIndex.quarter : Return the quarter of the date
+        DatetimeIndex.quarter : Return the quarter of the date.
         
         Examples
         --------
