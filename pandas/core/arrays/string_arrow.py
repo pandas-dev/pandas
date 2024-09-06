@@ -223,10 +223,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values, na=None):
+    def _convert_bool_result(self, values):
         if self.dtype.na_value is np.nan:
-            if not isna(na):
-                values = values.fill_null(bool(na))
             return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
         return BooleanDtype().__from_arrow__(values)
 
@@ -281,9 +279,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # ------------------------------------------------------------------------
     # String methods interface
 
+    _str_isalnum = ArrowStringArrayMixin._str_isalnum
+    _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
+    _str_isdigit = ArrowStringArrayMixin._str_isdigit
+    _str_islower = ArrowStringArrayMixin._str_islower
+    _str_isnumeric = ArrowStringArrayMixin._str_isnumeric
+    _str_isspace = ArrowStringArrayMixin._str_isspace
+    _str_istitle = ArrowStringArrayMixin._str_istitle
+    _str_isupper = ArrowStringArrayMixin._str_isupper
+
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
+    _str_pad = ArrowStringArrayMixin._str_pad
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
@@ -293,11 +302,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
-        if regex:
-            result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
-        else:
-            result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._convert_bool_result(result, na=na)
         if not isna(na):
             if not isinstance(na, bool):
                 # GH#59561
@@ -307,8 +311,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            result[isna(result)] = bool(na)
-        return result
+                na = bool(na)
+
+        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_replace(
         self,
@@ -358,42 +363,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return type(self)(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
-
-    def _str_isalnum(self):
-        result = pc.utf8_is_alnum(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isalpha(self):
-        result = pc.utf8_is_alpha(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdecimal(self):
-        result = pc.utf8_is_decimal(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdigit(self):
-        result = pc.utf8_is_digit(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_islower(self):
-        result = pc.utf8_is_lower(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isnumeric(self):
-        result = pc.utf8_is_numeric(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isspace(self):
-        result = pc.utf8_is_space(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_istitle(self):
-        result = pc.utf8_is_title(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isupper(self):
-        result = pc.utf8_is_upper(self._pa_array)
-        return self._convert_bool_result(result)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -546,7 +515,6 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _str_get = ArrowStringArrayMixin._str_get
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
-    _str_pad = ArrowStringArrayMixin._str_pad
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
