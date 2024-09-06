@@ -154,3 +154,54 @@ class ArrowStringArrayMixin:
         if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
+
+    def _str_isalnum(self):
+        result = pc.utf8_is_alnum(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isalpha(self):
+        result = pc.utf8_is_alpha(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdecimal(self):
+        result = pc.utf8_is_decimal(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdigit(self):
+        result = pc.utf8_is_digit(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_islower(self):
+        result = pc.utf8_is_lower(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isnumeric(self):
+        result = pc.utf8_is_numeric(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isspace(self):
+        result = pc.utf8_is_space(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_istitle(self):
+        result = pc.utf8_is_title(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isupper(self):
+        result = pc.utf8_is_upper(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
+        if flags:
+            raise NotImplementedError(f"contains not implemented with {flags=}")
+
+        if regex:
+            pa_contains = pc.match_substring_regex
+        else:
+            pa_contains = pc.match_substring
+        result = pa_contains(self._pa_array, pat, ignore_case=not case)
+        if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            result = result.fill_null(na)
+        return self._convert_bool_result(result)
