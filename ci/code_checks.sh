@@ -120,6 +120,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.floor PR01,PR02" \
         -i "pandas.Series.dt.freq GL08" \
+        -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.normalize PR01" \
         -i "pandas.Series.dt.qyear GL08" \
@@ -172,6 +173,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.as_unit RT03,SA01" \
         -i "pandas.TimedeltaIndex.components SA01" \
+        -i "pandas.TimedeltaIndex.microseconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
         -i "pandas.Timestamp.day GL08" \
         -i "pandas.Timestamp.fold GL08" \
