@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.compat import pa_version_under10p1
 
 from pandas import (
     NA,
@@ -13,7 +14,7 @@ from pandas import (
 
 
 @pytest.mark.filterwarnings("ignore:Falling back")
-def test_string_array(nullable_string_dtype, any_string_method):
+def test_string_array(nullable_string_dtype, any_string_method, request):
     method_name, args, kwargs = any_string_method
 
     data = ["a", "bb", np.nan, "ccc"]
@@ -24,6 +25,14 @@ def test_string_array(nullable_string_dtype, any_string_method):
         with pytest.raises(TypeError, match="a bytes-like object is required"):
             getattr(b.str, method_name)(*args, **kwargs)
         return
+
+    if (
+        method_name == "slice"
+        and nullable_string_dtype == "string[pyarrow]"
+        and pa_version_under10p1
+    ):
+        mark = pytest.mark.xfail(reason="Raises with Negative buffer resize: -16")
+        request.applymarker(mark)
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
