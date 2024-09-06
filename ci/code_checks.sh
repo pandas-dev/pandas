@@ -109,8 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Series.sparse.sp_values SA01" \
         -i "pandas.Timedelta.components SA01" \
-        -i "pandas.Timedelta.max PR02" \
-        -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timedelta.to_timedelta64 SA01" \
         -i "pandas.Timedelta.total_seconds SA01" \

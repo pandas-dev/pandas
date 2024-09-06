@@ -1813,7 +1813,7 @@ class Timedelta(_Timedelta):
     Timedelta is the pandas equivalent of python's ``datetime.timedelta``
     and is interchangeable with it in most cases.
 
-    Parameters
+    Attributes
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, or int
         Input value.
