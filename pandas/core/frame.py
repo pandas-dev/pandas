@@ -2124,9 +2124,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns : sequence, default None
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
-            columns. Otherwise this argument indicates the order of the columns
+            columns. Otherwise, this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
-            columns).
+            columns) and limits the data to these columns if not all column names
+            are provided.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
