@@ -1142,7 +1142,7 @@ default 'raise'
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
-    def normalize(self) -> Self:
+    def normalize(self, *args, **kwargs) -> Self:
         """
         Convert times to midnight.
 
