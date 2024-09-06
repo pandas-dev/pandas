@@ -2322,21 +2322,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
-    def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
-    ) -> Self:
-        if flags:
-            raise NotImplementedError(f"contains not implemented with {flags=}")
-
-        if regex:
-            pa_contains = pc.match_substring_regex
-        else:
-            pa_contains = pc.match_substring
-        result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if not isna(na):
-            result = result.fill_null(na)
-        return type(self)(result)
-
     def _result_converter(self, result):
         return type(self)(result)
 
@@ -2441,33 +2426,6 @@ class ArrowExtensionArray(
         return type(self)(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
-
-    def _str_isalnum(self) -> Self:
-        return type(self)(pc.utf8_is_alnum(self._pa_array))
-
-    def _str_isalpha(self) -> Self:
-        return type(self)(pc.utf8_is_alpha(self._pa_array))
-
-    def _str_isdecimal(self) -> Self:
-        return type(self)(pc.utf8_is_decimal(self._pa_array))
-
-    def _str_isdigit(self) -> Self:
-        return type(self)(pc.utf8_is_digit(self._pa_array))
-
-    def _str_islower(self) -> Self:
-        return type(self)(pc.utf8_is_lower(self._pa_array))
-
-    def _str_isnumeric(self) -> Self:
-        return type(self)(pc.utf8_is_numeric(self._pa_array))
-
-    def _str_isspace(self) -> Self:
-        return type(self)(pc.utf8_is_space(self._pa_array))
-
-    def _str_istitle(self) -> Self:
-        return type(self)(pc.utf8_is_title(self._pa_array))
-
-    def _str_isupper(self) -> Self:
-        return type(self)(pc.utf8_is_upper(self._pa_array))
 
     def _str_len(self) -> Self:
         return type(self)(pc.utf8_length(self._pa_array))

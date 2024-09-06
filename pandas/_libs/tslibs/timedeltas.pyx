@@ -1421,9 +1421,16 @@ cdef class _Timedelta(timedelta):
         """
         Convert the Timedelta to a NumPy timedelta64.
 
-        This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
-        will not affect the return value.
+        This is an alias method for `Timedelta.to_timedelta64()`.
+
+        Parameters
+        ----------
+        dtype : NoneType
+            It is available here only for compatibility. Its value will not
+            affect the return value.
+        copy : bool, default False
+            It is available here only for compatibility. Its value will not
+            affect the return value.
 
         Returns
         -------
@@ -1497,6 +1504,12 @@ cdef class _Timedelta(timedelta):
         -------
         numpy timedelta64 array scalar view
             Array scalar view of the timedelta in nanoseconds.
+
+        See Also
+        --------
+            Timedelta.total_seconds : Return the total seconds in the duration.
+            Timedelta.components : Return a namedtuple of the Timedelta's components.
+            Timedelta.to_timedelta64 : Convert the Timedelta to a numpy.timedelta64.
 
         Examples
         --------
@@ -2061,6 +2074,12 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
 
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
+            Timestamp.ceil : Similar method for Timestamp objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2081,6 +2100,16 @@ class Timedelta(_Timedelta):
             Frequency string indicating the flooring resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object floored to the specified resolution.
+
+        See Also
+        --------
+            Timestamp.ceil : Round the Timestamp up to the nearest specified resolution.
+            Timestamp.round : Round the Timestamp to the nearest specified resolution.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2100,6 +2129,16 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the ceiling resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
+
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object ceiled to the specified resolution.
+
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
 
         Examples
         --------
