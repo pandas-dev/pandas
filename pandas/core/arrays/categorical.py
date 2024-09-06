@@ -2677,9 +2677,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories = self.categories
         codes = self.codes
         if categories.dtype == "string":
-            result = categories.array._str_map(f, na_value, dtype)
+            result = categories.array._str_map(f, na_value, dtype)  # type: ignore[attr-defined]
             if (
-                categories.dtype.na_value is np.nan
+                categories.dtype.na_value is np.nan  # type: ignore[union-attr]
                 and is_bool_dtype(dtype)
                 and (na_value is lib.no_default or isna(na_value))
             ):

@@ -240,7 +240,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 values = values.fill_null(False)
             else:
                 values = values.fill_null(na)
-            return values.to_numpy(zero_copy_only=False)
+            return values.to_numpy()
         else:
             if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
                 values = values.fill_null(na)
