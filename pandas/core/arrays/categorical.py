@@ -2678,8 +2678,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         codes = self.codes
         if categories.dtype == "string":
             result = categories.array._str_map(f, na_value, dtype)
-            if categories.dtype.na_value is np.nan:
-                # NaN propagates as False
+            if (
+                categories.dtype.na_value is np.nan
+                and is_bool_dtype(dtype)
+                and (na_value is lib.no_default or isna(na_value))
+            ):
+                # NaN propagates as False for functions with boolean return type
                 na_value = False
         else:
             from pandas.core.arrays import NumpyExtensionArray

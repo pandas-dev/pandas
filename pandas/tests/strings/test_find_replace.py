@@ -320,7 +320,7 @@ def test_startswith_endswith_validate_na(any_string_dtype):
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_startswith(pat, dtype, null_value, na):
+def test_startswith(pat, dtype, null_value, na, using_infer_string):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
@@ -334,6 +334,8 @@ def test_startswith(pat, dtype, null_value, na):
         exp = exp.fillna(null_value)
     elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
+    elif using_infer_string and dtype == "category":
+        exp = exp.fillna(False).astype(bool)
     tm.assert_series_equal(result, exp)
 
     result = values.str.startswith(pat, na=na)
@@ -389,7 +391,7 @@ def test_startswith_string_dtype(any_string_dtype, na):
 @pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_endswith(pat, dtype, null_value, na):
+def test_endswith(pat, dtype, null_value, na, using_infer_string):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
@@ -403,6 +405,8 @@ def test_endswith(pat, dtype, null_value, na):
         exp = exp.fillna(null_value)
     elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
+    elif using_infer_string and dtype == "category":
+        exp = exp.fillna(False).astype(bool)
     tm.assert_series_equal(result, exp)
 
     result = values.str.endswith(pat, na=na)
