@@ -224,26 +224,26 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
+        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            na = bool(na)
+
         if self.dtype.na_value is np.nan:
-            na_value: bool | lib.NoDefault
-            if na is lib.no_default:
-                na_value = False
-            elif isna(na):
+            if na is lib.no_default or isna(na):
                 # NaN propagates as False
                 values = values.fill_null(False)
-                na_value = lib.no_default
             else:
-                if not isinstance(na, bool):
-                    # GH#59561
-                    warnings.warn(
-                        f"Allowing a non-bool 'na' in obj.str.{method_name} is "
-                        "deprecated and will raise in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                values = values.fill_null(bool(na))
-                na_value = lib.no_default
-            return ArrowExtensionArray(values).to_numpy(na_value=na_value)
+                values = values.fill_null(na)
+            return values.to_numpy(zero_copy_only=False)
+        else:
+            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+                values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -324,21 +324,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             if get_option("mode.performance_warnings"):
                 fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
-
-        if (
-            self.dtype.na_value is libmissing.NA
-            and na is not lib.no_default
-            and not isna(na)
-        ):
-            if not isinstance(na, bool):
-                # GH#59561
-                warnings.warn(
-                    "Allowing a non-bool 'na' in obj.str.contains is deprecated "
-                    "and will raise in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                na = bool(na)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 

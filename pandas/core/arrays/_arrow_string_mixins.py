@@ -9,17 +9,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
 from pandas.compat import (
     pa_version_under10p1,
     pa_version_under13p0,
     pa_version_under17p0,
 )
-
-from pandas.core.dtypes.missing import isna
 
 if not pa_version_under10p1:
     import pyarrow as pa
@@ -36,12 +31,9 @@ if TYPE_CHECKING:
         Self,
     )
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype
-
 
 class ArrowStringArrayMixin:
     _pa_array: Sized
-    dtype: ExtensionDtype
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
@@ -151,12 +143,6 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        if (
-            self.dtype.na_value is libmissing.NA
-            and na is not lib.no_default
-            and not isna(na)
-        ):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
         return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
@@ -174,12 +160,6 @@ class ArrowStringArrayMixin:
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        if (
-            self.dtype.na_value is libmissing.NA
-            and na is not lib.no_default
-            and not isna(na)
-        ):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
         return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):
@@ -234,12 +214,6 @@ class ArrowStringArrayMixin:
         else:
             pa_contains = pc.match_substring
         result = pa_contains(self._pa_array, pat, ignore_case=not case)
-        if (
-            self.dtype.na_value is libmissing.NA
-            and na is not lib.no_default
-            and not isna(na)
-        ):  # pyright: ignore [reportGeneralTypeIssues]
-            result = result.fill_null(na)
         return self._convert_bool_result(result, na=na, method_name="contains")
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
