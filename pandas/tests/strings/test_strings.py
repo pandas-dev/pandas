@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under11p0
+
 from pandas import (
     DataFrame,
     Index,
@@ -393,7 +395,10 @@ def test_pipe_failures(any_string_dtype):
     [
         (2, 5, None, ["foo", "bar", np.nan, "baz"]),
         (0, 3, -1, ["", "", np.nan, ""]),
-        (None, None, -1, ["owtoofaa", "owtrabaa", np.nan, "xuqzabaa"]),
+        pytest.param(
+            (None, None, -1, ["owtoofaa", "owtrabaa", np.nan, "xuqzabaa"]),
+            marks=pytest.mark.xfail(pa_version_under11p0, reason="Empty result"),
+        ),
         (3, 10, 2, ["oto", "ato", np.nan, "aqx"]),
         (3, 0, -1, ["ofa", "aba", np.nan, "aba"]),
     ],

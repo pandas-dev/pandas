@@ -2036,7 +2036,10 @@ def test_str_join_string_type():
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
-        [None, None, -1, ["dcba", None]],
+        pytest.param(
+            [None, None, -1, ["dcba", None]],
+            marks=pytest.mark.xfail(pa_version_under11p0, reason="Empty result"),
+        ),
     ],
 )
 def test_str_slice(start, stop, step, exp):
