@@ -166,7 +166,16 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
     # https://github.com/pandas-dev/pandas/pull/41025#issuecomment-824062416
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
-    result = values.str.contains("a", na=na, regex=regex)
+
+    msg = (
+        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
+        "will raise in a future version"
+    )
+    warn = None
+    if not pd.isna(na) and not isinstance(na, bool):
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
+        result = values.str.contains("a", na=na, regex=regex)
     expected = Series([True, False, False, True, expected], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
@@ -232,7 +241,12 @@ def test_contains_nan(any_string_dtype):
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("foo", na="foo")
+    msg = (
+        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
+        "will raise in a future version"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.str.contains("foo", na="foo")
     if any_string_dtype == "object":
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
     elif any_string_dtype.na_value is np.nan:
@@ -252,6 +266,34 @@ def test_contains_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
+
+
+def test_startswith_endswith_validate_na(any_string_dtype):
+    # GH#59615
+    ser = Series(
+        ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"],
+        dtype=any_string_dtype,
+    )
+
+    dtype = ser.dtype
+    if (
+        isinstance(dtype, pd.StringDtype) and dtype.storage == "python"
+    ) or dtype == np.dtype("object"):
+        msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.str.startswith("kapow", na="baz")
+        msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.str.endswith("bar", na="baz")
+    else:
+        # TODO(infer_string): don't surface pyarrow errors
+        import pyarrow as pa
+
+        msg = "Could not convert 'baz' with type str: tried to convert to boolean"
+        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
+            ser.str.startswith("kapow", na="baz")
+        with pytest.raises(pa.lib.ArrowInvalid, match=msg):
+            ser.str.endswith("kapow", na="baz")
 
 
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])

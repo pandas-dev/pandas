@@ -40,7 +40,7 @@ PyArrow is an optional dependency of pandas that provides a wide range of supple
   data types within the `ExtensionArray` interface
 - Since pandas 2.0.0, all I/O readers have the option to return PyArrow-backed data types, and many methods
   now utilize PyArrow compute functions to
-accelerate PyArrow-backed data in pandas, notibly string and datetime types.
+accelerate PyArrow-backed data in pandas, notably string and datetime types.
 
 As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data representation to NumPy with advantages such as:
 
@@ -117,7 +117,7 @@ In[4]: %timeit ser_string.str.startswith("a")
 
 ### Immediate User Benefit 2: Nested Datatypes
 
-Currently, if you try storing `dict`s in a pandas `Series`, you will again get the horrendeous `object` dtype:
+Currently, if you try storing `dict`s in a pandas `Series`, you will again get the horrendous `object` dtype:
 ```python
 In [6]: pd.Series([{'a': 1, 'b': 2}, {'a': 2, 'b': 99}])
 Out[6]:
