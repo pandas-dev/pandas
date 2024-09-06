@@ -876,6 +876,12 @@ class TimedeltaArray(dtl.TimelikeOps):
     microseconds_docstring = textwrap.dedent(
         """Number of microseconds (>= 0 and less than 1 second) for each element.
 
+    See Also
+    --------
+    pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than 1 second).
+    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
+        than 1 second) of a datetime.timedelta.
+
     Examples
     --------
     For Series:
@@ -954,6 +960,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like of a single
+            timedelta.
 
         Examples
         --------
