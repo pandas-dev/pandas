@@ -113,7 +113,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.resolution PR02" \
         -i "pandas.Timedelta.to_timedelta64 SA01" \
         -i "pandas.Timedelta.total_seconds SA01" \
-        -i "pandas.Timedelta.view SA01" \
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
