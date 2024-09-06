@@ -295,6 +295,22 @@ class RangeIndex(Index):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
+        This property returns the starting value of the `RangeIndex`. If the `start`
+        value is not explicitly provided during the creation of the `RangeIndex`,
+        it defaults to 0. The `start` property is part of the `RangeIndex`, which
+        represents a range of integers in a memory-efficient manner. It is typically
+        used when you need to generate a sequence of numbers with minimal memory
+        overhead. The `RangeIndex` is frequently used as the default index for pandas
+        DataFrames and Series when no explicit index is provided. This property allows
+        users to access the starting point of the range, which may be useful for
+        iteration, slicing, or other operations where the starting value is relevant.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the `RangeIndex`.
+        RangeIndex.step : Returns the step value of the `RangeIndex`.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
