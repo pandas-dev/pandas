@@ -842,6 +842,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     seconds_docstring = textwrap.dedent(
         """Number of seconds (>= 0 and less than 1 day) for each element.
 
+    The dt.seconds attribute in pandas extracts the number of seconds (excluding days)
+    from a timedelta64[ns] object. It can be used with Series and TimedeltaIndex.
+
+    See Also
+    --------
+    Series.dt.microseconds : Returns number of microseconds for each element.
+    Series.dt.nanoseconds : Returns number of nanoseconds for each element.
+
     Examples
     --------
     For Series:
@@ -916,6 +924,14 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    The dt.nanoseconds attribute in pandas extracts the number of nanoseconds (excluding days)
+    from a timedelta64[ns] object. It can be used with Series and TimedeltaIndex.
+
+    See Also
+    --------
+    Series.dt.seconds : Returns number of seconds for each element.
+    Series.dt.microseconds : Returns number of microseconds for each element.
 
     Examples
     --------
