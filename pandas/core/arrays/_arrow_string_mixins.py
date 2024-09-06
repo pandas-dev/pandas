@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -11,7 +13,11 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    pa_version_under10p1,
+    pa_version_under13p0,
+    pa_version_under17p0,
+)
 
 from pandas.core.dtypes.missing import isna
 
@@ -20,7 +26,10 @@ if not pa_version_under10p1:
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import Sized
+    from collections.abc import (
+        Callable,
+        Sized,
+    )
 
     from pandas._typing import (
         Scalar,
@@ -45,6 +54,9 @@ class ArrowStringArrayMixin:
         # Convert an integer-dtype result to the appropriate result type
         raise NotImplementedError
 
+    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
+        raise NotImplementedError
+
     def _str_pad(
         self,
         width: int,
@@ -56,7 +68,19 @@ class ArrowStringArrayMixin:
         elif side == "right":
             pa_pad = pc.utf8_rpad
         elif side == "both":
-            pa_pad = pc.utf8_center
+            if pa_version_under17p0:
+                # GH#59624 fall back to object dtype
+                from pandas import array
+
+                obj_arr = self.astype(object, copy=False)  # type: ignore[attr-defined]
+                obj = array(obj_arr, dtype=object)
+                result = obj._str_pad(width, side, fillchar)  # type: ignore[attr-defined]
+                return type(self)._from_sequence(result, dtype=self.dtype)  # type: ignore[attr-defined]
+            else:
+                # GH#54792
+                # https://github.com/apache/arrow/issues/15053#issuecomment-2317032347
+                lean_left = (width % 2) == 0
+                pa_pad = partial(pc.utf8_center, lean_left_on_odd_padding=lean_left)
         else:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
@@ -157,3 +181,97 @@ class ArrowStringArrayMixin:
         ):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result, na=na, method_name="endswith")
+
+    def _str_isalnum(self):
+        result = pc.utf8_is_alnum(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isalpha(self):
+        result = pc.utf8_is_alpha(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdecimal(self):
+        result = pc.utf8_is_decimal(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isdigit(self):
+        result = pc.utf8_is_digit(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_islower(self):
+        result = pc.utf8_is_lower(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isnumeric(self):
+        result = pc.utf8_is_numeric(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isspace(self):
+        result = pc.utf8_is_space(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_istitle(self):
+        result = pc.utf8_is_title(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_isupper(self):
+        result = pc.utf8_is_upper(self._pa_array)
+        return self._convert_bool_result(result)
+
+    def _str_contains(
+        self,
+        pat,
+        case: bool = True,
+        flags: int = 0,
+        na=lib.no_default,
+        regex: bool = True,
+    ):
+        if flags:
+            raise NotImplementedError(f"contains not implemented with {flags=}")
+
+        if regex:
+            pa_contains = pc.match_substring_regex
+        else:
+            pa_contains = pc.match_substring
+        result = pa_contains(self._pa_array, pat, ignore_case=not case)
+        if (
+            self.dtype.na_value is libmissing.NA
+            and na is not lib.no_default
+            and not isna(na)
+        ):  # pyright: ignore [reportGeneralTypeIssues]
+            result = result.fill_null(na)
+        return self._convert_bool_result(result, na=na, method_name="contains")
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # GH#59562
+            res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
+            return self._convert_int_result(pa.chunked_array(res_list))
+
+        if (start == 0 or start is None) and end is None:
+            result = pc.find_substring(self._pa_array, sub)
+        else:
+            if sub == "":
+                # GH#56792
+                res_list = self._apply_elementwise(
+                    lambda val: val.find(sub, start, end)
+                )
+                return self._convert_int_result(pa.chunked_array(res_list))
+            if start is None:
+                start_offset = 0
+                start = 0
+            elif start < 0:
+                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
+                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
+            else:
+                start_offset = start
+            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
+            offset_result = pc.add(result, start_offset)
+            result = pc.if_else(found, offset_result, -1)
+        return self._convert_int_result(result)
