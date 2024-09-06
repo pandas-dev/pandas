@@ -292,7 +292,7 @@ class StringDtype(StorageExtensionDtype):
             if isinstance(dtype, StringDtype):
                 storages.add(dtype.storage)
                 na_values.add(dtype.na_value)
-            elif isinstance(dtype, np.dtype) and dtype.kind == "U":
+            elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "T"):
                 continue
             else:
                 return None
