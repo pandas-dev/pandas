@@ -440,6 +440,7 @@ class BaseStringArray(ExtensionArray):
             dtype = self.dtype
         if na_value is lib.no_default:
             if is_bool_dtype(dtype):
+                # NaN propagates as False
                 na_value = False
             else:
                 na_value = self.dtype.na_value

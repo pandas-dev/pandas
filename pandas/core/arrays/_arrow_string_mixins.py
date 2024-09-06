@@ -223,7 +223,7 @@ class ArrowStringArrayMixin:
         pat,
         case: bool = True,
         flags: int = 0,
-        na=lib.no_default,
+        na: Scalar | lib.NoDefault = lib.no_default,
         regex: bool = True,
     ):
         if flags:
