@@ -1925,10 +1925,56 @@ def test_str_find_negative_start():
     tm.assert_series_equal(result, expected)
 
 
-def test_str_find_notimplemented():
+def test_str_find_no_end():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(NotImplementedError, match="find not implemented"):
-        ser.str.find("ab", start=1)
+    result = ser.str.find("ab", start=1)
+    expected = pd.Series([-1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_negative_start_negative_end():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-6, end=-3)
+    expected = pd.Series([3, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_large_start():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=16)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
+)
+@pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
+@pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
+@pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
+def test_str_find_e2e(start, end, sub):
+    s = pd.Series(
+        ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
+        dtype=ArrowDtype(pa.string()),
+    )
+    object_series = s.astype(pd.StringDtype(storage="python"))
+    result = s.str.find(sub, start, end)
+    expected = object_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result, expected)
+
+    arrow_str_series = s.astype(pd.StringDtype(storage="pyarrow"))
+    result2 = arrow_str_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result2, expected)
+
+
+def test_str_find_negative_start_negative_end_no_match():
+    # GH 56791
+    ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="d", start=-3, end=-6)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(

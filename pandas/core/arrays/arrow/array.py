@@ -2348,23 +2348,6 @@ class ArrowExtensionArray(
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            start_offset = max(0, start)
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
-            raise NotImplementedError(
-                f"find not implemented with {sub=}, {start=}, {end=}"
-            )
-        return type(self)(result)
-
     def _str_join(self, sep: str):
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
             self._pa_array.type
