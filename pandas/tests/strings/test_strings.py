@@ -396,7 +396,10 @@ def test_pipe_failures(any_string_dtype):
         (2, 5, None, ["foo", "bar", np.nan, "baz"]),
         (0, 3, -1, ["", "", np.nan, ""]),
         pytest.param(
-            (None, None, -1, ["owtoofaa", "owtrabaa", np.nan, "xuqzabaa"]),
+            None,
+            None,
+            -1,
+            ["owtoofaa", "owtrabaa", np.nan, "xuqzabaa"],
             marks=pytest.mark.xfail(pa_version_under11p0, reason="Empty result"),
         ),
         (3, 10, 2, ["oto", "ato", np.nan, "aqx"]),
