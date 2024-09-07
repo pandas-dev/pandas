@@ -925,7 +925,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
 
-    The dt.nanoseconds attribute in pandas extracts the number of nanoseconds (excluding days)
+    The dt.nanoseconds attribute in pandas extracts the number of nanoseconds
     from a timedelta64[ns] object. It can be used with Series and TimedeltaIndex.
 
     See Also
