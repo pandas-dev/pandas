@@ -526,17 +526,7 @@ def test_dropna_combinations(
             True,
             [1, 1],
             MultiIndex.from_arrays(
-                [
-                    (1, 1),
-                    (
-                        "John",
-                        "Beth",
-                    ),
-                    (
-                        "Smith",
-                        "Louise",
-                    ),
-                ],
+                [(1, 1), ("John", "Beth"), ("Smith", "Louise")],
                 names=["key", "first_name", "middle_name"],
             ),
         ),

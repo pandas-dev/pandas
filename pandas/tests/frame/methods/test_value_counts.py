@@ -128,17 +128,7 @@ def test_data_frame_value_counts_dropna_true(nulls_fixture):
     expected = pd.Series(
         data=[1, 1],
         index=pd.MultiIndex.from_arrays(
-            [
-                (
-                    "John",
-                    "Beth",
-                ),
-                (
-                    "Smith",
-                    "Louise",
-                ),
-            ],
-            names=["first_name", "middle_name"],
+            [("John", "Beth"), ("Smith", "Louise")], names=["first_name", "middle_name"]
         ),
         name="count",
     )
