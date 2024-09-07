@@ -633,52 +633,6 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freq_name, month_kw, self._creso)
         return out[0]
 
-    def max(self) -> "Timestamp":
-        """
-        A constant that represents the maximum valid date and time value.
-
-        This property returns the highest datetime value that can be represented
-        by a pandas.Timestamp object, which is equivalent to
-        pd.Timestamp('2262-04-11 23:47:16.854775807').
-
-        Returns
-        -------
-        Timestamp
-            The maximum valid datetime value for a Timestamp object.
-
-        See Also
-        --------
-        Timestamp.min : Return the minimum valid date and time value for Timestamp.
-
-        Examples
-        --------
-        >>> pd.Timestamp.max
-        Timestamp('2262-04-11 23:47:16.854775807')
-        """
-
-    def min(self) -> "Timestamp":
-        """
-        Return the minimum representable Timestamp.
-
-        This property returns the earliest datetime value that can be represented
-        by a pandas.Timestamp object, which is equivalent to
-        pd.Timestamp('1677-09-21 00:12:43.145224193').
-
-        Returns
-        -------
-        Timestamp
-            The earliest representable Timestamp.
-
-        See Also
-        --------
-        Timestamp.max : Return the maximum representable Timestamp.
-
-        Examples
-        --------
-        >>> pd.Timestamp.min
-        Timestamp('1677-09-21 00:12:43.145224193')
-        """
-
     @property
     def is_month_start(self) -> bool:
         """
@@ -1740,6 +1694,19 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
+
+    Attributes
+    ----------
+    max : Timestamp
+        A constant that represents the maximum valid date and time value.
+        This property returns the highest datetime value that can be represented
+        by a pandas.Timestamp object, which is equivalent to
+        pd.Timestamp('2262-04-11 23:47:16.854775807').
+    min : Timestamp
+        A constant that represents the minimum valid date and time value.
+        This property returns the earliest datetime value that can be represented
+        by a pandas.Timestamp object, which is equivalent to
+        pd.Timestamp('1677-09-21 00:12:43.145224193').
 
     See Also
     --------
