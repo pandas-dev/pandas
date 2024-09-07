@@ -589,7 +589,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def filter(self, func, dropna: bool = True, *args, **kwargs): #work
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Filter elements from groups that don't satisfy a criterion.
 
