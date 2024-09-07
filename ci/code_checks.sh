@@ -73,7 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.NA SA01" \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.Period.to_timestamp SA01" \
         -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.start SA01" \
@@ -92,7 +91,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.day_name PR01,PR02" \
         -i "pandas.Series.dt.floor PR01,PR02" \
         -i "pandas.Series.dt.freq GL08" \
-        -i "pandas.Series.dt.microseconds SA01" \
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.nanoseconds SA01" \
         -i "pandas.Series.dt.normalize PR01" \
@@ -113,12 +111,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
-        -i "pandas.Timedelta.to_numpy PR01" \
         -i "pandas.Timedelta.to_timedelta64 SA01" \
         -i "pandas.Timedelta.total_seconds SA01" \
-        -i "pandas.Timedelta.view SA01" \
-        -i "pandas.TimedeltaIndex.components SA01" \
-        -i "pandas.TimedeltaIndex.microseconds SA01" \
         -i "pandas.TimedeltaIndex.nanoseconds SA01" \
         -i "pandas.TimedeltaIndex.seconds SA01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta RT03,SA01" \
