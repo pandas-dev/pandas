@@ -140,12 +140,16 @@ class StringDtype(StorageExtensionDtype):
         # infer defaults
         if storage is None:
             if na_value is not libmissing.NA:
-                if HAS_PYARROW:
-                    storage = "pyarrow"
-                else:
-                    storage = "python"
+                storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    if HAS_PYARROW:
+                        storage = "pyarrow"
+                    else:
+                        storage = "python"
             else:
                 storage = get_option("mode.string_storage")
+                if storage == "auto":
+                    storage = "python"
 
         if storage == "pyarrow_numpy":
             # TODO raise a deprecation warning
@@ -167,9 +171,9 @@ class StringDtype(StorageExtensionDtype):
             # a consistent NaN value (and we can use `dtype.na_value is np.nan`)
             na_value = np.nan
         elif na_value is not libmissing.NA:
-            raise ValueError("'na_value' must be np.nan or pd.NA, got {na_value}")
+            raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = storage
+        self.storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -280,6 +284,34 @@ class StringDtype(StorageExtensionDtype):
         else:
             return ArrowStringArrayNumpySemantics
 
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        storages = set()
+        na_values = set()
+
+        for dtype in dtypes:
+            if isinstance(dtype, StringDtype):
+                storages.add(dtype.storage)
+                na_values.add(dtype.na_value)
+            elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "T"):
+                continue
+            else:
+                return None
+
+        if len(storages) == 2:
+            # if both python and pyarrow storage -> priority to pyarrow
+            storage = "pyarrow"
+        else:
+            storage = next(iter(storages))  # type: ignore[assignment]
+
+        na_value: libmissing.NAType | float
+        if len(na_values) == 2:
+            # if both NaN and NA -> priority to NA
+            na_value = libmissing.NA
+        else:
+            na_value = next(iter(na_values))
+
+        return StringDtype(storage=storage, na_value=na_value)
+
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseStringArray:
@@ -350,9 +382,7 @@ class BaseStringArray(ExtensionArray):
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
         if self.dtype.na_value is np.nan:
-            return self._str_map_nan_semantics(
-                f, na_value=na_value, dtype=dtype, convert=convert
-            )
+            return self._str_map_nan_semantics(f, na_value=na_value, dtype=dtype)
 
         from pandas.arrays import BooleanArray
 
@@ -427,9 +457,7 @@ class BaseStringArray(ExtensionArray):
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_map_nan_semantics(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
-    ):
+    def _str_map_nan_semantics(self, f, na_value=None, dtype: Dtype | None = None):
         if dtype is None:
             dtype = self.dtype
         if na_value is None:
@@ -659,11 +687,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, None]:
-        arr = self._ndarray.copy()
-        mask = self.isna()
-        arr[mask] = None
-        return arr, None
+    def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
+        arr = self._ndarray
+
+        return arr, self.dtype.na_value
 
     def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
@@ -746,6 +773,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         axis: AxisInt | None = 0,
         **kwargs,
     ):
+        if self.dtype.na_value is np.nan and name in ["any", "all"]:
+            if name == "any":
+                return nanops.nanany(self._ndarray, skipna=skipna)
+            else:
+                return nanops.nanall(self._ndarray, skipna=skipna)
+
         if name in ["min", "max"]:
             result = getattr(self, name)(skipna=skipna, axis=axis)
             if keepdims:
@@ -753,6 +786,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return result
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
+        if self.dtype.na_value is np.nan and result is libmissing.NA:
+            # the masked_reductions use pd.NA -> convert to np.nan
+            return np.nan
+        return super()._wrap_reduction_result(axis, result)
 
     def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
@@ -771,8 +810,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas.core.algorithms import value_counts_internal as value_counts
 
-        result = value_counts(self._ndarray, sort=False, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, sort=False, dropna=dropna)
         result.index = result.index.astype(self.dtype)
+
+        if self.dtype.na_value is libmissing.NA:
+            result = result.astype("Int64")
         return result
 
     def memory_usage(self, deep: bool = False) -> int:
@@ -811,8 +853,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
-            other = np.asarray(other)
+            # for array-likes, first filter out NAs before converting to numpy
+            if not is_array_like(other):
+                other = np.asarray(other)
             other = other[valid]
+            other = np.asarray(other)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
@@ -823,15 +868,15 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # logical
             result = np.zeros(len(self._ndarray), dtype="bool")
             result[valid] = op(self._ndarray[valid], other)
-            return BooleanArray(result, mask)
+            res_arr = BooleanArray(result, mask)
+            if self.dtype.na_value is np.nan:
+                if op == operator.ne:
+                    return res_arr.to_numpy(np.bool_, na_value=True)
+                else:
+                    return res_arr.to_numpy(np.bool_, na_value=False)
+            return res_arr
 
     _arith_method = _cmp_method
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "NumpyExtensionArray" defined the type as "float")
-    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
 
 class StringArrayNumpySemantics(StringArray):
@@ -858,43 +903,3 @@ class StringArrayNumpySemantics(StringArray):
         if dtype is None:
             dtype = StringDtype(storage="python", na_value=np.nan)
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    def _from_backing_data(self, arr: np.ndarray) -> StringArrayNumpySemantics:
-        # need to override NumpyExtensionArray._from_backing_data to ensure
-        # we always preserve the dtype
-        return NDArrayBacked._from_backing_data(self, arr)
-
-    def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
-    ):
-        if name in ["any", "all"]:
-            if name == "any":
-                return nanops.nanany(self._ndarray, skipna=skipna)
-            else:
-                return nanops.nanall(self._ndarray, skipna=skipna)
-        else:
-            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
-
-    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
-        # the masked_reductions use pd.NA
-        if result is libmissing.NA:
-            return np.nan
-        return super()._wrap_reduction_result(axis, result)
-
-    def _cmp_method(self, other, op):
-        result = super()._cmp_method(other, op)
-        if op == operator.ne:
-            return result.to_numpy(np.bool_, na_value=True)
-        else:
-            return result.to_numpy(np.bool_, na_value=False)
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        from pandas.core.algorithms import value_counts_internal as value_counts
-
-        result = value_counts(self._ndarray, sort=False, dropna=dropna)
-        result.index = result.index.astype(self.dtype)
-        return result
-
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan

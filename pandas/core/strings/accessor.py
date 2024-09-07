@@ -969,6 +969,8 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     DataFrame/MultiIndex or Series/Index of objects
+        Returns appropriate type based on `expand` parameter with strings
+        split based on the `sep` parameter.
 
     See Also
     --------
@@ -1377,6 +1379,9 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index/array of boolean values
+            A Series, Index, or array of boolean values indicating whether the start
+            of each string matches the pattern. The result will be of the same type
+            as the input.
 
         See Also
         --------
@@ -1500,6 +1505,14 @@ class StringMethods(NoNewAttributesMixin):
               regex
             * if `pat` is a compiled regex and `case` or `flags` is set
             * if `pat` is a dictionary and `repl` is not None.
+
+        See Also
+        --------
+        Series.str.replace : Method to replace occurrences of a substring with another
+            substring.
+        Series.str.extract : Extract substrings using a regular expression.
+        Series.str.findall : Find all occurrences of a pattern or regex in each string.
+        Series.str.split : Split each string by a specified delimiter or pattern.
 
         Notes
         -----
@@ -1632,6 +1645,20 @@ class StringMethods(NoNewAttributesMixin):
             Series or Index of repeated string objects specified by
             input parameter repeats.
 
+        See Also
+        --------
+        Series.str.lower : Convert all characters in each string to lowercase.
+        Series.str.upper : Convert all characters in each string to uppercase.
+        Series.str.title : Convert each string to title case (capitalizing the first
+            letter of each word).
+        Series.str.strip : Remove leading and trailing whitespace from each string.
+        Series.str.replace : Replace occurrences of a substring with another substring
+            in each string.
+        Series.str.ljust : Left-justify each string in the Series/Index by padding with
+            a specified character.
+        Series.str.rjust : Right-justify each string in the Series/Index by padding with
+            a specified character.
+
         Examples
         --------
         >>> s = pd.Series(["a", "b", "c"])
@@ -1749,6 +1776,18 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series/Index of objects.
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
+
+    See Also
+    --------
+    Series.str.rjust : Fills the left side of strings with an arbitrary
+        character.
+    Series.str.ljust : Fills the right side of strings with an arbitrary
+        character.
+    Series.str.center : Fills both sides of strings with an arbitrary
+        character.
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+        character.
 
     Examples
     --------
@@ -1814,6 +1853,7 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects.
+            A Series or Index where the strings are prepended with '0' characters.
 
         See Also
         --------
@@ -2024,11 +2064,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`bytes.decode`.
 
         Returns
         -------
         Series or Index
+            A Series or Index with decoded strings.
+
+        See Also
+        --------
+        Series.str.encode : Encodes strings into bytes in a Series/Index.
 
         Examples
         --------
@@ -2063,11 +2111,19 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         encoding : str
+            Specifies the encoding to be used.
         errors : str, optional
+            Specifies the error handling scheme.
+            Possible values are those supported by :meth:`str.encode`.
 
         Returns
         -------
         Series/Index of objects
+            A Series or Index with strings encoded into bytes.
+
+        See Also
+        --------
+        Series.str.decode : Decodes bytes into strings in a Series/Index.
 
         Examples
         --------
@@ -2099,6 +2155,7 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series or Index of object
+        Series or Index with the strings being stripped from the %(side)s.
 
     See Also
     --------
@@ -2329,6 +2386,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+            A Series or Index where the strings are wrapped at the specified line width.
+
+        See Also
+        --------
+        Series.str.strip : Remove leading and trailing characters in Series/Index.
+        Series.str.lstrip : Remove leading characters in Series/Index.
+        Series.str.rstrip : Remove trailing characters in Series/Index.
 
         Notes
         -----
@@ -3060,6 +3124,19 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+            A Series or Index of strings in the same Unicode form specified by `form`.
+            The returned object retains the same type as the input (Series or Index),
+            and contains the normalized strings.
+
+        See Also
+        --------
+        Series.str.upper : Convert all characters in each string to uppercase.
+        Series.str.lower : Convert all characters in each string to lowercase.
+        Series.str.title : Convert each string to title case (capitalizing the
+            first letter of each word).
+        Series.str.strip : Remove leading and trailing whitespace from each string.
+        Series.str.replace : Replace occurrences of a substring with another substring
+            in each string.
 
         Examples
         --------
@@ -3209,7 +3286,8 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series or Index of object
+    Series or Index of objects
+        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
 
     See Also
     --------

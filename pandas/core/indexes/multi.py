@@ -799,7 +799,7 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
-        names = com.fill_missing_names([level.name for level in self.levels])
+        names = com.fill_missing_names(self.names)
         return Series([level.dtype for level in self.levels], index=Index(names))
 
     def __len__(self) -> int:
@@ -1302,7 +1302,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
         result._cache = self._cache.copy()
-        result._cache.pop("levels", None)  # GH32669
+        result._reset_cache("levels")  # GH32669
         return result
 
     # --------------------------------------------------------------------
@@ -1384,7 +1384,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
         new_index._cache = self._cache.copy()
-        new_index._cache.pop("levels", None)  # GH32669
+        new_index._reset_cache("levels")  # GH32669
         if keep_id:
             new_index._id = self._id
         return new_index
@@ -1572,7 +1572,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
+    def _set_names(self, names, *, level=None) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1583,8 +1583,6 @@ class MultiIndex(Index):
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None
             for all levels).  Otherwise level must be None
-        validate : bool, default True
-            validate that the names match level lengths
 
         Raises
         ------
@@ -1603,13 +1601,12 @@ class MultiIndex(Index):
             raise ValueError("Names should be list-like for a MultiIndex")
         names = list(names)
 
-        if validate:
-            if level is not None and len(names) != len(level):
-                raise ValueError("Length of names must match length of level.")
-            if level is None and len(names) != self.nlevels:
-                raise ValueError(
-                    "Length of names must match number of levels in MultiIndex."
-                )
+        if level is not None and len(names) != len(level):
+            raise ValueError("Length of names must match length of level.")
+        if level is None and len(names) != self.nlevels:
+            raise ValueError(
+                "Length of names must match number of levels in MultiIndex."
+            )
 
         if level is None:
             level = range(self.nlevels)
@@ -1627,14 +1624,26 @@ class MultiIndex(Index):
                     )
             self._names[lev] = name
 
-        # If .levels has been accessed, the names in our cache will be stale.
-        self._reset_cache()
+        # If .levels has been accessed, the .name of each level in our cache
+        # will be stale.
+        self._reset_cache("levels")
 
     names = property(
         fset=_set_names,
         fget=_get_names,
         doc="""
         Names of levels in MultiIndex.
+
+        This attribute provides access to the names of the levels in a `MultiIndex`.
+        The names are stored as a `FrozenList`, which is an immutable list-like
+        container. Each name corresponds to a level in the `MultiIndex`, and can be
+        used to identify or manipulate the levels individually.
+
+        See Also
+        --------
+        MultiIndex.set_names : Set Index or MultiIndex name.
+        MultiIndex.rename : Rename specific levels in a MultiIndex.
+        Index.names : Get names on index.
 
         Examples
         --------
@@ -1883,6 +1892,7 @@ class MultiIndex(Index):
         Returns
         -------
         DataFrame
+            DataFrame representation of the MultiIndex, with levels as columns.
 
         See Also
         --------
@@ -2592,6 +2602,13 @@ class MultiIndex(Index):
         """
         Rearrange levels using input order. May not drop or duplicate levels.
 
+        `reorder_levels` is useful when you need to change the order of levels in
+        a MultiIndex, such as when reordering levels for hierarchical indexing. It
+        maintains the integrity of the MultiIndex, ensuring that all existing levels
+        are present and no levels are duplicated. This method is helpful for aligning
+        the index structure with other data structures or for optimizing the order
+        for specific data operations.
+
         Parameters
         ----------
         order : list of int or list of str
@@ -2601,6 +2618,13 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
+            A new MultiIndex with levels rearranged according to the specified order.
+
+        See Also
+        --------
+        MultiIndex.swaplevel : Swap two levels of the MultiIndex.
+        MultiIndex.set_names : Set names for the MultiIndex levels.
+        DataFrame.reorder_levels : Reorder levels in a DataFrame with a MultiIndex.
 
         Examples
         --------
@@ -2660,9 +2684,9 @@ class MultiIndex(Index):
         a valid valid
         """
 
-        def cats(level_codes):
+        def cats(level_codes: np.ndarray) -> np.ndarray:
             return np.arange(
-                np.array(level_codes).max() + 1 if len(level_codes) else 0,
+                level_codes.max() + 1 if len(level_codes) else 0,
                 dtype=level_codes.dtype,
             )
 
@@ -2681,8 +2705,15 @@ class MultiIndex(Index):
         """
         Sort MultiIndex at the requested level.
 
-        The result will respect the original ordering of the associated
-        factor at that level.
+        This method is useful when dealing with MultiIndex objects, allowing for
+        sorting at a specific level of the index. The function preserves the
+        relative ordering of data within the same level while sorting
+        the overall MultiIndex. The method provides flexibility with the `ascending`
+        parameter to define the sort order and with the `sort_remaining` parameter to
+        control whether the remaining levels should also be sorted. Sorting a
+        MultiIndex can be crucial when performing operations that require ordered
+        indices, such as grouping or merging datasets. The `na_position` argument is
+        important in handling missing values consistently across different levels.
 
         Parameters
         ----------
@@ -2692,7 +2723,9 @@ class MultiIndex(Index):
         ascending : bool, default True
             False to sort in descending order.
             Can also be a list to specify a directed ordering.
-        sort_remaining : sort by the remaining levels after level
+        sort_remaining : bool, default True
+            If True, sorts by the remaining levels after sorting by the specified
+            `level`.
         na_position : {'first' or 'last'}, default 'first'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
@@ -2705,6 +2738,13 @@ class MultiIndex(Index):
             Resulting index.
         indexer : np.ndarray[np.intp]
             Indices of output values in original index.
+
+        See Also
+        --------
+        MultiIndex : A multi-level, or hierarchical, index object for pandas objects.
+        Index.sort_values : Sort Index values.
+        DataFrame.sort_index : Sort DataFrame by the index.
+        Series.sort_index : Sort Series by the index.
 
         Examples
         --------

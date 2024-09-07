@@ -152,9 +152,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
@@ -877,6 +876,12 @@ class TimedeltaArray(dtl.TimelikeOps):
     microseconds_docstring = textwrap.dedent(
         """Number of microseconds (>= 0 and less than 1 second) for each element.
 
+    See Also
+    --------
+    pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than 1 second).
+    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
+        than 1 second) of a datetime.timedelta.
+
     Examples
     --------
     For Series:
@@ -955,6 +960,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like of a single
+            timedelta.
 
         Examples
         --------

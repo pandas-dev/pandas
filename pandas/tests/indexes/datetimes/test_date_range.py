@@ -11,7 +11,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.offsets import (
@@ -881,7 +880,7 @@ class TestDateRangeTZ:
         # construction with an ambiguous end-point
         # GH#11626
 
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
             date_range(
                 "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="h"
             )
@@ -905,7 +904,7 @@ class TestDateRangeTZ:
     def test_date_range_nonexistent_endpoint(self, tz, option, expected):
         # construction with an nonexistent end-point
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
+        with pytest.raises(ValueError, match="2019-03-10 02:00:00"):
             date_range(
                 "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="h"
             )
@@ -1257,6 +1256,24 @@ class TestCustomDateRange:
         # GH49441
         result = date_range(start=start, periods=period, freq="C")
         expected = DatetimeIndex(expected).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_data_range_custombusinessday_partial_time(self, unit):
+        # GH#57456
+        offset = offsets.CustomBusinessDay(weekmask="Sun Mon Tue")
+        start = datetime(2024, 2, 6, 23)
+        # end datetime is partial and not in the offset
+        end = datetime(2024, 2, 14, 14)
+        result = date_range(start, end, freq=offset, unit=unit)
+        expected = DatetimeIndex(
+            [
+                "2024-02-06 23:00:00",
+                "2024-02-11 23:00:00",
+                "2024-02-12 23:00:00",
+                "2024-02-13 23:00:00",
+            ],
+            dtype=f"M8[{unit}]",
+        )
         tm.assert_index_equal(result, expected)
 
 
