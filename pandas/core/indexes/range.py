@@ -316,10 +316,7 @@ class RangeIndex(Index):
         This property returns the `stop` value of the RangeIndex, which defines the
         upper (or lower, in case of negative steps) bound of the index range. The
         `stop` value is exclusive, meaning the RangeIndex includes values up to but
-        not including this value. This property complements the `start` and `step`
-        properties that, together with `stop`, describe the entire range. The
-        `RangeIndex` is commonly used in performance-critical scenarios because it
-        doesn't store individual values, only the range metadata.
+        not including this value.
 
         See Also
         --------
