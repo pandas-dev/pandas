@@ -2785,3 +2785,31 @@ class TestPivot:
             index="category", columns="value", values="timestamp"
         )
         assert df_pivoted.empty
+
+    def test_pivot_margins_with_none_index(self):
+        # GH#58722
+        df = DataFrame(
+            {
+                "x": [1, 1, 2],
+                "y": [3, 3, 4],
+                "z": [5, 5, 6],
+                "w": [7, 8, 9],
+            }
+        )
+        result = df.pivot_table(
+            index=None,
+            columns=["y", "z"],
+            values="w",
+            margins=True,
+            aggfunc="count",
+        )
+        expected = DataFrame(
+            [[2, 2, 1, 1]],
+            index=["w"],
+            columns=MultiIndex(
+                levels=[[3, 4], [5, 6, "All"]],
+                codes=[[0, 0, 1, 1], [0, 2, 1, 2]],
+                names=["y", "z"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

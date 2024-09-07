@@ -557,7 +557,12 @@ def _generate_marginal_results(
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            from pandas import DataFrame
+            margin = (
+                data[cols[:1] + values]
+                .groupby(cols[:1], observed=observed)
+                .agg(aggfunc, **kwargs)
+                .T
+            )
 
             cat_axis = 0
             for key, piece in table.groupby(level=0, observed=observed):
@@ -566,9 +571,7 @@ def _generate_marginal_results(
                 else:
                     all_key = margins_name
                 table_pieces.append(piece)
-                # GH31016 this is to calculate margin for each group, and assign
-                # corresponded key as index
-                transformed_piece = DataFrame(piece.apply(aggfunc, **kwargs)).T
+                transformed_piece = margin[key].to_frame().T
                 if isinstance(piece.index, MultiIndex):
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
