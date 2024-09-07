@@ -2303,7 +2303,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. When False, non-grouping columns will appear
+            in the order they occur in within groups.
+
+            .. versionchanged:: 3.0.0
+
+                In prior versions, ``sort=False`` would sort the non-grouping columns
+                by label.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True

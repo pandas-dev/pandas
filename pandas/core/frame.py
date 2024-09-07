@@ -7264,7 +7264,11 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Sort by DataFrame column values when False.
+            Sort by frequencies when True. Preserve the order of the data when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, ``sort=False`` would sort by the columns values.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
