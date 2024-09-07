@@ -2487,13 +2487,7 @@ class StringMethods(NoNewAttributesMixin):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
-        if is_extension_array_dtype(dtype):
-            return self._wrap_result(
-                DataFrame(result, columns=name, dtype=dtype),
-                name=name,
-                returns_string=False,
-            )
-        if isinstance(dtype, ArrowDtype):
+        if is_extension_array_dtype(dtype) or isinstance(dtype, ArrowDtype):
             return self._wrap_result(
                 DataFrame(result, columns=name, dtype=dtype),
                 name=name,
