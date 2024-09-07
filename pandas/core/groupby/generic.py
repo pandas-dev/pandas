@@ -615,7 +615,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         See Also
         --------
-        groupby.DataFrameGroupBy.filter : Filter elements from groups that don’t satisfy a criterion, returns DataFrame.
+        DataFrameGroupBy.filter : Filter elements from groups that don't satisfy a criterion.
 
         Notes
         -----
@@ -1960,10 +1960,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         DataFrame
             The filtered subset of the original DataFrame.
-            
+
         See Also
         --------
-        groupby.SeriesGroupBy.filter : Filter elements from groups that don’t satisfy a criterion, returns Series.
+        SeriesGroupBy.filter : Filter elements from groups that don't satisfy a criterion.
 
         Notes
         -----
