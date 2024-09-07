@@ -108,6 +108,7 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
 
 # GH#47872
+@td.skip_if_no("pyarrow")
 def test_get_dummies_with_pa_str_dtype(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|", dtype="str[pyarrow]")
