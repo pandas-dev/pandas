@@ -615,7 +615,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         See Also
         --------
-        DataFrameGroupBy.filter : SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
 
         Notes
         -----
