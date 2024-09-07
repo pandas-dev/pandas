@@ -416,12 +416,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tags2 = sorted(tags - {""})
 
         _dtype = pandas_dtype(dtype)
-        dummy_dtype: NpDtype
+        dummies_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
-            dummy_dtype = _dtype
+            dummies_dtype = _dtype
         else:
-            dummy_dtype = np.bool_
-        dummies = np.empty((len(arr), len(tags2)), dtype=dummy_dtype)
+            dummies_dtype = np.bool_
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements

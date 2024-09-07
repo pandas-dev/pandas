@@ -2527,12 +2527,12 @@ class ArrowExtensionArray(
         indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
         indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
         _dtype = pandas_dtype(dtype)
-        dummy_dtype: NpDtype
+        dummies_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
-            dummy_dtype = _dtype
+            dummies_dtype = _dtype
         else:
-            dummy_dtype = np.bool_
-        dummies = np.zeros(n_rows * n_cols, dtype=dummy_dtype)
+            dummies_dtype = np.bool_
+        dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))
