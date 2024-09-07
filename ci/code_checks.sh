@@ -169,7 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.agg RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.aggregate RT03" \
         -i "pandas.core.groupby.DataFrameGroupBy.boxplot PR07,RT03,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.filter SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.groups SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.hist RT03" \
@@ -185,7 +184,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.__iter__ RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.agg RT03" \
         -i "pandas.core.groupby.SeriesGroupBy.aggregate RT03" \
-        -i "pandas.core.groupby.SeriesGroupBy.filter PR01,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.get_group RT03,SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.groups SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.indices SA01" \
