@@ -444,12 +444,17 @@ class ExtensionDtype:
         """
         return False
 
-    def is_unambiguous_scalar(self):
+    @classmethod
+    def is_unambiguous_scalar(cls, scalar):
         return False
 
     @classmethod
     def construct_from_scalar(cls, scalar):
         return cls()
+    
+    @property
+    def is_external_dtype(self) -> bool:
+        return not self.__module__.split(".")[0] == "pandas"
 
 
 class StorageExtensionDtype(ExtensionDtype):

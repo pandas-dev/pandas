@@ -81,6 +81,13 @@ from pandas.core.arrays import (
 def coerce(request):
     return request.param
 
+class MockScalar:
+    pass
+
+class MockDtype(pd.api.extensions.ExtensionDtype):
+    
+
+
 
 class MockNumpyLikeArray:
     """

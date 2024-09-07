@@ -1695,7 +1695,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_interval_array(values):
             return "interval"
 
-    print("infer_dtype")
     reg_dtype = _registry.match_scalar(val)
     if reg_dtype:
         return str(reg_dtype)

@@ -502,7 +502,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data.copy()
         else:
             if dtype is None:
-                dtype = infer_dtype_from(data)[0]
+                inferred_dtype = infer_dtype_from(data)[0]
+                if isinstance(inferred_dtype, ExtensionDtype) and inferred_dtype.is_external_dtype:
+                    dtype = inferred_dtype
+                    # import pdb; pdb.set_trace()
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
 

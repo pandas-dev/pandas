@@ -918,6 +918,8 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
     inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
         return (np.dtype(np.object_), arr)
+    elif inferred in ["empty", "integer", "floating", "integer-na", "mixed-integer-float", "datetime", "period", "timedelta", "time", "date"]:
+        pass
     else:
         arr_dtype = pandas_dtype_func(inferred)
         if isinstance(arr_dtype, ExtensionDtype):
