@@ -1180,3 +1180,15 @@ def test_grouping_by_key_is_in_axis():
     result = gb.sum()
     expected = DataFrame({"a": [1, 2], "b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
+
+def test_groupby_any_timedelta_with_all_nulls():
+    # Create a DataFrame with timedelta values, including NaT (null timedelta)
+    df = pd.DataFrame({
+        'timedelta': [pd.Timedelta(days=1), pd.NaT],
+        'group': [0, 1]
+    })
+    result = df.groupby('group')['timedelta'].any()
+
+    # Expected behavior: group 1 should return False because it has all null values
+    expected = pd.Series([True, False], index=[0, 1])
+    pd.testing.assert_series_equal(result, expected)
