@@ -114,11 +114,11 @@ class BaseGroupbyTests:
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.groupby("B", group_keys=False, observed=False).apply(groupby_apply_op)
         df.groupby("B", group_keys=False, observed=False).A.apply(groupby_apply_op)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.groupby("A", group_keys=False, observed=False).apply(groupby_apply_op)
         df.groupby("A", group_keys=False, observed=False).B.apply(groupby_apply_op)
 

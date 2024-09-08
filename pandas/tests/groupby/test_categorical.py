@@ -125,7 +125,7 @@ def test_basic(using_infer_string):  # TODO: split this test
         return x.drop_duplicates("person_name").iloc[0]
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
@@ -333,7 +333,7 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = grouped.apply(lambda x: 1)
     tm.assert_series_equal(result, expected)
 
@@ -2050,7 +2050,7 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = DeprecationWarning if method == "apply" and index_kind == "range" else None
+    warn = FutureWarning if method == "apply" and index_kind == "range" else None
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(warn, match=msg):
         op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))

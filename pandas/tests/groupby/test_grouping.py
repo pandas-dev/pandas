@@ -238,7 +238,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = g.apply(lambda x: x.sum())
         expected["A"] = [0, 2, 4]
         expected = expected.loc[:, ["A", "B"]]

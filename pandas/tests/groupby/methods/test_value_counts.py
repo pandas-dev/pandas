@@ -330,7 +330,7 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = DeprecationWarning if groupby == "column" else None
+        warn = FutureWarning if groupby == "column" else None
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(warn, match=msg):
             expected = gp.apply(
