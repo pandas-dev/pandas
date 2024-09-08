@@ -371,14 +371,6 @@ class WrappedCythonOp:
 
         is_datetimelike = dtype.kind in "mM"
 
-        if is_datetimelike:
-            values = values.view("int64")
-            is_numeric = True
-        elif dtype.kind == "b":
-            values = values.view("uint8")
-        if values.dtype == "float16":
-            values = values.astype(np.float32)
-
         if self.how in ["any", "all"]:
             if mask is None:
                 mask = isna(values)
@@ -391,6 +383,14 @@ class WrappedCythonOp:
                         values[mask] = True
             values = values.astype(bool, copy=False).view(np.int8)
             is_numeric = True
+
+        if is_datetimelike:
+            values = values.view("int64")
+            is_numeric = True
+        elif dtype.kind == "b":
+            values = values.view("uint8")
+        if values.dtype == "float16":
+            values = values.astype(np.float32)
 
         values = values.T
         if mask is not None:
