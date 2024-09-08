@@ -1123,9 +1123,20 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
     Returns
     -------
     bool
+
+    See Also
+    --------
+    api.types.is_scalar : Check if the input is a scalar.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
 
     Examples
     --------
