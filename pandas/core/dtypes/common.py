@@ -1442,6 +1442,14 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array or dtype is of a complex dtype.
 
+    See Also
+    --------
+    api.types.is_complex: Return True if given object is complex.
+    api.types.is_numeric_dtype: Check whether the provided array or
+                                dtype is of a numeric dtype.
+    api.types.is_integer_dtype: Check whether the provided array or
+                                dtype is of an integer dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_complex_dtype
