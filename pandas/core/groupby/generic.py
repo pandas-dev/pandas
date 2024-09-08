@@ -603,11 +603,20 @@ class SeriesGroupBy(GroupBy[Series]):
         dropna : bool
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
+        *args
+            Additional positional arguments to pass to `func`.
+        **kwargs
+            Additional keyword arguments to pass to `func`.
 
         Returns
         -------
         Series
             The filtered subset of the original Series.
+
+        See Also
+        --------
+        Series.filter: Filter elements of ungrouped Series.
+        DataFrameGroupBy.filter : Filter elements of grouped DataFrame.
 
         Notes
         -----
@@ -1952,6 +1961,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         DataFrame
             The filtered subset of the original DataFrame.
+
+        See Also
+        --------
+        DataFrame.filter: Filter elements of ungrouped DataFrame.
+        SeriesGroupBy.filter : Filter elements of grouped Series.
 
         Notes
         -----

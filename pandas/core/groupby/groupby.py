@@ -199,6 +199,15 @@ Returns
 Series or DataFrame
     Computed {fname} of values within each group.
 
+See Also
+--------
+Series.min : Return the min of the group values.
+DataFrame.min : Return the min of the group values.
+Series.max : Return the max of the group values.
+DataFrame.max : Return the max of the group values.
+Series.sum : Return the sum of the group values.
+DataFrame.sum : Return the sum of the group values.
+
 Examples
 --------
 {example}
