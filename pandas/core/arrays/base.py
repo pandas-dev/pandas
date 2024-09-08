@@ -1005,20 +1005,20 @@ class ExtensionArray:
         ----------
         method : str, default 'linear'
             Interpolation technique to use. One of:
-            * 'linear': Ignore the index and treat the values as equally spaced. 
+            * 'linear': Ignore the index and treat the values as equally spaced.
             This is the only method supported on MultiIndexes.
-            * 'time': Works on daily and higher resolution data to interpolate 
+            * 'time': Works on daily and higher resolution data to interpolate
             given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric', 
-            'polynomial': Passed to scipy.interpolate.interp1d, whereas 'spline' 
-            is passed to scipy.interpolate.UnivariateSpline. These methods use 
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
+            'polynomial': Passed to scipy.interpolate.interp1d, whereas 'spline'
+            is passed to scipy.interpolate.UnivariateSpline. These methods use
             the numerical values of the index.
-            Both 'polynomial' and 'spline' require that you also specify an 
+            Both 'polynomial' and 'spline' require that you also specify an
             order (int), e.g. arr.interpolate(method='polynomial', order=5).
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima', 
-            'cubicspline': Wrappers around the SciPy interpolation methods 
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
+            'cubicspline': Wrappers around the SciPy interpolation methods
             of similar names. See Notes.
             * 'from_derivatives': Refers to scipy.interpolate.BPoly.from_derivatives.
         axis : int
@@ -1030,14 +1030,14 @@ class ExtensionArray:
         limit_direction : {'forward', 'backward', 'both'}
             Consecutive NaNs will be filled in this direction.
             * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-            * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be 
+            * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
             'backward'.
-            Raises ValueError if limit_direction is 'forward' or 'both' and method 
+            Raises ValueError if limit_direction is 'forward' or 'both' and method
             is 'backfill' or 'bfill'.
-            Raises ValueError if limit_direction is 'backward' or 'both' and method 
+            Raises ValueError if limit_direction is 'backward' or 'both' and method
             is 'pad' or 'ffill'.
         limit_area : {'inside', 'outside'} or None
-            If limit is specified, consecutive NaNs will be filled with this 
+            If limit is specified, consecutive NaNs will be filled with this
             restriction.
             * None: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values (interpolate).
@@ -1060,11 +1060,11 @@ class ExtensionArray:
         Notes
         -----
         - All parameters must be specified as keyword arguments.
-        - The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima' 
-          methods are wrappers around the respective SciPy implementations of 
+        - The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+          methods are wrappers around the respective SciPy implementations of
           similar names. These use the actual numerical values of the index.
         - For 1D NumpyExtensionArray, use 0 for the `axis` parameter.
-        
+
         Examples
         --------
         >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, np.nan, 2, np.nan, 4]))
