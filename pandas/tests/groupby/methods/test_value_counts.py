@@ -257,10 +257,10 @@ def test_basic(education_df, request):
         index=MultiIndex.from_tuples(
             [
                 ("FR", "male", "low"),
-                ("FR", "female", "high"),
                 ("FR", "male", "medium"),
-                ("US", "female", "high"),
+                ("FR", "female", "high"),
                 ("US", "male", "low"),
+                ("US", "female", "high"),
             ],
             names=["country", "gender", "education"],
         ),
@@ -480,7 +480,7 @@ def test_data_frame_value_counts(
         (
             False,
             False,
-            [0, 1, 3, 5, 7, 6, 8, 2, 4],
+            [0, 1, 3, 5, 6, 7, 8, 2, 4],
             [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0],
         ),
         (False, True, [0, 1, 3, 5, 2, 4], [0.5, 0.5, 1.0, 1.0, 1.0, 1.0]),
@@ -617,17 +617,17 @@ def test_categorical_single_grouper_with_only_observed_categories(
     expected_index = MultiIndex.from_tuples(
         [
             ("FR", "male", "low"),
-            ("FR", "female", "high"),
             ("FR", "male", "medium"),
+            ("FR", "female", "high"),
+            ("FR", "male", "high"),
             ("FR", "female", "low"),
             ("FR", "female", "medium"),
-            ("FR", "male", "high"),
-            ("US", "female", "high"),
             ("US", "male", "low"),
+            ("US", "female", "high"),
+            ("US", "male", "medium"),
+            ("US", "male", "high"),
             ("US", "female", "low"),
             ("US", "female", "medium"),
-            ("US", "male", "high"),
-            ("US", "male", "medium"),
         ],
         names=["country", "gender", "education"],
     )
@@ -719,17 +719,17 @@ def test_categorical_single_grouper_observed_true(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
 
     assert_categorical_single_grouper(
@@ -799,23 +799,23 @@ def test_categorical_single_grouper_observed_false(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
-        ("ASIA", "female", "high"),
-        ("ASIA", "female", "low"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "male", "high"),
         ("ASIA", "male", "low"),
         ("ASIA", "male", "medium"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "female", "high"),
     ]
 
     assert_categorical_single_grouper(
@@ -957,17 +957,17 @@ def test_categorical_non_groupers(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
     expected_series = Series(
         data=expected_data,
