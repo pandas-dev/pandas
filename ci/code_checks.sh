@@ -123,7 +123,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.extensions.ExtensionArray.interpolate PR01,SA01" \
-        -i "pandas.api.types.is_categorical_dtype SA01" \
         -i "pandas.api.types.is_complex PR01,SA01" \
         -i "pandas.api.types.is_complex_dtype SA01" \
         -i "pandas.api.types.is_datetime64_dtype SA01" \

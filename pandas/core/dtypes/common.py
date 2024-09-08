@@ -514,6 +514,12 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the Categorical dtype.
 
+    See Also
+    --------
+    api.types.is_list_like: Check if the object is list-like.
+    api.types.is_complex_dtype: Check whether the provided array or
+                                dtype is of a complex dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_categorical_dtype
