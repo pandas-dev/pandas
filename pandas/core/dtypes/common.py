@@ -279,6 +279,13 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the datetime64 dtype.
 
+    See Also
+    --------
+    api.types.is_datetime64_ns_dtype: Check whether the provided array or
+                                        dtype is of the datetime64[ns] dtype.
+    api.types.is_datetime64_any_dtype: Check whether the provided array or
+                                        dtype is of the datetime64 dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_dtype
