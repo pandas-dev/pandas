@@ -44,9 +44,61 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
-    period_array,
+    period_array,ExtensionArray
 )
 from pandas.core.internals.blocks import NumpyBlock
+
+from pandas.core.dtypes.dtypes import ExtensionDtype,  register_extension_dtype
+
+class MockScalar:
+    pass
+
+@register_extension_dtype
+class MockDtype(ExtensionDtype):
+    type = MockScalar
+    @property
+    def name(self):
+        return "MockDtype"
+    def is_unambiguous_scalar(scalar):
+        if isinstance(scalar, MockScalar):
+            return True
+        return False
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+
+        if string == cls.__name__:
+            return cls()
+        else:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+    @classmethod
+    def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        return MockArray
+    
+    @property
+    def is_external_dtype(self):
+        return True
+
+
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+class MockArray(NDArrayBackedExtensionArray):
+    dtype = MockDtype()
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        scalars = np.ndarray([0 for i in scalars])
+        return cls(scalars, "O")
 
 
 class TestSeriesConstructors:
@@ -151,6 +203,27 @@ class TestSeriesConstructors:
 
         assert ser.dtype == ea_dtype
         tm.assert_series_equal(ser, expected)
+
+
+    def test_scalar_extension_dtype2(self):
+        # GH 28401
+        from pandas.core.dtypes.cast import (
+            LossySetitemError,
+            construct_1d_arraylike_from_scalar,
+            find_common_type,
+            infer_dtype_from,
+            maybe_box_native,
+            maybe_cast_pointwise_result,
+        )
+        ea_scalar, ea_dtype = MockScalar(), MockDtype()
+
+        # import pdb; pdb.set_trace()
+        infer_dtype_from(MockScalar())
+        ser = Series(ea_scalar, index=range(3))
+        expected = Series([ea_scalar] * 3, dtype=ea_dtype)
+
+        assert ser.dtype == ea_dtype
+        # tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series, using_infer_string):
         empty_series = Series()

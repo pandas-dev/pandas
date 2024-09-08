@@ -75,9 +75,8 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 
-from pandas.core
 
 @pytest.fixture(params=[True, False], ids=str)
 def coerce(request):
@@ -2032,6 +2031,7 @@ def test_infer_dtype_extensiondtype():
     class MockScalar:
         pass
 
+    @register_extension_dtype
     class MockDtype(ExtensionDtype):
         @property
         def name(self):

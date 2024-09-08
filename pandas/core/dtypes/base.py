@@ -454,7 +454,7 @@ class ExtensionDtype:
     
     @property
     def is_external_dtype(self) -> bool:
-        return not self.__module__.split(".")[0] == "pandas"
+        return self.__module__[:8] == "pandas.c"
 
 
 class StorageExtensionDtype(ExtensionDtype):
