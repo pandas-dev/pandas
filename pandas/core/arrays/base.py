@@ -1069,13 +1069,13 @@ class ExtensionArray:
         --------
         >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, np.nan, 2, np.nan, 4]))
         >>> arr.interpolate(
-        ...     method='linear',
+        ...     method="linear",
         ...     axis=0,
         ...     index=pd.Index(range(len(arr))),
         ...     limit=None,
-        ...     limit_direction='forward',
+        ...     limit_direction="forward",
         ...     limit_area=None,
-        ...     copy=True
+        ...     copy=True,
         ... )
         <NumpyExtensionArray>
         [0.0, 1.0, 2.0, 3.0, 4.0]
