@@ -695,6 +695,7 @@ Other
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
+- Bug in :meth:`_clean_na_values` in :class:`TextFileReader` that was not properly handling ``na_values`` when it is a list of strings. (:issue:`59303`)
 
 .. ***DO NOT USE THIS SECTION***
 
