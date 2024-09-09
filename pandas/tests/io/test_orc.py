@@ -436,7 +436,7 @@ def test_string_inference(tmp_path):
         result = read_orc(path)
     expected = pd.DataFrame(
         data={"a": ["x", "y"]},
-        dtype="string[pyarrow_numpy]",
-        columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+        dtype=pd.StringDtype(na_value=np.nan),
+        columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)

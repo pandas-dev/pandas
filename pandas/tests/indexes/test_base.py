@@ -933,10 +933,9 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no("pyarrow")
-    def test_isin_arrow_string_null(self):
+    def test_isin_string_null(self, string_dtype_no_object):
         # GH#55821
-        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b"], dtype=string_dtype_no_object)
         result = index.isin([None])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)

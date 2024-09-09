@@ -295,7 +295,10 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)

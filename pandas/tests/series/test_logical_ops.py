@@ -9,6 +9,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    StringDtype,
     bdate_range,
 )
 import pandas._testing as tm
@@ -514,7 +515,7 @@ class TestSeriesLogicalOps:
         # GH#56008
         pa = pytest.importorskip("pyarrow")
         ser = Series([False, True])
-        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        ser2 = Series(["a", "b"], dtype=StringDtype(na_value=np.nan))
         result = ser == ser2
         expected_eq = Series(False, index=ser.index)
         tm.assert_series_equal(result, expected_eq)

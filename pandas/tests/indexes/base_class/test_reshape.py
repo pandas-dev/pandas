@@ -57,12 +57,11 @@ class TestReshape:
         tm.assert_index_equal(result, expected)
         assert type(expected[2]) is type(val)
 
-    def test_insert_none_into_string_numpy(self):
+    def test_insert_none_into_string_numpy(self, string_dtype_no_object):
         # GH#55365
-        pytest.importorskip("pyarrow")
-        index = Index(["a", "b", "c"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b", "c"], dtype=string_dtype_no_object)
         result = index.insert(-1, None)
-        expected = Index(["a", "b", None, "c"], dtype="string[pyarrow_numpy]")
+        expected = Index(["a", "b", None, "c"], dtype=string_dtype_no_object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

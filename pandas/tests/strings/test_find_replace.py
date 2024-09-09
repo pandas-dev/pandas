@@ -22,7 +22,7 @@ from pandas.tests.strings import (
 
 
 def using_pyarrow(dtype):
-    return dtype in ("string[pyarrow]", "string[pyarrow_numpy]")
+    return dtype == "string" and dtype.storage == "pyarrow"
 
 
 def test_contains(any_string_dtype):

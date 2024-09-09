@@ -1109,8 +1109,8 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype="string[pyarrow_numpy]",
-            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+            dtype=pd.StringDtype(na_value=np.nan),
+            index=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1140,8 +1140,8 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path)
         expected = pd.DataFrame(
             data={"a": [None, "b", "c"]},
-            dtype="string[pyarrow_numpy]",
-            columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+            dtype=pd.StringDtype(na_value=np.nan),
+            columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
         )
         tm.assert_frame_equal(result, expected)
 

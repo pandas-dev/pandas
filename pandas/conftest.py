@@ -1274,6 +1274,34 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
+)
+def string_dtype_no_object(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
+    """
+    # need to instantiate the StringDtype here instead of in the params
+    # to avoid importing pyarrow during test collection
+    storage, na_value = request.param
+    return pd.StringDtype(storage, na_value)
+
+
+@pytest.fixture(
+    params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
