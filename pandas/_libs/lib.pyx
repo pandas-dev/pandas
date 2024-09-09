@@ -733,7 +733,9 @@ cpdef ndarray[object] ensure_string_array(
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
     copy : bool, default True
-        Whether to ensure that a new array is returned.
+        Whether to ensure that a new array is returned. When True, a new array
+        is always returned. When False, a new array is only returned when needed
+        to avoid mutating the input array.
     skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
         (e.g. if False, NaN becomes 'nan').
@@ -762,11 +764,15 @@ cpdef ndarray[object] ensure_string_array(
 
     result = np.asarray(arr, dtype="object")
 
-    if copy and (result is arr or np.shares_memory(arr, result)):
-        # GH#54654
-        result = result.copy()
-    elif not copy and result is arr:
-        already_copied = False
+    if result is arr or np.may_share_memory(arr, result):
+        # if np.asarray(..) did not make a copy of the input arr, we still need
+        #  to do that to avoid mutating the input array
+        # GH#54654: share_memory check is needed for rare cases where np.asarray
+        #  returns a new object without making a copy of the actual data
+        if copy:
+            result = result.copy()
+        else:
+            already_copied = False
     elif not copy and not result.flags.writeable:
         # Weird edge case where result is a view
         already_copied = False
