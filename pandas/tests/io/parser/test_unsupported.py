@@ -16,10 +16,10 @@ import pytest
 from pandas.errors import ParserError
 
 import pandas._testing as tm
+from pandas.core.frame import DataFrame
 
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
-from pandas.core.frame import DataFrame
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -156,8 +156,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             "CSV parser got out of sync with chunker. "
             "This can mean the data file contains cell values spanning multiple "
             "lines; please consider enabling the option 'newlines_in_values'."
-              )
-        rows = [{"text": "ab\ncd", "idx" : idx} for idx in range(1_000_000)]
+        )
+        rows = [{"text": "ab\ncd", "idx": idx} for idx in range(1_000_000)]
         df = DataFrame(rows)
         df.to_csv("test.csv", index=False)
         with pytest.raises(ValueError, match=msg):
