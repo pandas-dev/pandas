@@ -102,10 +102,7 @@ def test_setitem_validates(cls, dtype):
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if dtype.storage == "python":
-        msg = "Must provide strings."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Must provide strings"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
@@ -522,7 +519,6 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
@@ -541,13 +537,16 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(f"string[{string_storage}]")
+        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
         # ensure the missing value is represented by NA and not np.nan or None
         assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
@@ -569,7 +568,11 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
         assert result["a"].dtype == "object"
     else:
         assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(f"string[{string_storage}]")
+        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
         tm.assert_frame_equal(result, expected)
 
 

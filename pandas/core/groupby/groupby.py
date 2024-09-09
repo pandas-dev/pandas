@@ -414,9 +414,9 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply : Apply function func group-wise
+{klass}GroupBy.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Transforms the Series on each group
+{klass}GroupBy.transform : Transforms the Series on each group
     based on the given function.
 {klass}.aggregate : Aggregate using one or more operations.
 
@@ -4370,11 +4370,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return vals
 
-        qs = np.array(q, dtype=np.float64)
-        pass_qs: np.ndarray | None = qs
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs = None
+            pass_qs: None | np.ndarray = None
+        else:
+            qs = np.asarray(q, dtype=np.float64)
+            pass_qs = qs
 
         ids = self._grouper.ids
         ngroups = self._grouper.ngroups
