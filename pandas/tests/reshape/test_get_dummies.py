@@ -4,8 +4,6 @@ import unicodedata
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -216,11 +214,10 @@ class TestGetDummies:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_dataframe_dummies_string_dtype(self, df, using_infer_string):
+    def test_dataframe_dummies_string_dtype(self, df, any_string_dtype):
         # GH44965
         df = df[["A", "B"]]
-        df = df.astype({"A": "object", "B": "string"})
+        df = df.astype({"A": "str", "B": any_string_dtype})
         result = get_dummies(df)
         expected = DataFrame(
             {
@@ -231,8 +228,7 @@ class TestGetDummies:
             },
             dtype=bool,
         )
-        if not using_infer_string:
-            # infer_string returns numpy bools
+        if any_string_dtype == "string" and any_string_dtype.na_value is pd.NA:
             expected[["B_b", "B_c"]] = expected[["B_b", "B_c"]].astype("boolean")
         tm.assert_frame_equal(result, expected)
 
