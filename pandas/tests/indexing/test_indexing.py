@@ -8,8 +8,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
@@ -528,12 +526,12 @@ class TestFancy:
         with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_astype_assignment(self, using_infer_string):
         # GH4312 (iloc)
         df_orig = DataFrame(
             [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        df_orig[list("ABCDG")] = df_orig[list("ABCDG")].astype(object)
 
         df = df_orig.copy()
 
@@ -543,9 +541,9 @@ class TestFancy:
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
-            expected["B"] = expected["B"].astype(object)
+        expected[list("CDG")] = expected[list("CDG")].astype(object)
+        expected["A"] = expected["A"].astype(object)
+        expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
@@ -554,18 +552,16 @@ class TestFancy:
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["A"] = expected["A"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
+
         df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
-        if not using_infer_string:
-            expected["B"] = expected["B"].astype(object)
-            expected["C"] = expected["C"].astype(object)
+        expected[list("ABCDG")] = expected[list("ABCDG")].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
