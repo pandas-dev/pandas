@@ -306,8 +306,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
     _str_len = ArrowStringArrayMixin._str_len
 
-    _rank = ArrowExtensionArray._rank
-
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
@@ -343,7 +341,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
-        return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
+        return ArrowStringArrayMixin._str_replace(
+            self, pat, repl, n, case, flags, regex
+        )
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if not isinstance(repeats, int):
@@ -360,7 +360,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
-            return ArrowExtensionArray._str_removeprefix(self, prefix)
+            return ArrowStringArrayMixin._str_removeprefix(self, prefix)
         return super()._str_removeprefix(prefix)
 
     def _str_count(self, pat: str, flags: int = 0):
