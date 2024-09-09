@@ -201,12 +201,12 @@ Series or DataFrame
 
 See Also
 --------
-Series.min : Return the min of the group values.
-DataFrame.min : Return the min of the group values.
-Series.max : Return the max of the group values.
-DataFrame.max : Return the max of the group values.
-Series.sum : Return the sum of the group values.
-DataFrame.sum : Return the sum of the group values.
+SeriesGroupBy.min : Return the min of the group values.
+DataFrameGroupBy.min : Return the min of the group values.
+SeriesGroupBy.max : Return the max of the group values.
+DataFrameGroupBy.max : Return the max of the group values.
+SeriesGroupBy.sum : Return the sum of the group values.
+DataFrameGroupBy.sum : Return the sum of the group values.
 
 Examples
 --------
