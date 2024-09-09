@@ -205,25 +205,11 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
 
-    def test_scalar_extension_dtype2(self):
-        # GH 28401
-        from pandas.core.dtypes.cast import (
-            LossySetitemError,
-            construct_1d_arraylike_from_scalar,
-            find_common_type,
-            infer_dtype_from,
-            maybe_box_native,
-            maybe_cast_pointwise_result,
-        )
+    def test_unambiguous_scalar(self):
         ea_scalar, ea_dtype = MockScalar(), MockDtype()
 
-        # import pdb; pdb.set_trace()
-        infer_dtype_from(MockScalar())
         ser = Series(ea_scalar, index=range(3))
-        expected = Series([ea_scalar] * 3, dtype=ea_dtype)
-
         assert ser.dtype == ea_dtype
-        # tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series, using_infer_string):
         empty_series = Series()
