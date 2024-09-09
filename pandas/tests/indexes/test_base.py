@@ -76,9 +76,6 @@ class TestIndex:
         tm.assert_contains_all(arr, new_index)
         tm.assert_index_equal(index, new_index)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_constructor_copy(self, using_infer_string):
         index = Index(list("abc"), name="name")
         arr = np.array(index)
@@ -346,11 +343,6 @@ class TestIndex:
     def test_view_with_args(self, index):
         index.view("i8")
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "index",
         [
@@ -367,7 +359,8 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "string":
+        elif index.dtype == "str" and not index.dtype.storage == "python":
+            # TODO(infer_string): Make the errors consistent
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
