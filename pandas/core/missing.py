@@ -132,7 +132,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                     # to the original equality check.
                     try:
                         # In case of an uncastable type, this will emit TypeError
-                        new_mask = np.equal(arr, x) # type: ignore[arg-type]
+                        new_mask = np.equal(arr, x)  # type: ignore[arg-type]
                     except TypeError:
                         # Old behaviour for uncastable types
                         new_mask = arr == x
@@ -140,7 +140,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
                     if not isinstance(new_mask, np.ndarray):
                         # usually BooleanArray
                         if isinstance(new_mask, bool):
-                            new_mask = np.array([new_mask], dtype= bool)
+                            new_mask = np.array([new_mask], dtype=bool)
                         else:
                             new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
                 mask |= new_mask
