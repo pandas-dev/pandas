@@ -566,8 +566,8 @@ def test_encode_errors_kwarg(any_string_dtype):
         if x is str:
             return x.encode("cp1252", "ignore")
         else:
-            # Manage AttributeError: 'pyarrow.lib.LargeStringScalar'
-            # object has no attribute 'encode'
+            # If x is a 'pyarrow.lib.LargeStringScalar' it has
+            # no attribute 'encode' so we cast it
             return str(x).encode("cp1252", "ignore")
 
     expected = ser.map(encode_func).astype("object")

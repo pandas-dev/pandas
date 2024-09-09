@@ -267,8 +267,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             if x is str:
                 return x.encode(encoding=encoding, errors=errors)
             else:
-                # Manage AttributeError: 'pyarrow.lib.LargeStringScalar'
-                # object has no attribute 'encode'
+                # If x is a 'pyarrow.lib.LargeStringScalar' it has
+                # no attribute 'encode' so we cast it
                 return str(x).encode(encoding=encoding, errors=errors)
 
         return self._str_map(encode_func, dtype=object)
