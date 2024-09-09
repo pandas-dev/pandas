@@ -395,19 +395,22 @@ def test_pipe_failures(any_string_dtype):
     [
         (2, 5, None, ["foo", "bar", np.nan, "baz"]),
         (0, 3, -1, ["", "", np.nan, ""]),
-        pytest.param(
+        (
             None,
             None,
             -1,
             ["owtoofaa", "owtrabaa", np.nan, "xuqzabaa"],
-            marks=pytest.mark.xfail(pa_version_under11p0, reason="Empty result"),
         ),
         (3, 10, 2, ["oto", "ato", np.nan, "aqx"]),
         (3, 0, -1, ["ofa", "aba", np.nan, "aba"]),
     ],
 )
-def test_slice(start, stop, step, expected, any_string_dtype):
+def test_slice(start, stop, step, expected, any_string_dtype, request):
     ser = Series(["aafootwo", "aabartwo", np.nan, "aabazqux"], dtype=any_string_dtype)
+    if any_string_dtype == "string[pyarrow]" and pa_version_under11p0:
+        mark = pytest.mark.xfail(reason="Empty result")
+        request.applymarker(mark)
+
     result = ser.str.slice(start, stop, step)
     expected = Series(expected, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
