@@ -1746,7 +1746,7 @@ def _build_map_infer_methods_params(arr: ArrayLike):
     storage = None
     if isinstance(arr.dtype, BaseMaskedDtype):
         arr = cast("BaseMaskedArray", arr)
-        values = arr._data
+        values = np.fromiter(arr._data, dtype="O")
         if arr._hasna:
             na_value = arr.dtype.na_value
 

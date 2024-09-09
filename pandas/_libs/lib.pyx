@@ -3024,16 +3024,17 @@ def map_infer_mask(
 
         ndarray result = np.empty(n, dtype=dtype)
 
+        flatiter arr_it = PyArray_IterNew(arr)
         flatiter result_it = PyArray_IterNew(result)
 
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
-                val = arr[i]
+                val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
             else:
                 val = na_value
         else:
-            val = arr[i]
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(arr_it))
             val = f(val)
 
             if cnp.PyArray_IsZeroDim(val):
@@ -3041,6 +3042,8 @@ def map_infer_mask(
                 val = val.item()
 
         PyArray_SETITEM(result, PyArray_ITER_DATA(result_it), val)
+
+        PyArray_ITER_NEXT(arr_it)
         PyArray_ITER_NEXT(result_it)
 
     if convert:
