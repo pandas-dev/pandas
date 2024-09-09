@@ -248,9 +248,9 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
 
         The 'pyarrow' engine was added as an *experimental* engine, and some features
         are unsupported, or may not work correctly, with this engine. For example,
-        the newlines_in_values in the ParseOptions of the pyarrow allows handling the 
+        the newlines_in_values in the ParseOptions of the pyarrow allows handling the
         newline characters within values when parsing csv files. However, this is not
-        currently supported by Pandas. In this case, the 'csv' module in the pyarrow 
+        currently supported by Pandas. In this case, the 'csv' module in the pyarrow
         should be used instead. For more information, refer to the example.
 converters : dict of {{Hashable : Callable}}, optional
     Functions for converting values in specified columns. Keys can either

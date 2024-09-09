@@ -153,13 +153,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_pyarrow_newlines_in_values(self):
         msg = (
-              "CSV parser got out of sync with chunker. "
-              "This can mean the data file contains cell values spanning multiple lines; "
-              "please consider enabling the option 'newlines_in_values'."
+            "CSV parser got out of sync with chunker. "
+            "This can mean the data file contains cell values spanning multiple "
+            "lines; please consider enabling the option 'newlines_in_values'."
               )
-        rows = []
-        for idx in range(1_000_000):
-            rows.append({"text": "ab\ncd", "idx" : idx})
+        rows = [{"text": "ab\ncd", "idx" : idx} for idx in range(1_000_000)]
         df = DataFrame(rows)
         df.to_csv("test.csv", index=False)
         with pytest.raises(ValueError, match=msg):
