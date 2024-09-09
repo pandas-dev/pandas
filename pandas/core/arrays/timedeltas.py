@@ -842,6 +842,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     seconds_docstring = textwrap.dedent(
         """Number of seconds (>= 0 and less than 1 day) for each element.
 
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
     Examples
     --------
     For Series:
@@ -916,6 +921,11 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.microseconds : Return number of nanoseconds for each element.
 
     Examples
     --------
