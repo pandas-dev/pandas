@@ -536,7 +536,7 @@ def array_strptime(
 
         except ValueError as ex:
             ex.args = (
-                f"{str(ex)}, at position {i}. You might want to try:\n"
+                f"{str(ex)}. You might want to try:\n"
                 "    - passing `format` if your strings have a consistent format;\n"
                 "    - passing `format='ISO8601'` if your strings are "
                 "all ISO8601 but not necessarily in exactly the same format;\n"
