@@ -23,10 +23,7 @@ if not pa_version_under10p1:
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sized,
-    )
+    from collections.abc import Callable
 
     from pandas._typing import (
         Scalar,
@@ -35,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class ArrowStringArrayMixin:
-    _pa_array: Sized
+    _pa_array: pa.ChunkedArray
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
