@@ -60,19 +60,20 @@ class TestLogicalOps(BaseOpsUtil):
         expected = pd.array([True, True])
         tm.assert_extension_array_equal(result, expected)
 
-    def test_logical_length_mismatch_raises(self, all_logical_operators):
+    @pytest.mark.parametrize("other", [[True, False], [True, False, True, False]])
+    def test_logical_length_mismatch_raises(self, other, all_logical_operators):
         op_name = all_logical_operators
         a = pd.array([True, False, None], dtype="boolean")
         msg = "Lengths must match"
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)([True, False])
+            getattr(a, op_name)(other)
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)(np.array([True, False]))
+            getattr(a, op_name)(np.array(other))
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)(pd.array([True, False], dtype="boolean"))
+            getattr(a, op_name)(pd.array(other, dtype="boolean"))
 
     def test_logical_nan_raises(self, all_logical_operators):
         op_name = all_logical_operators

@@ -1333,8 +1333,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp, expected=expected)
 
     @pytest.mark.xfail(
-        reason="fastparquet passed mismatched values/dtype to DatetimeArray "
-        "constructor, see https://github.com/dask/fastparquet/issues/891"
+        reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929"
     )
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]

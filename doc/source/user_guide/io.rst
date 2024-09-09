@@ -169,7 +169,7 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
   implementation when "numpy_nullable" is set, pyarrow is used for all
   dtypes if "pyarrow" is set.
 
-  The dtype_backends are still experimential.
+  The dtype_backends are still experimental.
 
   .. versionadded:: 2.0
 
@@ -2893,7 +2893,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df
 
 Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
-Biomedical and Life Science Jorurnals:
+Biomedical and Life Science Journals:
 
 .. code-block:: python
 

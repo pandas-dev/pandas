@@ -843,19 +843,14 @@ class TestBase:
             tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
-                err = TypeError
                 msg = "ufunc 'invert' not supported for the input types"
-            elif using_infer_string and idx.dtype == "string":
-                err = TypeError
-                msg = "not supported for string dtypes"
             else:
-                err = TypeError
-                msg = "bad operand"
-            with pytest.raises(err, match=msg):
+                msg = "bad operand|__invert__ is not supported for string dtype"
+            with pytest.raises(TypeError, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(err, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
 
 
