@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -24,6 +27,7 @@ def read_spss(
     usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
@@ -47,6 +51,10 @@ def read_spss(
           nullable :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
+    **kwargs
+        Additional keyword arguments that can be passed to :func:`pyreadstat.read_sav`.
+
+        .. versionadded:: 3.0
 
     Returns
     -------
@@ -74,7 +82,10 @@ def read_spss(
         usecols = list(usecols)  # pyreadstat requires a list
 
     df, metadata = pyreadstat.read_sav(
-        stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals
+        stringify_path(path),
+        usecols=usecols,
+        apply_value_formats=convert_categoricals,
+        **kwargs,
     )
     df.attrs = metadata.__dict__
     if dtype_backend is not lib.no_default:

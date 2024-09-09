@@ -429,7 +429,7 @@ DateTimeErrorChoices = Literal["raise", "coerce"]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
-# Arguments for nsmalles and n_largest
+# Arguments for nsmallest and nlargest
 NsmallestNlargestKeep = Literal["first", "last", "all"]
 
 # quantile interpolation
@@ -524,7 +524,7 @@ UsecolsArgType = Union[
     None,
 ]
 
-# maintaine the sub-type of any hashable sequence
+# maintain the sub-type of any hashable sequence
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
 
 SliceType = Optional[Hashable]

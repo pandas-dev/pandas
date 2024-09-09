@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -124,18 +122,10 @@ def test_arith_zero_dim_ndarray(other):
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
+def test_error_invalid_values(data, all_arithmetic_operators):
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
-
-    if using_infer_string:
-        import pyarrow as pa
-
-        errs = (TypeError, pa.lib.ArrowNotImplementedError, NotImplementedError)
-    else:
-        errs = TypeError
 
     # invalid scalars
     msg = "|".join(
@@ -152,15 +142,17 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
             "Concatenation operation is not implemented for NumPy arrays",
             "has no kernel",
             "not implemented",
+            "not supported for dtype",
+            "Can only string multiply by an integer",
         ]
     )
-    with pytest.raises(errs, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ops("foo")
-    with pytest.raises(errs, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
-    with pytest.raises(errs, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ops(pd.Series("foo", index=s.index))
 
     msg = "|".join(
@@ -181,9 +173,10 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
             "cannot subtract DatetimeArray from ndarray",
             "has no kernel",
             "not implemented",
+            "not supported for dtype",
         ]
     )
-    with pytest.raises(errs, match=msg):
+    with pytest.raises(TypeError, match=msg):
         ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
