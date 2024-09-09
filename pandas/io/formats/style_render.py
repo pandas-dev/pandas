@@ -2069,18 +2069,18 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
-                for x in s
-                if ":".join(x.split(":")[1:]).strip() != ""
-            ]
-        except IndexError as err:
+        if ":" not in style:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
-                f"for example 'attr: val;'. '{style}' was given."
-            ) from err
+                +f"for example 'attr: val;'. '{style}' was given."
+            )
+        s = style.split(";")
+        return [
+            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
+            for x in s
+            if ":".join(x.split(":")[1:]).strip() != ""
+        ]
+        
     return style
 
 
