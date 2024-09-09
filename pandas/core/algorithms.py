@@ -62,7 +62,6 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
-    IntervalDtype,
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1665,25 +1664,19 @@ def map_array(
             # possibility that they are tuples
 
             # The return value of mapping with an empty mapper is
-            # expected to be pd.Series(np.nan, ...). As np.nan is
-            # of dtype float64 the return value of this method should
-            # be float64 as well
+            # expected to be pd.Series(np.nan, ...) or pd.Series(NA, ...).
+            # As np.nan is of dtype float64 the return value of this method should
+            # be float64 in this case
+            # in the other case (NA) it should be the dtype of the original data
             from pandas import Series
 
+            dtype = None
             if len(mapper) == 0:
-                if (
-                    is_extension_array_dtype(arr.dtype)
-                    and not isinstance(arr.dtype, IntervalDtype)
-                    and arr.dtype.na_value is NA
-                ):
-                    mapper = Series(mapper, dtype=arr.dtype)
+                if hasattr(arr.dtype, "na_value") and arr.dtype.na_value is NA:
+                    dtype = arr.dtype
                 else:
-                    mapper = Series(mapper, dtype=np.float64)
-            else:
-                if arr.dtype in ("string[pyarrow]", "string[python]"):
-                    mapper = Series(mapper, dtype=arr.dtype)
-                else:
-                    mapper = Series(mapper)
+                    dtype = np.float64
+            mapper = Series(mapper, dtype=dtype)
 
     if isinstance(mapper, ABCSeries):
         if na_action == "ignore":
