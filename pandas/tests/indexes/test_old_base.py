@@ -451,7 +451,9 @@ class TestBase:
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
-        if using_infer_string and (index.dtype == "str" or index.dtype == "category"):  # noqa: PLR1714
+        if using_infer_string and (
+            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
+        ):
             msg = "loc must be an integer between"
 
         with pytest.raises(err, match=msg):
