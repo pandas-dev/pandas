@@ -1518,3 +1518,10 @@ class TestDataFrameReplaceRegex:
             assert len(df._mgr.blocks) == 2
         else:
             assert len(df._mgr.blocks) == 1
+
+    def test_replace_bool_to_numpy_attributeerror(self):
+        # GH#47101
+        pass_pre_patch = DataFrame({"d":[None]})
+        tm.assert_frame_equal(pass_pre_patch, pass_pre_patch.replace("", pd.NA))
+        fail_pre_patch = DataFrame({"d":[pd.NA]})
+        tm.assert_frame_equal(fail_pre_patch, fail_pre_patch.replace("", pd.NA))
