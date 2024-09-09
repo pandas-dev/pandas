@@ -613,7 +613,7 @@ def sanitize_array(
 
             if (
                 subarr is data
-                or (subarr.dtype == "str" and subarr.dtype.storage == "python")
+                or (subarr.dtype == "str" and subarr.dtype.storage == "python")  # type: ignore[union-attr]
             ) and copy:
                 subarr = subarr.copy()
 
