@@ -1022,20 +1022,13 @@ class ExtensionArray:
             of similar names. See Notes.
             * 'from_derivatives': Refers to scipy.interpolate.BPoly.from_derivatives.
         axis : int
-            Axis to interpolate along. For 1D NumpyExtensionArray, use 0.
+            Axis to interpolate along. For 1-dimensional data, use 0.
         index : Index
             Index to use for interpolation.
         limit : int or None
             Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}
             Consecutive NaNs will be filled in this direction.
-            * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
-            * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
-            'backward'.
-            Raises ValueError if limit_direction is 'forward' or 'both' and method
-            is 'backfill' or 'bfill'.
-            Raises ValueError if limit_direction is 'backward' or 'both' and method
-            is 'pad' or 'ffill'.
         limit_area : {'inside', 'outside'} or None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -1049,8 +1042,8 @@ class ExtensionArray:
 
         Returns
         -------
-        NumpyExtensionArray
-            A new NumpyExtensionArray with interpolated values.
+        ExtensionArray
+            An ExtensionArray with interpolated values.
 
         See Also
         --------
@@ -1063,23 +1056,41 @@ class ExtensionArray:
         - The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
           methods are wrappers around the respective SciPy implementations of
           similar names. These use the actual numerical values of the index.
-        - For 1D NumpyExtensionArray, use 0 for the `axis` parameter.
 
         Examples
         --------
-        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, np.nan, 2, np.nan, 4]))
+        Interpolating values in a NumPy array:
+
+        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
+        >>> arr.interpolate(
+        ...     method="linear",
+        ...     limit=3,
+        ...     limit_direction="forward",
+        ...     index=pd.Index(range(len(arr))),
+        ...     fill_value=1,
+        ...     copy=False,
+        ...     axis=0,
+        ...     limit_area="inside",
+        ... )
+        <NumpyExtensionArray>
+        [0.0, 1.0, 2.0, 3.0]
+        Length: 4, dtype: float64
+
+        Interpolating values in a FloatingArray:
+
+        >>> arr = pd.array([1.0, pd.NA, 3.0, 4.0, pd.NA, 6.0], dtype="Float64")
         >>> arr.interpolate(
         ...     method="linear",
         ...     axis=0,
         ...     index=pd.Index(range(len(arr))),
         ...     limit=None,
-        ...     limit_direction="forward",
+        ...     limit_direction="both",
         ...     limit_area=None,
         ...     copy=True,
         ... )
-        <NumpyExtensionArray>
-        [0.0, 1.0, 2.0, 3.0, 4.0]
-        Length: 5, dtype: float64
+        <FloatingArray>
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        Length: 6, dtype: Float64
         """
         # NB: we return type(self) even if copy=False
         raise NotImplementedError(
