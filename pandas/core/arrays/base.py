@@ -46,10 +46,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    NumpyEADtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -2490,16 +2487,15 @@ class ExtensionArray:
             a MultiIndex will be returned.
         """
         result = map_array(self, mapper, na_action=na_action)
-        if isinstance(result, ExtensionArray):
-            if isinstance(self.dtype, NumpyEADtype):
-                return pd_array(result, dtype=NumpyEADtype(result.dtype))
-            else:
-                return result
-        elif isinstance(result, np.ndarray):
-            result_types = set(np.array([type(x) for x in result]))
+        if isinstance(result, np.ndarray):
+            # Get the scalar types
+            scalar_types = set(np.array([type(x) for x in result]))
 
-            # if internal values types are compatible with self dtype
-            if all(issubclass(t, self.dtype.type) for t in result_types):
+            # if scalar values types are compatible with self dtype
+            # we use the self dtype
+            # For example if scalar types are dict and UserDict and self is a JSONArray,
+            # we use self.dtype
+            if all(issubclass(t, self.dtype.type) for t in scalar_types):
                 return pd_array(result, self.dtype)
             else:
                 return pd_array(result, result.dtype)
