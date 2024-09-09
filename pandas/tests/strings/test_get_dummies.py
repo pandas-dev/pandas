@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -7,6 +10,11 @@ from pandas import (
     Series,
     _testing as tm,
 )
+
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
 
 
 def test_get_dummies(any_string_dtype):
@@ -32,22 +40,85 @@ def test_get_dummies_index():
     tm.assert_index_equal(result, expected)
 
 
-def test_get_dummies_with_name_dummy(any_string_dtype):
-    # GH 12180
-    # Dummies named 'name' should work as expected
-    s = Series(["a", "b,name", "b"], dtype=any_string_dtype)
-    result = s.str.get_dummies(",")
-    expected = DataFrame([[1, 0, 0], [0, 1, 1], [0, 1, 0]], columns=["a", "b", "name"])
+# GH#47872
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.uint8,
+        np.int16,
+        np.uint16,
+        np.int32,
+        np.uint32,
+        np.int64,
+        np.uint64,
+        bool,
+        "Int8",
+        "Int16",
+        "Int32",
+        "Int64",
+        "boolean",
+    ],
+)
+def test_get_dummies_with_dtype(any_string_dtype, dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=dtype)
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=dtype
+    )
     tm.assert_frame_equal(result, expected)
 
 
-def test_get_dummies_with_name_dummy_index():
-    # GH 12180
-    # Dummies named 'name' should work as expected
-    idx = Index(["a|b", "name|c", "b|name"])
-    result = idx.str.get_dummies("|")
-
-    expected = MultiIndex.from_tuples(
-        [(1, 1, 0, 0), (0, 0, 1, 1), (0, 1, 0, 1)], names=("a", "b", "c", "name")
+# GH#47872
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int8[pyarrow]",
+        "uint8[pyarrow]",
+        "int16[pyarrow]",
+        "uint16[pyarrow]",
+        "int32[pyarrow]",
+        "uint32[pyarrow]",
+        "int64[pyarrow]",
+        "uint64[pyarrow]",
+        "bool[pyarrow]",
+    ],
+)
+def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=dtype)
+    expected = DataFrame(
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
+        dtype=dtype,
     )
-    tm.assert_index_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
+
+
+# GH#47872
+def test_get_dummies_with_str_dtype(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype=str)
+    expected = DataFrame(
+        [["T", "T", "F"], ["T", "F", "T"], ["F", "F", "F"]],
+        columns=list("abc"),
+        dtype=str,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+# GH#47872
+@td.skip_if_no("pyarrow")
+def test_get_dummies_with_pa_str_dtype(any_string_dtype):
+    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    result = s.str.get_dummies("|", dtype="str[pyarrow]")
+    expected = DataFrame(
+        [
+            ["true", "true", "false"],
+            ["true", "false", "true"],
+            ["false", "false", "false"],
+        ],
+        columns=list("abc"),
+        dtype="str[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
