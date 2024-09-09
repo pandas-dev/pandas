@@ -693,9 +693,9 @@ Other
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
+- Bug in :meth:`_clean_na_values` in :class:`TextFileReader` that was not properly handling ``na_values`` when it is a list of strings. (:issue:`59303`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
-- Bug in :meth:`_clean_na_values` in :class:`TextFileReader` that was not properly handling ``na_values`` when it is a list of strings. (:issue:`59303`)
 
 .. ***DO NOT USE THIS SECTION***
 
