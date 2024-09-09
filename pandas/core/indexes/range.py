@@ -313,6 +313,17 @@ class RangeIndex(Index):
         """
         The value of the `stop` parameter.
 
+        This property returns the `stop` value of the RangeIndex, which defines the
+        upper (or lower, in case of negative steps) bound of the index range. The
+        `stop` value is exclusive, meaning the RangeIndex includes values up to but
+        not including this value.
+
+        See Also
+        --------
+        RangeIndex : Immutable index representing a range of integers.
+        RangeIndex.start : The start value of the RangeIndex.
+        RangeIndex.step : The step size between elements in the RangeIndex.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
