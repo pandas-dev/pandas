@@ -46,6 +46,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
+    # test is not written to work with string dtype (checks .base)
     @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_concat_copy(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
@@ -80,6 +81,7 @@ class TestConcatenate:
                     assert arr is df3._mgr.arrays[0]
                 else:
                     assert arr.base is not None
+                assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
