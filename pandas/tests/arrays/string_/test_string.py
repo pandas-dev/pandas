@@ -101,10 +101,7 @@ def test_setitem_validates(cls, dtype):
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if dtype.storage == "python":
-        msg = "Must provide strings."
-    else:
-        msg = "Scalar must be NA or str"
+    msg = "Must provide strings"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 
