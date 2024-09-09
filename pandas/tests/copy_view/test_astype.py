@@ -7,7 +7,6 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under12p0
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -112,6 +111,7 @@ def test_astype_string_and_object_update_original(dtype, new_dtype):
 
 
 def test_astype_str_copy_on_pickle_roundrip():
+    # TODO(infer_string) this test can be removed after 3.0 (once str is the default)
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter array inplace
     base = Series(np.array([(1, 2), None, 1], dtype="object"))
@@ -129,7 +129,6 @@ def test_astype_string_copy_on_pickle_roundrip(any_string_dtype):
     tm.assert_series_equal(base, base_copy)
 
 
-@td.skip_if_no("pyarrow")
 def test_astype_string_read_only_on_pickle_roundrip(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter read-only array inplace
