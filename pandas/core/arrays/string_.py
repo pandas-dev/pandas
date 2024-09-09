@@ -736,7 +736,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().astype(dtype, copy)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         if self.dtype.na_value is np.nan and name in ["any", "all"]:
             if name == "any":
@@ -745,8 +751,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna, axis=axis)
-
+            result = getattr(self, name)(skipna=skipna, axis=axis)
+            if keepdims:
+                return self._from_sequence([result], dtype=self.dtype)
+            return result
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
