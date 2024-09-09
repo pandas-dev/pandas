@@ -10,8 +10,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -42,8 +40,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
-
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
 
 if TYPE_CHECKING:
@@ -298,8 +294,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if not isna(na):
@@ -325,8 +319,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         regex: bool = True,
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
