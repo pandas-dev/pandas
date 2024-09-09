@@ -504,7 +504,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            pass
+            if isinstance(data, (set, frozenset)):
+                data = list(data)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
@@ -6877,6 +6878,9 @@ class Index(IndexOpsMixin, PandasObject):
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
+            if dtype == self.dtype:
+                # EA's might run into recursion errors if loc is invalid
+                raise
             return self.astype(dtype).insert(loc, item)
 
         if arr.dtype != object or not isinstance(
