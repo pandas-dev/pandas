@@ -1225,9 +1225,9 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
 
-def test_wide_to_long_pyarrow_string_columns():
+def test_wide_to_long_string_columns(string_storage):
     # GH 57066
-    pytest.importorskip("pyarrow")
+    string_dtype = pd.StringDtype(string_storage, na_value=np.nan)
     df = DataFrame(
         {
             "ID": {0: 1},
@@ -1237,7 +1237,7 @@ def test_wide_to_long_pyarrow_string_columns():
             "D": {0: 1},
         }
     )
-    df.columns = df.columns.astype("string[pyarrow_numpy]")
+    df.columns = df.columns.astype(string_dtype)
     result = wide_to_long(
         df, stubnames="R", i="ID", j="UNPIVOTED", sep="_", suffix=".*"
     )
@@ -1247,7 +1247,7 @@ def test_wide_to_long_pyarrow_string_columns():
         index=pd.MultiIndex.from_arrays(
             [
                 [1, 1, 1],
-                Index(["test1", "test2", "test3"], dtype="string[pyarrow_numpy]"),
+                Index(["test1", "test2", "test3"], dtype=string_dtype),
             ],
             names=["ID", "UNPIVOTED"],
         ),
