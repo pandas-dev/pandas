@@ -46,6 +46,7 @@ from pandas.core import (
     nanops,
     ops,
 )
+from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -65,6 +66,7 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         DtypeObj,
@@ -730,6 +732,22 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if not isinstance(values, BaseStringArray):
+            if not lib.is_string_array(np.asarray(values), skipna=True):
+                values = np.array(
+                    [val for val in values if isinstance(val, str) or isna(val)],
+                    dtype=object,
+                )
+                if not len(values):
+                    return np.zeros(self.shape, dtype=bool)
+
+            values = self._from_sequence(values, dtype=self.dtype)
+        else:
+            values = values.astype(self.dtype, copy=False)
+
+        return isin(np.asarray(self), np.asarray(values))
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)

@@ -31,6 +31,12 @@ def dtype(string_dtype_arguments):
 
 
 @pytest.fixture
+def dtype2(string_dtype_arguments2):
+    storage, na_value = string_dtype_arguments2
+    return pd.StringDtype(storage=storage, na_value=na_value)
+
+
+@pytest.fixture
 def cls(dtype):
     """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
@@ -665,11 +671,7 @@ def test_isin(dtype, fixed_now_ts):
     tm.assert_series_equal(result, expected)
 
     result = s.isin(["a", pd.NA])
-    if dtype.storage == "python" and dtype.na_value is np.nan:
-        # TODO(infer_string) we should make this consistent
-        expected = pd.Series([True, False, False])
-    else:
-        expected = pd.Series([True, False, True])
+    expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
     result = s.isin([])
@@ -678,6 +680,18 @@ def test_isin(dtype, fixed_now_ts):
 
     result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_string_array(dtype, dtype2):
+    s = pd.Series(["a", "b", None], dtype=dtype)
+
+    result = s.isin(pd.array(["a", "c"], dtype=dtype2))
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(pd.array(["a", None], dtype=dtype2))
+    expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
 
