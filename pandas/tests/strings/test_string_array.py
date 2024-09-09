@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under11p0
 
 from pandas import (
     NA,
@@ -25,10 +24,6 @@ def test_string_array(nullable_string_dtype, any_string_method, request):
         with pytest.raises(TypeError, match="a bytes-like object is required"):
             getattr(b.str, method_name)(*args, **kwargs)
         return
-
-    if b.dtype.storage == "pyarrow" and pa_version_under11p0 and method_name == "slice":
-        mark = pytest.mark.xfail(reason="Negative buffer resize")
-        request.applymarker(mark)
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)

@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under11p0
-
 from pandas import (
     DataFrame,
     Index,
@@ -407,10 +405,6 @@ def test_pipe_failures(any_string_dtype):
 )
 def test_slice(start, stop, step, expected, any_string_dtype, request):
     ser = Series(["aafootwo", "aabartwo", np.nan, "aabazqux"], dtype=any_string_dtype)
-    if any_string_dtype == "string[pyarrow]" and pa_version_under11p0:
-        mark = pytest.mark.xfail(reason="Empty result")
-        request.applymarker(mark)
-
     result = ser.str.slice(start, stop, step)
     expected = Series(expected, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
