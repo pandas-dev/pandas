@@ -2393,25 +2393,6 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if pa_version_under11p0:
-            # GH#59724
-            result = self._apply_elementwise(lambda val: val[start:stop:step])
-            return type(self)(pa.chunked_array(result))
-        if start is None:
-            if step is not None and step < 0:
-                # GH#59710
-                start = -1
-            else:
-                start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
-
     def _str_len(self) -> Self:
         return type(self)(pc.utf8_length(self._pa_array))
 

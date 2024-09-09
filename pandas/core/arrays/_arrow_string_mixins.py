@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.compat import (
     pa_version_under10p1,
+    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
@@ -102,6 +103,25 @@ class ArrowStringArrayMixin:
         )
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ) -> Self:
+        if pa_version_under11p0:
+            # GH#59724
+            result = self._apply_elementwise(lambda val: val[start:stop:step])
+            return type(self)(pa.chunked_array(result, type=self._pa_array.type))
+        if start is None:
+            if step is not None and step < 0:
+                # GH#59710
+                start = -1
+            else:
+                start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None

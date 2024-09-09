@@ -13,7 +13,7 @@ from pandas import (
 
 
 @pytest.mark.filterwarnings("ignore:Falling back")
-def test_string_array(nullable_string_dtype, any_string_method, request):
+def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
 
     data = ["a", "bb", np.nan, "ccc"]

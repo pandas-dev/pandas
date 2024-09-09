@@ -403,7 +403,7 @@ def test_pipe_failures(any_string_dtype):
         (3, 0, -1, ["ofa", "aba", np.nan, "aba"]),
     ],
 )
-def test_slice(start, stop, step, expected, any_string_dtype, request):
+def test_slice(start, stop, step, expected, any_string_dtype):
     ser = Series(["aafootwo", "aabartwo", np.nan, "aabazqux"], dtype=any_string_dtype)
     result = ser.str.slice(start, stop, step)
     expected = Series(expected, dtype=any_string_dtype)
