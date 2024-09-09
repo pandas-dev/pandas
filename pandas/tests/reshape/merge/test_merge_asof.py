@@ -3,8 +3,6 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3064,12 +3062,8 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_merge_datatype_error_raises(self, using_infer_string):
-        if using_infer_string:
-            msg = "incompatible merge keys"
-        else:
-            msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
+    def test_merge_datatype_error_raises(self):
+        msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
 
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})

@@ -10,8 +10,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
@@ -47,18 +45,11 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_concat_copy(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
-        # These are actual copies.
-        result = concat([df, df2, df3], axis=1)
-        for block in result._mgr.blocks:
-            assert block.values.base is not None
-
-        # These are the same.
         result = concat([df, df2, df3], axis=1)
 
         for block in result._mgr.blocks:
@@ -69,6 +60,8 @@ class TestConcatenate:
                 assert arr.base is df2._mgr.blocks[0].values.base
             elif arr.dtype == object:
                 assert arr.base is not None
+            elif arr.dtype == "string":
+                tm.shares_memory(arr, df3._mgr.blocks[0].values)
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
