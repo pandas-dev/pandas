@@ -813,6 +813,7 @@ False
     expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
     tm.assert_frame_equal(result, expected)
 
+
 @xfail_pyarrow
 def test_na_values_dict_without_dtype(all_parsers):
     # GH#59303
