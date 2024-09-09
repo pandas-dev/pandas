@@ -886,6 +886,11 @@ class TestStyler:
         expected = []
         assert maybe_convert_css_to_tuples("") == expected
 
+        #issue #59623
+        expected = [("a", "b"), ("c", "url('data:123')")]
+        assert maybe_convert_css_to_tuples("a:b;c: url('data:123');") == expected
+        
+
     def test_maybe_convert_css_to_tuples_err(self):
         msg = "Styles supplied as string must follow CSS rule formats"
         with pytest.raises(ValueError, match=msg):
