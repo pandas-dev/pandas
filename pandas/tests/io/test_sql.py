@@ -3840,7 +3840,6 @@ def test_row_object_is_named_tuple(sqlite_engine):
 def test_read_sql_string_inference(sqlite_engine):
     conn = sqlite_engine
     # GH#54430
-    pytest.importorskip("pyarrow")
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
     df.to_sql(table, con=conn, index=False, if_exists="replace")
@@ -3848,7 +3847,7 @@ def test_read_sql_string_inference(sqlite_engine):
     with pd.option_context("future.infer_string", True):
         result = read_sql_table(table, conn)
 
-    dtype = "string[pyarrow_numpy]"
+    dtype = pd.StringDtype(na_value=np.nan)
     expected = DataFrame(
         {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
     )

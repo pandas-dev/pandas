@@ -5,6 +5,7 @@ from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -29,11 +30,10 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         1,
-        index=Index(["a", "b"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     func = lambda x: x
     result = df.apply(func, engine="numba", axis=0)
