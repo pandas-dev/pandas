@@ -231,7 +231,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Scalar must be NA or str")
+                    raise TypeError("Must provide strings")
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
