@@ -734,7 +734,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         ExtensionArray._putmask(self, mask, value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
-        if not isinstance(values, BaseStringArray):
+        if isinstance(values, BaseStringArray) or (
+            isinstance(values, ExtensionArray) and is_string_dtype(values.dtype)
+        ):
+            values = values.astype(self.dtype, copy=False)
+        else:
             if not lib.is_string_array(np.asarray(values), skipna=True):
                 values = np.array(
                     [val for val in values if isinstance(val, str) or isna(val)],
@@ -744,8 +748,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     return np.zeros(self.shape, dtype=bool)
 
             values = self._from_sequence(values, dtype=self.dtype)
-        else:
-            values = values.astype(self.dtype, copy=False)
 
         return isin(np.asarray(self), np.asarray(values))
 

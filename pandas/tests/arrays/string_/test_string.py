@@ -682,6 +682,10 @@ def test_isin(dtype, fixed_now_ts):
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
+    result = s.isin([fixed_now_ts])
+    expected = pd.Series([False, False, False])
+    tm.assert_series_equal(result, expected)
+
 
 def test_isin_string_array(dtype, dtype2):
     s = pd.Series(["a", "b", None], dtype=dtype)
@@ -691,6 +695,19 @@ def test_isin_string_array(dtype, dtype2):
     tm.assert_series_equal(result, expected)
 
     result = s.isin(pd.array(["a", None], dtype=dtype2))
+    expected = pd.Series([True, False, True])
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_arrow_string_array(dtype):
+    pa = pytest.importorskip("pyarrow")
+    s = pd.Series(["a", "b", None], dtype=dtype)
+
+    result = s.isin(pd.array(["a", "c"], dtype=pd.ArrowDtype(pa.string())))
+    expected = pd.Series([True, False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = s.isin(pd.array(["a", None], dtype=pd.ArrowDtype(pa.string())))
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
