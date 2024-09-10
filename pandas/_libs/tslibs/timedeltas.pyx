@@ -1421,9 +1421,16 @@ cdef class _Timedelta(timedelta):
         """
         Convert the Timedelta to a NumPy timedelta64.
 
-        This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
-        will not affect the return value.
+        This is an alias method for `Timedelta.to_timedelta64()`.
+
+        Parameters
+        ----------
+        dtype : NoneType
+            It is available here only for compatibility. Its value will not
+            affect the return value.
+        copy : bool, default False
+            It is available here only for compatibility. Its value will not
+            affect the return value.
 
         Returns
         -------
@@ -1451,10 +1458,25 @@ cdef class _Timedelta(timedelta):
         """
         Array view compatibility.
 
+        This method allows you to reinterpret the underlying data of a Timedelta
+        object as a different dtype. The `view` method provides a way to reinterpret
+        the internal representation of the `Timedelta` object without modifying its
+        data. This is particularly useful when you need to work with the underlying
+        data directly, such as for performance optimizations or interfacing with
+        low-level APIs. The returned value is typically the number of nanoseconds
+        since the epoch, represented as an integer or another specified dtype.
+
         Parameters
         ----------
         dtype : str or dtype
             The dtype to view the underlying data as.
+
+        See Also
+        --------
+        numpy.ndarray.view : Returns a view of an array with the same data.
+        Timedelta.to_numpy : Converts the Timedelta to a NumPy timedelta64.
+        Timedelta.total_seconds : Returns the total duration of the Timedelta
+            object in seconds.
 
         Examples
         --------
@@ -1497,6 +1519,12 @@ cdef class _Timedelta(timedelta):
         -------
         numpy timedelta64 array scalar view
             Array scalar view of the timedelta in nanoseconds.
+
+        See Also
+        --------
+            Timedelta.total_seconds : Return the total seconds in the duration.
+            Timedelta.components : Return a namedtuple of the Timedelta's components.
+            Timedelta.to_timedelta64 : Convert the Timedelta to a numpy.timedelta64.
 
         Examples
         --------
@@ -2061,6 +2089,12 @@ class Timedelta(_Timedelta):
         ------
         ValueError if the freq cannot be converted
 
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
+            Timestamp.ceil : Similar method for Timestamp objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2081,6 +2115,16 @@ class Timedelta(_Timedelta):
             Frequency string indicating the flooring resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object floored to the specified resolution.
+
+        See Also
+        --------
+            Timestamp.ceil : Round the Timestamp up to the nearest specified resolution.
+            Timestamp.round : Round the Timestamp to the nearest specified resolution.
+
         Examples
         --------
         >>> td = pd.Timedelta('1001ms')
@@ -2100,6 +2144,16 @@ class Timedelta(_Timedelta):
         freq : str
             Frequency string indicating the ceiling resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
+
+        Returns
+        -------
+        Timedelta
+            A new Timedelta object ceiled to the specified resolution.
+
+        See Also
+        --------
+            Timedelta.floor : Floor the Timedelta to the specified resolution.
+            Timedelta.round : Round the Timedelta to the nearest specified resolution.
 
         Examples
         --------

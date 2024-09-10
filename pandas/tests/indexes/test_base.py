@@ -340,11 +340,6 @@ class TestIndex:
     def test_view_with_args(self, index):
         index.view("i8")
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "index",
         [
@@ -361,7 +356,8 @@ class TestIndex:
             msg = "When changing to a larger dtype"
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
-        elif index.dtype == "string":
+        elif index.dtype == "str" and not index.dtype.storage == "python":
+            # TODO(infer_string): Make the errors consistent
             with pytest.raises(NotImplementedError, match="i8"):
                 index.view("i8")
         else:
@@ -937,10 +933,9 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no("pyarrow")
-    def test_isin_arrow_string_null(self):
+    def test_isin_string_null(self, string_dtype_no_object):
         # GH#55821
-        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b"], dtype=string_dtype_no_object)
         result = index.isin([None])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)

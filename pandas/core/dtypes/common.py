@@ -281,6 +281,13 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     boolean
         Whether or not the array-like or dtype is of the datetime64 dtype.
 
+    See Also
+    --------
+    api.types.is_datetime64_ns_dtype: Check whether the provided array or
+                                        dtype is of the datetime64[ns] dtype.
+    api.types.is_datetime64_any_dtype: Check whether the provided array or
+                                        dtype is of the datetime64 dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_dtype
@@ -317,6 +324,13 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array-like or dtype is of a DatetimeTZDtype dtype.
+
+    See Also
+    --------
+    api.types.is_datetime64_dtype: Check whether an array-like or
+                                        dtype is of the datetime64 dtype.
+    api.types.is_datetime64_any_dtype: Check whether the provided array or
+                                        dtype is of the datetime64 dtype.
 
     Examples
     --------
@@ -515,6 +529,12 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array-like or dtype is of the Categorical dtype.
+
+    See Also
+    --------
+    api.types.is_list_like: Check if the object is list-like.
+    api.types.is_complex_dtype: Check whether the provided array or
+                                dtype is of a complex dtype.
 
     Examples
     --------
@@ -979,6 +999,13 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     bool
         Whether or not the array or dtype is of the datetime64[ns] dtype.
 
+    See Also
+    --------
+    api.types.is_datetime64_dtype: Check whether an array-like or
+                                        dtype is of the datetime64 dtype.
+    api.types.is_datetime64_any_dtype: Check whether the provided array or
+                                        dtype is of the datetime64 dtype.
+
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_ns_dtype
@@ -1440,6 +1467,14 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     -------
     boolean
         Whether or not the array or dtype is of a complex dtype.
+
+    See Also
+    --------
+    api.types.is_complex: Return True if given object is complex.
+    api.types.is_numeric_dtype: Check whether the provided array or
+                                dtype is of a numeric dtype.
+    api.types.is_integer_dtype: Check whether the provided array or
+                                dtype is of an integer dtype.
 
     Examples
     --------

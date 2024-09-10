@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
+        NpDtype,
         Scalar,
         Self,
         npt,
@@ -223,10 +224,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def _convert_bool_result(self, values, na=None):
+    def _convert_bool_result(self, values):
         if self.dtype.na_value is np.nan:
-            if not isna(na):
-                values = values.fill_null(bool(na))
             return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
         return BooleanDtype().__from_arrow__(values)
 
@@ -242,7 +241,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Scalar must be NA or str")
+                    raise TypeError("Must provide strings")
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
@@ -281,6 +280,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # ------------------------------------------------------------------------
     # String methods interface
 
+    _str_isalnum = ArrowStringArrayMixin._str_isalnum
+    _str_isalpha = ArrowStringArrayMixin._str_isalpha
+    _str_isdecimal = ArrowStringArrayMixin._str_isdecimal
+    _str_isdigit = ArrowStringArrayMixin._str_isdigit
+    _str_islower = ArrowStringArrayMixin._str_islower
+    _str_isnumeric = ArrowStringArrayMixin._str_isnumeric
+    _str_isspace = ArrowStringArrayMixin._str_isspace
+    _str_istitle = ArrowStringArrayMixin._str_istitle
+    _str_isupper = ArrowStringArrayMixin._str_isupper
+
     _str_map = BaseStringArray._str_map
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
@@ -294,11 +303,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
-        if regex:
-            result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
-        else:
-            result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._convert_bool_result(result, na=na)
         if not isna(na):
             if not isinstance(na, bool):
                 # GH#59561
@@ -308,8 +312,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            result[isna(result)] = bool(na)
-        return result
+                na = bool(na)
+
+        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_replace(
         self,
@@ -359,42 +364,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return type(self)(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
-
-    def _str_isalnum(self):
-        result = pc.utf8_is_alnum(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isalpha(self):
-        result = pc.utf8_is_alpha(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdecimal(self):
-        result = pc.utf8_is_decimal(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isdigit(self):
-        result = pc.utf8_is_digit(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_islower(self):
-        result = pc.utf8_is_lower(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isnumeric(self):
-        result = pc.utf8_is_numeric(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isspace(self):
-        result = pc.utf8_is_space(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_istitle(self):
-        result = pc.utf8_is_title(self._pa_array)
-        return self._convert_bool_result(result)
-
-    def _str_isupper(self):
-        result = pc.utf8_is_upper(self._pa_array)
-        return self._convert_bool_result(result)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -448,25 +417,31 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return self._convert_int_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # GH#59562
             return super()._str_find(sub, start, end)
-        return self._convert_int_result(result)
+        return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
-    def _str_get_dummies(self, sep: str = "|"):
-        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
+        if dtype is None:
+            dtype = np.int64
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
+            sep, dtype
+        )
         if len(labels) == 0:
-            return np.empty(shape=(0, 0), dtype=np.int64), labels
+            return np.empty(shape=(0, 0), dtype=dtype), labels
         dummies = np.vstack(dummies_pa.to_numpy())
-        return dummies.astype(np.int64, copy=False), labels
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        return dummies.astype(dummies_dtype, copy=False), labels
 
     def _convert_int_result(self, result):
         if self.dtype.na_value is np.nan:

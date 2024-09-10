@@ -1132,9 +1132,20 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
     Returns
     -------
     bool
+
+    See Also
+    --------
+    api.types.is_scalar : Check if the input is a scalar.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
 
     Examples
     --------
@@ -1151,9 +1162,21 @@ def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
 
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
     Returns
     -------
     bool
+
+    See Also
+    --------
+    api.types.is_complex_dtype: Check whether the provided array or
+                                dtype is of a complex dtype.
+    api.types.is_number: Check if the object is a number.
+    api.types.is_integer: Return True if given object is integer.
 
     Examples
     --------
