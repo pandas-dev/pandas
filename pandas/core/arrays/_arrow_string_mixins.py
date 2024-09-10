@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.compat import (
     pa_version_under10p1,
+    pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under17p0,
 )
@@ -22,16 +23,13 @@ if not pa_version_under10p1:
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sized,
-    )
+    from collections.abc import Callable
 
     from pandas._typing import Scalar
 
 
 class ArrowStringArrayMixin:
-    _pa_array: Sized
+    _pa_array: pa.ChunkedArray
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
@@ -93,11 +91,28 @@ class ArrowStringArrayMixin:
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        null_value = pa.scalar(
-            None, type=self._pa_array.type  # type: ignore[attr-defined]
-        )
+        null_value = pa.scalar(None, type=self._pa_array.type)
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if pa_version_under11p0:
+            # GH#59724
+            result = self._apply_elementwise(lambda val: val[start:stop:step])
+            return type(self)(pa.chunked_array(result, type=self._pa_array.type))
+        if start is None:
+            if step is not None and step < 0:
+                # GH#59710
+                start = -1
+            else:
+                start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
