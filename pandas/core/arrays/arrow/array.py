@@ -2323,33 +2323,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
-    def _str_replace(
-        self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
-        n: int = -1,
-        case: bool = True,
-        flags: int = 0,
-        regex: bool = True,
-    ) -> Self:
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            raise NotImplementedError(
-                "replace is not supported with a re.Pattern, callable repl, "
-                "case=False, or flags!=0"
-            )
-
-        func = pc.replace_substring_regex if regex else pc.replace_substring
-        # https://github.com/apache/arrow/issues/39149
-        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
-        pa_max_replacements = None if n < 0 else n
-        result = func(
-            self._pa_array,
-            pattern=pat,
-            replacement=repl,
-            max_replacements=pa_max_replacements,
-        )
-        return type(self)(result)
-
     def _str_repeat(self, repeats: int | Sequence[int]) -> Self:
         if not isinstance(repeats, int):
             raise NotImplementedError(
@@ -2374,16 +2347,6 @@ class ArrowExtensionArray(
 
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
-        result = self._apply_elementwise(predicate)
-        return type(self)(pa.chunked_array(result))
-
-    def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return type(self)(result)
-        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
