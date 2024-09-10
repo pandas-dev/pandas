@@ -762,6 +762,7 @@ cpdef ndarray[object] ensure_string_array(
             out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
+        arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
 
@@ -2735,17 +2736,13 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype()
-            return dtype.construct_array_type()._from_sequence(
-                objects, dtype=dtype, copy=True
-            )
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         elif using_string_dtype() and is_string_array(objects, skipna=True):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype(na_value=np.nan)
-            return dtype.construct_array_type()._from_sequence(
-                objects, dtype=dtype, copy=True
-            )
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
     elif seen.interval_:

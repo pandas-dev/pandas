@@ -309,19 +309,28 @@ class TestDataFrameConstructors:
                 # no numpy arrays to compare
                 pass
             else:
-                # TODO(infer_string): this should be fixed to still share memory?
-                assert not np.shares_memory(df[0].to_numpy(), arr)
+                assert np.shares_memory(df[0].to_numpy(), arr)
         else:
             assert np.shares_memory(df.values, arr)
 
         df = DataFrame(arr, dtype=object, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="conversion copies")
-    def test_2d_object_array_does_not_copy(self):
+    def test_2d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
         df = DataFrame(arr, copy=False)
+        if using_infer_string:
+            if df[0].dtype.storage == "pyarrow":
+                # object dtype strings are converted to arrow memory,
+                # no numpy arrays to compare
+                pass
+            else:
+                assert np.shares_memory(df[0].to_numpy(), arr)
+        else:
+            assert np.shares_memory(df.values, arr)
+
+        df = DataFrame(arr, dtype=object, copy=False)
         assert np.shares_memory(df.values, arr)
 
     def test_constructor_dtype_list_data(self):
