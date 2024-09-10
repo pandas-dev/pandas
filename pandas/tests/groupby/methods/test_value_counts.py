@@ -7,8 +7,6 @@ and proper parameter handling
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -373,14 +371,6 @@ def test_against_frame_and_seriesgroupby(
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        object,
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
@@ -398,9 +388,10 @@ def test_compound(
     expected_rows,
     expected_count,
     expected_group_size,
-    dtype,
+    any_string_dtype,
     using_infer_string,
 ):
+    dtype = any_string_dtype
     education_df = education_df.astype(dtype)
     education_df.columns = education_df.columns.astype(dtype)
     # Multiple groupby keys and as_index=False
@@ -417,6 +408,7 @@ def test_compound(
         expected["proportion"] = expected_count
         expected["proportion"] /= expected_group_size
         if dtype == "string[pyarrow]":
+            # TODO(nullable) also string[python] should return nullable dtypes
             expected["proportion"] = expected["proportion"].convert_dtypes()
     else:
         expected["count"] = expected_count

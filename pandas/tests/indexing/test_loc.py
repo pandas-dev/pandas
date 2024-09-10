@@ -1,6 +1,7 @@
 """test label based indexing with loc"""
 
 from collections import namedtuple
+import contextlib
 from datetime import (
     date,
     datetime,
@@ -13,10 +14,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import index as libindex
-from pandas.compat import HAS_PYARROW
 from pandas.errors import IndexingError
 
 import pandas as pd
@@ -615,8 +613,7 @@ class TestLocBaseIndependent:
         expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_loc_setitem_consistency_slice_column_len(self):
+    def test_loc_setitem_consistency_slice_column_len(self, using_infer_string):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
         levels = [
@@ -640,12 +637,23 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-            df.loc[:, ("Respondent", "StartDate")]
-        )
-        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-            df.loc[:, ("Respondent", "EndDate")]
-        )
+        ctx = contextlib.nullcontext()
+        if using_infer_string:
+            ctx = pytest.raises(TypeError, match="Invalid value")
+
+        with ctx:
+            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+                df.loc[:, ("Respondent", "StartDate")]
+            )
+        with ctx:
+            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+                df.loc[:, ("Respondent", "EndDate")]
+            )
+
+        if using_infer_string:
+            # infer-objects won't infer stuff anymore
+            return
+
         df = df.infer_objects()
 
         # Adding a new key
@@ -1211,20 +1219,23 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
-    def test_loc_setitem_str_to_small_float_conversion_type(self):
+    def test_loc_setitem_str_to_small_float_conversion_type(self, using_infer_string):
         # GH#20388
 
         col_data = [str(np.random.default_rng(2).random() * 1e-12) for _ in range(5)]
         result = DataFrame(col_data, columns=["A"])
-        expected = DataFrame(col_data, columns=["A"], dtype=object)
+        expected = DataFrame(col_data, columns=["A"])
         tm.assert_frame_equal(result, expected)
 
         # assigning with loc/iloc attempts to set the values inplace, which
         #  in this case is successful
-        result.loc[result.index, "A"] = [float(x) for x in col_data]
-        expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
-        tm.assert_frame_equal(result, expected)
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Must provide strings"):
+                result.loc[result.index, "A"] = [float(x) for x in col_data]
+        else:
+            result.loc[result.index, "A"] = [float(x) for x in col_data]
+            expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
+            tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
         # GH#???
@@ -1389,9 +1400,6 @@ class TestLocBaseIndependent:
             df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
             df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_loc_setitem_single_row_categorical(self, using_infer_string):
         # GH#25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
