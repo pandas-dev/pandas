@@ -380,7 +380,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Free-threading Version
-        uses: deadsnakes/action@v3.1.0
+        uses: deadsnakes/action@v3.2.0
         with:
           python-version: 3.13-dev
           nogil: true
