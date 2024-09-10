@@ -246,9 +246,6 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         index = index.unique()
@@ -276,9 +273,6 @@ class TestSetOps:
                 first.union([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -305,9 +299,6 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
@@ -529,9 +520,6 @@ class TestSetOps:
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-@pytest.mark.filterwarnings(
-    "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-)
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
