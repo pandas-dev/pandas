@@ -818,14 +818,18 @@ False
 @pytest.mark.parametrize(
     "na_values, expected_result, test_id",
     [
-        ({"A": [-99.0, -99]},
-         DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
-         "float_first"),
-        ({"A": [-99, -99.0]},
-         DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
-         "int_first"),
+        (
+            {"A": [-99.0, -99]},
+            DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
+            "float_first",
+        ),
+        (
+            {"A": [-99, -99.0]},
+            DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
+            "int_first",
+        ),
     ],
-    ids=["float_first", "int_first"]
+    ids=["float_first", "int_first"],
 )
 def test_na_values_dict_without_dtype(all_parsers, na_values, expected_result, test_id):
     parser = all_parsers
