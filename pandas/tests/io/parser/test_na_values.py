@@ -815,20 +815,21 @@ False
 
 
 @xfail_pyarrow
-def test_na_values_dict_without_dtype(all_parsers):
-    # GH#59303
+@pytest.mark.parametrize(
+    "na_values, expected_result, test_id",
+    [
+        ({"A": [-99.0, -99]}, DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}), "float_first"),
+        ({"A": [-99, -99.0]}, DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}), "int_first"),
+    ],
+    ids=["float_first", "int_first"]
+)
+def test_na_values_dict_without_dtype(all_parsers, na_values, expected_result, test_id):
     parser = all_parsers
     data = """A
 -99
 -99
 -99.0
 -99.0"""
-    # this would FAIL BEFORE this fix
-    result_1 = parser.read_csv(StringIO(data), na_values={"A": [-99.0, -99]})
-    expected_1 = DataFrame.from_dict({"A": [np.nan, np.nan, np.nan, np.nan]})
-    tm.assert_frame_equal(result_1, expected_1)
 
-    # this would PASS even BEFORE this fix
-    result_2 = parser.read_csv(StringIO(data), na_values={"A": [-99, -99.0]})
-    expected_2 = DataFrame.from_dict({"A": [np.nan, np.nan, np.nan, np.nan]})
-    tm.assert_frame_equal(result_2, expected_2)
+    result = parser.read_csv(StringIO(data), na_values=na_values)
+    tm.assert_frame_equal(result, expected_result)
