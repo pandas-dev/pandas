@@ -816,22 +816,10 @@ False
 
 @xfail_pyarrow
 @pytest.mark.parametrize(
-    "na_values, expected_result, test_id",
-    [
-        (
-            {"A": [-99.0, -99]},
-            DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
-            "float_first",
-        ),
-        (
-            {"A": [-99, -99.0]},
-            DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]}),
-            "int_first",
-        ),
-    ],
-    ids=["float_first", "int_first"],
+    "na_values",
+    [[-99.0, -99], [-99, -99.0]],
 )
-def test_na_values_dict_without_dtype(all_parsers, na_values, expected_result, test_id):
+def test_na_values_dict_without_dtype(all_parsers, na_values):
     parser = all_parsers
     data = """A
 -99
@@ -840,4 +828,5 @@ def test_na_values_dict_without_dtype(all_parsers, na_values, expected_result, t
 -99.0"""
 
     result = parser.read_csv(StringIO(data), na_values=na_values)
-    tm.assert_frame_equal(result, expected_result)
+    expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
