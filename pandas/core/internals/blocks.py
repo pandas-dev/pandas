@@ -1478,7 +1478,7 @@ class Block(PandasObject, libinternals.Block):
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
-        This is consistent with DataFrame.round behavivor.
+        This is consistent with DataFrame.round behavior.
         (Note: Series.round would raise)
 
         Parameters

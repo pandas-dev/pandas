@@ -441,6 +441,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Convert to a dtype with the given unit resolution.
 
+        This method is for converting the dtype of a ``DatetimeIndex`` or
+        ``TimedeltaIndex`` to a new dtype with the given unit
+        resolution/precision.
+
         Parameters
         ----------
         unit : {'s', 'ms', 'us', 'ns'}
@@ -448,6 +452,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+            Converted to the specified unit.
+
+        See Also
+        --------
+        Timestamp.as_unit : Convert to the given unit.
+        Timedelta.as_unit : Convert to the given unit.
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
 
         Examples
         --------
