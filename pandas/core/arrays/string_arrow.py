@@ -10,8 +10,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -43,8 +41,6 @@ if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -56,6 +52,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
+        NpDtype,
         Scalar,
         Self,
         npt,
@@ -240,7 +237,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             value[isna(value)] = None
             for v in value:
                 if not (v is None or isinstance(v, str)):
-                    raise TypeError("Scalar must be NA or str")
+                    raise TypeError("Must provide strings")
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
@@ -293,13 +290,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
+    _str_slice = ArrowStringArrayMixin._str_slice
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if not isna(na):
@@ -325,8 +321,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         regex: bool = True,
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
@@ -350,19 +344,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
-
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if stop is None:
-            return super()._str_slice(start, stop, step)
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -416,25 +397,31 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return self._convert_int_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # GH#59562
             return super()._str_find(sub, start, end)
-        return self._convert_int_result(result)
+        return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
-    def _str_get_dummies(self, sep: str = "|"):
-        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
+        if dtype is None:
+            dtype = np.int64
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
+            sep, dtype
+        )
         if len(labels) == 0:
-            return np.empty(shape=(0, 0), dtype=np.int64), labels
+            return np.empty(shape=(0, 0), dtype=dtype), labels
         dummies = np.vstack(dummies_pa.to_numpy())
-        return dummies.astype(np.int64, copy=False), labels
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        return dummies.astype(dummies_dtype, copy=False), labels
 
     def _convert_int_result(self, result):
         if self.dtype.na_value is np.nan:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -10,6 +11,8 @@ import numpy as np
 
 from pandas.compat import (
     pa_version_under10p1,
+    pa_version_under11p0,
+    pa_version_under13p0,
     pa_version_under17p0,
 )
 
@@ -20,7 +23,7 @@ if not pa_version_under10p1:
     import pyarrow.compute as pc
 
 if TYPE_CHECKING:
-    from collections.abc import Sized
+    from collections.abc import Callable
 
     from pandas._typing import (
         Scalar,
@@ -29,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class ArrowStringArrayMixin:
-    _pa_array: Sized
+    _pa_array: pa.ChunkedArray
 
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
@@ -40,6 +43,9 @@ class ArrowStringArrayMixin:
 
     def _convert_int_result(self, result):
         # Convert an integer-dtype result to the appropriate result type
+        raise NotImplementedError
+
+    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
     def _str_pad(
@@ -88,12 +94,28 @@ class ArrowStringArrayMixin:
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        null_value = pa.scalar(
-            None,
-            type=self._pa_array.type,  # type: ignore[attr-defined]
-        )
+        null_value = pa.scalar(None, type=self._pa_array.type)
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ) -> Self:
+        if pa_version_under11p0:
+            # GH#59724
+            result = self._apply_elementwise(lambda val: val[start:stop:step])
+            return type(self)(pa.chunked_array(result, type=self._pa_array.type))
+        if start is None:
+            if step is not None and step < 0:
+                # GH#59710
+                start = -1
+            else:
+                start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
@@ -205,3 +227,37 @@ class ArrowStringArrayMixin:
         if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if (
+            pa_version_under13p0
+            and not (start != 0 and end is not None)
+            and not (start == 0 and end is None)
+        ):
+            # GH#59562
+            res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
+            return self._convert_int_result(pa.chunked_array(res_list))
+
+        if (start == 0 or start is None) and end is None:
+            result = pc.find_substring(self._pa_array, sub)
+        else:
+            if sub == "":
+                # GH#56792
+                res_list = self._apply_elementwise(
+                    lambda val: val.find(sub, start, end)
+                )
+                return self._convert_int_result(pa.chunked_array(res_list))
+            if start is None:
+                start_offset = 0
+                start = 0
+            elif start < 0:
+                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
+                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
+            else:
+                start_offset = start
+            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
+            offset_result = pc.add(result, start_offset)
+            result = pc.if_else(found, offset_result, -1)
+        return self._convert_int_result(result)

@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -2373,29 +2374,6 @@ class ArrowExtensionArray(
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None) -> Self:
-        if (start == 0 or start is None) and end is None:
-            result = pc.find_substring(self._pa_array, sub)
-        else:
-            if sub == "":
-                # GH 56792
-                result = self._apply_elementwise(lambda val: val.find(sub, start, end))
-                return type(self)(pa.chunked_array(result))
-            if start is None:
-                start_offset = 0
-                start = 0
-            elif start < 0:
-                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
-                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
-            else:
-                start_offset = start
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(found, offset_result, -1)
-        return type(self)(result)
-
     def _str_join(self, sep: str) -> Self:
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
             self._pa_array.type
@@ -2415,17 +2393,6 @@ class ArrowExtensionArray(
         predicate = lambda val: val.rpartition(sep)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
-
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
 
     def _str_len(self) -> Self:
         return type(self)(pc.utf8_length(self._pa_array))
@@ -2498,7 +2465,9 @@ class ArrowExtensionArray(
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
+        if dtype is None:
+            dtype = np.bool_
         split = pc.split_pattern(self._pa_array, sep)
         flattened_values = pc.list_flatten(split)
         uniques = flattened_values.unique()
@@ -2508,7 +2477,15 @@ class ArrowExtensionArray(
         n_cols = len(uniques)
         indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
         indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
-        dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
+        if dtype == str:
+            dummies[:] = False
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
         result = type(self)(pa.array(list(dummies)))

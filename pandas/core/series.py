@@ -580,8 +580,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         PyCapsule
         """
         pa = import_optional_dependency("pyarrow", min_version="16.0.0")
-        ca = pa.chunked_array([pa.Array.from_pandas(self, type=requested_schema)])
-        return ca.__arrow_c_stream__(requested_schema)
+        type = (
+            pa.DataType._import_from_c_capsule(requested_schema)
+            if requested_schema is not None
+            else None
+        )
+        ca = pa.array(self, type=type)
+        if not isinstance(ca, pa.ChunkedArray):
+            ca = pa.chunked_array([ca])
+        return ca.__arrow_c_stream__()
 
     # ----------------------------------------------------------------------
 
