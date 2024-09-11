@@ -374,6 +374,13 @@ class WrappedCythonOp:
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
+
+            # Fix for NaT handling: ensure NaT is treated as False in any() and all()
+            if self.how in ["any", "all"]:
+                # Set NaT (which is represented as the smallest int64) to False (0)
+                nat_mask = values == np.iinfo(np.int64).min
+                values[nat_mask] = 0  # Treat NaT as False
+
         elif dtype.kind == "b":
             values = values.view("uint8")
         if values.dtype == "float16":
