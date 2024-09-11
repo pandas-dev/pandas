@@ -243,5 +243,7 @@ class TestFeather:
         df.to_feather(path)
         with pd.option_context("future.infer_string", True):
             result = read_feather(path)
-        expected = pd.DataFrame(data={"a": ["x", "y"]}, dtype="string[pyarrow_numpy]")
+        expected = pd.DataFrame(
+            data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
+        )
         tm.assert_frame_equal(result, expected)

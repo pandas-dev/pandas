@@ -6,10 +6,7 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -28,6 +25,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     isna,
     period_range,
@@ -229,7 +227,6 @@ class TestBase:
             with pytest.raises(TypeError, match=msg):
                 idx.any()
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):
             pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
@@ -246,11 +243,6 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -296,12 +288,17 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._mask, result._values._mask, check_same="same"
                 )
-            elif index.dtype == "string[python]":
+            elif (
+                isinstance(index.dtype, StringDtype) and index.dtype.storage == "python"
+            ):
                 assert np.shares_memory(index._values._ndarray, result._values._ndarray)
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -444,11 +441,7 @@ class TestBase:
         result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
-    @pytest.mark.skipif(
-        using_string_dtype(),
-        reason="completely different behavior, tested elsewher",
-    )
-    def test_insert_out_of_bounds(self, index):
+    def test_insert_out_of_bounds(self, index, using_infer_string):
         # TypeError/IndexError matches what np.insert raises in these cases
 
         if len(index) > 0:
@@ -460,6 +453,12 @@ class TestBase:
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
+
+        if using_infer_string and (
+            index.dtype == "string" or index.dtype == "category"  # noqa: PLR1714
+        ):
+            msg = "loc must be an integer between"
+
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
 
