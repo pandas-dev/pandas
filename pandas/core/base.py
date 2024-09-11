@@ -1454,6 +1454,8 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
+        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
+            self.attrs = other.attrs
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values
@@ -1465,9 +1467,6 @@ class IndexOpsMixin(OpsMixin):
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
-
-        if not getattr(self, "attrs", None) and getattr(other, "attrs", None):
-            self.attrs = other.attrs
 
         return self._construct_result(result, name=res_name)
 
