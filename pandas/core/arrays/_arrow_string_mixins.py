@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,7 +26,10 @@ if not pa_version_under10p1:
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._typing import Scalar
+    from pandas._typing import (
+        Scalar,
+        Self,
+    )
 
 
 class ArrowStringArrayMixin:
@@ -44,6 +48,37 @@ class ArrowStringArrayMixin:
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
+
+    def _str_len(self):
+        result = pc.utf8_length(self._pa_array)
+        return self._convert_int_result(result)
+
+    def _str_lower(self) -> Self:
+        return type(self)(pc.utf8_lower(self._pa_array))
+
+    def _str_upper(self) -> Self:
+        return type(self)(pc.utf8_upper(self._pa_array))
+
+    def _str_strip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_trim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_trim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_lstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_ltrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_rstrip(self, to_strip=None) -> Self:
+        if to_strip is None:
+            result = pc.utf8_rtrim_whitespace(self._pa_array)
+        else:
+            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
 
     def _str_pad(
         self,
@@ -125,7 +160,34 @@ class ArrowStringArrayMixin:
             stop = np.iinfo(np.int64).max
         return type(self)(pc.utf8_replace_slice(self._pa_array, start, stop, repl))
 
-    def _str_capitalize(self):
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ) -> Self:
+        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+            raise NotImplementedError(
+                "replace is not supported with a re.Pattern, callable repl, "
+                "case=False, or flags!=0"
+            )
+
+        func = pc.replace_substring_regex if regex else pc.replace_substring
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
+        return type(self)(result)
+
+    def _str_capitalize(self) -> Self:
         return type(self)(pc.utf8_capitalize(self._pa_array))
 
     def _str_title(self):
@@ -133,6 +195,16 @@ class ArrowStringArrayMixin:
 
     def _str_swapcase(self):
         return type(self)(pc.utf8_swapcase(self._pa_array))
+
+    def _str_removeprefix(self, prefix: str):
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
+        predicate = lambda val: val.removeprefix(prefix)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
@@ -224,6 +296,20 @@ class ArrowStringArrayMixin:
         if not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._convert_bool_result(result)
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.startswith("^"):
+            pat = f"^{pat}"
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.endswith("$") or pat.endswith("\\$"):
+            pat = f"{pat}$"
+        return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if (
