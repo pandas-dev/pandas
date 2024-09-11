@@ -2655,8 +2655,7 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference(self):
         # GH#54430
-        pytest.importorskip("pyarrow")
-        dtype = "string[pyarrow_numpy]"
+        dtype = pd.StringDtype(na_value=np.nan)
         expected = DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )
@@ -2690,8 +2689,7 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference_array_string_dtype(self):
         # GH#54496
-        pytest.importorskip("pyarrow")
-        dtype = "string[pyarrow_numpy]"
+        dtype = pd.StringDtype(na_value=np.nan)
         expected = DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )
@@ -2715,7 +2713,6 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference_block_dim(self):
         # GH#55363
-        pytest.importorskip("pyarrow")
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
