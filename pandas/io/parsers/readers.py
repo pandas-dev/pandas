@@ -555,11 +555,12 @@ col 2    datetime64[ns]
 col 3    datetime64[ns]
 dtype: object
 
-The csv in pyarrow must be used if values have new line character.
+The csv in the pyarrow must be used if the values in the file have
+new line characters.
 
 >>> from pyarrow import csv
 >>> parse_options = csv.ParseOptions(newlines_in_values=True)
->>> table = csv.read_csv("./example.csv", parse_options=parse_options)
+>>> table = csv.read_csv("example.csv", parse_options=parse_options)
 >>> df = table.to_pandas()
 >>> df.head()
      text  idx
