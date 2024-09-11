@@ -818,11 +818,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                     stacklevel=find_stack_level(),
                 )
             res_values = self.astype("O") + offset
-            # TODO(GH#55564): as_unit will be unnecessary
-            result = type(self)._from_sequence(res_values).as_unit(self.unit)
-            if not len(self):
-                # GH#30336 _from_sequence won't be able to infer self.tz
-                return result.tz_localize(self.tz)
+            result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
