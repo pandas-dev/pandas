@@ -1314,7 +1314,9 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
-    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
+    @pytest.mark.xfail(
+        reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929"
+    )
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]
 
