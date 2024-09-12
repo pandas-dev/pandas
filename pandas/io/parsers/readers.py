@@ -1648,7 +1648,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
