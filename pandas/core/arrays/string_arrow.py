@@ -29,6 +29,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
 from pandas.core.arrays.string_ import (
@@ -394,6 +395,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return result
 
         return Int64Dtype().__from_arrow__(result)
+
+    def _convert_rank_result(self, result):
+        if self.dtype.na_value is np.nan:
+            if isinstance(result, pa.Array):
+                result = result.to_numpy(zero_copy_only=False)
+            else:
+                result = result.to_numpy()
+            return result.astype("float64", copy=False)
+
+        return Float64Dtype().__from_arrow__(result)
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
