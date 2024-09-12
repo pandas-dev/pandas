@@ -1338,7 +1338,13 @@ def string_storage(request):
         pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
         pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
         ("python", np.nan),
-    ]
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
 )
 def string_dtype_arguments(request):
     """
@@ -1369,6 +1375,7 @@ def dtype_backend(request):
 
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
+string_dtype_arguments2 = string_dtype_arguments
 
 
 @pytest.fixture(params=tm.BYTES_DTYPES)
