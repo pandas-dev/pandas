@@ -6,15 +6,11 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
-from pandas.compat import HAS_PYARROW
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -474,23 +470,10 @@ class TestRank:
             ("top", False, [2.0, 3.0, 1.0, 4.0]),
         ],
     )
-    def test_rank_object_first(
-        self,
-        request,
-        frame_or_series,
-        na_option,
-        ascending,
-        expected,
-        using_infer_string,
-    ):
+    def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
         obj = frame_or_series(["foo", "foo", None, "foo"])
-        if using_string_dtype() and not HAS_PYARROW and isinstance(obj, Series):
-            request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
-
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
-        if using_infer_string and isinstance(obj, Series):
-            expected = expected.astype("uint64")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -514,7 +497,9 @@ class TestRank:
         # GH#55362
         obj = Series(["foo", "foo", None, "foo"], dtype=string_dtype_no_object)
         result = obj.rank(method="first")
-        exp_dtype = "Int64" if string_dtype_no_object.na_value is pd.NA else "float64"
+        exp_dtype = (
+            "Float64" if string_dtype_no_object == "string[pyarrow]" else "float64"
+        )
         if string_dtype_no_object.storage == "python":
             # TODO nullable string[python] should also return nullable Int64
             exp_dtype = "float64"
