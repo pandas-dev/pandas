@@ -600,6 +600,8 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                     if not array_equivalent(x, y):
                         return False
 
+            elif PyArray_Check(x) or PyArray_Check(y):
+                return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
