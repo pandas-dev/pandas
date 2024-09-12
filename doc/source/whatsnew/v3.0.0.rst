@@ -206,7 +206,7 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 Changed behavior in ``value_counts`` when ``sort=False``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False`` would sort the result by column label (as was documented). This was nonintuitive and inconsistent with :meth:`Series.value_counts` which would maintain the order of the input. Now :meth:`DataFrame.value_counts` will maintain the order of the input.
+In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False`` would sort the result by row labels (as was documented). This was nonintuitive and inconsistent with :meth:`Series.value_counts` which would maintain the order of the input. Now :meth:`DataFrame.value_counts` will maintain the order of the input.
 
 .. ipython:: python
 
