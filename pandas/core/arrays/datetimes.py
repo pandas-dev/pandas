@@ -854,12 +854,23 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
 
+        This method is used to convert a timezone-aware Datetime Array or Index to
+        a different time zone. The original UTC time remains the same; only the
+        time zone information is changed. If the Timestamp is timezone-naive, a
+        TypeError is raised.
+
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone for time. Corresponding timestamps would be converted
             to this time zone of the Datetime Array/Index. A `tz` of None will
             convert to UTC and remove the timezone information.
+        *args
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+        **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -981,6 +992,12 @@ default 'raise'
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise a ValueError if there are
               nonexistent times.
+        *args
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
+        **kwargs
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -1200,6 +1217,12 @@ default 'raise'
         freq : str or Period, optional
             One of pandas' :ref:`period aliases <timeseries.period_aliases>`
             or an Period object. Will be inferred by default.
+        *args
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
+        **kwargs
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
 
         Returns
         -------

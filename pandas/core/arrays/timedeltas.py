@@ -733,6 +733,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         This method is available directly on TimedeltaArray, TimedeltaIndex
         and on Series containing timedelta values under the ``.dt`` namespace.
 
+        Parameters
+        ----------
+        *args
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+        **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
         Returns
         -------
         ndarray, Index or Series

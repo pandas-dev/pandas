@@ -1736,6 +1736,12 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         ----------
         date_format : str
             Date format string (e.g. "%%Y-%%m-%%d").
+        *args
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
+        **kwargs
+            Additional arguments and keywords have no effect but might be
+             accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2060,6 +2066,24 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @cache_readonly
     def unit(self) -> str:
+        """
+        The precision of the datetime data.
+
+        Returns the most precise unit used for the datetime data.
+
+        See Also
+        --------
+        TimelikeOps.as_unit : Converts to a specific unit.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx.unit
+        'ns'
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03"])
+        >>> idx.unit
+        's'
+        """
         # e.g. "ns", "us", "ms"
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
