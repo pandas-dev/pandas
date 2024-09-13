@@ -92,12 +92,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt.month_name PR01,PR02" \
         -i "pandas.Series.dt.normalize PR01" \
         -i "pandas.Series.dt.round PR01,PR02" \
-        -i "pandas.Series.dt.strftime PR01,PR02" \
-        -i "pandas.Series.dt.to_period PR01,PR02" \
-        -i "pandas.Series.dt.total_seconds PR01" \
-        -i "pandas.Series.dt.tz_convert PR01,PR02" \
-        -i "pandas.Series.dt.tz_localize PR01,PR02" \
-        -i "pandas.Series.dt.unit GL08" \
+        -i "pandas.Series.dt.strftime PR02" \
+        -i "pandas.Series.dt.to_period PR02" \
+        -i "pandas.Series.dt.tz_convert PR02" \
+        -i "pandas.Series.dt.tz_localize PR02" \
         -i "pandas.Series.pad PR01,SA01" \
         -i "pandas.Series.sparse.fill_value SA01" \
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
