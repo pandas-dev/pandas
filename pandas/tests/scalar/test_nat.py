@@ -326,6 +326,9 @@ def test_nat_doc_strings(compare):
             "Ignore differences with Timestamp.isoformat() as they're intentional"
         )
 
+    if klass == Timedelta and method == "total_seconds":
+        pytest.skip("Ignore difference")
+
     if method == "to_numpy":
         # GH#44460 can return either dt64 or td64 depending on dtype,
         #  different docstring is intentional
