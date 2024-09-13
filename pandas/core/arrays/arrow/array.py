@@ -1999,7 +1999,7 @@ class ArrowExtensionArray(
         """
         See Series.rank.__doc__.
         """
-        return self._convert_int_result(
+        return self._convert_rank_result(
             self._rank_calc(
                 axis=axis,
                 method=method,
@@ -2316,6 +2316,9 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _convert_int_result(self, result):
+        return type(self)(result)
+
+    def _convert_rank_result(self, result):
         return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0) -> Self:
