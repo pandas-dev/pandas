@@ -1491,6 +1491,7 @@ cdef class _Timedelta(timedelta):
         Timedelta.to_numpy : Converts the Timedelta to a NumPy timedelta64.
         Timedelta.total_seconds : Returns the total duration of the Timedelta
             object in seconds.
+
         Examples
         --------
         >>> td = pd.Timedelta('3D')
