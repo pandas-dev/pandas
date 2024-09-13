@@ -892,7 +892,10 @@ class TestStyler:
         
 
     def test_maybe_convert_css_to_tuples_err(self):
-        msg = "Styles supplied as string must follow CSS rule formats"
+        msg = (
+            "Styles supplied as string must follow CSS rule formats, "
+            "for example 'attr: val;'. 'err' was given."
+        )
         with pytest.raises(ValueError, match=msg):
             maybe_convert_css_to_tuples("err")
 
