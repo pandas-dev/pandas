@@ -2078,7 +2078,7 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
         return [
             (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
             for x in s
-            if ":".join(x.split(":")[1:]).strip() != ""
+            if x.strip() != ""
         ]
 
     return style
