@@ -11,6 +11,11 @@ from pandas import (
     _testing as tm,
 )
 
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
+
 
 def test_get_dummies(any_string_dtype):
     s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
@@ -86,7 +91,6 @@ def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
         [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
         columns=list("abc"),
         dtype=dtype,
-    )
     tm.assert_frame_equal(result, expected)
 
 
