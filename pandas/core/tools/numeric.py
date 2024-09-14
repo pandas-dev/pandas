@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -34,6 +35,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 
+from pandas.core.dtypes.common import is_string_dtype
+
 if TYPE_CHECKING:
     from pandas._typing import (
         DateTimeErrorChoices,
@@ -41,6 +44,16 @@ if TYPE_CHECKING:
         npt,
     )
 
+def parse_numeric(value):
+    if isinstance(value, str):
+        try:
+            return int(value, 0)  # Automatically detect radix
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return libmissing.NA 
+    return value
 
 def to_numeric(
     arg,
@@ -161,6 +174,7 @@ def to_numeric(
     2    3.0
     dtype: Float32
     """
+    
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
 
@@ -214,15 +228,25 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
-        coerce_numeric = errors != "raise"
-        values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
-            values,
-            set(),
-            coerce_numeric=coerce_numeric,
-            convert_to_masked_nullable=dtype_backend is not lib.no_default
-            or isinstance(values_dtype, StringDtype)
-            and values_dtype.na_value is libmissing.NA,
-        )
+        parsed_values = []
+        new_mask = []
+
+        for idx, x in enumerate(values):
+            parsed_value = parse_numeric(x)
+            if libmissing.checknull(parsed_value):
+                if errors == 'raise':
+                    raise ValueError(f"Unable to parse string '{x}' at position {idx}")
+                elif errors == 'coerce':
+                    parsed_values.append(libmissing.NA)
+                    new_mask.append(True)
+                    continue
+            else:
+                parsed_values.append(parsed_value)
+                new_mask.append(False)
+
+        values = np.array(parsed_values, dtype=object)
+        new_mask = np.array(new_mask, dtype=bool)
+
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
