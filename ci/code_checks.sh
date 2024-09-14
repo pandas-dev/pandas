@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
