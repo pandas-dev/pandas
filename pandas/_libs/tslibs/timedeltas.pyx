@@ -1493,6 +1493,17 @@ cdef class _Timedelta(timedelta):
         """
         Return a components namedtuple-like.
 
+        Each component represents a different time unit, allowing you to access the
+        breakdown of the total duration in terms of days, hours, minutes, seconds,
+        milliseconds, microseconds, and nanoseconds.
+
+        See Also
+        --------
+        Timedelta.total_seconds : Returns the total duration of the Timedelta in
+            seconds.
+        to_timedelta : Convert argument to Timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
+
         Examples
         --------
         >>> td = pd.Timedelta('2 day 4 min 3 us 42 ns')
