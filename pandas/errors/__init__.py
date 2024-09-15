@@ -261,6 +261,15 @@ class MergeError(ValueError):
 
     Subclass of ``ValueError``.
 
+    See Also
+    --------
+    DataFrame.join : For joining DataFrames on their indexes.
+    merge : For merging two DataFrames on a common set of keys.
+    ValueError : Base class for exceptions related to invalid arguments.
+    NotImplementedError : A built-in exception that can also be used for abstract
+        methods but lacks the specificity of `AbstractMethodError` in indicating
+        the need for subclass implementation.
+
     Examples
     --------
     >>> left = pd.DataFrame(

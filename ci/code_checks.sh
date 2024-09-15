@@ -195,7 +195,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
         -i "pandas.errors.InvalidVersion SA01" \
-        -i "pandas.errors.MergeError SA01" \
         -i "pandas.errors.NullFrequencyError SA01" \
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
