@@ -1218,7 +1218,7 @@ class Block(PandasObject, libinternals.Block):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self]
+                    return [self.copy(deep=False)]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,
