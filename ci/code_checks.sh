@@ -114,7 +114,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.types.is_dict_like PR07,SA01" \
-        -i "pandas.api.types.is_extension_array_dtype SA01" \
         -i "pandas.api.types.is_file_like PR07,SA01" \
         -i "pandas.api.types.is_float PR01,SA01" \
         -i "pandas.api.types.is_float_dtype SA01" \
