@@ -1189,6 +1189,14 @@ cdef class _Timedelta(timedelta):
         """
         Total seconds in the duration.
 
+        This method calculates the total duration in seconds by combining
+        the days, seconds, and microseconds of the `Timedelta` object.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
+
         Examples
         --------
         >>> td = pd.Timedelta('1min')
