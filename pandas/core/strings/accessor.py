@@ -2483,7 +2483,7 @@ class StringMethods(NoNewAttributesMixin):
         2   True   False   True
         """
         from pandas.core.frame import DataFrame
-        
+
         if dtype in (str, "str[pyarrow]"):
             raise ValueError("string dtype not supported, please use a numeric dtype")
         # we need to cast to Series of strings as only that has all
