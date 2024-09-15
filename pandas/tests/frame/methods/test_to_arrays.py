@@ -24,7 +24,7 @@ def test_to_arrays():
     actual_arrays, actual_cols = to_arrays(data, indexed_columns)
     expected_arrays = [
         array(["John", "Jane", "Bob", "Alice"], dtype="<U10"),
-        array([50000, 75000, 65000, 60000], dtype=int),
+        array([50000, 75000, 65000, 60000], dtype="int32"),
         array(["New York", "San Francisco", "Chicago", "Los Angeles"], dtype="<U15"),
     ]
 
