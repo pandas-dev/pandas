@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
@@ -102,7 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
         -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Series.sparse.sp_values SA01" \
-        -i "pandas.Timedelta.components SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
