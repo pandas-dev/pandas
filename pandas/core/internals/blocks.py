@@ -915,7 +915,7 @@ class Block(PandasObject, libinternals.Block):
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
-                return [self]
+                return [self.copy(deep=False)]
             return self.replace(
                 to_replace=to_replace,
                 value=value,
