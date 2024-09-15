@@ -89,7 +89,6 @@ maintainers:
   - phofl
   - attack68
   - fangchenli
-  - twoertwein
   - lithomas1
   - lukemanley
   - noatamir
@@ -108,6 +107,7 @@ maintainers:
   - wesm
   - gfyoung
   - mzeitlin11
+  - twoertwein
 workgroups:
   coc:
     name: Code of Conduct
