@@ -1401,6 +1401,10 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     bool
         Whether the `arr_or_dtype` is an extension array type.
 
+    See Also
+    --------
+    api.extensions.ExtensionArray : Abstract base class for pandas extension arrays.
+
     Notes
     -----
     This checks whether an object implements the pandas extension
