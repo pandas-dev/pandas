@@ -32,6 +32,7 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     ensure_str,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -939,7 +940,19 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         with self:
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
-                pa_table = pyarrow_json.read_json(self.data)
+                if isinstance(self.dtype, dict):
+                    pa = import_optional_dependency("pyarrow")
+                    fields = [
+                        (field, pandas_dtype(dtype).pyarrow_dtype)
+                        for field, dtype in self.dtype.items()
+                    ]
+                    schema = pa.schema(fields)
+                    pa_table = pyarrow_json.read_json(
+                        self.data,
+                        parse_options=pyarrow_json.ParseOptions(explicit_schema=schema),
+                    )
+                else:
+                    pa_table = pyarrow_json.read_json(self.data)
 
                 mapping: type[ArrowDtype] | None | Callable
                 if self.dtype_backend == "pyarrow":
