@@ -18,6 +18,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     NA,
+    ArrowDtype,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -2163,7 +2164,7 @@ class TestPandasContainer:
 
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            string_dtype = pd.ArrowDtype(pa.string())
+            string_dtype = ArrowDtype(pa.string())
         else:
             string_dtype = pd.StringDtype(string_storage)
 
@@ -2286,3 +2287,25 @@ def test_read_json_lines_rangeindex():
     result = read_json(StringIO(data), lines=True).index
     expected = RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_read_json_pyarrow_dtype(datapath):
+    dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
+
+    df = read_json(
+        datapath("io", "json", "data", "line_delimited.json"),
+        dtype=dtype,
+        lines=True,
+        engine="pyarrow",
+        dtype_backend="pyarrow",
+    )
+
+    result = df.dtypes
+    expected = Series(
+        [
+            ArrowDtype.construct_from_string("int32[pyarrow]"),
+            ArrowDtype.construct_from_string("int64[pyarrow]"),
+        ],
+        index=["a", "b"],
+    )
+    tm.assert_series_equal(result, expected)
