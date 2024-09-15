@@ -6,8 +6,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -277,7 +275,6 @@ def test_array_copy():
 cet = pytz.timezone("CET")
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "data, expected",
     [

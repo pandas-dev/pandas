@@ -453,12 +453,8 @@ class TestBasic(Base):
             repeat=1,
         )
 
-    def test_write_index(self, engine, using_copy_on_write, request):
+    def test_write_index(self, engine, using_copy_on_write):
         check_names = engine != "fastparquet"
-        if using_copy_on_write and engine == "fastparquet":
-            request.applymarker(
-                pytest.mark.xfail(reason="fastparquet write into index")
-            )
 
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine)
