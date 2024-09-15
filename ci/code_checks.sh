@@ -133,7 +133,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.BooleanArray SA01" \
         -i "pandas.arrays.DatetimeArray SA01" \
-        -i "pandas.arrays.FloatingArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
