@@ -157,7 +157,6 @@ test-command = """
   """
 free-threaded-support = true
 before-build = "bash {package}/scripts/cibw_before_build.sh"
-before-test = "bash {package}/scripts/cibw_before_test.sh"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build.sh"
@@ -165,7 +164,7 @@ repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
+before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
