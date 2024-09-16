@@ -11,7 +11,10 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    WASM,
+)
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -1451,6 +1454,7 @@ class TestCoercionFloat64(CoercionTest):
                         np_version_gte1p24
                         and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
                     )
+                    or WASM
                 ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",
