@@ -600,14 +600,23 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         func : function
             Criterion to apply to each group. Should return True or False.
-        dropna : bool
+        dropna : bool, optional
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
+        *args : tuple
+            Optional positional arguments to pass to `func`.
+        **kwargs : dict
+            Optional keyword arguments to pass to `func`.
 
         Returns
         -------
         Series
             The filtered subset of the original Series.
+
+        See Also
+        --------
+        Series.filter: Filter elements of ungrouped Series.
+        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
 
         Notes
         -----
@@ -1943,15 +1952,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         dropna : bool
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
-        *args
+        *args : tuple
             Additional positional arguments to pass to `func`.
-        **kwargs
+        **kwargs : dict
             Additional keyword arguments to pass to `func`.
 
         Returns
         -------
         DataFrame
             The filtered subset of the original DataFrame.
+
+        See Also
+        --------
+        DataFrame.filter: Filter elements of ungrouped DataFrame.
+        SeriesGroupBy.filter : Filter elements from groups base on criterion.
 
         Notes
         -----
