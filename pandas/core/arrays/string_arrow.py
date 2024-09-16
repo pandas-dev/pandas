@@ -10,8 +10,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -31,6 +29,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
 from pandas.core.arrays.string_ import (
@@ -43,8 +42,6 @@ if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -54,10 +51,8 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        AxisInt,
         Dtype,
         NpDtype,
-        Scalar,
         Self,
         npt,
     )
@@ -294,13 +289,26 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
+    _str_match = ArrowStringArrayMixin._str_match
+    _str_fullmatch = ArrowStringArrayMixin._str_fullmatch
+    _str_lower = ArrowStringArrayMixin._str_lower
+    _str_upper = ArrowStringArrayMixin._str_upper
+    _str_strip = ArrowStringArrayMixin._str_strip
+    _str_lstrip = ArrowStringArrayMixin._str_lstrip
+    _str_rstrip = ArrowStringArrayMixin._str_rstrip
+    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_get = ArrowStringArrayMixin._str_get
+    _str_capitalize = ArrowStringArrayMixin._str_capitalize
+    _str_title = ArrowStringArrayMixin._str_title
+    _str_swapcase = ArrowStringArrayMixin._str_swapcase
+    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
+    _str_len = ArrowStringArrayMixin._str_len
+    _str_slice = ArrowStringArrayMixin._str_slice
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if not isna(na):
@@ -326,89 +334,22 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         regex: bool = True,
     ):
         if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
-            if get_option("mode.performance_warnings"):
-                fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
-        return ArrowExtensionArray._str_replace(self, pat, repl, n, case, flags, regex)
+        return ArrowStringArrayMixin._str_replace(
+            self, pat, repl, n, case, flags, regex
+        )
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if not isinstance(repeats, int):
             return super()._str_repeat(repeats)
         else:
-            return type(self)(pc.binary_repeat(self._pa_array, repeats))
-
-    def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ):
-        if not pat.startswith("^"):
-            pat = f"^{pat}"
-        return self._str_contains(pat, case, flags, na, regex=True)
-
-    def _str_fullmatch(
-        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
-    ):
-        if not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"{pat}$"
-        return self._str_match(pat, case, flags, na)
-
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Self:
-        if stop is None:
-            return super()._str_slice(start, stop, step)
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
-
-    def _str_len(self):
-        result = pc.utf8_length(self._pa_array)
-        return self._convert_int_result(result)
-
-    def _str_lower(self) -> Self:
-        return type(self)(pc.utf8_lower(self._pa_array))
-
-    def _str_upper(self) -> Self:
-        return type(self)(pc.utf8_upper(self._pa_array))
-
-    def _str_strip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_trim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_trim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_lstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_ltrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_ltrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
-
-    def _str_rstrip(self, to_strip=None) -> Self:
-        if to_strip is None:
-            result = pc.utf8_rtrim_whitespace(self._pa_array)
-        else:
-            result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
-        return type(self)(result)
+            return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_removeprefix(self, prefix: str):
         if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return type(self)(result)
+            return ArrowStringArrayMixin._str_removeprefix(self, prefix)
         return super()._str_removeprefix(prefix)
-
-    def _str_removesuffix(self, suffix: str):
-        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
-        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
-        result = pc.if_else(ends_with, removed, self._pa_array)
-        return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
@@ -455,6 +396,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         return Int64Dtype().__from_arrow__(result)
 
+    def _convert_rank_result(self, result):
+        if self.dtype.na_value is np.nan:
+            if isinstance(result, pa.Array):
+                result = result.to_numpy(zero_copy_only=False)
+            else:
+                result = result.to_numpy()
+            return result.astype("float64", copy=False)
+
+        return Float64Dtype().__from_arrow__(result)
+
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
@@ -475,28 +426,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return type(self)(result)
         else:
             return result
-
-    def _rank(
-        self,
-        *,
-        axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
-        ascending: bool = True,
-        pct: bool = False,
-    ):
-        """
-        See Series.rank.__doc__.
-        """
-        return self._convert_int_result(
-            self._rank_calc(
-                axis=axis,
-                method=method,
-                na_option=na_option,
-                ascending=ascending,
-                pct=pct,
-            )
-        )
 
     def value_counts(self, dropna: bool = True) -> Series:
         result = super().value_counts(dropna=dropna)
@@ -519,9 +448,3 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _na_value = np.nan
-    _str_get = ArrowStringArrayMixin._str_get
-    _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
-    _str_capitalize = ArrowStringArrayMixin._str_capitalize
-    _str_title = ArrowStringArrayMixin._str_title
-    _str_swapcase = ArrowStringArrayMixin._str_swapcase
-    _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
