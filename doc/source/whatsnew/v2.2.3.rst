@@ -1,0 +1,36 @@
+.. _whatsnew_223:
+
+What's new in 2.2.3 (September XX, 2024)
+----------------------------------------
+
+These are the changes in pandas 2.2.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.contributors:
+
+Contributors
+~~~~~~~~~~~~
