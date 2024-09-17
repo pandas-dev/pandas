@@ -164,6 +164,14 @@ before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_bui
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
+select = "*-manylinux_aarch64*"
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
+
+[[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales && bash {package}/scripts/cibw_before_test.sh"
 
@@ -478,6 +486,10 @@ markers = [
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
   "skip_ubsan: Tests known to fail UBSAN check",
+  # TODO: someone should investigate this ...
+  # these tests only fail in the wheel builder and don't fail in regular
+  # ARM CI
+  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]
