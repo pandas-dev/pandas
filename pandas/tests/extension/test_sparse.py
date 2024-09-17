@@ -348,7 +348,7 @@ class TestSparseArray(base.ExtensionTests):
 
     @pytest.mark.fails_arm_wheels
     def test_equals_same_data_different_object(self, data):
-        super().test_equals_same_data_different_objects(data)
+        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",
