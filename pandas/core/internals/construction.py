@@ -751,7 +751,7 @@ def to_arrays(
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray
         if columns is None:
-            columns = Index(list(data.dtype.names))
+            columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns
 
