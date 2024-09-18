@@ -16,7 +16,6 @@ from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under15p0,
-    pa_version_under17p0,
 )
 
 import pandas as pd
@@ -449,12 +448,8 @@ class TestBasic(Base):
             repeat=1,
         )
 
-    def test_write_index(self, engine, using_copy_on_write, request):
+    def test_write_index(self, engine):
         check_names = engine != "fastparquet"
-        if using_copy_on_write and engine == "fastparquet":
-            request.applymarker(
-                pytest.mark.xfail(reason="fastparquet write into index")
-            )
 
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine)
@@ -1064,9 +1059,6 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
-    @pytest.mark.xfail(
-        pa_version_under17p0, reason="pa.pandas_compat passes 'datetime64' to .astype"
-    )
     def test_columns_dtypes_not_invalid(self, pa):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -1315,9 +1307,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp, expected=expected)
 
     @pytest.mark.xfail(
-        not using_copy_on_write()
-        and _HAVE_FASTPARQUET
-        and Version(fastparquet.__version__) > Version("2022.12"),
+        _HAVE_FASTPARQUET and Version(fastparquet.__version__) > Version("2022.12"),
         reason="fastparquet bug, see https://github.com/dask/fastparquet/issues/929",
     )
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
