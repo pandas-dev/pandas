@@ -2124,9 +2124,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns : sequence, default None
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
-            columns. Otherwise this argument indicates the order of the columns
+            columns. Otherwise, this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
-            columns).
+            columns) and limits the data to these columns if not all column names
+            are provided.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
@@ -12745,10 +12746,80 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    @doc(_shared_docs["idxmin"], numeric_only_default="False")
     def idxmin(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
+        """
+        Return index of first occurrence of minimum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire DataFrame is NA,
+            or if ``skipna=False`` and there is an NA value, this method
+            will raise a ``ValueError``.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of minima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmin : Return index of the minimum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "consumption": [10.51, 103.11, 55.48],
+        ...             "co2_emissions": [37.2, 19.66, 1712],
+        ...         }
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
+        """
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -12782,10 +12853,80 @@ class DataFrame(NDFrame, OpsMixin):
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
-    @doc(_shared_docs["idxmax"], numeric_only_default="False")
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
+        """
+        Return index of first occurrence of maximum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire DataFrame is NA,
+            or if ``skipna=False`` and there is an NA value, this method
+            will raise a ``ValueError``.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of maxima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmax : Return index of the maximum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "consumption": [10.51, 103.11, 55.48],
+        ...             "co2_emissions": [37.2, 19.66, 1712],
+        ...         }
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the maximum value in each column.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emissions             Beef
+        dtype: object
+
+        To return the index for the maximum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emissions
+        Wheat Products     consumption
+        Beef              co2_emissions
+        dtype: object
+        """
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -13488,26 +13629,29 @@ class DataFrame(NDFrame, OpsMixin):
     )
     columns = properties.AxisProperty(
         axis=0,
-        doc=dedent(
-            """
-                The column labels of the DataFrame.
+        doc="""
+        The column labels of the DataFrame.
 
-                See Also
-                --------
-                DataFrame.index: The index (row labels) of the DataFrame.
-                DataFrame.axes: Return a list representing the axes of the DataFrame.
+        Returns
+        -------
+        pandas.Index
+            The column labels of the DataFrame.
 
-                Examples
-                --------
-                >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
-                >>> df
-                     A  B
-                0    1  3
-                1    2  4
-                >>> df.columns
-                Index(['A', 'B'], dtype='object')
-                """
-        ),
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.axes: Return a list representing the axes of the DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df
+                A  B
+        0    1  3
+        1    2  4
+        >>> df.columns
+        Index(['A', 'B'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------
