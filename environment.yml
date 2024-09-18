@@ -27,8 +27,6 @@ dependencies:
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
-  # https://github.com/conda-forge/pytables-feedstock/issues/97
-  - c-blosc2=2.13.2
   - blosc
   - bottleneck>=1.3.6
   - fastparquet>=2022.12.0
@@ -90,7 +88,6 @@ dependencies:
   - numpydoc
   - pydata-sphinx-theme=0.14
   - pytest-cython  # doctest
-  - docutils < 0.21  # https://github.com/sphinx-doc/sphinx/issues/12302
   - sphinx
   - sphinx-design
   - sphinx-copybutton

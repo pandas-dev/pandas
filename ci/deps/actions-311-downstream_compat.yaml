@@ -26,8 +26,6 @@ dependencies:
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
-  # https://github.com/conda-forge/pytables-feedstock/issues/97
-  - c-blosc2=2.13.2
   - blosc>=1.21.3
   - bottleneck>=1.3.6
   - fastparquet>=2022.12.0
