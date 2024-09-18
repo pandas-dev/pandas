@@ -183,7 +183,7 @@ jobs:
         # TODO: Remove NumPy nightly install when there's a 3.13 wheel on PyPI
         run: |
           $TST_CMD = @"
-          python -m pip install hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0;
+          python -m pip install hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytz<2024.2;
           ${{ matrix.python[1] == '3.13' && 'python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy;' }}
           python -m pip install `$(Get-Item pandas\wheelhouse\*.whl);
           python -c `'import pandas as pd; pd.test(extra_args=[`\"--no-strict-data-files`\", `\"-m not clipboard and not single_cpu and not slow and not network and not db`\"])`';

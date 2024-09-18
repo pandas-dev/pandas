@@ -20,7 +20,8 @@ dependencies:
   # required dependencies
   - python-dateutil
   - numpy
-  - pytz
+  # pytz 2024.2 timezones cause wrong results
+  - pytz<2024.2
 
   # optional dependencies
   - beautifulsoup4>=4.11.2
