@@ -378,7 +378,7 @@ ArcticDB is structured to provide a scalable and efficient way to manage and ret
 
 - `Object Store` Collections of libraries. Used to separate logical environments from each other. Analogous to a database server.
 - `Library` Contains multiple symbols which are grouped in a certain way (different users, markets, etc). Analogous to a database.
-- `Symbol` Atomic unit of data storage. Identified by a string name. Data stored under a symbol strongly resembles a Pandas DataFrame. Analogous to tables.
+- `Symbol` Atomic unit of data storage. Identified by a string name. Data stored under a symbol strongly resembles a pandas DataFrame. Analogous to tables.
 - `Version` Every modifying action (write, append, update) performed on a symbol creates a new version of that object.
 
 #### Installation
@@ -436,7 +436,7 @@ Write to ArcticDB.
 write_record = lib.write("test", df)
 ```
 
-> **Note:** When writing Pandas DataFrames, ArcticDB supports the following index types:
+> **Note:** When writing pandas DataFrames, ArcticDB supports the following index types:
 >
 > - `pandas.Index` containing int64 (or the corresponding dedicated types Int64Index, UInt64Index)
 > - `RangeIndex`
@@ -455,7 +455,7 @@ read_record.data
 df.dtypes
 ```
 
-ArcticDB also supports appending, updating, and querying data from storage to a Pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
+ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
 
 
 ## Out-of-core
