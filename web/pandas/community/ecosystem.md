@@ -367,6 +367,97 @@ pandas-gbq provides high performance reads and writes to and from
 these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
 Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
+
+### [ArcticDB](https://github.com/man-group/ArcticDB)
+
+ArcticDB is a serverless DataFrame database engine designed for the Python Data Science ecosystem. ArcticDB enables you to store, retrieve, and process pandas DataFrames at scale. It is a storage engine designed for object storage and also supports local-disk storage using LMDB. ArcticDB requires zero additional infrastructure beyond a running Python environment and access to object storage and can be installed in seconds. Please find full documentation [here](https://docs.arcticdb.io/latest/).
+
+#### ArcticDB Terminology
+
+ArcticDB is structured to provide a scalable and efficient way to manage and retrieve DataFrames, organized into several key components:
+
+- `Object Store` Collections of libraries. Used to separate logical environments from each other. Analogous to a database server.
+- `Library` Contains multiple symbols which are grouped in a certain way (different users, markets, etc). Analogous to a database.
+- `Symbol` Atomic unit of data storage. Identified by a string name. Data stored under a symbol strongly resembles a pandas DataFrame. Analogous to tables.
+- `Version` Every modifying action (write, append, update) performed on a symbol creates a new version of that object.
+
+#### Installation
+
+To install, simply run:
+
+```console
+pip install arcticdb
+```
+
+To get started, we can import ArcticDB and instantiate it:
+
+```python
+import arcticdb as adb
+import numpy as np
+import pandas as pd
+# this will set up the storage using the local file system
+arctic = adb.Arctic("lmdb://arcticdb_test")
+```
+
+> **Note:** ArcticDB supports any S3 API compatible storage, including AWS. ArcticDB also supports Azure Blob storage.  
+> ArcticDB also supports LMDB for local/file based storage - to use LMDB, pass an LMDB path as the URI: `adb.Arctic('lmdb://path/to/desired/database')`.
+
+#### Library Setup
+
+ArcticDB is geared towards storing many (potentially millions) of tables. Individual tables (DataFrames) are called symbols and are stored in collections called libraries. A single library can store many symbols. Libraries must first be initialized prior to use:
+
+```python
+lib = arctic.get_library('sample', create_if_missing=True)
+```
+
+#### Writing Data to ArcticDB
+
+Now we have a library set up, we can get to reading and writing data. ArcticDB has a set of simple functions for DataFrame storage. Let's write a DataFrame to storage.
+
+```python
+df = pd.DataFrame(
+    {
+        "a": list("abc"),
+        "b": list(range(1, 4)),
+        "c": np.arange(3, 6).astype("u1"),
+        "d": np.arange(4.0, 7.0, dtype="float64"),
+        "e": [True, False, True],
+        "f": pd.date_range("20130101", periods=3)
+    }
+)
+
+df
+df.dtypes
+```
+
+Write to ArcticDB.
+
+```python
+write_record = lib.write("test", df)
+```
+
+> **Note:** When writing pandas DataFrames, ArcticDB supports the following index types:
+>
+> - `pandas.Index` containing int64 (or the corresponding dedicated types Int64Index, UInt64Index)
+> - `RangeIndex`
+> - `DatetimeIndex`
+> - `MultiIndex` composed of above supported types
+>
+> The "row" concept in `head`/`tail` refers to the row number ('iloc'), not the value in the `pandas.Index` ('loc').
+
+#### Reading Data from ArcticDB
+
+Read the data back from storage:
+
+```python
+read_record = lib.read("test")
+read_record.data
+df.dtypes
+```
+
+ArcticDB also supports appending, updating, and querying data from storage to a pandas DataFrame. Please find more information [here](https://docs.arcticdb.io/latest/api/query_builder/).
+
+
 ## Out-of-core
 
 ### [Bodo](https://bodo.ai/)
