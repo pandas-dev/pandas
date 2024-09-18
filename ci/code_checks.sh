@@ -383,7 +383,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Week.n GL08" \
         -i "pandas.tseries.offsets.Week.normalize GL08" \
         -i "pandas.tseries.offsets.Week.weekday GL08" \
-        -i "pandas.tseries.offsets.WeekOfMonth SA01" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.normalize GL08" \
