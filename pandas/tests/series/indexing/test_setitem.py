@@ -8,8 +8,10 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import WASM
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat.numpy import (
+    np_version_gt2,
+    np_version_gte1p24,
+)
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
@@ -1447,9 +1449,9 @@ class TestCoercionFloat64(CoercionTest):
                     not np_version_gte1p24
                     or (
                         np_version_gte1p24
-                        and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
+                        and not np_version_gt2
+                        and os.environ.get("NPY_PROMOTION_STATE", "legacy") != "weak"
                     )
-                    or WASM
                 ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",

@@ -22,6 +22,7 @@ dependencies:
   # required
   - numpy
   - python-dateutil
+  # pytz 2024.2 timezones cause wrong results
   - pytz
   - pip:
     - tzdata>=2022.7

@@ -21,7 +21,8 @@ dependencies:
 
   # pandas dependencies
   - python-dateutil
-  - pytz
+  # pytz 2024.2 timezones cause wrong results
+  - pytz<2024.2
   - pip
 
   - pip:
