@@ -102,9 +102,7 @@ jobs:
         python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
         # TODO: Remove this plus installing build deps in cibw_before_build.sh
-        # and test deps in cibw_before_test.sh after pandas can be built with a released NumPy/Cython
-        - python: ["cp313", "3.13"]
-          cibw_build_frontend: 'pip; args: --no-build-isolation'
+        # after pandas can be built with a released NumPy/Cython
         - python: ["cp313t", "3.13"]
           cibw_build_frontend: 'pip; args: --no-build-isolation'
         # Build Pyodide wheels and upload them to Anaconda.org
@@ -187,11 +185,9 @@ jobs:
       - name: Test Windows Wheels
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
         shell: pwsh
-        # TODO: Remove NumPy nightly install when there's a 3.13 wheel on PyPI
         run: |
           $TST_CMD = @"
           python -m pip install hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0;
-          ${{ matrix.python[1] == '3.13' && 'python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy;' }}
           python -m pip install `$(Get-Item pandas\wheelhouse\*.whl);
           python -c `'import pandas as pd; pd.test(extra_args=[`\"--no-strict-data-files`\", `\"-m not clipboard and not single_cpu and not slow and not network and not db`\"])`';
           "@
