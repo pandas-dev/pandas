@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.PeriodDtype.freq SA01" \
         -i "pandas.RangeIndex.from_range PR01,SA01" \
         -i "pandas.RangeIndex.step SA01" \
         -i "pandas.Series.cat.add_categories PR01,PR02" \
@@ -102,7 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.sparse.from_coo PR07,SA01" \
         -i "pandas.Series.sparse.npoints SA01" \
         -i "pandas.Series.sparse.sp_values SA01" \
-        -i "pandas.Timedelta.components SA01" \
         -i "pandas.Timedelta.max PR02" \
         -i "pandas.Timedelta.min PR02" \
         -i "pandas.Timedelta.resolution PR02" \
@@ -114,14 +112,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Timestamp.tzinfo GL08" \
         -i "pandas.Timestamp.year GL08" \
         -i "pandas.api.types.is_dict_like PR07,SA01" \
-        -i "pandas.api.types.is_extension_array_dtype SA01" \
         -i "pandas.api.types.is_file_like PR07,SA01" \
         -i "pandas.api.types.is_float PR01,SA01" \
         -i "pandas.api.types.is_float_dtype SA01" \
         -i "pandas.api.types.is_hashable PR01,RT03,SA01" \
         -i "pandas.api.types.is_int64_dtype SA01" \
         -i "pandas.api.types.is_integer PR01,SA01" \
-        -i "pandas.api.types.is_integer_dtype SA01" \
         -i "pandas.api.types.is_interval_dtype SA01" \
         -i "pandas.api.types.is_iterator PR07,SA01" \
         -i "pandas.api.types.is_list_like SA01" \
@@ -133,7 +129,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
         -i "pandas.arrays.BooleanArray SA01" \
         -i "pandas.arrays.DatetimeArray SA01" \
-        -i "pandas.arrays.FloatingArray SA01" \
         -i "pandas.arrays.IntegerArray SA01" \
         -i "pandas.arrays.IntervalArray.left SA01" \
         -i "pandas.arrays.IntervalArray.length SA01" \
@@ -195,7 +190,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.IntCastingNaNError SA01" \
         -i "pandas.errors.InvalidIndexError SA01" \
         -i "pandas.errors.InvalidVersion SA01" \
-        -i "pandas.errors.MergeError SA01" \
         -i "pandas.errors.NullFrequencyError SA01" \
         -i "pandas.errors.NumExprClobberingError SA01" \
         -i "pandas.errors.NumbaUtilError SA01" \
