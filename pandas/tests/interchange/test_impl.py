@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import iNaT
 from pandas.compat import (
     is_ci_environment,
@@ -407,6 +409,7 @@ def test_empty_string_column():
     tm.assert_frame_equal(df, result)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_large_string():
     # GH#56702
     pytest.importorskip("pyarrow")
@@ -423,6 +426,7 @@ def test_non_str_names():
     assert names == ["0"]
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_non_str_names_w_duplicates():
     # https://github.com/pandas-dev/pandas/issues/56701
     df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
@@ -461,7 +465,7 @@ def test_non_str_names_w_duplicates():
         ([1.0, 2.25, None], "Float32[pyarrow]", "float32"),
         ([True, False, None], "boolean", "bool"),
         ([True, False, None], "boolean[pyarrow]", "bool"),
-        (["much ado", "about", None], "string[pyarrow_numpy]", "large_string"),
+        (["much ado", "about", None], pd.StringDtype(na_value=np.nan), "large_string"),
         (["much ado", "about", None], "string[pyarrow]", "large_string"),
         (
             [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
@@ -524,7 +528,11 @@ def test_pandas_nullable_with_missing_values(
         ([1.0, 2.25, 5.0], "Float32[pyarrow]", "float32"),
         ([True, False, False], "boolean", "bool"),
         ([True, False, False], "boolean[pyarrow]", "bool"),
-        (["much ado", "about", "nothing"], "string[pyarrow_numpy]", "large_string"),
+        (
+            ["much ado", "about", "nothing"],
+            pd.StringDtype(na_value=np.nan),
+            "large_string",
+        ),
         (["much ado", "about", "nothing"], "string[pyarrow]", "large_string"),
         (
             [datetime(2020, 1, 1), datetime(2020, 1, 2), datetime(2020, 1, 3)],
@@ -603,7 +611,8 @@ def test_empty_dataframe():
         ),
         (
             pd.Series(
-                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)]
+                [datetime(2022, 1, 1), datetime(2022, 1, 2), datetime(2022, 1, 3)],
+                dtype="M8[ns]",
             ),
             (DtypeKind.DATETIME, 64, "tsn:", "="),
             (DtypeKind.INT, 64, ArrowCTypes.INT64, "="),

@@ -5,24 +5,29 @@ import re
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
 )
 import unicodedata
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         NpDtype,
@@ -34,8 +39,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     """
     String Methods operating on object-dtype ndarrays.
     """
-
-    _str_na_value = np.nan
 
     def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
@@ -54,7 +57,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         na_value : Scalar, optional
             The value to set for NA values. Might also be used for the
             fill value if the callable `f` raises an exception.
-            This defaults to ``self._str_na_value`` which is ``np.nan``
+            This defaults to ``self.dtype.na_value`` which is ``np.nan``
             for object-dtype and Categorical and ``pd.NA`` for StringArray.
         dtype : Dtype, optional
             The dtype of the result array.
@@ -64,7 +67,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
-            na_value = self._str_na_value
+            na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not len(self):
             return np.array([], dtype=dtype)
@@ -142,14 +145,38 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             else:
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.contains is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=None):
         f = lambda x: x.startswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=None):
         f = lambda x: x.endswith(pat)
+        if not isna(na) and not isinstance(na, bool):
+            # GH#59561
+            warnings.warn(
+                "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_replace(
@@ -270,7 +297,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
-            return self._str_na_value
+            return self.dtype.na_value  # type: ignore[attr-defined]
 
         return self._str_map(f)
 
@@ -372,9 +399,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         from pandas import Series
 
+        if dtype is None:
+            dtype = np.int64
         arr = Series(self).fillna("")
         try:
             arr = sep + arr + sep
@@ -386,7 +415,13 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
-        dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
+        _dtype = pandas_dtype(dtype)
+        dummies_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummies_dtype = _dtype
+        else:
+            dummies_dtype = np.bool_
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements
@@ -457,23 +492,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda x: x.rstrip(to_strip))
 
     def _str_removeprefix(self, prefix: str):
-        # outstanding question on whether to use native methods for users on Python 3.9+
-        # https://github.com/pandas-dev/pandas/pull/39226#issuecomment-836719770,
-        # in which case we could do return self._str_map(str.removeprefix)
-
-        def removeprefix(text: str) -> str:
-            if text.startswith(prefix):
-                return text[len(prefix) :]
-            return text
-
-        return self._str_map(removeprefix)
+        return self._str_map(lambda x: x.removeprefix(prefix))
 
     def _str_removesuffix(self, suffix: str):
         return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
-        na_value = self._str_na_value
+        na_value = self.dtype.na_value  # type: ignore[attr-defined]
 
         if not expand:
 

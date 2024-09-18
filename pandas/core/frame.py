@@ -14,6 +14,7 @@ from __future__ import annotations
 import collections
 from collections import abc
 from collections.abc import (
+    Callable,
     Hashable,
     Iterable,
     Iterator,
@@ -29,7 +30,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -531,6 +531,7 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
+        If ``data`` is DataFrame then is ignored.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -728,10 +729,6 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
-        data_dtype = getattr(data, "dtype", None)
-        original_dtype = dtype
-
         # GH47215
         if isinstance(index, set):
             raise ValueError("index cannot be a set")
@@ -896,18 +893,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         NDFrame.__init__(self, mgr)
 
-        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
-            if self.dtypes.iloc[0] != data_dtype:
-                warnings.warn(
-                    "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
-                    "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result to get the old "
-                    "behavior.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-
     # ----------------------------------------------------------------------
 
     def __dataframe__(
@@ -915,6 +900,19 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrameXchg:
         """
         Return the dataframe interchange object implementing the interchange protocol.
+
+        .. note::
+
+           For new development, we highly recommend using the Arrow C Data Interface
+           alongside the Arrow PyCapsule Interface instead of the interchange protocol
+
+        .. warning::
+
+            Due to severe implementation issues, we recommend only considering using the
+            interchange protocol in the following cases:
+
+            - converting to pandas: for pandas >= 2.0.3
+            - converting from pandas: for pandas >= 3.0.0
 
         Parameters
         ----------
@@ -1062,7 +1060,7 @@ class DataFrame(NDFrame, OpsMixin):
         False
         """
         # The "<" part of "<=" here is for empty DataFrame cases
-        return len({arr.dtype for arr in self._mgr.arrays}) <= 1
+        return len({block.values.dtype for block in self._mgr.blocks}) <= 1
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -2126,9 +2124,10 @@ class DataFrame(NDFrame, OpsMixin):
         columns : sequence, default None
             Column names to use. If the passed data do not have names
             associated with them, this argument provides names for the
-            columns. Otherwise this argument indicates the order of the columns
+            columns. Otherwise, this argument indicates the order of the columns
             in the result (any names not found in the data will become all-NA
-            columns).
+            columns) and limits the data to these columns if not all column names
+            are provided.
         coerce_float : bool, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets.
@@ -2201,7 +2200,7 @@ class DataFrame(NDFrame, OpsMixin):
         ) -> tuple[list[ArrayLike], Index, Index | None]:
             """
             If our desired 'columns' do not match the data's pre-existing 'arr_columns',
-            we re-order our arrays.  This is like a pre-emptive (cheap) reindex.
+            we re-order our arrays.  This is like a preemptive (cheap) reindex.
             """
             if len(arrays):
                 length = len(arrays[0])
@@ -4472,6 +4471,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Query the columns of a DataFrame with a boolean expression.
 
+        This method can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
+
         Parameters
         ----------
         expr : str
@@ -4483,10 +4485,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             You can refer to column names that are not valid Python variable names
             by surrounding them in backticks. Thus, column names containing spaces
-            or punctuations (besides underscores) or starting with digits must be
+            or punctuation (besides underscores) or starting with digits must be
             surrounded by backticks. (For example, a column named "Area (cm^2)" would
             be referenced as ```Area (cm^2)```). Column names which are Python keywords
-            (like "list", "for", "import", etc) cannot be used.
+            (like "if", "for", "import", etc) cannot be used.
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
@@ -4555,55 +4557,54 @@ class DataFrame(NDFrame, OpsMixin):
         quoted string are replaced by strings that are allowed as a Python identifier.
         These characters include all operators in Python, the space character, the
         question mark, the exclamation mark, the dollar sign, and the euro sign.
-        For other characters that fall outside the ASCII range (U+0001..U+007F)
-        and those that are not further specified in PEP 3131,
-        the query parser will raise an error.
-        This excludes whitespace different than the space character,
-        but also the hashtag (as it is used for comments) and the backtick
-        itself (backtick can also not be escaped).
 
-        In a special case, quotes that make a pair around a backtick can
-        confuse the parser.
-        For example, ```it's` > `that's``` will raise an error,
-        as it forms a quoted string (``'s > `that'``) with a backtick inside.
+        A backtick can be escaped by double backticks.
 
-        See also the Python documentation about lexical analysis
-        (https://docs.python.org/3/reference/lexical_analysis.html)
+        See also the `Python documentation about lexical analysis
+        <https://docs.python.org/3/reference/lexical_analysis.html>`__
         in combination with the source code in :mod:`pandas.core.computation.parsing`.
 
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C C": range(10, 5, -1)}
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
         ... )
         >>> df
-           A   B  C C
+           A   B  C&C
         0  1  10   10
         1  2   8    9
         2  3   6    8
         3  4   4    7
         4  5   2    6
         >>> df.query("A > B")
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         The previous expression is equivalent to
 
         >>> df[df.A > df.B]
-           A  B  C C
+           A  B  C&C
         4  5  2    6
 
         For columns with spaces in their name, you can use backtick quoting.
 
-        >>> df.query("B == `C C`")
-           A   B  C C
+        >>> df.query("B == `C&C`")
+           A   B  C&C
         0  1  10   10
 
         The previous expression is equivalent to
 
-        >>> df[df.B == df["C C"]]
-           A   B  C C
+        >>> df[df.B == df["C&C"]]
+           A   B  C&C
         0  1  10   10
+
+        Using local variable:
+
+        >>> local_var = 2
+        >>> df.query("A <= @local_var")
+        A   B  C&C
+        0  1  10   10
+        1  2   8    9
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
@@ -4611,6 +4612,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
+
         res = self.eval(expr, **kwargs)
 
         try:
@@ -4644,6 +4646,13 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         expr : str
             The expression string to evaluate.
+
+            You can refer to variables
+            in the environment by prefixing them with an '@' character like
+            ``@a + b``.
+
+            You can refer to column names that are not valid Python variable
+            names by surrounding them with backticks `````.
         inplace : bool, default False
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
@@ -4675,14 +4684,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": range(1, 6), "B": range(10, 0, -2)})
+        >>> df = pd.DataFrame(
+        ...     {"A": range(1, 6), "B": range(10, 0, -2), "C&C": range(10, 5, -1)}
+        ... )
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
         >>> df.eval("A + B")
         0    11
         1    10
@@ -4694,35 +4705,55 @@ class DataFrame(NDFrame, OpsMixin):
         Assignment is allowed though by default the original DataFrame is not
         modified.
 
-        >>> df.eval("C = A + B")
-           A   B   C
-        0  1  10  11
-        1  2   8  10
-        2  3   6   9
-        3  4   4   8
-        4  5   2   7
+        >>> df.eval("D = A + B")
+           A   B  C&C   D
+        0  1  10   10  11
+        1  2   8    9  10
+        2  3   6    8   9
+        3  4   4    7   8
+        4  5   2    6   7
         >>> df
-           A   B
-        0  1  10
-        1  2   8
-        2  3   6
-        3  4   4
-        4  5   2
+           A   B  C&C
+        0  1  10   10
+        1  2   8    9
+        2  3   6    8
+        3  4   4    7
+        4  5   2    6
 
         Multiple columns can be assigned to using multi-line expressions:
 
         >>> df.eval(
         ...     '''
-        ... C = A + B
-        ... D = A - B
+        ... D = A + B
+        ... E = A - B
         ... '''
         ... )
-           A   B   C  D
-        0  1  10  11 -9
-        1  2   8  10 -6
-        2  3   6   9 -3
-        3  4   4   8  0
-        4  5   2   7  3
+           A   B  C&C   D  E
+        0  1  10   10  11 -9
+        1  2   8    9  10 -6
+        2  3   6    8   9 -3
+        3  4   4    7   8  0
+        4  5   2    6   7  3
+
+        For columns with spaces in their name, you can use backtick quoting.
+
+        >>> df.eval("B * `C&C`")
+        0    100
+        1     72
+        2     48
+        3     28
+        4     12
+
+        Local variables shall be explicitly referenced using ``@``
+        character in front of the name:
+
+        >>> local_var = 2
+        >>> df.eval("@local_var * A")
+        0     2
+        1     4
+        2     6
+        3     8
+        4    10
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -4758,6 +4789,7 @@ class DataFrame(NDFrame, OpsMixin):
         ValueError
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
+        TypeError
             * If any kind of string dtype is passed in.
 
         See Also
@@ -4768,7 +4800,9 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
         * To select strings you must use the ``object`` dtype, but note that
-          this will return *all* object dtype columns
+          this will return *all* object dtype columns. With
+          ``pd.options.future.infer_string`` enabled, using ``"str"`` will
+          work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
@@ -5702,7 +5736,6 @@ class DataFrame(NDFrame, OpsMixin):
         periods = cast(int, periods)
 
         ncols = len(self.columns)
-        arrays = self._mgr.arrays
         if axis == 1 and periods != 0 and ncols > 0 and freq is None:
             if fill_value is lib.no_default:
                 # We will infer fill_value to match the closest column
@@ -5728,12 +5761,12 @@ class DataFrame(NDFrame, OpsMixin):
 
                 result.columns = self.columns.copy()
                 return result
-            elif len(arrays) > 1 or (
+            elif len(self._mgr.blocks) > 1 or (
                 # If we only have one block and we know that we can't
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
                 #  (and avoid casting logic in the Block method).
-                not can_hold_element(arrays[0], fill_value)
+                not can_hold_element(self._mgr.blocks[0].values, fill_value)
             ):
                 # GH#35488 we need to watch out for multi-block cases
                 # We only get here with fill_value not-lib.no_default
@@ -6366,7 +6399,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         thresh : int, optional
             Require that many non-NA values. Cannot be combined with how.
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
@@ -6496,7 +6529,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[True],
@@ -6506,7 +6539,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: Literal[False] = ...,
@@ -6516,7 +6549,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = ...,
+        subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
         inplace: bool = ...,
@@ -6525,7 +6558,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: Hashable | Iterable[Hashable] | None = None,
         *,
         keep: DropKeep = "first",
         inplace: bool = False,
@@ -6539,7 +6572,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
         keep : {'first', 'last', ``False``}, default 'first'
@@ -6629,7 +6662,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def duplicated(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: Hashable | Iterable[Hashable] | None = None,
         keep: DropKeep = "first",
     ) -> Series:
         """
@@ -6639,7 +6672,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        subset : column label or sequence of labels, optional
+        subset : column label or iterable of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
         keep : {'first', 'last', False}, default 'first'
@@ -6731,10 +6764,7 @@ class DataFrame(NDFrame, OpsMixin):
             return labels.astype("i8"), len(shape)
 
         if subset is None:
-            # https://github.com/pandas-dev/pandas/issues/28770
-            # Incompatible types in assignment (expression has type "Index", variable
-            # has type "Sequence[Any]")
-            subset = self.columns  # type: ignore[assignment]
+            subset = self.columns
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
@@ -6755,7 +6785,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if len(subset) == 1 and self.columns.is_unique:
             # GH#45236 This is faster than get_group_index below
-            result = self[subset[0]].duplicated(keep)
+            result = self[next(iter(subset))].duplicated(keep)
             result.name = None
         else:
             vals = (col.values for name, col in self.items() if name in subset)
@@ -6999,19 +7029,19 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                # error: List comprehension has incompatible type List[Series];
-                # expected List[ndarray]
-                keys = [
-                    Series(k, name=name)  # type: ignore[misc]
-                    for (k, name) in zip(keys, by)
-                ]
+                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+            else:
+                # error: Argument 1 to "list" has incompatible type
+                # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
+                # expected "Iterable[Series]"
+                keys_data = list(keys)  # type: ignore[arg-type]
 
             indexer = lexsort_indexer(
-                keys, orders=ascending, na_position=na_position, key=key
+                keys_data, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
             # len(by) == 1
@@ -9252,6 +9282,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.3.0
 
+        **kwargs : dict
+            Optional keyword arguments to pass to ``aggfunc``.
+
+            .. versionadded:: 3.0.0
+
         Returns
         -------
         DataFrame
@@ -9359,6 +9394,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins_name: Level = "All",
         observed: bool = True,
         sort: bool = True,
+        **kwargs,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
@@ -9374,6 +9410,7 @@ class DataFrame(NDFrame, OpsMixin):
             margins_name=margins_name,
             observed=observed,
             sort=sort,
+            **kwargs,
         )
 
     def stack(
@@ -11429,7 +11466,7 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
-            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+            dtype = find_common_type([block.values.dtype for block in df._mgr.blocks])
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
@@ -11454,7 +11491,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # kurtosis excluded since groupby does not implement it
             if df.shape[1] and name != "kurt":
-                dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+                dtype = find_common_type(
+                    [block.values.dtype for block in df._mgr.blocks]
+                )
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
                     # This flattens the frame into a single 1D array while keeping
@@ -11528,8 +11567,8 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
-        for arr in self._mgr.arrays:
-            middle = func(arr, axis=0, skipna=skipna)
+        for blocks in self._mgr.blocks:
+            middle = func(blocks.values, axis=0, skipna=skipna)
             result = ufunc(result, middle)
 
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
@@ -11612,7 +11651,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -11659,7 +11698,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11706,7 +11745,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -11722,7 +11761,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
     def sum(
         self,
         axis: Axis | None = 0,
@@ -11823,7 +11862,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
     def prod(
         self,
         axis: Axis | None = 0,
@@ -11941,7 +11980,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -11988,7 +12027,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -12038,7 +12077,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
     def sem(
         self,
         axis: Axis | None = 0,
@@ -12158,7 +12197,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
     def var(
         self,
         axis: Axis | None = 0,
@@ -12277,7 +12316,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
     def std(
         self,
         axis: Axis | None = 0,
@@ -12322,7 +12361,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         Series.std : Return standard deviation over Series values.
         DataFrame.mean : Return the mean of the values over the requested axis.
-        DataFrame.mediam : Return the mediam of the values over the requested axis.
+        DataFrame.median : Return the median of the values over the requested axis.
         DataFrame.mode : Get the mode(s) of each element along the requested axis.
         DataFrame.sum : Return the sum of the values over the requested axis.
 
@@ -12400,7 +12439,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12520,7 +12559,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -12707,10 +12746,80 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    @doc(_shared_docs["idxmin"], numeric_only_default="False")
     def idxmin(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
+        """
+        Return index of first occurrence of minimum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire DataFrame is NA,
+            or if ``skipna=False`` and there is an NA value, this method
+            will raise a ``ValueError``.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of minima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmin : Return index of the minimum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "consumption": [10.51, 103.11, 55.48],
+        ...             "co2_emissions": [37.2, 19.66, 1712],
+        ...         }
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
+        """
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -12744,10 +12853,80 @@ class DataFrame(NDFrame, OpsMixin):
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
-    @doc(_shared_docs["idxmax"], numeric_only_default="False")
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
+        """
+        Return index of first occurrence of maximum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire DataFrame is NA,
+            or if ``skipna=False`` and there is an NA value, this method
+            will raise a ``ValueError``.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of maxima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmax : Return index of the maximum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "consumption": [10.51, 103.11, 55.48],
+        ...             "co2_emissions": [37.2, 19.66, 1712],
+        ...         }
+        ...     },
+        ...     index=["Pork", "Wheat Products", "Beef"],
+        ... )
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the maximum value in each column.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emissions             Beef
+        dtype: object
+
+        To return the index for the maximum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emissions
+        Wheat Products     consumption
+        Beef              co2_emissions
+        dtype: object
+        """
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -13046,7 +13225,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
-            cols = Index([], name=self.columns.name)
+            cols = self.columns[:0]
 
             dtype = np.float64
             if axis == 1:
@@ -13246,7 +13425,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[s]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
@@ -13294,6 +13473,11 @@ class DataFrame(NDFrame, OpsMixin):
         Series.isin: Equivalent method on Series.
         Series.str.contains: Test if pattern or regex is contained within a
             string of a Series or Index.
+
+        Notes
+        -----
+            ``__iter__`` is used (and not ``__contains__``) to iterate over values
+            when checking if it contains the elements in DataFrame.
 
         Examples
         --------
@@ -13445,26 +13629,29 @@ class DataFrame(NDFrame, OpsMixin):
     )
     columns = properties.AxisProperty(
         axis=0,
-        doc=dedent(
-            """
-                The column labels of the DataFrame.
+        doc="""
+        The column labels of the DataFrame.
 
-                See Also
-                --------
-                DataFrame.index: The index (row labels) of the DataFrame.
-                DataFrame.axes: Return a list representing the axes of the DataFrame.
+        Returns
+        -------
+        pandas.Index
+            The column labels of the DataFrame.
 
-                Examples
-                --------
-                >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
-                >>> df
-                     A  B
-                0    1  3
-                1    2  4
-                >>> df.columns
-                Index(['A', 'B'], dtype='object')
-                """
-        ),
+        See Also
+        --------
+        DataFrame.index: The index (row labels) of the DataFrame.
+        DataFrame.axes: Return a list representing the axes of the DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df
+                A  B
+        0    1  3
+        1    2  4
+        >>> df.columns
+        Index(['A', 'B'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------

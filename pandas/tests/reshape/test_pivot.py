@@ -9,7 +9,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat.numpy import np_version_gte1p25
 
@@ -1077,7 +1077,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[4.0, 5.0, 6.0]],
             columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"], dtype=object),
+            index=Index(["v"], dtype="str" if cols == ("a", "b") else "object"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -2058,6 +2058,60 @@ class TestPivotTable:
         ).rename_axis("A")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("kwargs", [{"a": 2}, {"a": 2, "b": 3}, {"b": 3, "a": 2}])
+    def test_pivot_table_kwargs(self, kwargs):
+        # GH#57884
+        def f(x, a, b=3):
+            return x.sum() * a + b
+
+        def g(x):
+            return f(x, **kwargs)
+
+        df = DataFrame(
+            {
+                "A": ["good", "bad", "good", "bad", "good"],
+                "B": ["one", "two", "one", "three", "two"],
+                "X": [2, 5, 4, 20, 10],
+            }
+        )
+        result = pivot_table(
+            df, index="A", columns="B", values="X", aggfunc=f, **kwargs
+        )
+        expected = pivot_table(df, index="A", columns="B", values="X", aggfunc=g)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs", [{}, {"b": 10}, {"a": 3}, {"a": 3, "b": 10}, {"b": 10, "a": 3}]
+    )
+    def test_pivot_table_kwargs_margin(self, data, kwargs):
+        # GH#57884
+        def f(x, a=5, b=7):
+            return (x.sum() + b) * a
+
+        def g(x):
+            return f(x, **kwargs)
+
+        result = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=f,
+            margins=True,
+            fill_value=0,
+            **kwargs,
+        )
+
+        expected = data.pivot_table(
+            values="D",
+            index=["A", "B"],
+            columns="C",
+            aggfunc=g,
+            margins=True,
+            fill_value=0,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "f, f_numpy",
         [
@@ -2515,12 +2569,16 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    @pytest.mark.parametrize("dtype", [object, "string"])
-    def test_pivot_integer_bug(self, dtype):
-        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
+    def test_pivot_integer_bug(self, any_string_dtype):
+        df = DataFrame(
+            data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=any_string_dtype
+        )
 
         result = df.pivot(index=1, columns=0, values=2)
-        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0, dtype=dtype))
+        expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
+        if any_string_dtype == "object":
+            expected_columns = expected_columns.astype("str")
+        tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
         # GH#3962
@@ -2602,7 +2660,9 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2618,7 +2678,9 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2632,7 +2694,9 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
+    @pytest.mark.xfail(
+        using_string_dtype(), reason="TODO(infer_string) None is cast to NaN"
+    )
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2705,7 +2769,7 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("m", [1, 10])
-    def test_unstack_shares_memory(self, m):
+    def test_unstack_copy(self, m):
         # GH#56633
         levels = np.arange(m)
         index = MultiIndex.from_product([levels] * 2)
@@ -2713,6 +2777,47 @@ class TestPivot:
         df = DataFrame(values, index, np.arange(100))
         df_orig = df.copy()
         result = df.unstack(sort=False)
-        assert np.shares_memory(df._values, result._values) is (m == 1)
         result.iloc[0, 0] = -1
         tm.assert_frame_equal(df, df_orig)
+
+    def test_pivot_empty_with_datetime(self):
+        # GH#59126
+        df = DataFrame(
+            {
+                "timestamp": Series([], dtype=pd.DatetimeTZDtype(tz="UTC")),
+                "category": Series([], dtype=str),
+                "value": Series([], dtype=str),
+            }
+        )
+        df_pivoted = df.pivot_table(
+            index="category", columns="value", values="timestamp"
+        )
+        assert df_pivoted.empty
+
+    def test_pivot_margins_with_none_index(self):
+        # GH#58722
+        df = DataFrame(
+            {
+                "x": [1, 1, 2],
+                "y": [3, 3, 4],
+                "z": [5, 5, 6],
+                "w": [7, 8, 9],
+            }
+        )
+        result = df.pivot_table(
+            index=None,
+            columns=["y", "z"],
+            values="w",
+            margins=True,
+            aggfunc="count",
+        )
+        expected = DataFrame(
+            [[2, 2, 1, 1]],
+            index=["w"],
+            columns=MultiIndex(
+                levels=[[3, 4], [5, 6, "All"]],
+                codes=[[0, 0, 1, 1], [0, 2, 1, 2]],
+                names=["y", "z"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

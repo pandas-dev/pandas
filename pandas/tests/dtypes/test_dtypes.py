@@ -3,7 +3,6 @@ import weakref
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
@@ -391,8 +390,9 @@ class TestDatetimeTZDtype(Base):
 
     def test_tz_standardize(self):
         # GH 24713
+        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz="US/Eastern")
+        dr = date_range("2013-01-01", periods=3, tz=tz)
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
@@ -1058,7 +1058,7 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
-        dtype = "string" if using_infer_string else "object"
+        dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
             rf"categories_dtype={dtype}\)"
@@ -1230,4 +1230,16 @@ def test_multi_column_dtype_assignment():
     tm.assert_frame_equal(df, expected)
 
     df["b"] = 0
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_empty_labels_no_dtype_conversion():
+    # GH 29707
+
+    df = pd.DataFrame({"a": [2, 3]})
+    expected = df.copy()
+    assert df.a.dtype == "int64"
+    df.loc[[]] = 0.1
+
+    assert df.a.dtype == "int64"
     tm.assert_frame_equal(df, expected)

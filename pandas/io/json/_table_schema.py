@@ -114,7 +114,7 @@ def set_default_names(data):
             )
         return data
 
-    data = data.copy()
+    data = data.copy(deep=False)
     if data.index.nlevels > 1:
         data.index.names = com.fill_missing_names(data.index.names)
     else:
@@ -144,11 +144,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         field["freq"] = dtype.freq.freqstr
     elif isinstance(dtype, DatetimeTZDtype):
         if timezones.is_utc(dtype.tz):
-            # timezone.utc has no "zone" attr
             field["tz"] = "UTC"
         else:
-            # error: "tzinfo" has no attribute "zone"
-            field["tz"] = dtype.tz.zone  # type: ignore[attr-defined]
+            zone = timezones.get_timezone(dtype.tz)
+            if isinstance(zone, str):
+                field["tz"] = zone
     elif isinstance(dtype, ExtensionDtype):
         field["extDtype"] = dtype.name
     return field
@@ -275,7 +275,7 @@ def build_table_schema(
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],
-    ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
+    ...      'C': pd.date_range('2016-01-01', freq='D', periods=3),
     ...      }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
     {'fields': \

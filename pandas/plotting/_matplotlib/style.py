@@ -260,9 +260,7 @@ def _get_colors_from_color_type(color_type: str, num_colors: int) -> list[Color]
 
 def _get_default_colors(num_colors: int) -> list[Color]:
     """Get `num_colors` of default colors from matplotlib rc params."""
-    import matplotlib.pyplot as plt
-
-    colors = [c["color"] for c in plt.rcParams["axes.prop_cycle"]]
+    colors = [c["color"] for c in mpl.rcParams["axes.prop_cycle"]]
     return colors[0:num_colors]
 
 

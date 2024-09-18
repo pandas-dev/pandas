@@ -9,7 +9,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 pytest.importorskip("xarray")
 
@@ -30,17 +29,11 @@ class TestDataFrameToXArray:
             }
         )
 
-    def test_to_xarray_index_types(self, index_flat, df, using_infer_string, request):
+    def test_to_xarray_index_types(self, index_flat, df, using_infer_string):
         index = index_flat
         # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
-        import xarray
-
-        if Version(xarray.__version__) >= Version("2024.5"):
-            request.applymarker(
-                pytest.mark.xfail(reason="https://github.com/pydata/xarray/issues/9026")
-            )
 
         from xarray import Dataset
 
@@ -59,7 +52,7 @@ class TestDataFrameToXArray:
         # column names are lost
         expected = df.copy()
         expected["f"] = expected["f"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         expected.columns.name = None
         tm.assert_frame_equal(result.to_dataframe(), expected)
@@ -88,7 +81,7 @@ class TestDataFrameToXArray:
         result = result.to_dataframe()
         expected = df.copy()
         expected["f"] = expected["f"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         expected.columns.name = None
         tm.assert_frame_equal(result, expected)

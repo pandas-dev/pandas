@@ -152,7 +152,8 @@ def test_multi_thread_path_multipart_read_csv(all_parsers):
     with tm.ensure_clean(file_name) as path:
         df.to_csv(path)
 
-        final_dataframe = _generate_multi_thread_dataframe(
-            parser, path, num_rows, num_tasks
-        )
-        tm.assert_frame_equal(df, final_dataframe)
+        result = _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
+
+    expected = df[:]
+    expected["date"] = expected["date"].astype("M8[s]")
+    tm.assert_frame_equal(result, expected)

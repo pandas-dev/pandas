@@ -271,8 +271,10 @@ def test_datetime_tz_qcut(bins):
         ],
     ],
 )
-def test_date_like_qcut_bins(arg, expected_bins):
+def test_date_like_qcut_bins(arg, expected_bins, unit):
     # see gh-19891
+    arg = arg.as_unit(unit)
+    expected_bins = expected_bins.as_unit(unit)
     ser = Series(arg)
     result, result_bins = qcut(ser, 2, retbins=True)
     tm.assert_index_equal(result_bins, expected_bins)
@@ -305,3 +307,15 @@ def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
     expected = qcut(arr.astype(float), q)
 
     tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1 / 3, 17.0])
+@pytest.mark.parametrize("q", [3, 7, 9])
+@pytest.mark.parametrize("precision", [1, 3, 16])
+def test_qcut_contains(scale, q, precision):
+    # GH-59355
+    arr = (scale * np.arange(q + 1)).round(precision)
+    result = qcut(arr, q, precision=precision)
+
+    for value, bucket in zip(arr, result):
+        assert value in bucket

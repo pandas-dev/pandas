@@ -4,13 +4,12 @@ Module for applying conditional formatting to DataFrames and Series.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import copy
 from functools import partial
 import operator
+import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
     overload,
 )
 
@@ -56,7 +55,7 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Generator,
+        Callable,
         Hashable,
         Sequence,
     )
@@ -68,6 +67,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         Concatenate,
+        ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
         IntervalClosedType,
@@ -83,22 +83,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import ExcelWriter
-
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-
-    has_mpl = True
-except ImportError:
-    has_mpl = False
-
-
-@contextmanager
-def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
-    if has_mpl:
-        yield plt, mpl
-    else:
-        raise ImportError(f"{func.__name__} requires matplotlib.")
 
 
 ####
@@ -323,6 +307,12 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified Styler appended.
+
+        See Also
+        --------
+        Styler.clear : Reset the ``Styler``, removing any previously applied styles.
+        Styler.export : Export the styles applied to the current Styler.
 
         Notes
         -----
@@ -352,7 +342,7 @@ class Styler(StylerRenderer):
             keys ``data``, ``row_heading`` and ``row`` will be prepended with
             ``foot0_``. If more concats are chained, their styles will be prepended
             with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-            another concatanated style, the second style will be prepended with
+            another concatenated style, the second style will be prepended with
             ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with
@@ -464,6 +454,15 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with DataFrame set for strings on ``Styler``
+                generating ``:hover`` tooltips.
+
+        See Also
+        --------
+        Styler.set_table_attributes : Set the table attributes added to the
+            ``<table>`` HTML element.
+        Styler.set_table_styles : Set the table styles included within the
+            ``<style>`` HTML element.
 
         Notes
         -----
@@ -554,6 +553,18 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
+        encoding_parameter=textwrap.dedent(
+            """\
+        encoding : str or None, default None
+            Unused parameter, present for compatibility.
+        """
+        ),
+        verbose_parameter=textwrap.dedent(
+            """\
+        verbose : str, default True
+            Optional unused parameter, present for compatibility.
+        """
+        ),
         extra_parameters="",
     )
     def to_excel(
@@ -569,7 +580,7 @@ class Styler(StylerRenderer):
         startrow: int = 0,
         startcol: int = 0,
         engine: str | None = None,
-        merge_cells: bool = True,
+        merge_cells: ExcelWriterMergeCells = True,
         encoding: str | None = None,
         inf_rep: str = "inf",
         verbose: bool = True,
@@ -1473,6 +1484,10 @@ class Styler(StylerRenderer):
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
 
+        See Also
+        --------
+        DataFrame.to_string : Render a DataFrame to a console-friendly tabular output.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
@@ -1512,6 +1527,8 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with ``class`` attribute set for ``<td>``
+                HTML elements.
 
         See Also
         --------
@@ -1717,6 +1734,14 @@ class Styler(StylerRenderer):
 
         Returns None.
 
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.map : Apply a CSS-styling function elementwise.
+        Styler.use : Set the styles on the current Styler.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3, np.nan]})
@@ -1838,6 +1863,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -1958,6 +1984,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2058,6 +2085,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2110,10 +2138,12 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         attributes : str
+            Table attributes to be added to the ``<table>`` HTML element.
 
         Returns
         -------
         Styler
+            Instance of class with specified table attributes set.
 
         See Also
         --------
@@ -2140,6 +2170,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         dict
+            Contains data-independent (exportable) styles applied to current Styler.
 
         See Also
         --------
@@ -2216,6 +2247,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with defined styler attributes added.
 
         See Also
         --------
@@ -2263,10 +2295,19 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         uuid : str
+            The uuid to be applied to ``id`` attributes of HTML elements.
 
         Returns
         -------
         Styler
+            Instance of class with specified uuid for `id` attributes set.
+
+        See Also
+        --------
+        Styler.set_caption : Set the text added to a ``<caption>`` HTML element.
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
 
         Notes
         -----
@@ -2307,6 +2348,14 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with text set for ``<caption>`` HTML element.
+
+        See Also
+        --------
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
+        Styler.set_uuid : Set the uuid applied to ``id`` attributes of HTML elements.
 
         Examples
         --------
@@ -2353,6 +2402,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS set for permanently displaying headers
+                in scrolling frame.
+
+        See Also
+        --------
+        Styler.set_properties : Set defined CSS-properties to each ``<td>``
+            HTML element for the given subset.
 
         Notes
         -----
@@ -2513,6 +2569,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified table styles set.
 
         See Also
         --------
@@ -2644,6 +2701,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified headers/rows/columns hidden from display.
+
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.map : Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -2882,6 +2946,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with {name} colored in gradient style.
 
         See Also
         --------
@@ -3019,6 +3084,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-properties set for each ``<td>`` HTML element
+                in the given subset
+
+        See Also
+        --------
+        Styler.set_sticky : Add CSS to permanently display the index or column
+            headers in a scrolling frame.
 
         Notes
         -----
@@ -3116,6 +3188,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Contains list-like attribute with bar chart data as formatted CSS.
+
+        See Also
+        --------
+        PlotAccessor.bar : Vertical bar plot.
+        PlotAccessor.line : Plot Series or DataFrame as lines.
+        PlotAccessor.pie : Generate a pie plot.
 
         Notes
         -----
@@ -3194,6 +3273,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where null values are highlighted with given style.
 
         See Also
         --------
@@ -3248,6 +3328,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where max value is highlighted in given style.
 
         See Also
         --------
@@ -3304,6 +3385,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where min value is highlighted in given style.
 
         See Also
         --------
@@ -3368,6 +3450,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with range highlighted in given style.
 
         See Also
         --------
@@ -3488,6 +3571,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where values in quantile highlighted with given style.
 
         See Also
         --------
@@ -3592,6 +3676,11 @@ class Styler(StylerRenderer):
         MyStyler : subclass of Styler
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
+
+        See Also
+        --------
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.use : Set the styles on the current Styler.
 
         Examples
         --------
@@ -3832,61 +3921,61 @@ def _background_gradient(
     else:  # else validate gmap against the underlying data
         gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
 
-    with _mpl(Styler.background_gradient) as (_, _matplotlib):
-        smin = np.nanmin(gmap) if vmin is None else vmin
-        smax = np.nanmax(gmap) if vmax is None else vmax
-        rng = smax - smin
-        # extend lower / upper bounds, compresses color range
-        norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
+    smin = np.nanmin(gmap) if vmin is None else vmin
+    smax = np.nanmax(gmap) if vmax is None else vmax
+    rng = smax - smin
+    _matplotlib = import_optional_dependency(
+        "matplotlib", extra="Styler.background_gradient requires matplotlib."
+    )
+    # extend lower / upper bounds, compresses color range
+    norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
 
-        if cmap is None:
-            rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](
-                norm(gmap)
+    if cmap is None:
+        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](norm(gmap))
+    else:
+        rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+
+    def relative_luminance(rgba) -> float:
+        """
+        Calculate relative luminance of a color.
+
+        The calculation adheres to the W3C standards
+        (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+        Parameters
+        ----------
+        color : rgb or rgba tuple
+
+        Returns
+        -------
+        float
+            The relative luminance as a value from 0 to 1
+        """
+        r, g, b = (
+            x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
+            for x in rgba[:3]
+        )
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+    def css(rgba, text_only) -> str:
+        if not text_only:
+            dark = relative_luminance(rgba) < text_color_threshold
+            text_color = "#f1f1f1" if dark else "#000000"
+            return (
+                f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
+                f"color: {text_color};"
             )
         else:
-            rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+            return f"color: {_matplotlib.colors.rgb2hex(rgba)};"
 
-        def relative_luminance(rgba) -> float:
-            """
-            Calculate relative luminance of a color.
-
-            The calculation adheres to the W3C standards
-            (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
-
-            Parameters
-            ----------
-            color : rgb or rgba tuple
-
-            Returns
-            -------
-            float
-                The relative luminance as a value from 0 to 1
-            """
-            r, g, b = (
-                x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
-                for x in rgba[:3]
-            )
-            return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-        def css(rgba, text_only) -> str:
-            if not text_only:
-                dark = relative_luminance(rgba) < text_color_threshold
-                text_color = "#f1f1f1" if dark else "#000000"
-                return (
-                    f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
-                    f"color: {text_color};"
-                )
-            else:
-                return f"color: {_matplotlib.colors.rgb2hex(rgba)};"
-
-        if data.ndim == 1:
-            return [css(rgba, text_only) for rgba in rgbas]
-        else:
-            return DataFrame(
-                [[css(rgba, text_only) for rgba in row] for row in rgbas],
-                index=data.index,
-                columns=data.columns,
-            )
+    if data.ndim == 1:
+        return [css(rgba, text_only) for rgba in rgbas]
+    else:
+        return DataFrame(
+            [[css(rgba, text_only) for rgba in row] for row in rgbas],
+            index=data.index,
+            columns=data.columns,
+        )
 
 
 def _highlight_between(
@@ -4124,20 +4213,22 @@ def _bar(
     rgbas = None
     if cmap is not None:
         # use the matplotlib colormap input
-        with _mpl(Styler.bar) as (_, _matplotlib):
-            cmap = (
-                _matplotlib.colormaps[cmap]
-                if isinstance(cmap, str)
-                else cmap  # assumed to be a Colormap instance as documented
-            )
-            norm = _matplotlib.colors.Normalize(left, right)
-            rgbas = cmap(norm(values))
-            if data.ndim == 1:
-                rgbas = [_matplotlib.colors.rgb2hex(rgba) for rgba in rgbas]
-            else:
-                rgbas = [
-                    [_matplotlib.colors.rgb2hex(rgba) for rgba in row] for row in rgbas
-                ]
+        _matplotlib = import_optional_dependency(
+            "matplotlib", extra="Styler.bar requires matplotlib."
+        )
+        cmap = (
+            _matplotlib.colormaps[cmap]
+            if isinstance(cmap, str)
+            else cmap  # assumed to be a Colormap instance as documented
+        )
+        norm = _matplotlib.colors.Normalize(left, right)
+        rgbas = cmap(norm(values))
+        if data.ndim == 1:
+            rgbas = [_matplotlib.colors.rgb2hex(rgba) for rgba in rgbas]
+        else:
+            rgbas = [
+                [_matplotlib.colors.rgb2hex(rgba) for rgba in row] for row in rgbas
+            ]
 
     assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
     if data.ndim == 1:

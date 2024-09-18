@@ -298,7 +298,7 @@ class TestAstype:
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
-        td = Series([Timedelta(1, unit="d")])
+        td = Series([Timedelta(1, unit="D")])
         ser = td.astype(str)
 
         expected = Series(["1 days"], dtype=object)
@@ -532,12 +532,12 @@ class TestAstypeCategorical:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object|string dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
-        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype="str")
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
         exp2 = Series([1, 2, 3, 4]).astype("int")

@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -22,7 +24,10 @@ from pandas.io.pytables import (
     _maybe_adjust_name,
 )
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_pass_spec_to_storer(setup_path):
