@@ -11,7 +11,7 @@
 This PDEP defines pandas' backwards compatibility and deprecation policy.
 
 The main additions to [pandas' current version policy](https://pandas.pydata.org/pandas-docs/version/2.2/development/policies.html) are:
-- Deprecated functionality should remain unchanged in at least 2 minor releases
+- Deprecated functionality should remain unchanged in at least 2 minor releases before being changed or removed.
 - Deprecations should initially use DeprecationWarning, and then be switched to FutureWarning in the last minor release before the major release they are planned to be removed in
 
 ## Motivation
