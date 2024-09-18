@@ -512,7 +512,11 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if res_values is values:
+        if (
+            res_values is values
+            or isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -911,7 +915,7 @@ class Block(PandasObject, libinternals.Block):
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
-                return [self]
+                return [self.copy(deep=False)]
             return self.replace(
                 to_replace=to_replace,
                 value=value,
@@ -1474,7 +1478,7 @@ class Block(PandasObject, libinternals.Block):
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
-        This is consistent with DataFrame.round behavivor.
+        This is consistent with DataFrame.round behavior.
         (Note: Series.round would raise)
 
         Parameters

@@ -152,9 +152,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
@@ -467,6 +466,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
+            if result.dtype.kind != "m":
+                # numpy >= 2.1 may not raise a TypeError
+                # and seems to dispatch to others.__rmul__?
+                raise TypeError(f"Cannot multiply with {type(other).__name__}")
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
@@ -494,6 +497,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         # numpy will accept float or int dtype, raise TypeError for others
         result = self._ndarray * other
+        if result.dtype.kind != "m":
+            # numpy >= 2.1 may not raise a TypeError
+            # and seems to dispatch to others.__rmul__?
+            raise TypeError(f"Cannot multiply with {type(other).__name__}")
         return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
@@ -835,6 +842,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     seconds_docstring = textwrap.dedent(
         """Number of seconds (>= 0 and less than 1 day) for each element.
 
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
     Examples
     --------
     For Series:
@@ -868,6 +880,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     microseconds_docstring = textwrap.dedent(
         """Number of microseconds (>= 0 and less than 1 second) for each element.
+
+    See Also
+    --------
+    pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than 1 second).
+    pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
+        than 1 second) of a datetime.timedelta.
 
     Examples
     --------
@@ -903,6 +921,11 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    See Also
+    --------
+    Series.dt.seconds : Return number of seconds for each element.
+    Series.dt.microseconds : Return number of nanoseconds for each element.
 
     Examples
     --------
@@ -947,6 +970,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like of a single
+            timedelta.
 
         Examples
         --------

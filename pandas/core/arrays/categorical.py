@@ -2495,11 +2495,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return super().unique()
 
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        # make sure we have correct itemsize for resulting codes
-        assert res_values.dtype == self._ndarray.dtype
-        return res_values
-
     def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
@@ -2686,11 +2681,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep, dtype)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

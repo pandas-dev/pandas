@@ -26,19 +26,18 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage == "python":
-        # python string storage with na_value=NaN is not yet implemented
-        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+def test_config(string_storage, using_infer_string):
+    # with the default string_storage setting
+    # always "python" at the moment
+    assert StringDtype().storage == "python"
 
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    dtype = StringDtype(
-        string_storage, na_value=np.nan if using_infer_string else pd.NA
-    )
+    # pd.array(..) by default always returns the NA-variant
+    dtype = StringDtype(string_storage, na_value=pd.NA)
     expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
@@ -86,19 +85,18 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         ArrowStringArray(arr)
 
 
-@pytest.mark.xfail(
-    reason="dict conversion does not seem to be implemented for large string in arrow"
-)
+@pytest.mark.parametrize("string_type", ["string", "large_string"])
 @pytest.mark.parametrize("chunked", [True, False])
-def test_constructor_valid_string_type_value_dictionary(chunked):
+def test_constructor_valid_string_type_value_dictionary(string_type, chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
+    arr = pa.array(["1", "2", "3"], getattr(pa, string_type)()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
     arr = ArrowStringArray(arr)
-    assert pa.types.is_string(arr._pa_array.type.value_type)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
 
 
 def test_constructor_from_list():
@@ -243,10 +241,11 @@ def test_setitem_invalid_indexer_raises():
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
-def test_pickle_roundtrip(dtype):
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_pickle_roundtrip(na_value):
     # GH 42600
     pytest.importorskip("pyarrow")
+    dtype = StringDtype("pyarrow", na_value=na_value)
     expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)

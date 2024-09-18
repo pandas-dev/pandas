@@ -1083,7 +1083,7 @@ IO
   timestamps with ``version="2.0"`` (:issue:`31652`).
 - Bug in :func:`read_csv` was raising ``TypeError`` when ``sep=None`` was used in combination with ``comment`` keyword (:issue:`31396`)
 - Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a :class:`DataFrame` in Python 3 from fixed format written in Python 2 (:issue:`31750`)
-- :func:`read_sas()` now handles dates and datetimes larger than :attr:`Timestamp.max` returning them as :class:`datetime.datetime` objects (:issue:`20927`)
+- :func:`read_sas` now handles dates and datetimes larger than :attr:`Timestamp.max` returning them as :class:`datetime.datetime` objects (:issue:`20927`)
 - Bug in :meth:`DataFrame.to_json` where ``Timedelta`` objects would not be serialized correctly with ``date_format="iso"`` (:issue:`28256`)
 - :func:`read_csv` will raise a ``ValueError`` when the column names passed in ``parse_dates`` are missing in the :class:`Dataframe` (:issue:`31251`)
 - Bug in :func:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
@@ -1174,13 +1174,13 @@ Reshaping
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregate a non-existent column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when :class:`MultiIndex` columns and :class:`MultiIndex` rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
 - Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True`` instead of ``TypeError: Can only append a :class:`Series` if ignore_index=True or if the :class:`Series` has a name`` (:issue:`30871`)
-- Bug in :meth:`DataFrame.corrwith()`, :meth:`DataFrame.memory_usage()`, :meth:`DataFrame.dot()`,
-  :meth:`DataFrame.idxmin()`, :meth:`DataFrame.idxmax()`, :meth:`DataFrame.duplicated()`, :meth:`DataFrame.isin()`,
-  :meth:`DataFrame.count()`, :meth:`Series.explode()`, :meth:`Series.asof()` and :meth:`DataFrame.asof()` not
+- Bug in :meth:`DataFrame.corrwith`, :meth:`DataFrame.memory_usage`, :meth:`DataFrame.dot`,
+  :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.duplicated`, :meth:`DataFrame.isin`,
+  :meth:`DataFrame.count`, :meth:`Series.explode`, :meth:`Series.asof` and :meth:`DataFrame.asof` not
   returning subclassed types. (:issue:`31331`)
 - Bug in :func:`concat` was not allowing for concatenation of :class:`DataFrame` and :class:`Series` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when the argument ``labels`` contains duplicates (:issue:`33141`)
-- Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
+- Ensure only named functions can be used in :func:`eval` (:issue:`32460`)
 - Bug in :meth:`Dataframe.aggregate` and :meth:`Series.aggregate` was causing a recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting :class:`MultiIndex` columns with ``col_level > 0`` would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty :class:`Series` and empty ``cond`` having non-bool dtype (:issue:`34592`)
@@ -1203,7 +1203,7 @@ ExtensionArray
 - Fixed bug in :func:`concat` when concatenating :class:`DataFrame` objects with non-overlapping columns resulting in object-dtype columns rather than preserving the extension dtype (:issue:`27692`, :issue:`33027`)
 - Fixed bug where :meth:`StringArray.isna` would return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33655`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
-- Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
+- Fixed bug that caused :meth:`Series.__repr__` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
 - Fixed bug where :meth:`Series.update` would raise a ``ValueError`` for ``ExtensionArray`` dtypes with missing values (:issue:`33980`)
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 - Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable Boolean dtypes (:issue:`34051`)

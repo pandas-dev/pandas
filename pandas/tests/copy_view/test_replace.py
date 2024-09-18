@@ -3,6 +3,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -59,7 +61,7 @@ def test_replace_regex_inplace_refs():
     tm.assert_frame_equal(view, df_orig)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace():
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
@@ -257,7 +259,7 @@ def test_replace_empty_list():
     assert not df2._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
     df = DataFrame({"a": ["a", "b", "c"]})
@@ -283,6 +285,12 @@ def test_replace_list_none():
     tm.assert_frame_equal(df, df_orig)
 
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    # replace multiple values that don't actually replace anything with None
+    # https://github.com/pandas-dev/pandas/issues/59770
+    df3 = df.replace(["d", "e", "f"], value=None)
+    tm.assert_frame_equal(df3, df_orig)
+    assert tm.shares_memory(get_array(df, "a"), get_array(df3, "a"))
 
 
 def test_replace_list_none_inplace_refs():

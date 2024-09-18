@@ -19,11 +19,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    IntegerArray,
-    StringArray,
-)
+from pandas.core.arrays import IntegerArray
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -463,11 +459,8 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
-    pa = pytest.importorskip("pyarrow")
-
     with pd.option_context("mode.string_storage", string_storage):
         parser = all_parsers
 
@@ -477,21 +470,13 @@ b,
 """
         result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-        if string_storage == "python":
-            expected = DataFrame(
-                {
-                    "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                    "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                }
-            )
-        else:
-            expected = DataFrame(
-                {
-                    "a": ArrowStringArray(pa.array(["a", "b"])),
-                    "b": ArrowStringArray(pa.array(["x", None])),
-                }
-            )
-        tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": pd.array(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": pd.array(["x", pd.NA], dtype=pd.StringDtype(string_storage)),
+            },
+        )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_dtype_backend_ea_dtype_specified(all_parsers):
@@ -507,7 +492,6 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -563,8 +547,7 @@ def test_ea_int_avoid_overflow(all_parsers):
 
 def test_string_inference(all_parsers):
     # GH#54430
-    pytest.importorskip("pyarrow")
-    dtype = "string[pyarrow_numpy]"
+    dtype = pd.StringDtype(na_value=np.nan)
 
     data = """a,b
 x,1
@@ -584,8 +567,6 @@ y,2
 @pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
 def test_string_inference_object_dtype(all_parsers, dtype):
     # GH#56047
-    pytest.importorskip("pyarrow")
-
     data = """a,b
 x,a
 y,a
@@ -599,7 +580,7 @@ z,a"""
             "a": pd.Series(["x", "y", "z"], dtype=object),
             "b": pd.Series(["a", "a", "a"], dtype=object),
         },
-        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -609,9 +590,9 @@ z,a"""
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=object),
-            "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
+            "b": pd.Series(["a", "a", "a"], dtype=pd.StringDtype(na_value=np.nan)),
         },
-        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)
 

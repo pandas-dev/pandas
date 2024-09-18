@@ -4,12 +4,17 @@ from datetime import (
     datetime,
 )
 from decimal import Decimal
+import os
 
 import numpy as np
 import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import (
+    HAS_PYARROW,
+    WASM,
+)
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import IndexingError
 
@@ -594,7 +599,7 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
         dtype = (
-            "string[pyarrow_numpy]"
+            "str"
             if using_infer_string and not isinstance(nulls_fixture, Decimal)
             else object
         )
@@ -822,6 +827,11 @@ class SetitemCastingEquivalents:
         else:
             indexer_sli(obj)[mask] = val
 
+    @pytest.mark.xfail(
+        using_string_dtype() and not HAS_PYARROW,
+        reason="TODO(infer_string)",
+        strict=False,
+    )
     def test_series_where(self, obj, key, expected, raises, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -1440,7 +1450,11 @@ class TestCoercionFloat64(CoercionTest):
             marks=pytest.mark.xfail(
                 (
                     not np_version_gte1p24
-                    or (np_version_gte1p24 and np._get_promotion_state() != "weak")
+                    or (
+                        np_version_gte1p24
+                        and os.environ.get("NPY_PROMOTION_STATE", "weak") != "weak"
+                    )
+                    or WASM
                 ),
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",

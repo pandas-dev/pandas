@@ -32,8 +32,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
@@ -807,8 +805,6 @@ class TestArrowArray(base.ExtensionTests):
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
-    divmod_exc = NotImplementedError
-
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
         if short_opname == "rtruediv":
@@ -942,10 +938,11 @@ class TestArrowArray(base.ExtensionTests):
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         if op_name in ("__divmod__", "__rdivmod__"):
-            return self.divmod_exc
+            return (NotImplementedError, TypeError)
 
+        exc: type[Exception] | tuple[type[Exception], ...] | None
         dtype = tm.get_dtype(obj)
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
         # attribute "pyarrow_dtype"
@@ -956,7 +953,7 @@ class TestArrowArray(base.ExtensionTests):
             "__mod__",
             "__rmod__",
         }:
-            exc = NotImplementedError
+            exc = (NotImplementedError, TypeError)
         elif arrow_temporal_supported:
             exc = None
         elif op_name in ["__add__", "__radd__"] and (
@@ -968,10 +965,7 @@ class TestArrowArray(base.ExtensionTests):
             or pa.types.is_integer(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
-            # TODO: in many of these cases, e.g. non-duration temporal,
-            #  these will *never* be allowed. Would it make more sense to
-            #  re-raise as TypeError, more consistent with non-pyarrow cases?
-            exc = pa.ArrowNotImplementedError
+            exc = TypeError
         else:
             exc = None
         return exc
@@ -1027,14 +1021,6 @@ class TestArrowArray(base.ExtensionTests):
 
         if all_arithmetic_operators == "__rmod__" and pa.types.is_binary(pa_dtype):
             pytest.skip("Skip testing Python string formatting")
-        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
-            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=TypeError, reason="Can only string multiply by an integer."
-                )
-            )
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -1049,14 +1035,6 @@ class TestArrowArray(base.ExtensionTests):
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ):
             pytest.skip("Skip testing Python string formatting")
-        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
-            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=TypeError, reason="Can only string multiply by an integer."
-                )
-            )
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -1078,14 +1056,6 @@ class TestArrowArray(base.ExtensionTests):
                         f"Implemented pyarrow.compute.subtract_checked "
                         f"which raises on overflow for {pa_dtype}"
                     ),
-                )
-            )
-        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
-            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=TypeError, reason="Can only string multiply by an integer."
                 )
             )
 
@@ -1883,6 +1853,17 @@ def test_str_replace_negative_n():
     expected = pd.Series(["bc", ""], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(expected, actual)
 
+    # Same bug for pyarrow-backed StringArray GH#59628
+    ser2 = ser.astype(pd.StringDtype(storage="pyarrow"))
+    actual2 = ser2.str.replace("a", "", -3, True)
+    expected2 = expected.astype(ser2.dtype)
+    tm.assert_series_equal(expected2, actual2)
+
+    ser3 = ser.astype(pd.StringDtype(storage="pyarrow", na_value=np.nan))
+    actual3 = ser3.str.replace("a", "", -3, True)
+    expected3 = expected.astype(ser3.dtype)
+    tm.assert_series_equal(expected3, actual3)
+
 
 def test_str_repeat_unsupported():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
@@ -1964,14 +1945,9 @@ def test_str_find_negative_start():
 
 def test_str_find_no_end():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    if pa_version_under13p0:
-        # https://github.com/apache/arrow/issues/36311
-        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
-            ser.str.find("ab", start=1)
-    else:
-        result = ser.str.find("ab", start=1)
-        expected = pd.Series([-1, None], dtype="int64[pyarrow]")
-        tm.assert_series_equal(result, expected)
+    result = ser.str.find("ab", start=1)
+    expected = pd.Series([-1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_find_negative_start_negative_end():
@@ -1985,17 +1961,11 @@ def test_str_find_negative_start_negative_end():
 def test_str_find_large_start():
     # GH 56791
     ser = pd.Series(["abcdefg", None], dtype=ArrowDtype(pa.string()))
-    if pa_version_under13p0:
-        # https://github.com/apache/arrow/issues/36311
-        with pytest.raises(pa.lib.ArrowInvalid, match="Negative buffer resize"):
-            ser.str.find(sub="d", start=16)
-    else:
-        result = ser.str.find(sub="d", start=16)
-        expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
-        tm.assert_series_equal(result, expected)
+    result = ser.str.find(sub="d", start=16)
+    expected = pd.Series([-1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
 )
@@ -2007,10 +1977,14 @@ def test_str_find_e2e(start, end, sub):
         ["abcaadef", "abc", "abcdeddefgj8292", "ab", "a", ""],
         dtype=ArrowDtype(pa.string()),
     )
-    object_series = s.astype(pd.StringDtype())
+    object_series = s.astype(pd.StringDtype(storage="python"))
     result = s.str.find(sub, start, end)
     expected = object_series.str.find(sub, start, end).astype(result.dtype)
     tm.assert_series_equal(result, expected)
+
+    arrow_str_series = s.astype(pd.StringDtype(storage="pyarrow"))
+    result2 = arrow_str_series.str.find(sub, start, end).astype(result.dtype)
+    tm.assert_series_equal(result2, expected)
 
 
 def test_str_find_negative_start_negative_end_no_match():
@@ -2062,6 +2036,7 @@ def test_str_join_string_type():
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
+        (None, None, -1, ["dcba", None]),
     ],
 )
 def test_str_slice(start, stop, step, exp):

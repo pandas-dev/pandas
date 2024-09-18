@@ -504,7 +504,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            pass
+            if isinstance(data, (set, frozenset)):
+                data = list(data)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
@@ -2943,7 +2944,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         With mismatched timezones, cast both to UTC.
         """
-        # Caller is responsibelf or checking
+        # Caller is responsible for checking
         #  `self.dtype != other.dtype`
         if (
             isinstance(self, ABCDatetimeIndex)
@@ -4516,8 +4517,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names_list = list(com.not_none(*self.names))
-        other_names_list = list(com.not_none(*other.names))
+        self_names_list = list(self.names)
+        other_names_list = list(other.names)
         self_names_order = self_names_list.index
         other_names_order = other_names_list.index
         self_names = set(self_names_list)
@@ -4884,7 +4885,10 @@ class Index(IndexOpsMixin, PandasObject):
             return (
                 isinstance(self.dtype, np.dtype)
                 or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
-                or self.dtype == "string[python]"
+                or (
+                    isinstance(self.dtype, StringDtype)
+                    and self.dtype.storage == "python"
+                )
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin
@@ -6874,6 +6878,9 @@ class Index(IndexOpsMixin, PandasObject):
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
+            if dtype == self.dtype:
+                # EA's might run into recursion errors if loc is invalid
+                raise
             return self.astype(dtype).insert(loc, item)
 
         if arr.dtype != object or not isinstance(

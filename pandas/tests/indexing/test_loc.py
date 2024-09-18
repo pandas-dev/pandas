@@ -1,6 +1,7 @@
 """test label based indexing with loc"""
 
 from collections import namedtuple
+import contextlib
 from datetime import (
     date,
     datetime,
@@ -12,8 +13,6 @@ import re
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-
-from pandas._config import using_string_dtype
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
@@ -62,11 +61,16 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
-    def test_none_values_on_string_columns(self):
+    def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
-        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
-
+        df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
         assert df.loc[2, "a"] is None
+
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        if using_infer_string:
+            assert np.isnan(df.loc[2, "a"])
+        else:
+            assert df.loc[2, "a"] is None
 
     def test_loc_getitem_int(self, frame_or_series):
         # int label
@@ -609,8 +613,7 @@ class TestLocBaseIndependent:
         expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_loc_setitem_consistency_slice_column_len(self):
+    def test_loc_setitem_consistency_slice_column_len(self, using_infer_string):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
         levels = [
@@ -634,12 +637,23 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-            df.loc[:, ("Respondent", "StartDate")]
-        )
-        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-            df.loc[:, ("Respondent", "EndDate")]
-        )
+        ctx = contextlib.nullcontext()
+        if using_infer_string:
+            ctx = pytest.raises(TypeError, match="Invalid value")
+
+        with ctx:
+            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+                df.loc[:, ("Respondent", "StartDate")]
+            )
+        with ctx:
+            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+                df.loc[:, ("Respondent", "EndDate")]
+            )
+
+        if using_infer_string:
+            # infer-objects won't infer stuff anymore
+            return
+
         df = df.infer_objects()
 
         # Adding a new key
@@ -1205,20 +1219,23 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="can't set int into string")
-    def test_loc_setitem_str_to_small_float_conversion_type(self):
+    def test_loc_setitem_str_to_small_float_conversion_type(self, using_infer_string):
         # GH#20388
 
         col_data = [str(np.random.default_rng(2).random() * 1e-12) for _ in range(5)]
         result = DataFrame(col_data, columns=["A"])
-        expected = DataFrame(col_data, columns=["A"], dtype=object)
+        expected = DataFrame(col_data, columns=["A"])
         tm.assert_frame_equal(result, expected)
 
         # assigning with loc/iloc attempts to set the values inplace, which
         #  in this case is successful
-        result.loc[result.index, "A"] = [float(x) for x in col_data]
-        expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
-        tm.assert_frame_equal(result, expected)
+        if using_infer_string:
+            with pytest.raises(TypeError, match="Must provide strings"):
+                result.loc[result.index, "A"] = [float(x) for x in col_data]
+        else:
+            result.loc[result.index, "A"] = [float(x) for x in col_data]
+            expected = DataFrame(col_data, columns=["A"], dtype=float).astype(object)
+            tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
         # GH#???
@@ -1394,7 +1411,7 @@ class TestLocBaseIndependent:
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha").astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         tm.assert_series_equal(result, expected)
 
@@ -1563,7 +1580,7 @@ class TestLocBaseIndependent:
         df.loc[df.index[::2], "str"] = np.nan
         expected = Series(
             [np.nan, "qux", np.nan, "qux", np.nan],
-            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+            dtype=object if not using_infer_string else "str",
         ).values
         tm.assert_almost_equal(df["str"].values, expected)
 

@@ -574,7 +574,7 @@ def sanitize_array(
         if isinstance(data, str) and using_string_dtype() and original_dtype is None:
             from pandas.core.arrays.string_ import StringDtype
 
-            dtype = StringDtype("pyarrow", na_value=np.nan)
+            dtype = StringDtype(na_value=np.nan)
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         return data
@@ -608,10 +608,13 @@ def sanitize_array(
             elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
-                dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+                dtype = StringDtype(na_value=np.nan)
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
-            if subarr is data and copy:
+            if (
+                subarr is data
+                or (subarr.dtype == "str" and subarr.dtype.storage == "python")  # type: ignore[union-attr]
+            ) and copy:
                 subarr = subarr.copy()
 
         else:

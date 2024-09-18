@@ -155,16 +155,6 @@ speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottle
 a set of specialized cython routines that are especially fast when dealing with arrays that have
 ``nans``.
 
-Here is a sample (using 100 column x 100,000 row ``DataFrames``):
-
-.. csv-table::
-    :header: "Operation", "0.11.0 (ms)", "Prior Version (ms)", "Ratio to Prior"
-    :widths: 25, 25, 25, 25
-
-    ``df1 > df2``, 13.32, 125.35,  0.1063
-    ``df1 * df2``, 21.71,  36.63,  0.5928
-    ``df1 + df2``, 22.04,  36.50,  0.6039
-
 You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
 
