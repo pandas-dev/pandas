@@ -599,3 +599,10 @@ def test_map_type():
     result = s.map(type)
     expected = Series([int, str, type], index=["a", "b", "c"])
     tm.assert_series_equal(result, expected)
+
+
+def test_map_kwargs():
+    # GH 59814
+    result = Series([2, 4, 5]).map(lambda x, y: x + y, y=2)
+    expected = Series([4, 6, 7])
+    tm.assert_series_equal(result, expected)
