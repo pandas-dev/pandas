@@ -2,6 +2,9 @@
 
 PROJECT_DIR="${1:-$PWD}"
 
+ls $PROJECT_DIR/LICENSES/*
+ls .
+
 for file in $PROJECT_DIR/LICENSES/*; do
   cat $file >> $PROJECT_DIR/LICENSE
 done
