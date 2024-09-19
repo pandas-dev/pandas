@@ -1,3 +1,11 @@
+# Add 3rd party licenses, like numpy does
+
+PROJECT_DIR="${1:-$PWD}"
+
+for file in $PROJECT_DIR/LICENSES/*; do
+  cat $file >> $PROJECT_DIR/LICENSE
+done
+
 # TODO: Delete when there's PyPI NumPy/Cython releases the support Python 3.13.
 # If free-threading support is not included in those releases, this script will have
 # to whether this runs for a free-threaded build instead.
