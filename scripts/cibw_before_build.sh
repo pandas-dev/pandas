@@ -1,12 +1,6 @@
 # Add 3rd party licenses, like numpy does
-
-PROJECT_DIR="${1:-$PWD}"
-
-ls $PROJECT_DIR/LICENSES/*
-ls .
-
-for file in $PROJECT_DIR/LICENSES/*; do
-  cat $file >> $PROJECT_DIR/LICENSE
+for file in $PACKAGE_DIR/LICENSES/*; do
+  cat $file >> $PACKAGE_DIR/LICENSE
 done
 
 # TODO: Delete when there's a PyPI Cython release that supports free-threaded Python 3.13.
