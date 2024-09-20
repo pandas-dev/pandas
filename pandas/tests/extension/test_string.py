@@ -116,6 +116,20 @@ class TestStringArray(base.ExtensionTests):
         # because StringDtype is a string type
         assert is_string_dtype(dtype)
 
+    def test_is_dtype_from_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            result = type(dtype).is_dtype(dtype.name)
+            assert result is False
+        else:
+            super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string_own_name(self, dtype, using_infer_string):
+        if dtype.na_value is np.nan and not using_infer_string:
+            with pytest.raises(TypeError, match="Cannot construct a 'StringDtype'"):
+                dtype.construct_from_string(dtype.name)
+        else:
+            super().test_construct_from_string_own_name(dtype)
+
     def test_view(self, data):
         if data.dtype.storage == "pyarrow":
             pytest.skip(reason="2D support not implemented for ArrowStringArray")

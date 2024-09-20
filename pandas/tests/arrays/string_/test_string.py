@@ -65,7 +65,7 @@ def test_repr(dtype):
     assert repr(df) == expected
 
     if dtype.na_value is np.nan:
-        expected = "0      a\n1    NaN\n2      b\nName: A, dtype: string"
+        expected = "0      a\n1    NaN\n2      b\nName: A, dtype: str"
     else:
         expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
     assert repr(df.A) == expected
@@ -75,10 +75,10 @@ def test_repr(dtype):
         expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     elif dtype.storage == "pyarrow" and dtype.na_value is np.nan:
         arr_name = "ArrowStringArrayNumpySemantics"
-        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
+        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: str"
     elif dtype.storage == "python" and dtype.na_value is np.nan:
         arr_name = "StringArrayNumpySemantics"
-        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
+        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: str"
     else:
         arr_name = "StringArray"
         expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
@@ -502,7 +502,7 @@ def test_fillna_args(dtype):
     tm.assert_extension_array_equal(res, expected)
 
     if dtype.storage == "pyarrow":
-        msg = "Invalid value '1' for dtype string"
+        msg = "Invalid value '1' for dtype str"
     else:
         msg = "Cannot set non-string value '1' into a StringArray."
     with pytest.raises(TypeError, match=msg):
@@ -524,7 +524,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
@@ -539,14 +539,17 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    assert isinstance(result["a"].dtype, pd.StringDtype)
-    expected = df.astype(f"string[{string_storage}]")
-    tm.assert_frame_equal(result, expected)
-    # ensure the missing value is represented by NA and not np.nan or None
-    assert result.loc[2, "a"] is result["a"].dtype.na_value
+    if dtype.na_value is np.nan and not using_string_dtype():
+        assert result["a"].dtype == "object"
+    else:
+        assert isinstance(result["a"].dtype, pd.StringDtype)
+        expected = df.astype(f"string[{string_storage}]")
+        tm.assert_frame_equal(result, expected)
+        # ensure the missing value is represented by NA and not np.nan or None
+        assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
@@ -563,9 +566,13 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    assert isinstance(result["a"].dtype, pd.StringDtype)
-    expected = df.astype(f"string[{string_storage}]")
-    tm.assert_frame_equal(result, expected)
+
+    if dtype.na_value is np.nan and not using_string_dtype():
+        assert result["a"].dtype == "object"
+    else:
+        assert isinstance(result["a"].dtype, pd.StringDtype)
+        expected = df.astype(f"string[{string_storage}]")
+        tm.assert_frame_equal(result, expected)
 
 
 def test_value_counts_na(dtype):

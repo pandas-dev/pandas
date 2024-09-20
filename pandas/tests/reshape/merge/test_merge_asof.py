@@ -3183,7 +3183,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan, np.nan, np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_by_col_tz_aware(self):
@@ -3234,7 +3234,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])

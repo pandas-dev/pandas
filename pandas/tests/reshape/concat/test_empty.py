@@ -27,7 +27,7 @@ class TestEmptyConcat:
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
         expected["foo"] = expected["foo"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         expected.loc[0:4, "foo"] = "bar"
 
@@ -284,7 +284,7 @@ class TestEmptyConcat:
 
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
-        assert result["b"].dtype == np.object_ if not using_infer_string else "string"
+        assert result["b"].dtype == np.object_ if not using_infer_string else "str"
 
     def test_concat_to_empty_ea(self):
         """48510 `concat` to an empty EA should maintain type EA dtype."""

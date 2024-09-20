@@ -79,7 +79,7 @@ class TestIndex:
         assert new_index.name == "name"
         if using_infer_string:
             tm.assert_extension_array_equal(
-                new_index.values, pd.array(arr, dtype="string[pyarrow_numpy]")
+                new_index.values, pd.array(arr, dtype="str")
             )
         else:
             tm.assert_numpy_array_equal(arr, new_index.values)
@@ -160,7 +160,7 @@ class TestIndex:
         df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
-        dtype = object if not using_infer_string else "string"
+        dtype = object if not using_infer_string else "str"
         assert df["date"].dtype == dtype
         expected.name = "date"
         tm.assert_index_equal(result, expected)
