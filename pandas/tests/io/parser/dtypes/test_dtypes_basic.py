@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import ParserWarning
 
 import pandas as pd
@@ -54,6 +56,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
@@ -301,6 +304,7 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
@@ -316,6 +320,7 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
@@ -458,6 +463,7 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -501,6 +507,7 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")

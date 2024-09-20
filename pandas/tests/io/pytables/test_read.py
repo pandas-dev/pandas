@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
@@ -26,7 +28,10 @@ from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 def test_read_missing_key_close_store(tmp_path, setup_path):

@@ -8,7 +8,10 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    using_string_dtype,
+)
 from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
@@ -52,6 +55,7 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
 ]
 
 

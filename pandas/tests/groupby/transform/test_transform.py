@@ -2,6 +2,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.common import ensure_platform_int
@@ -497,6 +499,7 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_transform_nuisance_raises(df):
     # case that goes through _transform_item_by_item
 
@@ -579,6 +582,7 @@ def test_transform_coercion():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_with_int():
     # GH 3740, make sure that we might upcast on item-by-item transform
 
@@ -846,6 +850,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
@@ -1219,6 +1224,7 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_groupby_transform_dtype():
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})

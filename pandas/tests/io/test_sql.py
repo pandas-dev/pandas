@@ -18,6 +18,8 @@ import uuid
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
 from pandas.compat import (
     pa_version_under13p0,
@@ -61,9 +63,12 @@ if TYPE_CHECKING:
     import sqlalchemy
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
+]
 
 
 @pytest.fixture

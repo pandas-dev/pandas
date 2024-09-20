@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Series,
@@ -361,6 +363,7 @@ def test_with_prefix_contains_get_dummies_NaN_column():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "default_category, expected",
     [

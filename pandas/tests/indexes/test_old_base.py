@@ -846,6 +846,7 @@ class TestBase:
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 

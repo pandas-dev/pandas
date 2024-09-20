@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -71,6 +73,7 @@ def test_series_describe_as_index(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_frame_describe_multikey(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -272,6 +275,7 @@ class TestGroupByNonCythonPaths:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("dtype", [int, float, object])
 @pytest.mark.parametrize(
     "kwargs",

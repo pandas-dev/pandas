@@ -6,6 +6,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
@@ -1216,6 +1218,7 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_iloc_setitem_multicolumn_to_datetime(self):
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})

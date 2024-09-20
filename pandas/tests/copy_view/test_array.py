@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas import (
     DataFrame,
     Series,
@@ -157,6 +159,7 @@ def test_dataframe_array_ea_dtypes(using_copy_on_write):
         assert arr.flags.writeable is True
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dataframe_array_string_dtype(using_copy_on_write, using_array_manager):
     df = DataFrame({"a": ["a", "b"]}, dtype="string")
     arr = np.asarray(df)
