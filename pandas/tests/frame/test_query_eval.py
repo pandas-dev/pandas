@@ -190,6 +190,25 @@ class TestDataFrameEval:
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
+    def test_extension_array_eval(self, engine, parser, request):
+        # GH#58748
+        if engine == "numexpr":
+            mark = pytest.mark.xfail(
+                reason="numexpr does not support extension array dtypes"
+            )
+            request.applymarker(mark)
+        df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
+        result = df.eval("a / b", engine=engine, parser=parser)
+        expected = Series(pd.array([0.25, 0.40, 0.50]))
+        tm.assert_series_equal(result, expected)
+
+    def test_complex_eval(self, engine, parser):
+        # GH#21374
+        df = DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
+        result = df.eval("a/b", engine=engine, parser=parser)
+        expected = Series([1.5 + 0.5j])
+        tm.assert_series_equal(result, expected)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
