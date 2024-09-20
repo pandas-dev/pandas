@@ -627,6 +627,7 @@ I/O
 - Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
+- Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
 - Bug in :meth:`read_json` not validating the ``typ`` argument to not be exactly ``"frame"`` or ``"series"`` (:issue:`59124`)
 - Bug in :meth:`read_stata` raising ``KeyError`` when input file is stored in big-endian format and contains strL data. (:issue:`58638`)
@@ -692,7 +693,6 @@ Other
 ^^^^^
 - Bug in :class:`DataFrame` when passing a ``dict`` with a NA scalar and ``columns`` that would always return ``np.nan`` (:issue:`57205`)
 - Bug in :func:`eval` on :class:`ExtensionArray` on including division ``/`` failed with a ``TypeError``. (:issue:`58748`)
-- Bug in :func:`eval` on :class:`complex` including division ``/`` discards imaginary part. (:issue:`21374`)
 - Bug in :func:`eval` where the names of the :class:`Series` were not preserved when using ``engine="numexpr"``. (:issue:`10239`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)

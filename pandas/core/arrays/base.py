@@ -1010,7 +1010,6 @@ class ExtensionArray:
             * 'time': Works on daily and higher resolution data to interpolate
             given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
             'polynomial': Passed to scipy.interpolate.interp1d, whereas 'spline'
             is passed to scipy.interpolate.UnivariateSpline. These methods use
