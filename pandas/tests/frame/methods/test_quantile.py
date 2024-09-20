@@ -354,7 +354,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_datetime(self, unit):
         dti = pd.to_datetime(["2010", "2011"]).as_unit(unit)
         df = DataFrame({"a": dti, "b": [0, 5]})
@@ -408,7 +407,6 @@ class TestDataFrameQuantile:
         expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -679,7 +677,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_quantile_empty_no_rows_floats(self, interp_method):
         interpolation, method = interp_method
 

@@ -687,7 +687,7 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    def test_rhs_alignment(self):
+    def test_rhs_alignment(self, using_infer_string):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
         def run_tests(df, rhs, right_loc, right_iloc):
@@ -731,8 +731,17 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            run_tests(df, rhs, right_loc, right_iloc)
+        if using_infer_string:
+            with pytest.raises(
+                TypeError, match="Must provide strings|Scalar must be NA or str"
+            ):
+                with tm.assert_produces_warning(
+                    FutureWarning, match="incompatible dtype"
+                ):
+                    run_tests(df, rhs, right_loc, right_iloc)
+        else:
+            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+                run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
         "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]

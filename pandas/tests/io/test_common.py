@@ -308,10 +308,12 @@ Look,a snake,🐍"""
                 "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
             ),
-            (
+            pytest.param(
                 pd.read_hdf,
                 "tables",
                 ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
+                # cleaned-up in https://github.com/pandas-dev/pandas/pull/57387 on main
+                marks=pytest.mark.xfail(reason="TODO(infer_string)", strict=False),
             ),
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),

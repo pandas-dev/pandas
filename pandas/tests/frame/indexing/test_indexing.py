@@ -519,7 +519,7 @@ class TestDataFrameIndexing:
         else:
             assert dm[2].dtype == np.object_
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_setitem_None(self, float_frame, using_infer_string):
         # GH #766
         float_frame[None] = float_frame["A"]

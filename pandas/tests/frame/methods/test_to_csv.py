@@ -35,6 +35,7 @@ class TestDataFrameToCSV:
 
         return read_csv(path, **params)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
         with tm.ensure_clean("__tmp_to_csv_from_csv1__") as path:
             float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan

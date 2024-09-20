@@ -1563,8 +1563,8 @@ The repeated labels are:\n-+\nwolof
     def test_pickle_path_localpath(self):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
