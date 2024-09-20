@@ -809,6 +809,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 return self._from_sequence([result], dtype=self.dtype)
             return result
 
+        if name == "sum":
+            return nanops.nansum(self._ndarray, skipna=skipna, **kwargs)
+
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:

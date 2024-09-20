@@ -166,18 +166,11 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
-def test_mean_with_convertible_string_raises(using_infer_string):
+def test_mean_with_convertible_string_raises():
     # GH#44008
     ser = Series(["1", "2"])
-    if using_infer_string:
-        msg = "does not support"
-        with pytest.raises(TypeError, match=msg):
-            ser.sum()
-    else:
-        assert ser.sum() == "12"
+    assert ser.sum() == "12"
+
     msg = "Could not convert string '12' to numeric|does not support"
     with pytest.raises(TypeError, match=msg):
         ser.mean()
