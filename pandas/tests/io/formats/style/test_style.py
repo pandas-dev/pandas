@@ -886,11 +886,11 @@ class TestStyler:
         expected = []
         assert maybe_convert_css_to_tuples("") == expected
 
-        #issue #59623
+        # issue #59623
         expected = [("a", "b"), ("c", "url('data:123')")]
         assert maybe_convert_css_to_tuples("a:b;c: url('data:123');") == expected
 
-        #if no value, return attr and empty string
+        # if no value, return attr and empty string
         expected = [("a", ""), ("c", "")]
         assert maybe_convert_css_to_tuples("a:;c: ") == expected
 
