@@ -128,16 +128,13 @@ class XlrdReader(BaseExcelReader["Book"]):
                         cell_contents = val
             return cell_contents
 
-        data = []
-
         nrows = sheet.nrows
         if file_rows_needed is not None:
             nrows = min(nrows, file_rows_needed)
-        for i in range(nrows):
-            row = [
+        return [
+            [
                 _parse_cell(value, typ)
                 for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
             ]
-            data.append(row)
-
-        return data
+            for i in range(nrows)
+        ]

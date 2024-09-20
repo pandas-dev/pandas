@@ -17,7 +17,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypedDict,
@@ -70,6 +69,7 @@ from pandas.io.parsers.python_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Mapping,
@@ -133,7 +133,6 @@ if TYPE_CHECKING:
         encoding_errors: str | None
         dialect: str | csv.Dialect | None
         on_bad_lines: str
-        delim_whitespace: bool | lib.NoDefault
         low_memory: bool
         memory_map: bool
         float_precision: Literal["high", "legacy", "round_trip"] | None
@@ -143,8 +142,7 @@ else:
     _read_shared = dict
 
 
-_doc_read_csv_and_table = (
-    r"""
+_doc_read_csv_and_table = r"""
 {summary}
 
 Also supports optionally iterating or breaking of the file
@@ -270,13 +268,22 @@ skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
     Number of rows of file to read. Useful for reading pieces of large files.
+    Refers to the number of data rows in the returned DataFrame, excluding:
+
+    * The header row containing column names.
+    * Rows before the header row, if ``header=1`` or larger.
+
+    Example usage:
+
+    * To read the first 999,999 (non-header) rows:
+      ``read_csv(..., nrows=999999)``
+
+    * To read rows 1,000,000 through 1,999,999:
+      ``read_csv(..., skiprows=1000000, nrows=999999)``
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
-    ``NaN``: " """
-    + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
-    + """ ".
-
+    ``NaN``: "{na_values_str}".
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -314,7 +321,7 @@ parse_dates : bool, None, list of Hashable, default None
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
     `strftime documentation
     <https://docs.python.org/3/library/datetime.html
@@ -323,9 +330,9 @@ date_format : str or dict of column -> format, optional
     You can also pass:
 
     - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
-        time string (not necessarily in exactly the same format);
+      time string (not necessarily in exactly the same format);
     - "mixed", to infer the format for each element individually. This is risky,
-        and you should probably use it along with `dayfirst`.
+      and you should probably use it along with `dayfirst`.
 
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
@@ -358,8 +365,7 @@ lineterminator : str (length 1), optional
 quotechar : str (length 1), optional
     Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
-quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, \
-3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
     ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
     characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
@@ -425,14 +431,6 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
 
         Callable for ``engine='pyarrow'``
 
-delim_whitespace : bool, default False
-    Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
-    used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
-    is set to ``True``, nothing should be passed in for the ``delimiter``
-    parameter.
-
-    .. deprecated:: 2.2.0
-        Use ``sep="\\s+"`` instead.
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
@@ -452,14 +450,14 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -553,12 +551,10 @@ col 1             int64
 col 2    datetime64[ns]
 col 3    datetime64[ns]
 dtype: object
-"""
-)
+"""  # noqa: E501
 
 
 class _C_Parser_Defaults(TypedDict):
-    delim_whitespace: Literal[False]
     na_filter: Literal[True]
     low_memory: Literal[True]
     memory_map: Literal[False]
@@ -566,7 +562,6 @@ class _C_Parser_Defaults(TypedDict):
 
 
 _c_parser_defaults: _C_Parser_Defaults = {
-    "delim_whitespace": False,
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
@@ -592,7 +587,6 @@ _pyarrow_unsupported = {
     "thousands",
     "memory_map",
     "dialect",
-    "delim_whitespace",
     "quoting",
     "lineterminator",
     "converters",
@@ -686,6 +680,14 @@ def _read(
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
+
+    # Check type of encoding_errors
+    errors = kwds.get("encoding_errors", "strict")
+    if not isinstance(errors, str):
+        raise ValueError(
+            f"encoding_errors must be a string, got {type(errors).__name__}"
+        )
+
     if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
@@ -760,6 +762,9 @@ def read_csv(
         summary="Read a comma-separated values (csv) file into DataFrame.",
         see_also_func_name="read_table",
         see_also_func_summary="Read general delimited file into DataFrame.",
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
@@ -818,24 +823,12 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -844,7 +837,6 @@ def read_csv(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -905,6 +897,9 @@ def read_table(
         see_also_func_summary=(
             "Read a comma-separated values (csv) file into DataFrame."
         ),
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
@@ -963,24 +958,12 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -989,7 +972,6 @@ def read_table(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -1296,17 +1278,10 @@ class TextFileReader(abc.Iterator):
                 engine = "python"
 
         sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
-        if sep is None and not delim_whitespace:
-            if engine in ("c", "pyarrow"):
-                fallback_reason = (
-                    f"the '{engine}' engine does not support "
-                    "sep=None with delim_whitespace=False"
-                )
-                engine = "python"
-        elif sep is not None and len(sep) > 1:
+        if sep is not None and len(sep) > 1:
             if engine == "c" and sep == r"\s+":
+                # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
                 del result["delimiter"]
             elif engine not in ("python", "python-fwf"):
@@ -1317,9 +1292,6 @@ class TextFileReader(abc.Iterator):
                     r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
-        elif delim_whitespace:
-            if "python" in engine:
-                result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
             encoding = sys.getfilesystemencoding() or "utf-8"
@@ -1582,7 +1554,10 @@ class TextFileReader(abc.Iterator):
         if self.nrows is not None:
             if self._currow >= self.nrows:
                 raise StopIteration
-            size = min(size, self.nrows - self._currow)
+            if size is None:
+                size = self.nrows - self._currow
+            else:
+                size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
     def __enter__(self) -> Self:
@@ -1673,7 +1648,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
@@ -1730,7 +1705,6 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 def _refine_defaults_read(
     dialect: str | csv.Dialect | None,
     delimiter: str | None | lib.NoDefault,
-    delim_whitespace: bool,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
     on_bad_lines: str | Callable,
@@ -1750,14 +1724,6 @@ def _refine_defaults_read(
         documentation for more details.
     delimiter : str or object
         Alias for sep.
-    delim_whitespace : bool
-        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
-        is set to True, nothing should be passed in for the ``delimiter``
-        parameter.
-
-        .. deprecated:: 2.2.0
-            Use ``sep="\\s+"`` instead.
     engine : {{'c', 'python'}}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
@@ -1777,12 +1743,6 @@ def _refine_defaults_read(
     -------
     kwds : dict
         Input parameters with correct values.
-
-    Raises
-    ------
-    ValueError :
-        If a delimiter was specified with ``sep`` (or ``delimiter``) and
-        ``delim_whitespace=True``.
     """
     # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
@@ -1812,12 +1772,6 @@ def _refine_defaults_read(
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
-
-    if delim_whitespace and (delimiter is not lib.no_default):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
 
     if delimiter == "\n":
         raise ValueError(

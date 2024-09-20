@@ -18,6 +18,8 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
@@ -53,11 +55,7 @@ def test_delim_whitespace_custom_terminator(c_parser_only):
     data = "a b c~1 2 3~4 5 6~7 8 9"
     parser = c_parser_only
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        df = parser.read_csv(StringIO(data), lineterminator="~", delim_whitespace=True)
+    df = parser.read_csv(StringIO(data), lineterminator="~", sep=r"\s+")
     expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"])
     tm.assert_frame_equal(df, expected)
 
@@ -186,6 +184,7 @@ def test_precise_conversion(c_parser_only, num):
     assert max(precise_errors) <= max(normal_errors)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_usecols_dtypes(c_parser_only):
     parser = c_parser_only
     data = """\

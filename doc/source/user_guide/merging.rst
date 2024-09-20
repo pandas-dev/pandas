@@ -763,7 +763,7 @@ Joining a single Index to a MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can join a :class:`DataFrame` with a :class:`Index` to a :class:`DataFrame` with a :class:`MultiIndex` on a level.
-The ``name`` of the :class:`Index` with match the level name of the :class:`MultiIndex`.
+The ``name`` of the :class:`Index` will match the level name of the :class:`MultiIndex`.
 
 ..  ipython:: python
 
@@ -974,7 +974,7 @@ with optional filling of missing data with ``fill_method``.
 :func:`merge_asof`
 ---------------------
 
-:func:`merge_asof` is similar to an ordered left-join except that mactches are on the
+:func:`merge_asof` is similar to an ordered left-join except that matches are on the
 nearest key rather than equal keys. For each row in the ``left`` :class:`DataFrame`,
 the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
 than the left's key. Both :class:`DataFrame` must be sorted by the key.

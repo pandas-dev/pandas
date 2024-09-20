@@ -10,7 +10,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     cast,
     overload,
@@ -87,7 +86,10 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
     from enum import Enum
 
     class ellipsis(Enum):
@@ -668,6 +670,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def density(self) -> float:
         """
         The percent of non- ``fill_value`` points, as decimal.
+
+        See Also
+        --------
+        DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
+            scipy sparse matrix.
 
         Examples
         --------

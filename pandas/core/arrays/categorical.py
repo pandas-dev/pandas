@@ -6,12 +6,10 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -24,7 +22,6 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -94,6 +91,7 @@ from pandas.io.formats import console
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sequence,
@@ -2497,11 +2495,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return super().unique()
 
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        # make sure we have correct itemsize for resulting codes
-        assert res_values.dtype == self._ndarray.dtype
-        return res_values
-
     def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
@@ -2673,62 +2666,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
-    @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self: ...
-
-    @overload
-    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None: ...
-
-    def _replace(self, *, to_replace, value, inplace: bool = False) -> Self | None:
-        from pandas import Index
-
-        orig_dtype = self.dtype
-
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        cat = self if inplace else self.copy()
-
-        mask = isna(np.asarray(value))
-        if mask.any():
-            removals = np.asarray(to_replace)[mask]
-            removals = cat.categories[cat.categories.isin(removals)]
-            new_cat = cat.remove_categories(removals)
-            NDArrayBacked.__init__(cat, new_cat.codes, new_cat.dtype)
-
-        ser = cat.categories.to_series()
-        ser = ser.replace(to_replace=to_replace, value=value)
-
-        all_values = Index(ser)
-
-        # GH51016: maintain order of existing categories
-        idxr = cat.categories.get_indexer_for(all_values)
-        locs = np.arange(len(ser))
-        locs = np.where(idxr == -1, locs, idxr)
-        locs = locs.argsort()
-
-        new_categories = ser.take(locs)
-        new_categories = new_categories.drop_duplicates(keep="first")
-        index_categories = Index(new_categories)
-        new_codes = recode_for_categories(
-            cat._codes, all_values, index_categories, copy=False
-        )
-        new_dtype = CategoricalDtype(index_categories, ordered=self.dtype.ordered)
-        NDArrayBacked.__init__(cat, new_codes, new_dtype)
-
-        if new_dtype != orig_dtype:
-            warnings.warn(
-                # GH#55147
-                "The behavior of Series.replace (and DataFrame.replace) with "
-                "CategoricalDtype is deprecated. In a future version, replace "
-                "will only be used for cases that preserve the categories. "
-                "To change the categories, use ser.cat.rename_categories "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        if not inplace:
-            return cat
-        return None
-
     # ------------------------------------------------------------------------
     # String methods interface
     def _str_map(
@@ -2744,11 +2681,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
-    def _str_get_dummies(self, sep: str = "|"):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import NumpyExtensionArray
 
-        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep, dtype)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

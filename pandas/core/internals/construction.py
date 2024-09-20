@@ -14,7 +14,7 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 
@@ -192,6 +192,7 @@ def ndarray_to_mgr(
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be a ndarray, list, Series, Index, ExtensionArray
+    infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
         if columns is None:
@@ -287,22 +288,21 @@ def ndarray_to_mgr(
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values.dtype):
+    if dtype is None and infer_object and is_object_dtype(values.dtype):
         obj_columns = list(values)
         maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
         # don't convert (and copy) the objects if no type inference occurs
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
-            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
-                new_block_2d(dvals_list[n], placement=BlockPlacement(n))
-                for n in range(len(dvals_list))
+                new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
+                for n, dval in enumerate(maybe_datetime)
             ]
         else:
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        dtype = StringDtype(storage="pyarrow_numpy")
+    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
+        dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)
         block_values = [
@@ -621,7 +621,7 @@ def reorder_arrays(
     arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
     """
-    Pre-emptively (cheaply) reindex arrays with new columns.
+    Preemptively (cheaply) reindex arrays with new columns.
     """
     # reorder according to the columns
     if columns is not None:
@@ -842,7 +842,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
+    data = [d if type(d) is dict else dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns

@@ -10,7 +10,7 @@ import time
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import IS64
 import pandas.util._test_decorators as td
@@ -28,11 +28,6 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.json import ujson_dumps
 
@@ -133,7 +128,13 @@ class TestPandasContainer:
             [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
         ],
     )
-    def test_frame_non_unique_columns(self, orient, data):
+    def test_frame_non_unique_columns(self, orient, data, request):
+        if isinstance(data[0][0], Timestamp) and orient == "split":
+            mark = pytest.mark.xfail(
+                reason="GH#55827 non-nanosecond dt64 fails to round-trip"
+            )
+            request.applymarker(mark)
+
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         expected_warning = None
@@ -141,7 +142,7 @@ class TestPandasContainer:
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
         )
-        if df.iloc[:, 0].dtype == "datetime64[ns]":
+        if df.iloc[:, 0].dtype == "datetime64[s]":
             expected_warning = FutureWarning
 
         with tm.assert_produces_warning(expected_warning, match=msg):
@@ -150,7 +151,7 @@ class TestPandasContainer:
             )
         if orient == "values":
             expected = DataFrame(data)
-            if expected.iloc[:, 0].dtype == "datetime64[ns]":
+            if expected.iloc[:, 0].dtype == "datetime64[s]":
                 # orient == "values" by default will write Timestamp objects out
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
@@ -183,6 +184,7 @@ class TestPandasContainer:
 
         assert_json_roundtrip_equal(result, expected, orient)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("dtype", [False, np.int64])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_intframe(self, orient, convert_axes, dtype, int_frame):
@@ -248,7 +250,7 @@ class TestPandasContainer:
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
         assert_json_roundtrip_equal(result, expected, orient)
@@ -268,6 +270,7 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_timestamp(self, orient, convert_axes, datetime_frame):
         # TODO: improve coverage with date_format parameter
@@ -602,7 +605,7 @@ class TestPandasContainer:
 
         # JSON deserialisation always creates unicode strings
         df_mixed.columns = df_mixed.columns.astype(
-            np.str_ if not using_infer_string else "string[pyarrow_numpy]"
+            np.str_ if not using_infer_string else "str"
         )
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
@@ -687,7 +690,7 @@ class TestPandasContainer:
         expected = string_series
         if using_infer_string and orient in ("split", "index", "columns"):
             # These schemas don't contain dtypes, so we infer string
-            expected.index = expected.index.astype("string[pyarrow_numpy]")
+            expected.index = expected.index.astype("str")
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -695,6 +698,7 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize("dtype", [False, None])
     def test_series_roundtrip_object(self, orient, dtype, object_series):
         data = StringIO(object_series.to_json(orient=orient))
@@ -786,7 +790,7 @@ class TestPandasContainer:
 
     def test_typ(self):
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
-        result = read_json(StringIO(s.to_json()), typ=None)
+        result = read_json(StringIO(s.to_json()), typ="series")
         tm.assert_series_equal(result, s)
 
     def test_reconstruction_index(self):
@@ -804,6 +808,7 @@ class TestPandasContainer:
                 df.to_json(path)
                 read_json(path)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_axis_dates(self, datetime_series, datetime_frame):
         # frame
         json = StringIO(datetime_frame.to_json())
@@ -816,6 +821,7 @@ class TestPandasContainer:
         tm.assert_series_equal(result, datetime_series, check_names=False)
         assert result.name is None
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_convert_dates(self, datetime_series, datetime_frame):
         # frame
         df = datetime_frame
@@ -856,6 +862,10 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
+        if not as_object:
+            ser = ser.astype("M8[ns]")
+            if isinstance(ser.index, DatetimeIndex):
+                ser.index = ser.index.as_unit("ns")
 
         expected_warning = None
         if date_format == "epoch":
@@ -897,10 +907,12 @@ class TestPandasContainer:
         expected = DataFrame(
             [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
         )
+        expected[infer_word] = expected[infer_word].astype("M8[ns]")
 
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     @pytest.mark.parametrize(
         "date,date_unit",
         [
@@ -961,6 +973,7 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             ts.to_json(date_format="iso", date_unit="foo")
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_date_unit(self, unit, datetime_frame):
         df = datetime_frame
         df["date"] = Timestamp("20130101 20:43:42").as_unit("ns")
@@ -1101,6 +1114,7 @@ class TestPandasContainer:
         res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.network
     @pytest.mark.single_cpu
     @pytest.mark.parametrize(
@@ -1541,6 +1555,7 @@ class TestPandasContainer:
 
         assert size_before == size_after
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize(
         "index", [None, [1, 2], [1.0, 2.0], ["a", "b"], ["1", "2"], ["1.", "2."]]
     )
@@ -1562,7 +1577,7 @@ class TestPandasContainer:
 
     # TODO: We are casting to string which coerces None to NaN before casting back
     # to object, ending up with incorrect na values
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="incorrect na conversion")
+    @pytest.mark.xfail(using_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
     def test_to_json_from_json_columns_dtypes(self, orient):
         # GH21892 GH33205
@@ -1598,6 +1613,13 @@ class TestPandasContainer:
             },
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_to_json_with_index_as_a_column_name(self):
+        df = DataFrame(data={"index": [1, 2], "a": [2, 3]})
+        with pytest.raises(
+            ValueError, match="Overlapping names between the index and columns"
+        ):
+            df.to_json(orient="table")
 
     @pytest.mark.parametrize("dtype", [True, {"b": int, "c": int}])
     def test_read_json_table_dtype_raises(self, dtype):
@@ -1836,7 +1858,7 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.skipif(
-        using_pyarrow_string_dtype(),
+        using_string_dtype(),
         reason="Adjust expected when infer_string is default, no bug here, "
         "just a complicated parametrization",
     )
@@ -2120,7 +2142,6 @@ class TestPandasContainer:
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
         # GH#50750
-        pa = pytest.importorskip("pyarrow")
         df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -2134,29 +2155,17 @@ class TestPandasContainer:
             }
         )
 
-        if using_infer_string:
-            string_array = ArrowStringArrayNumpySemantics(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArrayNumpySemantics(pa.array(["a", "b", None]))
-        elif string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
-
-        elif dtype_backend == "pyarrow":
-            pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-
-        else:
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
             result = read_json(
                 StringIO(out), dtype_backend=dtype_backend, orient=orient
             )
+
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
 
         expected = DataFrame(
             {
@@ -2166,12 +2175,13 @@ class TestPandasContainer:
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
         if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
             from pandas.arrays import ArrowExtensionArray
 
             expected = DataFrame(
@@ -2184,7 +2194,9 @@ class TestPandasContainer:
         if orient == "values":
             expected.columns = list(range(8))
 
-        tm.assert_frame_equal(result, expected)
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("orient", ["split", "records", "index"])
     def test_read_json_nullable_series(self, string_storage, dtype_backend, orient):
@@ -2233,18 +2245,18 @@ def test_pyarrow_engine_lines_false():
 
 
 def test_json_roundtrip_string_inference(orient):
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
     )
     out = df.to_json()
     with pd.option_context("future.infer_string", True):
         result = read_json(StringIO(out))
+    dtype = pd.StringDtype(na_value=np.nan)
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
-        dtype="string[pyarrow_numpy]",
-        index=Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
+        dtype=dtype,
+        index=Index(["row 1", "row 2"], dtype=dtype),
+        columns=Index(["col 1", "col 2"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
 

@@ -1138,6 +1138,7 @@ def interval_range(
     Returns
     -------
     IntervalIndex
+        Object with a fixed frequency.
 
     See Also
     --------

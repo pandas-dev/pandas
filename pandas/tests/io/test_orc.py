@@ -28,7 +28,7 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-def test_orc_reader_empty(dirpath):
+def test_orc_reader_empty(dirpath, using_infer_string):
     columns = [
         "boolean1",
         "byte1",
@@ -49,11 +49,12 @@ def test_orc_reader_empty(dirpath):
         "float32",
         "float64",
         "object",
-        "object",
+        "str" if using_infer_string else "object",
     ]
     expected = pd.DataFrame(index=pd.RangeIndex(0))
     for colname, dtype in zip(columns, dtypes):
         expected[colname] = pd.Series(dtype=dtype)
+    expected.columns = expected.columns.astype("str")
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     got = read_orc(inputfile, columns=columns)
@@ -300,7 +301,7 @@ def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
         df.to_orc()
 
 
-def test_orc_dtype_backend_pyarrow():
+def test_orc_dtype_backend_pyarrow(using_infer_string):
     pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {
@@ -321,6 +322,8 @@ def test_orc_dtype_backend_pyarrow():
             ],
         }
     )
+    # FIXME: without casting to ns we do not round-trip correctly
+    df["datetime_with_nat"] = df["datetime_with_nat"].astype("M8[ns]")
 
     bytes_data = df.copy().to_orc()
     result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
@@ -331,6 +334,13 @@ def test_orc_dtype_backend_pyarrow():
             for col in df.columns
         }
     )
+    if using_infer_string:
+        # ORC does not preserve distinction between string and large string
+        # -> the default large string comes back as string
+        string_dtype = pd.ArrowDtype(pa.string())
+        expected["string"] = expected["string"].astype(string_dtype)
+        expected["string_with_nan"] = expected["string_with_nan"].astype(string_dtype)
+        expected["string_with_none"] = expected["string_with_none"].astype(string_dtype)
 
     tm.assert_frame_equal(result, expected)
 
@@ -426,7 +436,7 @@ def test_string_inference(tmp_path):
         result = read_orc(path)
     expected = pd.DataFrame(
         data={"a": ["x", "y"]},
-        dtype="string[pyarrow_numpy]",
-        columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+        dtype=pd.StringDtype(na_value=np.nan),
+        columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)

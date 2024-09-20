@@ -37,7 +37,7 @@ from cython cimport (
     floating,
 )
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
 
@@ -96,16 +96,12 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
 )
-from pandas._libs.tslibs.conversion cimport (
-    _TSObject,
-    convert_to_tsobject,
-)
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     checknull_with_nat,
 )
-from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
@@ -183,6 +179,13 @@ def is_scalar(val: object) -> bool:
     -------
     bool
         Return True if given object is scalar.
+
+    See Also
+    --------
+    api.types.is_list_like : Check if the input is list-like.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
+    api.types.is_bool : Check if the input is a boolean.
 
     Examples
     --------
@@ -597,6 +600,8 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                     if not array_equivalent(x, y):
                         return False
 
+            elif PyArray_Check(x) or PyArray_Check(y):
+                return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
@@ -730,7 +735,9 @@ cpdef ndarray[object] ensure_string_array(
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
     copy : bool, default True
-        Whether to ensure that a new array is returned.
+        Whether to ensure that a new array is returned. When True, a new array
+        is always returned. When False, a new array is only returned when needed
+        to avoid mutating the input array.
     skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
         (e.g. if False, NaN becomes 'nan').
@@ -759,11 +766,15 @@ cpdef ndarray[object] ensure_string_array(
 
     result = np.asarray(arr, dtype="object")
 
-    if copy and (result is arr or np.shares_memory(arr, result)):
-        # GH#54654
-        result = result.copy()
-    elif not copy and result is arr:
-        already_copied = False
+    if result is arr or np.may_share_memory(arr, result):
+        # if np.asarray(..) did not make a copy of the input arr, we still need
+        #  to do that to avoid mutating the input array
+        # GH#54654: share_memory check is needed for rare cases where np.asarray
+        #  returns a new object without making a copy of the actual data
+        if copy:
+            result = result.copy()
+        else:
+            already_copied = False
     elif not copy and not result.flags.writeable:
         # Weird edge case where result is a view
         already_copied = False
@@ -1120,9 +1131,20 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
     Returns
     -------
     bool
+
+    See Also
+    --------
+    api.types.is_scalar : Check if the input is a scalar.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
 
     Examples
     --------
@@ -1139,9 +1161,21 @@ def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
 
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
     Returns
     -------
     bool
+
+    See Also
+    --------
+    api.types.is_complex_dtype: Check whether the provided array or
+                                dtype is of a complex dtype.
+    api.types.is_number: Check if the object is a number.
+    api.types.is_integer: Return True if given object is integer.
 
     Examples
     --------
@@ -1442,6 +1476,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
+        The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.
 
@@ -1475,6 +1510,14 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     ------
     TypeError
         If ndarray-like but cannot infer the dtype
+
+    See Also
+    --------
+    api.types.is_scalar : Check if the input is a scalar.
+    api.types.is_list_like : Check if the input is list-like.
+    api.types.is_integer : Check if the input is an integer.
+    api.types.is_float : Check if the input is a float.
+    api.types.is_bool : Check if the input is a boolean.
 
     Notes
     -----
@@ -2481,7 +2524,6 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[uint8_t] mask
         Seen seen = Seen()
         object val
-        _TSObject tsobj
         float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
@@ -2588,8 +2630,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 else:
                     seen.datetime_ = True
                     try:
-                        tsobj = convert_to_tsobject(val, None, None, 0, 0)
-                        tsobj.ensure_reso(NPY_FR_ns)
+                        convert_to_tsobject(val, None, None, 0, 0)
                     except OutOfBoundsDatetime:
                         # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
@@ -2689,16 +2730,16 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
-            from pandas.core.arrays.string_ import StringDtype
-
-            dtype = StringDtype(storage="pyarrow_numpy")
-            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
-
-        elif convert_to_nullable_dtype and is_string_array(objects, skipna=True):
+        if convert_to_nullable_dtype and is_string_array(objects, skipna=True):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype()
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
+        elif using_string_dtype() and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype(na_value=np.nan)
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True

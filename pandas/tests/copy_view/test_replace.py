@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -9,6 +13,7 @@ import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize(
     "replace_kwargs",
     [
@@ -56,6 +61,7 @@ def test_replace_regex_inplace_refs():
     tm.assert_frame_equal(view, df_orig)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_replace_regex_inplace():
     df = DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
@@ -129,18 +135,14 @@ def test_replace_to_replace_wrong_dtype():
 def test_replace_list_categorical():
     df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     arr = get_array(df, "a")
-    msg = (
-        r"The behavior of Series\.replace \(and DataFrame.replace\) "
-        "with CategoricalDtype"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.replace(["c"], value="a", inplace=True)
+
+    df.replace(["c"], value="a", inplace=True)
     assert np.shares_memory(arr.codes, get_array(df, "a").codes)
     assert df._mgr._has_no_reference(0)
 
     df_orig = df.copy()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df2 = df.replace(["b"], value="a")
+    df.replace(["b"], value="a")
+    df2 = df.apply(lambda x: x.cat.rename_categories({"b": "d"}))
     assert not np.shares_memory(arr.codes, get_array(df2, "a").codes)
 
     tm.assert_frame_equal(df, df_orig)
@@ -150,13 +152,7 @@ def test_replace_list_inplace_refs_categorical():
     df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     view = df[:]
     df_orig = df.copy()
-    msg = (
-        r"The behavior of Series\.replace \(and DataFrame.replace\) "
-        "with CategoricalDtype"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.replace(["c"], value="a", inplace=True)
-    assert not np.shares_memory(get_array(view, "a").codes, get_array(df, "a").codes)
+    df.replace(["c"], value="a", inplace=True)
     tm.assert_frame_equal(df_orig, view)
 
 
@@ -195,56 +191,34 @@ def test_replace_inplace_reference_no_op(to_replace):
 
 
 @pytest.mark.parametrize("to_replace", [1, [1]])
-@pytest.mark.parametrize("val", [1, 1.5])
-def test_replace_categorical_inplace_reference(val, to_replace):
+def test_replace_categorical_inplace_reference(to_replace):
     df = DataFrame({"a": Categorical([1, 2, 3])})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
-    msg = (
-        r"The behavior of Series\.replace \(and DataFrame.replace\) "
-        "with CategoricalDtype"
-    )
-    warn = FutureWarning if val == 1.5 else None
-    with tm.assert_produces_warning(warn, match=msg):
-        df.replace(to_replace=to_replace, value=val, inplace=True)
-
+    df.replace(to_replace=to_replace, value=1, inplace=True)
     assert not np.shares_memory(get_array(df, "a").codes, arr_a.codes)
     assert df._mgr._has_no_reference(0)
     assert view._mgr._has_no_reference(0)
     tm.assert_frame_equal(view, df_orig)
 
 
-@pytest.mark.parametrize("val", [1, 1.5])
-def test_replace_categorical_inplace(val):
+def test_replace_categorical_inplace():
     df = DataFrame({"a": Categorical([1, 2, 3])})
     arr_a = get_array(df, "a")
-    msg = (
-        r"The behavior of Series\.replace \(and DataFrame.replace\) "
-        "with CategoricalDtype"
-    )
-    warn = FutureWarning if val == 1.5 else None
-    with tm.assert_produces_warning(warn, match=msg):
-        df.replace(to_replace=1, value=val, inplace=True)
+    df.replace(to_replace=1, value=1, inplace=True)
 
     assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
     assert df._mgr._has_no_reference(0)
 
-    expected = DataFrame({"a": Categorical([val, 2, 3])})
+    expected = DataFrame({"a": Categorical([1, 2, 3])})
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.parametrize("val", [1, 1.5])
-def test_replace_categorical(val):
+def test_replace_categorical():
     df = DataFrame({"a": Categorical([1, 2, 3])})
     df_orig = df.copy()
-    msg = (
-        r"The behavior of Series\.replace \(and DataFrame.replace\) "
-        "with CategoricalDtype"
-    )
-    warn = FutureWarning if val == 1.5 else None
-    with tm.assert_produces_warning(warn, match=msg):
-        df2 = df.replace(to_replace=1, value=val)
+    df2 = df.replace(to_replace=1, value=1)
 
     assert df._mgr._has_no_reference(0)
     assert df2._mgr._has_no_reference(0)
@@ -285,6 +259,7 @@ def test_replace_empty_list():
     assert not df2._mgr._has_no_reference(0)
 
 
+@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
     df = DataFrame({"a": ["a", "b", "c"]})
@@ -310,6 +285,12 @@ def test_replace_list_none():
     tm.assert_frame_equal(df, df_orig)
 
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+
+    # replace multiple values that don't actually replace anything with None
+    # https://github.com/pandas-dev/pandas/issues/59770
+    df3 = df.replace(["d", "e", "f"], value=None)
+    tm.assert_frame_equal(df3, df_orig)
+    assert tm.shares_memory(get_array(df, "a"), get_array(df3, "a"))
 
 
 def test_replace_list_none_inplace_refs():
