@@ -102,7 +102,6 @@ jobs:
 
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
-            CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
 
       - run:
           name: Install Anaconda Client & Upload Wheels
