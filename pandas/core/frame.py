@@ -4479,8 +4479,11 @@ class DataFrame(NDFrame, OpsMixin):
         expr : str
             The query string to evaluate.
 
+            See the documentation for :func:`eval` for details of
+            supported operations and functions in the query string.
+
             See the documentation for :meth:`DataFrame.eval` for details on
-            referring to column names and variables.
+            referring to column names and variables in the query string.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
         **kwargs
