@@ -2289,6 +2289,7 @@ def test_read_json_lines_rangeindex():
     tm.assert_index_equal(result, expected, exact=True)
 
 
+@td.skip_if_no("pyarrow")
 def test_read_json_pyarrow_dtype(datapath):
     dtype = {"a": "int32[pyarrow]", "b": "int64[pyarrow]"}
 
