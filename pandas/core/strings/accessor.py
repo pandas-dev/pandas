@@ -3461,7 +3461,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Example
     --------
-    
+
     >>> s1 = pd.Series(['one', 'one1', '1', ''])
     >>> s1.str.isalpha()
     0     True
@@ -3552,7 +3552,7 @@ class StringMethods(NoNewAttributesMixin):
     """
     _shared_docs["isspace"] = """
     Checks for whitespaces.
-    
+
     Example
     --------
 
@@ -3592,7 +3592,7 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """
-    _shared_docs["istitle"] ="""
+    _shared_docs["istitle"] = """
     The ``s5.str.istitle`` method checks for whether all words are in title
     case (whether only the first letter of each word is capitalized). Words are
     assumed to be as any sequence of non-numeric characters separated by
@@ -3621,31 +3621,49 @@ class StringMethods(NoNewAttributesMixin):
     # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
 
     isalnum = _map_and_wrap(
-        "isalnum", docstring=(_shared_docs["ismethods"] + _shared_docs["isalnum"]) % _doc_args["isalnum"]
+        "isalnum",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isalnum"])
+        % _doc_args["isalnum"],
     )
     isalpha = _map_and_wrap(
-        "isalpha", docstring=(_shared_docs["ismethods"] + _shared_docs["isalpha"]) % _doc_args["isalpha"]
+        "isalpha",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isalpha"])
+        % _doc_args["isalpha"],
     )
     isdigit = _map_and_wrap(
-        "isdigit", docstring=(_shared_docs["ismethods"] + _shared_docs["isdigit"]) % _doc_args["isdigit"]
+        "isdigit",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isdigit"])
+        % _doc_args["isdigit"],
     )
     isspace = _map_and_wrap(
-        "isspace", docstring=(_shared_docs["ismethods"] + _shared_docs["isspace"]) % _doc_args["isspace"]
+        "isspace",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isspace"])
+        % _doc_args["isspace"],
     )
     islower = _map_and_wrap(
-        "islower", docstring=(_shared_docs["ismethods"] + _shared_docs["islower"]) % _doc_args["islower"]
+        "islower",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["islower"])
+        % _doc_args["islower"],
     )
     isupper = _map_and_wrap(
-        "isupper", docstring=(_shared_docs["ismethods"] + _shared_docs["isupper"]) % _doc_args["isupper"]
+        "isupper",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isupper"])
+        % _doc_args["isupper"],
     )
     istitle = _map_and_wrap(
-        "istitle", docstring=(_shared_docs["ismethods"] + _shared_docs["istitle"]) % _doc_args["istitle"]
+        "istitle",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["istitle"])
+        % _doc_args["istitle"],
     )
     isnumeric = _map_and_wrap(
-        "isnumeric", docstring=(_shared_docs["ismethods"] + _shared_docs["isnumeric"]) % _doc_args["isnumeric"]
+        "isnumeric",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isnumeric"])
+        % _doc_args["isnumeric"],
     )
     isdecimal = _map_and_wrap(
-        "isdecimal", docstring=(_shared_docs["ismethods"] + _shared_docs["isdecimal"]) % _doc_args["isdecimal"]
+        "isdecimal",
+        docstring=(_shared_docs["ismethods"] + _shared_docs["isdecimal"])
+        % _doc_args["isdecimal"],
     )
 
 
